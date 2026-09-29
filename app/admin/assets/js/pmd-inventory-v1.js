@@ -465,16 +465,23 @@
         : '';
       var meta = [item.category, packageMeta, item.supplier_name].filter(Boolean).join(' · ');
 
+      var onHand = ownerQuantity(item, item.estimated_on_hand);
+      var parOwner = ownerQuantity(item, item.par_level);
+      var onHandBase = onHand.converted
+        ? ('<small class="pmd-inv__stock-percent">' + esc(num(item.estimated_on_hand, 2) + ' ' + item.unit + ' equivalent') + '</small>')
+        : '';
+
       return '<tr class="is-' + esc(status) + '">' +
         '<td class="pmd-inv__item-name"><button type="button" class="pmd-inv__item-edit" data-pmd-inv-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button><small>' + esc(meta || 'Stock item') + '</small></td>' +
-        '<td><span class="pmd-inv__qty">' + esc(num(item.estimated_on_hand, 3)) + ' <small>' + esc(item.unit) + '</small></span>' +
+        '<td><span class="pmd-inv__qty">' + esc(num(onHand.qty, 2)) + ' <small>' + esc(onHand.unit) + '</small></span>' +
+          onHandBase +
           (item.stock_percent === null || typeof item.stock_percent === 'undefined'
             ? ''
             : '<small class="pmd-inv__stock-percent">' + esc(String(item.stock_percent)) + '% of par</small>') +
         '</td>' +
-        '<td>' + esc(num(item.avg_daily_usage, 3)) + ' ' + esc(item.unit) + '</td>' +
+        '<td>' + esc(num(ownerQuantity(item, item.avg_daily_usage).qty, 2)) + ' ' + esc(onHand.unit) + '</td>' +
         '<td><span class="pmd-inv__days">' + esc(days) + '</span></td>' +
-        '<td>' + esc(num(item.par_level, 3)) + ' ' + esc(item.unit) + '</td>' +
+        '<td>' + esc(num(parOwner.qty, 2)) + ' ' + esc(parOwner.unit) + '</td>' +
         '<td><span class="pmd-inv__variance' + varianceClass + '">' +
           (variance > 0 ? '+' : '') + esc(num(variance, 3)) + ' ' + esc(item.unit) +
         '</span></td>' +
@@ -492,15 +499,17 @@
       var status = String(item.status || 'healthy');
       if (status === 'critical' || status === 'low') {
         var buyQty = Number(item.suggested_order_qty || 0);
+        var buyOwner = ownerQuantity(item, buyQty);
+        var onHandOwner = ownerQuantity(item, item.estimated_on_hand);
         rows.push({
           priority: status === 'critical' ? 1 : 2,
           className: status,
           name: item.name,
           copy: item.days_left === null
-            ? (num(item.estimated_on_hand, 2) + ' ' + item.unit + ' estimated on hand')
+            ? (num(onHandOwner.qty, 2) + ' ' + onHandOwner.unit + ' estimated on hand')
             : (num(item.days_left, 1) + ' days left at recent sales usage'),
           value: buyQty > 0
-            ? ('BUY ' + num(buyQty, 2) + ' ' + item.unit)
+            ? ('BUY ' + num(buyOwner.qty, 2) + ' ' + buyOwner.unit)
             : (status === 'critical' ? 'RESTOCK' : 'LOW')
         });
       }
@@ -866,8 +875,9 @@
     form.querySelector('[name="purchase_cost"]').value = item
       ? String(item.purchase_unit_cost || 0)
       : '0';
-    form.querySelector('[name="reorder_point"]').value = item ? String(item.reorder_point || 0) : '0';
-    form.querySelector('[name="par_level"]').value = item ? String(item.par_level || 0) : '0';
+    var factor = item ? purchaseFactor(item) : 1;
+    form.querySelector('[name="reorder_point"]').value = item ? String(Number(item.reorder_point || 0) / factor) : '0';
+    form.querySelector('[name="par_level"]').value = item ? String(Number(item.par_level || 0) / factor) : '0';
     form.querySelector('[name="supplier_name"]').value = item ? String(item.supplier_name || '') : '';
 
     if (unit) {
@@ -909,6 +919,9 @@
     if (name === 'recipe') {
       var recipeLines = root.querySelector('[data-pmd-inv-recipe-lines]');
       if (recipeLines && !recipeLines.children.length) addRecipeLine({});
+    }
+    if (name === 'waste') {
+      updateWasteUnitOptions();
     }
     if (name === 'count') {
       renderCountLines();
@@ -1098,10 +1111,11 @@
     }
 
     host.innerHTML = items().map(function (item) {
-      return '<div class="pmd-inv-count-row" data-pmd-count-item="' + esc(item.id) + '" data-pmd-count-expected="' + esc(item.estimated_on_hand) + '">' +
-        '<strong>' + esc(item.name) + ' <small>' + esc(item.unit) + '</small></strong>' +
-        '<span>Expected <b>' + esc(num(item.estimated_on_hand, 3)) + '</b></span>' +
-        '<input type="number" min="0" step="0.0001" data-pmd-count-actual placeholder="Actual count">' +
+      var expected = ownerQuantity(item, item.estimated_on_hand);
+      return '<div class="pmd-inv-count-row" data-pmd-count-item="' + esc(item.id) + '" data-pmd-count-expected="' + esc(item.estimated_on_hand) + '" data-pmd-count-factor="' + esc(purchaseFactor(item)) + '" data-pmd-count-unit="' + esc(expected.unit) + '">' +
+        '<strong>' + esc(item.name) + ' <small>' + esc(expected.unit) + '</small></strong>' +
+        '<span>Expected <b>' + esc(num(expected.qty, 2)) + '</b></span>' +
+        '<input type="number" min="0" step="0.0001" data-pmd-count-actual placeholder="Actual ' + esc(expected.unit) + '">' +
         '<span class="pmd-inv-count-variance" data-pmd-count-variance>Variance —</span>' +
       '</div>';
     }).join('');
@@ -1121,10 +1135,14 @@
     }
 
     var expected = Number(row.getAttribute('data-pmd-count-expected') || 0);
-    var actual = Number(input.value || 0);
+    var factor = Math.max(0.0001, Number(row.getAttribute('data-pmd-count-factor') || 1));
+    var unit = String(row.getAttribute('data-pmd-count-unit') || '');
+    var actualOwner = Number(input.value || 0);
+    var actual = actualOwner * factor;
     var diff = actual - expected;
+    var diffOwner = diff / factor;
 
-    node.textContent = 'Variance ' + (diff > 0 ? '+' : '') + num(diff, 3);
+    node.textContent = 'Variance ' + (diffOwner > 0 ? '+' : '') + num(diffOwner, 2) + ' ' + unit;
     node.className = 'pmd-inv-count-variance' +
       (diff < 0 ? ' is-negative' : (diff > 0 ? ' is-positive' : ''));
   }
@@ -1137,7 +1155,8 @@
       if (!input || input.value === '') return null;
       return {
         item_id: Number(row.getAttribute('data-pmd-count-item') || 0),
-        counted_qty: Number(input.value || 0)
+        counted_qty: Number(input.value || 0) *
+          Math.max(0.0001, Number(row.getAttribute('data-pmd-count-factor') || 1))
       };
     }).filter(Boolean);
   }
@@ -1330,6 +1349,11 @@
       return;
     }
 
+    if (event.target.matches('[data-pmd-waste-item]')) {
+      updateWasteUnitOptions();
+      return;
+    }
+
     if (event.target.matches('[data-pmd-recipe-item]')) {
       updateRecipeLineUnit(event.target.closest('.pmd-inv-line'));
       return;
@@ -1437,6 +1461,16 @@
       }
 
       if (kind === 'waste') {
+        var wasteItem = itemById(payload.item_id);
+        if (wasteItem) {
+          var wasteUnit = String(payload.quantity_unit || wasteItem.unit || '');
+          var baseUnit = String(wasteItem.unit || '');
+          var purchaseUnit = String(wasteItem.purchase_unit || baseUnit);
+          if (wasteUnit === purchaseUnit && purchaseUnit !== baseUnit) {
+            payload.quantity = Number(payload.quantity || 0) * purchaseFactor(wasteItem);
+          }
+        }
+        delete payload.quantity_unit;
         submitAction(form, 'onRecordWaste', payload, 'Waste recorded.');
         return;
       }
