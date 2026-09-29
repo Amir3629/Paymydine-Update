@@ -1542,16 +1542,10 @@
   }
 
   function isPastSelectedDate() {
-    var editorDate = state.editor.open && quickField('reserve_date')
-      ? String(quickField('reserve_date').value || '')
-      : '';
-
     return Boolean(
+      state.date &&
       state.today &&
-      (
-        (state.date && state.date < state.today) ||
-        (/^\d{4}-\d{2}-\d{2}$/.test(editorDate) && editorDate < state.today)
-      )
+      state.date < state.today
     );
   }
 
