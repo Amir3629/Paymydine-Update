@@ -203,6 +203,57 @@
     }) || null;
   }
 
+  function purchaseFactor(item) {
+    return Math.max(0.0001, Number(item && item.purchase_to_base || 1));
+  }
+
+  function ownerQuantity(item, baseQty) {
+    item = item || {};
+    var factor = purchaseFactor(item);
+    var baseUnit = String(item.unit || 'piece');
+    var purchaseUnit = String(item.purchase_unit || baseUnit);
+    var usePurchase = purchaseUnit && purchaseUnit !== baseUnit;
+
+    return {
+      qty: Number(baseQty || 0) / (usePurchase ? factor : 1),
+      unit: usePurchase ? purchaseUnit : baseUnit,
+      base_qty: Number(baseQty || 0),
+      base_unit: baseUnit,
+      converted: usePurchase
+    };
+  }
+
+  function ownerQuantityLabel(item, baseQty, digits) {
+    var value = ownerQuantity(item, baseQty);
+    return num(value.qty, typeof digits === 'number' ? digits : 2) + ' ' + value.unit;
+  }
+
+  function updateWasteUnitOptions() {
+    var form = root.querySelector('[data-pmd-inv-form="waste"]');
+    if (!form) return;
+
+    var itemId = Number((form.querySelector('[data-pmd-waste-item]') || {}).value || 0);
+    var select = form.querySelector('[data-pmd-waste-unit]');
+    var item = itemById(itemId);
+    if (!select) return;
+
+    if (!item) {
+      select.innerHTML = '<option value="">Choose item first</option>';
+      return;
+    }
+
+    var base = String(item.unit || 'piece');
+    var purchase = String(item.purchase_unit || base);
+    var html = '<option value="' + esc(base) + '">' + esc(base) + '</option>';
+
+    if (purchase !== base) {
+      html = '<option value="' + esc(purchase) + '">' + esc(purchase) + '</option>' + html;
+    }
+
+    select.innerHTML = html;
+    select.value = purchase !== base ? purchase : base;
+  }
+
   function itemOptions(emptyLabel) {
     var html = '<option value="">' + esc(emptyLabel || 'Choose item') + '</option>';
     items().forEach(function (item) {
