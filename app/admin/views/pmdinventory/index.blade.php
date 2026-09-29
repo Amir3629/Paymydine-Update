@@ -123,7 +123,7 @@
                             <tr>
                                 <th>Item</th>
                                 <th>On hand</th>
-                                <th>Use / day</th>
+                                <th>Sales use / day</th>
                                 <th>Days left</th>
                                 <th>Par</th>
                                 <th>Last variance</th>
