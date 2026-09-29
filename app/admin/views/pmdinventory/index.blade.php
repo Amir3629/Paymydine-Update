@@ -196,7 +196,7 @@
         {{-- New physical stock item --}}
         <div class="pmd-inv-modal" data-pmd-inv-modal="item" hidden aria-hidden="true">
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
-            <section class="pmd-inv-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-item-title">
+            <section class="pmd-inv-modal__sheet pmd-modal-card" data-pmd-card-language-v1="inventory" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-item-title">
                 <header>
                     <div><span>Catalog</span><h2 id="pmd-inv-item-title" data-pmd-inv-item-title>Add stock item</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
@@ -207,19 +207,19 @@
                     <div class="pmd-inv-r6-item-basic">
                         <div class="pmd-inv-r6-name-field">
                             <label>
-                                <span>Item name</span>
+                                <span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-box"/></svg><b>Item name</b></span>
                                 <input name="name" required placeholder="Start typing any stock item…" autocomplete="off" data-pmd-inv-common-search>
                             </label>
                             <div class="pmd-inv-r6-suggestions" data-pmd-inv-common-results hidden></div>
                         </div>
 
                         <label>
-                            <span>Purchase unit</span>
+                            <span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-package"/></svg><b>Purchase unit</b></span>
                             <select name="purchase_unit">@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
                         </label>
 
                         <label class="pmd-inv-r6-package-field">
-                            <span>1 purchase unit contains</span>
+                            <span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-scale"/></svg><b>1 purchase unit contains</b></span>
                             <div>
                                 <input type="number" min="0.0001" step="0.0001" name="purchase_to_base" value="1" placeholder="750">
                                 <select name="unit">@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
@@ -228,24 +228,24 @@
                         </label>
 
                         <label data-pmd-inv-opening-field>
-                            <span>Current stock</span>
+                            <span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-stock"/></svg><b>Current stock</b></span>
                             <input type="number" min="0" step="0.0001" name="opening_qty" value="" placeholder="0" required>
                         </label>
 
                         <label>
-                            <span>Cost per purchase unit</span>
+                            <span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-money"/></svg><b>Cost per purchase unit</b></span>
                             <input type="number" min="0" step="0.0001" name="purchase_cost" value="0" placeholder="0.00">
                         </label>
                     </div>
 
                     <details class="pmd-inv-r6-advanced">
-                        <summary>More settings</summary>
+                        <summary><svg aria-hidden="true"><use href="#pmd-inv-icon-sliders"/></svg><span>More settings</span></summary>
                         <div class="pmd-inv-form-grid">
-                            <label><span>Category</span><input name="category" placeholder="Optional"></label>
-                            <label><span>SKU / code</span><input name="sku" placeholder="Optional"></label>
-                            <label><span>Reorder at</span><input type="number" min="0" step="0.0001" name="reorder_point" value="0"></label>
-                            <label><span>Target / par</span><input type="number" min="0" step="0.0001" name="par_level" value="0"></label>
-                            <label class="is-wide"><span>Supplier</span><input name="supplier_name" placeholder="Optional"></label>
+                            <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-tag"/></svg><b>Category</b></span><input name="category" placeholder="Optional"></label>
+                            <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-barcode"/></svg><b>SKU / code</b></span><input name="sku" placeholder="Optional"></label>
+                            <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-alert"/></svg><b>Reorder at</b></span><input type="number" min="0" step="0.0001" name="reorder_point" value="0"></label>
+                            <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-target"/></svg><b>Target / par</b></span><input type="number" min="0" step="0.0001" name="par_level" value="0"></label>
+                            <label class="is-wide"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-truck"/></svg><b>Supplier</b></span><input name="supplier_name" placeholder="Optional"></label>
                         </div>
                     </details>
 
@@ -262,7 +262,7 @@
         {{-- Purchase / supplier bill --}}
         <div class="pmd-inv-modal" data-pmd-inv-modal="purchase" hidden aria-hidden="true">
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
-            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-purchase-title">
+            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large pmd-modal-card" data-pmd-card-language-v1="inventory" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-purchase-title">
                 <header>
                     <div><span>Incoming stock</span><h2 id="pmd-inv-purchase-title">Add purchase</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
@@ -270,7 +270,7 @@
 
                 <div class="pmd-inv-receipt-scan">
                     <div>
-                        <strong>Scan supplier bill</strong>
+                        <strong class="pmd-inv-card-section-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-receipt"/></svg><span>Scan supplier bill</span></strong>
                         <span>{{ $aiReceipts ? 'Upload a photo/PDF to fill the items automatically.' : 'Attach the bill or enter the items below.' }}</span>
                     </div>
                     <label class="pmd-inv-upload">
@@ -284,12 +284,12 @@
                 <form data-pmd-inv-form="purchase">
                     <input type="hidden" name="receipt_id" value="">
                     <div class="pmd-inv-form-grid pmd-inv-form-grid--purchase">
-                        <label><span>Supplier</span><input name="supplier_name" placeholder="Supplier"></label>
-                        <label><span>Purchase date</span><input type="date" name="purchased_at" value="{{ now()->toDateString() }}"></label>
+                        <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-truck"/></svg><b>Supplier</b></span><input name="supplier_name" placeholder="Supplier"></label>
+                        <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-calendar"/></svg><b>Purchase date</b></span><input type="date" name="purchased_at" value="{{ now()->toDateString() }}"></label>
                     </div>
 
                     <div class="pmd-inv-lines-head">
-                        <div><strong>Items received</strong></div>
+                        <div><strong class="pmd-inv-card-section-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-stock"/></svg><span>Items received</span></strong></div>
                         <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-add-purchase-line>+ Line</button>
                     </div>
                     <div class="pmd-inv-purchase-line-head" aria-hidden="true">
@@ -305,18 +305,18 @@
         {{-- Waste --}}
         <div class="pmd-inv-modal" data-pmd-inv-modal="waste" hidden aria-hidden="true">
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
-            <section class="pmd-inv-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-waste-title">
+            <section class="pmd-inv-modal__sheet pmd-modal-card" data-pmd-card-language-v1="inventory" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-waste-title">
                 <header>
                     <div><span>Stock outflow</span><h2 id="pmd-inv-waste-title">Record waste</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
                 <form data-pmd-inv-form="waste">
                     <div class="pmd-inv-form-grid">
-                        <label class="is-wide"><span>Stock item</span><select name="item_id" required data-pmd-inv-item-select data-pmd-waste-item><option value="">Choose item</option></select></label>
-                        <label><span>Quantity</span><input type="number" min="0.0001" step="0.0001" name="quantity" required></label>
-                        <label><span>Unit</span><select name="quantity_unit" data-pmd-waste-unit><option value="">Choose item first</option></select></label>
-                        <label class="is-wide"><span>Reason</span><select name="reason">@foreach($wasteReasons as $reason)<option value="{{ $reason }}">{{ $reason }}</option>@endforeach</select></label>
-                        <label class="is-wide"><span>Note</span><textarea name="note" rows="3" placeholder="Optional detail"></textarea></label>
+                        <label class="is-wide"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-box"/></svg><b>Stock item</b></span><select name="item_id" required data-pmd-inv-item-select data-pmd-waste-item><option value="">Choose item</option></select></label>
+                        <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-scale"/></svg><b>Quantity</b></span><input type="number" min="0.0001" step="0.0001" name="quantity" required></label>
+                        <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-ruler"/></svg><b>Unit</b></span><select name="quantity_unit" data-pmd-waste-unit><option value="">Choose item first</option></select></label>
+                        <label class="is-wide"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-trash"/></svg><b>Reason</b></span><select name="reason">@foreach($wasteReasons as $reason)<option value="{{ $reason }}">{{ $reason }}</option>@endforeach</select></label>
+                        <label class="is-wide"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-note"/></svg><b>Note</b></span><textarea name="note" rows="3" placeholder="Optional detail"></textarea></label>
                     </div>
                     <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--amber">Record waste</button></footer>
                 </form>
@@ -326,7 +326,7 @@
         {{-- Recipe --}}
         <div class="pmd-inv-modal" data-pmd-inv-modal="recipe" hidden aria-hidden="true">
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
-            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-recipe-title">
+            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large pmd-modal-card" data-pmd-card-language-v1="inventory" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-recipe-title">
                 <header>
                     <div><span>Menu → stock</span><h2 id="pmd-inv-recipe-title">Connect menu</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
@@ -339,11 +339,11 @@
                     </div>
 
                     <div class="pmd-inv-form-grid">
-                        <label class="is-wide"><span>Menu item</span><select name="menu_id" required data-pmd-inv-menu-select><option value="">Choose menu item</option></select></label>
+                        <label class="is-wide"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-menu"/></svg><b>Menu item</b></span><select name="menu_id" required data-pmd-inv-menu-select><option value="">Choose menu item</option></select></label>
                     </div>
 
                     <div class="pmd-inv-lines-head">
-                        <div><strong>Used per sale</strong></div>
+                        <div><strong class="pmd-inv-card-section-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-recipe"/></svg><span>Used per sale</span></strong></div>
                         <div class="pmd-inv-lines-head__actions">
                             <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-direct-recipe>Use 1 package</button>
                             <button type="button" class="pmd-inv-mini-btn is-primary" data-pmd-inv-add-recipe-line>+ Ingredient</button>
@@ -368,13 +368,13 @@
         {{-- Automatic shopping list --}}
         <div class="pmd-inv-modal" data-pmd-inv-modal="shopping" hidden aria-hidden="true">
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
-            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-shopping-title">
+            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large pmd-modal-card" data-pmd-card-language-v1="inventory" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-shopping-title">
                 <header>
                     <div><span>Reorder plan</span><h2 id="pmd-inv-shopping-title">Shopping list</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
                 <div class="pmd-inv-shopping-intro">
-                    <strong>Plan the next shop</strong>
+                    <strong class="pmd-inv-card-section-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-cart"/></svg><span>Plan the next shop</span></strong>
                     <span>Choose how far ahead you want to cover. PayMyDine uses current stock, recent sales usage and your reorder level.</span>
                 </div>
 
@@ -385,7 +385,7 @@
                         <button type="button" data-pmd-shopping-days="7">7 days</button>
                     </div>
                     <label>
-                        <span>Or cover until</span>
+                        <span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-calendar"/></svg><b>Or cover until</b></span>
                         <input type="date" min="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" data-pmd-shopping-date>
                     </label>
                 </div>
@@ -393,6 +393,8 @@
                 <div class="pmd-inv-shopping-summary" data-pmd-inv-shopping-summary></div>
                 <div class="pmd-inv-shopping-list" data-pmd-inv-shopping-list></div>
                 <footer class="pmd-inv-modal__static-footer">
+                    <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button>
+                    <span class="pmd-inv-footer-spacer"></span>
                     <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-copy-shopping>Copy list</button>
                     <button type="button" class="pmd-inv-btn pmd-inv-btn--ink" data-pmd-inv-print-shopping>Print</button>
                 </footer>
@@ -402,21 +404,46 @@
         {{-- Physical count --}}
         <div class="pmd-inv-modal" data-pmd-inv-modal="count" hidden aria-hidden="true">
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
-            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--count" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-count-title">
+            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--count pmd-modal-card" data-pmd-card-language-v1="inventory" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-count-title">
                 <header>
                     <div><span>Physical verification</span><h2 id="pmd-inv-count-title">Count stock</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
                 <form data-pmd-inv-form="count">
-                    <div class="pmd-inv-count-help">Enter what is physically there now. The variance preview compares it with purchases − recipe usage − recorded waste.</div>
+                    <div class="pmd-inv-count-help"><strong class="pmd-inv-card-section-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-clipboard"/></svg><span>Physical count</span></strong><p>Enter what is physically there now. The variance preview compares it with purchases − recipe usage − recorded waste.</p></div>
                     <div class="pmd-inv-count-grid" data-pmd-inv-count-lines></div>
-                    <label class="pmd-inv-count-note"><span>Count note</span><textarea name="note" rows="2" placeholder="Optional"></textarea></label>
+                    <label class="pmd-inv-count-note"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-note"/></svg><b>Count note</b></span><textarea name="note" rows="2" placeholder="Optional"></textarea></label>
                     <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink">Complete count</button></footer>
                 </form>
             </section>
         </div>
     @endif
 </main>
+
+
+{{-- PMD_INVENTORY_CARD_LANGUAGE_R8 --}}
+<svg class="pmd-inv-card-sprite" aria-hidden="true" width="0" height="0"><defs>
+  <symbol id="pmd-inv-icon-box" viewBox="0 0 24 24"><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/></symbol>
+  <symbol id="pmd-inv-icon-package" viewBox="0 0 24 24"><path d="M4 7h16v13H4zM7 7l2-4h6l2 4M8 12h8"/></symbol>
+  <symbol id="pmd-inv-icon-scale" viewBox="0 0 24 24"><path d="M12 4v16M5 7h14M7 7l-3 6h6L7 7ZM17 7l-3 6h6l-3-6ZM8 20h8"/></symbol>
+  <symbol id="pmd-inv-icon-stock" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="7" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/><rect x="13" y="13" width="8" height="7" rx="1"/></symbol>
+  <symbol id="pmd-inv-icon-money" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5c-.8-.7-1.8-1-3-1-1.7 0-3 .8-3 2s1.1 1.8 3.2 2.2c2 .4 2.8 1.1 2.8 2.3s-1.3 2-3 2c-1.3 0-2.5-.4-3.4-1.2M12 5.8v12.4"/></symbol>
+  <symbol id="pmd-inv-icon-sliders" viewBox="0 0 24 24"><path d="M4 6h6M14 6h6M10 4v4M4 12h10M18 12h2M14 10v4M4 18h2M10 18h10M6 16v4"/></symbol>
+  <symbol id="pmd-inv-icon-tag" viewBox="0 0 24 24"><path d="M20 13 13 20 4 11V4h7l9 9Z"/><circle cx="8.5" cy="8.5" r="1.5"/></symbol>
+  <symbol id="pmd-inv-icon-barcode" viewBox="0 0 24 24"><path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M20 5v14"/></symbol>
+  <symbol id="pmd-inv-icon-alert" viewBox="0 0 24 24"><path d="m12 3 9 17H3L12 3Z"/><path d="M12 9v5M12 17h.01"/></symbol>
+  <symbol id="pmd-inv-icon-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 4V2M20 12h2M12 20v2M4 12H2"/></symbol>
+  <symbol id="pmd-inv-icon-truck" viewBox="0 0 24 24"><path d="M3 6h11v10H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+  <symbol id="pmd-inv-icon-receipt" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol>
+  <symbol id="pmd-inv-icon-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></symbol>
+  <symbol id="pmd-inv-icon-ruler" viewBox="0 0 24 24"><path d="m4 17 13-13 3 3L7 20l-3-3Z"/><path d="m9 15-2-2M12 12l-2-2M15 9l-2-2"/></symbol>
+  <symbol id="pmd-inv-icon-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></symbol>
+  <symbol id="pmd-inv-icon-note" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
+  <symbol id="pmd-inv-icon-menu" viewBox="0 0 24 24"><path d="M5 3v8M3 3v5a2 2 0 0 0 4 0V3M5 11v10M15 3v18M15 3c4 2 5 5 5 8h-5"/></symbol>
+  <symbol id="pmd-inv-icon-recipe" viewBox="0 0 24 24"><path d="M5 6h14M7 6v14h10V6M9 3h6v3M9 11h6M9 15h4"/></symbol>
+  <symbol id="pmd-inv-icon-cart" viewBox="0 0 24 24"><path d="M3 4h2l2 11h10l3-7H7M9 20h.01M17 20h.01"/></symbol>
+  <symbol id="pmd-inv-icon-clipboard" viewBox="0 0 24 24"><path d="M8 5H5v16h14V5h-3M9 3h6v4H9zM8 12h8M8 16h6"/></symbol>
+</defs></svg>
 
 <script id="pmd-inventory-bootstrap" type="application/json">{!! json_encode(
     $bootstrap,
