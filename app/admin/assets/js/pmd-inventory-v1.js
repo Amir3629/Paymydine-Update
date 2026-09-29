@@ -273,7 +273,7 @@
       var meta = [item.category, item.supplier_name].filter(Boolean).join(' · ');
 
       return '<tr class="is-' + esc(status) + '">' +
-        '<td class="pmd-inv__item-name"><strong>' + esc(item.name) + '</strong><small>' + esc(meta || 'Stock item') + '</small></td>' +
+        '<td class="pmd-inv__item-name"><button type="button" class="pmd-inv__item-edit" data-pmd-inv-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button><small>' + esc(meta || 'Stock item') + '</small></td>' +
         '<td><span class="pmd-inv__qty">' + esc(num(item.estimated_on_hand, 3)) + ' <small>' + esc(item.unit) + '</small></span></td>' +
         '<td>' + esc(num(item.avg_daily_usage, 3)) + ' ' + esc(item.unit) + '</td>' +
         '<td><span class="pmd-inv__days">' + esc(days) + '</span></td>' +
@@ -345,9 +345,17 @@
       purchases.innerHTML = rows.length
         ? rows.map(function (row) {
             var source = String(row.source || '') === 'ai_receipt' ? 'Scanned supplier bill' : 'Manual purchase';
+            var detail = Array.isArray(row.lines)
+              ? row.lines.slice(0, 4).map(function (line) {
+                  return num(line.quantity, 3) + ' ' + (line.unit || '') + ' ' + (line.item_name || '');
+                }).join(' · ')
+              : '';
+            if (Array.isArray(row.lines) && row.lines.length > 4) {
+              detail += ' · +' + String(row.lines.length - 4) + ' more';
+            }
             return '<div class="pmd-inv-activity-row">' +
               '<time>' + esc(dateLabel(row.purchased_at)) + '</time>' +
-              '<div><strong>' + esc(row.supplier_name || 'Supplier not set') + '</strong><small>' + esc(source) + '</small></div>' +
+              '<div><strong>' + esc(row.supplier_name || 'Supplier not set') + '</strong><small>' + esc(detail || source) + '</small></div>' +
               '<b>' + esc(money(row.total_amount)) + '</b>' +
             '</div>';
           }).join('')
@@ -408,6 +416,37 @@
     syncSelects();
   }
 
+  function prepareItemEditor(itemId) {
+    var modal = root.querySelector('[data-pmd-inv-modal="item"]');
+    var form = modal ? modal.querySelector('[data-pmd-inv-form="item"]') : null;
+    if (!modal || !form) return;
+
+    form.reset();
+    var item = itemId ? itemById(itemId) : null;
+    var title = modal.querySelector('[data-pmd-inv-item-title]');
+    var save = modal.querySelector('[data-pmd-inv-item-save]');
+    var openingField = modal.querySelector('[data-pmd-inv-opening-field]');
+    var unit = form.querySelector('[name="unit"]');
+
+    form.querySelector('[name="item_id"]').value = item ? String(item.id) : '';
+    form.querySelector('[name="name"]').value = item ? String(item.name || '') : '';
+    form.querySelector('[name="category"]').value = item ? String(item.category || '') : '';
+    form.querySelector('[name="sku"]').value = item ? String(item.sku || '') : '';
+    form.querySelector('[name="unit_cost"]').value = item ? String(item.unit_cost || 0) : '0';
+    form.querySelector('[name="reorder_point"]').value = item ? String(item.reorder_point || 0) : '0';
+    form.querySelector('[name="par_level"]').value = item ? String(item.par_level || 0) : '0';
+    form.querySelector('[name="supplier_name"]').value = item ? String(item.supplier_name || '') : '';
+
+    if (unit) {
+      unit.disabled = Boolean(item);
+      unit.value = item ? String(item.unit || 'piece') : 'piece';
+    }
+
+    if (openingField) openingField.hidden = Boolean(item);
+    if (title) title.textContent = item ? 'Edit stock item' : 'Add stock item';
+    if (save) save.textContent = item ? 'Save item' : 'Add item';
+  }
+
   function openModal(name) {
     var modal = root.querySelector('[data-pmd-inv-modal="' + name + '"]');
     if (!modal) return;
@@ -439,6 +478,17 @@
 
     var form = modal.querySelector('form');
     if (form && !state.busy) form.reset();
+
+    if (modal.matches('[data-pmd-inv-modal="item"]')) {
+      var itemUnit = modal.querySelector('[name="unit"]');
+      var openingField = modal.querySelector('[data-pmd-inv-opening-field]');
+      var itemTitle = modal.querySelector('[data-pmd-inv-item-title]');
+      var itemSave = modal.querySelector('[data-pmd-inv-item-save]');
+      if (itemUnit) itemUnit.disabled = false;
+      if (openingField) openingField.hidden = false;
+      if (itemTitle) itemTitle.textContent = 'Add stock item';
+      if (itemSave) itemSave.textContent = 'Add item';
+    }
 
     if (modal.matches('[data-pmd-inv-modal="purchase"]')) {
       var purchaseLines = modal.querySelector('[data-pmd-inv-purchase-lines]');
@@ -638,10 +688,20 @@
   }
 
   root.addEventListener('click', function (event) {
+    var editItem = event.target.closest('[data-pmd-inv-edit-item]');
+    if (editItem) {
+      event.preventDefault();
+      prepareItemEditor(Number(editItem.getAttribute('data-pmd-inv-edit-item') || 0));
+      openModal('item');
+      return;
+    }
+
     var open = event.target.closest('[data-pmd-inv-open]');
     if (open) {
       event.preventDefault();
-      openModal(String(open.getAttribute('data-pmd-inv-open') || ''));
+      var modalName = String(open.getAttribute('data-pmd-inv-open') || '');
+      if (modalName === 'item') prepareItemEditor(0);
+      openModal(modalName);
       return;
     }
 
@@ -777,7 +837,13 @@
       var payload = formObject(form);
 
       if (kind === 'item') {
-        submitAction(form, 'onAddItem', payload, 'Stock item added.');
+        var editing = Number(payload.item_id || 0) > 0;
+        submitAction(
+          form,
+          'onSaveItem',
+          payload,
+          editing ? 'Stock item updated.' : 'Stock item added.'
+        );
         return;
       }
 
