@@ -3037,6 +3037,16 @@ html body.page.pmd-inventory-page #pmd-inventory-v1.pmd-inv {
   gap: 9px !important;
 }
 
+.pmd-inv-r6-header__ops {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+}
+
+.pmd-inv-r6-header__ops[hidden] {
+  display: none !important;
+}
+
 .pmd-inv-r6-header__actions .pmd-inv-header-btn {
   height: 44px !important;
   min-height: 44px !important;
