@@ -52,6 +52,7 @@
       reservationId: 0,
       tableIds: [],
       tableNames: [],
+      assignmentMode: 'auto',
       saving: false
     }
   };
@@ -731,12 +732,13 @@
     var ids = state.editor.tableIds.slice();
     var names = state.editor.tableNames.slice();
     var assignment = quickField('assignment_mode');
+    var mode = ids.length ? 'choose' : (state.editor.assignmentMode === 'later' ? 'later' : 'auto');
 
-    if (assignment) assignment.value = ids.length ? 'choose' : 'auto';
+    if (assignment) assignment.value = mode;
     if (quickTableText) {
       quickTableText.textContent = ids.length
         ? (names.length ? names.join(', ') : ids.map(function (id) { return 'Table ' + id; }).join(', '))
-        : 'Automatic';
+        : (mode === 'later' ? 'Assign later' : 'Automatic');
     }
 
     root.querySelectorAll('[data-qpos-table]').forEach(function (button) {
@@ -751,6 +753,7 @@
     state.editor.reservationId = 0;
     state.editor.tableIds = [];
     state.editor.tableNames = [];
+    state.editor.assignmentMode = 'auto';
     state.editor.saving = false;
 
     if (quickEditor) {
@@ -780,6 +783,9 @@
           ? row.table_names.slice()
           : (row.table_name ? [String(row.table_name)] : []))
       : (state.selectedTableName ? [state.selectedTableName] : []);
+    state.editor.assignmentMode = state.editor.tableIds.length
+      ? 'choose'
+      : (id ? 'later' : 'auto');
 
     quickForm.reset();
     if (quickField('first_name')) quickField('first_name').value = row ? rowName(row) : '';
@@ -835,7 +841,7 @@
       reserve_time: String((quickField('reserve_time') || {}).value || '').slice(0, 5),
       duration: Math.max(0, Number((quickField('duration') || {}).value || 0)),
       comment: String((quickField('comment') || {}).value || '').trim(),
-      assignment_mode: ids.length ? 'choose' : 'auto',
+      assignment_mode: ids.length ? 'choose' : (state.editor.assignmentMode === 'later' ? 'later' : 'auto'),
       tables: ids,
       pmd_table_features: [],
       occasion_id: 0,
@@ -900,6 +906,7 @@
     if (state.editor.open) {
       state.editor.tableIds = [id];
       state.editor.tableNames = [name];
+      state.editor.assignmentMode = 'choose';
       if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = '1';
       syncQuickTableUI();
       setQuickStatus('Assigned to Table ' + name + '.', false);
@@ -963,6 +970,7 @@
       if (state.editor.open) {
         state.editor.tableIds = [];
         state.editor.tableNames = [];
+        state.editor.assignmentMode = 'auto';
         syncQuickTableUI();
         setQuickStatus('Floor changed. Table assignment returned to Automatic.', false);
       }
@@ -1103,9 +1111,23 @@
       event.preventDefault();
       state.editor.tableIds = [];
       state.editor.tableNames = [];
+      state.editor.assignmentMode = 'auto';
       if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = '0';
       syncQuickTableUI();
       setQuickStatus('Automatic table assignment selected.', false);
+    });
+  }
+
+  var quickLater = document.querySelector('[data-qres-quick-later]');
+  if (quickLater) {
+    quickLater.addEventListener('click', function (event) {
+      event.preventDefault();
+      state.editor.tableIds = [];
+      state.editor.tableNames = [];
+      state.editor.assignmentMode = 'later';
+      if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = '0';
+      syncQuickTableUI();
+      setQuickStatus('No table will be assigned yet.', false);
     });
   }
 
