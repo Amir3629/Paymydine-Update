@@ -2164,6 +2164,21 @@ html body.page.pmd-inventory-page #pmd-inventory-v1 :is(
   color: #351800 !important;
 }
 
+.pmd-inv-btn--danger-ghost {
+  border-color: #efb2ba !important;
+  background: #fff !important;
+  color: #a91d31 !important;
+}
+
+.pmd-inv-btn--danger-ghost:hover {
+  border-color: #d83a50 !important;
+  background: #fff3f5 !important;
+}
+
+.pmd-inv-footer-spacer {
+  flex: 1 1 auto !important;
+}
+
 /* Modal shell aligns with current PMD cards. */
 .pmd-inv-modal__sheet {
   border-color: #cfe0ec !important;
