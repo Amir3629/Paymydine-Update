@@ -207,6 +207,41 @@
     });
   }
 
+  function syncPurchaseDatalist() {
+    var list = document.getElementById('pmd-inv-purchase-items-r1');
+    if (!list) {
+      list = document.createElement('datalist');
+      list.id = 'pmd-inv-purchase-items-r1';
+      root.appendChild(list);
+    }
+
+    list.innerHTML = items().map(function (item) {
+      return '<option value="' + esc(item.name) + '">' +
+        esc(item.unit + (item.supplier_name ? ' · ' + item.supplier_name : '')) +
+      '</option>';
+    }).join('');
+  }
+
+  function syncPurchaseLineToKnownItem(input) {
+    var name = String(input && input.value || '').trim().toLowerCase();
+    if (!name) return;
+
+    var item = items().find(function (row) {
+      return String(row.name || '').trim().toLowerCase() === name;
+    });
+    if (!item) return;
+
+    var line = input.closest('.pmd-inv-line');
+    if (!line) return;
+
+    var unit = line.querySelector('[data-pmd-purchase-unit]');
+    var cost = line.querySelector('[data-pmd-purchase-cost]');
+    if (unit) unit.value = String(item.unit || 'piece');
+    if (cost && (!cost.value || Number(cost.value) === 0)) {
+      cost.value = String(item.unit_cost || 0);
+    }
+  }
+
   function renderSummary() {
     var summary = state.snapshot.summary || {};
 
@@ -414,6 +449,7 @@
     renderAttention();
     renderActivity();
     syncSelects();
+    syncPurchaseDatalist();
   }
 
   function prepareItemEditor(itemId) {
@@ -529,7 +565,7 @@
     var row = document.createElement('div');
     row.className = 'pmd-inv-line';
     row.innerHTML =
-      '<input type="text" data-pmd-purchase-name placeholder="Stock item" value="' + esc(data.item_name || '') + '" required>' +
+      '<input type="text" list="pmd-inv-purchase-items-r1" data-pmd-purchase-name placeholder="Stock item" value="' + esc(data.item_name || '') + '" required>' +
       '<input type="number" min="0.0001" step="0.0001" data-pmd-purchase-qty placeholder="Qty" value="' + esc(data.quantity == null ? '' : data.quantity) + '" required>' +
       '<select data-pmd-purchase-unit>' + unitOptions(data.unit || 'piece') + '</select>' +
       '<input type="number" min="0" step="0.0001" data-pmd-purchase-cost placeholder="Unit cost" value="' + esc(data.unit_cost == null ? '' : data.unit_cost) + '">' +
@@ -764,6 +800,11 @@
   });
 
   root.addEventListener('change', function (event) {
+    if (event.target.matches('[data-pmd-purchase-name]')) {
+      syncPurchaseLineToKnownItem(event.target);
+      return;
+    }
+
     if (event.target.matches('[data-pmd-inv-menu-select]')) {
       loadRecipeForMenu(event.target.value);
       return;
