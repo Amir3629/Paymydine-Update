@@ -208,18 +208,18 @@
                         <div class="pmd-inv-r6-name-field">
                             <label>
                                 <span>Item name</span>
-                                <input name="name" required placeholder="e.g. Vodka" autocomplete="off" data-pmd-inv-common-search>
+                                <input name="name" required placeholder="Start typing any stock item…" autocomplete="off" data-pmd-inv-common-search>
                             </label>
                             <div class="pmd-inv-r6-suggestions" data-pmd-inv-common-results hidden></div>
                         </div>
 
                         <label>
-                            <span>Bought as</span>
+                            <span>Purchase unit</span>
                             <select name="purchase_unit">@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
                         </label>
 
                         <label class="pmd-inv-r6-package-field">
-                            <span>Each one contains</span>
+                            <span>1 purchase unit contains</span>
                             <div>
                                 <input type="number" min="0.0001" step="0.0001" name="purchase_to_base" value="1" placeholder="750">
                                 <select name="unit">@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
@@ -229,7 +229,7 @@
 
                         <label data-pmd-inv-opening-field>
                             <span>Current stock</span>
-                            <input type="number" min="0" step="0.0001" name="opening_qty" value="0">
+                            <input type="number" min="0" step="0.0001" name="opening_qty" value="" placeholder="0" required>
                         </label>
 
                         <label>
@@ -250,6 +250,8 @@
                     </details>
 
                     <footer>
+                        <button type="button" class="pmd-inv-btn pmd-inv-btn--danger-ghost" data-pmd-inv-archive-item hidden>Archive item</button>
+                        <span class="pmd-inv-footer-spacer"></span>
                         <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button>
                         <button type="submit" class="pmd-inv-btn pmd-inv-btn--ink" data-pmd-inv-item-save>Add item</button>
                     </footer>
