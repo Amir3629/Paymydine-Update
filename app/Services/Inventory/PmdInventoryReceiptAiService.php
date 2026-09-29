@@ -2,9 +2,13 @@
 
 namespace App\Services\Inventory;
 
+use App\Services\AI\AiBudgetService;
+use App\Services\AI\AiHealthService;
+use App\Services\AI\AiUsageLedger;
 use App\Services\AI\GeminiGenerateContentProvider;
 use App\Services\AI\OpenAiResponsesProvider;
 use RuntimeException;
+use Throwable;
 
 /**
  * PMD_INVENTORY_RECEIPT_AI_R1
@@ -17,19 +21,13 @@ final class PmdInventoryReceiptAiService
 {
     public function available(): bool
     {
-        if (!(bool)config('pmd_ai.enabled', false)) {
+        try {
+            $status = app(AiHealthService::class)->status();
+            return !empty($status['configured'])
+                && !empty($status['available_for_traffic']);
+        } catch (Throwable $error) {
             return false;
         }
-
-        $provider = strtolower(trim((string)config('pmd_ai.provider', '')));
-        if ($provider === 'openai') {
-            return trim((string)config('pmd_ai.openai_api_key', '')) !== '';
-        }
-        if ($provider === 'gemini') {
-            return trim((string)config('pmd_ai.gemini_api_key', '')) !== '';
-        }
-
-        return false;
     }
 
     public function extract(string $absolutePath, string $mimeType): array
@@ -124,8 +122,48 @@ final class PmdInventoryReceiptAiService
             $payload['response_mime_type'] = 'application/json';
         }
 
-        $result = $provider->create($payload);
-        $text = trim($provider->outputText((array)($result['body'] ?? [])));
+        $model = trim((string)config('pmd_ai.model', ''));
+        $health = app(AiHealthService::class);
+        $budget = app(AiBudgetService::class);
+        $ledger = app(AiUsageLedger::class);
+
+        $health->assertCanAttempt($providerName, $model);
+        $budget->consumeGlobal();
+
+        $startedAt = microtime(true);
+        try {
+            $result = $provider->create($payload);
+            $latencyMs = max(0, (int)round((microtime(true) - $startedAt) * 1000));
+            $body = (array)($result['body'] ?? []);
+
+            $health->markSuccess($providerName, $model, $latencyMs);
+            $ledger->record(
+                null,
+                'admin',
+                $providerName,
+                $provider->responseModel($body) ?: $model,
+                $provider->usage($body),
+                $latencyMs,
+                1,
+                true
+            );
+        } catch (Throwable $error) {
+            $latencyMs = max(0, (int)round((microtime(true) - $startedAt) * 1000));
+            $health->markFailure($providerName, $model, $error);
+            $ledger->record(
+                null,
+                'admin',
+                $providerName,
+                $model,
+                [],
+                $latencyMs,
+                1,
+                false
+            );
+            throw $error;
+        }
+
+        $text = trim($provider->outputText($body));
         if ($text === '') {
             throw new RuntimeException('AI returned no receipt data.');
         }
@@ -175,7 +213,7 @@ final class PmdInventoryReceiptAiService
             'total_amount' => $this->nullableNumber($decoded['total_amount'] ?? null),
             'lines' => $lines,
             'provider' => $provider->name(),
-            'model' => $provider->responseModel((array)($result['body'] ?? [])),
+            'model' => $provider->responseModel($body),
         ];
     }
 
