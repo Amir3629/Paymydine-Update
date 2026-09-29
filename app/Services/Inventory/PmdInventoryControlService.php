@@ -532,6 +532,50 @@ final class PmdInventoryControlService
         return $itemId;
     }
 
+    public function archiveItem(int $locationId, ?int $staffId, int $itemId): void
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $itemId = max(0, $itemId);
+
+        if ($itemId < 1) {
+            throw new InvalidArgumentException('Stock item was not found.');
+        }
+
+        DB::transaction(function () use ($locationId, $itemId) {
+            $item = DB::table('pmd_inventory_items')
+                ->where('location_id', $locationId)
+                ->where('id', $itemId)
+                ->where('active', 1)
+                ->first();
+
+            if (!$item) {
+                throw new InvalidArgumentException('Stock item was not found.');
+            }
+
+            // PMD_INVENTORY_ARCHIVE_R7
+            // Keep all historical movements/counts, but remove the item from
+            // future operations and stop active menu recipes from consuming it.
+            DB::table('pmd_inventory_items')
+                ->where('location_id', $locationId)
+                ->where('id', $itemId)
+                ->update([
+                    'active' => 0,
+                    'updated_at' => now(),
+                ]);
+
+            DB::table('pmd_inventory_recipes')
+                ->where('location_id', $locationId)
+                ->where('item_id', $itemId)
+                ->where('active', 1)
+                ->update([
+                    'active' => 0,
+                    'effective_to' => now(),
+                    'updated_at' => now(),
+                ]);
+        });
+    }
+
     public function addItem(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
