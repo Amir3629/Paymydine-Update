@@ -444,9 +444,9 @@ final class PmdInventoryControlService
                 'name' => mb_substr($name, 0, 190),
                 'sku' => $this->nullableText($data['sku'] ?? null, 120),
                 'category' => $this->nullableText($data['category'] ?? null, 100),
-                'unit_cost' => $this->number($data['unit_cost'] ?? $item->unit_cost, (float)$item->unit_cost),
-                'reorder_point' => $this->number($data['reorder_point'] ?? $item->reorder_point, (float)$item->reorder_point),
-                'par_level' => $this->number($data['par_level'] ?? $item->par_level, (float)$item->par_level),
+                'unit_cost' => max(0, $this->number($data['unit_cost'] ?? $item->unit_cost, (float)$item->unit_cost)),
+                'reorder_point' => max(0, $this->number($data['reorder_point'] ?? $item->reorder_point, (float)$item->reorder_point)),
+                'par_level' => max(0, $this->number($data['par_level'] ?? $item->par_level, (float)$item->par_level)),
                 'supplier_name' => $this->nullableText($data['supplier_name'] ?? $item->supplier_name, 190),
                 'updated_at' => now(),
             ]);
@@ -474,8 +474,8 @@ final class PmdInventoryControlService
         }
 
         $unit = $this->unit($data['unit'] ?? 'piece');
-        $openingQty = $this->number($data['opening_qty'] ?? 0, 0);
-        $cost = $this->number($data['unit_cost'] ?? 0, 0);
+        $openingQty = max(0, $this->number($data['opening_qty'] ?? 0, 0));
+        $cost = max(0, $this->number($data['unit_cost'] ?? 0, 0));
 
         $id = (int)DB::table('pmd_inventory_items')->insertGetId([
             'location_id' => $locationId,
@@ -484,8 +484,8 @@ final class PmdInventoryControlService
             'category' => $this->nullableText($data['category'] ?? null, 100),
             'base_unit' => $unit,
             'unit_cost' => $cost,
-            'reorder_point' => $this->number($data['reorder_point'] ?? 0, 0),
-            'par_level' => $this->number($data['par_level'] ?? 0, 0),
+            'reorder_point' => max(0, $this->number($data['reorder_point'] ?? 0, 0)),
+            'par_level' => max(0, $this->number($data['par_level'] ?? 0, 0)),
             'supplier_name' => $this->nullableText($data['supplier_name'] ?? null, 190),
             'active' => 1,
             'created_by' => $staffId,
@@ -622,10 +622,14 @@ final class PmdInventoryControlService
                     throw new InvalidArgumentException('A purchase line references an unavailable stock item.');
                 }
 
+                $effectiveCost = $unitCost > 0
+                    ? $unitCost
+                    : max(0, (float)$item->unit_cost);
+
                 DB::table('pmd_inventory_items')
                     ->where('id', $itemId)
                     ->update([
-                        'unit_cost' => $unitCost > 0 ? $unitCost : (float)$item->unit_cost,
+                        'unit_cost' => $effectiveCost,
                         'supplier_name' => $supplier ?: $item->supplier_name,
                         'updated_at' => now(),
                     ]);
@@ -635,7 +639,7 @@ final class PmdInventoryControlService
                     $itemId,
                     'PURCHASE',
                     $qty,
-                    $unitCost,
+                    $effectiveCost,
                     $staffId,
                     null,
                     null,
@@ -644,7 +648,7 @@ final class PmdInventoryControlService
                     $purchasedAt.' '.now()->format('H:i:s')
                 );
 
-                $total += $qty * $unitCost;
+                $total += $qty * $effectiveCost;
             }
 
             DB::table('pmd_inventory_receipts')
@@ -882,7 +886,7 @@ final class PmdInventoryControlService
                 }
                 $seen[$itemId] = true;
 
-                $counted = $this->number($line['counted_qty'] ?? 0, 0);
+                $counted = max(0, $this->number($line['counted_qty'] ?? 0, 0));
                 $expectedQty = (float)$expected[$itemId];
 
                 DB::table('pmd_inventory_count_lines')->insert([
