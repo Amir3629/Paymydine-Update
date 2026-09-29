@@ -133,7 +133,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             })->values()->all();
 
             /*
-             * PMD_QPOS_RESERVATION_HOURS_R129
+             * PMD_QPOS_RESERVATION_HOURS_R130
              * Quick Reservations uses the exact same location-scoped opening
              * hours authority as the full Reservations Hour screen and the
              * canonical Composer. This is read-only presentation data.
@@ -182,7 +182,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
             return response()->json([
                 'ok' => true,
-                'version' => 'pmd-qpos-quick-reservations-r129',
+                'version' => 'pmd-qpos-quick-reservations-r130',
                 'location_id' => $locationId,
                 'date' => $selectedDate,
                 'today' => (string)($payload['today'] ?? $berlinNow->format('Y-m-d')),
@@ -197,7 +197,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
             return response()->json([
                 'ok' => false,
-                'version' => 'pmd-qpos-quick-reservations-r129',
+                'version' => 'pmd-qpos-quick-reservations-r130',
                 'date' => $selectedDate,
                 'reservations' => [],
                 'opening_hours' => [],
