@@ -1571,6 +1571,107 @@ html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv__mother-actions {
   color: #fff !important;
 }
 
+.pmd-inv__header-divider {
+  width: 1px !important;
+  height: 32px !important;
+  display: block !important;
+  margin: 0 2px !important;
+  background: #cfe0ec !important;
+}
+
+.pmd-inv__notif-slot,
+#pmd-inv-clean-header #notif-root,
+#pmd-inv-clean-header #notifDropdown {
+  box-sizing: border-box !important;
+}
+
+.pmd-inv__notif-slot,
+#pmd-inv-clean-header #notifDropdown {
+  position: relative !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  flex: 0 0 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #cfe0ec !important;
+  border-radius: 13px !important;
+  background: #fff !important;
+  color: #173752 !important;
+  box-shadow: 0 3px 10px rgba(23,55,82,.04) !important;
+  overflow: visible !important;
+}
+
+.pmd-inv__notif-slot svg,
+#pmd-inv-clean-header #bell-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+  display: block !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.9 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+#pmd-inv-clean-header #notif-root {
+  position: relative !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  list-style: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  overflow: visible !important;
+}
+
+#pmd-inv-clean-header #notifDropdown > i {
+  display: none !important;
+}
+
+#pmd-inv-clean-header #notification-count {
+  position: absolute !important;
+  top: -7px !important;
+  right: -8px !important;
+  z-index: 8 !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 4px !important;
+  border: 2px solid #fff !important;
+  border-radius: 999px !important;
+  background: #d83a31 !important;
+  color: #fff !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  line-height: 14px !important;
+  text-align: center !important;
+}
+
+#pmd-inv-clean-header #notification-panel,
+#pmd-inv-clean-header #notif-root .dropdown-menu {
+  position: absolute !important;
+  top: 50px !important;
+  right: 0 !important;
+  left: auto !important;
+  z-index: 10050 !important;
+}
+
 html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv__stage {
   width: min(1480px, 100%) !important;
   min-width: 0 !important;
