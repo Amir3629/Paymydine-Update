@@ -302,8 +302,8 @@
                             <small>Enter this in the tracking unit.</small>
                         </label>
 
-                        <label><span>Reorder at</span><input type="number" min="0" step="0.0001" name="reorder_point" value="0"></label>
-                        <label><span>Target / par level</span><input type="number" min="0" step="0.0001" name="par_level" value="0"></label>
+                        <label><span>Reorder at · purchase units</span><input type="number" min="0" step="0.0001" name="reorder_point" value="0"></label>
+                        <label><span>Target / par · purchase units</span><input type="number" min="0" step="0.0001" name="par_level" value="0"></label>
                         <label class="is-wide"><span>Supplier</span><input name="supplier_name" placeholder="Optional"></label>
                     </div>
                     <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink" data-pmd-inv-item-save>Add item</button></footer>
@@ -364,9 +364,10 @@
                 </header>
                 <form data-pmd-inv-form="waste">
                     <div class="pmd-inv-form-grid">
-                        <label class="is-wide"><span>Stock item</span><select name="item_id" required data-pmd-inv-item-select><option value="">Choose item</option></select></label>
-                        <label><span>Quantity in tracking unit</span><input type="number" min="0.0001" step="0.0001" name="quantity" required></label>
-                        <label><span>Reason</span><select name="reason">@foreach($wasteReasons as $reason)<option value="{{ $reason }}">{{ $reason }}</option>@endforeach</select></label>
+                        <label class="is-wide"><span>Stock item</span><select name="item_id" required data-pmd-inv-item-select data-pmd-waste-item><option value="">Choose item</option></select></label>
+                        <label><span>Quantity</span><input type="number" min="0.0001" step="0.0001" name="quantity" required></label>
+                        <label><span>Unit</span><select name="quantity_unit" data-pmd-waste-unit><option value="">Choose item first</option></select></label>
+                        <label class="is-wide"><span>Reason</span><select name="reason">@foreach($wasteReasons as $reason)<option value="{{ $reason }}">{{ $reason }}</option>@endforeach</select></label>
                         <label class="is-wide"><span>Note</span><textarea name="note" rows="3" placeholder="Optional detail"></textarea></label>
                     </div>
                     <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--amber">Record waste</button></footer>
