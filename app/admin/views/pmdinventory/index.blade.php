@@ -203,11 +203,13 @@
                     <input type="hidden" name="item_id" value="">
 
                     <div class="pmd-inv-r6-item-basic">
-                        <label class="pmd-inv-r6-name-field">
-                            <span>Item name</span>
-                            <input name="name" required placeholder="e.g. Vodka" autocomplete="off" data-pmd-inv-common-search>
+                        <div class="pmd-inv-r6-name-field">
+                            <label>
+                                <span>Item name</span>
+                                <input name="name" required placeholder="e.g. Vodka" autocomplete="off" data-pmd-inv-common-search>
+                            </label>
                             <div class="pmd-inv-r6-suggestions" data-pmd-inv-common-results hidden></div>
-                        </label>
+                        </div>
 
                         <label>
                             <span>Bought as</span>
@@ -265,7 +267,7 @@
                 <div class="pmd-inv-receipt-scan">
                     <div>
                         <strong>Scan supplier bill</strong>
-                        <span>{{ $aiReceipts ? 'Photo or PDF → AI extracts the lines. You review before stock changes.' : 'Photo/PDF can be attached. AI extraction is currently unavailable, so enter the lines manually.' }}</span>
+                        <span>{{ $aiReceipts ? 'Upload a photo/PDF to fill the items automatically.' : 'Attach the bill or enter the items below.' }}</span>
                     </div>
                     <label class="pmd-inv-upload">
                         <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-pmd-inv-receipt-file>
@@ -283,7 +285,7 @@
                     </div>
 
                     <div class="pmd-inv-lines-head">
-                        <div><strong>What arrived</strong><span>For known stock items, use the supplier unit (for example bottle or case). PayMyDine converts it to the tracking unit.</span></div>
+                        <div><strong>Items received</strong></div>
                         <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-add-purchase-line>+ Line</button>
                     </div>
                     <div class="pmd-inv-purchase-line-head" aria-hidden="true">
@@ -322,14 +324,13 @@
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
             <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-recipe-title">
                 <header>
-                    <div><span>Menu → stock</span><h2 id="pmd-inv-recipe-title">Connect menu to stock</h2></div>
+                    <div><span>Menu → stock</span><h2 id="pmd-inv-recipe-title">Connect menu</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
                 <form data-pmd-inv-form="recipe">
                     <div class="pmd-inv-recipe-intro">
                         <div>
-                            <strong>Connect this menu item to real stock</strong>
-                            <span>Every POS sale will consume the quantities below automatically.</span>
+                            <strong>Each sale will reduce the stock items below.</strong>
                         </div>
                     </div>
 
@@ -338,12 +339,9 @@
                     </div>
 
                     <div class="pmd-inv-lines-head">
-                        <div>
-                            <strong>Used per one sale</strong>
-                            <span>Example: Mojito → 50 ml rum + 20 ml lime juice. For a bottled item sold as-is, use the direct-sale shortcut.</span>
-                        </div>
+                        <div><strong>Used per sale</strong></div>
                         <div class="pmd-inv-lines-head__actions">
-                            <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-direct-recipe>Direct sale · one package</button>
+                            <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-direct-recipe>Use 1 package</button>
                             <button type="button" class="pmd-inv-mini-btn is-primary" data-pmd-inv-add-recipe-line>+ Ingredient</button>
                         </div>
                     </div>
@@ -352,11 +350,6 @@
                         <span>Stock item</span><span>Amount per sale</span><span>Unit</span><span></span>
                     </div>
                     <div class="pmd-inv-lines" data-pmd-inv-recipe-lines></div>
-
-                    <div class="pmd-inv-recipe-tip">
-                        <strong>Tip:</strong>
-                        Water, beer, cans and bottles can usually be linked directly. Food and cocktails normally use several stock items.
-                    </div>
 
                     <footer>
                         <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost pmd-inv-btn--danger-ghost" data-pmd-inv-clear-recipe hidden>Remove connection</button>
