@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R131
+/* PMD_QPOS_QUICK_RESERVATIONS_R132
  * POS-native Reservations workspace.
  * Right rail stays the canonical Quick POS table authority.
  * Canonical Reservation Composer stays the only create/edit authority.
@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  if (window.PMDQuickReservationsR131) return;
+  if (window.PMDQuickReservationsR132) return;
 
   var root = document.getElementById('pmd-quick-pos');
   if (!root) return;
@@ -53,6 +53,7 @@
       tableIds: [],
       tableNames: [],
       assignmentMode: 'auto',
+      featuresLoaded: true,
       saving: false
     }
   };
@@ -576,13 +577,13 @@
   function installScheduleBridge() {
     if (
       window.PMDReservationsScheduleV1 &&
-      window.PMDReservationsScheduleV1.version !== 'qpos-r131'
+      window.PMDReservationsScheduleV1.version !== 'qpos-r132'
     ) {
       return;
     }
 
     window.PMDReservationsScheduleV1 = {
-      version: 'qpos-r131',
+      version: 'qpos-r132',
       getOpeningHours: function () {
         return state.openingHours.slice();
       },
@@ -826,6 +827,81 @@
     quickStatus.classList.toggle('is-error', !!error);
   }
 
+  function quickFeatureInputs() {
+    return quickForm
+      ? Array.prototype.slice.call(
+          quickForm.querySelectorAll('input[name="pmd_table_features[]"]')
+        )
+      : [];
+  }
+
+  function setQuickFeatureValues(values, enabled) {
+    var selected = {};
+    (Array.isArray(values) ? values : []).forEach(function (value) {
+      value = String(value || '').trim();
+      if (value) selected[value] = true;
+    });
+
+    quickFeatureInputs().forEach(function (input) {
+      input.checked = !!selected[String(input.value || '')];
+      input.disabled = enabled === false;
+    });
+  }
+
+  function hydrateQuickEditFeatures(reservationId) {
+    var id = Number(reservationId || 0);
+
+    if (!id) {
+      state.editor.featuresLoaded = true;
+      setQuickFeatureValues([], true);
+      return;
+    }
+
+    state.editor.featuresLoaded = false;
+    setQuickFeatureValues([], false);
+
+    canonicalRequest('onLoadReservationComposer', {
+      reservation_id: id,
+      source: 'quick-pos-reservations-r132'
+    })
+      .then(function (response) {
+        if (
+          !state.editor.open
+          || Number(state.editor.reservationId || 0) !== id
+        ) {
+          return;
+        }
+
+        var values =
+          response && response.reservation
+            ? response.reservation
+            : (response && response.defaults ? response.defaults : {});
+
+        setQuickFeatureValues(
+          Array.isArray(values.pmd_table_features)
+            ? values.pmd_table_features
+            : [],
+          true
+        );
+        state.editor.featuresLoaded = true;
+      })
+      .catch(function () {
+        if (
+          !state.editor.open
+          || Number(state.editor.reservationId || 0) !== id
+        ) {
+          return;
+        }
+
+        state.editor.featuresLoaded = false;
+        setQuickFeatureValues([], false);
+        setQuickStatus(
+          'Table preferences could not be loaded. Existing preferences will be preserved.',
+          false
+        );
+      });
+  }
+
   function syncQuickTableUI() {
     var ids = state.editor.tableIds.slice();
     var names = state.editor.tableNames.slice();
@@ -841,7 +917,7 @@
 
     root.querySelectorAll('[data-qpos-table]').forEach(function (button) {
       var id = Number(button.getAttribute('data-qpos-table') || 0);
-      button.classList.toggle('is-reservation-editor-table-r131', ids.indexOf(id) >= 0);
+      button.classList.toggle('is-reservation-editor-table-r132', ids.indexOf(id) >= 0);
     });
   }
 
@@ -852,13 +928,14 @@
     state.editor.tableIds = [];
     state.editor.tableNames = [];
     state.editor.assignmentMode = 'auto';
+    state.editor.featuresLoaded = true;
     state.editor.saving = false;
 
     if (quickEditor) {
       quickEditor.hidden = true;
       quickEditor.setAttribute('aria-hidden', 'true');
     }
-    if (center) center.classList.remove('is-editor-open-r131');
+    if (center) center.classList.remove('is-editor-open-r132');
     if (quickSave) quickSave.disabled = false;
     setQuickStatus('', false);
     syncQuickTableUI();
@@ -887,6 +964,8 @@
       : (id ? 'later' : 'auto');
 
     quickForm.reset();
+    state.editor.featuresLoaded = !id;
+    setQuickFeatureValues([], !id);
     if (quickField('first_name')) quickField('first_name').value = row ? rowName(row) : '';
     if (quickField('last_name')) quickField('last_name').value = '';
     if (quickField('reserve_date')) quickField('reserve_date').value = row ? String(row.reserve_date || state.date) : state.date;
@@ -899,7 +978,7 @@
     if (quickField('email')) quickField('email').value = row ? String(row.email || '') : '';
     if (quickField('comment')) quickField('comment').value = row ? rowNote(row) : '';
     if (quickField('reservation_id')) quickField('reservation_id').value = id ? String(id) : '';
-    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r131';
+    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r132';
     if (quickField('pmd_floor_id')) quickField('pmd_floor_id').value = floor.id || '';
     if (quickField('pmd_floor_name')) quickField('pmd_floor_name').value = floor.name || '';
     if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = state.editor.tableIds.length ? '1' : '0';
@@ -909,11 +988,12 @@
       ? ('#' + id + ' · ' + formatDate(String(row && row.reserve_date || state.date)) + ' · ' + String(row && row.reserve_time || '').slice(0, 5))
       : (formatDate(state.date) + (selectedTime ? ' · ' + selectedTime : ''));
 
-    if (center) center.classList.add('is-editor-open-r131');
+    if (center) center.classList.add('is-editor-open-r132');
     quickEditor.hidden = false;
     quickEditor.setAttribute('aria-hidden', 'false');
     setQuickStatus('Tap a table on the right, or keep Automatic table.', false);
     syncQuickTableUI();
+    hydrateQuickEditFeatures(id);
 
     window.requestAnimationFrame(function () {
       var name = quickField('first_name');
@@ -930,6 +1010,11 @@
   function quickPayload() {
     var floor = currentFloorMeta();
     var ids = state.editor.tableIds.slice();
+    var featureValues = quickFeatureInputs()
+      .filter(function (input) { return input.checked && !input.disabled; })
+      .map(function (input) { return String(input.value || '').trim(); })
+      .filter(Boolean);
+
     var payload = {
       reservation_id: state.editor.reservationId || null,
       first_name: String((quickField('first_name') || {}).value || '').trim(),
@@ -943,15 +1028,21 @@
       comment: String((quickField('comment') || {}).value || '').trim(),
       assignment_mode: ids.length ? 'choose' : (state.editor.assignmentMode === 'later' ? 'later' : 'auto'),
       tables: ids,
-      pmd_table_features: [],
       occasion_id: 0,
       notify: 0,
-      source: 'quick-pos-reservations-r131',
+      source: 'quick-pos-reservations-r132',
       location_id: quickLocationId() || null,
       pmd_floor_id: floor.id || '',
       pmd_floor_name: floor.name || '',
       pmd_floor_locked: ids.length ? 1 : 0
     };
+
+    if (
+      state.editor.mode !== 'edit'
+      || state.editor.featuresLoaded
+    ) {
+      payload.pmd_table_features = featureValues;
+    }
 
     return payload;
   }
@@ -1201,6 +1292,26 @@
     });
   }
 
+  var quickChoose = document.querySelector('[data-qres-quick-choose]');
+  if (quickChoose) {
+    quickChoose.addEventListener('click', function (event) {
+      event.preventDefault();
+      state.editor.assignmentMode = 'choose';
+      syncQuickTableUI();
+      setQuickStatus('Tap a table on the right to assign it.', false);
+    });
+  }
+
+  var quickTableButton = document.querySelector('[data-qres-quick-table]');
+  if (quickTableButton) {
+    quickTableButton.addEventListener('click', function (event) {
+      event.preventDefault();
+      state.editor.assignmentMode = 'choose';
+      syncQuickTableUI();
+      setQuickStatus('Tap a table on the right to assign it.', false);
+    });
+  }
+
   var quickLater = document.querySelector('[data-qres-quick-later]');
   if (quickLater) {
     quickLater.addEventListener('click', function (event) {
@@ -1220,7 +1331,18 @@
       var field = quickField('guest_num');
       if (!field) return;
       var direction = Number(button.getAttribute('data-qres-guests-step') || 0);
-      field.value = String(Math.max(1, Math.min(999, Number(field.value || 1) + direction)));
+      field.value = String(Math.max(1, Math.min(99, Number(field.value || 1) + direction)));
+    });
+  });
+
+  document.querySelectorAll('[data-qres-duration-step]').forEach(function (button) {
+    button.addEventListener('click', function (event) {
+      event.preventDefault();
+      var field = quickField('duration');
+      if (!field) return;
+      var direction = Number(button.getAttribute('data-qres-duration-step') || 0);
+      var next = Number(field.value || 45) + direction;
+      field.value = String(Math.max(30, Math.min(180, Math.round(next / 15) * 15)));
     });
   });
 
@@ -1251,7 +1373,7 @@
 
   if (!window.PMDReservationsCardsV320) {
     window.PMDReservationsCardsV320 = {
-      version: 'qpos-r131-bridge',
+      version: 'qpos-r132-bridge',
       refresh: function () {
         return loadReservations();
       }
@@ -1264,8 +1386,8 @@
 
   setWorkspace(state.workspace, false);
 
-  window.PMDQuickReservationsR131 = {
-    version: '1.0.0-r131',
+  window.PMDQuickReservationsR132 = {
+    version: '1.0.0-r132',
     setWorkspace: setWorkspace,
     refresh: loadReservations,
     newReservation: function () {
@@ -1283,7 +1405,8 @@
   };
 
   // Compatibility alias for diagnostics that referenced the first bridge.
-  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR131;
-  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR131;
-  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR131;
+  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR132;
+  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR132;
+  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR132;
+  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR132;
 })();
