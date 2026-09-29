@@ -146,12 +146,25 @@ final class PmdInventoryReceiptAiService
                 continue;
             }
 
+            $quantity = $this->nullableNumber($line['quantity'] ?? null);
+            $unitCost = $this->nullableNumber($line['unit_cost'] ?? null);
+            $lineTotal = $this->nullableNumber($line['line_total'] ?? null);
+
+            if (
+                $unitCost === null
+                && $lineTotal !== null
+                && $quantity !== null
+                && $quantity > 0
+            ) {
+                $unitCost = round($lineTotal / $quantity, 4);
+            }
+
             $lines[] = [
                 'item_name' => mb_substr($name, 0, 190),
-                'quantity' => $this->nullableNumber($line['quantity'] ?? null),
+                'quantity' => $quantity,
                 'unit' => $this->normalizeUnit($line['unit'] ?? null),
-                'unit_cost' => $this->nullableNumber($line['unit_cost'] ?? null),
-                'line_total' => $this->nullableNumber($line['line_total'] ?? null),
+                'unit_cost' => $unitCost,
+                'line_total' => $lineTotal,
             ];
         }
 
