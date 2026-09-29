@@ -379,7 +379,7 @@
       .filter(function (item) {
         return String(item.status || '') === 'critical'
           || String(item.status || '') === 'low'
-          || Number(item.suggested_order_qty || 0) > 0;
+
       })
       .sort(function (a, b) {
         var pa = String(a.status || '') === 'critical' ? 0 : 1;
