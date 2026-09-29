@@ -83,7 +83,7 @@
                     </button>
                     <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-open="recipe">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg>
-                        Recipe
+                        Menu links
                     </button>
                     <button type="button" class="pmd-inv-btn pmd-inv-btn--amber" data-pmd-inv-open="waste">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
@@ -229,7 +229,7 @@
                 <div class="pmd-inv__tabs" role="tablist" aria-label="Inventory activity">
                     <button type="button" class="is-active" role="tab" aria-selected="true" data-pmd-inv-tab="purchases">Purchases</button>
                     <button type="button" role="tab" aria-selected="false" data-pmd-inv-tab="waste">Waste</button>
-                    <button type="button" role="tab" aria-selected="false" data-pmd-inv-tab="recipes">Recipes</button>
+                    <button type="button" role="tab" aria-selected="false" data-pmd-inv-tab="recipes">Menu links</button>
                     <button type="button" role="tab" aria-selected="false" data-pmd-inv-tab="counts">Counts</button>
                 </div>
 
@@ -344,6 +344,9 @@
                         <div><strong>What arrived</strong><span>For known stock items, use the supplier unit (for example bottle or case). PayMyDine converts it to the tracking unit.</span></div>
                         <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-add-purchase-line>+ Line</button>
                     </div>
+                    <div class="pmd-inv-purchase-line-head" aria-hidden="true">
+                        <span>Stock item</span><span>Qty</span><span>Unit</span><span>Cost / unit</span><span></span>
+                    </div>
                     <div class="pmd-inv-lines" data-pmd-inv-purchase-lines></div>
 
                     <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--blue">Add to stock</button></footer>
@@ -362,7 +365,7 @@
                 <form data-pmd-inv-form="waste">
                     <div class="pmd-inv-form-grid">
                         <label class="is-wide"><span>Stock item</span><select name="item_id" required data-pmd-inv-item-select><option value="">Choose item</option></select></label>
-                        <label><span>Quantity</span><input type="number" min="0.0001" step="0.0001" name="quantity" required></label>
+                        <label><span>Quantity in tracking unit</span><input type="number" min="0.0001" step="0.0001" name="quantity" required></label>
                         <label><span>Reason</span><select name="reason">@foreach($wasteReasons as $reason)<option value="{{ $reason }}">{{ $reason }}</option>@endforeach</select></label>
                         <label class="is-wide"><span>Note</span><textarea name="note" rows="3" placeholder="Optional detail"></textarea></label>
                     </div>
@@ -376,7 +379,7 @@
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
             <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-recipe-title">
                 <header>
-                    <div><span>Theoretical usage</span><h2 id="pmd-inv-recipe-title">Recipe stock usage</h2></div>
+                    <div><span>Menu → stock</span><h2 id="pmd-inv-recipe-title">Connect menu to stock</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
                 <form data-pmd-inv-form="recipe">
