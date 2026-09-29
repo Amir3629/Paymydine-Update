@@ -309,7 +309,11 @@
 
       return '<tr class="is-' + esc(status) + '">' +
         '<td class="pmd-inv__item-name"><button type="button" class="pmd-inv__item-edit" data-pmd-inv-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button><small>' + esc(meta || 'Stock item') + '</small></td>' +
-        '<td><span class="pmd-inv__qty">' + esc(num(item.estimated_on_hand, 3)) + ' <small>' + esc(item.unit) + '</small></span></td>' +
+        '<td><span class="pmd-inv__qty">' + esc(num(item.estimated_on_hand, 3)) + ' <small>' + esc(item.unit) + '</small></span>' +
+          (item.stock_percent === null || typeof item.stock_percent === 'undefined'
+            ? ''
+            : '<small class="pmd-inv__stock-percent">' + esc(String(item.stock_percent)) + '% of par</small>') +
+        '</td>' +
         '<td>' + esc(num(item.avg_daily_usage, 3)) + ' ' + esc(item.unit) + '</td>' +
         '<td><span class="pmd-inv__days">' + esc(days) + '</span></td>' +
         '<td>' + esc(num(item.par_level, 3)) + ' ' + esc(item.unit) + '</td>' +
@@ -329,14 +333,17 @@
     items().forEach(function (item) {
       var status = String(item.status || 'healthy');
       if (status === 'critical' || status === 'low') {
+        var buyQty = Number(item.suggested_order_qty || 0);
         rows.push({
           priority: status === 'critical' ? 1 : 2,
           className: status,
           name: item.name,
           copy: item.days_left === null
             ? (num(item.estimated_on_hand, 2) + ' ' + item.unit + ' estimated on hand')
-            : (num(item.days_left, 1) + ' days left at recent usage'),
-          value: status === 'critical' ? 'RESTOCK' : 'LOW'
+            : (num(item.days_left, 1) + ' days left at recent sales usage'),
+          value: buyQty > 0
+            ? ('BUY ' + num(buyQty, 2) + ' ' + item.unit)
+            : (status === 'critical' ? 'RESTOCK' : 'LOW')
         });
       }
 
