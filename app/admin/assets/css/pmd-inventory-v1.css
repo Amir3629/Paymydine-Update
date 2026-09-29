@@ -2675,6 +2675,18 @@ html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv__mother-header h1 {
   color: #071f46 !important;
 }
 
+.pmd-inv-purchase-line-head {
+  display: grid !important;
+  grid-template-columns: minmax(190px, 1.45fr) 88px 95px 110px 34px !important;
+  gap: 7px !important;
+  padding: 0 18px 6px !important;
+  color: #748591 !important;
+  font-size: 9.5px !important;
+  font-weight: 900 !important;
+  letter-spacing: .04em !important;
+  text-transform: uppercase !important;
+}
+
 .pmd-inv-recipe-line-head {
   display: grid !important;
   grid-template-columns: minmax(250px, 1fr) 150px 72px 34px !important;
@@ -2962,7 +2974,8 @@ html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv__mother-header h1 {
     width: 100% !important;
   }
 
-  .pmd-inv-recipe-line-head {
+  .pmd-inv-recipe-line-head,
+  .pmd-inv-purchase-line-head {
     display: none !important;
   }
 
