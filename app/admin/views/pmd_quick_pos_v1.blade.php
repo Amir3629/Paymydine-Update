@@ -561,6 +561,7 @@
 
                     <div class="pmd-qres-quick-actions">
                         <button type="button" data-qres-quick-auto>Automatic table</button>
+                        <button type="button" data-qres-quick-later>Assign later</button>
                         <span class="pmd-qres-quick-actions-spacer"></span>
                         <button type="button" data-qres-quick-cancel>Cancel</button>
                         <button type="submit" class="is-primary" data-qres-quick-save>Save</button>
