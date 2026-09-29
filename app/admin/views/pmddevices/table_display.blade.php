@@ -16,6 +16,7 @@
     class="pmd-owner-page pmd-table-display-admin"
     data-pmd-table-display-v1
     data-state-url="{{ e($stateUrl) }}"
+    data-setup-code-url="{{ e(url('/admin/table-display/setup-code')) }}"
 >
     <header class="pmd-owner-header pmd-table-display-admin__header">
         <div class="pmd-owner-header__left">
@@ -98,6 +99,29 @@
                     </div>
                 </div>
 
+                <div class="pmd-owner-card" data-accent="emerald">
+                    <div class="pmd-owner-card__header">
+                        <div class="pmd-owner-card__icon">
+                            <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"></rect><path d="M9 7h6M8 12h8M10 17h4"></path></svg>
+                        </div>
+                        <div class="pmd-owner-card__title">
+                            <h2>{{ $pmdSettingsText('Android app pairing') }}</h2>
+                            <p>{{ $pmdSettingsText('No staff password is stored on the table device. Generate a one-time code, enter it once in the app, then choose the table on the device.') }}</p>
+                        </div>
+                    </div>
+                    <div class="pmd-owner-card__body">
+                        <div class="pmd-table-display-pairing">
+                            <button type="button" class="pmd-owner-action" data-pmd-table-display-pair>{{ $pmdSettingsText('Generate 6-digit setup code') }}</button>
+                            <div class="pmd-table-display-pair-code" data-pmd-table-display-setup-code hidden>
+                                <span>{{ $pmdSettingsText('Setup code') }}</span>
+                                <strong data-pmd-table-display-setup-code-value>------</strong>
+                                <small data-pmd-table-display-setup-code-expiry></small>
+                            </div>
+                            <p data-pmd-table-display-setup-error hidden></p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="pmd-owner-card" data-accent="blue">
                     <div class="pmd-owner-card__header">
                         <div class="pmd-owner-card__icon">
@@ -128,6 +152,9 @@
                             <div class="pmd-table-display-table-label" data-pmd-table-display-table-label>{{ e(data_get($selected, 'table.name', 'Table')) }}</div>
                             <div class="pmd-table-display-qr-wrap">
                                 <img data-pmd-table-display-qr src="{{ e(data_get($selected, 'table.qr_image_url', '')) }}" alt="Table menu QR code">
+                                <span class="pmd-table-display-qr-logo" aria-hidden="true">
+                                    <img src="/brand/paymydine-logo.svg" alt="">
+                                </span>
                             </div>
                             <h2>{{ $pmdSettingsText('Scan to view the menu') }}</h2>
                             <p>{{ $pmdSettingsText('Open your camera and scan the QR code.') }}</p>
