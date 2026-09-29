@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R130
+/* PMD_QPOS_QUICK_RESERVATIONS_R131
  * Same Quick POS shell, cleaner reservation density.
  * Right table rail remains untouched/canonical.
  */
@@ -164,38 +164,6 @@
 .pmd-qres-search input::placeholder {
   color: #8a9490;
   font-weight: 600;
-}
-
-.pmd-qres-filter-row {
-  display: flex;
-  gap: 7px;
-  padding: 0 10px 9px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.pmd-qres-filter-row::-webkit-scrollbar {
-  display: none;
-}
-
-.pmd-qres-filter-row button {
-  min-height: 40px;
-  flex: 0 0 auto;
-  padding: 0 13px;
-  border: 1px solid #d9dee4;
-  border-radius: 11px;
-  background: #fff;
-  color: #2c3742;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.pmd-qres-filter-row button.is-active {
-  border-color: #032f25;
-  background: #032f25;
-  color: #fff;
 }
 
 .pmd-qres-table-filter {
@@ -373,12 +341,14 @@
   min-width: 0;
 }
 
-.pmd-qres-center-title small {
-  display: block;
-  margin-top: 5px;
-  color: #6f7d77;
-  font-size: 12.5px;
-  font-weight: 750;
+.pmd-qres-center-title h2 {
+  margin: 0;
+  color: #14211d;
+  font-size: 22px;
+  line-height: 1.08;
+  font-weight: 950;
+  letter-spacing: -.025em;
+  font-variant-numeric: tabular-nums;
 }
 
 .pmd-qres-center-actions {
@@ -587,79 +557,124 @@
 
 /* ---------- inline Quick Reservation editor ---------- */
 
+.pmd-qpos-reservations-center.is-editor-open-r131 > .pmd-qres-center-head,
+.pmd-qpos-reservations-center.is-editor-open-r131 > .pmd-qres-timeline {
+  display: none !important;
+}
+
 .pmd-qres-quick-editor[hidden] {
   display: none !important;
 }
 
-.pmd-qres-quick-editor {
-  flex: 0 0 auto;
-  border-bottom: 1px solid #dfe6e3;
-  background: #f7faf8;
+.pmd-qpos-reservations-center.is-editor-open-r131 .pmd-qres-quick-editor {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  border: 0;
+  background: #fff;
 }
 
 .pmd-qres-quick-editor form {
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
   margin: 0;
+  overflow: auto;
 }
 
 .pmd-qres-quick-editor-top {
-  min-height: 48px;
+  min-height: 70px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e2e8e5;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #dfe6e3;
+  background: #fbfcfc;
 }
 
 .pmd-qres-quick-editor-top strong {
   display: block;
   color: #13231e;
-  font-size: 14px;
+  font-size: 20px;
+  line-height: 1.1;
   font-weight: 950;
+  letter-spacing: -.02em;
 }
 
 .pmd-qres-quick-editor-top small {
   display: block;
-  margin-top: 2px;
-  color: #75817c;
-  font-size: 10.5px;
-  font-weight: 700;
+  margin-top: 5px;
+  color: #6f7d77;
+  font-size: 12px;
+  font-weight: 750;
 }
 
 .pmd-qres-quick-close {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
   border: 1px solid #d5ddd9;
-  border-radius: 9px;
+  border-radius: 10px;
   background: #fff;
   color: #42514b;
   font: inherit;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
   cursor: pointer;
 }
 
 .pmd-qres-quick-grid {
   display: grid;
-  grid-template-columns: minmax(160px, 1.45fr) 132px 112px 108px 120px minmax(170px, 1.2fr);
-  gap: 7px;
-  padding: 9px 10px 8px;
+  grid-template-columns: repeat(12,minmax(0,1fr));
+  align-items: start;
+  gap: 13px;
+  padding: 18px;
 }
 
 .pmd-qres-quick-field {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   margin: 0;
 }
 
+.pmd-qres-quick-field--name {
+  grid-column: span 6;
+}
+
+.pmd-qres-quick-field--date,
+.pmd-qres-quick-field--time {
+  grid-column: span 3;
+}
+
+.pmd-qres-quick-field--people,
+.pmd-qres-quick-field--duration {
+  grid-column: span 3;
+}
+
+.pmd-qres-quick-field--table {
+  grid-column: span 6;
+}
+
+.pmd-qres-quick-field--contact {
+  grid-column: span 6;
+}
+
+.pmd-qres-quick-field--note {
+  grid-column: 1 / -1;
+}
+
 .pmd-qres-quick-field > span {
-  color: #66746e;
-  font-size: 9.5px;
+  color: #5f6d67;
+  font-size: 10.5px;
   line-height: 1;
   font-weight: 900;
-  letter-spacing: .04em;
+  letter-spacing: .055em;
   text-transform: uppercase;
 }
 
@@ -669,27 +684,28 @@
 .pmd-qres-quick-table {
   width: 100%;
   min-width: 0;
-  min-height: 39px;
+  min-height: 52px;
   box-sizing: border-box;
-  border: 1px solid #d4ddd9;
-  border-radius: 9px;
+  border: 1px solid #cfd9d5;
+  border-radius: 10px;
   background: #fff;
   color: #17231f;
   font: inherit;
-  font-size: 12.5px;
-  font-weight: 750;
+  font-size: 14px;
+  font-weight: 800;
   outline: none;
 }
 
 .pmd-qres-quick-field input,
 .pmd-qres-quick-field select {
-  padding: 0 9px;
+  padding: 0 13px;
 }
 
 .pmd-qres-quick-field textarea {
-  min-height: 55px;
-  padding: 8px 9px;
+  min-height: 118px;
+  padding: 12px 13px;
   resize: vertical;
+  line-height: 1.45;
 }
 
 .pmd-qres-quick-field input:focus,
@@ -697,31 +713,31 @@
 .pmd-qres-quick-field textarea:focus,
 .pmd-qres-quick-table:focus-visible {
   border-color: #7daf9e;
-  box-shadow: 0 0 0 2px rgba(7,92,71,.08);
+  box-shadow: 0 0 0 3px rgba(7,92,71,.08);
 }
 
 .pmd-qres-quick-stepper {
   display: grid;
-  grid-template-columns: 35px minmax(0, 1fr) 35px;
+  grid-template-columns: 48px minmax(0,1fr) 48px;
 }
 
 .pmd-qres-quick-stepper button {
-  min-height: 39px;
-  border: 1px solid #d4ddd9;
+  min-height: 52px;
+  border: 1px solid #cfd9d5;
   background: #fff;
   color: #075c47;
   font: inherit;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 950;
   cursor: pointer;
 }
 
 .pmd-qres-quick-stepper button:first-child {
-  border-radius: 9px 0 0 9px;
+  border-radius: 10px 0 0 10px;
 }
 
 .pmd-qres-quick-stepper button:last-child {
-  border-radius: 0 9px 9px 0;
+  border-radius: 0 10px 10px 0;
 }
 
 .pmd-qres-quick-stepper input {
@@ -732,11 +748,12 @@
 }
 
 .pmd-qres-quick-table {
+  min-height: 52px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  padding: 5px 9px;
+  padding: 7px 13px;
   text-align: left;
   cursor: pointer;
 }
@@ -745,7 +762,7 @@
   overflow: hidden;
   width: 100%;
   color: #075c47;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 950;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -754,27 +771,19 @@
 .pmd-qres-quick-table small {
   overflow: hidden;
   width: 100%;
-  margin-top: 1px;
-  color: #87938e;
-  font-size: 9px;
-  font-weight: 650;
+  margin-top: 3px;
+  color: #7b8983;
+  font-size: 10.5px;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pmd-qres-quick-field--contact {
-  grid-column: span 2;
-}
-
-.pmd-qres-quick-field--note {
-  grid-column: span 2;
-}
-
 .pmd-qres-quick-status {
-  min-height: 24px;
-  padding: 3px 11px 6px;
+  min-height: 34px;
+  padding: 0 18px 10px;
   color: #557168;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 750;
 }
 
@@ -783,12 +792,13 @@
 }
 
 .pmd-qres-quick-actions {
-  min-height: 48px;
+  min-height: 66px;
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 10px;
-  border-top: 1px solid #e2e8e5;
+  gap: 9px;
+  margin-top: auto;
+  padding: 10px 18px;
+  border-top: 1px solid #dfe6e3;
   background: #fff;
 }
 
@@ -797,19 +807,20 @@
 }
 
 .pmd-qres-quick-actions button {
-  min-height: 34px;
-  padding: 0 11px;
-  border: 1px solid #d3dcd8;
-  border-radius: 9px;
+  min-height: 44px;
+  padding: 0 15px;
+  border: 1px solid #cfd9d5;
+  border-radius: 10px;
   background: #fff;
   color: #314039;
   font: inherit;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 900;
   cursor: pointer;
 }
 
 .pmd-qres-quick-actions button.is-primary {
+  min-width: 104px;
   border-color: #032f25;
   background: #032f25;
   color: #fff;
@@ -820,10 +831,76 @@
   cursor: wait;
 }
 
-.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table.is-reservation-editor-table-r130 {
+.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table.is-reservation-editor-table-r131 {
   outline: 3px solid #075c47 !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 4px rgba(7,92,71,.14) !important;
+}
+
+/* ---------- reservation rail action ---------- */
+
+.pmd-qres-rail-action-r131 {
+  min-height: 74px;
+  display: grid;
+  grid-template-rows: minmax(38px,1fr) 27px;
+  gap: 5px;
+  padding: 6px;
+  box-sizing: border-box;
+  border: 1px solid #cfd9d5;
+  border-radius: 12px;
+  background: #f8fbf9;
+}
+
+.pmd-qres-rail-action-r131 .pmd-qpos-pickup {
+  width: 100%;
+  min-height: 38px !important;
+  padding: 4px 6px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+  text-align: center !important;
+}
+
+.pmd-qres-rail-action-r131 .pmd-qpos-pickup strong {
+  padding: 0 !important;
+  color: #123229;
+  font-size: 12.5px;
+  line-height: 1.1;
+  font-weight: 950;
+}
+
+.pmd-qres-rail-action-r131 .pmd-qpos-pickup small {
+  margin-top: 3px;
+  color: #688078;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.pmd-qres-rail-today-r131 {
+  min-height: 27px;
+  border: 1px solid #b9cec6;
+  border-radius: 7px;
+  background: #fff;
+  color: #075c47;
+  font: inherit;
+  font-size: 10.5px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table {
+  transition: none !important;
+}
+
+.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table:hover {
+  transform: none !important;
+}
+
+.pmd-qpos-reservations-left.is-qres-refreshing-r131,
+.pmd-qpos-reservations-center.is-qres-refreshing-r131 {
+  cursor: progress;
 }
 
 /* ---------- profile workspace switch ---------- */
@@ -943,12 +1020,31 @@ body.pmd-qpos-body
   }
 
   .pmd-qres-quick-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    padding: 12px;
   }
 
-  .pmd-qres-quick-field--contact,
+  .pmd-qres-quick-field--name,
+  .pmd-qres-quick-field--table,
   .pmd-qres-quick-field--note {
+    grid-column: 1 / -1;
+  }
+
+  .pmd-qres-quick-field--date,
+  .pmd-qres-quick-field--time,
+  .pmd-qres-quick-field--people,
+  .pmd-qres-quick-field--duration,
+  .pmd-qres-quick-field--contact {
     grid-column: span 1;
+  }
+
+  .pmd-qres-quick-actions {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+  }
+
+  .pmd-qres-quick-actions-spacer {
+    display: none;
   }
 
   .pmd-qres-booking-cells {
@@ -971,6 +1067,15 @@ body.pmd-qpos-body
   }
 }
 
+@media (max-width: 520px) {
+  .pmd-qres-quick-field--date,
+  .pmd-qres-quick-field--time,
+  .pmd-qres-quick-field--people,
+  .pmd-qres-quick-field--duration,
+  .pmd-qres-quick-field--contact {
+    grid-column: 1 / -1;
+  }
+}
 .pmd-qres-datebar--top {
   padding-top: 12px;
 }
