@@ -311,8 +311,13 @@ final class PmdInventoryControlService
             ->values()
             ->all();
 
+        $locationMenuIds = $this->locationMenuIds($locationId);
         $menus = Schema::hasTable('menus')
             ? DB::table('menus')
+                ->when(
+                    $locationMenuIds,
+                    fn ($query) => $query->whereIn('menu_id', $locationMenuIds)
+                )
                 ->orderBy('menu_name')
                 ->get(['menu_id', 'menu_name'])
                 ->map(fn ($row) => [
@@ -627,6 +632,11 @@ final class PmdInventoryControlService
             throw new InvalidArgumentException('Menu item was not found.');
         }
 
+        $locationMenus = $this->locationMenuIds($locationId);
+        if ($locationMenus && !in_array($menuId, $locationMenus, true)) {
+            throw new InvalidArgumentException('Menu item does not belong to this restaurant location.');
+        }
+
         DB::transaction(function () use ($locationId, $staffId, $menuId, $lines) {
             DB::table('pmd_inventory_recipes')
                 ->where('location_id', $locationId)
@@ -845,18 +855,69 @@ final class PmdInventoryControlService
             return 0;
         }
 
-        $menus = max(0, (int)DB::table('menus')->count());
+        $menuIds = $this->locationMenuIds($locationId);
+        $menus = $menuIds
+            ? count($menuIds)
+            : max(0, (int)DB::table('menus')->count());
+
         if ($menus < 1) {
             return 0;
         }
 
-        $covered = (int)DB::table('pmd_inventory_recipes')
+        $coveredQuery = DB::table('pmd_inventory_recipes')
             ->where('location_id', $locationId)
-            ->where('active', 1)
+            ->where('active', 1);
+
+        if ($menuIds) {
+            $coveredQuery->whereIn('menu_id', $menuIds);
+        }
+
+        $covered = (int)$coveredQuery
             ->distinct()
             ->count('menu_id');
 
         return (int)round(min(100, ($covered / $menus) * 100));
+    }
+
+    private function locationMenuIds(int $locationId): array
+    {
+        if (!Schema::hasTable('menus')) {
+            return [];
+        }
+
+        try {
+            if (
+                Schema::hasTable('locationables')
+                && Schema::hasColumn('locationables', 'location_id')
+                && Schema::hasColumn('locationables', 'locationable_id')
+                && Schema::hasColumn('locationables', 'locationable_type')
+            ) {
+                $ids = DB::table('locationables')
+                    ->where('location_id', $locationId)
+                    ->where('locationable_type', 'menus')
+                    ->pluck('locationable_id')
+                    ->map(static fn ($id) => (int)$id)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                if ($ids) {
+                    return $ids;
+                }
+            }
+        } catch (\Throwable $error) {
+            // Legacy tenants without locationable menu rows safely fall back
+            // to the tenant's menu catalogue below.
+        }
+
+        return DB::table('menus')
+            ->pluck('menu_id')
+            ->map(static fn ($id) => (int)$id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function movement(
