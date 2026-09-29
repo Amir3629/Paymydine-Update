@@ -1802,6 +1802,38 @@
       var payload = formObject(form);
 
       if (kind === 'item') {
+        var editing = Number(payload.item_id || 0) > 0;
+
+        // If a new item is still on the untouched piece/piece defaults and the
+        // typed name is a strong global-catalog match, use the catalog's safe
+        // conversion automatically. "tomat" can therefore become Tomato,
+        // tracked in g and purchased in kg, even if the suggestion was not
+        // explicitly clicked.
+        if (!editing) {
+          var catalogMatch = bestCatalogMatch(payload.name, 119);
+          var untouchedUnits =
+            String(payload.unit || 'piece') === 'piece' &&
+            String(payload.purchase_unit || 'piece') === 'piece' &&
+            Number(payload.purchase_to_base || 1) === 1;
+
+          if (catalogMatch) {
+            payload.name = String(catalogMatch.name || payload.name || '');
+            if (!String(payload.category || '').trim()) {
+              payload.category = String(catalogMatch.category || '');
+            }
+
+            if (
+              untouchedUnits &&
+              catalogMatch.purchase_to_base != null &&
+              Number(catalogMatch.purchase_to_base) > 0
+            ) {
+              payload.unit = String(catalogMatch.unit || 'piece');
+              payload.purchase_unit = String(catalogMatch.purchase_unit || payload.unit);
+              payload.purchase_to_base = Number(catalogMatch.purchase_to_base);
+            }
+          }
+        }
+
         if (
           String(payload.purchase_unit || '') !== String(payload.unit || '') &&
           Number(payload.purchase_to_base || 0) <= 0
@@ -1810,7 +1842,6 @@
           return;
         }
 
-        var editing = Number(payload.item_id || 0) > 0;
         submitAction(
           form,
           'onSaveItem',
