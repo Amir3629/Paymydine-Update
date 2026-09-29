@@ -1,10 +1,16 @@
 <?php
 
+use App\Http\Controllers\PmdTableDisplayAdminSetupController;
 use App\Http\Controllers\PmdTableDisplayPublicController;
 use Illuminate\Support\Facades\Route;
 use Igniter\Flame\Foundation\Http\Middleware\VerifyCsrfToken;
 
-/**
+Route::post(
+    '/admin/table-display/setup-code',
+    PmdTableDisplayAdminSetupController::class
+)->middleware(['web']);
+
+ /**
  * PMD_TABLE_DISPLAY_PAIRING_V1
  *
  * Public means "outside Admin session", not unauthenticated after setup.
