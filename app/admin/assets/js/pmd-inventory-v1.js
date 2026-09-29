@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R6 */
+/* PMD_INVENTORY_CONTROL_R7 */
 (function () {
   'use strict';
 
@@ -334,34 +334,139 @@
     return Array.isArray(bootstrap.common_stock) ? bootstrap.common_stock : [];
   }
 
+  function normalizeCatalogText(value) {
+    value = String(value == null ? '' : value).trim().toLowerCase();
+    try {
+      value = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    } catch (ignore) {}
+    return value.replace(/[^a-z0-9\u0600-\u06ff]+/gi, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function catalogDistance(a, b) {
+    a = String(a || '');
+    b = String(b || '');
+    if (!a || !b) return 99;
+    if (Math.abs(a.length - b.length) > 3) return 99;
+
+    var previous = [];
+    var current = [];
+    for (var j = 0; j <= b.length; j += 1) previous[j] = j;
+
+    for (var i = 1; i <= a.length; i += 1) {
+      current[0] = i;
+      for (var k = 1; k <= b.length; k += 1) {
+        current[k] = Math.min(
+          current[k - 1] + 1,
+          previous[k] + 1,
+          previous[k - 1] + (a.charAt(i - 1) === b.charAt(k - 1) ? 0 : 1)
+        );
+      }
+      previous = current.slice();
+    }
+    return previous[b.length];
+  }
+
+  function catalogScore(row, rawQuery) {
+    var query = normalizeCatalogText(rawQuery);
+    if (!query) return 0;
+
+    var name = normalizeCatalogText(row.name);
+    var category = normalizeCatalogText(row.category);
+    var aliases = Array.isArray(row.aliases) ? row.aliases.map(normalizeCatalogText) : [];
+    var cuisines = Array.isArray(row.cuisines) ? row.cuisines.map(normalizeCatalogText) : [];
+    var searchable = [name, category]
+      .concat(aliases)
+      .concat(cuisines)
+      .concat([normalizeCatalogText(row.unit), normalizeCatalogText(row.purchase_unit)])
+      .filter(Boolean);
+
+    if (name === query) return 130;
+    if (name.indexOf(query) === 0) return 122;
+
+    for (var i = 0; i < aliases.length; i += 1) {
+      if (aliases[i] === query) return 126;
+      if (aliases[i].indexOf(query) === 0) return 119;
+    }
+
+    if (name.indexOf(query) !== -1) return 112;
+    for (var a = 0; a < aliases.length; a += 1) {
+      if (aliases[a].indexOf(query) !== -1) return 109;
+    }
+
+    var queryParts = query.split(' ').filter(Boolean);
+    if (queryParts.length > 1) {
+      var joined = searchable.join(' ');
+      var allParts = queryParts.every(function (part) {
+        return joined.indexOf(part) !== -1;
+      });
+      if (allParts) return 104;
+    }
+
+    var words = searchable.join(' ').split(' ').filter(Boolean);
+    for (var w = 0; w < words.length; w += 1) {
+      if (words[w].indexOf(query) === 0) return 101;
+    }
+
+    if (category.indexOf(query) !== -1) return 92;
+    for (var ci = 0; ci < cuisines.length; ci += 1) {
+      if (cuisines[ci].indexOf(query) !== -1) return 88;
+    }
+
+    if (/^[a-z0-9 ]+$/.test(query) && query.length >= 4) {
+      var distance = catalogDistance(query, name);
+      if (distance === 1) return 97;
+      if (distance === 2) return 86;
+
+      for (var al = 0; al < aliases.length; al += 1) {
+        var aliasDistance = catalogDistance(query, aliases[al]);
+        if (aliasDistance === 1) return 95;
+        if (aliasDistance === 2) return 84;
+      }
+    }
+
+    return 0;
+  }
+
   function renderCommonStock() {
     var host = root.querySelector('[data-pmd-inv-common-results]');
     if (!host) return;
 
-    var query = String(state.commonSearch || '').trim().toLowerCase();
+    var query = String(state.commonSearch || '').trim();
     if (!query) {
       host.hidden = true;
       host.innerHTML = '';
       return;
     }
 
-    var rows = commonStockTemplates().filter(function (row) {
-      return [row.name, row.category, row.unit, row.purchase_unit]
-        .join(' ')
-        .toLowerCase()
-        .indexOf(query) !== -1;
-    }).slice(0, 6);
+    var rows = commonStockTemplates()
+      .map(function (row, index) {
+        return {row: row, index: index, score: catalogScore(row, query)};
+      })
+      .filter(function (match) { return match.score > 0; })
+      .sort(function (a, b) {
+        if (a.score !== b.score) return b.score - a.score;
+        return String(a.row.name || '').localeCompare(String(b.row.name || ''));
+      })
+      .slice(0, 8);
+
+    if (!rows.length) {
+      host.hidden = true;
+      host.innerHTML = '';
+      return;
+    }
 
     host.hidden = false;
-    host.innerHTML = rows.length
-      ? rows.map(function (row) {
-          return '<button type="button" data-pmd-inv-common-index="' +
-            esc(commonStockTemplates().indexOf(row)) + '">' +
-            '<strong>' + esc(row.name || '') + '</strong>' +
-            '<small>' + esc(row.category || 'Stock item') + '</small>' +
-          '</button>';
-        }).join('')
-      : '<span class="pmd-inv-r6-suggestions__empty">No suggestion — keep typing your own item.</span>';
+    host.innerHTML = rows.map(function (match) {
+      var row = match.row;
+      var packageLabel = row.purchase_unit && row.purchase_unit !== row.unit
+        ? (' · buy ' + row.purchase_unit)
+        : '';
+      return '<button type="button" data-pmd-inv-common-index="' +
+        esc(match.index) + '">' +
+        '<strong>' + esc(row.name || '') + '</strong>' +
+        '<small>' + esc((row.category || 'Stock item') + packageLabel) + '</small>' +
+      '</button>';
+    }).join('');
   }
 
   function applyCommonStock(index) {
@@ -1694,7 +1799,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '6.0.0',
+    version: '7.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
