@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R131
+/* PMD_QPOS_QUICK_RESERVATIONS_R132
  * Same Quick POS shell, cleaner reservation density.
  * Right table rail remains untouched/canonical.
  */
@@ -557,8 +557,8 @@
 
 /* ---------- inline Quick Reservation editor ---------- */
 
-.pmd-qpos-reservations-center.is-editor-open-r131 > .pmd-qres-center-head,
-.pmd-qpos-reservations-center.is-editor-open-r131 > .pmd-qres-timeline {
+.pmd-qpos-reservations-center.is-editor-open-r132 > .pmd-qres-center-head,
+.pmd-qpos-reservations-center.is-editor-open-r132 > .pmd-qres-timeline {
   display: none !important;
 }
 
@@ -566,7 +566,7 @@
   display: none !important;
 }
 
-.pmd-qpos-reservations-center.is-editor-open-r131 .pmd-qres-quick-editor {
+.pmd-qpos-reservations-center.is-editor-open-r132 .pmd-qres-quick-editor {
   min-height: 0;
   flex: 1 1 auto;
   display: flex;
@@ -582,256 +582,431 @@
   display: flex;
   flex-direction: column;
   margin: 0;
-  overflow: auto;
+  overflow: hidden;
+  color: #143d35;
 }
 
-.pmd-qres-quick-editor-top {
-  min-height: 70px;
+.pmd-qres-composer-title-r132 {
+  min-height: 74px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 12px 18px;
-  border-bottom: 1px solid #dfe6e3;
-  background: #fbfcfc;
+  gap: 18px;
+  padding: 14px 22px;
+  border-bottom: 1px solid #dce5e1;
+  background: #fff;
 }
 
-.pmd-qres-quick-editor-top strong {
-  display: block;
-  color: #13231e;
-  font-size: 20px;
-  line-height: 1.1;
-  font-weight: 950;
+.pmd-qres-composer-title-r132 h2 {
+  margin: 0;
+  color: #143d35;
+  font-size: 25px;
+  font-weight: 760;
+  line-height: 1.15;
   letter-spacing: -.02em;
 }
 
-.pmd-qres-quick-editor-top small {
+.pmd-qres-composer-title-r132 small {
   display: block;
-  margin-top: 5px;
-  color: #6f7d77;
+  margin-top: 4px;
+  color: #6f7f79;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
-.pmd-qres-quick-close {
+.pmd-qres-composer-close-r132 {
   width: 42px;
   height: 42px;
   flex: 0 0 auto;
-  border: 1px solid #d5ddd9;
-  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d2ddd8;
+  border-radius: 13px;
   background: #fff;
-  color: #42514b;
-  font: inherit;
-  font-size: 22px;
-  font-weight: 800;
+  color: #28463f;
   cursor: pointer;
 }
 
-.pmd-qres-quick-grid {
-  display: grid;
-  grid-template-columns: repeat(12,minmax(0,1fr));
-  align-items: start;
-  gap: 13px;
-  padding: 18px;
+.pmd-qres-composer-close-r132 svg,
+.pmd-qres-composer-title-r132 svg,
+.pmd-qres-composer-body-r132 svg,
+.pmd-qres-composer-footer-r132 svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.pmd-qres-quick-field {
+.pmd-qres-composer-body-r132 {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 20px 22px 24px;
+  background: #f7faf8;
+}
+
+.pmd-qres-composer-primary-r132 {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  grid-template-areas:
+    "name name"
+    "date time"
+    "duration guests";
+  gap: 16px 18px;
+  align-items: start;
+}
+
+.pmd-qres-composer-field-r132 {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  gap: 7px;
   margin: 0;
 }
 
-.pmd-qres-quick-field--name {
-  grid-column: span 6;
+.pmd-qres-composer-field-r132.is-name { grid-area: name; }
+.pmd-qres-composer-field-r132.is-date { grid-area: date; }
+.pmd-qres-composer-field-r132.is-time { grid-area: time; }
+.pmd-qres-composer-field-r132.is-duration { grid-area: duration; }
+.pmd-qres-composer-field-r132.is-guests { grid-area: guests; }
+
+.pmd-qres-composer-field-r132 > span,
+.pmd-qres-composer-section-title-r132 {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #28463f;
+  font-size: 13px;
+  font-weight: 680;
+  line-height: 1.2;
 }
 
-.pmd-qres-quick-field--date,
-.pmd-qres-quick-field--time {
-  grid-column: span 3;
+.pmd-qres-composer-field-r132 > span > svg,
+.pmd-qres-composer-section-title-r132 > svg {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  box-sizing: border-box;
+  padding: 8px;
+  border-radius: 12px;
+  background: linear-gradient(145deg,rgba(255,255,255,.98),rgba(233,242,230,.82));
+  box-shadow: 0 6px 15px rgba(49,78,68,.08), inset 0 1px 0 #fff;
+  color: #258b70;
 }
 
-.pmd-qres-quick-field--people,
-.pmd-qres-quick-field--duration {
-  grid-column: span 3;
-}
-
-.pmd-qres-quick-field--table {
-  grid-column: span 6;
-}
-
-.pmd-qres-quick-field--contact {
-  grid-column: span 6;
-}
-
-.pmd-qres-quick-field--note {
-  grid-column: 1 / -1;
-}
-
-.pmd-qres-quick-field > span {
-  color: #5f6d67;
-  font-size: 10.5px;
-  line-height: 1;
-  font-weight: 900;
-  letter-spacing: .055em;
-  text-transform: uppercase;
-}
-
-.pmd-qres-quick-field input,
-.pmd-qres-quick-field select,
-.pmd-qres-quick-field textarea,
-.pmd-qres-quick-table {
+.pmd-qres-composer-field-r132 input:not([type="checkbox"]):not([type="radio"]),
+.pmd-qres-composer-field-r132 textarea,
+.pmd-qres-composer-table-r132 {
   width: 100%;
   min-width: 0;
-  min-height: 52px;
+  min-height: 50px;
   box-sizing: border-box;
-  border: 1px solid #cfd9d5;
-  border-radius: 10px;
+  border: 1px solid #cfe0d8;
+  border-radius: 15px;
   background: #fff;
-  color: #17231f;
+  color: #173d34;
   font: inherit;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 560;
   outline: none;
 }
 
-.pmd-qres-quick-field input,
-.pmd-qres-quick-field select {
-  padding: 0 13px;
+.pmd-qres-composer-field-r132 input:not([type="checkbox"]):not([type="radio"]) {
+  padding: 0 15px;
 }
 
-.pmd-qres-quick-field textarea {
-  min-height: 118px;
-  padding: 12px 13px;
+.pmd-qres-composer-field-r132 textarea {
+  min-height: 74px;
+  max-height: 120px;
+  padding: 13px 15px;
+  line-height: 1.4;
   resize: vertical;
-  line-height: 1.45;
 }
 
-.pmd-qres-quick-field input:focus,
-.pmd-qres-quick-field select:focus,
-.pmd-qres-quick-field textarea:focus,
-.pmd-qres-quick-table:focus-visible {
-  border-color: #7daf9e;
-  box-shadow: 0 0 0 3px rgba(7,92,71,.08);
+.pmd-qres-composer-field-r132 input:focus,
+.pmd-qres-composer-field-r132 textarea:focus,
+.pmd-qres-composer-table-r132:focus-visible {
+  border-color: #76ad9d;
+  box-shadow: 0 0 0 3px rgba(37,139,112,.12);
 }
 
-.pmd-qres-quick-stepper {
+.pmd-qres-composer-stepper-r132 {
+  min-height: 50px;
   display: grid;
   grid-template-columns: 48px minmax(0,1fr) 48px;
 }
 
-.pmd-qres-quick-stepper button {
-  min-height: 52px;
-  border: 1px solid #cfd9d5;
+.pmd-qres-composer-stepper-r132 > button {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cfe0d8;
   background: #fff;
-  color: #075c47;
+  color: #14765f;
   font: inherit;
-  font-size: 20px;
-  font-weight: 950;
+  font-size: 22px;
+  font-weight: 760;
   cursor: pointer;
 }
 
-.pmd-qres-quick-stepper button:first-child {
-  border-radius: 10px 0 0 10px;
+.pmd-qres-composer-stepper-r132 > button:first-child {
+  border-radius: 15px 0 0 15px;
 }
 
-.pmd-qres-quick-stepper button:last-child {
-  border-radius: 0 10px 10px 0;
+.pmd-qres-composer-stepper-r132 > button:last-child {
+  border-radius: 0 15px 15px 0;
 }
 
-.pmd-qres-quick-stepper input {
-  border-radius: 0;
-  border-left: 0;
-  border-right: 0;
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__value {
+  min-width: 0;
+  position: relative;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__value > input {
+  height: 50px;
+  min-height: 50px;
+  border-radius: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  text-align: center;
+  padding: 0 34px 0 12px !important;
+  font-weight: 760 !important;
+  -moz-appearance: textfield;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__value > input::-webkit-outer-spin-button,
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__value > input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__suffix {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: #72827c;
+  font-size: 12px;
+  font-weight: 760;
+  pointer-events: none;
+}
+
+.pmd-qres-composer-preferences-r132,
+.pmd-qres-composer-assignment-r132 {
+  margin-top: 18px;
+}
+
+.pmd-qres-composer-preference-options-r132 {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.pmd-qres-composer-preference-options-r132 label {
+  min-width: 0;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+}
+
+.pmd-qres-composer-preference-options-r132 input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid #cfe0d8;
+  border-radius: 14px;
+  background: #fff;
+  color: #28463f;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span > svg {
+  width: 18px;
+  height: 18px;
+  color: #14765f;
+}
+
+.pmd-qres-composer-preference-options-r132 input:checked + span {
+  border-color: #70ad9a;
+  background: #edf7f3;
+  box-shadow: 0 0 0 2px rgba(37,139,112,.08);
+}
+
+.pmd-qres-composer-modes-r132 {
+  display: grid;
+  grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) minmax(0,.8fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.pmd-qres-composer-modes-r132 label {
+  min-width: 0;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+}
+
+.pmd-qres-composer-modes-r132 input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pmd-qres-composer-modes-r132 label > span {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+  border: 1px solid #cfe0d8;
+  border-radius: 15px;
+  background: #fff;
+  color: #28463f;
+  font-size: 14px;
+  font-weight: 720;
   text-align: center;
 }
 
-.pmd-qres-quick-table {
-  min-height: 52px;
+.pmd-qres-composer-modes-r132 input:checked + span {
+  border-color: #70ad9a;
+  background: #edf7f3;
+  color: #145b49;
+  box-shadow: 0 0 0 2px rgba(37,139,112,.08);
+}
+
+.pmd-qres-composer-table-r132 {
+  min-height: 50px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 7px 13px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 7px 15px;
   text-align: left;
   cursor: pointer;
 }
 
-.pmd-qres-quick-table strong {
+.pmd-qres-composer-table-r132 > span {
+  min-width: 0;
+}
+
+.pmd-qres-composer-table-r132 strong {
+  display: block;
   overflow: hidden;
-  width: 100%;
-  color: #075c47;
+  color: #145b49;
   font-size: 14px;
-  font-weight: 950;
+  font-weight: 760;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pmd-qres-quick-table small {
+.pmd-qres-composer-table-r132 small {
+  display: block;
   overflow: hidden;
-  width: 100%;
-  margin-top: 3px;
-  color: #7b8983;
+  margin-top: 2px;
+  color: #74827d;
   font-size: 10.5px;
-  font-weight: 700;
+  font-weight: 680;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pmd-qres-quick-status {
-  min-height: 34px;
-  padding: 0 18px 10px;
+.pmd-qres-composer-table-r132 > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: #46645b;
+}
+
+.pmd-qres-composer-contact-r132 {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.pmd-qres-composer-notes-r132 {
+  margin-top: 18px;
+}
+
+.pmd-qres-composer-status-r132 {
+  min-height: 22px;
+  padding: 10px 0 0;
   color: #557168;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
-.pmd-qres-quick-status.is-error {
+.pmd-qres-composer-status-r132.is-error {
   color: #a22d3d;
 }
 
-.pmd-qres-quick-actions {
-  min-height: 66px;
+.pmd-qres-composer-footer-r132 {
+  min-height: 82px;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 9px;
-  margin-top: auto;
-  padding: 10px 18px;
-  border-top: 1px solid #dfe6e3;
-  background: #fff;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 15px 30px 20px;
+  box-sizing: border-box;
+  border-top: 1px solid #dce5e1;
+  background: rgba(255,255,255,.96);
 }
 
-.pmd-qres-quick-actions-spacer {
-  flex: 1 1 auto;
-}
-
-.pmd-qres-quick-actions button {
-  min-height: 44px;
-  padding: 0 15px;
-  border: 1px solid #cfd9d5;
-  border-radius: 10px;
-  background: #fff;
-  color: #314039;
+.pmd-qres-composer-footer-r132 button {
+  height: 54px;
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 24px;
+  border-radius: 18px;
   font: inherit;
-  font-size: 12.5px;
-  font-weight: 900;
+  font-size: 15px;
+  font-weight: 760;
   cursor: pointer;
 }
 
-.pmd-qres-quick-actions button.is-primary {
-  min-width: 104px;
-  border-color: #032f25;
-  background: #032f25;
-  color: #fff;
+.pmd-qres-composer-cancel-r132 {
+  width: 178px;
+  min-width: 178px;
+  border: 1px solid rgba(53,82,74,.14);
+  background: rgba(255,255,255,.9);
+  color: #233f39;
+  box-shadow: 0 8px 20px rgba(36,62,55,.05), inset 0 1px 0 #fff;
 }
 
-.pmd-qres-quick-actions button:disabled {
+.pmd-qres-composer-save-r132 {
+  width: 248px;
+  min-width: 248px;
+  border: 1px solid #0c6954;
+  background: linear-gradient(180deg,#14866b,#0e725b);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(14,114,91,.18);
+}
+
+.pmd-qres-composer-footer-r132 button:disabled {
   opacity: .55;
   cursor: wait;
 }
 
-.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table.is-reservation-editor-table-r131 {
+.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table.is-reservation-editor-table-r132 {
   outline: 3px solid #075c47 !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 4px rgba(7,92,71,.14) !important;
