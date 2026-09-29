@@ -38,8 +38,18 @@ class Pmdinventory extends AdminController
         // warm admin chrome shown by the first Inventory R1 build.
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-platform-card-system-v1.css');
-        $this->addCss('css/pmd-inventory-v1.css');
-        $this->addJs('js/pmd-inventory-v1.js');
+
+        $inventoryCssPath = base_path('app/admin/assets/css/pmd-inventory-v1.css');
+        $inventoryJsPath = base_path('app/admin/assets/js/pmd-inventory-v1.js');
+
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-inventory-v1.css')
+            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r2')
+        );
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-inventory-v1.js')
+            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r2')
+        );
         AdminMenu::setContext('dashboard');
     }
 
