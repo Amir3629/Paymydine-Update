@@ -98,13 +98,13 @@ class Pmdinventory extends AdminController
         });
     }
 
-    public function onAddItem(): JsonResponse
+    public function onSaveItem(): JsonResponse
     {
         $this->assertOwnerOrManager();
 
         return $this->action(function () {
             $service = app(PmdInventoryControlService::class);
-            $id = $service->addItem(
+            $id = $service->saveItem(
                 $this->locationId(),
                 $this->staffId(),
                 request()->all()
@@ -115,6 +115,12 @@ class Pmdinventory extends AdminController
                 'snapshot' => $service->snapshot($this->locationId()),
             ];
         });
+    }
+
+    // Compatibility handler kept for any first R1 client already pointing here.
+    public function onAddItem(): JsonResponse
+    {
+        return $this->onSaveItem();
     }
 
     public function onSavePurchase(): JsonResponse
