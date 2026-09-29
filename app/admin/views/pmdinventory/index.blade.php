@@ -42,6 +42,10 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg>
                     Waste
                 </button>
+                <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-open="shopping">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h15l-2 8H8L6 4H3M9 20h.01M18 20h.01"/></svg>
+                    Shopping list
+                </button>
                 <button type="button" class="pmd-inv-btn pmd-inv-btn--blue" data-pmd-inv-open="purchase">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 6V4h8v2M8 11h8M8 15h5"/></svg>
                     Purchase
@@ -270,6 +274,23 @@
                     <div class="pmd-inv-lines" data-pmd-inv-recipe-lines></div>
                     <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink">Save recipe</button></footer>
                 </form>
+            </section>
+        </div>
+
+        {{-- Automatic shopping list --}}
+        <div class="pmd-inv-modal" data-pmd-inv-modal="shopping" hidden aria-hidden="true">
+            <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
+            <section class="pmd-inv-modal__sheet pmd-inv-modal__sheet--large" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-shopping-title">
+                <header>
+                    <div><span>Reorder plan</span><h2 id="pmd-inv-shopping-title">Shopping list</h2></div>
+                    <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
+                </header>
+                <div class="pmd-inv-shopping-intro">Built from estimated on-hand stock, recent sales usage, par levels and reorder points. Check supplier pack sizes before ordering.</div>
+                <div class="pmd-inv-shopping-list" data-pmd-inv-shopping-list></div>
+                <footer class="pmd-inv-modal__static-footer">
+                    <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-copy-shopping>Copy list</button>
+                    <button type="button" class="pmd-inv-btn pmd-inv-btn--ink" data-pmd-inv-print-shopping>Print</button>
+                </footer>
             </section>
         </div>
 
