@@ -90,6 +90,8 @@ final class PmdReservationsScheduleV1
                             'guest_name' => $customerName,
                             'email' => (string)$reservation->email,
                             'telephone' => (string)$reservation->telephone,
+                            'comment' => trim((string)$reservation->comment),
+                            'note' => trim((string)$reservation->comment),
                             'guest_num' => max(0, (int)$reservation->guest_num),
                             'guests' => max(0, (int)$reservation->guest_num),
                             'reserve_date' => $date,
