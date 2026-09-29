@@ -159,6 +159,24 @@ class Pmdinventory extends AdminController
         return $this->onSaveItem();
     }
 
+    public function onArchiveItem(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryControlService::class);
+            $service->archiveItem(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('item_id', 0)
+            );
+
+            return [
+                'snapshot' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onSavePurchase(): JsonResponse
     {
         $this->assertOwnerOrManager();
