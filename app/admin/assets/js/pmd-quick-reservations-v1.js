@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R132
+/* PMD_QPOS_QUICK_RESERVATIONS_R133
  * POS-native Reservations workspace.
  * Right rail stays the canonical Quick POS table authority.
  * Canonical Reservation Composer stays the only create/edit authority.
@@ -42,6 +42,7 @@
     rows: [],
     selectedTableId: 0,
     selectedTableName: '',
+    tableScope: 'all',
     search: '',
     requestId: 0,
     requestController: null,
@@ -289,19 +290,6 @@
     });
   }
 
-  function formatRailDate(value) {
-    if (!value) return '';
-    try {
-      return new Intl.DateTimeFormat(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: '2-digit'
-      }).format(new Date(value + 'T12:00:00'));
-    } catch (ignore) {
-      return value;
-    }
-  }
-
   function renderReservationRailAction() {
     var pickup = root.querySelector('[data-qpos-pickup]');
     if (!pickup) return;
@@ -312,40 +300,24 @@
         ? pickup.parentElement
         : null;
 
+    // R133: Reservations uses the same single physical card geometry as the
+    // normal Pickup tile. No date, Today row, or secondary copy lives here.
+    if (wrapper && wrapper.parentNode) {
+      wrapper.parentNode.insertBefore(pickup, wrapper);
+      wrapper.remove();
+    }
+
     if (state.workspace !== 'reservations') {
-      pickup.classList.remove('is-qres-new-r131');
+      pickup.classList.remove('is-qres-new-r131', 'is-qres-new-r133');
       pickup.removeAttribute('aria-label');
       pickup.innerHTML = '<strong>Pickup</strong>';
-
-      if (wrapper && wrapper.parentNode) {
-        wrapper.parentNode.insertBefore(pickup, wrapper);
-        wrapper.remove();
-      }
       return;
     }
 
-    if (!wrapper) {
-      wrapper = document.createElement('div');
-      wrapper.className = 'pmd-qres-rail-action-r131';
-      pickup.parentNode.insertBefore(wrapper, pickup);
-      wrapper.appendChild(pickup);
-
-      var todayButton = document.createElement('button');
-      todayButton.type = 'button';
-      todayButton.className = 'pmd-qres-rail-today-r131';
-      todayButton.setAttribute('data-qres-today', '');
-      todayButton.textContent = 'Today';
-      wrapper.appendChild(todayButton);
-    }
-
-    pickup.classList.add('is-qres-new-r131');
-    pickup.setAttribute(
-      'aria-label',
-      'New reservation for ' + formatDate(state.date)
-    );
-    pickup.innerHTML =
-      '<strong>New reservation</strong>' +
-      '<small>' + esc(formatRailDate(state.date)) + '</small>';
+    pickup.classList.remove('is-qres-new-r131');
+    pickup.classList.add('is-qres-new-r133');
+    pickup.setAttribute('aria-label', 'New reservation');
+    pickup.innerHTML = '<strong>New</strong>';
   }
 
   function setRefreshing(active) {
@@ -366,22 +338,33 @@
   }
 
   function renderTableFilter() {
-    if (!tableFilter) return;
+    var selectedMode =
+      state.tableScope === 'selected' &&
+      state.selectedTableId > 0;
 
-    var visible = state.selectedTableId > 0;
-    tableFilter.classList.toggle('is-visible', visible);
+    if (tableFilter) {
+      tableFilter.classList.toggle('is-visible', selectedMode);
 
-    if (tableFilterText) {
-      tableFilterText.textContent = visible
-        ? 'Table ' + (state.selectedTableName || state.selectedTableId)
-        : '';
+      if (tableFilterText) {
+        tableFilterText.textContent = selectedMode
+          ? 'Table ' + (state.selectedTableName || state.selectedTableId)
+          : '';
+      }
     }
+
+    root.querySelectorAll('[data-qres-scope]').forEach(function (button) {
+      var scope = String(button.getAttribute('data-qres-scope') || 'all');
+      button.classList.toggle(
+        'is-active',
+        scope === (selectedMode ? 'selected' : 'all')
+      );
+    });
 
     root.querySelectorAll('[data-qpos-table]').forEach(function (button) {
       var id = Number(button.getAttribute('data-qpos-table') || 0);
       button.classList.toggle(
         'is-reservation-filter-r129',
-        visible && id === state.selectedTableId
+        selectedMode && id === state.selectedTableId
       );
     });
   }
@@ -403,7 +386,7 @@
         '<div class="pmd-qres-empty">' +
           '<strong>No reservations</strong>' +
           '<span>' +
-            (state.selectedTableId
+            (state.tableScope === 'selected' && state.selectedTableId
               ? 'Nothing booked for this table.'
               : 'Nothing matches this day.') +
           '</span>' +
@@ -617,7 +600,10 @@
     var url = '/admin/pos/reservations-data?date=' +
       encodeURIComponent(state.date || state.today);
 
-    if (state.selectedTableId) {
+    if (
+      state.tableScope === 'selected' &&
+      state.selectedTableId
+    ) {
       url += '&table_id=' + encodeURIComponent(String(state.selectedTableId));
     }
 
@@ -862,7 +848,7 @@
 
     canonicalRequest('onLoadReservationComposer', {
       reservation_id: id,
-      source: 'quick-pos-reservations-r132'
+      source: 'quick-pos-reservations-r133'
     })
       .then(function (response) {
         if (
@@ -963,12 +949,20 @@
     state.editor.reservationId = id;
     state.editor.tableIds = row
       ? rowIds(row)
-      : (state.selectedTableId ? [state.selectedTableId] : []);
+      : (
+          state.tableScope === 'selected' && state.selectedTableId
+            ? [state.selectedTableId]
+            : []
+        );
     state.editor.tableNames = row
       ? (Array.isArray(row.table_names) && row.table_names.length
           ? row.table_names.slice()
           : (row.table_name ? [String(row.table_name)] : []))
-      : (state.selectedTableName ? [state.selectedTableName] : []);
+      : (
+          state.tableScope === 'selected' && state.selectedTableName
+            ? [state.selectedTableName]
+            : []
+        );
     state.editor.assignmentMode = state.editor.tableIds.length
       ? 'choose'
       : (id ? 'later' : 'auto');
@@ -988,7 +982,7 @@
     if (quickField('email')) quickField('email').value = row ? String(row.email || '') : '';
     if (quickField('comment')) quickField('comment').value = row ? rowNote(row) : '';
     if (quickField('reservation_id')) quickField('reservation_id').value = id ? String(id) : '';
-    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r132';
+    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r133';
     if (quickField('pmd_floor_id')) quickField('pmd_floor_id').value = floor.id || '';
     if (quickField('pmd_floor_name')) quickField('pmd_floor_name').value = floor.name || '';
     if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = state.editor.tableIds.length ? '1' : '0';
@@ -1040,7 +1034,7 @@
       tables: ids,
       occasion_id: 0,
       notify: 0,
-      source: 'quick-pos-reservations-r132',
+      source: 'quick-pos-reservations-r133',
       location_id: quickLocationId() || null,
       pmd_floor_id: floor.id || '',
       pmd_floor_name: floor.name || '',
@@ -1119,6 +1113,7 @@
 
     state.selectedTableId = id;
     state.selectedTableName = name;
+    state.tableScope = 'selected';
     renderTableFilter();
     loadReservations();
   }
@@ -1171,6 +1166,7 @@
     if (floorButton && root.contains(floorButton)) {
       state.selectedTableId = 0;
       state.selectedTableName = '';
+      state.tableScope = 'all';
       if (state.editor.open) {
         state.editor.tableIds = [];
         state.editor.tableNames = [];
@@ -1222,6 +1218,35 @@
       return;
     }
 
+    var reservationScope = event.target && event.target.closest
+      ? event.target.closest('[data-qres-scope]')
+      : null;
+
+    if (reservationScope) {
+      event.preventDefault();
+
+      var requestedScope = String(
+        reservationScope.getAttribute('data-qres-scope') || 'all'
+      );
+
+      if (requestedScope === 'selected') {
+        if (!state.selectedTableId) {
+          state.tableScope = 'all';
+          renderTableFilter();
+          toast('Select a table on the right.');
+          return;
+        }
+
+        state.tableScope = 'selected';
+      } else {
+        state.tableScope = 'all';
+      }
+
+      renderTableFilter();
+      loadReservations();
+      return;
+    }
+
     var shift = event.target && event.target.closest
       ? event.target.closest('[data-qres-shift]')
       : null;
@@ -1250,8 +1275,7 @@
       : null;
 
     if (clearTable) {
-      state.selectedTableId = 0;
-      state.selectedTableName = '';
+      state.tableScope = 'all';
       renderTableFilter();
       loadReservations();
     }
@@ -1383,7 +1407,7 @@
 
   if (!window.PMDReservationsCardsV320) {
     window.PMDReservationsCardsV320 = {
-      version: 'qpos-r132-bridge',
+      version: 'qpos-r133-bridge',
       refresh: function () {
         return loadReservations();
       }
@@ -1396,8 +1420,8 @@
 
   setWorkspace(state.workspace, false);
 
-  window.PMDQuickReservationsR132 = {
-    version: '1.0.0-r132',
+  window.PMDQuickReservationsR133 = {
+    version: '1.0.0-r133',
     setWorkspace: setWorkspace,
     refresh: loadReservations,
     newReservation: function () {
@@ -1408,15 +1432,17 @@
         workspace: state.workspace,
         date: state.date,
         selectedTableId: state.selectedTableId,
+        tableScope: state.tableScope,
         count: state.rows.length,
         openingHours: state.openingHours.slice()
       };
     }
   };
 
-  // Compatibility alias for diagnostics that referenced the first bridge.
-  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR132;
-  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR132;
-  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR132;
-  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR132;
+  // Compatibility aliases for diagnostics that referenced earlier bridges.
+  window.PMDQuickReservationsR132 = window.PMDQuickReservationsR133;
+  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR133;
+  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR133;
+  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR133;
+  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR133;
 })();
