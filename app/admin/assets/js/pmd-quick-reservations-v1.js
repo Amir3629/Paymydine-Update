@@ -499,7 +499,7 @@
   function installScheduleBridge() {
     if (
       window.PMDReservationsScheduleV1 &&
-      window.PMDReservationsScheduleV1.version !== 'qpos-r129'
+      window.PMDReservationsScheduleV1.version !== 'qpos-r130'
     ) {
       return;
     }
@@ -1136,7 +1136,7 @@
 
   if (!window.PMDReservationsCardsV320) {
     window.PMDReservationsCardsV320 = {
-      version: 'qpos-r129-bridge',
+      version: 'qpos-r130-bridge',
       refresh: function () {
         return loadReservations();
       }
