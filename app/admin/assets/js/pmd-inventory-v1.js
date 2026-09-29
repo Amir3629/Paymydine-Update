@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R2 */
+/* PMD_INVENTORY_CONTROL_R5 */
 (function () {
   'use strict';
 
@@ -24,7 +24,10 @@
       ? bootstrap.snapshot
       : {},
     busy: false,
-    search: ''
+    search: '',
+    recipeSearch: '',
+    commonSearch: '',
+    shoppingDays: 1
   };
 
   function esc(value) {
@@ -213,7 +216,7 @@
   function unitOptions(selected) {
     var units = bootstrap.units && typeof bootstrap.units === 'object'
       ? bootstrap.units
-      : {piece:'piece',bottle:'bottle',can:'can',pack:'pack',kg:'kg',g:'g',l:'l',ml:'ml'};
+      : {piece:'piece',bottle:'bottle',can:'can',pack:'pack',case:'case',box:'box',tray:'tray',bag:'bag',kg:'kg',g:'g',l:'l',ml:'ml'};
     return Object.keys(units).map(function (value) {
       return '<option value="' + esc(value) + '"' +
         (String(selected || '') === String(value) ? ' selected' : '') +
@@ -255,21 +258,91 @@
 
   function syncPurchaseLineToKnownItem(input) {
     var name = String(input && input.value || '').trim().toLowerCase();
-    if (!name) return;
+    var line = input && input.closest ? input.closest('.pmd-inv-line') : null;
+    if (!line) return;
 
     var item = items().find(function (row) {
       return String(row.name || '').trim().toLowerCase() === name;
     });
-    if (!item) return;
 
-    var line = input.closest('.pmd-inv-line');
-    if (!line) return;
+    if (!item) {
+      line.removeAttribute('data-pmd-purchase-item-id');
+      return;
+    }
 
+    line.setAttribute('data-pmd-purchase-item-id', String(item.id || ''));
     var unit = line.querySelector('[data-pmd-purchase-unit]');
     var cost = line.querySelector('[data-pmd-purchase-cost]');
-    if (unit) unit.value = String(item.unit || 'piece');
+    if (unit) unit.value = String(item.purchase_unit || item.unit || 'piece');
     if (cost && (!cost.value || Number(cost.value) === 0)) {
-      cost.value = String(item.unit_cost || 0);
+      cost.value = String(item.purchase_unit_cost || item.unit_cost || 0);
+    }
+  }
+
+  function commonStockTemplates() {
+    return Array.isArray(bootstrap.common_stock) ? bootstrap.common_stock : [];
+  }
+
+  function renderCommonStock() {
+    var host = root.querySelector('[data-pmd-inv-common-results]');
+    if (!host) return;
+
+    var query = String(state.commonSearch || '').trim().toLowerCase();
+    var rows = commonStockTemplates().filter(function (row) {
+      if (!query) return true;
+      return [row.name, row.category, row.unit, row.purchase_unit]
+        .join(' ')
+        .toLowerCase()
+        .indexOf(query) !== -1;
+    }).slice(0, 12);
+
+    host.innerHTML = rows.length
+      ? rows.map(function (row, index) {
+          var pack = row.purchase_unit && row.purchase_unit !== row.unit
+            ? (' · buy as ' + row.purchase_unit)
+            : '';
+          return '<button type="button" data-pmd-inv-common-index="' +
+            esc(commonStockTemplates().indexOf(row)) + '">' +
+            '<strong>' + esc(row.name || '') + '</strong>' +
+            '<small>' + esc((row.category || 'Stock') + ' · track ' + (row.unit || 'piece') + pack) + '</small>' +
+          '</button>';
+        }).join('')
+      : '<span class="pmd-inv-common-stock__empty">No common item matches. Type your own stock item below.</span>';
+  }
+
+  function applyCommonStock(index) {
+    var template = commonStockTemplates()[Number(index)];
+    var form = root.querySelector('[data-pmd-inv-form="item"]');
+    if (!template || !form) return;
+
+    form.querySelector('[name="name"]').value = String(template.name || '');
+    form.querySelector('[name="category"]').value = String(template.category || '');
+    form.querySelector('[name="unit"]').value = String(template.unit || 'piece');
+    form.querySelector('[name="purchase_unit"]').value = String(template.purchase_unit || template.unit || 'piece');
+    form.querySelector('[name="purchase_to_base"]').value =
+      template.purchase_to_base == null ? '' : String(template.purchase_to_base);
+
+    updatePackageHelp(form);
+    var name = form.querySelector('[name="name"]');
+    if (name) name.focus();
+  }
+
+  function updatePackageHelp(form) {
+    form = form || root.querySelector('[data-pmd-inv-form="item"]');
+    if (!form) return;
+
+    var base = String((form.querySelector('[name="unit"]') || {}).value || 'piece');
+    var purchase = String((form.querySelector('[name="purchase_unit"]') || {}).value || base);
+    var factor = String((form.querySelector('[name="purchase_to_base"]') || {}).value || '');
+    var help = form.querySelector('[data-pmd-inv-package-help]');
+    if (!help) return;
+
+    if (purchase === base) {
+      help.textContent = 'Same unit: keep this at 1.';
+    } else if (factor) {
+      help.textContent = '1 ' + purchase + ' = ' + factor + ' ' + base + '.';
+    } else {
+      help.textContent = 'Enter how many ' + base + ' are inside one ' + purchase + '.';
     }
   }
 
@@ -336,7 +409,10 @@
         : num(item.days_left, 1);
       var variance = Number(item.last_variance_qty || 0);
       var varianceClass = variance < 0 ? ' is-negative' : (variance > 0 ? ' is-positive' : '');
-      var meta = [item.category, item.supplier_name].filter(Boolean).join(' · ');
+      var packageMeta = item.purchase_unit && item.purchase_unit !== item.unit
+        ? ('1 ' + item.purchase_unit + ' = ' + num(item.purchase_to_base, 3) + ' ' + item.unit)
+        : '';
+      var meta = [item.category, packageMeta, item.supplier_name].filter(Boolean).join(' · ');
 
       return '<tr class="is-' + esc(status) + '">' +
         '<td class="pmd-inv__item-name"><button type="button" class="pmd-inv__item-edit" data-pmd-inv-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button><small>' + esc(meta || 'Stock item') + '</small></td>' +
@@ -405,61 +481,117 @@
     }).join('');
   }
 
+  function shoppingHorizonDays() {
+    return Math.max(1, Number(state.shoppingDays || 1));
+  }
+
+  function shoppingNeedBase(item) {
+    var horizon = shoppingHorizonDays();
+    var onHand = Math.max(0, Number(item.estimated_on_hand || 0));
+    var daily = Math.max(0, Number(item.avg_daily_usage || 0));
+    var safety = Math.max(0, Number(item.reorder_point || 0));
+    var neededThroughDate = (daily * horizon) + safety;
+    return Math.max(0, neededThroughDate - onHand);
+  }
+
+  function shoppingSuggestion(item) {
+    var baseQty = shoppingNeedBase(item);
+    var factor = Math.max(0.0001, Number(item.purchase_to_base || 1));
+    var purchaseUnit = String(item.purchase_unit || item.unit || 'piece');
+    var baseUnit = String(item.unit || 'piece');
+    var purchaseQty = baseQty / factor;
+    var discrete = ['piece','bottle','can','pack','case','box','tray','bag'].indexOf(purchaseUnit) !== -1;
+    if (discrete && purchaseQty > 0) purchaseQty = Math.ceil(purchaseQty);
+
+    return {
+      base_qty: baseQty,
+      purchase_qty: purchaseQty,
+      purchase_unit: purchaseUnit,
+      base_unit: baseUnit,
+      label: baseQty > 0
+        ? (num(purchaseQty, discrete ? 0 : 2) + ' ' + purchaseUnit)
+        : 'No buy needed'
+    };
+  }
+
   function shoppingItems() {
     return items()
       .filter(function (item) {
-        return String(item.status || '') === 'critical'
-          || String(item.status || '') === 'low'
-
+        return shoppingNeedBase(item) > 0;
       })
       .sort(function (a, b) {
-        var pa = String(a.status || '') === 'critical' ? 0 : 1;
-        var pb = String(b.status || '') === 'critical' ? 0 : 1;
-        if (pa !== pb) return pa - pb;
+        var needA = shoppingNeedBase(a);
+        var needB = shoppingNeedBase(b);
+        if (needA !== needB) return needB - needA;
         return String(a.name || '').localeCompare(String(b.name || ''));
       });
   }
 
+  function shoppingDateLabel() {
+    var date = new Date(String(state.today || '') + 'T12:00:00');
+    if (Number.isNaN(date.getTime())) date = new Date();
+    date.setDate(date.getDate() + Math.max(0, shoppingHorizonDays() - 1));
+    try {
+      return new Intl.DateTimeFormat(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }).format(date);
+    } catch (ignore) {
+      return date.toISOString().slice(0, 10);
+    }
+  }
+
   function renderShoppingList() {
     var host = root.querySelector('[data-pmd-inv-shopping-list]');
+    var summary = root.querySelector('[data-pmd-inv-shopping-summary]');
     if (!host) return;
 
     var rows = shoppingItems();
+    if (summary) {
+      summary.innerHTML =
+        '<strong>Cover through ' + esc(shoppingDateLabel()) + '</strong>' +
+        '<span>' + esc(String(rows.length)) + ' item' + (rows.length === 1 ? '' : 's') + ' need purchasing based on recent sales usage.</span>';
+    }
+
+    root.querySelectorAll('[data-pmd-shopping-days]').forEach(function (button) {
+      button.classList.toggle(
+        'is-active',
+        Number(button.getAttribute('data-pmd-shopping-days') || 0) === shoppingHorizonDays()
+      );
+    });
+
     if (!rows.length) {
-      host.innerHTML = '<div class="pmd-inv-activity-empty">Nothing is currently below its stock target.</div>';
+      host.innerHTML = '<div class="pmd-inv-activity-empty">Current stock should cover this period at recent sales usage.</div>';
       return;
     }
 
     host.innerHTML = rows.map(function (item) {
-      var qty = Number(item.suggested_order_qty || 0);
-      var target = qty > 0
-        ? (num(qty, 2) + ' ' + (item.unit || ''))
-        : 'Review';
+      var suggestion = shoppingSuggestion(item);
       var supplier = item.supplier_name || 'Supplier not set';
-      var days = item.days_left === null || typeof item.days_left === 'undefined'
-        ? ''
-        : (num(item.days_left, 1) + ' days left');
+      var projectedUse = Number(item.avg_daily_usage || 0) * shoppingHorizonDays();
 
       return '<div class="pmd-inv-shopping-row">' +
         '<div><strong>' + esc(item.name) + '</strong><small>' +
-          esc(supplier + (days ? ' · ' + days : '')) +
+          esc(supplier + ' · projected use ' + num(projectedUse, 2) + ' ' + item.unit) +
         '</small></div>' +
         '<span>' + esc(num(item.estimated_on_hand, 3) + ' ' + item.unit + ' on hand') + '</span>' +
-        '<b>' + esc(target) + '</b>' +
+        '<b>' + esc(suggestion.label) + '</b>' +
       '</div>';
     }).join('');
   }
 
   function shoppingText() {
     var rows = shoppingItems();
-    if (!rows.length) return 'PayMyDine shopping list\nNo items need reordering.';
+    if (!rows.length) {
+      return 'PayMyDine shopping list · through ' + shoppingDateLabel() + '\nNo items need purchasing.';
+    }
 
-    var lines = ['PayMyDine shopping list', ''];
+    var lines = ['PayMyDine shopping list · through ' + shoppingDateLabel(), ''];
     rows.forEach(function (item) {
-      var qty = Number(item.suggested_order_qty || 0);
+      var suggestion = shoppingSuggestion(item);
       lines.push(
-        '- ' + item.name + ': ' +
-        (qty > 0 ? (num(qty, 2) + ' ' + item.unit) : 'review') +
+        '- ' + item.name + ': ' + suggestion.label +
         (item.supplier_name ? ' · ' + item.supplier_name : '')
       );
     });
@@ -498,15 +630,15 @@
     var rows = shoppingItems();
     var body = rows.length
       ? rows.map(function (item) {
-          var qty = Number(item.suggested_order_qty || 0);
+          var suggestion = shoppingSuggestion(item);
           return '<tr>' +
             '<td>' + esc(item.name) + '</td>' +
             '<td>' + esc(item.supplier_name || '—') + '</td>' +
             '<td>' + esc(num(item.estimated_on_hand, 3) + ' ' + item.unit) + '</td>' +
-            '<td><strong>' + esc(qty > 0 ? (num(qty, 2) + ' ' + item.unit) : 'Review') + '</strong></td>' +
+            '<td><strong>' + esc(suggestion.label) + '</strong></td>' +
           '</tr>';
         }).join('')
-      : '<tr><td colspan="4">Nothing currently needs reordering.</td></tr>';
+      : '<tr><td colspan="4">Current stock should cover this period.</td></tr>';
 
     var win = window.open('', '_blank', 'noopener,noreferrer,width=880,height=700');
     if (!win) {
@@ -518,7 +650,7 @@
     win.document.write(
       '<!doctype html><html><head><meta charset="utf-8"><title>PayMyDine shopping list</title>' +
       '<style>body{font-family:Arial,sans-serif;color:#111827;padding:28px}h1{font-size:24px;margin:0 0 4px}p{margin:0 0 18px;color:#667085;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid #dfe4ea;padding:10px;text-align:left}th{font-size:10px;text-transform:uppercase;color:#667085}strong{font-weight:800}@media print{body{padding:0}}</style>' +
-      '</head><body><h1>Shopping list</h1><p>Generated from PayMyDine stock targets and recent sales usage.</p>' +
+      '</head><body><h1>Shopping list</h1><p>Cover through ' + esc(shoppingDateLabel()) + '. Based on current stock and recent sales usage.</p>' +
       '<table><thead><tr><th>Item</th><th>Supplier</th><th>On hand</th><th>Suggested buy</th></tr></thead><tbody>' +
       body +
       '</tbody></table><script>window.onload=function(){window.print();};<\/script></body></html>'
@@ -581,19 +713,49 @@
     }
 
     if (recipePanel) {
-      var recipeRows = recipes();
-      recipePanel.innerHTML = recipeRows.length
-        ? recipeRows.map(function (recipe) {
-            var detail = (recipe.lines || []).map(function (line) {
-              return num(line.qty_per_sale, 3) + ' ' + line.unit + ' ' + line.item_name;
-            }).join(' · ');
-            return '<div class="pmd-inv-activity-row">' +
-              '<time>Per sale</time>' +
-              '<div><strong>' + esc(recipe.menu_name) + '</strong><small>' + esc(detail) + '</small></div>' +
-              '<b>' + esc(String((recipe.lines || []).length)) + ' lines</b>' +
-            '</div>';
-          }).join('')
-        : '<div class="pmd-inv-activity-empty">No recipes linked yet. Without recipes, PMD cannot estimate ingredient usage from sales.</div>';
+      var query = String(state.recipeSearch || '').trim().toLowerCase();
+      var recipeByMenu = {};
+      recipes().forEach(function (recipe) {
+        recipeByMenu[Number(recipe.menu_id || 0)] = recipe;
+      });
+
+      var menuRows = menus().filter(function (menu) {
+        if (!query) return true;
+        return String(menu.name || '').toLowerCase().indexOf(query) !== -1;
+      });
+
+      var connected = menus().filter(function (menu) {
+        var recipe = recipeByMenu[Number(menu.id || 0)];
+        return recipe && Array.isArray(recipe.lines) && recipe.lines.length;
+      }).length;
+
+      recipePanel.innerHTML =
+        '<div class="pmd-inv-menu-map-head">' +
+          '<div><strong>Menu → stock connections</strong><span>' +
+            esc(String(connected)) + ' of ' + esc(String(menus().length)) +
+            ' menu items connected</span></div>' +
+          '<label><input type="search" placeholder="Search menu…" data-pmd-inv-menu-map-search value="' + esc(state.recipeSearch) + '"></label>' +
+        '</div>' +
+        (menuRows.length
+          ? '<div class="pmd-inv-menu-map-list">' +
+              menuRows.map(function (menu) {
+                var recipe = recipeByMenu[Number(menu.id || 0)];
+                var lines = recipe && Array.isArray(recipe.lines) ? recipe.lines : [];
+                var mapped = lines.length > 0;
+                var detail = mapped
+                  ? lines.slice(0, 4).map(function (line) {
+                      return num(line.qty_per_sale, 3) + ' ' + line.unit + ' ' + line.item_name;
+                    }).join(' · ')
+                  : 'Not connected yet — sales cannot reduce physical stock for this menu item.';
+
+                return '<button type="button" class="pmd-inv-menu-map-row' + (mapped ? ' is-mapped' : ' is-missing') + '" data-pmd-inv-recipe-menu="' + esc(menu.id) + '">' +
+                  '<span class="pmd-inv-menu-map-row__main"><strong>' + esc(menu.name) + '</strong><small>' + esc(detail) + '</small></span>' +
+                  '<span class="pmd-inv-menu-map-row__price">' + esc(money(menu.price || 0)) + '</span>' +
+                  '<span class="pmd-inv-menu-map-row__status">' + (mapped ? 'Connected' : 'Set up') + '</span>' +
+                '</button>';
+              }).join('') +
+            '</div>'
+          : '<div class="pmd-inv-activity-empty">No menu items match this search.</div>');
     }
 
     if (counts) {
@@ -630,6 +792,10 @@
     if (!modal || !form) return;
 
     form.reset();
+    state.commonSearch = '';
+    var commonSearch = modal.querySelector('[data-pmd-inv-common-search]');
+    if (commonSearch) commonSearch.value = '';
+
     var item = itemId ? itemById(itemId) : null;
     var title = modal.querySelector('[data-pmd-inv-item-title]');
     var save = modal.querySelector('[data-pmd-inv-item-save]');
@@ -640,7 +806,15 @@
     form.querySelector('[name="name"]').value = item ? String(item.name || '') : '';
     form.querySelector('[name="category"]').value = item ? String(item.category || '') : '';
     form.querySelector('[name="sku"]').value = item ? String(item.sku || '') : '';
-    form.querySelector('[name="unit_cost"]').value = item ? String(item.unit_cost || 0) : '0';
+    form.querySelector('[name="purchase_unit"]').value = item
+      ? String(item.purchase_unit || item.unit || 'piece')
+      : 'piece';
+    form.querySelector('[name="purchase_to_base"]').value = item
+      ? String(item.purchase_to_base || 1)
+      : '1';
+    form.querySelector('[name="purchase_cost"]').value = item
+      ? String(item.purchase_unit_cost || 0)
+      : '0';
     form.querySelector('[name="reorder_point"]').value = item ? String(item.reorder_point || 0) : '0';
     form.querySelector('[name="par_level"]').value = item ? String(item.par_level || 0) : '0';
     form.querySelector('[name="supplier_name"]').value = item ? String(item.supplier_name || '') : '';
@@ -653,6 +827,20 @@
     if (openingField) openingField.hidden = Boolean(item);
     if (title) title.textContent = item ? 'Edit stock item' : 'Add stock item';
     if (save) save.textContent = item ? 'Save item' : 'Add item';
+
+    updatePackageHelp(form);
+    renderCommonStock();
+  }
+
+  function openRecipeForMenu(menuId) {
+    var modal = root.querySelector('[data-pmd-inv-modal="recipe"]');
+    var select = modal ? modal.querySelector('[data-pmd-inv-menu-select]') : null;
+    if (!modal || !select) return;
+
+    syncSelects();
+    select.value = String(menuId || '');
+    loadRecipeForMenu(menuId);
+    openModal('recipe');
   }
 
   function openModal(name) {
@@ -744,10 +932,12 @@
       '<input type="text" list="pmd-inv-purchase-items-r1" data-pmd-purchase-name placeholder="Stock item" value="' + esc(data.item_name || '') + '" required>' +
       '<input type="number" min="0.0001" step="0.0001" data-pmd-purchase-qty placeholder="Qty" value="' + esc(data.quantity == null ? '' : data.quantity) + '" required>' +
       '<select data-pmd-purchase-unit>' + unitOptions(data.unit || 'piece') + '</select>' +
-      '<input type="number" min="0" step="0.0001" data-pmd-purchase-cost placeholder="Unit cost" value="' + esc(data.unit_cost == null ? '' : data.unit_cost) + '">' +
+      '<input type="number" min="0" step="0.0001" data-pmd-purchase-cost placeholder="Cost / unit" value="' + esc(data.unit_cost == null ? '' : data.unit_cost) + '">' +
       '<button type="button" class="pmd-inv-line__remove" data-pmd-inv-remove-line aria-label="Remove line">×</button>';
 
     host.appendChild(row);
+    var input = row.querySelector('[data-pmd-purchase-name]');
+    if (input && input.value) syncPurchaseLineToKnownItem(input);
   }
 
   function purchaseLines() {
@@ -755,6 +945,7 @@
       root.querySelectorAll('[data-pmd-inv-purchase-lines] .pmd-inv-line')
     ).map(function (row) {
       return {
+        item_id: Number(row.getAttribute('data-pmd-purchase-item-id') || 0),
         item_name: String((row.querySelector('[data-pmd-purchase-name]') || {}).value || '').trim(),
         quantity: Number((row.querySelector('[data-pmd-purchase-qty]') || {}).value || 0),
         unit: String((row.querySelector('[data-pmd-purchase-unit]') || {}).value || 'piece'),
@@ -763,6 +954,14 @@
     }).filter(function (line) {
       return line.item_name && line.quantity > 0;
     });
+  }
+
+  function updateRecipeLineUnit(row) {
+    if (!row) return;
+    var select = row.querySelector('[data-pmd-recipe-item]');
+    var unit = row.querySelector('[data-pmd-recipe-unit]');
+    var item = select ? itemById(select.value) : null;
+    if (unit) unit.textContent = item ? String(item.unit || '') : 'unit';
   }
 
   function addRecipeLine(data) {
@@ -774,13 +973,15 @@
     row.className = 'pmd-inv-line is-recipe';
     row.innerHTML =
       '<select data-pmd-recipe-item required>' + itemOptions('Choose stock item') + '</select>' +
-      '<input type="number" min="0.0001" step="0.0001" data-pmd-recipe-qty placeholder="Qty per sale" value="' + esc(data.qty_per_sale == null ? '' : data.qty_per_sale) + '" required>' +
+      '<input type="number" min="0.0001" step="0.0001" data-pmd-recipe-qty placeholder="Amount" value="' + esc(data.qty_per_sale == null ? '' : data.qty_per_sale) + '" required>' +
+      '<span class="pmd-inv-recipe-unit" data-pmd-recipe-unit>unit</span>' +
       '<button type="button" class="pmd-inv-line__remove" data-pmd-inv-remove-line aria-label="Remove ingredient">×</button>';
     host.appendChild(row);
 
     if (data.item_id) {
       row.querySelector('[data-pmd-recipe-item]').value = String(data.item_id);
     }
+    updateRecipeLineUnit(row);
   }
 
   function loadRecipeForMenu(menuId) {
@@ -797,6 +998,30 @@
     } else {
       addRecipeLine({});
     }
+  }
+
+  function applyDirectSaleShortcut() {
+    var lines = root.querySelectorAll('[data-pmd-inv-recipe-lines] .pmd-inv-line');
+    if (!lines.length) {
+      addRecipeLine({});
+      lines = root.querySelectorAll('[data-pmd-inv-recipe-lines] .pmd-inv-line');
+    }
+
+    var row = lines[0];
+    var select = row.querySelector('[data-pmd-recipe-item]');
+    var qty = row.querySelector('[data-pmd-recipe-qty]');
+    var item = select ? itemById(select.value) : null;
+
+    if (!item) {
+      toast('Choose the stock item first, then use the direct-sale shortcut.', true);
+      if (select) select.focus();
+      return;
+    }
+
+    var factor = Math.max(0.0001, Number(item.purchase_to_base || 1));
+    if (qty) qty.value = String(factor);
+    updateRecipeLineUnit(row);
+    toast('Direct sale set: one sale uses one ' + String(item.purchase_unit || item.unit) + '.');
   }
 
   function recipeLines() {
@@ -908,6 +1133,43 @@
       return;
     }
 
+    var recipeMenu = event.target.closest('[data-pmd-inv-recipe-menu]');
+    if (recipeMenu) {
+      event.preventDefault();
+      openRecipeForMenu(Number(recipeMenu.getAttribute('data-pmd-inv-recipe-menu') || 0));
+      return;
+    }
+
+    var common = event.target.closest('[data-pmd-inv-common-index]');
+    if (common) {
+      event.preventDefault();
+      applyCommonStock(Number(common.getAttribute('data-pmd-inv-common-index') || 0));
+      return;
+    }
+
+    var shoppingPreset = event.target.closest('[data-pmd-shopping-days]');
+    if (shoppingPreset) {
+      event.preventDefault();
+      state.shoppingDays = Math.max(1, Number(shoppingPreset.getAttribute('data-pmd-shopping-days') || 1));
+      var customDate = root.querySelector('[data-pmd-shopping-date]');
+      if (customDate) {
+        var date = new Date(String(state.today || '') + 'T12:00:00');
+        if (!Number.isNaN(date.getTime())) {
+          date.setDate(date.getDate() + state.shoppingDays - 1);
+          customDate.value = date.toISOString().slice(0, 10);
+        }
+      }
+      renderShoppingList();
+      return;
+    }
+
+    var directRecipe = event.target.closest('[data-pmd-inv-direct-recipe]');
+    if (directRecipe) {
+      event.preventDefault();
+      applyDirectSaleShortcut();
+      return;
+    }
+
     var open = event.target.closest('[data-pmd-inv-open]');
     if (open) {
       event.preventDefault();
@@ -984,12 +1246,49 @@
       return;
     }
 
+    if (event.target.matches('[data-pmd-inv-common-search]')) {
+      state.commonSearch = String(event.target.value || '').trim();
+      renderCommonStock();
+      return;
+    }
+
+    if (event.target.matches('[data-pmd-inv-menu-map-search]')) {
+      state.recipeSearch = String(event.target.value || '').trim();
+      renderActivity();
+      var next = root.querySelector('[data-pmd-inv-menu-map-search]');
+      if (next) {
+        next.focus();
+        try { next.setSelectionRange(next.value.length, next.value.length); } catch (ignore) {}
+      }
+      return;
+    }
+
     if (event.target.matches('[data-pmd-count-actual]')) {
       updateCountVariance(event.target);
     }
   });
 
   root.addEventListener('change', function (event) {
+    if (event.target.matches('[data-pmd-shopping-date]')) {
+      var selected = new Date(String(event.target.value || '') + 'T12:00:00');
+      var today = new Date(String(state.today || '') + 'T12:00:00');
+      if (!Number.isNaN(selected.getTime()) && !Number.isNaN(today.getTime())) {
+        state.shoppingDays = Math.max(1, Math.floor((selected - today) / 86400000) + 1);
+      }
+      renderShoppingList();
+      return;
+    }
+
+    if (event.target.matches('[data-pmd-recipe-item]')) {
+      updateRecipeLineUnit(event.target.closest('.pmd-inv-line'));
+      return;
+    }
+
+    if (event.target.matches('[name="unit"], [name="purchase_unit"], [name="purchase_to_base"]')) {
+      var itemForm = event.target.closest('[data-pmd-inv-form="item"]');
+      if (itemForm) updatePackageHelp(itemForm);
+    }
+
     if (event.target.matches('[data-pmd-purchase-name]')) {
       syncPurchaseLineToKnownItem(event.target);
       return;
@@ -1068,6 +1367,14 @@
       var payload = formObject(form);
 
       if (kind === 'item') {
+        if (
+          String(payload.purchase_unit || '') !== String(payload.unit || '') &&
+          Number(payload.purchase_to_base || 0) <= 0
+        ) {
+          toast('Enter how much one purchase unit contains.', true);
+          return;
+        }
+
         var editing = Number(payload.item_id || 0) > 0;
         submitAction(
           form,
@@ -1130,7 +1437,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '2.0.0',
+    version: '5.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
