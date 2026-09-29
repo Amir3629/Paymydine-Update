@@ -878,8 +878,12 @@
 
       if (kind === 'count') {
         payload.lines = countLines();
-        if (!payload.lines.length) {
-          toast('Enter at least one physical count.', true);
+        if (!items().length) {
+          toast('Add stock items before starting a count.', true);
+          return;
+        }
+        if (payload.lines.length !== items().length) {
+          toast('Enter the physical count for every stock item.', true);
           return;
         }
         submitAction(form, 'onCompleteCount', payload, 'Physical stock count completed.');
