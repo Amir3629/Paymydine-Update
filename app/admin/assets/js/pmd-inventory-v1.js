@@ -620,7 +620,7 @@
       var status = String(item.status || 'healthy');
       var statusLabel = status === 'critical'
         ? 'Reorder'
-        : (status === 'low' ? 'Low' : 'Good');
+        : (status === 'low' ? 'Low' : (status === 'setup' ? 'Setup' : 'Good'));
       var days = item.days_left === null || typeof item.days_left === 'undefined'
         ? '—'
         : num(item.days_left, 1);
@@ -1126,7 +1126,9 @@
     var item = itemId ? itemById(itemId) : null;
     var title = modal.querySelector('[data-pmd-inv-item-title]');
     var save = modal.querySelector('[data-pmd-inv-item-save]');
+    var archive = modal.querySelector('[data-pmd-inv-archive-item]');
     var openingField = modal.querySelector('[data-pmd-inv-opening-field]');
+    var openingInput = openingField ? openingField.querySelector('[name="opening_qty"]') : null;
     var unit = form.querySelector('[name="unit"]');
 
     form.querySelector('[name="item_id"]').value = item ? String(item.id) : '';
@@ -1153,6 +1155,8 @@
     }
 
     if (openingField) openingField.hidden = Boolean(item);
+    if (openingInput) openingInput.disabled = Boolean(item);
+    if (archive) archive.hidden = !item;
     if (title) title.textContent = item ? 'Edit stock item' : 'Add stock item';
     if (save) save.textContent = item ? 'Save item' : 'Add item';
 
@@ -1226,10 +1230,14 @@
     if (modal.matches('[data-pmd-inv-modal="item"]')) {
       var itemUnit = modal.querySelector('[name="unit"]');
       var openingField = modal.querySelector('[data-pmd-inv-opening-field]');
+      var openingInput = openingField ? openingField.querySelector('[name="opening_qty"]') : null;
       var itemTitle = modal.querySelector('[data-pmd-inv-item-title]');
       var itemSave = modal.querySelector('[data-pmd-inv-item-save]');
+      var itemArchive = modal.querySelector('[data-pmd-inv-archive-item]');
       if (itemUnit) itemUnit.disabled = false;
       if (openingField) openingField.hidden = false;
+      if (openingInput) openingInput.disabled = false;
+      if (itemArchive) itemArchive.hidden = true;
       if (itemTitle) itemTitle.textContent = 'Add stock item';
       if (itemSave) itemSave.textContent = 'Add item';
     }
@@ -1502,6 +1510,32 @@
       event.preventDefault();
       prepareItemEditor(Number(editItem.getAttribute('data-pmd-inv-edit-item') || 0));
       openModal('item');
+      return;
+    }
+
+    var archiveItem = event.target.closest('[data-pmd-inv-archive-item]');
+    if (archiveItem) {
+      event.preventDefault();
+      var archiveModal = archiveItem.closest('[data-pmd-inv-modal="item"]');
+      var archiveForm = archiveModal ? archiveModal.querySelector('[data-pmd-inv-form="item"]') : null;
+      var archiveId = Number((archiveForm && archiveForm.querySelector('[name="item_id"]') || {}).value || 0);
+      var archiveName = String((archiveForm && archiveForm.querySelector('[name="name"]') || {}).value || 'this item');
+      if (!archiveId) return;
+      if (!window.confirm('Archive "' + archiveName + '"? History will stay, but it will stop appearing in stock and active menu links.')) return;
+
+      setBusy(true);
+      request('onArchiveItem', {item_id: archiveId})
+        .then(function (json) {
+          if (json.snapshot) applySnapshot(json.snapshot);
+          closeModal(archiveModal);
+          toast('Stock item archived.');
+        })
+        .catch(function (error) {
+          toast(error.message || 'Could not archive the stock item.', true);
+        })
+        .finally(function () {
+          setBusy(false);
+        });
       return;
     }
 
