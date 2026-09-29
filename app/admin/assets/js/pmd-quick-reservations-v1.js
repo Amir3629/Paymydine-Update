@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R134
+/* PMD_QPOS_QUICK_RESERVATIONS_R135
  * POS-native Reservations workspace.
  * Right rail stays the canonical Quick POS table authority.
  * Canonical Reservation Composer stays the only create/edit authority.
@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  if (window.PMDQuickReservationsR134) return;
+  if (window.PMDQuickReservationsR135) return;
 
   var root = document.getElementById('pmd-quick-pos');
   if (!root) return;
@@ -1301,7 +1301,7 @@
 
     canonicalRequest('onLoadReservationComposer', {
       reservation_id: id,
-      source: 'quick-pos-reservations-r134'
+      source: 'quick-pos-reservations-r135'
     })
       .then(function (response) {
         if (
@@ -1435,7 +1435,7 @@
     if (quickField('email')) quickField('email').value = row ? String(row.email || '') : '';
     if (quickField('comment')) quickField('comment').value = row ? rowNote(row) : '';
     if (quickField('reservation_id')) quickField('reservation_id').value = id ? String(id) : '';
-    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r134';
+    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r135';
     if (quickField('pmd_floor_id')) quickField('pmd_floor_id').value = floor.id || '';
     if (quickField('pmd_floor_name')) quickField('pmd_floor_name').value = floor.name || '';
     if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = state.editor.tableIds.length ? '1' : '0';
@@ -1443,7 +1443,15 @@
     if (quickTitle) quickTitle.textContent = id ? 'Edit reservation' : 'New reservation';
     if (quickContext) quickContext.textContent = id
       ? ('#' + id + ' · ' + formatDate(String(row && row.reserve_date || state.date)) + ' · ' + String(row && row.reserve_time || '').slice(0, 5))
-      : (formatDate(state.date) + (selectedTime ? ' · ' + selectedTime : ''));
+      : (
+          formatDate(state.date)
+          + (selectedTime ? ' · ' + selectedTime : '')
+          + (
+              state.tableScope === 'selected' && state.selectedTableName
+                ? ' · Table ' + state.selectedTableName
+                : ''
+            )
+        );
 
     if (center) center.classList.add('is-editor-open-r132');
     quickEditor.hidden = false;
@@ -1490,7 +1498,7 @@
       tables: ids,
       occasion_id: 0,
       notify: 0,
-      source: 'quick-pos-reservations-r134',
+      source: 'quick-pos-reservations-r135',
       location_id: quickLocationId() || null,
       pmd_floor_id: floor.id || '',
       pmd_floor_name: floor.name || '',
@@ -1557,6 +1565,15 @@
       (button.querySelector('strong') || {}).textContent || id
     ).trim();
 
+    // R135: a table click always scopes the left reservation list to that
+    // table for the active date. If no editor is open, the middle workspace
+    // immediately becomes a New reservation already assigned to this table.
+    state.selectedTableId = id;
+    state.selectedTableName = name;
+    state.tableScope = 'selected';
+    renderTableFilter();
+    loadReservations(true);
+
     if (state.editor.open) {
       state.editor.tableIds = [id];
       state.editor.tableNames = [name];
@@ -1567,11 +1584,8 @@
       return;
     }
 
-    state.selectedTableId = id;
-    state.selectedTableName = name;
-    state.tableScope = 'selected';
-    renderTableFilter();
-    loadReservations();
+    openQuickEditor(0, null);
+    setQuickStatus('Table ' + name + ' selected. Complete the reservation details.', false);
   }
 
   document.addEventListener('click', function (event) {
@@ -1870,7 +1884,7 @@
 
   if (!window.PMDReservationsCardsV320) {
     window.PMDReservationsCardsV320 = {
-      version: 'qpos-r134-bridge',
+      version: 'qpos-r135-bridge',
       refresh: function () {
         return loadReservations();
       }
@@ -1883,8 +1897,8 @@
 
   setWorkspace(state.workspace, false);
 
-  window.PMDQuickReservationsR134 = {
-    version: '1.0.0-r134',
+  window.PMDQuickReservationsR135 = {
+    version: '1.0.0-r135',
     setWorkspace: setWorkspace,
     refresh: loadReservations,
     newReservation: function () {
@@ -1903,10 +1917,11 @@
   };
 
   // Compatibility aliases for diagnostics that referenced earlier bridges.
-  window.PMDQuickReservationsR133 = window.PMDQuickReservationsR134;
-  window.PMDQuickReservationsR132 = window.PMDQuickReservationsR134;
-  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR134;
-  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR134;
-  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR134;
-  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR134;
+  window.PMDQuickReservationsR134 = window.PMDQuickReservationsR135;
+  window.PMDQuickReservationsR133 = window.PMDQuickReservationsR135;
+  window.PMDQuickReservationsR132 = window.PMDQuickReservationsR135;
+  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR135;
+  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR135;
+  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR135;
+  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR135;
 })();
