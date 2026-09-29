@@ -267,7 +267,7 @@
   function unitOptions(selected) {
     var units = bootstrap.units && typeof bootstrap.units === 'object'
       ? bootstrap.units
-      : {piece:'piece',bottle:'bottle',can:'can',pack:'pack',case:'case',box:'box',tray:'tray',bag:'bag',kg:'kg',g:'g',l:'l',ml:'ml'};
+      : {piece:'piece',bottle:'bottle',can:'can',pack:'pack',case:'case',box:'box',tray:'tray',bag:'bag',bunch:'bunch',jar:'jar',tub:'tub',bucket:'bucket',crate:'crate',carton:'carton',keg:'keg',sack:'sack',roll:'roll',loaf:'loaf',dozen:'dozen',kg:'kg',g:'g',l:'l',ml:'ml'};
     return Object.keys(units).map(function (value) {
       return '<option value="' + esc(value) + '"' +
         (String(selected || '') === String(value) ? ' selected' : '') +
@@ -300,33 +300,82 @@
       root.appendChild(list);
     }
 
-    list.innerHTML = items().map(function (item) {
-      return '<option value="' + esc(item.name) + '">' +
-        esc(item.unit + (item.supplier_name ? ' · ' + item.supplier_name : '')) +
-      '</option>';
-    }).join('');
+    var known = {};
+    var html = [];
+
+    items().forEach(function (item) {
+      var key = normalizeCatalogText(item.name);
+      if (key) known[key] = true;
+      html.push(
+        '<option value="' + esc(item.name) + '">' +
+          esc((item.purchase_unit || item.unit || '') + (item.supplier_name ? ' · ' + item.supplier_name : '')) +
+        '</option>'
+      );
+    });
+
+    commonStockTemplates().forEach(function (item) {
+      var key = normalizeCatalogText(item.name);
+      if (!key || known[key]) return;
+      html.push(
+        '<option value="' + esc(item.name) + '">' +
+          esc((item.category || 'Stock item') + ' · ' + (item.purchase_unit || item.unit || 'piece')) +
+        '</option>'
+      );
+    });
+
+    list.innerHTML = html.join('');
+  }
+
+  function bestCatalogMatch(value, minimumScore) {
+    var best = null;
+    var bestScore = Number(minimumScore || 1) - 1;
+
+    commonStockTemplates().forEach(function (row) {
+      var score = catalogScore(row, value);
+      if (score > bestScore) {
+        best = row;
+        bestScore = score;
+      }
+    });
+
+    return best;
   }
 
   function syncPurchaseLineToKnownItem(input) {
-    var name = String(input && input.value || '').trim().toLowerCase();
+    var rawName = String(input && input.value || '').trim();
+    var name = normalizeCatalogText(rawName);
     var line = input && input.closest ? input.closest('.pmd-inv-line') : null;
     if (!line) return;
 
     var item = items().find(function (row) {
-      return String(row.name || '').trim().toLowerCase() === name;
+      return normalizeCatalogText(row.name) === name;
     });
 
-    if (!item) {
-      line.removeAttribute('data-pmd-purchase-item-id');
+    var unit = line.querySelector('[data-pmd-purchase-unit]');
+    var cost = line.querySelector('[data-pmd-purchase-cost]');
+
+    if (item) {
+      line.setAttribute('data-pmd-purchase-item-id', String(item.id || ''));
+      if (unit) unit.value = String(item.purchase_unit || item.unit || 'piece');
+      if (cost && (!cost.value || Number(cost.value) === 0)) {
+        cost.value = String(item.purchase_unit_cost || item.unit_cost || 0);
+      }
       return;
     }
 
-    line.setAttribute('data-pmd-purchase-item-id', String(item.id || ''));
-    var unit = line.querySelector('[data-pmd-purchase-unit]');
-    var cost = line.querySelector('[data-pmd-purchase-cost]');
-    if (unit) unit.value = String(item.purchase_unit || item.unit || 'piece');
-    if (cost && (!cost.value || Number(cost.value) === 0)) {
-      cost.value = String(item.purchase_unit_cost || item.unit_cost || 0);
+    line.removeAttribute('data-pmd-purchase-item-id');
+
+    var template = bestCatalogMatch(rawName, 108);
+    if (!template) return;
+
+    if (normalizeCatalogText(template.name) !== name) {
+      var aliases = Array.isArray(template.aliases) ? template.aliases.map(normalizeCatalogText) : [];
+      if (aliases.indexOf(name) === -1) return;
+      if (input) input.value = String(template.name || rawName);
+    }
+
+    if (unit) {
+      unit.value = String(template.purchase_unit || template.unit || 'piece');
     }
   }
 
