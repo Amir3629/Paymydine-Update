@@ -31,7 +31,7 @@ class Pmdinventory extends AdminController
 
         $this->bodyClass = trim(
             ($this->bodyClass ?? '').
-            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r7-page'
+            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r8-page'
         );
 
         // PMD_INVENTORY_DASHBOARD_SHELL_R2
@@ -39,17 +39,20 @@ class Pmdinventory extends AdminController
         // warm admin chrome shown by the first Inventory R1 build.
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-platform-card-system-v1.css');
+        // PMD_INVENTORY_CARD_LANGUAGE_R8 - Inventory composers inherit the
+        // validated platform modal/card shell, then apply their feature-owned
+        // field layout in pmd-inventory-v1.css.
 
         $inventoryCssPath = base_path('app/admin/assets/css/pmd-inventory-v1.css');
         $inventoryJsPath = base_path('app/admin/assets/js/pmd-inventory-v1.js');
 
         $this->addCss(
             asset('app/admin/assets/css/pmd-inventory-v1.css')
-            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r7')
+            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r8')
         );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
-            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r7')
+            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r8')
         );
         AdminMenu::setContext('dashboard');
     }
