@@ -388,6 +388,9 @@
             if (Array.isArray(row.lines) && row.lines.length > 4) {
               detail += ' · +' + String(row.lines.length - 4) + ' more';
             }
+            if (row.staff_name) {
+              detail += (detail ? ' · ' : '') + 'Entered by ' + row.staff_name;
+            }
             return '<div class="pmd-inv-activity-row">' +
               '<time>' + esc(dateLabel(row.purchased_at)) + '</time>' +
               '<div><strong>' + esc(row.supplier_name || 'Supplier not set') + '</strong><small>' + esc(detail || source) + '</small></div>' +
@@ -406,7 +409,11 @@
             return '<div class="pmd-inv-activity-row">' +
               '<time>' + esc(dateTimeLabel(row.occurred_at)) + '</time>' +
               '<div><strong>' + esc(row.item_name || 'Stock item') + '</strong><small>' +
-                esc((row.reason || 'Waste') + (row.note ? ' · ' + row.note : '')) +
+                esc(
+                  (row.reason || 'Waste') +
+                  (row.note ? ' · ' + row.note : '') +
+                  (row.staff_name ? ' · Entered by ' + row.staff_name : '')
+                ) +
               '</small></div>' +
               '<b>−' + esc(num(row.qty, 3)) + ' · ' + esc(money(row.cost)) + '</b>' +
             '</div>';
@@ -435,7 +442,12 @@
       counts.innerHTML = last
         ? '<div class="pmd-inv-activity-row">' +
             '<time>' + esc(dateTimeLabel(last.counted_at)) + '</time>' +
-            '<div><strong>Latest physical count</strong><small>' + esc(last.note || 'Completed stock verification') + '</small></div>' +
+            '<div><strong>Latest physical count</strong><small>' +
+              esc(
+                (last.note || 'Completed stock verification') +
+                (last.staff_name ? ' · Counted by ' + last.staff_name : '')
+              ) +
+            '</small></div>' +
             '<b>' + esc(num(last.age_hours, 1)) + 'h ago</b>' +
           '</div>'
         : '<div class="pmd-inv-activity-empty">No physical stock count has been completed yet.</div>';
