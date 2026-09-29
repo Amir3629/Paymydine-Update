@@ -80,7 +80,7 @@
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r134">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r135">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -422,7 +422,7 @@
             </div>
         </section>
 
-        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R134
+        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R135
              Exact same three-column Quick POS shell:
              Reservations | Schedule | canonical table rail. --}}
         <aside
@@ -478,7 +478,7 @@
                 </div>
             </header>
 
-            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R134
+            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R135
                  POS-native reservation create/edit surface. It stays inside the
                  middle Quick Reservations card and writes through the canonical
                  Reservations handler; no modal is used in Quick mode. --}}
@@ -541,18 +541,25 @@
                                 <b>Table preferences</b>
                             </div>
                             <div class="pmd-qres-composer-preference-options-r132">
-                                <label>
+                                <label data-qres-feature="near_window">
                                     <input type="checkbox" name="pmd_table_features[]" value="near_window">
                                     <span>
                                         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>
                                         <b>Near window</b>
                                     </span>
                                 </label>
-                                <label>
+                                <label data-qres-feature="quiet_area">
                                     <input type="checkbox" name="pmd_table_features[]" value="quiet_area">
                                     <span>
                                         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>
                                         <b>Quiet area</b>
+                                    </span>
+                                </label>
+                                <label data-qres-feature="accessible">
+                                    <input type="checkbox" name="pmd_table_features[]" value="accessible">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>
+                                        <b>Accessible</b>
                                     </span>
                                 </label>
                             </div>
@@ -617,7 +624,7 @@
                     <input type="hidden" name="last_name" value="">
                     <input type="hidden" name="occasion_id" value="0">
                     <input type="hidden" name="notify" value="0">
-                    <input type="hidden" name="source" value="quick-pos-reservations-r134">
+                    <input type="hidden" name="source" value="quick-pos-reservations-r135">
                     <input type="hidden" name="location_id" value="">
                     <input type="hidden" name="pmd_floor_id" value="">
                     <input type="hidden" name="pmd_floor_name" value="">
@@ -1292,7 +1299,7 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r129"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r134"></script>
+<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r135"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
