@@ -221,7 +221,13 @@ final class PmdInventoryControlService
                 'sku' => (string)($item->sku ?? ''),
                 'category' => (string)($item->category ?? ''),
                 'unit' => (string)$item->base_unit,
+                'purchase_unit' => (string)($item->purchase_unit ?? $item->base_unit),
+                'purchase_to_base' => round(max(0.0001, (float)($item->purchase_to_base ?? 1)), 4),
                 'unit_cost' => round((float)$item->unit_cost, 4),
+                'purchase_unit_cost' => round(
+                    (float)$item->unit_cost * max(0.0001, (float)($item->purchase_to_base ?? 1)),
+                    4
+                ),
                 'reorder_point' => round((float)$item->reorder_point, 4),
                 'par_level' => round((float)$item->par_level, 4),
                 'supplier_name' => (string)($item->supplier_name ?? ''),
@@ -373,10 +379,11 @@ final class PmdInventoryControlService
                     fn ($query) => $query->whereIn('menu_id', $locationMenuIds)
                 )
                 ->orderBy('menu_name')
-                ->get(['menu_id', 'menu_name'])
+                ->get(['menu_id', 'menu_name', 'menu_price'])
                 ->map(fn ($row) => [
                     'id' => (int)$row->menu_id,
                     'name' => (string)$row->menu_name,
+                    'price' => round((float)($row->menu_price ?? 0), 2),
                 ])
                 ->all()
             : [];
@@ -438,9 +445,33 @@ final class PmdInventoryControlService
             throw new InvalidArgumentException('Another stock item already uses this name.');
         }
 
-        // Unit is intentionally immutable after creation. Historical
-        // movements and recipe quantities use this base unit and must never
-        // silently change meaning because somebody edited a label.
+        // PMD_INVENTORY_EASY_MAPPING_R5
+        // Base/tracking unit stays immutable after creation. Supplier package
+        // metadata may change safely because all movements are stored in base
+        // units. Example: track in ml, buy by bottle, 1 bottle = 750 ml.
+        $purchaseUnit = $this->unit(
+            $data['purchase_unit'] ?? ($item->purchase_unit ?? $item->base_unit)
+        );
+        $purchaseToBaseRaw = $data['purchase_to_base'] ?? ($item->purchase_to_base ?? 1);
+        $purchaseToBase = max(0.0001, $this->number($purchaseToBaseRaw, 1));
+
+        if (
+            strtolower($purchaseUnit) !== strtolower((string)$item->base_unit)
+            && (!isset($data['purchase_to_base']) || trim((string)$data['purchase_to_base']) === '')
+        ) {
+            throw new InvalidArgumentException('Enter how much one purchase unit contains.');
+        }
+
+        $purchaseCost = max(
+            0,
+            $this->number(
+                $data['purchase_cost']
+                    ?? ((float)$item->unit_cost * $purchaseToBase),
+                (float)$item->unit_cost * $purchaseToBase
+            )
+        );
+        $baseUnitCost = $purchaseCost / $purchaseToBase;
+
         DB::table('pmd_inventory_items')
             ->where('id', $itemId)
             ->where('location_id', $locationId)
@@ -448,7 +479,9 @@ final class PmdInventoryControlService
                 'name' => mb_substr($name, 0, 190),
                 'sku' => $this->nullableText($data['sku'] ?? null, 120),
                 'category' => $this->nullableText($data['category'] ?? null, 100),
-                'unit_cost' => max(0, $this->number($data['unit_cost'] ?? $item->unit_cost, (float)$item->unit_cost)),
+                'purchase_unit' => $purchaseUnit,
+                'purchase_to_base' => $purchaseToBase,
+                'unit_cost' => round($baseUnitCost, 6),
                 'reorder_point' => max(0, $this->number($data['reorder_point'] ?? $item->reorder_point, (float)$item->reorder_point)),
                 'par_level' => max(0, $this->number($data['par_level'] ?? $item->par_level, (float)$item->par_level)),
                 'supplier_name' => $this->nullableText($data['supplier_name'] ?? $item->supplier_name, 190),
@@ -478,8 +511,21 @@ final class PmdInventoryControlService
         }
 
         $unit = $this->unit($data['unit'] ?? 'piece');
+        $purchaseUnit = $this->unit($data['purchase_unit'] ?? $unit);
+        $purchaseToBaseRaw = $data['purchase_to_base'] ?? null;
+        if (
+            strtolower($purchaseUnit) !== strtolower($unit)
+            && ($purchaseToBaseRaw === null || trim((string)$purchaseToBaseRaw) === '')
+        ) {
+            throw new InvalidArgumentException('Enter how much one purchase unit contains.');
+        }
+        $purchaseToBase = max(0.0001, $this->number($purchaseToBaseRaw ?? 1, 1));
         $openingQty = max(0, $this->number($data['opening_qty'] ?? 0, 0));
-        $cost = max(0, $this->number($data['unit_cost'] ?? 0, 0));
+        $purchaseCost = max(
+            0,
+            $this->number($data['purchase_cost'] ?? $data['unit_cost'] ?? 0, 0)
+        );
+        $cost = $purchaseCost / $purchaseToBase;
 
         $id = (int)DB::table('pmd_inventory_items')->insertGetId([
             'location_id' => $locationId,
@@ -487,7 +533,9 @@ final class PmdInventoryControlService
             'sku' => $this->nullableText($data['sku'] ?? null, 120),
             'category' => $this->nullableText($data['category'] ?? null, 100),
             'base_unit' => $unit,
-            'unit_cost' => $cost,
+            'purchase_unit' => $purchaseUnit,
+            'purchase_to_base' => $purchaseToBase,
+            'unit_cost' => round($cost, 6),
             'reorder_point' => max(0, $this->number($data['reorder_point'] ?? 0, 0)),
             'par_level' => max(0, $this->number($data['par_level'] ?? 0, 0)),
             'supplier_name' => $this->nullableText($data['supplier_name'] ?? null, 190),
@@ -579,7 +627,7 @@ final class PmdInventoryControlService
                 $itemId = max(0, (int)($line['item_id'] ?? 0));
                 $name = trim((string)($line['item_name'] ?? ''));
                 $unit = $this->unit($line['unit'] ?? 'piece');
-                $unitCost = $this->number($line['unit_cost'] ?? 0, 0);
+                $unitCost = max(0, $this->number($line['unit_cost'] ?? 0, 0));
 
                 if ($itemId < 1) {
                     if ($name === '') {
@@ -607,6 +655,8 @@ final class PmdInventoryControlService
                             'location_id' => $locationId,
                             'name' => mb_substr($name, 0, 190),
                             'base_unit' => $unit,
+                            'purchase_unit' => $unit,
+                            'purchase_to_base' => 1,
                             'unit_cost' => $unitCost,
                             'reorder_point' => 0,
                             'par_level' => 0,
@@ -626,14 +676,32 @@ final class PmdInventoryControlService
                     throw new InvalidArgumentException('A purchase line references an unavailable stock item.');
                 }
 
+                $baseUnit = strtolower((string)$item->base_unit);
+                $purchaseUnit = strtolower((string)($item->purchase_unit ?? $item->base_unit));
+                $purchaseToBase = max(0.0001, (float)($item->purchase_to_base ?? 1));
+                $lineUnit = strtolower($unit);
+
+                if ($lineUnit === $baseUnit) {
+                    $factor = 1.0;
+                } elseif ($lineUnit === $purchaseUnit) {
+                    $factor = $purchaseToBase;
+                } else {
+                    throw new InvalidArgumentException(
+                        'Purchase unit for '.$item->name.' must be '.$item->base_unit.
+                        ($purchaseUnit !== $baseUnit ? ' or '.($item->purchase_unit ?? $item->base_unit) : '').
+                        '.'
+                    );
+                }
+
+                $baseQty = $qty * $factor;
                 $effectiveCost = $unitCost > 0
-                    ? $unitCost
+                    ? ($unitCost / $factor)
                     : max(0, (float)$item->unit_cost);
 
                 DB::table('pmd_inventory_items')
                     ->where('id', $itemId)
                     ->update([
-                        'unit_cost' => $effectiveCost,
+                        'unit_cost' => round($effectiveCost, 6),
                         'supplier_name' => $supplier ?: $item->supplier_name,
                         'updated_at' => now(),
                     ]);
@@ -642,7 +710,7 @@ final class PmdInventoryControlService
                     $locationId,
                     $itemId,
                     'PURCHASE',
-                    $qty,
+                    $baseQty,
                     $effectiveCost,
                     $staffId,
                     null,
@@ -652,7 +720,7 @@ final class PmdInventoryControlService
                     $purchasedAt.' '.now()->format('H:i:s')
                 );
 
-                $total += $qty * $effectiveCost;
+                $total += $qty * ($unitCost > 0 ? $unitCost : ($effectiveCost * $factor));
             }
 
             DB::table('pmd_inventory_receipts')
