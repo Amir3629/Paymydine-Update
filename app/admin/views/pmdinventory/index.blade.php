@@ -297,9 +297,9 @@
                         </label>
 
                         <label data-pmd-inv-opening-field>
-                            <span>Opening stock</span>
+                            <span>Opening stock · purchase units</span>
                             <input type="number" min="0" step="0.0001" name="opening_qty" value="0">
-                            <small>Enter this in the tracking unit.</small>
+                            <small>Example: 12 bottles, 2 cases, 5 kg.</small>
                         </label>
 
                         <label><span>Reorder at · purchase units</span><input type="number" min="0" step="0.0001" name="reorder_point" value="0"></label>
