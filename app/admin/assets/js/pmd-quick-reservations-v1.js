@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R133
+/* PMD_QPOS_QUICK_RESERVATIONS_R134
  * POS-native Reservations workspace.
  * Right rail stays the canonical Quick POS table authority.
  * Canonical Reservation Composer stays the only create/edit authority.
@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  if (window.PMDQuickReservationsR132) return;
+  if (window.PMDQuickReservationsR134) return;
 
   var root = document.getElementById('pmd-quick-pos');
   if (!root) return;
@@ -30,6 +30,10 @@
   var quickStatus = document.querySelector('[data-qres-quick-status]');
   var quickTableText = document.querySelector('[data-qres-quick-table-text]');
   var quickSave = document.querySelector('[data-qres-quick-save]');
+  var quickTimeWheel = null;
+  var quickTimeWheelSyncing = false;
+  var quickTimeWheelPublishing = false;
+  var quickTimeSettleTimers = new WeakMap();
 
   var state = {
     workspace: root.getAttribute('data-workspace') === 'reservations'
@@ -803,6 +807,455 @@
     return minuteLabel(minute);
   }
 
+  function quickTimeValuesRepeated(values, count) {
+    var rows = [];
+    for (var cycle = 0; cycle < count; cycle += 1) {
+      values.forEach(function (value) { rows.push(value); });
+    }
+    return rows;
+  }
+
+  function quickTimeParse12(value) {
+    var minutes = parseMinutes(value);
+    if (minutes === null) {
+      return { hour: 12, minute: 0, period: 'AM' };
+    }
+    var hour24 = Math.floor(minutes / 60);
+    return {
+      hour: hour24 % 12 || 12,
+      minute: minutes % 60,
+      period: hour24 >= 12 ? 'PM' : 'AM'
+    };
+  }
+
+  function quickTimeNative(hour, minute, period) {
+    var hour24 = Number(hour) % 12;
+    if (period === 'PM') hour24 += 12;
+    return pad(hour24) + ':' + pad(Number(minute || 0));
+  }
+
+  function quickTimeAllSlots() {
+    var slots = [];
+    for (var minute = 0; minute < 1440; minute += 15) {
+      slots.push(minuteLabel(minute));
+    }
+    return slots;
+  }
+
+  function quickTimeAllowedSlots() {
+    if (state.editor.mode === 'edit') return quickTimeAllSlots();
+
+    var date = String((quickField('reserve_date') || {}).value || state.date || '');
+    var duration = Math.max(
+      30,
+      Math.min(180, Number((quickField('duration') || {}).value || 45))
+    );
+    var opening = openingForDate(date);
+
+    if (opening.closed) return [];
+    if (!opening.configured) return quickTimeAllSlots();
+
+    var start = Math.ceil(Number(opening.start || 0) / 15) * 15;
+    var lastStart = Number(opening.end || 0) - duration;
+    var slots = [];
+
+    for (var minute = start; minute <= lastStart; minute += 15) {
+      if (minute >= 0 && minute < 1440) slots.push(minuteLabel(minute));
+    }
+
+    return slots;
+  }
+
+  function quickTimeNearestSlot(value, slots) {
+    if (!slots || !slots.length) return '';
+    var target = parseMinutes(value);
+    if (target === null) return slots[0];
+
+    var best = slots[0];
+    var distance = Infinity;
+
+    slots.forEach(function (slot) {
+      var minute = parseMinutes(slot);
+      if (minute === null) return;
+      var nextDistance = Math.abs(minute - target);
+      if (nextDistance < distance) {
+        distance = nextDistance;
+        best = slot;
+      }
+    });
+
+    return best;
+  }
+
+  function quickTimeColumn(name, values, formatter, label) {
+    var column = document.createElement('div');
+    column.className = 'pmd-jade-wheel-v221__column is-' + name;
+    column.dataset.pmdWheelKind = name;
+    column.tabIndex = 0;
+    column.setAttribute('role', 'listbox');
+    column.setAttribute('aria-label', label);
+
+    quickTimeValuesRepeated(values, 9).forEach(function (value) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'pmd-jade-wheel-v221__item';
+      item.dataset.value = String(value);
+      item.textContent = formatter(value);
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', 'false');
+      column.appendChild(item);
+    });
+
+    return column;
+  }
+
+  function quickTimeItems(column) {
+    return column
+      ? Array.prototype.slice.call(
+          column.querySelectorAll('.pmd-jade-wheel-v221__item')
+        )
+      : [];
+  }
+
+  function quickTimeActiveItem(column) {
+    return column && column.querySelector('.pmd-jade-wheel-v221__item.is-selected');
+  }
+
+  function quickTimeSetSelected(column, selected) {
+    quickTimeItems(column).forEach(function (item) {
+      var active = item === selected;
+      item.classList.toggle('is-selected', active);
+      item.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+  }
+
+  function quickTimeMiddleItem(column, value) {
+    var matches = quickTimeItems(column).filter(function (item) {
+      return item.dataset.value === String(value) && !item.disabled;
+    });
+    return matches[Math.floor(matches.length / 2)] || null;
+  }
+
+  function quickTimeCenter(column, item, smooth) {
+    if (!column || !item) return;
+    var top = item.offsetTop - (column.clientHeight - item.offsetHeight) / 2;
+    column.scrollTo({
+      top: Math.max(0, top),
+      behavior: smooth ? 'smooth' : 'auto'
+    });
+  }
+
+  function quickTimeClosestItem(column) {
+    if (!column) return null;
+    var rect = column.getBoundingClientRect();
+    var center = rect.top + rect.height / 2;
+    var selected = null;
+    var bestDistance = Infinity;
+
+    quickTimeItems(column).forEach(function (item) {
+      if (item.disabled) return;
+      var itemRect = item.getBoundingClientRect();
+      var distance = Math.abs(
+        itemRect.top + itemRect.height / 2 - center
+      );
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        selected = item;
+      }
+    });
+
+    return selected;
+  }
+
+  function quickTimeValue(column) {
+    var item = quickTimeActiveItem(column);
+    return item ? item.dataset.value : '';
+  }
+
+  function quickTimeAvailability(slots) {
+    var availability = {
+      periods: Object.create(null),
+      hours: Object.create(null),
+      minutes: Object.create(null)
+    };
+
+    (slots || []).forEach(function (slot) {
+      var parsed = quickTimeParse12(slot);
+      availability.periods[parsed.period] = true;
+      availability.hours[String(parsed.hour)] = true;
+      availability.minutes[String(parsed.minute)] = true;
+    });
+
+    return availability;
+  }
+
+  function quickTimeDisableByValue(column, predicate) {
+    quickTimeItems(column).forEach(function (item) {
+      var disabled = !!predicate(item.dataset.value);
+      item.disabled = disabled;
+      item.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      if (disabled && item.classList.contains('is-selected')) {
+        item.classList.remove('is-selected');
+        item.setAttribute('aria-selected', 'false');
+      }
+    });
+  }
+
+  function quickTimeSetEmpty(active) {
+    if (!quickTimeWheel) return;
+    quickTimeWheel.container.classList.toggle('is-no-available-time', !!active);
+    var highlight = quickTimeWheel.container.querySelector(
+      '.pmd-jade-wheel-v221__highlight'
+    );
+    if (highlight) {
+      highlight.setAttribute(
+        'data-pmd-no-time-label',
+        'No reservation time available'
+      );
+    }
+  }
+
+  function syncQuickTimeWheelFromNative(smooth) {
+    if (!quickTimeWheel || quickTimeWheelPublishing) return;
+
+    var field = quickField('reserve_time');
+    if (!field) return;
+
+    var parsed = quickTimeParse12(field.value);
+    quickTimeWheelSyncing = true;
+
+    [
+      [quickTimeWheel.hour, parsed.hour],
+      [quickTimeWheel.minute, parsed.minute],
+      [quickTimeWheel.period, parsed.period]
+    ].forEach(function (entry) {
+      var item = quickTimeMiddleItem(entry[0], entry[1]);
+      if (!item) return;
+      quickTimeSetSelected(entry[0], item);
+      quickTimeCenter(entry[0], item, !!smooth);
+    });
+
+    window.requestAnimationFrame(function () {
+      quickTimeWheelSyncing = false;
+    });
+  }
+
+  function refreshQuickTimeWheelAvailability() {
+    if (!quickTimeWheel) return;
+
+    var field = quickField('reserve_time');
+    var slots = quickTimeAllowedSlots();
+
+    if (!slots.length) {
+      [
+        quickTimeWheel.hour,
+        quickTimeWheel.minute,
+        quickTimeWheel.period
+      ].forEach(function (column) {
+        quickTimeDisableByValue(column, function () { return true; });
+      });
+      if (field) field.value = '';
+      quickTimeSetEmpty(true);
+      return;
+    }
+
+    quickTimeSetEmpty(false);
+    var availability = quickTimeAvailability(slots);
+
+    quickTimeDisableByValue(quickTimeWheel.period, function (value) {
+      return !availability.periods[String(value)];
+    });
+    quickTimeDisableByValue(quickTimeWheel.hour, function (value) {
+      return !availability.hours[String(Number(value))];
+    });
+    quickTimeDisableByValue(quickTimeWheel.minute, function (value) {
+      return !availability.minutes[String(Number(value))];
+    });
+
+    if (field) {
+      var current = String(field.value || '').slice(0, 5);
+      if (slots.indexOf(current) < 0) {
+        field.value = quickTimeNearestSlot(current, slots);
+      }
+    }
+
+    syncQuickTimeWheelFromNative(false);
+  }
+
+  function publishQuickTimeWheel(changedColumn) {
+    if (
+      !quickTimeWheel ||
+      quickTimeWheelSyncing ||
+      quickTimeWheelPublishing
+    ) {
+      return;
+    }
+
+    var field = quickField('reserve_time');
+    if (!field) return;
+
+    var hour = Number(quickTimeValue(quickTimeWheel.hour));
+    var minute = Number(quickTimeValue(quickTimeWheel.minute));
+    var period = quickTimeValue(quickTimeWheel.period);
+
+    if (!hour || Number.isNaN(minute) || !period) return;
+
+    var raw = quickTimeNative(hour, minute, period);
+    var slots = quickTimeAllowedSlots();
+    var resolved =
+      slots.indexOf(raw) >= 0
+        ? raw
+        : quickTimeNearestSlot(raw, slots);
+
+    if (!resolved) return;
+
+    quickTimeWheelPublishing = true;
+    field.value = resolved;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+
+    window.requestAnimationFrame(function () {
+      quickTimeWheelPublishing = false;
+      if (resolved !== raw) syncQuickTimeWheelFromNative(true);
+    });
+  }
+
+  function settleQuickTimeColumn(column) {
+    var selected = quickTimeClosestItem(column);
+    if (!selected) return;
+    quickTimeSetSelected(column, selected);
+    quickTimeCenter(column, selected, false);
+    publishQuickTimeWheel(column);
+  }
+
+  function bindQuickTimeColumn(column) {
+    function clearTimer() {
+      var timer = quickTimeSettleTimers.get(column);
+      if (timer) window.clearTimeout(timer);
+      quickTimeSettleTimers.delete(column);
+    }
+
+    function settleAfterScroll() {
+      clearTimer();
+      settleQuickTimeColumn(column);
+    }
+
+    if ('onscrollend' in column) {
+      column.addEventListener('scrollend', settleAfterScroll, { passive: true });
+    }
+
+    column.addEventListener('scroll', function () {
+      if ('onscrollend' in column) return;
+      clearTimer();
+      quickTimeSettleTimers.set(
+        column,
+        window.setTimeout(settleAfterScroll, 90)
+      );
+    }, { passive: true });
+
+    column.addEventListener('click', function (event) {
+      var item = event.target.closest('.pmd-jade-wheel-v221__item');
+      if (!item || !column.contains(item) || item.disabled) return;
+      clearTimer();
+      quickTimeSetSelected(column, item);
+      quickTimeCenter(column, item, true);
+      publishQuickTimeWheel(column);
+    });
+
+    column.addEventListener('keydown', function (event) {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+      event.preventDefault();
+
+      var rows = quickTimeItems(column).filter(function (item) {
+        return !item.disabled;
+      });
+      if (!rows.length) return;
+
+      var current = quickTimeActiveItem(column) || quickTimeClosestItem(column);
+      var index = Math.max(0, rows.indexOf(current));
+      index += event.key === 'ArrowDown' ? 1 : -1;
+      index = Math.max(0, Math.min(rows.length - 1, index));
+
+      var selected = rows[index];
+      quickTimeSetSelected(column, selected);
+      quickTimeCenter(column, selected, true);
+      publishQuickTimeWheel(column);
+    });
+  }
+
+  function ensureQuickTimeWheel() {
+    if (quickTimeWheel) return quickTimeWheel;
+
+    var field = quickField('reserve_time');
+    if (!field) return null;
+
+    var label = field.closest('.pmd-qres-composer-field-r132');
+    if (!label) return null;
+
+    label.classList.add('pmd-jade-time-field-v221');
+    field.classList.add('pmd-jade-native-time-v221');
+    field.tabIndex = -1;
+    field.setAttribute('aria-hidden', 'true');
+
+    var container = document.createElement('div');
+    container.className = 'pmd-jade-wheel-v221 pmd-qres-time-wheel-r134';
+
+    var hour = quickTimeColumn(
+      'hour',
+      [1,2,3,4,5,6,7,8,9,10,11,12],
+      function (value) { return pad(value); },
+      'Hour'
+    );
+    var minute = quickTimeColumn(
+      'minute',
+      [0,15,30,45],
+      function (value) { return pad(value); },
+      'Minute'
+    );
+    var period = quickTimeColumn(
+      'period',
+      ['AM','PM'],
+      function (value) { return value; },
+      'AM or PM'
+    );
+
+    var separator = document.createElement('span');
+    separator.className = 'pmd-jade-wheel-v221__separator';
+    separator.textContent = ':';
+    separator.setAttribute('aria-hidden', 'true');
+
+    var highlight = document.createElement('div');
+    highlight.className = 'pmd-jade-wheel-v221__highlight';
+    highlight.setAttribute('aria-hidden', 'true');
+
+    container.appendChild(hour);
+    container.appendChild(separator);
+    container.appendChild(minute);
+    container.appendChild(period);
+    container.appendChild(highlight);
+    label.appendChild(container);
+
+    quickTimeWheel = {
+      container: container,
+      hour: hour,
+      minute: minute,
+      period: period
+    };
+
+    bindQuickTimeColumn(hour);
+    bindQuickTimeColumn(minute);
+    bindQuickTimeColumn(period);
+
+    field.addEventListener('input', function () {
+      if (!quickTimeWheelPublishing) syncQuickTimeWheelFromNative(false);
+    });
+    field.addEventListener('change', function () {
+      if (!quickTimeWheelPublishing) syncQuickTimeWheelFromNative(false);
+    });
+
+    return quickTimeWheel;
+  }
+
   function quickField(name) {
     return quickForm && quickForm.elements ? quickForm.elements[name] : null;
   }
@@ -848,7 +1301,7 @@
 
     canonicalRequest('onLoadReservationComposer', {
       reservation_id: id,
-      source: 'quick-pos-reservations-r133'
+      source: 'quick-pos-reservations-r134'
     })
       .then(function (response) {
         if (
@@ -982,7 +1435,7 @@
     if (quickField('email')) quickField('email').value = row ? String(row.email || '') : '';
     if (quickField('comment')) quickField('comment').value = row ? rowNote(row) : '';
     if (quickField('reservation_id')) quickField('reservation_id').value = id ? String(id) : '';
-    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r133';
+    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r134';
     if (quickField('pmd_floor_id')) quickField('pmd_floor_id').value = floor.id || '';
     if (quickField('pmd_floor_name')) quickField('pmd_floor_name').value = floor.name || '';
     if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = state.editor.tableIds.length ? '1' : '0';
@@ -998,8 +1451,11 @@
     setQuickStatus('Tap a table on the right, or keep Automatic table.', false);
     syncQuickTableUI();
     hydrateQuickEditFeatures(id);
+    ensureQuickTimeWheel();
 
     window.requestAnimationFrame(function () {
+      refreshQuickTimeWheelAvailability();
+      syncQuickTimeWheelFromNative(false);
       var name = quickField('first_name');
       if (name) name.focus();
     });
@@ -1034,7 +1490,7 @@
       tables: ids,
       occasion_id: 0,
       notify: 0,
-      source: 'quick-pos-reservations-r133',
+      source: 'quick-pos-reservations-r134',
       location_id: quickLocationId() || null,
       pmd_floor_id: floor.id || '',
       pmd_floor_name: floor.name || '',
@@ -1304,6 +1760,12 @@
 
   if (quickForm) {
     quickForm.addEventListener('submit', saveQuickReservation);
+    quickForm.addEventListener('change', function (event) {
+      var name = String(event && event.target && event.target.name || '');
+      if (name === 'reserve_date' || name === 'duration') {
+        refreshQuickTimeWheelAvailability();
+      }
+    });
   }
 
   document.querySelectorAll('[data-qres-quick-cancel]').forEach(function (button) {
@@ -1377,6 +1839,7 @@
       var direction = Number(button.getAttribute('data-qres-duration-step') || 0);
       var next = Number(field.value || 45) + direction;
       field.value = String(Math.max(30, Math.min(180, Math.round(next / 15) * 15)));
+      refreshQuickTimeWheelAvailability();
     });
   });
 
@@ -1407,7 +1870,7 @@
 
   if (!window.PMDReservationsCardsV320) {
     window.PMDReservationsCardsV320 = {
-      version: 'qpos-r133-bridge',
+      version: 'qpos-r134-bridge',
       refresh: function () {
         return loadReservations();
       }
@@ -1420,8 +1883,8 @@
 
   setWorkspace(state.workspace, false);
 
-  window.PMDQuickReservationsR133 = {
-    version: '1.0.0-r133',
+  window.PMDQuickReservationsR134 = {
+    version: '1.0.0-r134',
     setWorkspace: setWorkspace,
     refresh: loadReservations,
     newReservation: function () {
@@ -1440,9 +1903,10 @@
   };
 
   // Compatibility aliases for diagnostics that referenced earlier bridges.
-  window.PMDQuickReservationsR132 = window.PMDQuickReservationsR133;
-  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR133;
-  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR133;
-  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR133;
-  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR133;
+  window.PMDQuickReservationsR133 = window.PMDQuickReservationsR134;
+  window.PMDQuickReservationsR132 = window.PMDQuickReservationsR134;
+  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR134;
+  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR134;
+  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR134;
+  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR134;
 })();
