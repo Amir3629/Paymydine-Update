@@ -831,9 +831,11 @@
     var hasItems = items().length > 0;
     var empty = root.querySelector('[data-pmd-inv-empty-state]');
     var dashboard = root.querySelector('[data-pmd-inv-dashboard]');
+    var headerOps = root.querySelector('[data-pmd-inv-header-ops]');
 
     if (empty) empty.hidden = hasItems;
     if (dashboard) dashboard.hidden = !hasItems;
+    if (headerOps) headerOps.hidden = !hasItems;
 
     root.querySelectorAll('[data-pmd-inv-requires-items]').forEach(function (node) {
       node.hidden = !hasItems;
@@ -933,8 +935,11 @@
     }
 
     host.innerHTML = events.map(function (row) {
+      var when = String(row.type || '') === 'Purchase'
+        ? dateLabel(row.at)
+        : dateTimeLabel(row.at);
       return '<div class="pmd-inv-r6-recent-row">' +
-        '<time>' + esc(dateTimeLabel(row.at)) + '</time>' +
+        '<time>' + esc(when) + '</time>' +
         '<div><span>' + esc(row.type) + '</span><strong>' + esc(row.title) + '</strong><small>' + esc(row.detail) + '</small></div>' +
         '<b>' + esc(row.value) + '</b>' +
       '</div>';
