@@ -87,6 +87,14 @@ final class PmdInventoryControlService
             $now->toDateTimeString()
         );
 
+        $recipeStarts = DB::table('pmd_inventory_recipes')
+            ->where('location_id', $locationId)
+            ->where('active', 1)
+            ->selectRaw('item_id, MIN(created_at) as tracking_started_at')
+            ->groupBy('item_id')
+            ->get()
+            ->keyBy('item_id');
+
         $latestVariance = [];
         if ($lastCount) {
             foreach ($countLines as $itemId => $line) {
@@ -138,7 +146,29 @@ final class PmdInventoryControlService
             }
 
             $expected = round($baselineQty + $movements - $usage, 4);
-            $dailyUsage = round(((float)($usage14[$id] ?? 0)) / 14, 4);
+
+            $trackingDays = 14.0;
+            $trackingStartedAt = (string)($recipeStarts[$id]->tracking_started_at ?? '');
+            if ($trackingStartedAt !== '') {
+                try {
+                    $trackedHours = max(
+                        1,
+                        \Carbon\Carbon::parse($trackingStartedAt)
+                            ->diffInHours($now)
+                    );
+                    $trackingDays = max(
+                        1,
+                        min(14, $trackedHours / 24)
+                    );
+                } catch (\Throwable $ignored) {
+                    $trackingDays = 14.0;
+                }
+            }
+
+            $dailyUsage = round(
+                ((float)($usage14[$id] ?? 0)) / $trackingDays,
+                4
+            );
             $daysLeft = $dailyUsage > 0
                 ? max(0, round(max(0, $expected) / $dailyUsage, 1))
                 : null;
@@ -182,6 +212,8 @@ final class PmdInventoryControlService
                 'estimated_on_hand' => $expected,
                 'stock_value' => round($value, 2),
                 'avg_daily_usage' => $dailyUsage,
+                'used_since_count' => round($usage, 4),
+                'tracking_days' => round($trackingDays, 2),
                 'days_left' => $daysLeft,
                 'stock_percent' => $percent,
                 'status' => $status,
