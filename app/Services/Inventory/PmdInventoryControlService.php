@@ -47,12 +47,16 @@ final class PmdInventoryControlService
             ->orderBy('name')
             ->get();
 
-        $lastCount = DB::table('pmd_inventory_counts')
-            ->where('location_id', $locationId)
-            ->where('status', 'completed')
-            ->orderByDesc('counted_at')
-            ->orderByDesc('id')
-            ->first();
+        $lastCount = DB::table('pmd_inventory_counts as c')
+            ->leftJoin('staffs as s', 's.staff_id', '=', 'c.staff_id')
+            ->where('c.location_id', $locationId)
+            ->where('c.status', 'completed')
+            ->orderByDesc('c.counted_at')
+            ->orderByDesc('c.id')
+            ->first([
+                'c.*',
+                's.staff_name as staff_name',
+            ]);
 
         $baselineAt = $lastCount
             ? (string)$lastCount->counted_at
@@ -232,6 +236,7 @@ final class PmdInventoryControlService
         }
 
         $recentPurchases = DB::table('pmd_inventory_receipts as r')
+            ->leftJoin('staffs as s', 's.staff_id', '=', 'r.created_by')
             ->where('r.location_id', $locationId)
             ->whereNotNull('r.confirmed_at')
             ->orderByDesc('r.purchased_at')
@@ -245,6 +250,7 @@ final class PmdInventoryControlService
                 'r.ai_status',
                 'r.total_amount',
                 'r.confirmed_at',
+                's.staff_name as staff_name',
             ])
             ->map(fn ($row) => (array)$row)
             ->all();
@@ -289,6 +295,7 @@ final class PmdInventoryControlService
 
         $recentWaste = DB::table('pmd_inventory_movements as m')
             ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'm.item_id')
+            ->leftJoin('staffs as s', 's.staff_id', '=', 'm.staff_id')
             ->where('m.location_id', $locationId)
             ->where('m.movement_type', 'WASTE')
             ->orderByDesc('m.occurred_at')
@@ -302,6 +309,7 @@ final class PmdInventoryControlService
                 'm.reason',
                 'm.note',
                 'm.occurred_at',
+                's.staff_name as staff_name',
             ])
             ->map(function ($row) {
                 $data = (array)$row;
@@ -373,6 +381,7 @@ final class PmdInventoryControlService
                 'id' => (int)$lastCount->id,
                 'counted_at' => (string)$lastCount->counted_at,
                 'note' => (string)($lastCount->note ?? ''),
+                'staff_name' => (string)($lastCount->staff_name ?? ''),
                 'age_hours' => max(0, round(
                     now()->diffInMinutes(\Carbon\Carbon::parse($lastCount->counted_at)) / 60,
                     1
