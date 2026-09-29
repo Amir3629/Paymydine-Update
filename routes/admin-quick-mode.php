@@ -120,6 +120,15 @@ Route::middleware(['web'])->group(function () {
         [\Admin\Controllers\PmdQuickPosV1::class, 'terminalPayment']
     )->where('order', '[0-9]+');
 
+    // PMD_TABLE_DISPLAY_V1
+    // Waiter-only handoff to the small guest-facing screen assigned to the
+    // order's table. The endpoint publishes a payment request; it never
+    // records settlement itself.
+    Route::post(
+        '/admin/pos/table-display-payment/{order}',
+        \App\Http\Controllers\PmdTableDisplayPaymentController::class
+    )->where('order', '[0-9]+');
+
     // PMD_QPOS_EXACT_DASHBOARD_FLOOR_AJAX_V26
     // Canonical Floor zoom/view preference + reservation-window transport.
     Route::post(
