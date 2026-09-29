@@ -547,7 +547,8 @@ final class PmdInventoryControlService
             throw new InvalidArgumentException('Enter how much one purchase unit contains.');
         }
         $purchaseToBase = max(0.0001, $this->number($purchaseToBaseRaw ?? 1, 1));
-        $openingQty = max(0, $this->number($data['opening_qty'] ?? 0, 0));
+        $openingPurchaseQty = max(0, $this->number($data['opening_qty'] ?? 0, 0));
+        $openingQty = $openingPurchaseQty * $purchaseToBase;
         $purchaseCost = max(
             0,
             $this->number($data['purchase_cost'] ?? $data['unit_cost'] ?? 0, 0)
