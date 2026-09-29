@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R135
+/* PMD_QPOS_QUICK_RESERVATIONS_R136
  * POS-native Reservations workspace.
  * Right rail stays the canonical Quick POS table authority.
  * Canonical Reservation Composer stays the only create/edit authority.
@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  if (window.PMDQuickReservationsR135) return;
+  if (window.PMDQuickReservationsR136) return;
 
   var root = document.getElementById('pmd-quick-pos');
   if (!root) return;
@@ -28,12 +28,18 @@
   var quickTitle = document.querySelector('[data-qres-quick-title]');
   var quickContext = document.querySelector('[data-qres-quick-context]');
   var quickStatus = document.querySelector('[data-qres-quick-status]');
-  var quickTableText = document.querySelector('[data-qres-quick-table-text]');
   var quickSave = document.querySelector('[data-qres-quick-save]');
+  var quickPastNote = document.querySelector('[data-qres-past-note]');
+  var quickAutoLabel = document.querySelector('[data-qres-auto-label]');
+  var quickChooseLabel = document.querySelector('[data-qres-choose-label]');
+  var quickLaterLabel = document.querySelector('[data-qres-later-label]');
   var quickTimeWheel = null;
   var quickTimeWheelSyncing = false;
   var quickTimeWheelPublishing = false;
   var quickTimeSettleTimers = new WeakMap();
+  var quickAvailabilityTimer = 0;
+  var quickAvailabilityRequestId = 0;
+  var otherSearchTimer = 0;
 
   var state = {
     workspace: root.getAttribute('data-workspace') === 'reservations'
@@ -44,6 +50,11 @@
     serverNowBerlin: '',
     openingHours: [],
     rows: [],
+    otherDateRows: [],
+    otherSearchTerm: '',
+    searchLoading: false,
+    searchRequestId: 0,
+    searchController: null,
     selectedTableId: 0,
     selectedTableName: '',
     tableScope: 'all',
@@ -58,6 +69,8 @@
       tableIds: [],
       tableNames: [],
       assignmentMode: 'auto',
+      recommendedTableIds: [],
+      recommendationState: 'idle',
       featuresLoaded: true,
       saving: false
     }
@@ -373,11 +386,37 @@
     });
   }
 
+  function reservationListCard(row, includeDate) {
+    var guests = Math.max(0, Number(row.guest_num || row.guests || 0));
+    var date = String(row.reserve_date || row.reservation_date || '');
+    return (
+      '<button type="button" class="pmd-qres-list-card' +
+        (includeDate ? ' is-other-date-r136' : '') +
+        '" data-qres-edit="' + esc(row.reservation_id || row.id) + '">' +
+        '<span class="pmd-qres-list-time">' +
+          esc(String(row.reserve_time || '').slice(0, 5)) +
+          (includeDate
+            ? '<small class="pmd-qres-list-date-r136">' + esc(date) + '</small>'
+            : '') +
+        '</span>' +
+        '<span class="pmd-qres-list-copy">' +
+          '<strong>' + esc(rowName(row)) + '</strong>' +
+          '<small>' +
+            esc('P ' + guests + ' · ' + rowTables(row) + ' · ' + Math.max(1, Number(row.duration || 45)) + ' min') +
+          '</small>' +
+          (rowNote(row)
+            ? '<em class="pmd-qres-list-note">' + esc(rowNote(row)) + '</em>'
+            : '') +
+        '</span>' +
+      '</button>'
+    );
+  }
+
   function renderList() {
     var rows = filteredRows();
     if (!list) return;
 
-    if (state.loading && !state.rows.length) {
+    if (state.loading && !state.rows.length && !state.search) {
       list.innerHTML =
         '<div class="pmd-qres-list-loading">' +
           '<span></span><span></span><span></span>' +
@@ -385,39 +424,195 @@
       return;
     }
 
-    if (!rows.length) {
-      list.innerHTML =
-        '<div class="pmd-qres-empty">' +
-          '<strong>No reservations</strong>' +
-          '<span>' +
-            (state.tableScope === 'selected' && state.selectedTableId
-              ? 'Nothing booked for this table.'
-              : 'Nothing matches this day.') +
-          '</span>' +
-        '</div>';
+    if (!state.search) {
+      if (!rows.length) {
+        list.innerHTML =
+          '<div class="pmd-qres-empty">' +
+            '<strong>No reservations</strong>' +
+            '<span>' +
+              (state.tableScope === 'selected' && state.selectedTableId
+                ? 'Nothing booked for this table.'
+                : 'Nothing matches this day.') +
+            '</span>' +
+          '</div>';
+        return;
+      }
+
+      list.innerHTML = rows.map(function (row) {
+        return reservationListCard(row, false);
+      }).join('');
       return;
     }
 
-    list.innerHTML = rows.map(function (row) {
-      var guests = Math.max(0, Number(row.guest_num || row.guests || 0));
-      return (
-        '<button type="button" class="pmd-qres-list-card" data-qres-edit="' +
-          esc(row.reservation_id || row.id) + '">' +
-          '<span class="pmd-qres-list-time">' +
-            esc(String(row.reserve_time || '').slice(0, 5)) +
-          '</span>' +
-          '<span class="pmd-qres-list-copy">' +
-            '<strong>' + esc(rowName(row)) + '</strong>' +
-            '<small>' +
-              esc('P ' + guests + ' · ' + rowTables(row) + ' · ' + Math.max(1, Number(row.duration || 45)) + ' min') +
-            '</small>' +
-            (rowNote(row)
-              ? '<em class="pmd-qres-list-note">' + esc(rowNote(row)) + '</em>'
-              : '') +
-          '</span>' +
-        '</button>'
+    var html = [
+      '<div class="pmd-qres-search-group-r136">',
+        '<div class="pmd-qres-search-heading-r136">',
+          '<strong>Selected date</strong>',
+          '<span>' + esc(formatDate(state.date)) + '</span>',
+        '</div>'
+    ];
+
+    if (rows.length) {
+      html.push(rows.map(function (row) {
+        return reservationListCard(row, false);
+      }).join(''));
+    } else {
+      html.push(
+        '<div class="pmd-qres-search-empty-r136">No matches on this date.</div>'
       );
-    }).join('');
+    }
+    html.push('</div>');
+
+    if (state.search.length >= 2) {
+      html.push(
+        '<div class="pmd-qres-search-group-r136 is-other-r136">',
+          '<div class="pmd-qres-search-heading-r136">',
+            '<strong>Other dates found</strong>',
+            '<span>' + (state.searchLoading ? 'Searching…' : '') + '</span>',
+          '</div>'
+      );
+
+      if (state.searchLoading) {
+        html.push(
+          '<div class="pmd-qres-list-loading is-compact-r136">' +
+            '<span></span><span></span><span></span>' +
+          '</div>'
+        );
+      } else if (
+        state.otherSearchTerm === state.search &&
+        state.otherDateRows.length
+      ) {
+        html.push(state.otherDateRows.map(function (row) {
+          return reservationListCard(row, true);
+        }).join(''));
+      } else {
+        html.push(
+          '<div class="pmd-qres-search-empty-r136">No matches on other dates.</div>'
+        );
+      }
+      html.push('</div>');
+    }
+
+    list.innerHTML = html.join('');
+  }
+
+  function clearOtherDateSearch() {
+    if (otherSearchTimer) {
+      window.clearTimeout(otherSearchTimer);
+      otherSearchTimer = 0;
+    }
+    if (
+      state.searchController &&
+      typeof state.searchController.abort === 'function'
+    ) {
+      state.searchController.abort();
+    }
+    state.searchController = null;
+    state.searchLoading = false;
+    state.otherDateRows = [];
+    state.otherSearchTerm = '';
+  }
+
+  function scheduleOtherDateSearch(delay) {
+    if (otherSearchTimer) {
+      window.clearTimeout(otherSearchTimer);
+      otherSearchTimer = 0;
+    }
+
+    if (state.search.length < 2) {
+      clearOtherDateSearch();
+      queueRender();
+      return;
+    }
+
+    otherSearchTimer = window.setTimeout(function () {
+      otherSearchTimer = 0;
+      loadOtherDateSearch();
+    }, typeof delay === 'number' ? delay : 180);
+  }
+
+  async function loadOtherDateSearch() {
+    if (state.workspace !== 'reservations' || state.search.length < 2) {
+      return false;
+    }
+
+    var needle = state.search;
+    var requestId = ++state.searchRequestId;
+
+    if (
+      state.searchController &&
+      typeof state.searchController.abort === 'function'
+    ) {
+      state.searchController.abort();
+    }
+
+    var controller = typeof AbortController === 'function'
+      ? new AbortController()
+      : null;
+    state.searchController = controller;
+    state.searchLoading = true;
+    queueRender();
+
+    var url = '/admin/pos/reservations-data?date=' +
+      encodeURIComponent(state.date || state.today) +
+      '&search_only=1&search=' +
+      encodeURIComponent(needle);
+
+    if (
+      state.tableScope === 'selected' &&
+      state.selectedTableId
+    ) {
+      url += '&table_id=' + encodeURIComponent(String(state.selectedTableId));
+    }
+
+    try {
+      var response = await fetch(url, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: controller ? controller.signal : undefined,
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrfToken()
+        }
+      });
+
+      var json = await response.json();
+
+      if (!response.ok || !json || json.ok !== true) {
+        throw new Error(
+          json && json.error
+            ? json.error
+            : 'Reservation search could not be loaded.'
+        );
+      }
+
+      if (
+        requestId !== state.searchRequestId ||
+        needle !== state.search
+      ) {
+        return false;
+      }
+
+      state.otherDateRows = Array.isArray(json.other_date_reservations)
+        ? json.other_date_reservations
+        : [];
+      state.otherSearchTerm = needle;
+      state.searchLoading = false;
+      state.searchController = null;
+      queueRender();
+      return true;
+    } catch (error) {
+      if (error && error.name === 'AbortError') return false;
+      if (requestId !== state.searchRequestId) return false;
+
+      state.otherDateRows = [];
+      state.otherSearchTerm = needle;
+      state.searchLoading = false;
+      state.searchController = null;
+      queueRender();
+      return false;
+    }
   }
 
   function scheduleBounds(rows) {
@@ -558,6 +753,7 @@
     renderReservationRailAction();
     renderTableFilter();
     renderList();
+    syncQuickEditorDateState();
     if (!state.editor.open) renderTimeline();
   }
 
@@ -663,6 +859,7 @@
       installScheduleBridge();
       render();
       setRefreshing(false);
+      if (state.search.length >= 2) scheduleOtherDateSearch(0);
       return true;
     } catch (error) {
       if (error && error.name === 'AbortError') return false;
@@ -736,6 +933,7 @@
       loadReservations();
     } else {
       closeQuickEditor();
+      clearOtherDateSearch();
       renderReservationRailAction();
     }
   }
@@ -754,7 +952,7 @@
 
   function rowById(id) {
     id = Number(id || 0);
-    return state.rows.find(function (row) {
+    return state.rows.concat(state.otherDateRows || []).find(function (row) {
       return Number(row.reservation_id || row.id || 0) === id;
     }) || null;
   }
@@ -1301,7 +1499,7 @@
 
     canonicalRequest('onLoadReservationComposer', {
       reservation_id: id,
-      source: 'quick-pos-reservations-r135'
+      source: 'quick-pos-reservations-r136'
     })
       .then(function (response) {
         if (
@@ -1341,32 +1539,220 @@
       });
   }
 
+  function isPastSelectedDate() {
+    return Boolean(
+      state.date &&
+      state.today &&
+      state.date < state.today
+    );
+  }
+
+  function syncQuickEditorDateState() {
+    if (!quickEditor || !quickForm || !state.editor.open) {
+      if (quickPastNote) quickPastNote.hidden = true;
+      return;
+    }
+
+    var past = isPastSelectedDate();
+    quickEditor.classList.toggle('is-past-date-r136', past);
+    if (quickPastNote) quickPastNote.hidden = !past;
+
+    Array.prototype.forEach.call(quickForm.elements, function (field) {
+      if (!field || !field.tagName) return;
+      if (field.matches && field.matches('[data-qres-quick-cancel]')) return;
+
+      if (past) {
+        if (!field.dataset.qresPastCapturedR136) {
+          field.dataset.qresPastCapturedR136 = '1';
+          field.dataset.qresPastDisabledR136 = field.disabled ? '1' : '0';
+        }
+        field.disabled = true;
+      } else if (field.dataset.qresPastCapturedR136) {
+        field.disabled = field.dataset.qresPastDisabledR136 === '1';
+        delete field.dataset.qresPastCapturedR136;
+        delete field.dataset.qresPastDisabledR136;
+      }
+    });
+
+    if (quickSave) {
+      quickSave.disabled = past || state.editor.saving;
+    }
+  }
+
+  function tableLabelFromName(name) {
+    name = String(name || '').trim();
+    if (!name) return '';
+    return /^table\b/i.test(name) ? name : ('Table ' + name);
+  }
+
+  function tableNamesForIds(ids) {
+    return (Array.isArray(ids) ? ids : []).map(function (id) {
+      var button = root.querySelector(
+        '[data-qpos-table="' + String(Number(id || 0)) + '"]'
+      );
+      var name = button
+        ? String((button.querySelector('strong') || {}).textContent || '').trim()
+        : '';
+      return tableLabelFromName(name || id);
+    }).filter(Boolean);
+  }
+
+  function quickAssignmentMode() {
+    if (state.editor.tableIds.length) return 'choose';
+    return state.editor.assignmentMode === 'later'
+      ? 'later'
+      : (state.editor.assignmentMode === 'choose' ? 'choose' : 'auto');
+  }
+
+  function availabilityFromResponse(response) {
+    if (response && response.availability) return response.availability;
+    if (response && response.data && response.data.availability) {
+      return response.data.availability;
+    }
+    if (response && response.result && response.result.availability) {
+      return response.result.availability;
+    }
+    return null;
+  }
+
+  function syncQuickAssignmentLabels(mode) {
+    var selectedNames = state.editor.tableNames.length
+      ? state.editor.tableNames.map(tableLabelFromName).filter(Boolean)
+      : tableNamesForIds(state.editor.tableIds);
+
+    if (quickChooseLabel) {
+      quickChooseLabel.textContent =
+        mode === 'choose' && selectedNames.length
+          ? selectedNames.join(' + ')
+          : 'Choose table(s)';
+    }
+
+    if (quickLaterLabel) {
+      quickLaterLabel.textContent = 'Assign later';
+    }
+
+    if (quickAutoLabel) {
+      if (mode !== 'auto') {
+        quickAutoLabel.textContent = 'Automatic table';
+      } else if (
+        state.editor.recommendationState === 'ready' &&
+        state.editor.recommendedTableIds.length
+      ) {
+        quickAutoLabel.textContent = tableNamesForIds(
+          state.editor.recommendedTableIds
+        ).join(' + ');
+      } else if (state.editor.recommendationState === 'empty') {
+        quickAutoLabel.textContent = 'No fit table';
+      } else if (state.editor.recommendationState === 'error') {
+        quickAutoLabel.textContent = 'Check tables';
+      } else {
+        quickAutoLabel.textContent = 'Finding table…';
+      }
+    }
+
+    quickForm.querySelectorAll('input[name="assignment_mode"]').forEach(function (radio) {
+      radio.checked = radio.value === mode;
+    });
+  }
+
+  function scheduleQuickRecommendation(delay) {
+    if (quickAvailabilityTimer) {
+      window.clearTimeout(quickAvailabilityTimer);
+      quickAvailabilityTimer = 0;
+    }
+
+    if (
+      !state.editor.open ||
+      quickAssignmentMode() !== 'auto' ||
+      isPastSelectedDate()
+    ) {
+      return;
+    }
+
+    state.editor.recommendationState = 'loading';
+    state.editor.recommendedTableIds = [];
+    syncQuickTableUI();
+
+    quickAvailabilityTimer = window.setTimeout(function () {
+      quickAvailabilityTimer = 0;
+      refreshQuickRecommendation();
+    }, typeof delay === 'number' ? delay : 140);
+  }
+
+  function refreshQuickRecommendation() {
+    if (
+      !state.editor.open ||
+      quickAssignmentMode() !== 'auto' ||
+      isPastSelectedDate()
+    ) {
+      return;
+    }
+
+    var data = quickPayload();
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(data.reserve_date) ||
+      !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.reserve_time) ||
+      data.guest_num < 1 ||
+      data.duration < 1
+    ) {
+      state.editor.recommendationState = 'empty';
+      state.editor.recommendedTableIds = [];
+      syncQuickTableUI();
+      return;
+    }
+
+    var floor = currentFloorMeta();
+    data.assignment_mode = 'auto';
+    data.tables = [];
+    data.pmd_floor_locked = floor.id ? 1 : 0;
+    data.pmd_floor_id = floor.id || '';
+    data.pmd_floor_name = floor.name || '';
+
+    var requestId = ++quickAvailabilityRequestId;
+
+    canonicalRequest('onCheckReservationAvailability', data)
+      .then(function (response) {
+        if (
+          requestId !== quickAvailabilityRequestId ||
+          !state.editor.open ||
+          quickAssignmentMode() !== 'auto'
+        ) {
+          return;
+        }
+
+        var availability = availabilityFromResponse(response) || {};
+        var ids = Array.isArray(availability.recommendedTableIds)
+          ? availability.recommendedTableIds
+              .map(function (id) { return Number(id || 0); })
+              .filter(function (id) { return id > 0; })
+          : [];
+
+        state.editor.recommendedTableIds = ids;
+        state.editor.recommendationState = ids.length ? 'ready' : 'empty';
+        syncQuickTableUI();
+      })
+      .catch(function () {
+        if (requestId !== quickAvailabilityRequestId) return;
+        state.editor.recommendedTableIds = [];
+        state.editor.recommendationState = 'error';
+        syncQuickTableUI();
+      });
+  }
+
   function syncQuickTableUI() {
     var ids = state.editor.tableIds.slice();
-    var names = state.editor.tableNames.slice();
     var assignment = quickField('assignment_mode');
-    var mode = ids.length
-      ? 'choose'
-      : (
-          state.editor.assignmentMode === 'later'
-            ? 'later'
-            : (state.editor.assignmentMode === 'choose' ? 'choose' : 'auto')
-        );
+    var mode = quickAssignmentMode();
 
     if (assignment) assignment.value = mode;
-    if (quickTableText) {
-      quickTableText.textContent = ids.length
-        ? (names.length ? names.join(', ') : ids.map(function (id) { return 'Table ' + id; }).join(', '))
-        : (
-            mode === 'later'
-              ? 'Assign later'
-              : (mode === 'choose' ? 'Choose table(s)' : 'Automatic')
-          );
-    }
+    syncQuickAssignmentLabels(mode);
 
     root.querySelectorAll('[data-qpos-table]').forEach(function (button) {
       var id = Number(button.getAttribute('data-qpos-table') || 0);
-      button.classList.toggle('is-reservation-editor-table-r132', ids.indexOf(id) >= 0);
+      button.classList.toggle(
+        'is-reservation-editor-table-r132',
+        ids.indexOf(id) >= 0
+      );
     });
   }
 
@@ -1377,6 +1763,8 @@
     state.editor.tableIds = [];
     state.editor.tableNames = [];
     state.editor.assignmentMode = 'auto';
+    state.editor.recommendedTableIds = [];
+    state.editor.recommendationState = 'idle';
     state.editor.featuresLoaded = true;
     state.editor.saving = false;
 
@@ -1419,6 +1807,9 @@
     state.editor.assignmentMode = state.editor.tableIds.length
       ? 'choose'
       : (id ? 'later' : 'auto');
+    state.editor.recommendedTableIds = [];
+    state.editor.recommendationState =
+      state.editor.assignmentMode === 'auto' ? 'loading' : 'idle';
 
     quickForm.reset();
     state.editor.featuresLoaded = !id;
@@ -1435,7 +1826,7 @@
     if (quickField('email')) quickField('email').value = row ? String(row.email || '') : '';
     if (quickField('comment')) quickField('comment').value = row ? rowNote(row) : '';
     if (quickField('reservation_id')) quickField('reservation_id').value = id ? String(id) : '';
-    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r135';
+    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r136';
     if (quickField('pmd_floor_id')) quickField('pmd_floor_id').value = floor.id || '';
     if (quickField('pmd_floor_name')) quickField('pmd_floor_name').value = floor.name || '';
     if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = state.editor.tableIds.length ? '1' : '0';
@@ -1456,16 +1847,26 @@
     if (center) center.classList.add('is-editor-open-r132');
     quickEditor.hidden = false;
     quickEditor.setAttribute('aria-hidden', 'false');
-    setQuickStatus('Tap a table on the right, or keep Automatic table.', false);
+    setQuickStatus(
+      state.editor.tableIds.length
+        ? ('Assigned to ' + state.editor.tableNames.map(tableLabelFromName).join(' + ') + '.')
+        : 'Complete the reservation details.',
+      false
+    );
     syncQuickTableUI();
     hydrateQuickEditFeatures(id);
     ensureQuickTimeWheel();
+    syncQuickEditorDateState();
+
+    if (state.editor.assignmentMode === 'auto') {
+      scheduleQuickRecommendation(0);
+    }
 
     window.requestAnimationFrame(function () {
       refreshQuickTimeWheelAvailability();
       syncQuickTimeWheelFromNative(false);
       var name = quickField('first_name');
-      if (name) name.focus();
+      if (name && !isPastSelectedDate()) name.focus();
     });
   }
 
@@ -1498,11 +1899,13 @@
       tables: ids,
       occasion_id: 0,
       notify: 0,
-      source: 'quick-pos-reservations-r135',
+      source: 'quick-pos-reservations-r136',
       location_id: quickLocationId() || null,
       pmd_floor_id: floor.id || '',
       pmd_floor_name: floor.name || '',
-      pmd_floor_locked: ids.length ? 1 : 0
+      pmd_floor_locked: ids.length || (
+        state.editor.assignmentMode === 'auto' && floor.id
+      ) ? 1 : 0
     };
 
     if (
@@ -1527,6 +1930,12 @@
   function saveQuickReservation(event) {
     if (event) event.preventDefault();
     if (!quickForm || state.editor.saving) return;
+
+    if (isPastSelectedDate()) {
+      syncQuickEditorDateState();
+      setQuickStatus('Past dates are read-only.', true);
+      return;
+    }
 
     var data = quickPayload();
     var problem = validateQuickPayload(data);
@@ -1573,6 +1982,12 @@
     state.tableScope = 'selected';
     renderTableFilter();
     loadReservations(true);
+    if (state.search.length >= 2) scheduleOtherDateSearch(0);
+
+    if (state.editor.open && isPastSelectedDate()) {
+      syncQuickEditorDateState();
+      return;
+    }
 
     if (state.editor.open) {
       state.editor.tableIds = [id];
@@ -1581,6 +1996,11 @@
       if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = '1';
       syncQuickTableUI();
       setQuickStatus('Assigned to Table ' + name + '.', false);
+      return;
+    }
+
+    if (isPastSelectedDate()) {
+      toast('Past date — reservations are read-only.');
       return;
     }
 
@@ -1714,6 +2134,7 @@
 
       renderTableFilter();
       loadReservations();
+      if (state.search.length >= 2) scheduleOtherDateSearch(0);
       return;
     }
 
@@ -1726,7 +2147,9 @@
         state.date,
         Number(shift.getAttribute('data-qres-shift') || 0)
       );
+      syncQuickEditorDateState();
       loadReservations();
+      if (state.search.length >= 2) scheduleOtherDateSearch(0);
       return;
     }
 
@@ -1736,7 +2159,9 @@
 
     if (today) {
       state.date = state.today;
+      syncQuickEditorDateState();
       loadReservations();
+      if (state.search.length >= 2) scheduleOtherDateSearch(0);
       return;
     }
 
@@ -1779,6 +2204,15 @@
       if (name === 'reserve_date' || name === 'duration') {
         refreshQuickTimeWheelAvailability();
       }
+      if (
+        name === 'reserve_date' ||
+        name === 'reserve_time' ||
+        name === 'duration' ||
+        name === 'guest_num' ||
+        name === 'pmd_table_features[]'
+      ) {
+        scheduleQuickRecommendation();
+      }
     });
   }
 
@@ -1793,12 +2227,16 @@
   if (quickAuto) {
     quickAuto.addEventListener('click', function (event) {
       event.preventDefault();
+      if (isPastSelectedDate()) return;
       state.editor.tableIds = [];
       state.editor.tableNames = [];
       state.editor.assignmentMode = 'auto';
+      state.editor.recommendedTableIds = [];
+      state.editor.recommendationState = 'loading';
       if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = '0';
       syncQuickTableUI();
-      setQuickStatus('Automatic table assignment selected.', false);
+      setQuickStatus('Finding the best available table…', false);
+      scheduleQuickRecommendation(0);
     });
   }
 
@@ -1806,19 +2244,15 @@
   if (quickChoose) {
     quickChoose.addEventListener('click', function (event) {
       event.preventDefault();
+      if (isPastSelectedDate()) return;
       state.editor.assignmentMode = 'choose';
       syncQuickTableUI();
-      setQuickStatus('Tap a table on the right to assign it.', false);
-    });
-  }
-
-  var quickTableButton = document.querySelector('[data-qres-quick-table]');
-  if (quickTableButton) {
-    quickTableButton.addEventListener('click', function (event) {
-      event.preventDefault();
-      state.editor.assignmentMode = 'choose';
-      syncQuickTableUI();
-      setQuickStatus('Tap a table on the right to assign it.', false);
+      setQuickStatus(
+        state.editor.tableIds.length
+          ? ('Assigned to ' + state.editor.tableNames.map(tableLabelFromName).join(' + ') + '.')
+          : 'Tap a table on the right to assign it.',
+        false
+      );
     });
   }
 
@@ -1826,6 +2260,7 @@
   if (quickLater) {
     quickLater.addEventListener('click', function (event) {
       event.preventDefault();
+      if (isPastSelectedDate()) return;
       state.editor.tableIds = [];
       state.editor.tableNames = [];
       state.editor.assignmentMode = 'later';
@@ -1842,6 +2277,7 @@
       if (!field) return;
       var direction = Number(button.getAttribute('data-qres-guests-step') || 0);
       field.value = String(Math.max(1, Math.min(99, Number(field.value || 1) + direction)));
+      scheduleQuickRecommendation();
     });
   });
 
@@ -1854,6 +2290,7 @@
       var next = Number(field.value || 45) + direction;
       field.value = String(Math.max(30, Math.min(180, Math.round(next / 15) * 15)));
       refreshQuickTimeWheelAvailability();
+      scheduleQuickRecommendation();
     });
   });
 
@@ -1861,13 +2298,20 @@
     dateInput.addEventListener('change', function () {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) return;
       state.date = dateInput.value;
+      syncQuickEditorDateState();
       loadReservations();
+      if (state.search.length >= 2) scheduleOtherDateSearch(0);
     });
   }
 
   if (searchInput) {
     searchInput.addEventListener('input', function () {
       state.search = String(searchInput.value || '').trim();
+      if (state.search.length < 2) {
+        clearOtherDateSearch();
+      } else {
+        scheduleOtherDateSearch();
+      }
       queueRender();
     });
   }
@@ -1884,7 +2328,7 @@
 
   if (!window.PMDReservationsCardsV320) {
     window.PMDReservationsCardsV320 = {
-      version: 'qpos-r135-bridge',
+      version: 'qpos-r136-bridge',
       refresh: function () {
         return loadReservations();
       }
@@ -1897,8 +2341,8 @@
 
   setWorkspace(state.workspace, false);
 
-  window.PMDQuickReservationsR135 = {
-    version: '1.0.0-r135',
+  window.PMDQuickReservationsR136 = {
+    version: '1.0.0-r136',
     setWorkspace: setWorkspace,
     refresh: loadReservations,
     newReservation: function () {
@@ -1910,6 +2354,8 @@
         date: state.date,
         selectedTableId: state.selectedTableId,
         tableScope: state.tableScope,
+        search: state.search,
+        otherDateCount: state.otherDateRows.length,
         count: state.rows.length,
         openingHours: state.openingHours.slice()
       };
@@ -1917,11 +2363,12 @@
   };
 
   // Compatibility aliases for diagnostics that referenced earlier bridges.
-  window.PMDQuickReservationsR134 = window.PMDQuickReservationsR135;
-  window.PMDQuickReservationsR133 = window.PMDQuickReservationsR135;
-  window.PMDQuickReservationsR132 = window.PMDQuickReservationsR135;
-  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR135;
-  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR135;
-  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR135;
-  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR135;
+  window.PMDQuickReservationsR135 = window.PMDQuickReservationsR136;
+  window.PMDQuickReservationsR134 = window.PMDQuickReservationsR136;
+  window.PMDQuickReservationsR133 = window.PMDQuickReservationsR136;
+  window.PMDQuickReservationsR132 = window.PMDQuickReservationsR136;
+  window.PMDQuickReservationsR131 = window.PMDQuickReservationsR136;
+  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR136;
+  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR136;
+  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR136;
 })();
