@@ -129,6 +129,12 @@ Route::middleware(['web'])->group(function () {
         \App\Http\Controllers\PmdTableDisplayPaymentController::class
     )->where('order', '[0-9]+');
 
+    // PMD_TABLE_DISPLAY_PAIRING_V1
+    Route::post(
+        '/admin/table-display/setup-code',
+        \App\Http\Controllers\PmdTableDisplayAdminSetupController::class
+    );
+
     // PMD_QPOS_EXACT_DASHBOARD_FLOOR_AJAX_V26
     // Canonical Floor zoom/view preference + reservation-window transport.
     Route::post(
