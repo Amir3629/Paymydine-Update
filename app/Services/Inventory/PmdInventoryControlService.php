@@ -196,7 +196,21 @@ final class PmdInventoryControlService
                 );
 
             $status = 'healthy';
-            if ($expected <= 0 || ($reorder > 0 && $expected <= $reorder) || ($daysLeft !== null && $daysLeft <= 1.5)) {
+            $needsSetup = $expected <= 0
+                && $par <= 0
+                && $reorder <= 0
+                && $dailyUsage <= 0;
+
+            // PMD_INVENTORY_SETUP_STATUS_R7
+            // A newly-created zero-stock item is not a shortage alert until
+            // PayMyDine has either a target/reorder level or real sales usage.
+            if ($needsSetup) {
+                $status = 'setup';
+            } elseif (
+                $expected <= 0
+                || ($reorder > 0 && $expected <= $reorder)
+                || ($daysLeft !== null && $daysLeft <= 1.5)
+            ) {
                 $status = 'critical';
                 $summary['critical_items']++;
             } elseif (
@@ -688,15 +702,64 @@ final class PmdInventoryControlService
                         }
                     }
 
-                    $itemId = $existing
-                        ? (int)$existing->id
-                        : (int)DB::table('pmd_inventory_items')->insertGetId([
+                    if ($existing) {
+                        $itemId = (int)$existing->id;
+                    } else {
+                        // PMD_INVENTORY_PURCHASE_CATALOG_R7
+                        // When a first supplier purchase matches the global
+                        // catalogue, preserve useful recipe units automatically.
+                        // Example: 5 kg tomatoes becomes a stock item tracked in
+                        // grams and purchased in kg (1 kg = 1000 g).
+                        $catalog = PmdInventoryStockCatalog::bestMatch($name);
+                        $catalogBaseUnit = $catalog
+                            ? $this->unit($catalog['unit'] ?? $unit)
+                            : $unit;
+                        $catalogPurchaseUnit = $catalog
+                            ? $this->unit($catalog['purchase_unit'] ?? $catalogBaseUnit)
+                            : $unit;
+                        $catalogFactorRaw = $catalog['purchase_to_base'] ?? null;
+                        $catalogFactor = $catalogFactorRaw !== null
+                            ? max(0.0001, (float)$catalogFactorRaw)
+                            : null;
+                        $lineUnit = strtolower($unit);
+
+                        $useCatalogUnits = $catalog
+                            && (
+                                (
+                                    strtolower($catalogBaseUnit) === strtolower($catalogPurchaseUnit)
+                                    && $lineUnit === strtolower($catalogBaseUnit)
+                                )
+                                || (
+                                    $catalogFactor !== null
+                                    && (
+                                        $lineUnit === strtolower($catalogBaseUnit)
+                                        || $lineUnit === strtolower($catalogPurchaseUnit)
+                                    )
+                                )
+                            );
+
+                        $newBaseUnit = $useCatalogUnits ? $catalogBaseUnit : $unit;
+                        $newPurchaseUnit = $useCatalogUnits ? $catalogPurchaseUnit : $unit;
+                        $newFactor = $useCatalogUnits ? ($catalogFactor ?? 1.0) : 1.0;
+                        $newBaseCost = $unitCost;
+
+                        if (
+                            $useCatalogUnits
+                            && strtolower($unit) === strtolower($newPurchaseUnit)
+                            && $newFactor > 0
+                        ) {
+                            $newBaseCost = $unitCost / $newFactor;
+                        }
+
+                        $itemId = (int)DB::table('pmd_inventory_items')->insertGetId([
                             'location_id' => $locationId,
                             'name' => mb_substr($name, 0, 190),
-                            'base_unit' => $unit,
-                            'purchase_unit' => $unit,
-                            'purchase_to_base' => 1,
-                            'unit_cost' => $unitCost,
+                            'sku' => null,
+                            'category' => $catalog['category'] ?? null,
+                            'base_unit' => $newBaseUnit,
+                            'purchase_unit' => $newPurchaseUnit,
+                            'purchase_to_base' => $newFactor,
+                            'unit_cost' => round($newBaseCost, 6),
                             'reorder_point' => 0,
                             'par_level' => 0,
                             'supplier_name' => $supplier ?: null,
@@ -705,6 +768,7 @@ final class PmdInventoryControlService
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
+                    }
                 }
 
                 $item = DB::table('pmd_inventory_items')
