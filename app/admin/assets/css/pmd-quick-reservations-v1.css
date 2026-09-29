@@ -1194,32 +1194,17 @@ body.pmd-qpos-body
     grid-template-columns: 1fr;
   }
 
-  .pmd-qres-quick-grid {
+  .pmd-qres-composer-body-r132 {
+    padding: 16px;
+  }
+
+  .pmd-qres-composer-modes-r132 {
     grid-template-columns: repeat(2,minmax(0,1fr));
-    padding: 12px;
   }
 
-  .pmd-qres-quick-field--name,
-  .pmd-qres-quick-field--table,
-  .pmd-qres-quick-field--note {
-    grid-column: 1 / -1;
-  }
-
-  .pmd-qres-quick-field--date,
-  .pmd-qres-quick-field--time,
-  .pmd-qres-quick-field--people,
-  .pmd-qres-quick-field--duration,
-  .pmd-qres-quick-field--contact {
-    grid-column: span 1;
-  }
-
-  .pmd-qres-quick-actions {
-    flex-wrap: wrap;
-    padding: 10px 12px;
-  }
-
-  .pmd-qres-quick-actions-spacer {
-    display: none;
+  .pmd-qres-composer-footer-r132 {
+    padding-right: 18px;
+    padding-left: 18px;
   }
 
   .pmd-qres-booking-cells {
@@ -1242,13 +1227,56 @@ body.pmd-qpos-body
   }
 }
 
+@media (max-width: 700px) {
+  .pmd-qres-composer-title-r132 {
+    min-height: 66px;
+    padding: 12px 16px;
+  }
+
+  .pmd-qres-composer-title-r132 h2 {
+    font-size: 22px;
+  }
+
+  .pmd-qres-composer-primary-r132 {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "name"
+      "date"
+      "time"
+      "duration"
+      "guests";
+  }
+
+  .pmd-qres-composer-contact-r132,
+  .pmd-qres-composer-preference-options-r132,
+  .pmd-qres-composer-modes-r132 {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-qres-composer-footer-r132 {
+    min-height: auto;
+    gap: 8px;
+    padding: 10px 12px 14px;
+  }
+
+  .pmd-qres-composer-cancel-r132,
+  .pmd-qres-composer-save-r132 {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 0 12px !important;
+  }
+}
+
 @media (max-width: 520px) {
-  .pmd-qres-quick-field--date,
-  .pmd-qres-quick-field--time,
-  .pmd-qres-quick-field--people,
-  .pmd-qres-quick-field--duration,
-  .pmd-qres-quick-field--contact {
-    grid-column: 1 / -1;
+  .pmd-qres-composer-footer-r132 {
+    flex-direction: column-reverse;
+  }
+
+  .pmd-qres-composer-cancel-r132,
+  .pmd-qres-composer-save-r132 {
+    width: 100%;
+    flex-basis: auto;
   }
 }
 .pmd-qres-datebar--top {
