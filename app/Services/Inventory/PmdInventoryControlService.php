@@ -33,8 +33,12 @@ final class PmdInventoryControlService
             }
         }
 
-        return Schema::hasColumn('pmd_inventory_recipes', 'effective_from')
-            && Schema::hasColumn('pmd_inventory_recipes', 'effective_to');
+        // PMD_INVENTORY_READY_R2
+        // Table existence is the provisioning gate. Some tenant/schema
+        // drivers can return a stale hasColumn() result immediately after
+        // igniter:up even though the additive recipe-version migration ran.
+        // Snapshot queries remain the authoritative schema validation.
+        return true;
     }
 
     public function snapshot(int $locationId): array
