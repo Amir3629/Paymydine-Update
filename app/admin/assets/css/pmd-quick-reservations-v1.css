@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R132
+/* PMD_QPOS_QUICK_RESERVATIONS_R133
  * Same Quick POS shell, cleaner reservation density.
  * Right table rail remains untouched/canonical.
  */
@@ -1012,57 +1012,196 @@
   box-shadow: 0 0 0 4px rgba(7,92,71,.14) !important;
 }
 
-/* ---------- reservation rail action ---------- */
+/* ---------- R133 neutral POS editor + reservation scope ---------- */
 
-.pmd-qres-rail-action-r131 {
-  min-height: 74px;
-  display: grid;
-  grid-template-rows: minmax(38px,1fr) 27px;
-  gap: 5px;
-  padding: 6px;
-  box-sizing: border-box;
-  border: 1px solid #cfd9d5;
-  border-radius: 12px;
-  background: #f8fbf9;
+/*
+ * Quick Reservation keeps the canonical Composer geometry/icons, but its
+ * visual treatment belongs to Quick POS: white/grey cards, charcoal text,
+ * and the same dark active state used by History scope controls.
+ */
+.pmd-qres-quick-editor form {
+  color: #111827;
 }
 
-.pmd-qres-rail-action-r131 .pmd-qpos-pickup {
-  width: 100%;
-  min-height: 38px !important;
-  padding: 4px 6px !important;
-  border: 0 !important;
-  border-radius: 7px !important;
-  background: transparent !important;
+.pmd-qres-composer-title-r132 {
+  border-bottom-color: #e5e7eb;
+  background: #fff;
+}
+
+.pmd-qres-composer-title-r132 h2 {
+  color: #111827;
+}
+
+.pmd-qres-composer-title-r132 small {
+  color: #6b7280;
+}
+
+.pmd-qres-composer-close-r132 {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.pmd-qres-composer-body-r132 {
+  background: #f8fafc;
+}
+
+.pmd-qres-composer-field-r132 > span,
+.pmd-qres-composer-section-title-r132 {
+  color: #374151;
+}
+
+.pmd-qres-composer-field-r132 > span > svg,
+.pmd-qres-composer-section-title-r132 > svg {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #475569;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-field-r132 input:not([type="checkbox"]):not([type="radio"]),
+.pmd-qres-composer-field-r132 textarea,
+.pmd-qres-composer-table-r132 {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #111827;
+}
+
+.pmd-qres-composer-field-r132 input::placeholder,
+.pmd-qres-composer-field-r132 textarea::placeholder {
+  color: #9ca3af;
+}
+
+.pmd-qres-composer-field-r132 input:focus,
+.pmd-qres-composer-field-r132 textarea:focus,
+.pmd-qres-composer-table-r132:focus-visible {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+}
+
+.pmd-qres-composer-stepper-r132 > button {
+  border-color: #d1d5db;
+  background: #f9fafb;
+  color: #111827;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__suffix {
+  color: #6b7280;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span,
+.pmd-qres-composer-modes-r132 label > span {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span > svg {
+  color: #475569;
+}
+
+.pmd-qres-composer-preference-options-r132 input:checked + span {
+  border-color: #9ca3af;
+  background: #f3f4f6;
+  color: #111827;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-modes-r132 input:checked + span {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-table-r132 strong {
+  color: #111827;
+}
+
+.pmd-qres-composer-table-r132 small,
+.pmd-qres-composer-table-r132 > svg,
+.pmd-qres-composer-status-r132 {
+  color: #6b7280;
+}
+
+.pmd-qres-composer-footer-r132 {
+  border-top-color: #e5e7eb;
+  background: #fff;
+}
+
+.pmd-qres-composer-cancel-r132 {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #111827;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-save-r132 {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-save-r132:hover {
+  background: #1f2937;
+  border-color: #1f2937;
+}
+
+/* Same two-button language as History, isolated to Reservations behavior. */
+.pmd-qres-table-scope-r133 {
+  margin: 0;
+  padding: 0 10px 10px;
+  border-bottom: 1px solid #edf0f3;
+  background: #fff;
+}
+
+.pmd-qres-table-scope-r133 button {
+  min-height: 42px;
+}
+
+.pmd-qres-table-scope-r133 button.is-active {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+}
+
+/* ---------- reservation rail action ---------- */
+
+/* R133: one ordinary table-sized tile. The visible copy is exactly "New". */
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-pickup.is-qres-new-r133 {
+  min-height: 90px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 12px 10px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 11px !important;
+  background: #f8fafc !important;
+  color: #111827 !important;
   box-shadow: none !important;
   transform: none !important;
   text-align: center !important;
 }
 
-.pmd-qres-rail-action-r131 .pmd-qpos-pickup strong {
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-pickup.is-qres-new-r133 strong {
   padding: 0 !important;
-  color: #123229;
-  font-size: 12.5px;
-  line-height: 1.1;
-  font-weight: 950;
+  color: #111827 !important;
+  font-size: clamp(20px,1.8vw,25px) !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.02em !important;
 }
 
-.pmd-qres-rail-action-r131 .pmd-qpos-pickup small {
-  margin-top: 3px;
-  color: #688078;
-  font-size: 9px;
-  font-weight: 750;
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-pickup.is-qres-new-r133 small {
+  display: none !important;
 }
 
-.pmd-qres-rail-today-r131 {
-  min-height: 27px;
-  border: 1px solid #b9cec6;
-  border-radius: 7px;
-  background: #fff;
-  color: #075c47;
-  font: inherit;
-  font-size: 10.5px;
-  font-weight: 950;
-  cursor: pointer;
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-pickup.is-qres-new-r133::after {
+  display: none !important;
 }
 
 .pmd-qpos[data-workspace="reservations"] .pmd-qpos-table {
@@ -1105,14 +1244,14 @@
   display: none !important;
 }
 
-/* Presentation-only table filter. It never changes canonical table status. */
+/* Presentation-only reservation scope. It never changes canonical table status. */
 .pmd-qpos[data-workspace="reservations"]
 .pmd-qpos-table.is-reservation-filter-r129,
 .pmd-qpos[data-workspace="reservations"]
 .pmd-qpos-table.is-reservation-filter-r128 {
-  outline: 3px solid #032f25 !important;
+  outline: 3px solid #111827 !important;
   outline-offset: 2px !important;
-  box-shadow: 0 0 0 4px rgba(3,47,37,.12) !important;
+  box-shadow: 0 0 0 4px rgba(17,24,39,.10) !important;
 }
 
 /* ---------- standalone Quick POS Composer structural bridge ---------- */
