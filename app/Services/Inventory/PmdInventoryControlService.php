@@ -233,6 +233,7 @@ final class PmdInventoryControlService
 
         $recentPurchases = DB::table('pmd_inventory_receipts as r')
             ->where('r.location_id', $locationId)
+            ->whereNotNull('r.confirmed_at')
             ->orderByDesc('r.purchased_at')
             ->orderByDesc('r.id')
             ->limit(15)
@@ -524,6 +525,9 @@ final class PmdInventoryControlService
                     ->first();
                 if (!$receipt) {
                     throw new InvalidArgumentException('Receipt review was not found.');
+                }
+                if (!empty($receipt->confirmed_at)) {
+                    throw new InvalidArgumentException('This supplier bill has already been added to stock.');
                 }
             } else {
                 $receiptId = (int)DB::table('pmd_inventory_receipts')->insertGetId([
