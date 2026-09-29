@@ -138,7 +138,7 @@
             <aside class="pmd-inv__action-rail">
                 <div class="pmd-inv__rail-head">
                     <div>
-                        <span class="pmd-inv__section-kicker">Owner / manager</span>
+                        <span class="pmd-inv__section-kicker">Auto shopping list · owner / manager</span>
                         <h2>Needs action</h2>
                     </div>
                     <span class="pmd-inv__recipe-coverage"><b data-pmd-inv-recipe-coverage>{{ (int)($summary['recipe_coverage_pct'] ?? 0) }}%</b> recipes linked</span>
