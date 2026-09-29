@@ -80,7 +80,7 @@
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r133">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r134">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -422,7 +422,7 @@
             </div>
         </section>
 
-        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R133
+        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R134
              Exact same three-column Quick POS shell:
              Reservations | Schedule | canonical table rail. --}}
         <aside
@@ -478,7 +478,7 @@
                 </div>
             </header>
 
-            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R133
+            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R134
                  POS-native reservation create/edit surface. It stays inside the
                  middle Quick Reservations card and writes through the canonical
                  Reservations handler; no modal is used in Quick mode. --}}
@@ -617,7 +617,7 @@
                     <input type="hidden" name="last_name" value="">
                     <input type="hidden" name="occasion_id" value="0">
                     <input type="hidden" name="notify" value="0">
-                    <input type="hidden" name="source" value="quick-pos-reservations-r133">
+                    <input type="hidden" name="source" value="quick-pos-reservations-r134">
                     <input type="hidden" name="location_id" value="">
                     <input type="hidden" name="pmd_floor_id" value="">
                     <input type="hidden" name="pmd_floor_name" value="">
@@ -1292,7 +1292,7 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r129"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r133"></script>
+<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r134"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
