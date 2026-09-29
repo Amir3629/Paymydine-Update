@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R5 */
+/* PMD_INVENTORY_CONTROL_R6 */
 (function () {
   'use strict';
 
@@ -339,26 +339,29 @@
     if (!host) return;
 
     var query = String(state.commonSearch || '').trim().toLowerCase();
+    if (!query) {
+      host.hidden = true;
+      host.innerHTML = '';
+      return;
+    }
+
     var rows = commonStockTemplates().filter(function (row) {
-      if (!query) return true;
       return [row.name, row.category, row.unit, row.purchase_unit]
         .join(' ')
         .toLowerCase()
         .indexOf(query) !== -1;
-    }).slice(0, 12);
+    }).slice(0, 6);
 
+    host.hidden = false;
     host.innerHTML = rows.length
-      ? rows.map(function (row, index) {
-          var pack = row.purchase_unit && row.purchase_unit !== row.unit
-            ? (' · buy as ' + row.purchase_unit)
-            : '';
+      ? rows.map(function (row) {
           return '<button type="button" data-pmd-inv-common-index="' +
             esc(commonStockTemplates().indexOf(row)) + '">' +
             '<strong>' + esc(row.name || '') + '</strong>' +
-            '<small>' + esc((row.category || 'Stock') + ' · track ' + (row.unit || 'piece') + pack) + '</small>' +
+            '<small>' + esc(row.category || 'Stock item') + '</small>' +
           '</button>';
         }).join('')
-      : '<span class="pmd-inv-common-stock__empty">No common item matches. Type your own stock item below.</span>';
+      : '<span class="pmd-inv-r6-suggestions__empty">No suggestion — keep typing your own item.</span>';
   }
 
   function applyCommonStock(index) {
@@ -374,6 +377,12 @@
       template.purchase_to_base == null ? '' : String(template.purchase_to_base);
 
     updatePackageHelp(form);
+    state.commonSearch = '';
+    var host = root.querySelector('[data-pmd-inv-common-results]');
+    if (host) {
+      host.hidden = true;
+      host.innerHTML = '';
+    }
     var name = form.querySelector('[name="name"]');
     if (name) name.focus();
   }
@@ -447,45 +456,40 @@
 
     var rows = items().filter(rowMatchesSearch);
     if (!rows.length) {
-      body.innerHTML = '<tr><td colspan="7" class="pmd-inv__empty-row">' +
-        (items().length ? 'No stock items match this search.' : 'No stock items yet. Add a purchase or stock item to start.') +
+      body.innerHTML = '<tr><td colspan="5" class="pmd-inv__empty-row">' +
+        (items().length ? 'No stock items match this search.' : 'No stock items yet.') +
       '</td></tr>';
       return;
     }
 
     body.innerHTML = rows.map(function (item) {
       var status = String(item.status || 'healthy');
+      var statusLabel = status === 'critical'
+        ? 'Reorder'
+        : (status === 'low' ? 'Low' : 'Good');
       var days = item.days_left === null || typeof item.days_left === 'undefined'
         ? '—'
         : num(item.days_left, 1);
       var variance = Number(item.last_variance_qty || 0);
+      var varianceOwner = ownerQuantity(item, variance);
       var varianceClass = variance < 0 ? ' is-negative' : (variance > 0 ? ' is-positive' : '');
       var packageMeta = item.purchase_unit && item.purchase_unit !== item.unit
-        ? ('1 ' + item.purchase_unit + ' = ' + num(item.purchase_to_base, 3) + ' ' + item.unit)
+        ? ('1 ' + item.purchase_unit + ' = ' + num(item.purchase_to_base, 2) + ' ' + item.unit)
         : '';
-      var meta = [item.category, packageMeta, item.supplier_name].filter(Boolean).join(' · ');
-
+      var meta = [item.category, packageMeta].filter(Boolean).join(' · ');
       var onHand = ownerQuantity(item, item.estimated_on_hand);
-      var parOwner = ownerQuantity(item, item.par_level);
-      var onHandBase = onHand.converted
-        ? ('<small class="pmd-inv__stock-percent">' + esc(num(item.estimated_on_hand, 2) + ' ' + item.unit + ' equivalent') + '</small>')
-        : '';
 
       return '<tr class="is-' + esc(status) + '">' +
-        '<td class="pmd-inv__item-name"><button type="button" class="pmd-inv__item-edit" data-pmd-inv-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button><small>' + esc(meta || 'Stock item') + '</small></td>' +
-        '<td><span class="pmd-inv__qty">' + esc(num(onHand.qty, 2)) + ' <small>' + esc(onHand.unit) + '</small></span>' +
-          onHandBase +
-          (item.stock_percent === null || typeof item.stock_percent === 'undefined'
-            ? ''
-            : '<small class="pmd-inv__stock-percent">' + esc(String(item.stock_percent)) + '% of par</small>') +
+        '<td class="pmd-inv__item-name">' +
+          '<button type="button" class="pmd-inv__item-edit" data-pmd-inv-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button>' +
+          '<small>' + esc(meta || 'Stock item') + '</small>' +
         '</td>' +
-        '<td>' + esc(num(ownerQuantity(item, item.avg_daily_usage).qty, 2)) + ' ' + esc(onHand.unit) + '</td>' +
+        '<td><span class="pmd-inv__qty">' + esc(num(onHand.qty, 2)) + ' <small>' + esc(onHand.unit) + '</small></span></td>' +
         '<td><span class="pmd-inv__days">' + esc(days) + '</span></td>' +
-        '<td>' + esc(num(parOwner.qty, 2)) + ' ' + esc(parOwner.unit) + '</td>' +
         '<td><span class="pmd-inv__variance' + varianceClass + '">' +
-          (variance > 0 ? '+' : '') + esc(num(variance, 3)) + ' ' + esc(item.unit) +
+          (varianceOwner.qty > 0 ? '+' : '') + esc(num(varianceOwner.qty, 2)) + ' ' + esc(varianceOwner.unit) +
         '</span></td>' +
-        '<td><span class="pmd-inv-status is-' + esc(status) + '">' + esc(status) + '</span></td>' +
+        '<td><span class="pmd-inv-status is-' + esc(status) + '">' + esc(statusLabel) + '</span></td>' +
       '</tr>';
     }).join('');
   }
@@ -494,49 +498,30 @@
     var host = root.querySelector('[data-pmd-inv-attention]');
     if (!host) return;
 
-    var rows = [];
-    items().forEach(function (item) {
+    var rows = items().filter(function (item) {
       var status = String(item.status || 'healthy');
-      if (status === 'critical' || status === 'low') {
-        var buyQty = Number(item.suggested_order_qty || 0);
-        var buyOwner = ownerQuantity(item, buyQty);
-        var onHandOwner = ownerQuantity(item, item.estimated_on_hand);
-        rows.push({
-          priority: status === 'critical' ? 1 : 2,
-          className: status,
-          name: item.name,
-          copy: item.days_left === null
-            ? (num(onHandOwner.qty, 2) + ' ' + onHandOwner.unit + ' estimated on hand')
-            : (num(item.days_left, 1) + ' days left at recent sales usage'),
-          value: buyQty > 0
-            ? ('BUY ' + num(buyOwner.qty, 2) + ' ' + buyOwner.unit)
-            : (status === 'critical' ? 'RESTOCK' : 'LOW')
-        });
-      }
-
-      if (Number(item.last_variance_qty || 0) < 0) {
-        rows.push({
-          priority: 3,
-          className: 'variance',
-          name: item.name,
-          copy: 'Latest count was ' + num(Math.abs(Number(item.last_variance_qty)), 2) + ' ' + item.unit + ' below expected',
-          value: money(Math.abs(Number(item.last_variance_cost || 0)))
-        });
-      }
-    });
-
-    rows.sort(function (a, b) { return a.priority - b.priority; });
-    rows = rows.slice(0, 9);
+      return status === 'critical' || status === 'low';
+    }).sort(function (a, b) {
+      var pa = String(a.status || '') === 'critical' ? 0 : 1;
+      var pb = String(b.status || '') === 'critical' ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    }).slice(0, 5);
 
     if (!rows.length) {
-      host.innerHTML = '<div class="pmd-inv-attention-empty">Nothing needs immediate stock attention.</div>';
+      host.innerHTML = '<div class="pmd-inv-r6-order-empty">Nothing needs buying right now.</div>';
       return;
     }
 
-    host.innerHTML = rows.map(function (row) {
-      return '<div class="pmd-inv-attention is-' + esc(row.className) + '">' +
-        '<div><strong>' + esc(row.name) + '</strong><span>' + esc(row.copy) + '</span></div>' +
-        '<b>' + esc(row.value) + '</b>' +
+    host.innerHTML = rows.map(function (item) {
+      var buy = ownerQuantity(item, Number(item.suggested_order_qty || 0));
+      var detail = item.days_left === null || typeof item.days_left === 'undefined'
+        ? ownerQuantityLabel(item, item.estimated_on_hand, 2) + ' on hand'
+        : num(item.days_left, 1) + ' days left';
+
+      return '<div class="pmd-inv-r6-order-row">' +
+        '<div><strong>' + esc(item.name) + '</strong><small>' + esc(detail) + '</small></div>' +
+        '<b>' + esc(buy.qty > 0 ? (num(buy.qty, 2) + ' ' + buy.unit) : 'Review') + '</b>' +
       '</div>';
     }).join('');
   }
@@ -835,12 +820,135 @@
     }
   }
 
+  function closeActionMenu() {
+    var panel = root.querySelector('[data-pmd-inv-actions-panel]');
+    var toggle = root.querySelector('[data-pmd-inv-actions-toggle]');
+    if (panel) panel.hidden = true;
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  }
+
+  function renderUiState() {
+    var hasItems = items().length > 0;
+    var empty = root.querySelector('[data-pmd-inv-empty-state]');
+    var dashboard = root.querySelector('[data-pmd-inv-dashboard]');
+
+    if (empty) empty.hidden = hasItems;
+    if (dashboard) dashboard.hidden = !hasItems;
+
+    root.querySelectorAll('[data-pmd-inv-requires-items]').forEach(function (node) {
+      node.hidden = !hasItems;
+    });
+  }
+
+  function renderNextStep() {
+    var host = root.querySelector('[data-pmd-inv-next-step]');
+    if (!host) return;
+
+    if (!items().length) {
+      host.hidden = true;
+      host.innerHTML = '';
+      return;
+    }
+
+    var summary = state.snapshot.summary || {};
+    var hasRecipe = recipes().some(function (recipe) {
+      return recipe && Array.isArray(recipe.lines) && recipe.lines.length;
+    });
+
+    var title = '';
+    var copy = '';
+    var action = '';
+    var label = '';
+
+    if (menus().length && !hasRecipe) {
+      title = 'Next: connect menu sales to stock';
+      copy = 'Choose a menu item and tell PayMyDine what it consumes.';
+      action = 'recipe';
+      label = 'Connect menu';
+    } else if (!state.snapshot.last_count) {
+      title = 'Next: count what is physically there';
+      copy = 'This creates the starting point for future variance checks.';
+      action = 'count';
+      label = 'Count stock';
+    } else {
+      host.hidden = true;
+      host.innerHTML = '';
+      return;
+    }
+
+    host.hidden = false;
+    host.innerHTML =
+      '<div><span>Setup</span><strong>' + esc(title) + '</strong><small>' + esc(copy) + '</small></div>' +
+      '<button type="button" data-pmd-inv-open="' + esc(action) + '">' + esc(label) + '</button>';
+  }
+
+  function renderRecentActivity() {
+    var host = root.querySelector('[data-pmd-inv-recent]');
+    if (!host) return;
+
+    var events = [];
+
+    (Array.isArray(state.snapshot.recent_purchases) ? state.snapshot.recent_purchases : []).forEach(function (row) {
+      events.push({
+        at: String(row.purchased_at || ''),
+        type: 'Purchase',
+        title: row.supplier_name || 'Supplier purchase',
+        detail: Array.isArray(row.lines) && row.lines.length
+          ? row.lines.slice(0, 2).map(function (line) { return line.item_name; }).filter(Boolean).join(' · ')
+          : 'Stock received',
+        value: money(row.total_amount || 0)
+      });
+    });
+
+    (Array.isArray(state.snapshot.recent_waste) ? state.snapshot.recent_waste : []).forEach(function (row) {
+      events.push({
+        at: String(row.occurred_at || ''),
+        type: 'Waste',
+        title: row.item_name || 'Stock item',
+        detail: row.reason || 'Recorded waste',
+        value: '−' + money(row.cost || 0)
+      });
+    });
+
+    if (state.snapshot.last_count && state.snapshot.last_count.counted_at) {
+      events.push({
+        at: String(state.snapshot.last_count.counted_at),
+        type: 'Count',
+        title: 'Physical stock count',
+        detail: state.snapshot.last_count.staff_name
+          ? ('Counted by ' + state.snapshot.last_count.staff_name)
+          : 'Completed',
+        value: ''
+      });
+    }
+
+    events.sort(function (a, b) {
+      return String(b.at || '').localeCompare(String(a.at || ''));
+    });
+    events = events.slice(0, 7);
+
+    if (!events.length) {
+      host.innerHTML = '<div class="pmd-inv-r6-recent-empty">No activity yet.</div>';
+      return;
+    }
+
+    host.innerHTML = events.map(function (row) {
+      return '<div class="pmd-inv-r6-recent-row">' +
+        '<time>' + esc(dateTimeLabel(row.at)) + '</time>' +
+        '<div><span>' + esc(row.type) + '</span><strong>' + esc(row.title) + '</strong><small>' + esc(row.detail) + '</small></div>' +
+        '<b>' + esc(row.value) + '</b>' +
+      '</div>';
+    }).join('');
+  }
+
   function renderAll() {
     if (!state.ready) return;
+    renderUiState();
     renderSummary();
+    renderNextStep();
     renderStock();
     renderAttention();
-    renderActivity();
+    renderRecentActivity();
     renderShoppingList();
     syncSelects();
     syncPurchaseDatalist();
@@ -889,6 +997,9 @@
     if (title) title.textContent = item ? 'Edit stock item' : 'Add stock item';
     if (save) save.textContent = item ? 'Save item' : 'Add item';
 
+    var advanced = modal.querySelector('.pmd-inv-r6-advanced');
+    if (advanced) advanced.open = Boolean(item);
+
     updatePackageHelp(form);
     renderCommonStock();
   }
@@ -905,8 +1016,18 @@
   }
 
   function openModal(name) {
+    if (
+      !items().length
+      && ['count', 'waste', 'recipe', 'shopping'].indexOf(String(name || '')) !== -1
+    ) {
+      toast('Add stock first. Start with a purchase or one stock item.', true);
+      return;
+    }
+
     var modal = root.querySelector('[data-pmd-inv-modal="' + name + '"]');
     if (!modal) return;
+
+    closeActionMenu();
 
     if (name === 'shopping') {
       renderShoppingList();
@@ -1201,6 +1322,22 @@
   }
 
   root.addEventListener('click', function (event) {
+    var actionToggle = event.target.closest('[data-pmd-inv-actions-toggle]');
+    if (actionToggle) {
+      event.preventDefault();
+      var actionPanel = root.querySelector('[data-pmd-inv-actions-panel]');
+      if (actionPanel) {
+        var opening = actionPanel.hidden;
+        actionPanel.hidden = !opening;
+        actionToggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+      }
+      return;
+    }
+
+    if (!event.target.closest('[data-pmd-inv-action-menu]')) {
+      closeActionMenu();
+    }
+
     var editItem = event.target.closest('[data-pmd-inv-edit-item]');
     if (editItem) {
       event.preventDefault();
@@ -1552,7 +1689,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '5.0.0',
+    version: '6.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
