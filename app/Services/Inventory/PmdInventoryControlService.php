@@ -1002,11 +1002,30 @@ final class PmdInventoryControlService
             }
         }
 
+        // PMD_INVENTORY_USAGE_ALIAS_R4
+        // TastyIgniter prefixes query-builder aliases too. For example
+        // "order_menus as om" becomes "ti_order_menus as ti_om".
+        // Raw SQL does not rewrite "om.quantity" / "r.item_id", which caused
+        // the production error "Unknown column r.item_id". Build the raw
+        // aggregate with the physical prefixed alias names instead.
+        $prefix = (string)DB::connection()->getTablePrefix();
+        $omAlias = str_replace('`', '``', $prefix.'om');
+        $recipeAlias = str_replace('`', '``', $prefix.'r');
+
         return $q
-            ->selectRaw('r.item_id, SUM(om.quantity * r.qty_per_sale) as used_qty')
+            ->selectRaw(
+                sprintf(
+                    '`%s`.`item_id` as item_id, SUM(`%s`.`quantity` * `%s`.`qty_per_sale`) as used_qty',
+                    $recipeAlias,
+                    $omAlias,
+                    $recipeAlias
+                )
+            )
             ->groupBy('r.item_id')
-            ->pluck('used_qty', 'r.item_id')
-            ->map(fn ($qty) => round((float)$qty, 4))
+            ->get()
+            ->mapWithKeys(static fn ($row) => [
+                (int)$row->item_id => round((float)$row->used_qty, 4),
+            ])
             ->all();
     }
 
