@@ -37,6 +37,14 @@
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM8 9l2 2 4-4M8 15h8"/></svg>
                     <span>Count stock</span>
                 </button>
+
+                <span class="pmd-inv__header-divider" aria-hidden="true"></span>
+                <span class="pmd-inv__notif-slot" data-pmd-inv-notif-slot aria-label="Notifications">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                </span>
             </div>
         @endif
     </header>
