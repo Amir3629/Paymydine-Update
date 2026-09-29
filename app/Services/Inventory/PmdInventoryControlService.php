@@ -1168,7 +1168,18 @@ final class PmdInventoryControlService
                     ->all();
 
                 if ($ids) {
-                    return $ids;
+                    $menuQuery = DB::table('menus')->whereIn('menu_id', $ids);
+                    if (Schema::hasColumn('menus', 'menu_status')) {
+                        $menuQuery->where('menu_status', 1);
+                    }
+
+                    return $menuQuery
+                        ->pluck('menu_id')
+                        ->map(static fn ($id) => (int)$id)
+                        ->filter()
+                        ->unique()
+                        ->values()
+                        ->all();
                 }
             }
         } catch (\Throwable $error) {
@@ -1176,7 +1187,12 @@ final class PmdInventoryControlService
             // to the tenant's menu catalogue below.
         }
 
-        return DB::table('menus')
+        $menuQuery = DB::table('menus');
+        if (Schema::hasColumn('menus', 'menu_status')) {
+            $menuQuery->where('menu_status', 1);
+        }
+
+        return $menuQuery
             ->pluck('menu_id')
             ->map(static fn ($id) => (int)$id)
             ->filter()
