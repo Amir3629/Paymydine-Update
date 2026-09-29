@@ -968,7 +968,9 @@
 
     if (modal.matches('[data-pmd-inv-modal="recipe"]')) {
       var recipeLines = modal.querySelector('[data-pmd-inv-recipe-lines]');
+      var clearRecipeButton = modal.querySelector('[data-pmd-inv-clear-recipe]');
       if (recipeLines) recipeLines.innerHTML = '';
+      if (clearRecipeButton) clearRecipeButton.hidden = true;
     }
 
     if (modal.matches('[data-pmd-inv-modal="count"]')) {
@@ -1057,7 +1059,11 @@
       return Number(row.menu_id || 0) === Number(menuId || 0);
     });
 
-    if (recipe && Array.isArray(recipe.lines) && recipe.lines.length) {
+    var clear = root.querySelector('[data-pmd-inv-clear-recipe]');
+    var mapped = Boolean(recipe && Array.isArray(recipe.lines) && recipe.lines.length);
+    if (clear) clear.hidden = !mapped;
+
+    if (mapped) {
       recipe.lines.forEach(addRecipeLine);
     } else {
       addRecipeLine({});
@@ -1267,6 +1273,30 @@
     if (printShopping) {
       event.preventDefault();
       printShoppingList();
+      return;
+    }
+
+    var clearRecipe = event.target.closest('[data-pmd-inv-clear-recipe]');
+    if (clearRecipe) {
+      event.preventDefault();
+      var recipeForm = root.querySelector('[data-pmd-inv-form="recipe"]');
+      var menuId = Number((recipeForm && recipeForm.querySelector('[name="menu_id"]') || {}).value || 0);
+      if (!menuId) return;
+      if (!window.confirm('Remove this menu-to-stock connection? Future sales will no longer consume stock until it is connected again.')) return;
+
+      setBusy(true);
+      request('onSaveRecipe', {menu_id: menuId, lines: []})
+        .then(function (json) {
+          if (json.snapshot) applySnapshot(json.snapshot);
+          closeModal(clearRecipe.closest('.pmd-inv-modal'));
+          toast('Menu stock connection removed.');
+        })
+        .catch(function (error) {
+          toast(error.message || 'Could not remove the connection.', true);
+        })
+        .finally(function () {
+          setBusy(false);
+        });
       return;
     }
 
