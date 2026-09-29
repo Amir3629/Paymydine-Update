@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R133
+/* PMD_QPOS_QUICK_RESERVATIONS_R134
  * Same Quick POS shell, cleaner reservation density.
  * Right table rail remains untouched/canonical.
  */
@@ -650,12 +650,13 @@
 
 .pmd-qres-composer-primary-r132 {
   display: grid;
-  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  grid-template-columns: minmax(0,1.35fr) minmax(260px,.65fr);
   grid-template-areas:
-    "name name"
-    "date time"
+    "name date"
+    "time time"
     "duration guests";
-  gap: 16px 18px;
+  column-gap: 18px;
+  row-gap: 13px;
   align-items: start;
 }
 
@@ -674,24 +675,24 @@
 
 .pmd-qres-composer-field-r132 > span,
 .pmd-qres-composer-section-title-r132 {
-  min-height: 34px;
+  min-height: 32px;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   color: #28463f;
   font-size: 13px;
-  font-weight: 680;
+  font-weight: 690;
   line-height: 1.2;
 }
 
 .pmd-qres-composer-field-r132 > span > svg,
 .pmd-qres-composer-section-title-r132 > svg {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   box-sizing: border-box;
-  padding: 8px;
-  border-radius: 12px;
+  padding: 7px;
+  border-radius: 11px;
   background: linear-gradient(145deg,rgba(255,255,255,.98),rgba(233,242,230,.82));
   box-shadow: 0 6px 15px rgba(49,78,68,.08), inset 0 1px 0 #fff;
   color: #258b70;
@@ -1012,7 +1013,7 @@
   box-shadow: 0 0 0 4px rgba(7,92,71,.14) !important;
 }
 
-/* ---------- R133 neutral POS editor + reservation scope ---------- */
+/* ---------- R134 neutral POS editor + canonical time wheel ---------- */
 
 /*
  * Quick Reservation keeps the canonical Composer geometry/icons, but its
@@ -1078,6 +1079,225 @@
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79,70,229,.12);
 }
+
+/* R134: same three-row Jade reservation-time interaction as the canonical
+   /admin/reservations Composer, with Quick POS neutral colors. */
+.pmd-qres-quick-editor .pmd-jade-time-field-v221 {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  align-self: start;
+}
+
+.pmd-qres-quick-editor .pmd-jade-native-time-v221 {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221 {
+  position: relative;
+  width: 100%;
+  height: 142px;
+  min-height: 142px;
+  display: grid;
+  grid-template-columns:
+    minmax(0,1fr)
+    14px
+    minmax(0,1fr)
+    minmax(66px,.78fr);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221:focus-within {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.10);
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221::before,
+.pmd-qres-quick-editor .pmd-jade-wheel-v221::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  height: 36px;
+  pointer-events: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221::before {
+  top: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,.98) 0%,
+    rgba(255,255,255,.72) 42%,
+    rgba(255,255,255,0) 100%
+  );
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221::after {
+  bottom: 0;
+  background: linear-gradient(
+    0deg,
+    rgba(255,255,255,.98) 0%,
+    rgba(255,255,255,.72) 42%,
+    rgba(255,255,255,0) 100%
+  );
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__column {
+  position: relative;
+  z-index: 2;
+  height: 140px;
+  min-height: 140px;
+  box-sizing: border-box;
+  padding: 48px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: transparent;
+  touch-action: pan-y;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__column::-webkit-scrollbar {
+  display: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__column.is-minute,
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__column.is-period {
+  border-left: 1px solid #edf0f3;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 620;
+  line-height: 44px;
+  opacity: .46;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  transform: none;
+  transition: none;
+  cursor: pointer;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item.is-selected,
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item[aria-selected="true"] {
+  position: relative;
+  z-index: 6;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 820;
+  opacity: 1;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item:disabled,
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item[aria-disabled="true"] {
+  color: #9ca3af;
+  opacity: .25;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__separator {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 820;
+  pointer-events: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__highlight {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 7px;
+  left: 7px;
+  height: 46px;
+  transform: translateY(-50%);
+  border: 1px solid #e5e7eb;
+  border-radius: 13px;
+  background: linear-gradient(
+    90deg,
+    rgba(243,244,246,.72),
+    rgba(248,250,252,.96),
+    rgba(243,244,246,.72)
+  );
+  pointer-events: none;
+}
+
+.pmd-qres-quick-editor
+.pmd-jade-wheel-v221.is-no-available-time
+.pmd-jade-wheel-v221__column {
+  overflow-y: hidden;
+  pointer-events: none;
+  opacity: .18;
+}
+
+.pmd-qres-quick-editor
+.pmd-jade-wheel-v221.is-no-available-time
+.pmd-jade-wheel-v221__separator {
+  opacity: .18;
+}
+
+.pmd-qres-quick-editor
+.pmd-jade-wheel-v221.is-no-available-time
+.pmd-jade-wheel-v221__highlight {
+  z-index: 7;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.pmd-qres-quick-editor
+.pmd-jade-wheel-v221.is-no-available-time
+.pmd-jade-wheel-v221__highlight::after {
+  content: attr(data-pmd-no-time-label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 750;
+  text-align: center;
+  white-space: nowrap;
+}
+
 
 .pmd-qres-composer-stepper-r132 > button {
   border-color: #d1d5db;
@@ -1384,6 +1604,17 @@ body.pmd-qpos-body
       "time"
       "duration"
       "guests";
+  }
+
+  .pmd-qres-quick-editor .pmd-jade-wheel-v221 {
+    height: 132px;
+    min-height: 132px;
+  }
+
+  .pmd-qres-quick-editor .pmd-jade-wheel-v221__column {
+    height: 130px;
+    min-height: 130px;
+    padding: 43px 0;
   }
 
   .pmd-qres-composer-contact-r132,
