@@ -640,13 +640,18 @@ final class PmdInventoryControlService
                         ->where('active', 1)
                         ->first();
 
-                    if (
-                        $existing
-                        && strtolower((string)$existing->base_unit) !== strtolower($unit)
-                    ) {
-                        throw new InvalidArgumentException(
-                            'Purchase unit for '.$name.' must match its stock unit ('.$existing->base_unit.').'
-                        );
+                    if ($existing) {
+                        $baseUnit = strtolower((string)$existing->base_unit);
+                        $purchaseUnit = strtolower((string)($existing->purchase_unit ?? $existing->base_unit));
+                        $lineUnit = strtolower($unit);
+
+                        if ($lineUnit !== $baseUnit && $lineUnit !== $purchaseUnit) {
+                            throw new InvalidArgumentException(
+                                'Purchase unit for '.$name.' must be '.$existing->base_unit.
+                                ($purchaseUnit !== $baseUnit ? ' or '.($existing->purchase_unit ?? $existing->base_unit) : '').
+                                '.'
+                            );
+                        }
                     }
 
                     $itemId = $existing
