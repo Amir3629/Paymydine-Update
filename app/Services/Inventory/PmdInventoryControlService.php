@@ -291,6 +291,8 @@ final class PmdInventoryControlService
                     'm.item_id',
                     'i.name as item_name',
                     'i.base_unit as unit',
+                    'i.purchase_unit',
+                    'i.purchase_to_base',
                     'm.qty_delta',
                     'm.unit_cost',
                 ])
@@ -300,13 +302,26 @@ final class PmdInventoryControlService
         foreach ($recentPurchases as &$purchase) {
             $receiptId = (int)($purchase['id'] ?? 0);
             $purchase['lines'] = collect($purchaseLines->get($receiptId, []))
-                ->map(static fn ($row) => [
-                    'item_id' => (int)$row->item_id,
-                    'item_name' => (string)($row->item_name ?? ''),
-                    'unit' => (string)($row->unit ?? ''),
-                    'quantity' => round((float)$row->qty_delta, 4),
-                    'unit_cost' => round((float)$row->unit_cost, 4),
-                ])
+                ->map(static function ($row) {
+                    $baseUnit = (string)($row->unit ?? '');
+                    $purchaseUnit = (string)($row->purchase_unit ?? $baseUnit);
+                    $factor = max(0.0001, (float)($row->purchase_to_base ?? 1));
+                    $showPackage = $purchaseUnit !== '' && strtolower($purchaseUnit) !== strtolower($baseUnit);
+
+                    return [
+                        'item_id' => (int)$row->item_id,
+                        'item_name' => (string)($row->item_name ?? ''),
+                        'unit' => $showPackage ? $purchaseUnit : $baseUnit,
+                        'quantity' => round(
+                            (float)$row->qty_delta / ($showPackage ? $factor : 1),
+                            4
+                        ),
+                        'unit_cost' => round(
+                            (float)$row->unit_cost * ($showPackage ? $factor : 1),
+                            4
+                        ),
+                    ];
+                })
                 ->values()
                 ->all();
         }
@@ -482,8 +497,20 @@ final class PmdInventoryControlService
                 'purchase_unit' => $purchaseUnit,
                 'purchase_to_base' => $purchaseToBase,
                 'unit_cost' => round($baseUnitCost, 6),
-                'reorder_point' => max(0, $this->number($data['reorder_point'] ?? $item->reorder_point, (float)$item->reorder_point)),
-                'par_level' => max(0, $this->number($data['par_level'] ?? $item->par_level, (float)$item->par_level)),
+                'reorder_point' => round(
+                    max(0, $this->number(
+                        $data['reorder_point'] ?? ((float)$item->reorder_point / $purchaseToBase),
+                        (float)$item->reorder_point / $purchaseToBase
+                    )) * $purchaseToBase,
+                    4
+                ),
+                'par_level' => round(
+                    max(0, $this->number(
+                        $data['par_level'] ?? ((float)$item->par_level / $purchaseToBase),
+                        (float)$item->par_level / $purchaseToBase
+                    )) * $purchaseToBase,
+                    4
+                ),
                 'supplier_name' => $this->nullableText($data['supplier_name'] ?? $item->supplier_name, 190),
                 'updated_at' => now(),
             ]);
@@ -536,8 +563,14 @@ final class PmdInventoryControlService
             'purchase_unit' => $purchaseUnit,
             'purchase_to_base' => $purchaseToBase,
             'unit_cost' => round($cost, 6),
-            'reorder_point' => max(0, $this->number($data['reorder_point'] ?? 0, 0)),
-            'par_level' => max(0, $this->number($data['par_level'] ?? 0, 0)),
+            'reorder_point' => round(
+                max(0, $this->number($data['reorder_point'] ?? 0, 0)) * $purchaseToBase,
+                4
+            ),
+            'par_level' => round(
+                max(0, $this->number($data['par_level'] ?? 0, 0)) * $purchaseToBase,
+                4
+            ),
             'supplier_name' => $this->nullableText($data['supplier_name'] ?? null, 190),
             'active' => 1,
             'created_by' => $staffId,
