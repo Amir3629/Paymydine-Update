@@ -906,13 +906,23 @@
     var ids = state.editor.tableIds.slice();
     var names = state.editor.tableNames.slice();
     var assignment = quickField('assignment_mode');
-    var mode = ids.length ? 'choose' : (state.editor.assignmentMode === 'later' ? 'later' : 'auto');
+    var mode = ids.length
+      ? 'choose'
+      : (
+          state.editor.assignmentMode === 'later'
+            ? 'later'
+            : (state.editor.assignmentMode === 'choose' ? 'choose' : 'auto')
+        );
 
     if (assignment) assignment.value = mode;
     if (quickTableText) {
       quickTableText.textContent = ids.length
         ? (names.length ? names.join(', ') : ids.map(function (id) { return 'Table ' + id; }).join(', '))
-        : (mode === 'later' ? 'Assign later' : 'Automatic');
+        : (
+            mode === 'later'
+              ? 'Assign later'
+              : (mode === 'choose' ? 'Choose table(s)' : 'Automatic')
+          );
     }
 
     root.querySelectorAll('[data-qpos-table]').forEach(function (button) {
@@ -1021,10 +1031,10 @@
       last_name: '',
       telephone: String((quickField('telephone') || {}).value || '').trim(),
       email: String((quickField('email') || {}).value || '').trim(),
-      guest_num: Math.max(0, Number((quickField('guest_num') || {}).value || 0)),
+      guest_num: Math.min(99, Math.max(0, Number((quickField('guest_num') || {}).value || 0))),
       reserve_date: String((quickField('reserve_date') || {}).value || ''),
       reserve_time: String((quickField('reserve_time') || {}).value || '').slice(0, 5),
-      duration: Math.max(0, Number((quickField('duration') || {}).value || 0)),
+      duration: Math.min(180, Math.max(30, Math.round(Number((quickField('duration') || {}).value || 45) / 15) * 15)),
       comment: String((quickField('comment') || {}).value || '').trim(),
       assignment_mode: ids.length ? 'choose' : (state.editor.assignmentMode === 'later' ? 'later' : 'auto'),
       tables: ids,
