@@ -1521,6 +1521,7 @@
           true
         );
         state.editor.featuresLoaded = true;
+        syncQuickEditorDateState();
       })
       .catch(function () {
         if (
@@ -1532,6 +1533,7 @@
 
         state.editor.featuresLoaded = false;
         setQuickFeatureValues([], false);
+        syncQuickEditorDateState();
         setQuickStatus(
           'Table preferences could not be loaded. Existing preferences will be preserved.',
           false
@@ -1540,10 +1542,16 @@
   }
 
   function isPastSelectedDate() {
+    var editorDate = state.editor.open && quickField('reserve_date')
+      ? String(quickField('reserve_date').value || '')
+      : '';
+
     return Boolean(
-      state.date &&
       state.today &&
-      state.date < state.today
+      (
+        (state.date && state.date < state.today) ||
+        (/^\d{4}-\d{2}-\d{2}$/.test(editorDate) && editorDate < state.today)
+      )
     );
   }
 
@@ -1895,7 +1903,7 @@
       reserve_time: String((quickField('reserve_time') || {}).value || '').slice(0, 5),
       duration: Math.min(180, Math.max(30, Math.round(Number((quickField('duration') || {}).value || 45) / 15) * 15)),
       comment: String((quickField('comment') || {}).value || '').trim(),
-      assignment_mode: ids.length ? 'choose' : (state.editor.assignmentMode === 'later' ? 'later' : 'auto'),
+      assignment_mode: quickAssignmentMode(),
       tables: ids,
       occasion_id: 0,
       notify: 0,
@@ -1924,6 +1932,9 @@
     if (!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(data.reserve_time)) return 'Choose a reservation time.';
     if (data.guest_num < 1) return 'People must be at least 1.';
     if (data.duration < 1) return 'Choose a duration.';
+    if (data.assignment_mode === 'choose' && !data.tables.length) {
+      return 'Select a table from the right.';
+    }
     return '';
   }
 
@@ -2045,6 +2056,10 @@
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
+      if (isPastSelectedDate()) {
+        toast('Past date — reservations are read-only.');
+        return;
+      }
       openQuickEditor(0, null);
       return;
     }
@@ -2057,15 +2072,19 @@
       state.selectedTableId = 0;
       state.selectedTableName = '';
       state.tableScope = 'all';
-      if (state.editor.open) {
+      if (state.editor.open && !isPastSelectedDate()) {
         state.editor.tableIds = [];
         state.editor.tableNames = [];
         state.editor.assignmentMode = 'auto';
+        state.editor.recommendedTableIds = [];
+        state.editor.recommendationState = 'loading';
         syncQuickTableUI();
-        setQuickStatus('Floor changed. Table assignment returned to Automatic.', false);
+        setQuickStatus('Finding the best available table on this Floor…', false);
+        scheduleQuickRecommendation(0);
       }
       renderTableFilter();
       window.setTimeout(loadReservations, 0);
+      if (state.search.length >= 2) scheduleOtherDateSearch(0);
     }
   }, true);
 
@@ -2091,6 +2110,10 @@
 
     if (create) {
       event.preventDefault();
+      if (isPastSelectedDate()) {
+        toast('Past date — reservations are read-only.');
+        return;
+      }
       openQuickEditor(0, null);
       return;
     }
@@ -2101,6 +2124,10 @@
 
     if (slot) {
       event.preventDefault();
+      if (isPastSelectedDate()) {
+        toast('Past date — reservations are read-only.');
+        return;
+      }
       openQuickEditor(
         0,
         String(slot.getAttribute('data-qres-slot') || '')
@@ -2173,6 +2200,7 @@
       state.tableScope = 'all';
       renderTableFilter();
       loadReservations();
+      if (state.search.length >= 2) scheduleOtherDateSearch(0);
     }
   });
 
@@ -2191,6 +2219,10 @@
     if (!slot) return;
 
     event.preventDefault();
+    if (isPastSelectedDate()) {
+      toast('Past date — reservations are read-only.');
+      return;
+    }
     openQuickEditor(
       0,
       String(slot.getAttribute('data-qres-slot') || '')
@@ -2203,6 +2235,9 @@
       var name = String(event && event.target && event.target.name || '');
       if (name === 'reserve_date' || name === 'duration') {
         refreshQuickTimeWheelAvailability();
+      }
+      if (name === 'reserve_date') {
+        syncQuickEditorDateState();
       }
       if (
         name === 'reserve_date' ||
