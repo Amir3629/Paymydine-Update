@@ -723,6 +723,19 @@ final class PmdInventoryControlService
             $q->whereNotIn('o.status_id', $canceled);
         }
 
+        // Mirror the restaurant's existing stock-consumption lifecycle where
+        // possible: preparation/processing and completed orders represent
+        // actual kitchen/bar consumption better than a merely-created order.
+        if (in_array('status_id', $orderCols, true)) {
+            $consuming = array_values(array_unique(array_merge(
+                $this->settingIds('processing_order_status'),
+                $this->settingIds('completed_order_status')
+            )));
+            if ($consuming) {
+                $q->whereIn('o.status_id', $consuming);
+            }
+        }
+
         return $q
             ->selectRaw('r.item_id, SUM(om.quantity * r.qty_per_sale) as used_qty')
             ->groupBy('r.item_id')
