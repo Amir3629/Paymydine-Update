@@ -182,6 +182,13 @@ final class PmdInventoryControlService
             $percent = $par > 0
                 ? max(0, min(100, round(($expected / $par) * 100)))
                 : null;
+            $suggestedOrderQty = $par > 0
+                ? max(0, round($par - max(0, $expected), 4))
+                : (
+                    $reorder > 0
+                        ? max(0, round($reorder - max(0, $expected), 4))
+                        : 0
+                );
 
             $status = 'healthy';
             if ($expected <= 0 || ($reorder > 0 && $expected <= $reorder) || ($daysLeft !== null && $daysLeft <= 1.5)) {
@@ -220,6 +227,7 @@ final class PmdInventoryControlService
                 'tracking_days' => round($trackingDays, 2),
                 'days_left' => $daysLeft,
                 'stock_percent' => $percent,
+                'suggested_order_qty' => $suggestedOrderQty,
                 'status' => $status,
                 'last_variance_qty' => (float)$variance['qty'],
                 'last_variance_cost' => round((float)$variance['cost'], 2),
