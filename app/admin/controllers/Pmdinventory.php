@@ -30,7 +30,7 @@ class Pmdinventory extends AdminController
 
         $this->bodyClass = trim(
             ($this->bodyClass ?? '').
-            ' pmd-settings-suite pmd-inventory-page pmd-inventory-r2-page'
+            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r2-page'
         );
 
         // PMD_INVENTORY_DASHBOARD_SHELL_R2
