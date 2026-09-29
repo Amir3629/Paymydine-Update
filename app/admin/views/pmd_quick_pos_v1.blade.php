@@ -80,7 +80,7 @@
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r131">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r132">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -422,7 +422,7 @@
             </div>
         </section>
 
-        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R131
+        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R132
              Exact same three-column Quick POS shell:
              Reservations | Schedule | canonical table rail. --}}
         <aside
@@ -471,99 +471,146 @@
                 </div>
             </header>
 
-            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R131
+            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R132
                  POS-native reservation create/edit surface. It stays inside the
                  middle Quick Reservations card and writes through the canonical
                  Reservations handler; no modal is used in Quick mode. --}}
             <section class="pmd-qres-quick-editor" data-qres-quick-editor hidden aria-hidden="true">
                 <form data-qres-quick-form novalidate>
-                    <div class="pmd-qres-quick-editor-top">
+                    <div class="pmd-qres-composer-title-r132">
                         <div>
-                            <strong data-qres-quick-title>New reservation</strong>
+                            <h2 data-qres-quick-title>New reservation</h2>
                             <small data-qres-quick-context>Quick mode</small>
                         </div>
-                        <button type="button" class="pmd-qres-quick-close" data-qres-quick-cancel aria-label="Close">×</button>
+                        <button type="button" class="pmd-qres-composer-close-r132" data-qres-quick-cancel aria-label="Close">
+                            <svg aria-hidden="true"><use href="#pmd-composer-icon-x"/></svg>
+                        </button>
                     </div>
 
-                    <div class="pmd-qres-quick-grid">
-                        <label class="pmd-qres-quick-field pmd-qres-quick-field--name">
-                            <span>Name</span>
-                            <input type="text" name="first_name" autocomplete="name" placeholder="Guest name" required>
-                        </label>
+                    <div class="pmd-qres-composer-body-r132">
+                        <section class="pmd-qres-composer-primary-r132">
+                            <label class="pmd-qres-composer-field-r132 is-name">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-user"/></svg>Name</span>
+                                <input type="text" name="first_name" autocomplete="name" placeholder="Guest name" required>
+                            </label>
 
-                        <label class="pmd-qres-quick-field pmd-qres-quick-field--date">
-                            <span>Date</span>
-                            <input type="date" name="reserve_date" required>
-                        </label>
+                            <label class="pmd-qres-composer-field-r132 is-date">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-calendar"/></svg>Reservation Date</span>
+                                <input type="date" name="reserve_date" required>
+                            </label>
 
-                        <label class="pmd-qres-quick-field pmd-qres-quick-field--time">
-                            <span>Time</span>
-                            <input type="time" name="reserve_time" step="900" required>
-                        </label>
+                            <label class="pmd-qres-composer-field-r132 is-time">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-clock"/></svg>Reservation Time</span>
+                                <input type="time" name="reserve_time" step="900" required>
+                            </label>
 
-                        <label class="pmd-qres-quick-field pmd-qres-quick-field--people">
-                            <span>P</span>
-                            <div class="pmd-qres-quick-stepper">
-                                <button type="button" data-qres-guests-step="-1" aria-label="Decrease people">−</button>
-                                <input type="number" name="guest_num" min="1" max="999" step="1" value="1" inputmode="numeric" required>
-                                <button type="button" data-qres-guests-step="1" aria-label="Increase people">+</button>
+                            <div class="pmd-qres-composer-field-r132 is-duration">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-hourglass"/></svg>Reservation Duration</span>
+                                <div class="pmd-composer-stepper-r12 pmd-qres-composer-stepper-r132" role="group" aria-label="Reservation duration">
+                                    <button type="button" data-qres-duration-step="-15" aria-label="Decrease reservation duration"><span aria-hidden="true">−</span></button>
+                                    <div class="pmd-composer-stepper-r12__value">
+                                        <input name="duration" type="number" min="30" max="180" step="15" value="45" inputmode="numeric" aria-label="Reservation duration">
+                                        <span class="pmd-composer-stepper-r12__suffix" aria-hidden="true">min</span>
+                                    </div>
+                                    <button type="button" data-qres-duration-step="15" aria-label="Increase reservation duration"><span aria-hidden="true">+</span></button>
+                                </div>
                             </div>
-                        </label>
 
-                        <label class="pmd-qres-quick-field pmd-qres-quick-field--duration">
-                            <span>Duration</span>
-                            <select name="duration">
-                                <option value="30">30 min</option>
-                                <option value="45" selected>45 min</option>
-                                <option value="60">60 min</option>
-                                <option value="75">75 min</option>
-                                <option value="90">90 min</option>
-                                <option value="120">120 min</option>
-                                <option value="150">150 min</option>
-                                <option value="180">180 min</option>
-                            </select>
-                        </label>
+                            <div class="pmd-qres-composer-field-r132 is-guests">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-users"/></svg>Guest Number</span>
+                                <div class="pmd-composer-stepper-r12 pmd-qres-composer-stepper-r132" role="group" aria-label="Guest number">
+                                    <button type="button" data-qres-guests-step="-1" aria-label="Decrease guest number"><span aria-hidden="true">−</span></button>
+                                    <div class="pmd-composer-stepper-r12__value">
+                                        <input type="number" name="guest_num" min="1" max="99" step="1" value="1" inputmode="numeric" aria-label="Guest number" required>
+                                    </div>
+                                    <button type="button" data-qres-guests-step="1" aria-label="Increase guest number"><span aria-hidden="true">+</span></button>
+                                </div>
+                            </div>
+                        </section>
 
-                        <div class="pmd-qres-quick-field pmd-qres-quick-field--table">
-                            <span>Table</span>
-                            <button type="button" class="pmd-qres-quick-table" data-qres-quick-table>
-                                <strong data-qres-quick-table-text>Automatic</strong>
-                                <small>Tap a table on the right to assign</small>
+                        <section class="pmd-qres-composer-preferences-r132">
+                            <div class="pmd-qres-composer-section-title-r132">
+                                <svg aria-hidden="true"><use href="#pmd-composer-icon-preferences"/></svg>
+                                <b>Table preferences</b>
+                            </div>
+                            <div class="pmd-qres-composer-preference-options-r132">
+                                <label>
+                                    <input type="checkbox" name="pmd_table_features[]" value="near_window">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>
+                                        <b>Near window</b>
+                                    </span>
+                                </label>
+                                <label>
+                                    <input type="checkbox" name="pmd_table_features[]" value="quiet_area">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>
+                                        <b>Quiet area</b>
+                                    </span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="pmd-qres-composer-assignment-r132">
+                            <div class="pmd-qres-composer-section-title-r132">
+                                <svg aria-hidden="true"><use href="#pmd-composer-icon-table"/></svg>
+                                <b>Table assignment</b>
+                            </div>
+                            <div class="pmd-qres-composer-modes-r132">
+                                <label data-qres-quick-auto>
+                                    <input type="radio" name="assignment_mode" value="auto" checked>
+                                    <span>Automatic table</span>
+                                </label>
+                                <label data-qres-quick-choose>
+                                    <input type="radio" name="assignment_mode" value="choose">
+                                    <span>Choose table(s)</span>
+                                </label>
+                                <label data-qres-quick-later>
+                                    <input type="radio" name="assignment_mode" value="later">
+                                    <span>Assign later</span>
+                                </label>
+                            </div>
+                            <button type="button" class="pmd-qres-quick-table pmd-qres-composer-table-r132" data-qres-quick-table>
+                                <span>
+                                    <strong data-qres-quick-table-text>Automatic</strong>
+                                    <small>Tap a table on the right to assign</small>
+                                </span>
+                                <svg aria-hidden="true"><use href="#pmd-composer-icon-chevron-down"/></svg>
                             </button>
-                        </div>
+                        </section>
 
-                        <label class="pmd-qres-quick-field pmd-qres-quick-field--contact">
-                            <span>Phone</span>
-                            <input type="tel" name="telephone" autocomplete="tel" placeholder="Optional">
+                        <section class="pmd-qres-composer-contact-r132">
+                            <label class="pmd-qres-composer-field-r132">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-phone"/></svg>Contact (optional)</span>
+                                <input type="tel" name="telephone" autocomplete="tel" placeholder="Phone number">
+                            </label>
+                            <label class="pmd-qres-composer-field-r132">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-mail"/></svg>E-mail (optional)</span>
+                                <input type="email" name="email" autocomplete="email" placeholder="name@example.com">
+                            </label>
+                        </section>
+
+                        <label class="pmd-qres-composer-field-r132 pmd-qres-composer-notes-r132">
+                            <span><svg aria-hidden="true"><use href="#pmd-composer-icon-notes"/></svg>Comment</span>
+                            <textarea name="comment" rows="3" placeholder="Request, occasion, allergy, seating note…"></textarea>
                         </label>
 
-                        <label class="pmd-qres-quick-field pmd-qres-quick-field--contact">
-                            <span>E-mail</span>
-                            <input type="email" name="email" autocomplete="email" placeholder="Optional">
-                        </label>
-
-                        <label class="pmd-qres-quick-field pmd-qres-quick-field--note">
-                            <span>Note</span>
-                            <textarea name="comment" rows="2" placeholder="Request, occasion, allergy, seating note…"></textarea>
-                        </label>
+                        <div class="pmd-qres-quick-status pmd-qres-composer-status-r132" data-qres-quick-status aria-live="polite"></div>
                     </div>
 
-                    <div class="pmd-qres-quick-status" data-qres-quick-status aria-live="polite"></div>
-
-                    <div class="pmd-qres-quick-actions">
-                        <button type="button" data-qres-quick-auto>Automatic table</button>
-                        <button type="button" data-qres-quick-later>Assign later</button>
-                        <span class="pmd-qres-quick-actions-spacer"></span>
-                        <button type="button" data-qres-quick-cancel>Cancel</button>
-                        <button type="submit" class="is-primary" data-qres-quick-save>Save</button>
-                    </div>
+                    <footer class="pmd-qres-composer-footer-r132">
+                        <button type="button" class="pmd-qres-composer-cancel-r132" data-qres-quick-cancel><span>Cancel</span></button>
+                        <button type="submit" class="pmd-qres-composer-save-r132" data-qres-quick-save>
+                            <svg aria-hidden="true"><use href="#pmd-composer-icon-device-floppy"/></svg>
+                            <span>Save Reservation</span>
+                        </button>
+                    </footer>
 
                     <input type="hidden" name="reservation_id" value="">
                     <input type="hidden" name="last_name" value="">
-                    <input type="hidden" name="assignment_mode" value="auto">
                     <input type="hidden" name="occasion_id" value="0">
                     <input type="hidden" name="notify" value="0">
-                    <input type="hidden" name="source" value="quick-pos-reservations-r131">
+                    <input type="hidden" name="source" value="quick-pos-reservations-r132">
                     <input type="hidden" name="location_id" value="">
                     <input type="hidden" name="pmd_floor_id" value="">
                     <input type="hidden" name="pmd_floor_name" value="">
@@ -1238,7 +1285,7 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r129"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r131"></script>
+<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r132"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
