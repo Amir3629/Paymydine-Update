@@ -1094,7 +1094,7 @@ final class PmdInventoryControlService
                     $recipeAlias
                 )
             )
-            ->groupBy('r.item_id')
+            ->groupByRaw(sprintf('`%s`.`item_id`', $recipeAlias))
             ->get()
             ->mapWithKeys(static fn ($row) => [
                 (int)$row->item_id => round((float)$row->used_qty, 4),
