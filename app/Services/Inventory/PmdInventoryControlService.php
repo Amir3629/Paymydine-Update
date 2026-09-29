@@ -216,6 +216,44 @@ final class PmdInventoryControlService
             ->map(fn ($row) => (array)$row)
             ->all();
 
+        $purchaseIds = array_values(array_filter(array_map(
+            static fn ($row) => (int)($row['id'] ?? 0),
+            $recentPurchases
+        )));
+        $purchaseLines = $purchaseIds
+            ? DB::table('pmd_inventory_movements as m')
+                ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'm.item_id')
+                ->where('m.location_id', $locationId)
+                ->where('m.movement_type', 'PURCHASE')
+                ->where('m.reference_type', 'purchase_receipt')
+                ->whereIn('m.reference_id', $purchaseIds)
+                ->orderBy('m.id')
+                ->get([
+                    'm.reference_id',
+                    'm.item_id',
+                    'i.name as item_name',
+                    'i.base_unit as unit',
+                    'm.qty_delta',
+                    'm.unit_cost',
+                ])
+                ->groupBy('reference_id')
+            : collect();
+
+        foreach ($recentPurchases as &$purchase) {
+            $receiptId = (int)($purchase['id'] ?? 0);
+            $purchase['lines'] = collect($purchaseLines->get($receiptId, []))
+                ->map(static fn ($row) => [
+                    'item_id' => (int)$row->item_id,
+                    'item_name' => (string)($row->item_name ?? ''),
+                    'unit' => (string)($row->unit ?? ''),
+                    'quantity' => round((float)$row->qty_delta, 4),
+                    'unit_cost' => round((float)$row->unit_cost, 4),
+                ])
+                ->values()
+                ->all();
+        }
+        unset($purchase);
+
         $recentWaste = DB::table('pmd_inventory_movements as m')
             ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'm.item_id')
             ->where('m.location_id', $locationId)
@@ -303,6 +341,51 @@ final class PmdInventoryControlService
                 )),
             ] : null,
         ];
+    }
+
+    public function saveItem(int $locationId, ?int $staffId, array $data): int
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $itemId = max(0, (int)($data['item_id'] ?? 0));
+
+        if ($itemId < 1) {
+            return $this->addItem($locationId, $staffId, $data);
+        }
+
+        $item = DB::table('pmd_inventory_items')
+            ->where('location_id', $locationId)
+            ->where('id', $itemId)
+            ->where('active', 1)
+            ->first();
+
+        if (!$item) {
+            throw new InvalidArgumentException('Stock item was not found.');
+        }
+
+        $name = trim((string)($data['name'] ?? ''));
+        if ($name === '') {
+            throw new InvalidArgumentException('Item name is required.');
+        }
+
+        // Unit is intentionally immutable after creation. Historical
+        // movements and recipe quantities use this base unit and must never
+        // silently change meaning because somebody edited a label.
+        DB::table('pmd_inventory_items')
+            ->where('id', $itemId)
+            ->where('location_id', $locationId)
+            ->update([
+                'name' => mb_substr($name, 0, 190),
+                'sku' => $this->nullableText($data['sku'] ?? null, 120),
+                'category' => $this->nullableText($data['category'] ?? null, 100),
+                'unit_cost' => $this->number($data['unit_cost'] ?? $item->unit_cost, (float)$item->unit_cost),
+                'reorder_point' => $this->number($data['reorder_point'] ?? $item->reorder_point, (float)$item->reorder_point),
+                'par_level' => $this->number($data['par_level'] ?? $item->par_level, (float)$item->par_level),
+                'supplier_name' => $this->nullableText($data['supplier_name'] ?? $item->supplier_name, 190),
+                'updated_at' => now(),
+            ]);
+
+        return $itemId;
     }
 
     public function addItem(int $locationId, ?int $staffId, array $data): int
