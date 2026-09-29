@@ -416,7 +416,12 @@
                         Water, beer, cans and bottles can usually be linked directly. Food and cocktails normally use several stock items.
                     </div>
 
-                    <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink">Save connection</button></footer>
+                    <footer>
+                        <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost pmd-inv-btn--danger-ghost" data-pmd-inv-clear-recipe hidden>Remove connection</button>
+                        <span class="pmd-inv-footer-spacer"></span>
+                        <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button>
+                        <button type="submit" class="pmd-inv-btn pmd-inv-btn--ink">Save connection</button>
+                    </footer>
                 </form>
             </section>
         </div>
