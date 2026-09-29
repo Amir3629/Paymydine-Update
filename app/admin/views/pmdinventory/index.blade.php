@@ -170,22 +170,23 @@
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
             <section class="pmd-inv-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="pmd-inv-item-title">
                 <header>
-                    <div><span>Catalog</span><h2 id="pmd-inv-item-title">Add stock item</h2></div>
+                    <div><span>Catalog</span><h2 id="pmd-inv-item-title" data-pmd-inv-item-title>Add stock item</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
                 <form data-pmd-inv-form="item">
+                    <input type="hidden" name="item_id" value="">
                     <div class="pmd-inv-form-grid">
                         <label class="is-wide"><span>Name</span><input name="name" required placeholder="e.g. Champagne Brut"></label>
                         <label><span>Category</span><input name="category" placeholder="Bar / Produce / Meat"></label>
                         <label><span>SKU / code</span><input name="sku" placeholder="Optional"></label>
                         <label><span>Base unit</span><select name="unit">@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
-                        <label><span>Opening quantity</span><input type="number" min="0" step="0.0001" name="opening_qty" value="0"></label>
+                        <label data-pmd-inv-opening-field><span>Opening quantity</span><input type="number" min="0" step="0.0001" name="opening_qty" value="0"></label>
                         <label><span>Unit cost</span><input type="number" min="0" step="0.0001" name="unit_cost" value="0"></label>
                         <label><span>Reorder at</span><input type="number" min="0" step="0.0001" name="reorder_point" value="0"></label>
                         <label><span>Full / par level</span><input type="number" min="0" step="0.0001" name="par_level" value="0"></label>
                         <label class="is-wide"><span>Supplier</span><input name="supplier_name" placeholder="Optional"></label>
                     </div>
-                    <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink">Add item</button></footer>
+                    <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink" data-pmd-inv-item-save>Add item</button></footer>
                 </form>
             </section>
         </div>
