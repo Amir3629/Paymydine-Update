@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R130
+/* PMD_QPOS_QUICK_RESERVATIONS_R131
  * POS-native Reservations workspace.
  * Right rail stays the canonical Quick POS table authority.
  * Canonical Reservation Composer stays the only create/edit authority.
@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  if (window.PMDQuickReservationsR130) return;
+  if (window.PMDQuickReservationsR131) return;
 
   var root = document.getElementById('pmd-quick-pos');
   if (!root) return;
@@ -43,8 +43,8 @@
     selectedTableId: 0,
     selectedTableName: '',
     search: '',
-    filter: 'all',
     requestId: 0,
+    requestController: null,
     loading: false,
     editor: {
       open: false,
@@ -271,13 +271,12 @@
   function filteredRows() {
     var needle = state.search.toLowerCase();
     return state.rows.filter(function (row) {
-      if (state.filter === 'upcoming' && rowIsPast(row)) return false;
-      if (state.filter === 'past' && !rowIsPast(row)) return false;
       if (!needle) return true;
 
       var haystack = [
         rowName(row),
         rowTables(row),
+        rowNote(row),
         row.telephone || '',
         row.email || '',
         row.reserve_time || '',
@@ -286,6 +285,82 @@
       ].join(' ').toLowerCase();
 
       return haystack.indexOf(needle) !== -1;
+    });
+  }
+
+  function formatRailDate(value) {
+    if (!value) return '';
+    try {
+      return new Intl.DateTimeFormat(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: '2-digit'
+      }).format(new Date(value + 'T12:00:00'));
+    } catch (ignore) {
+      return value;
+    }
+  }
+
+  function renderReservationRailAction() {
+    var pickup = root.querySelector('[data-qpos-pickup]');
+    if (!pickup) return;
+
+    var wrapper = pickup.parentElement &&
+      pickup.parentElement.classList &&
+      pickup.parentElement.classList.contains('pmd-qres-rail-action-r131')
+        ? pickup.parentElement
+        : null;
+
+    if (state.workspace !== 'reservations') {
+      pickup.classList.remove('is-qres-new-r131');
+      pickup.removeAttribute('aria-label');
+      pickup.innerHTML = '<strong>Pickup</strong>';
+
+      if (wrapper && wrapper.parentNode) {
+        wrapper.parentNode.insertBefore(pickup, wrapper);
+        wrapper.remove();
+      }
+      return;
+    }
+
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.className = 'pmd-qres-rail-action-r131';
+      pickup.parentNode.insertBefore(wrapper, pickup);
+      wrapper.appendChild(pickup);
+
+      var todayButton = document.createElement('button');
+      todayButton.type = 'button';
+      todayButton.className = 'pmd-qres-rail-today-r131';
+      todayButton.setAttribute('data-qres-today', '');
+      todayButton.textContent = 'Today';
+      wrapper.appendChild(todayButton);
+    }
+
+    pickup.classList.add('is-qres-new-r131');
+    pickup.setAttribute(
+      'aria-label',
+      'New reservation for ' + formatDate(state.date)
+    );
+    pickup.innerHTML =
+      '<strong>New reservation</strong>' +
+      '<small>' + esc(formatRailDate(state.date)) + '</small>';
+  }
+
+  function setRefreshing(active) {
+    [left, center].forEach(function (node) {
+      if (!node) return;
+      node.classList.toggle('is-qres-refreshing-r131', !!active);
+      node.setAttribute('aria-busy', active ? 'true' : 'false');
+    });
+  }
+
+  var renderFrame = 0;
+  function queueRender() {
+    if (renderFrame) window.cancelAnimationFrame(renderFrame);
+    renderFrame = window.requestAnimationFrame(function () {
+      renderFrame = 0;
+      render();
     });
   }
 
@@ -492,21 +567,22 @@
     }
     if (dateLabel) dateLabel.textContent = formatDate(state.date);
 
+    renderReservationRailAction();
     renderTableFilter();
     renderList();
-    renderTimeline();
+    if (!state.editor.open) renderTimeline();
   }
 
   function installScheduleBridge() {
     if (
       window.PMDReservationsScheduleV1 &&
-      window.PMDReservationsScheduleV1.version !== 'qpos-r130'
+      window.PMDReservationsScheduleV1.version !== 'qpos-r131'
     ) {
       return;
     }
 
     window.PMDReservationsScheduleV1 = {
-      version: 'qpos-r130',
+      version: 'qpos-r131',
       getOpeningHours: function () {
         return state.openingHours.slice();
       },
@@ -521,12 +597,21 @@
     };
   }
 
-  async function loadReservations() {
+  async function loadReservations(force) {
     if (state.workspace !== 'reservations') return false;
 
     var requestId = ++state.requestId;
     state.loading = true;
-    render();
+    setRefreshing(true);
+
+    if (state.requestController && typeof state.requestController.abort === 'function') {
+      state.requestController.abort();
+    }
+
+    var controller = typeof AbortController === 'function'
+      ? new AbortController()
+      : null;
+    state.requestController = controller;
 
     var url = '/admin/pos/reservations-data?date=' +
       encodeURIComponent(state.date || state.today);
@@ -541,6 +626,7 @@
       var response = await fetch(url, {
         credentials: 'same-origin',
         cache: 'no-store',
+        signal: controller ? controller.signal : undefined,
         headers: {
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
@@ -570,6 +656,7 @@
         ? json.reservations
         : [];
       state.loading = false;
+      state.requestController = null;
 
       window.PMD_RESERVATIONS_BOOT = Object.assign(
         {},
@@ -584,21 +671,28 @@
 
       installScheduleBridge();
       render();
+      setRefreshing(false);
       return true;
     } catch (error) {
+      if (error && error.name === 'AbortError') return false;
       if (requestId !== state.requestId) return false;
 
       state.loading = false;
-      state.rows = [];
-      render();
+      state.requestController = null;
+      setRefreshing(false);
 
-      if (list) {
-        list.innerHTML =
-          '<div class="pmd-qres-error">' +
-            esc(error && error.message
-              ? error.message
-              : 'Reservations could not be loaded.') +
-          '</div>';
+      if (!state.rows.length) {
+        var message = esc(
+          error && error.message
+            ? error.message
+            : 'Reservations could not be loaded.'
+        );
+        if (list) {
+          list.innerHTML = '<div class="pmd-qres-error">' + message + '</div>';
+        }
+        if (timeline) {
+          timeline.innerHTML = '<div class="pmd-qres-error">' + message + '</div>';
+        }
       }
 
       toast(
@@ -647,7 +741,11 @@
     }
 
     if (next === 'reservations') {
+      renderReservationRailAction();
       loadReservations();
+    } else {
+      closeQuickEditor();
+      renderReservationRailAction();
     }
   }
 
@@ -743,7 +841,7 @@
 
     root.querySelectorAll('[data-qpos-table]').forEach(function (button) {
       var id = Number(button.getAttribute('data-qpos-table') || 0);
-      button.classList.toggle('is-reservation-editor-table-r130', ids.indexOf(id) >= 0);
+      button.classList.toggle('is-reservation-editor-table-r131', ids.indexOf(id) >= 0);
     });
   }
 
@@ -760,6 +858,7 @@
       quickEditor.hidden = true;
       quickEditor.setAttribute('aria-hidden', 'true');
     }
+    if (center) center.classList.remove('is-editor-open-r131');
     if (quickSave) quickSave.disabled = false;
     setQuickStatus('', false);
     syncQuickTableUI();
@@ -800,16 +899,17 @@
     if (quickField('email')) quickField('email').value = row ? String(row.email || '') : '';
     if (quickField('comment')) quickField('comment').value = row ? rowNote(row) : '';
     if (quickField('reservation_id')) quickField('reservation_id').value = id ? String(id) : '';
-    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r130';
+    if (quickField('source')) quickField('source').value = 'quick-pos-reservations-r131';
     if (quickField('pmd_floor_id')) quickField('pmd_floor_id').value = floor.id || '';
     if (quickField('pmd_floor_name')) quickField('pmd_floor_name').value = floor.name || '';
     if (quickField('pmd_floor_locked')) quickField('pmd_floor_locked').value = state.editor.tableIds.length ? '1' : '0';
 
     if (quickTitle) quickTitle.textContent = id ? 'Edit reservation' : 'New reservation';
     if (quickContext) quickContext.textContent = id
-      ? ('#' + id + ' · ' + String(row && row.reserve_time || '').slice(0, 5))
-      : ('Quick mode · ' + state.date);
+      ? ('#' + id + ' · ' + formatDate(String(row && row.reserve_date || state.date)) + ' · ' + String(row && row.reserve_time || '').slice(0, 5))
+      : (formatDate(state.date) + (selectedTime ? ' · ' + selectedTime : ''));
 
+    if (center) center.classList.add('is-editor-open-r131');
     quickEditor.hidden = false;
     quickEditor.setAttribute('aria-hidden', 'false');
     setQuickStatus('Tap a table on the right, or keep Automatic table.', false);
@@ -846,7 +946,7 @@
       pmd_table_features: [],
       occasion_id: 0,
       notify: 0,
-      source: 'quick-pos-reservations-r130',
+      source: 'quick-pos-reservations-r131',
       location_id: quickLocationId() || null,
       pmd_floor_id: floor.id || '',
       pmd_floor_name: floor.name || '',
@@ -882,8 +982,11 @@
 
     canonicalRequest('onSaveReservationComposer', data)
       .then(function () {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(data.reserve_date)) {
+          state.date = data.reserve_date;
+        }
         closeQuickEditor();
-        return loadReservations();
+        return loadReservations(true);
       })
       .then(function () {
         toast('Reservation saved.');
@@ -956,7 +1059,7 @@
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      toast('Pickup is available in POS mode.');
+      openQuickEditor(0, null);
       return;
     }
 
@@ -1038,26 +1141,6 @@
     if (today) {
       state.date = state.today;
       loadReservations();
-      return;
-    }
-
-    var filter = event.target && event.target.closest
-      ? event.target.closest('[data-qres-filter]')
-      : null;
-
-    if (filter) {
-      state.filter = String(
-        filter.getAttribute('data-qres-filter') || 'all'
-      );
-
-      document.querySelectorAll('[data-qres-filter]').forEach(function (button) {
-        button.classList.toggle(
-          'is-active',
-          button.getAttribute('data-qres-filter') === state.filter
-        );
-      });
-
-      render();
       return;
     }
 
@@ -1152,19 +1235,23 @@
   if (searchInput) {
     searchInput.addEventListener('input', function () {
       state.search = String(searchInput.value || '').trim();
-      render();
+      queueRender();
     });
   }
 
-  window.addEventListener('pmd:qpos:tables-rendered', renderTableFilter);
+  window.addEventListener('pmd:qpos:tables-rendered', function () {
+    renderReservationRailAction();
+    renderTableFilter();
+    syncQuickTableUI();
+  });
 
   window.addEventListener('pmd:reservation-saved', function () {
-    window.setTimeout(loadReservations, 60);
+    window.setTimeout(function () { loadReservations(true); }, 60);
   });
 
   if (!window.PMDReservationsCardsV320) {
     window.PMDReservationsCardsV320 = {
-      version: 'qpos-r130-bridge',
+      version: 'qpos-r131-bridge',
       refresh: function () {
         return loadReservations();
       }
@@ -1177,8 +1264,8 @@
 
   setWorkspace(state.workspace, false);
 
-  window.PMDQuickReservationsR130 = {
-    version: '1.0.0-r130',
+  window.PMDQuickReservationsR131 = {
+    version: '1.0.0-r131',
     setWorkspace: setWorkspace,
     refresh: loadReservations,
     newReservation: function () {
@@ -1196,6 +1283,7 @@
   };
 
   // Compatibility alias for diagnostics that referenced the first bridge.
-  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR130;
-  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR130;
+  window.PMDQuickReservationsR130 = window.PMDQuickReservationsR131;
+  window.PMDQuickReservationsR129 = window.PMDQuickReservationsR131;
+  window.PMDQuickReservationsR128 = window.PMDQuickReservationsR131;
 })();
