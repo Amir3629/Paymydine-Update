@@ -3771,3 +3771,49 @@ html body.page.pmd-inventory-page #pmd-inventory-v1.pmd-inv {
     grid-column: auto !important;
   }
 }
+
+
+/* PMD_INVENTORY_GLOBAL_CATALOG_R7 */
+.pmd-inv-status.is-setup {
+  border-color: #c8d9e3 !important;
+  background: #f4f8fa !important;
+  color: #526875 !important;
+}
+
+.pmd-inv-r6-table tr.is-setup {
+  background: #fff !important;
+}
+
+.pmd-inv-r6-suggestions {
+  max-height: 310px !important;
+}
+
+.pmd-inv-r6-suggestions button {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+}
+
+.pmd-inv-r6-suggestions button strong {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.pmd-inv-r6-suggestions button small {
+  justify-self: end !important;
+  max-width: 190px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 820px) {
+  .pmd-inv-r6-suggestions button {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pmd-inv-r6-suggestions button small {
+    justify-self: start !important;
+    max-width: 100% !important;
+  }
+}
