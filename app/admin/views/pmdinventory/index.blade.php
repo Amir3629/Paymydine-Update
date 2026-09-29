@@ -7,6 +7,7 @@
     $currency = (string)($inventory['currency'] ?? 'EUR');
     $units = is_array($inventory['units'] ?? null) ? $inventory['units'] : [];
     $wasteReasons = is_array($inventory['waste_reasons'] ?? null) ? $inventory['waste_reasons'] : [];
+    $commonStock = is_array($inventory['common_stock'] ?? null) ? $inventory['common_stock'] : [];
 
     $bootstrap = [
         'ready' => $ready,
@@ -15,6 +16,7 @@
         'snapshot' => $snapshot,
         'units' => $units,
         'waste_reasons' => $wasteReasons,
+        'common_stock' => $commonStock,
         'error' => $inventory['error'] ?? null,
         'today' => now()->toDateString(),
     ];
@@ -251,15 +253,57 @@
                 </header>
                 <form data-pmd-inv-form="item">
                     <input type="hidden" name="item_id" value="">
+
+                    <div class="pmd-inv-common-stock">
+                        <div class="pmd-inv-common-stock__head">
+                            <div>
+                                <strong>Start fast</strong>
+                                <span>Search common restaurant stock, or type your own item below.</span>
+                            </div>
+                            <label>
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                                <input type="search" placeholder="Water, beef, wine…" data-pmd-inv-common-search autocomplete="off">
+                            </label>
+                        </div>
+                        <div class="pmd-inv-common-stock__results" data-pmd-inv-common-results></div>
+                    </div>
+
                     <div class="pmd-inv-form-grid">
-                        <label class="is-wide"><span>Name</span><input name="name" required placeholder="e.g. Champagne Brut"></label>
+                        <label class="is-wide"><span>Stock item name</span><input name="name" required placeholder="e.g. Champagne Brut"></label>
                         <label><span>Category</span><input name="category" placeholder="Bar / Produce / Meat"></label>
                         <label><span>SKU / code</span><input name="sku" placeholder="Optional"></label>
-                        <label><span>Base unit</span><select name="unit">@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
-                        <label data-pmd-inv-opening-field><span>Opening quantity</span><input type="number" min="0" step="0.0001" name="opening_qty" value="0"></label>
-                        <label><span>Unit cost</span><input type="number" min="0" step="0.0001" name="unit_cost" value="0"></label>
+
+                        <label>
+                            <span>Track in</span>
+                            <select name="unit">@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+                            <small>Use ml or g when this item can be used partially.</small>
+                        </label>
+
+                        <label>
+                            <span>Bought as</span>
+                            <select name="purchase_unit">@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+                            <small>Example: bottle, case, kg, tray.</small>
+                        </label>
+
+                        <label>
+                            <span>Amount in one purchase unit</span>
+                            <input type="number" min="0.0001" step="0.0001" name="purchase_to_base" value="1" placeholder="e.g. 750">
+                            <small data-pmd-inv-package-help>Example: 1 bottle = 750 ml.</small>
+                        </label>
+
+                        <label>
+                            <span>Cost per purchase unit</span>
+                            <input type="number" min="0" step="0.0001" name="purchase_cost" value="0" placeholder="e.g. 18.50">
+                        </label>
+
+                        <label data-pmd-inv-opening-field>
+                            <span>Opening stock</span>
+                            <input type="number" min="0" step="0.0001" name="opening_qty" value="0">
+                            <small>Enter this in the tracking unit.</small>
+                        </label>
+
                         <label><span>Reorder at</span><input type="number" min="0" step="0.0001" name="reorder_point" value="0"></label>
-                        <label><span>Full / par level</span><input type="number" min="0" step="0.0001" name="par_level" value="0"></label>
+                        <label><span>Target / par level</span><input type="number" min="0" step="0.0001" name="par_level" value="0"></label>
                         <label class="is-wide"><span>Supplier</span><input name="supplier_name" placeholder="Optional"></label>
                     </div>
                     <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink" data-pmd-inv-item-save>Add item</button></footer>
@@ -297,7 +341,7 @@
                     </div>
 
                     <div class="pmd-inv-lines-head">
-                        <div><strong>What arrived</strong><span>Quantity is the physical stock quantity received.</span></div>
+                        <div><strong>What arrived</strong><span>For known stock items, use the supplier unit (for example bottle or case). PayMyDine converts it to the tracking unit.</span></div>
                         <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-add-purchase-line>+ Line</button>
                     </div>
                     <div class="pmd-inv-lines" data-pmd-inv-purchase-lines></div>
@@ -336,15 +380,39 @@
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
                 <form data-pmd-inv-form="recipe">
+                    <div class="pmd-inv-recipe-intro">
+                        <div>
+                            <strong>Connect this menu item to real stock</strong>
+                            <span>Every POS sale will consume the quantities below automatically.</span>
+                        </div>
+                    </div>
+
                     <div class="pmd-inv-form-grid">
                         <label class="is-wide"><span>Menu item</span><select name="menu_id" required data-pmd-inv-menu-select><option value="">Choose menu item</option></select></label>
                     </div>
+
                     <div class="pmd-inv-lines-head">
-                        <div><strong>Consumed per one sale</strong><span>Example: Mojito → 0.05 l rum + 1 lime.</span></div>
-                        <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-add-recipe-line>+ Ingredient</button>
+                        <div>
+                            <strong>Used per one sale</strong>
+                            <span>Example: Mojito → 50 ml rum + 20 ml lime juice. For a bottled item sold as-is, use the direct-sale shortcut.</span>
+                        </div>
+                        <div class="pmd-inv-lines-head__actions">
+                            <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-direct-recipe>Direct sale · one package</button>
+                            <button type="button" class="pmd-inv-mini-btn is-primary" data-pmd-inv-add-recipe-line>+ Ingredient</button>
+                        </div>
+                    </div>
+
+                    <div class="pmd-inv-recipe-line-head" aria-hidden="true">
+                        <span>Stock item</span><span>Amount per sale</span><span>Unit</span><span></span>
                     </div>
                     <div class="pmd-inv-lines" data-pmd-inv-recipe-lines></div>
-                    <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink">Save recipe</button></footer>
+
+                    <div class="pmd-inv-recipe-tip">
+                        <strong>Tip:</strong>
+                        Water, beer, cans and bottles can usually be linked directly. Food and cocktails normally use several stock items.
+                    </div>
+
+                    <footer><button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-close>Cancel</button><button type="submit" class="pmd-inv-btn pmd-inv-btn--ink">Save connection</button></footer>
                 </form>
             </section>
         </div>
@@ -357,7 +425,24 @@
                     <div><span>Reorder plan</span><h2 id="pmd-inv-shopping-title">Shopping list</h2></div>
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
-                <div class="pmd-inv-shopping-intro">Built from estimated on-hand stock, recent sales usage, par levels and reorder points. Check supplier pack sizes before ordering.</div>
+                <div class="pmd-inv-shopping-intro">
+                    <strong>Plan the next shop</strong>
+                    <span>Choose how far ahead you want to cover. PayMyDine uses current stock, recent sales usage and your reorder level.</span>
+                </div>
+
+                <div class="pmd-inv-shopping-horizon">
+                    <div class="pmd-inv-shopping-horizon__presets" role="group" aria-label="Shopping horizon">
+                        <button type="button" class="is-active" data-pmd-shopping-days="1">Today</button>
+                        <button type="button" data-pmd-shopping-days="3">3 days</button>
+                        <button type="button" data-pmd-shopping-days="7">7 days</button>
+                    </div>
+                    <label>
+                        <span>Or cover until</span>
+                        <input type="date" min="{{ now()->toDateString() }}" value="{{ now()->toDateString() }}" data-pmd-shopping-date>
+                    </label>
+                </div>
+
+                <div class="pmd-inv-shopping-summary" data-pmd-inv-shopping-summary></div>
                 <div class="pmd-inv-shopping-list" data-pmd-inv-shopping-list></div>
                 <footer class="pmd-inv-modal__static-footer">
                     <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-copy-shopping>Copy list</button>
