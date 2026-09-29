@@ -373,6 +373,16 @@ final class PmdInventoryControlService
             throw new InvalidArgumentException('Item name is required.');
         }
 
+        $duplicate = DB::table('pmd_inventory_items')
+            ->where('location_id', $locationId)
+            ->where('id', '<>', $itemId)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->where('active', 1)
+            ->exists();
+        if ($duplicate) {
+            throw new InvalidArgumentException('Another stock item already uses this name.');
+        }
+
         // Unit is intentionally immutable after creation. Historical
         // movements and recipe quantities use this base unit and must never
         // silently change meaning because somebody edited a label.
@@ -401,6 +411,15 @@ final class PmdInventoryControlService
         $name = trim((string)($data['name'] ?? ''));
         if ($name === '') {
             throw new InvalidArgumentException('Item name is required.');
+        }
+
+        $duplicate = DB::table('pmd_inventory_items')
+            ->where('location_id', $locationId)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->where('active', 1)
+            ->exists();
+        if ($duplicate) {
+            throw new InvalidArgumentException('A stock item with this name already exists.');
         }
 
         $unit = $this->unit($data['unit'] ?? 'piece');
@@ -514,6 +533,15 @@ final class PmdInventoryControlService
                         ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
                         ->where('active', 1)
                         ->first();
+
+                    if (
+                        $existing
+                        && strtolower((string)$existing->base_unit) !== strtolower($unit)
+                    ) {
+                        throw new InvalidArgumentException(
+                            'Purchase unit for '.$name.' must match its stock unit ('.$existing->base_unit.').'
+                        );
+                    }
 
                     $itemId = $existing
                         ? (int)$existing->id
@@ -638,10 +666,7 @@ final class PmdInventoryControlService
         }
 
         DB::transaction(function () use ($locationId, $staffId, $menuId, $lines) {
-            DB::table('pmd_inventory_recipes')
-                ->where('location_id', $locationId)
-                ->where('menu_id', $menuId)
-                ->delete();
+            $keptItemIds = [];
 
             foreach ($lines as $line) {
                 if (!is_array($line)) {
@@ -663,17 +688,47 @@ final class PmdInventoryControlService
                     continue;
                 }
 
-                DB::table('pmd_inventory_recipes')->insert([
-                    'location_id' => $locationId,
-                    'menu_id' => $menuId,
-                    'item_id' => $itemId,
-                    'qty_per_sale' => $qty,
-                    'active' => 1,
-                    'updated_by' => $staffId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                $keptItemIds[] = $itemId;
+                $existing = DB::table('pmd_inventory_recipes')
+                    ->where('location_id', $locationId)
+                    ->where('menu_id', $menuId)
+                    ->where('item_id', $itemId)
+                    ->first();
+
+                if ($existing) {
+                    // Preserve created_at: it is the point from which this
+                    // menu-to-stock relationship is allowed to explain sales.
+                    DB::table('pmd_inventory_recipes')
+                        ->where('id', (int)$existing->id)
+                        ->update([
+                            'qty_per_sale' => $qty,
+                            'active' => 1,
+                            'updated_by' => $staffId,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('pmd_inventory_recipes')->insert([
+                        'location_id' => $locationId,
+                        'menu_id' => $menuId,
+                        'item_id' => $itemId,
+                        'qty_per_sale' => $qty,
+                        'active' => 1,
+                        'updated_by' => $staffId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
+
+            $remove = DB::table('pmd_inventory_recipes')
+                ->where('location_id', $locationId)
+                ->where('menu_id', $menuId);
+
+            if ($keptItemIds) {
+                $remove->whereNotIn('item_id', array_values(array_unique($keptItemIds)));
+            }
+
+            $remove->delete();
         });
     }
 
@@ -683,7 +738,29 @@ final class PmdInventoryControlService
         $locationId = $this->location($locationId);
         $lines = $this->arrayValue($data['lines'] ?? []);
         if (!$lines) {
-            throw new InvalidArgumentException('Enter at least one physical count.');
+            throw new InvalidArgumentException('Enter the physical stock count.');
+        }
+
+        $activeItemIds = DB::table('pmd_inventory_items')
+            ->where('location_id', $locationId)
+            ->where('active', 1)
+            ->pluck('id')
+            ->map(static fn ($id) => (int)$id)
+            ->values()
+            ->all();
+
+        $submittedItemIds = array_values(array_unique(array_filter(array_map(
+            static fn ($line) => is_array($line) ? (int)($line['item_id'] ?? 0) : 0,
+            $lines
+        ))));
+
+        if (
+            count($activeItemIds) !== count($submittedItemIds)
+            || array_diff($activeItemIds, $submittedItemIds)
+        ) {
+            throw new InvalidArgumentException(
+                'Count every active stock item so the new inventory baseline is complete.'
+            );
         }
 
         $snapshot = $this->snapshot($locationId);
@@ -801,7 +878,10 @@ final class PmdInventoryControlService
                     ->where('r.location_id', '=', $locationId)
                     ->where('r.active', '=', 1);
             })
-            ->whereBetween('o.created_at', [$start, $end]);
+            ->whereBetween('o.created_at', [$start, $end])
+            // A recipe cannot explain consumption that happened before the
+            // restaurant linked that stock item to the menu item.
+            ->whereColumn('o.created_at', '>=', 'r.created_at');
 
         if (in_array('location_id', $orderCols, true)) {
             $q->where('o.location_id', $locationId);
