@@ -498,6 +498,15 @@ body.pmd-inventory-page .page-content {
   font-size: 9.5px;
 }
 
+.pmd-inv__stock-percent {
+  display: block;
+  margin-top: 3px;
+  color: #8190a3;
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
 .pmd-inv__days {
   font-weight: 850;
 }
