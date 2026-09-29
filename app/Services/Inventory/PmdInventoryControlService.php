@@ -728,7 +728,11 @@ final class PmdInventoryControlService
                 $remove->whereNotIn('item_id', array_values(array_unique($keptItemIds)));
             }
 
-            $remove->delete();
+            $remove->update([
+                'active' => 0,
+                'updated_by' => $staffId,
+                'updated_at' => now(),
+            ]);
         });
     }
 
@@ -875,13 +879,19 @@ final class PmdInventoryControlService
             ->join('orders as o', 'o.order_id', '=', 'om.order_id')
             ->join('pmd_inventory_recipes as r', function ($join) use ($locationId) {
                 $join->on('r.menu_id', '=', 'om.menu_id')
-                    ->where('r.location_id', '=', $locationId)
-                    ->where('r.active', '=', 1);
+                    ->where('r.location_id', '=', $locationId);
             })
             ->whereBetween('o.created_at', [$start, $end])
             // A recipe cannot explain consumption that happened before the
             // restaurant linked that stock item to the menu item.
-            ->whereColumn('o.created_at', '>=', 'r.created_at');
+            ->whereColumn('o.created_at', '>=', 'r.created_at')
+            // Removed recipe lines still explain orders that happened before
+            // their removal timestamp; they stop explaining future sales.
+            ->where(function ($recipeWindow) {
+                $recipeWindow
+                    ->where('r.active', 1)
+                    ->orWhereColumn('o.created_at', '<=', 'r.updated_at');
+            });
 
         if (in_array('location_id', $orderCols, true)) {
             $q->where('o.location_id', $locationId);
