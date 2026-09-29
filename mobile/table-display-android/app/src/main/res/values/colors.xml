@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pmd_icon_background">#0B1713</color>
+    <color name="pmd_green">#0D6B4F</color>
+    <color name="pmd_background">#F4F1E7</color>
+</resources>
