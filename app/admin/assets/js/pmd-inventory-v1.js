@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R1 */
+/* PMD_INVENTORY_CONTROL_R2 */
 (function () {
   'use strict';
 
@@ -111,6 +111,37 @@
     root.querySelectorAll('form button[type="submit"]').forEach(function (button) {
       button.disabled = state.busy;
     });
+  }
+
+  function mountHeaderNotification() {
+    var header = root.querySelector('#pmd-inv-clean-header');
+    var slot = header && header.querySelector('[data-pmd-inv-notif-slot]');
+    var notificationRoot = document.getElementById('notif-root');
+
+    if (!header || !slot || !notificationRoot) return false;
+    if (!header.contains(notificationRoot)) {
+      slot.replaceWith(notificationRoot);
+    }
+
+    notificationRoot.classList.add('pmd-inv__notif-mounted');
+    var trigger = notificationRoot.querySelector('#notifDropdown');
+    if (trigger) {
+      trigger.setAttribute('aria-label', 'Notifications');
+      trigger.setAttribute('title', 'Notifications');
+    }
+    return true;
+  }
+
+  function bootHeaderNotification() {
+    if (mountHeaderNotification()) return;
+
+    var attempts = 0;
+    var timer = window.setInterval(function () {
+      attempts += 1;
+      if (mountHeaderNotification() || attempts >= 40) {
+        window.clearInterval(timer);
+      }
+    }, 100);
   }
 
   function request(handler, data, formData) {
@@ -1095,10 +1126,11 @@
     if (event.key === 'Escape') closeAllModals();
   });
 
+  bootHeaderNotification();
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '1.0.0',
+    version: '2.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
