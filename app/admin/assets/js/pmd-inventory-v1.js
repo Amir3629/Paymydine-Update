@@ -374,6 +374,127 @@
     }).join('');
   }
 
+  function shoppingItems() {
+    return items()
+      .filter(function (item) {
+        return String(item.status || '') === 'critical'
+          || String(item.status || '') === 'low'
+          || Number(item.suggested_order_qty || 0) > 0;
+      })
+      .sort(function (a, b) {
+        var pa = String(a.status || '') === 'critical' ? 0 : 1;
+        var pb = String(b.status || '') === 'critical' ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+  }
+
+  function renderShoppingList() {
+    var host = root.querySelector('[data-pmd-inv-shopping-list]');
+    if (!host) return;
+
+    var rows = shoppingItems();
+    if (!rows.length) {
+      host.innerHTML = '<div class="pmd-inv-activity-empty">Nothing is currently below its stock target.</div>';
+      return;
+    }
+
+    host.innerHTML = rows.map(function (item) {
+      var qty = Number(item.suggested_order_qty || 0);
+      var target = qty > 0
+        ? (num(qty, 2) + ' ' + (item.unit || ''))
+        : 'Review';
+      var supplier = item.supplier_name || 'Supplier not set';
+      var days = item.days_left === null || typeof item.days_left === 'undefined'
+        ? ''
+        : (num(item.days_left, 1) + ' days left');
+
+      return '<div class="pmd-inv-shopping-row">' +
+        '<div><strong>' + esc(item.name) + '</strong><small>' +
+          esc(supplier + (days ? ' · ' + days : '')) +
+        '</small></div>' +
+        '<span>' + esc(num(item.estimated_on_hand, 3) + ' ' + item.unit + ' on hand') + '</span>' +
+        '<b>' + esc(target) + '</b>' +
+      '</div>';
+    }).join('');
+  }
+
+  function shoppingText() {
+    var rows = shoppingItems();
+    if (!rows.length) return 'PayMyDine shopping list\nNo items need reordering.';
+
+    var lines = ['PayMyDine shopping list', ''];
+    rows.forEach(function (item) {
+      var qty = Number(item.suggested_order_qty || 0);
+      lines.push(
+        '- ' + item.name + ': ' +
+        (qty > 0 ? (num(qty, 2) + ' ' + item.unit) : 'review') +
+        (item.supplier_name ? ' · ' + item.supplier_name : '')
+      );
+    });
+    return lines.join('\n');
+  }
+
+  function copyShoppingList() {
+    var value = shoppingText();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value)
+        .then(function () { toast('Shopping list copied.'); })
+        .catch(function () { fallbackCopy(value); });
+      return;
+    }
+    fallbackCopy(value);
+  }
+
+  function fallbackCopy(value) {
+    var area = document.createElement('textarea');
+    area.value = value;
+    area.setAttribute('readonly', 'readonly');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    try {
+      document.execCommand('copy');
+      toast('Shopping list copied.');
+    } catch (ignore) {
+      toast('Could not copy the shopping list.', true);
+    }
+    area.remove();
+  }
+
+  function printShoppingList() {
+    var rows = shoppingItems();
+    var body = rows.length
+      ? rows.map(function (item) {
+          var qty = Number(item.suggested_order_qty || 0);
+          return '<tr>' +
+            '<td>' + esc(item.name) + '</td>' +
+            '<td>' + esc(item.supplier_name || '—') + '</td>' +
+            '<td>' + esc(num(item.estimated_on_hand, 3) + ' ' + item.unit) + '</td>' +
+            '<td><strong>' + esc(qty > 0 ? (num(qty, 2) + ' ' + item.unit) : 'Review') + '</strong></td>' +
+          '</tr>';
+        }).join('')
+      : '<tr><td colspan="4">Nothing currently needs reordering.</td></tr>';
+
+    var win = window.open('', '_blank', 'noopener,noreferrer,width=880,height=700');
+    if (!win) {
+      toast('Your browser blocked the print window.', true);
+      return;
+    }
+
+    win.document.open();
+    win.document.write(
+      '<!doctype html><html><head><meta charset="utf-8"><title>PayMyDine shopping list</title>' +
+      '<style>body{font-family:Arial,sans-serif;color:#111827;padding:28px}h1{font-size:24px;margin:0 0 4px}p{margin:0 0 18px;color:#667085;font-size:12px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid #dfe4ea;padding:10px;text-align:left}th{font-size:10px;text-transform:uppercase;color:#667085}strong{font-weight:800}@media print{body{padding:0}}</style>' +
+      '</head><body><h1>Shopping list</h1><p>Generated from PayMyDine stock targets and recent sales usage.</p>' +
+      '<table><thead><tr><th>Item</th><th>Supplier</th><th>On hand</th><th>Suggested buy</th></tr></thead><tbody>' +
+      body +
+      '</tbody></table><script>window.onload=function(){window.print();};<\/script></body></html>'
+    );
+    win.document.close();
+  }
+
   function renderActivity() {
     var purchases = root.querySelector('[data-pmd-inv-panel="purchases"]');
     var waste = root.querySelector('[data-pmd-inv-panel="waste"]');
@@ -467,6 +588,7 @@
     renderStock();
     renderAttention();
     renderActivity();
+    renderShoppingList();
     syncSelects();
     syncPurchaseDatalist();
   }
@@ -505,6 +627,10 @@
   function openModal(name) {
     var modal = root.querySelector('[data-pmd-inv-modal="' + name + '"]');
     if (!modal) return;
+
+    if (name === 'shopping') {
+      renderShoppingList();
+    }
 
     if (name === 'purchase') {
       var lines = root.querySelector('[data-pmd-inv-purchase-lines]');
@@ -764,6 +890,20 @@
     if (close) {
       event.preventDefault();
       closeModal(close.closest('.pmd-inv-modal'));
+      return;
+    }
+
+    var copyShopping = event.target.closest('[data-pmd-inv-copy-shopping]');
+    if (copyShopping) {
+      event.preventDefault();
+      copyShoppingList();
+      return;
+    }
+
+    var printShopping = event.target.closest('[data-pmd-inv-print-shopping]');
+    if (printShopping) {
+      event.preventDefault();
+      printShoppingList();
       return;
     }
 
