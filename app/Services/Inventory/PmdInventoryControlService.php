@@ -32,7 +32,9 @@ final class PmdInventoryControlService
                 return false;
             }
         }
-        return true;
+
+        return Schema::hasColumn('pmd_inventory_recipes', 'effective_from')
+            && Schema::hasColumn('pmd_inventory_recipes', 'effective_to');
     }
 
     public function snapshot(int $locationId): array
@@ -93,8 +95,7 @@ final class PmdInventoryControlService
 
         $recipeStarts = DB::table('pmd_inventory_recipes')
             ->where('location_id', $locationId)
-            ->where('active', 1)
-            ->selectRaw('item_id, MIN(created_at) as tracking_started_at')
+            ->selectRaw('item_id, MIN(effective_from) as tracking_started_at')
             ->groupBy('item_id')
             ->get()
             ->keyBy('item_id');
@@ -719,6 +720,7 @@ final class PmdInventoryControlService
         }
 
         DB::transaction(function () use ($locationId, $staffId, $menuId, $lines) {
+            $now = now();
             $keptItemIds = [];
 
             foreach ($lines as $line) {
@@ -742,49 +744,71 @@ final class PmdInventoryControlService
                 }
 
                 $keptItemIds[] = $itemId;
-                $existing = DB::table('pmd_inventory_recipes')
+
+                $current = DB::table('pmd_inventory_recipes')
                     ->where('location_id', $locationId)
                     ->where('menu_id', $menuId)
                     ->where('item_id', $itemId)
+                    ->where('active', 1)
+                    ->orderByDesc('effective_from')
+                    ->orderByDesc('id')
                     ->first();
 
-                if ($existing) {
-                    // Preserve created_at: it is the point from which this
-                    // menu-to-stock relationship is allowed to explain sales.
+                if (
+                    $current
+                    && abs((float)$current->qty_per_sale - $qty) < 0.00005
+                ) {
                     DB::table('pmd_inventory_recipes')
-                        ->where('id', (int)$existing->id)
+                        ->where('id', (int)$current->id)
                         ->update([
-                            'qty_per_sale' => $qty,
-                            'active' => 1,
                             'updated_by' => $staffId,
-                            'updated_at' => now(),
+                            'updated_at' => $now,
                         ]);
-                } else {
-                    DB::table('pmd_inventory_recipes')->insert([
-                        'location_id' => $locationId,
-                        'menu_id' => $menuId,
-                        'item_id' => $itemId,
-                        'qty_per_sale' => $qty,
-                        'active' => 1,
-                        'updated_by' => $staffId,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
+                    continue;
                 }
+
+                if ($current) {
+                    DB::table('pmd_inventory_recipes')
+                        ->where('id', (int)$current->id)
+                        ->update([
+                            'active' => 0,
+                            'effective_to' => $now,
+                            'updated_by' => $staffId,
+                            'updated_at' => $now,
+                        ]);
+                }
+
+                DB::table('pmd_inventory_recipes')->insert([
+                    'location_id' => $locationId,
+                    'menu_id' => $menuId,
+                    'item_id' => $itemId,
+                    'qty_per_sale' => $qty,
+                    'active' => 1,
+                    'effective_from' => $now,
+                    'effective_to' => null,
+                    'updated_by' => $staffId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
             }
 
             $remove = DB::table('pmd_inventory_recipes')
                 ->where('location_id', $locationId)
-                ->where('menu_id', $menuId);
+                ->where('menu_id', $menuId)
+                ->where('active', 1);
 
             if ($keptItemIds) {
-                $remove->whereNotIn('item_id', array_values(array_unique($keptItemIds)));
+                $remove->whereNotIn(
+                    'item_id',
+                    array_values(array_unique($keptItemIds))
+                );
             }
 
             $remove->update([
                 'active' => 0,
+                'effective_to' => $now,
                 'updated_by' => $staffId,
-                'updated_at' => now(),
+                'updated_at' => $now,
             ]);
         });
     }
@@ -935,15 +959,13 @@ final class PmdInventoryControlService
                     ->where('r.location_id', '=', $locationId);
             })
             ->whereBetween('o.created_at', [$start, $end])
-            // A recipe cannot explain consumption that happened before the
-            // restaurant linked that stock item to the menu item.
-            ->whereColumn('o.created_at', '>=', 'r.created_at')
-            // Removed recipe lines still explain orders that happened before
-            // their removal timestamp; they stop explaining future sales.
+            // Every historical order is multiplied by the recipe quantity
+            // that was effective when that order was created.
+            ->whereColumn('o.created_at', '>=', 'r.effective_from')
             ->where(function ($recipeWindow) {
                 $recipeWindow
-                    ->where('r.active', 1)
-                    ->orWhereColumn('o.created_at', '<=', 'r.updated_at');
+                    ->whereNull('r.effective_to')
+                    ->orWhereColumn('o.created_at', '<', 'r.effective_to');
             });
 
         if (in_array('location_id', $orderCols, true)) {
