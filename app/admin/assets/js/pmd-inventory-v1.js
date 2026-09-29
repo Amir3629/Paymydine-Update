@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R7 */
+/* PMD_INVENTORY_CONTROL_R8 */
 (function () {
   'use strict';
 
@@ -1211,11 +1211,18 @@
       renderCountLines();
     }
 
+    // PMD_INVENTORY_CARD_LANGUAGE_R8
+    // Apply the visual plane BEFORE revealing the card so there is no
+    // first-frame jump between the dashboard and the composer.
+    document.documentElement.classList.add(
+      'pmd-inventory-card-open-r8',
+      'pmd-inventory-card-bgblur-r8'
+    );
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     document.documentElement.style.overflow = 'hidden';
 
-    var focus = modal.querySelector('input:not([type="hidden"]),select,button');
+    var focus = modal.querySelector('input:not([type="hidden"]):not([type="file"]),select,button:not([hidden])');
     if (focus) window.setTimeout(function () { focus.focus(); }, 30);
   }
 
@@ -1268,6 +1275,10 @@
 
     if (!root.querySelector('.pmd-inv-modal:not([hidden])')) {
       document.documentElement.style.overflow = '';
+      document.documentElement.classList.remove(
+        'pmd-inventory-card-open-r8',
+        'pmd-inventory-card-bgblur-r8'
+      );
     }
   }
 
@@ -1913,7 +1924,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '7.0.0',
+    version: '8.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
