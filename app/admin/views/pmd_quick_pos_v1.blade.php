@@ -80,7 +80,7 @@
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260928-r129">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r130">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -430,12 +430,8 @@
             data-qpos-reservations-left
             @if($pmdInitialWorkspace !== 'reservations') hidden @endif
         >
-            <header class="pmd-qres-head">
-                <h2>Reservations</h2>
-                <button type="button" class="pmd-qres-new" data-qres-new>+ New</button>
-            </header>
+            <div class="pmd-qres-datebar pmd-qres-datebar--top">
 
-            <div class="pmd-qres-datebar">
                 <button type="button" data-qres-shift="-1" aria-label="Previous day">‹</button>
                 <input
                     type="date"
@@ -478,10 +474,110 @@
                     <small data-qres-date-label>{{ $pmdQuickReservationsToday }}</small>
                 </div>
                 <div class="pmd-qres-center-actions">
+                    <button type="button" class="pmd-qres-new" data-qres-new>+ New</button>
                     <button type="button" class="pmd-qres-today" data-qres-today>Today</button>
                     <time class="pmd-qres-clock" data-qres-clock>{{ now()->format('H:i') }}</time>
                 </div>
             </header>
+
+            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R130
+                 POS-native reservation create/edit surface. It stays inside the
+                 middle Quick Reservations card and writes through the canonical
+                 Reservations handler; no modal is used in Quick mode. --}}
+            <section class="pmd-qres-quick-editor" data-qres-quick-editor hidden aria-hidden="true">
+                <form data-qres-quick-form novalidate>
+                    <div class="pmd-qres-quick-editor-top">
+                        <div>
+                            <strong data-qres-quick-title>New reservation</strong>
+                            <small data-qres-quick-context>Quick mode</small>
+                        </div>
+                        <button type="button" class="pmd-qres-quick-close" data-qres-quick-cancel aria-label="Close">×</button>
+                    </div>
+
+                    <div class="pmd-qres-quick-grid">
+                        <label class="pmd-qres-quick-field pmd-qres-quick-field--name">
+                            <span>Name</span>
+                            <input type="text" name="first_name" autocomplete="name" placeholder="Guest name" required>
+                        </label>
+
+                        <label class="pmd-qres-quick-field">
+                            <span>Date</span>
+                            <input type="date" name="reserve_date" required>
+                        </label>
+
+                        <label class="pmd-qres-quick-field">
+                            <span>Time</span>
+                            <input type="time" name="reserve_time" step="900" required>
+                        </label>
+
+                        <label class="pmd-qres-quick-field">
+                            <span>P</span>
+                            <div class="pmd-qres-quick-stepper">
+                                <button type="button" data-qres-guests-step="-1" aria-label="Decrease people">−</button>
+                                <input type="number" name="guest_num" min="1" max="999" step="1" value="1" inputmode="numeric" required>
+                                <button type="button" data-qres-guests-step="1" aria-label="Increase people">+</button>
+                            </div>
+                        </label>
+
+                        <label class="pmd-qres-quick-field">
+                            <span>Duration</span>
+                            <select name="duration">
+                                <option value="30">30 min</option>
+                                <option value="45" selected>45 min</option>
+                                <option value="60">60 min</option>
+                                <option value="75">75 min</option>
+                                <option value="90">90 min</option>
+                                <option value="120">120 min</option>
+                                <option value="150">150 min</option>
+                                <option value="180">180 min</option>
+                            </select>
+                        </label>
+
+                        <div class="pmd-qres-quick-field pmd-qres-quick-field--table">
+                            <span>Table</span>
+                            <button type="button" class="pmd-qres-quick-table" data-qres-quick-table>
+                                <strong data-qres-quick-table-text>Automatic</strong>
+                                <small>Tap a table on the right to assign</small>
+                            </button>
+                        </div>
+
+                        <label class="pmd-qres-quick-field pmd-qres-quick-field--contact">
+                            <span>Phone</span>
+                            <input type="tel" name="telephone" autocomplete="tel" placeholder="Optional">
+                        </label>
+
+                        <label class="pmd-qres-quick-field pmd-qres-quick-field--contact">
+                            <span>E-mail</span>
+                            <input type="email" name="email" autocomplete="email" placeholder="Optional">
+                        </label>
+
+                        <label class="pmd-qres-quick-field pmd-qres-quick-field--note">
+                            <span>Note</span>
+                            <textarea name="comment" rows="2" placeholder="Request, occasion, allergy, seating note…"></textarea>
+                        </label>
+                    </div>
+
+                    <div class="pmd-qres-quick-status" data-qres-quick-status aria-live="polite"></div>
+
+                    <div class="pmd-qres-quick-actions">
+                        <button type="button" data-qres-quick-auto>Automatic table</button>
+                        <span class="pmd-qres-quick-actions-spacer"></span>
+                        <button type="button" data-qres-quick-cancel>Cancel</button>
+                        <button type="submit" class="is-primary" data-qres-quick-save>Save</button>
+                    </div>
+
+                    <input type="hidden" name="reservation_id" value="">
+                    <input type="hidden" name="last_name" value="">
+                    <input type="hidden" name="assignment_mode" value="auto">
+                    <input type="hidden" name="occasion_id" value="0">
+                    <input type="hidden" name="notify" value="0">
+                    <input type="hidden" name="source" value="quick-pos-reservations-r130">
+                    <input type="hidden" name="location_id" value="">
+                    <input type="hidden" name="pmd_floor_id" value="">
+                    <input type="hidden" name="pmd_floor_name" value="">
+                    <input type="hidden" name="pmd_floor_locked" value="0">
+                </form>
+            </section>
 
             <div class="pmd-qres-timeline" data-qres-timeline>
                 <div class="pmd-qres-loading">Loading schedule…</div>
@@ -496,7 +592,7 @@
                 <button type="button" class="pmd-qpos-cart-close" data-qpos-cart-close aria-label="Close cart">×</button>
                 <div class="pmd-qpos-guests">
                     <button type="button" data-qpos-guests-minus>−</button>
-                    <span><b data-qpos-guests>1</b><small>pax</small></span>
+                    <span><b data-qpos-guests>1</b><small>P</small></span>
                     <button type="button" data-qpos-guests-plus>+</button>
                 </div>
             </div>
@@ -1150,7 +1246,7 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r129"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129"></script>
+<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r130"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
