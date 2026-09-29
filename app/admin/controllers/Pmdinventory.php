@@ -10,6 +10,7 @@ use Admin\Facades\Template;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\Inventory\PmdInventoryControlService;
 use App\Services\Inventory\PmdInventoryReceiptAiService;
+use App\Services\Inventory\PmdInventoryStockCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -30,7 +31,7 @@ class Pmdinventory extends AdminController
 
         $this->bodyClass = trim(
             ($this->bodyClass ?? '').
-            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r2-page'
+            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r7-page'
         );
 
         // PMD_INVENTORY_DASHBOARD_SHELL_R2
@@ -44,11 +45,11 @@ class Pmdinventory extends AdminController
 
         $this->addCss(
             asset('app/admin/assets/css/pmd-inventory-v1.css')
-            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r6')
+            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r7')
         );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
-            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r6')
+            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r7')
         );
         AdminMenu::setContext('dashboard');
     }
@@ -85,32 +86,26 @@ class Pmdinventory extends AdminController
                 'box' => 'box',
                 'tray' => 'tray',
                 'bag' => 'bag',
+                'bunch' => 'bunch',
+                'jar' => 'jar',
+                'tub' => 'tub',
+                'bucket' => 'bucket',
+                'crate' => 'crate',
+                'carton' => 'carton',
+                'keg' => 'keg',
+                'sack' => 'sack',
+                'roll' => 'roll',
+                'loaf' => 'loaf',
+                'dozen' => 'dozen',
                 'kg' => 'kg',
                 'g' => 'g',
                 'l' => 'l',
                 'ml' => 'ml',
             ],
-            'common_stock' => [
-                ['name' => 'Still water', 'category' => 'Drinks', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Sparkling water', 'category' => 'Drinks', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Cola', 'category' => 'Soft drinks', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Beer', 'category' => 'Bar', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Red wine', 'category' => 'Wine', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'White wine', 'category' => 'Wine', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Sparkling wine', 'category' => 'Wine', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Vodka', 'category' => 'Spirits', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Gin', 'category' => 'Spirits', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Rum', 'category' => 'Spirits', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Whisky', 'category' => 'Spirits', 'unit' => 'ml', 'purchase_unit' => 'bottle', 'purchase_to_base' => null],
-                ['name' => 'Beef', 'category' => 'Meat', 'unit' => 'g', 'purchase_unit' => 'kg', 'purchase_to_base' => 1000],
-                ['name' => 'Chicken', 'category' => 'Meat', 'unit' => 'g', 'purchase_unit' => 'kg', 'purchase_to_base' => 1000],
-                ['name' => 'Salmon', 'category' => 'Fish', 'unit' => 'g', 'purchase_unit' => 'kg', 'purchase_to_base' => 1000],
-                ['name' => 'Rice', 'category' => 'Dry goods', 'unit' => 'g', 'purchase_unit' => 'kg', 'purchase_to_base' => 1000],
-                ['name' => 'Pasta', 'category' => 'Dry goods', 'unit' => 'g', 'purchase_unit' => 'kg', 'purchase_to_base' => 1000],
-                ['name' => 'Olive oil', 'category' => 'Kitchen', 'unit' => 'ml', 'purchase_unit' => 'l', 'purchase_to_base' => 1000],
-                ['name' => 'Milk', 'category' => 'Dairy', 'unit' => 'ml', 'purchase_unit' => 'l', 'purchase_to_base' => 1000],
-                ['name' => 'Eggs', 'category' => 'Dairy', 'unit' => 'piece', 'purchase_unit' => 'tray', 'purchase_to_base' => null],
-            ],
+            // PMD_INVENTORY_GLOBAL_CATALOG_R7
+            // Broad multi-cuisine inventory suggestions with aliases. This is
+            // only a helper catalogue; restaurants can always type custom stock.
+            'common_stock' => PmdInventoryStockCatalog::all(),
             'waste_reasons' => [
                 'Spoilage',
                 'Prep trim',
