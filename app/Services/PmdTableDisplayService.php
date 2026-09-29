@@ -84,7 +84,7 @@ final class PmdTableDisplayService
                 'enabled' => $enabled,
                 'location_id' => $locationId,
                 'menu_url' => $menuUrl,
-                'qr_image_url' => $menuUrl === '' ? '' : 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=18&data='.urlencode($menuUrl),
+                'qr_image_url' => $menuUrl === '' ? '' : 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=18&ecc=H&format=png&data='.urlencode($menuUrl),
             ],
             'restaurant' => $this->restaurantIdentity($locationId),
             'order' => $order,
