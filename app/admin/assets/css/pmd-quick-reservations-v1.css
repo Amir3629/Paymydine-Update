@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R135
+/* PMD_QPOS_QUICK_RESERVATIONS_R136
  * Same Quick POS shell, cleaner reservation density.
  * Right table rail remains untouched/canonical.
  */
@@ -1013,7 +1013,7 @@
   box-shadow: 0 0 0 4px rgba(7,92,71,.14) !important;
 }
 
-/* ---------- R135 POS editor + canonical time wheel ---------- */
+/* ---------- R136 POS editor + canonical time wheel ---------- */
 
 /*
  * Quick Reservation keeps the canonical Composer geometry/icons, but its
@@ -1368,63 +1368,14 @@
   border-color: #1f2937;
 }
 
-/* R135: use the same sharp cashier-POS color vocabulary without tinting
-   the whole reservation card. Paired controls keep identical widths. */
-.pmd-qres-composer-field-r132.is-name > span > svg {
-  border-color: #bfdbfe;
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-.pmd-qres-composer-field-r132.is-date > span > svg {
-  border-color: #c7d2fe;
-  background: #e0e7ff;
-  color: #4338ca;
-}
-.pmd-qres-composer-field-r132.is-time > span > svg {
-  border-color: #fed7aa;
-  background: #ffedd5;
-  color: #c2410c;
-}
-.pmd-qres-composer-field-r132.is-duration > span > svg {
-  border-color: #fde68a;
-  background: #fef3c7;
-  color: #b45309;
-}
-.pmd-qres-composer-field-r132.is-guests > span > svg {
-  border-color: #bbf7d0;
-  background: #dcfce7;
-  color: #15803d;
-}
-.pmd-qres-composer-preferences-r132
+/* R136: one coherent sharp POS palette.
+   Cobalt owns interactive selection; green is reserved for the final save. */
+.pmd-qres-composer-field-r132 > span > svg,
 .pmd-qres-composer-section-title-r132 > svg {
-  border-color: #bfdbfe;
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-.pmd-qres-composer-assignment-r132
-.pmd-qres-composer-section-title-r132 > svg {
-  border-color: #fed7aa;
-  background: #ffedd5;
-  color: #c2410c;
-}
-.pmd-qres-composer-contact-r132
-> .pmd-qres-composer-field-r132:first-child
-> span > svg {
-  border-color: #bbf7d0;
-  background: #dcfce7;
-  color: #15803d;
-}
-.pmd-qres-composer-contact-r132
-> .pmd-qres-composer-field-r132:last-child
-> span > svg {
-  border-color: #bfdbfe;
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-.pmd-qres-composer-notes-r132 > span > svg {
-  border-color: #ddd6fe;
-  background: #ede9fe;
-  color: #6d28d9;
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  box-shadow: none !important;
 }
 
 .pmd-qres-composer-stepper-r132 > button:first-child {
@@ -1438,80 +1389,36 @@
   color: #fff;
 }
 .pmd-qres-composer-stepper-r132 > button:last-child:hover {
-  background: #1e40af;
   border-color: #1e40af;
+  background: #1e40af;
 }
 
-.pmd-qres-composer-preference-options-r132
-label[data-qres-feature="near_window"] > span > svg {
-  color: #1d4ed8;
-}
-.pmd-qres-composer-preference-options-r132
-label[data-qres-feature="quiet_area"] > span > svg {
-  color: #6d28d9;
-}
-.pmd-qres-composer-preference-options-r132
-label[data-qres-feature="accessible"] > span > svg {
-  color: #15803d;
+.pmd-qres-composer-preference-options-r132 label > span > svg {
+  color: #1d4ed8 !important;
 }
 
-.pmd-qres-composer-preference-options-r132
-label[data-qres-feature="near_window"] input:checked + span {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
-  color: #fff;
-  box-shadow: none;
+.pmd-qres-composer-preference-options-r132 label input:checked + span {
+  border-color: #1d4ed8 !important;
+  background: #1d4ed8 !important;
+  color: #fff !important;
+  box-shadow: none !important;
 }
-.pmd-qres-composer-preference-options-r132
-label[data-qres-feature="quiet_area"] input:checked + span {
-  border-color: #6d28d9;
-  background: #6d28d9;
-  color: #fff;
-  box-shadow: none;
-}
-.pmd-qres-composer-preference-options-r132
-label[data-qres-feature="accessible"] input:checked + span {
-  border-color: #16a34a;
-  background: #16a34a;
-  color: #fff;
-  box-shadow: none;
-}
-.pmd-qres-composer-preference-options-r132
-label input:checked + span > svg {
+.pmd-qres-composer-preference-options-r132 label input:checked + span > svg {
   color: #fff !important;
 }
 
-.pmd-qres-composer-modes-r132
-label[data-qres-quick-auto] input:checked + span {
-  border-color: #16a34a;
-  background: #16a34a;
-  color: #fff;
-  box-shadow: none;
-}
-.pmd-qres-composer-modes-r132
-label[data-qres-quick-choose] input:checked + span {
-  border-color: #1d4ed8;
-  background: #1d4ed8;
-  color: #fff;
-  box-shadow: none;
-}
-.pmd-qres-composer-modes-r132
-label[data-qres-quick-later] input:checked + span {
-  border-color: #ea580c;
-  background: #ea580c;
-  color: #fff;
-  box-shadow: none;
+.pmd-qres-composer-modes-r132 label input:checked + span {
+  border-color: #1d4ed8 !important;
+  background: #1d4ed8 !important;
+  color: #fff !important;
+  box-shadow: none !important;
 }
 
-.pmd-qres-composer-table-r132 {
-  border-color: #bfdbfe;
-  background: #eff6ff;
-}
-.pmd-qres-composer-table-r132 strong {
-  color: #1d4ed8;
-}
-.pmd-qres-composer-table-r132 > svg {
-  color: #1d4ed8;
+.pmd-qres-composer-modes-r132 label > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pmd-qres-composer-save-r132,
@@ -1522,8 +1429,8 @@ label[data-qres-quick-later] input:checked + span {
   box-shadow: none;
 }
 .pmd-qres-composer-save-r132:hover {
-  background: #15803d;
   border-color: #15803d;
+  background: #15803d;
 }
 
 .pmd-qpos[data-workspace="reservations"]
@@ -1532,6 +1439,103 @@ label[data-qres-quick-later] input:checked + span {
 .pmd-qpos-table.is-reservation-filter-r129 {
   outline-color: #1d4ed8 !important;
   box-shadow: 0 0 0 4px rgba(29,78,216,.14) !important;
+}
+
+/* Past business dates remain visible but become read-only without clearing
+   any entered values. Close/Cancel stay available. */
+.pmd-qres-past-note-r136 {
+  flex: 0 0 auto;
+  padding: 8px 22px;
+  border-bottom: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: .01em;
+}
+.pmd-qres-past-note-r136[hidden] {
+  display: none !important;
+}
+.pmd-qres-quick-editor.is-past-date-r136 .pmd-qres-composer-body-r132 {
+  background: #f8fafc;
+}
+.pmd-qres-quick-editor.is-past-date-r136
+.pmd-qres-composer-body-r132 input:disabled,
+.pmd-qres-quick-editor.is-past-date-r136
+.pmd-qres-composer-body-r132 textarea:disabled {
+  opacity: 1;
+  color: #475569;
+  background: #f8fafc;
+  -webkit-text-fill-color: #475569;
+}
+.pmd-qres-quick-editor.is-past-date-r136
+.pmd-qres-composer-body-r132 button:disabled,
+.pmd-qres-quick-editor.is-past-date-r136
+.pmd-qres-composer-body-r132 label:has(input:disabled) {
+  cursor: not-allowed;
+}
+.pmd-qres-quick-editor.is-past-date-r136 .pmd-qres-composer-save-r132 {
+  opacity: .42;
+  filter: grayscale(.18);
+}
+
+/* Search keeps selected-date matches first and separates cross-date results. */
+.pmd-qres-search-group-r136 {
+  display: grid;
+  gap: 7px;
+  padding: 4px 0 2px;
+}
+.pmd-qres-search-group-r136.is-other-r136 {
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+.pmd-qres-search-heading-r136 {
+  min-height: 31px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+.pmd-qres-search-heading-r136 strong {
+  color: #111827;
+  font-size: 11.5px;
+  font-weight: 900;
+}
+.pmd-qres-search-heading-r136 span {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pmd-qres-search-empty-r136 {
+  padding: 15px 10px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 11px;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 11px;
+  font-weight: 720;
+  text-align: center;
+}
+.pmd-qres-list-loading.is-compact-r136 span {
+  height: 48px;
+}
+.pmd-qres-list-card.is-other-date-r136 {
+  border-color: #dbe3ee;
+  background: #fbfdff;
+}
+.pmd-qres-list-date-r136 {
+  display: block !important;
+  margin-top: 4px !important;
+  color: #64748b !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap;
 }
 
 /* Same two-button language as History, isolated to Reservations behavior. */
@@ -1817,4 +1821,11 @@ body.pmd-qpos-body
 }
 .pmd-qres-datebar--top {
   padding-top: 12px;
+}
+
+
+/* PMD_QRES_ASSIGNMENT_SINGLE_ROW_R136 */
+.pmd-qres-composer-assignment-r132 > .pmd-qres-composer-table-r132,
+.pmd-qres-quick-table[data-qres-quick-table] {
+  display: none !important;
 }
