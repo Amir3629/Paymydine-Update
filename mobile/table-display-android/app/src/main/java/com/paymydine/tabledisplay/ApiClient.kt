@@ -21,7 +21,7 @@ class ApiClient {
                 .put("installation_id", installationId)
                 .put(
                     "device_name",
-                    "Table Companion \${Build.MANUFACTURER} \${Build.MODEL}".trim(),
+                    ("Table Companion " + Build.MANUFACTURER + " " + Build.MODEL).trim(),
                 )
                 .put(
                     "platform",
@@ -144,7 +144,7 @@ class ApiClient {
             throw IllegalStateException(
                 result.json.optString(
                     "message",
-                    "PayMyDine request failed (\${result.status}).",
+                    "PayMyDine request failed (" + result.status + ").",
                 ),
             )
         }
