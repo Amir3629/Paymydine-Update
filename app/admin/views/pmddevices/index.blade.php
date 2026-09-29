@@ -211,6 +211,38 @@
         </div>
     </section>
 
+    {{-- PMD_TABLE_DISPLAY_V1 --}}
+    <section class="pmd-owner-section" id="table-displays">
+        <div class="pmd-owner-card" data-accent="emerald">
+            <div class="pmd-owner-card__header">
+                <div class="pmd-owner-card__icon">
+                    <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"></rect><path d="M9 7h6M9 17h6"></path></svg>
+                </div>
+                <div class="pmd-owner-card__title">
+                    <h2>{{ $pmdSettingsText('Table displays') }}</h2>
+                    <p>{{ $pmdSettingsText('Small guest-facing screens for each table: QR menu entry, order reactions, waiter-call feedback and card-payment handoff.') }}</p>
+                </div>
+                <div class="pmd-owner-card__actions">
+                    <a class="pmd-owner-action" href="{{ admin_url('pmddevices/tabledisplay') }}">{{ $pmdSettingsText('Open preview') }}</a>
+                </div>
+            </div>
+            <div class="pmd-owner-card__body">
+                <div class="pmd-owner-list">
+                    <div class="pmd-owner-list-row">
+                        <div>
+                            <strong>{{ $pmdSettingsText('PayMyDine Table Companion') }}</strong>
+                            <small>{{ $pmdSettingsText('No menu is rendered on the device. The screen stays focused on the table QR and short live reactions.') }}</small>
+                        </div>
+                        <div class="pmd-owner-meta">{{ $pmdSettingsText('Android-ready') }}</div>
+                        <div class="pmd-owner-status is-active">{{ $pmdSettingsText('Preview ready') }}</div>
+                        <a class="pmd-owner-action" href="{{ admin_url('pmddevices/tabledisplay') }}">{{ $pmdSettingsText('Preview') }}</a>
+                    </div>
+                </div>
+                <div class="pmd-owner-empty">{{ $pmdSettingsText('The native device will pair once to one table and will not store a staff password. Secure device pairing and the payment SDK bridge come after this web surface is approved.') }}</div>
+            </div>
+        </div>
+    </section>
+
     <section class="pmd-owner-section" id="cash-drawers">
         <div class="pmd-owner-card" data-accent="emerald">
             <div class="pmd-owner-card__header">
