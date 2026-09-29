@@ -80,7 +80,7 @@
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r135">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r136">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -422,7 +422,7 @@
             </div>
         </section>
 
-        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R135
+        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R136
              Exact same three-column Quick POS shell:
              Reservations | Schedule | canonical table rail. --}}
         <aside
@@ -478,7 +478,7 @@
                 </div>
             </header>
 
-            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R135
+            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R136
                  POS-native reservation create/edit surface. It stays inside the
                  middle Quick Reservations card and writes through the canonical
                  Reservations handler; no modal is used in Quick mode. --}}
@@ -492,6 +492,10 @@
                         <button type="button" class="pmd-qres-composer-close-r132" data-qres-quick-cancel aria-label="Close">
                             <svg aria-hidden="true"><use href="#pmd-composer-icon-x"/></svg>
                         </button>
+                    </div>
+
+                    <div class="pmd-qres-past-note-r136" data-qres-past-note hidden>
+                        Past date · reservation details are read-only
                     </div>
 
                     <div class="pmd-qres-composer-body-r132">
@@ -573,24 +577,17 @@
                             <div class="pmd-qres-composer-modes-r132">
                                 <label data-qres-quick-auto>
                                     <input type="radio" name="assignment_mode" value="auto" checked>
-                                    <span>Automatic table</span>
+                                    <span data-qres-auto-label>Finding table…</span>
                                 </label>
                                 <label data-qres-quick-choose>
                                     <input type="radio" name="assignment_mode" value="choose">
-                                    <span>Choose table(s)</span>
+                                    <span data-qres-choose-label>Choose table(s)</span>
                                 </label>
                                 <label data-qres-quick-later>
                                     <input type="radio" name="assignment_mode" value="later">
-                                    <span>Assign later</span>
+                                    <span data-qres-later-label>Assign later</span>
                                 </label>
                             </div>
-                            <button type="button" class="pmd-qres-quick-table pmd-qres-composer-table-r132" data-qres-quick-table>
-                                <span>
-                                    <strong data-qres-quick-table-text>Automatic</strong>
-                                    <small>Tap a table on the right to assign</small>
-                                </span>
-                                <svg aria-hidden="true"><use href="#pmd-composer-icon-chevron-down"/></svg>
-                            </button>
                         </section>
 
                         <section class="pmd-qres-composer-contact-r132">
@@ -624,7 +621,7 @@
                     <input type="hidden" name="last_name" value="">
                     <input type="hidden" name="occasion_id" value="0">
                     <input type="hidden" name="notify" value="0">
-                    <input type="hidden" name="source" value="quick-pos-reservations-r135">
+                    <input type="hidden" name="source" value="quick-pos-reservations-r136">
                     <input type="hidden" name="location_id" value="">
                     <input type="hidden" name="pmd_floor_id" value="">
                     <input type="hidden" name="pmd_floor_name" value="">
@@ -1299,7 +1296,7 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r129"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r135"></script>
+<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r136"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
