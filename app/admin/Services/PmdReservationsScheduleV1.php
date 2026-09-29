@@ -16,8 +16,14 @@ use Throwable;
  */
 final class PmdReservationsScheduleV1
 {
-    public function payload(int $locationId, string $locale): array
-    {
+    public function payload(
+        int $locationId,
+        string $locale,
+        ?string $dateFilter = null
+    ): array {
+        $dateFilter = preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', (string)$dateFilter)
+            ? (string)$dateFilter
+            : null;
         $now = Carbon::now('Europe/Berlin');
         $locale = PmdPlatformI18n::normalizeLocale($locale);
 
@@ -29,13 +35,23 @@ final class PmdReservationsScheduleV1
 
         if ($locationId > 0) {
             try {
-                $rows = Reservations_model::query()
+                $query = Reservations_model::query()
                     ->with(['tables', 'status'])
-                    ->where('location_id', $locationId)
+                    ->where('location_id', $locationId);
+
+                // PMD_QRES_DATE_SCOPED_READ_R131
+                // Quick POS asks for one business date at a time. Applying the
+                // date at SQL level avoids hydrating up to 1,500 unrelated
+                // reservations and their table/status relations on every click.
+                if ($dateFilter !== null) {
+                    $query->where('reserve_date', $dateFilter);
+                }
+
+                $rows = $query
                     ->orderBy('reserve_date', 'desc')
                     ->orderBy('reserve_time', 'desc')
                     ->orderBy('reservation_id', 'desc')
-                    ->limit(1500)
+                    ->limit($dateFilter !== null ? 500 : 1500)
                     ->get();
 
                 $reservations = $rows
