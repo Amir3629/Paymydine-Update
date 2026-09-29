@@ -47,6 +47,8 @@ class SecureStore(context: Context) {
         !host().isNullOrBlank() && !token().isNullOrBlank()
 
     companion object {
+        private const val KEY_ALIAS = "pmd-table-companion-v1"
+
         fun normalizeHost(raw: String): String {
             var value = raw.trim().trimEnd('/')
             if (!value.startsWith("https://", ignoreCase = true)) {
@@ -116,7 +118,4 @@ class SecureStore(context: Context) {
         return generator.generateKey()
     }
 
-    private companion object {
-        const val KEY_ALIAS = "pmd-table-companion-v1"
-    }
 }
