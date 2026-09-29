@@ -95,6 +95,14 @@ final class PmdInventoryReceiptAiService
         $inputPartType = $mimeType === 'application/pdf' ? 'input_file' : 'input_image';
         $mediaKey = $inputPartType === 'input_file' ? 'file_data' : 'image_url';
 
+        $mediaPart = [
+            'type' => $inputPartType,
+            $mediaKey => $dataUrl,
+        ];
+        if ($inputPartType === 'input_file') {
+            $mediaPart['filename'] = basename($absolutePath);
+        }
+
         $payload = [
             'model' => trim((string)config('pmd_ai.model', '')),
             'instructions' => 'You extract supplier document facts for a restaurant inventory review. Be literal and conservative.',
@@ -102,13 +110,19 @@ final class PmdInventoryReceiptAiService
                 'role' => 'user',
                 'content' => [
                     ['type' => 'input_text', 'text' => $prompt],
-                    ['type' => $inputPartType, $mediaKey => $dataUrl],
+                    $mediaPart,
                 ],
             ]],
             'max_output_tokens' => 1800,
-            'response_mime_type' => 'application/json',
             'store' => false,
         ];
+
+        // Gemini owns this optional transport hint. The OpenAI Responses API
+        // receives only fields it natively understands; its JSON-only behavior
+        // is driven by the extraction instructions above.
+        if ($providerName === 'gemini') {
+            $payload['response_mime_type'] = 'application/json';
+        }
 
         $result = $provider->create($payload);
         $text = trim($provider->outputText((array)($result['body'] ?? [])));
