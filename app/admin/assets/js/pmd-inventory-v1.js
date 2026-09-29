@@ -437,6 +437,31 @@
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
 
+    var form = modal.querySelector('form');
+    if (form && !state.busy) form.reset();
+
+    if (modal.matches('[data-pmd-inv-modal="purchase"]')) {
+      var purchaseLines = modal.querySelector('[data-pmd-inv-purchase-lines]');
+      var receiptStatus = modal.querySelector('[data-pmd-inv-receipt-status]');
+      var receiptId = modal.querySelector('[name="receipt_id"]');
+      if (purchaseLines) purchaseLines.innerHTML = '';
+      if (receiptStatus) {
+        receiptStatus.textContent = '';
+        receiptStatus.classList.remove('is-error');
+      }
+      if (receiptId) receiptId.value = '';
+    }
+
+    if (modal.matches('[data-pmd-inv-modal="recipe"]')) {
+      var recipeLines = modal.querySelector('[data-pmd-inv-recipe-lines]');
+      if (recipeLines) recipeLines.innerHTML = '';
+    }
+
+    if (modal.matches('[data-pmd-inv-modal="count"]')) {
+      var countLines = modal.querySelector('[data-pmd-inv-count-lines]');
+      if (countLines) countLines.innerHTML = '';
+    }
+
     if (!root.querySelector('.pmd-inv-modal:not([hidden])')) {
       document.documentElement.style.overflow = '';
     }
