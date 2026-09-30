@@ -9,3 +9,80 @@
 .pmd-table-display-pair-code strong{color:#0d6b4f;font-size:34px;line-height:1;letter-spacing:.16em;font-weight:900}
 .pmd-table-display-pair-code small{color:#718078;font-size:10px}
 [data-pmd-table-display-setup-error]{margin:0;border-radius:10px;background:#fff0ef;color:#a33737;padding:9px 10px;font-size:11px;font-weight:800}
+
+/* PMD_TABLE_DISPLAY_PERSISTENT_QR_V2
+ * Live reactions are an overlay card; the table QR remains visible.
+ */
+.pmd-table-display-screen.has-reaction .pmd-table-display-idle{
+  justify-content:flex-start;
+  padding-top:52px;
+  padding-bottom:168px;
+}
+.pmd-table-display-screen.has-reaction .pmd-table-display-qr-wrap{
+  width:min(43%,172px);
+}
+.pmd-table-display-screen.has-reaction .pmd-table-display-idle h2{
+  margin-top:10px;
+  font-size:17px;
+}
+.pmd-table-display-screen.has-reaction .pmd-table-display-idle p{
+  display:none;
+}
+.pmd-table-display-screen.has-reaction .pmd-table-display-idle>small{
+  display:none;
+}
+.pmd-table-display-reaction{
+  inset:auto 16px 16px!important;
+  min-height:118px;
+  display:grid!important;
+  grid-template-columns:58px minmax(0,1fr) auto;
+  grid-template-rows:auto auto auto;
+  column-gap:12px;
+  align-items:center;
+  justify-content:stretch;
+  padding:14px 16px!important;
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:18px;
+  box-shadow:0 16px 34px rgba(14,35,28,.24);
+  text-align:left!important;
+}
+.pmd-table-display-reaction[hidden]{
+  display:none!important;
+}
+.pmd-table-display-reaction-icon{
+  grid-row:1/4;
+  width:52px!important;
+  height:52px!important;
+  font-size:22px!important;
+}
+.pmd-table-display-reaction-table{
+  grid-column:2;
+  margin:0!important;
+  font-size:9px!important;
+}
+.pmd-table-display-reaction h2{
+  grid-column:2;
+  margin:2px 0 0!important;
+  font-size:18px!important;
+  text-align:left!important;
+}
+.pmd-table-display-reaction p{
+  grid-column:2;
+  margin:3px 0 0!important;
+  font-size:10px!important;
+  text-align:left!important;
+}
+.pmd-table-display-reaction strong{
+  grid-column:3;
+  grid-row:1/3;
+  margin:0!important;
+  font-size:20px!important;
+  white-space:nowrap;
+}
+.pmd-table-display-reaction small{
+  grid-column:3;
+  grid-row:3;
+  margin:2px 0 0!important;
+  font-size:9px!important;
+  text-align:right;
+}
