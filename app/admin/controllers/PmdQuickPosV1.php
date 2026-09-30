@@ -1044,10 +1044,22 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $defaultFloorId = (string)$floorService->defaultFloorId();
         }
 
+        /*
+         * PMD_QPOS_LEAN_LIVE_HEARTBEAT_V131
+         *
+         * The recurring heartbeat exists to reconcile physical table state.
+         * Do NOT rebuild financial/note/waiter-call signals every two seconds:
+         * push-notifications handles immediate attention events and the browser
+         * preserves existing signal fields when the lean table rows arrive.
+         *
+         * This removes the recurring 36h/600-order scan, 2-day/300-notification
+         * scan and activity reconciliation from every heartbeat.
+         */
         $tables = $this->quickPosTables(
             $locationId,
             $floorSnapshot,
-            $defaultFloorId
+            $defaultFloorId,
+            false
         );
 
         $selectedPayload = null;
@@ -1090,7 +1102,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'version' => 'pmd-quick-pos-live-v73',
             'mode' => $mode,
             'location_id' => $locationId,
-            'poll_after_ms' => 2000,
+            'poll_after_ms' => 5000,
             'revision' => sha1(
                 is_string($revisionSource) ? $revisionSource : ''
             ),
