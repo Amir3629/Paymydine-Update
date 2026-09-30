@@ -85,6 +85,8 @@ fun TableDisplayApp(
         var error by remember { mutableStateOf<String?>(null) }
         var connected by remember { mutableStateOf(true) }
         var lastPaymentEventKey by remember { mutableStateOf<String?>(null) }
+        var lastPresentedReactionKey by remember { mutableStateOf<String?>(null) }
+        var reactionVisibleUntil by remember { mutableStateOf(0L) }
         val scope = rememberCoroutineScope()
 
         suspend fun loadTables() {
@@ -114,12 +116,38 @@ fun TableDisplayApp(
 
             try {
                 val next = api.state(host, token)
-                displayState = next
+                val currentEvent = next.event
+                val nowMs = System.currentTimeMillis()
+
+                displayState =
+                    if (
+                        currentEvent.type == "idle" ||
+                        currentEvent.type == "table_unavailable"
+                    ) {
+                        next
+                    } else if (currentEvent.key != lastPresentedReactionKey) {
+                        lastPresentedReactionKey = currentEvent.key
+                        reactionVisibleUntil = nowMs + 3_800L
+                        next
+                    } else if (nowMs < reactionVisibleUntil) {
+                        next
+                    } else {
+                        next.copy(
+                            event = currentEvent.copy(
+                                type = "idle",
+                                key = "idle",
+                                headline = "Scan to view the menu",
+                                message = "",
+                                orderId = 0L,
+                                amount = 0.0,
+                            ),
+                        )
+                    }
+
                 connected = true
                 error = null
                 screen = Screen.DISPLAY
 
-                val currentEvent = next.event
                 if (
                     currentEvent.type == "payment_requested" &&
                     currentEvent.key.isNotBlank() &&
@@ -574,14 +602,7 @@ private fun IdleDisplay(
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "Open your camera and scan the QR code.",
-                color = PmdMuted,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(26.dp))
+            Spacer(Modifier.height(20.dp))
             Text(
                 "Powered by PayMyDine",
                 color = Color(0xFF7B8581),
