@@ -194,6 +194,11 @@ final class PmdInventoryStockCatalog
             ['Sausage', 'sausages|bratwurst|sosis', 'global'],
             ['Sucuk', 'sujuk|sucuk sausage', 'turkish|middle eastern'],
             ['Chorizo', 'spanish chorizo|mexican chorizo', 'spanish|mexican'],
+            ['Bratwurst', 'bratwurst sausage|grillwurst', 'german|central european'],
+            ['Weisswurst', 'weißwurst|white sausage', 'german|bavarian'],
+            ['Frankfurter', 'frankfurter sausage|wiener würstchen|wiener wurstchen', 'german|central european'],
+            ['Leberkase', 'leberkäse|meat loaf bavarian', 'german|bavarian'],
+            ['Pork schnitzel', 'schweineschnitzel|schnitzel pork', 'german|austrian|central european'],
         ]);
 
         self::group($items, 'Poultry', 'g', 'kg', 1000, [
@@ -259,6 +264,9 @@ final class PmdInventoryStockCatalog
             ['Goat cheese', 'chevre|keçi peyniri', 'mediterranean|french'],
             ['Blue cheese', 'gorgonzola|roquefort|stilton', 'european'],
             ['Labneh', 'labne|strained yogurt cheese|لبنة', 'arabic|turkish|middle eastern'],
+            ['Quark', 'speisequark|magerquark', 'german|central european|bakery'],
+            ['Sour cream', 'saure sahne|sauerrahm', 'german|central european|global'],
+            ['Creme fraiche', 'crème fraîche|creme fraiche', 'german|french|european'],
         ]);
 
         self::group($items, 'Dairy & eggs', 'piece', 'tray', null, [
@@ -309,6 +317,9 @@ final class PmdInventoryStockCatalog
             ['Sugar', 'white sugar|granulated sugar|seker|şeker|شکر|سكر', 'global|bakery|bar'],
             ['Brown sugar', 'light brown sugar|dark brown sugar', 'bakery|bar'],
             ['Icing sugar', 'powdered sugar|confectioners sugar', 'bakery'],
+            ['Spaetzle', 'spätzle|spatzle|egg noodles german', 'german|swabian|central european'],
+            ['Potato dumplings', 'kartoffelknödel|kartoffelknoedel|klöße|kloesse', 'german|central european'],
+            ['Bread dumplings', 'semmelknödel|semmelknoedel', 'german|bavarian|austrian'],
         ]);
 
         self::group($items, 'Nuts & seeds', 'g', 'kg', 1000, [
@@ -361,6 +372,17 @@ final class PmdInventoryStockCatalog
             ['Sweet chili sauce', 'sweet chilli sauce', 'thai|asian'],
             ['BBQ sauce', 'barbecue sauce', 'american|bbq'],
             ['Worcestershire sauce', 'worcester sauce', 'global'],
+            ['German mustard', 'mittelscharfer senf|senf mittelscharf|bavarian mustard', 'german|central european'],
+            ['Curry ketchup', 'curryketchup|currywurst sauce', 'german|fast food'],
+            ['Remoulade', 'remouladensauce|remoulade sauce', 'german|european'],
+            ['Horseradish sauce', 'meerrettich|meerrettichsauce', 'german|central european'],
+            ['Applesauce', 'apfelmus|apple sauce', 'german|central european'],
+        ]);
+
+        self::group($items, 'German deli & pantry', 'g', 'kg', 1000, [
+            ['Sauerkraut', 'sauerkraut|fermented cabbage', 'german|central european'],
+            ['Prepared red cabbage', 'rotkohl|blaukraut|cooked red cabbage', 'german|central european'],
+            ['Gherkins', 'gewürzgurken|gewurzgurken|essiggurken|pickled cucumbers', 'german|central european'],
         ]);
 
         self::group($items, 'Middle Eastern pantry', 'g', 'kg', 1000, [
@@ -443,6 +465,10 @@ final class PmdInventoryStockCatalog
             ['Croissant', 'butter croissant', 'french|cafe|bakery'],
             ['Bagel', 'bagels', 'cafe|bakery'],
             ['Brioche bun', 'brioche roll', 'burger|bakery'],
+            ['Pretzel', 'brezel|laugenbrezel|pretzel', 'german|bakery'],
+            ['Bread roll', 'brötchen|broetchen|semmel|schrippe', 'german|bakery'],
+            ['Rye bread', 'roggenbrot|rye loaf', 'german|bakery'],
+            ['Sourdough bread', 'sauerteigbrot|sourdough loaf', 'german|bakery'],
         ]);
 
         self::group($items, 'Bakery & dessert', 'g', 'kg', 1000, [
@@ -550,6 +576,8 @@ final class PmdInventoryStockCatalog
             ['Spring rolls', 'frozen spring roll', 'asian'],
             ['Edamame frozen', 'frozen edamame', 'japanese|asian'],
             ['Mixed berries frozen', 'frozen berries', 'dessert|smoothie'],
+            ['Potato croquettes', 'kroketten|kartoffelkroketten|frozen croquettes', 'german|fast food|central european'],
+            ['Frozen schnitzel', 'tiefkühl schnitzel|tiefkuehl schnitzel|breaded schnitzel frozen', 'german|austrian|central european'],
         ]);
 
         self::group($items, 'Packaging', 'piece', 'case', null, [
