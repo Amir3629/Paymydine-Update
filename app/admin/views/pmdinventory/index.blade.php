@@ -204,6 +204,23 @@
                 <form data-pmd-inv-form="item">
                     <input type="hidden" name="item_id" value="">
 
+                    {{-- PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10 --}}
+                    <section class="pmd-inv-pos-browser pmd-inv-pos-browser--catalog" data-pmd-inv-visual-browser="catalog">
+                        <div class="pmd-inv-pos-browser__top">
+                            <div>
+                                <span>Quick add</span>
+                                <strong>Tap what you buy</strong>
+                            </div>
+                            <label class="pmd-inv-pos-browser__search">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                                <input type="search" placeholder="Search food, drinks, supplies…" autocomplete="off" data-pmd-inv-browser-search="catalog">
+                            </label>
+                        </div>
+                        <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="catalog"></div>
+                        <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="catalog"></div>
+                        <button type="button" class="pmd-inv-pos-browser__more" data-pmd-inv-browser-more="catalog" hidden>Show more</button>
+                    </section>
+
                     <div class="pmd-inv-r6-item-basic">
                         <div class="pmd-inv-r6-name-field">
                             <label>
@@ -288,6 +305,19 @@
                         <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-calendar"/></svg><b>Purchase date</b></span><input type="date" name="purchased_at" value="{{ now()->toDateString() }}"></label>
                     </div>
 
+                    <section class="pmd-inv-pos-browser pmd-inv-pos-browser--compact" data-pmd-inv-visual-browser="purchase">
+                        <div class="pmd-inv-pos-browser__top">
+                            <div><span>Quick add</span><strong>Tap received items</strong></div>
+                            <label class="pmd-inv-pos-browser__search">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                                <input type="search" placeholder="Search catalogue…" autocomplete="off" data-pmd-inv-browser-search="purchase">
+                            </label>
+                        </div>
+                        <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="purchase"></div>
+                        <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="purchase"></div>
+                        <button type="button" class="pmd-inv-pos-browser__more" data-pmd-inv-browser-more="purchase" hidden>Show more</button>
+                    </section>
+
                     <div class="pmd-inv-lines-head">
                         <div><strong class="pmd-inv-card-section-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-stock"/></svg><span>Items received</span></strong></div>
                         <button type="button" class="pmd-inv-mini-btn" data-pmd-inv-add-purchase-line>+ Line</button>
@@ -311,8 +341,21 @@
                     <button type="button" class="pmd-inv-icon-btn" data-pmd-inv-close aria-label="Close">×</button>
                 </header>
                 <form data-pmd-inv-form="waste">
+                    <section class="pmd-inv-pos-browser pmd-inv-pos-browser--compact pmd-inv-pos-browser--stock" data-pmd-inv-visual-browser="waste">
+                        <div class="pmd-inv-pos-browser__top">
+                            <div><span>Choose stock</span><strong>What was wasted?</strong></div>
+                            <label class="pmd-inv-pos-browser__search">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                                <input type="search" placeholder="Search your stock…" autocomplete="off" data-pmd-inv-browser-search="waste">
+                            </label>
+                        </div>
+                        <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="waste"></div>
+                        <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="waste"></div>
+                        <button type="button" class="pmd-inv-pos-browser__more" data-pmd-inv-browser-more="waste" hidden>Show more</button>
+                    </section>
+
                     <div class="pmd-inv-form-grid">
-                        <label class="is-wide"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-box"/></svg><b>Stock item</b></span><select name="item_id" required data-pmd-inv-item-select data-pmd-waste-item><option value="">Choose item</option></select></label>
+                        <label class="is-wide pmd-inv-pos-browser__bound-field"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-box"/></svg><b>Stock item</b></span><select name="item_id" required data-pmd-inv-item-select data-pmd-waste-item><option value="">Choose item</option></select></label>
                         <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-scale"/></svg><b>Quantity</b></span><input type="number" min="0.0001" step="0.0001" name="quantity" required data-pmd-inv-stepper data-pmd-inv-stepper-step="1"></label>
                         <label><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-ruler"/></svg><b>Unit</b></span><select name="quantity_unit" data-pmd-waste-unit><option value="">Choose item first</option></select></label>
                         <label class="is-wide"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-trash"/></svg><b>Reason</b></span><select name="reason">@foreach($wasteReasons as $reason)<option value="{{ $reason }}">{{ $reason }}</option>@endforeach</select></label>
@@ -341,6 +384,19 @@
                     <div class="pmd-inv-form-grid">
                         <label class="is-wide"><span class="pmd-inv-card-field-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-menu"/></svg><b>Menu item</b></span><select name="menu_id" required data-pmd-inv-menu-select><option value="">Choose menu item</option></select></label>
                     </div>
+
+                    <section class="pmd-inv-pos-browser pmd-inv-pos-browser--compact pmd-inv-pos-browser--stock" data-pmd-inv-visual-browser="recipe">
+                        <div class="pmd-inv-pos-browser__top">
+                            <div><span>Ingredients</span><strong>Tap stock used in this menu item</strong></div>
+                            <label class="pmd-inv-pos-browser__search">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                                <input type="search" placeholder="Search your stock…" autocomplete="off" data-pmd-inv-browser-search="recipe">
+                            </label>
+                        </div>
+                        <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="recipe"></div>
+                        <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="recipe"></div>
+                        <button type="button" class="pmd-inv-pos-browser__more" data-pmd-inv-browser-more="recipe" hidden>Show more</button>
+                    </section>
 
                     <div class="pmd-inv-lines-head">
                         <div><strong class="pmd-inv-card-section-title"><svg aria-hidden="true"><use href="#pmd-inv-icon-recipe"/></svg><span>Used per sale</span></strong></div>
