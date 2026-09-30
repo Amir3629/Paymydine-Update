@@ -2825,6 +2825,38 @@
      * Re-fit after two frames so the shared engine measures the real
      * full-screen viewport instead of its historical 560px initial frame. */
     var instance = exactFloorInstance();
+
+    /* PMD_QPOS_LAZY_FLOOR_V130
+     * The hidden Floor is seeded from the already-loaded POS bootstrap so
+     * /admin/pos can paint without a second synchronous dashboard/layout pass.
+     * On the first explicit Map open, refresh the existing canonical Floor
+     * instance in the background. PmdSharedFloorMultiFloorV1 already wraps
+     * refresh() and re-applies the active-floor registry afterwards. */
+    if (
+      instance &&
+      typeof instance.refresh === 'function' &&
+      !instance.__pmdQposCanonicalFloorLoadedV130
+    ) {
+      instance.__pmdQposCanonicalFloorLoadedV130 = true;
+
+      Promise.resolve(instance.refresh()).then(function () {
+        if (
+          state.floorMapOpen &&
+          typeof instance.fit === 'function'
+        ) {
+          window.requestAnimationFrame(function () {
+            instance.fit();
+          });
+        }
+      }).catch(function (error) {
+        instance.__pmdQposCanonicalFloorLoadedV130 = false;
+        console.warn(
+          '[PMD Quick POS V130] Canonical Floor refresh failed',
+          error
+        );
+      });
+    }
+
     if (instance && typeof instance.fit === 'function') {
       window.requestAnimationFrame(function () {
         window.requestAnimationFrame(function () {
