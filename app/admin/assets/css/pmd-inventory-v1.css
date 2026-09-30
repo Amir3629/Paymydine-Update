@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R9
+/* PMD_INVENTORY_CONTROL_R10
  * A practical stock ledger: dense enough for operations, calm enough for daily use.
  */
 :root {
@@ -5119,5 +5119,645 @@ html body.page.pmd-inventory-page #pmd-inventory-v1
   .pmd-inv-modal .pmd-inv-btn {
     min-width: 0 !important;
     flex: 1 1 140px !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10
+   A tactile supermarket/self-checkout-style catalogue reused across
+   add stock, purchases, waste, recipes, storage, counts and shopping.
+   Deterministic local visual tiles keep all 476+ catalogue items fast and
+   available without depending on third-party image/CDN availability.
+   ============================================================ */
+
+html body.page.pmd-inventory-page #pmd-inventory-v1 {
+  --pmd-pos-jade: #08745d;
+  --pmd-pos-jade-dark: #055443;
+  --pmd-pos-ink: #123b32;
+  --pmd-pos-line: #d6e5ec;
+  --pmd-pos-soft: #f8fcfa;
+}
+
+/* The old narrow suggestion dropdown is replaced by the visual catalogue. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r6-suggestions {
+  display: none !important;
+}
+
+/* Give add-item enough room for the checkout grid while retaining the R9 card. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-modal__sheet--item[data-pmd-card-language-v1="inventory"] {
+  width: min(980px, calc(100vw - 44px)) !important;
+  max-width: 980px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser {
+  box-sizing: border-box !important;
+  margin: 4px 36px 24px !important;
+  padding: 16px !important;
+  border: 1px solid rgba(191,216,226,.92) !important;
+  border-radius: 20px !important;
+  background:
+    radial-gradient(circle at 6% 0%, rgba(209,246,226,.72), transparent 30%),
+    radial-gradient(circle at 95% 4%, rgba(220,241,255,.78), transparent 34%),
+    linear-gradient(180deg,rgba(255,255,255,.99),rgba(248,252,251,.98)) !important;
+  box-shadow:
+    0 18px 42px rgba(23,61,53,.075),
+    inset 0 1px 0 rgba(255,255,255,.98) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser[hidden] {
+  display: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser--compact {
+  margin-top: 0 !important;
+  margin-bottom: 18px !important;
+  padding: 14px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 18px !important;
+  margin: 0 0 12px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__top > div > span,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__top > div > strong {
+  display: block !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__top > div > span {
+  margin-bottom: 2px !important;
+  color: #276fbc !important;
+  font-size: 10.5px !important;
+  line-height: 1.1 !important;
+  font-weight: 900 !important;
+  letter-spacing: .06em !important;
+  text-transform: uppercase !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__top > div > strong {
+  color: var(--pmd-pos-ink) !important;
+  font-size: 18px !important;
+  line-height: 1.15 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.02em !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__search {
+  position: relative !important;
+  display: block !important;
+  width: min(340px,44%) !important;
+  min-width: 220px !important;
+  margin: 0 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__search > svg {
+  position: absolute !important;
+  left: 15px !important;
+  top: 50% !important;
+  z-index: 2 !important;
+  width: 18px !important;
+  height: 18px !important;
+  transform: translateY(-50%) !important;
+  fill: none !important;
+  stroke: #6c8490 !important;
+  stroke-width: 1.8 !important;
+  pointer-events: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__search > input {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 15px 0 44px !important;
+  border: 1px solid #cbdde6 !important;
+  border-radius: 16px !important;
+  outline: 0 !important;
+  background: rgba(255,255,255,.96) !important;
+  color: #173b35 !important;
+  font-size: 13.5px !important;
+  font-weight: 720 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.98) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__search > input:focus {
+  border-color: rgba(8,116,93,.48) !important;
+  box-shadow: 0 0 0 4px rgba(8,116,93,.075) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__categories {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  margin: 0 0 14px !important;
+  padding: 2px 0 4px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: thin !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__categories > button {
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  box-sizing: border-box !important;
+  min-height: 42px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border: 1px solid #d2e1e7 !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.94) !important;
+  color: #36554e !important;
+  font-size: 12.5px !important;
+  line-height: 1 !important;
+  font-weight: 810 !important;
+  box-shadow: 0 3px 10px rgba(38,79,67,.035) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__categories > button > span {
+  font-size: 16px !important;
+  line-height: 1 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__categories > button.is-active {
+  border-color: #08745d !important;
+  background: linear-gradient(180deg,#0b8167,#08705a) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 19px rgba(8,116,93,.16) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill,minmax(142px,1fr)) !important;
+  gap: 12px !important;
+  align-items: stretch !important;
+  min-height: 0 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser--compact .pmd-inv-pos-browser__grid {
+  grid-template-columns: repeat(auto-fill,minmax(132px,1fr)) !important;
+  max-height: 338px !important;
+  padding-right: 2px !important;
+  overflow: auto !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  min-height: 172px !important;
+  margin: 0 !important;
+  padding: 10px !important;
+  overflow: hidden !important;
+  border: 1px solid #d5e3e9 !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.96) !important;
+  color: #17372f !important;
+  text-align: left !important;
+  box-shadow:
+    0 8px 20px rgba(35,73,63,.055),
+    inset 0 1px 0 rgba(255,255,255,.98) !important;
+  cursor: pointer !important;
+  transition:
+    transform .12s ease,
+    border-color .12s ease,
+    box-shadow .12s ease !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: #94c7b8 !important;
+  box-shadow: 0 14px 28px rgba(22,76,59,.10) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card:active {
+  transform: translateY(0) scale(.985) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card.is-selected {
+  border: 2px solid #08745d !important;
+  box-shadow: 0 0 0 4px rgba(8,116,93,.08),0 14px 30px rgba(22,76,59,.10) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card.is-added {
+  border-color: #b9d8ca !important;
+  background: linear-gradient(180deg,#fbfffc,#f2faf5) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card__copy {
+  display: block !important;
+  min-width: 0 !important;
+  padding: 9px 2px 1px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card__copy > strong,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card__copy > small {
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card__copy > strong {
+  color: #163b32 !important;
+  font-size: 13.5px !important;
+  line-height: 1.25 !important;
+  font-weight: 880 !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card__copy > small {
+  margin-top: 3px !important;
+  color: #758881 !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+  font-weight: 670 !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-card__badge {
+  position: absolute !important;
+  top: 9px !important;
+  right: 9px !important;
+  z-index: 2 !important;
+  min-height: 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 8px !important;
+  border-radius: 999px !important;
+  background: rgba(7,92,71,.92) !important;
+  color: #fff !important;
+  font-size: 8.5px !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: .02em !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__more {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 44px !important;
+  margin: 12px 0 0 !important;
+  padding: 0 14px !important;
+  border: 1px solid #cfdee5 !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.86) !important;
+  color: #296052 !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+  cursor: pointer !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__more[hidden] {
+  display: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__empty {
+  grid-column: 1 / -1 !important;
+  min-height: 96px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #78908a !important;
+  font-size: 12.5px !important;
+  font-weight: 730 !important;
+}
+
+/* Visual tile used everywhere. It behaves like an image while remaining local,
+   instant and deterministic for the entire catalogue. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.86) !important;
+  background:
+    radial-gradient(circle at 28% 18%,rgba(255,255,255,.96),rgba(255,255,255,0) 34%),
+    linear-gradient(145deg,#e8f7ef,#d8edf7) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.96),
+    0 8px 18px rgba(28,75,61,.075) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: auto -18% -45% 28% !important;
+  height: 70% !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.34) !important;
+  transform: rotate(-12deg) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual > span {
+  position: relative !important;
+  z-index: 1 !important;
+  display: block !important;
+  filter: saturate(1.08) drop-shadow(0 4px 4px rgba(40,58,51,.08)) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.is-lg {
+  width: 100% !important;
+  height: 94px !important;
+  border-radius: 14px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.is-lg > span {
+  font-size: 56px !important;
+  line-height: 1 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.is-sm {
+  width: 54px !important;
+  height: 54px !important;
+  border-radius: 15px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.is-sm > span {
+  font-size: 30px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.is-xs {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 13px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.is-xs > span {
+  font-size: 23px !important;
+}
+
+/* Distinct shelf colours make category scanning fast like a supermarket POS. */
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-item-visual.is-fresh {
+  background: radial-gradient(circle at 28% 18%,#fff,transparent 34%),linear-gradient(145deg,#e8f9e7,#d4f0dc) !important;
+}
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-item-visual.is-protein {
+  background: radial-gradient(circle at 28% 18%,#fff,transparent 34%),linear-gradient(145deg,#ffeae8,#f5d7d3) !important;
+}
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-item-visual.is-dairy {
+  background: radial-gradient(circle at 28% 18%,#fff,transparent 34%),linear-gradient(145deg,#eef5ff,#dcebf9) !important;
+}
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-item-visual.is-pantry {
+  background: radial-gradient(circle at 28% 18%,#fff,transparent 34%),linear-gradient(145deg,#fff4dc,#f6e8c5) !important;
+}
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-item-visual.is-bakery {
+  background: radial-gradient(circle at 28% 18%,#fff,transparent 34%),linear-gradient(145deg,#fff0e4,#f2ddc9) !important;
+}
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-item-visual.is-drinks {
+  background: radial-gradient(circle at 28% 18%,#fff,transparent 34%),linear-gradient(145deg,#e4f6ff,#d7eafc) !important;
+}
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-item-visual.is-frozen {
+  background: radial-gradient(circle at 28% 18%,#fff,transparent 34%),linear-gradient(145deg,#edf6ff,#dceeff) !important;
+}
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-item-visual.is-supplies {
+  background: radial-gradient(circle at 28% 18%,#fff,transparent 34%),linear-gradient(145deg,#f1effb,#e2def2) !important;
+}
+
+/* Waste now chooses with image cards; the underlying select remains in the
+   form for the backend but is intentionally not part of the visual UI. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__bound-field {
+  display: none !important;
+}
+
+/* Storage / dashboard rows use the same visual identity. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-stock-item-cell {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-width: 0 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-stock-item-cell > div {
+  min-width: 0 !important;
+}
+
+/* Next-order rail supports image + copy + action. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r6-order-row {
+  grid-template-columns: 42px minmax(0,1fr) auto !important;
+  gap: 10px !important;
+}
+
+/* Shopping list becomes product cards instead of accounting rows. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-shopping-list {
+  display: grid !important;
+  grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  gap: 10px !important;
+  padding-top: 6px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-shopping-row--visual {
+  min-height: 92px !important;
+  display: grid !important;
+  grid-template-columns: 54px minmax(0,1fr) auto !important;
+  grid-template-rows: auto auto !important;
+  gap: 4px 12px !important;
+  align-items: center !important;
+  padding: 12px !important;
+  border: 1px solid #dbe7ec !important;
+  border-radius: 17px !important;
+  background: rgba(255,255,255,.90) !important;
+  box-shadow: 0 6px 18px rgba(26,65,55,.045) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-shopping-row--visual > .pmd-inv-item-visual {
+  grid-row: 1 / span 2 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-shopping-row--visual > div {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-shopping-row--visual > span {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  font-size: 10.5px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-shopping-row--visual > b {
+  grid-column: 3 !important;
+  grid-row: 1 / span 2 !important;
+  align-self: center !important;
+  padding: 8px 11px !important;
+  border-radius: 12px !important;
+  background: #eef8f4 !important;
+  color: #08705a !important;
+  font-size: 12px !important;
+  text-align: center !important;
+}
+
+/* Physical count rows keep the operational numbers but gain visual recognition. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-count-row__item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-count-row__item > strong {
+  min-width: 0 !important;
+  color: #273244 !important;
+  font-size: 14px !important;
+  font-weight: 850 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-count-row__item small {
+  display: block !important;
+  margin-top: 2px !important;
+  color: #7c8c8a !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
+/* The browser is the main action surface, so manual fields feel secondary. */
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-modal__sheet--item .pmd-inv-r6-item-basic {
+  padding-top: 2px !important;
+}
+
+@media (max-width: 980px) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser__grid,
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser--compact .pmd-inv-pos-browser__grid {
+    grid-template-columns: repeat(auto-fill,minmax(128px,1fr)) !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-shopping-list {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 820px) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser {
+    margin-left: 18px !important;
+    margin-right: 18px !important;
+    padding: 12px !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser__top {
+    align-items: stretch !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser__search {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser__grid,
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser--compact .pmd-inv-pos-browser__grid {
+    grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-card {
+    min-height: 154px !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-item-visual.is-lg {
+    height: 82px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser__grid,
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser--compact .pmd-inv-pos-browser__grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-card {
+    min-height: 150px !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-shopping-row--visual {
+    grid-template-columns: 46px minmax(0,1fr) !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-shopping-row--visual > b {
+    grid-column: 2 !important;
+    grid-row: 3 !important;
+    justify-self: start !important;
   }
 }
