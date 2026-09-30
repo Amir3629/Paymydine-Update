@@ -1,0 +1,139 @@
+name: PayMyDine Table Companion Android V1
+
+on:
+  push:
+    branches: [feature/table-display-v1]
+    paths:
+      - 'mobile/table-display-android/**'
+      - 'app/Services/PmdTableDisplayService.php'
+      - 'app/Services/PmdTableDisplayPairingService.php'
+      - 'app/Http/Controllers/PmdTableDisplayAdminSetupController.php'
+      - 'app/Http/Controllers/PmdTableDisplayPublicController.php'
+      - 'app/main/routes/pmd-table-display-v1.php'
+      - 'app/admin/views/pmddevices/table_display.blade.php'
+      - 'app/admin/assets/js/pmd-table-display-v1.js'
+      - 'app/admin/assets/css/pmd-table-display-v1.css'
+      - '.github/workflows/table-display-android-v1.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pmd-table-companion-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  server-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Table Companion server syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/Services/PmdTableDisplayService.php
+          php -l app/Services/PmdTableDisplayPairingService.php
+          php -l app/Http/Controllers/PmdTableDisplayAdminSetupController.php
+          php -l app/Http/Controllers/PmdTableDisplayPublicController.php
+          php -l app/main/routes/pmd-table-display-v1.php
+          node --check app/admin/assets/js/pmd-table-display-v1.js
+          grep -Fq 'ecc=H' app/Services/PmdTableDisplayService.php
+          grep -Fq 'pmd-table-display-qr-logo' app/admin/views/pmddevices/table_display.blade.php
+          grep -Fq 'pair_table_display' app/Services/PmdTableDisplayPairingService.php
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platform-tools' 'platforms;android-36' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Restore stable Table Companion preview signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: paymydine-table-companion-preview-keystore-v1
+
+      - name: Prepare stable preview key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
+            keytool -genkeypair               -keystore "$HOME/.android/debug.keystore"               -storepass android               -alias androiddebugkey               -keypass android               -keyalg RSA               -keysize 2048               -validity 10000               -dname "CN=PayMyDine Table Companion Preview,O=PayMyDine,C=DE"               >/dev/null 2>&1
+          fi
+
+      - name: Build Table Companion APK
+        working-directory: mobile/table-display-android
+        run: gradle --no-daemon assembleDebug
+
+      - name: Android lint
+        working-directory: mobile/table-display-android
+        run: gradle --no-daemon lintDebug
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_IN="mobile/table-display-android/app/build/outputs/apk/debug/app-debug.apk"
+          APK_OUT="mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk"
+          test -f "$APK_IN"
+          cp "$APK_IN" "$APK_OUT"
+          sha256sum "$APK_OUT" > "$APK_OUT.sha256"
+
+      - name: Verify package and version
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          BADGING="$("$AAPT" dump badging "$APK" | head -1)"
+          echo "$BADGING"
+          grep -Fq "package: name='com.paymydine.tabledisplay.preview'" <<<"$BADGING"
+          grep -Fq "versionCode='3'" <<<"$BADGING"
+          grep -Fq "versionName='0.1.2-table-companion-debug'" <<<"$BADGING"
+          sha256sum "$APK"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paymydine-table-companion-v1
+          path: |
+            mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk
+            mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish preview APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/table-display-v1'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pmd-table-display-preview
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "PayMyDine Table Companion Preview"               --notes "Preview APK for the dedicated PayMyDine tabletop display."               --prerelease
+          fi
+          gh release upload "$TAG"             mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk             mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
