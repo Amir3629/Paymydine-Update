@@ -617,83 +617,138 @@ private fun ReactionDisplay(
             "table_unavailable" -> "!"
             else -> "✓"
         }
+    val showQr = currentEvent.type != "table_unavailable"
+    val qr = remember(state.table.menuUrl) {
+        generateQrCode(state.table.menuUrl)
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(background)
-            .padding(28.dp),
+            .background(PmdCream)
+            .padding(18.dp),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.13f)),
-                contentAlignment = Alignment.Center,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
             ) {
+                BrandMark(28.dp)
                 Text(
-                    symbol,
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize =
-                        if (symbol.length > 1) 18.sp else 46.sp,
+                    state.restaurantName,
+                    color = Color(0xFF32453D),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
                 )
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 state.table.name.uppercase(),
-                color = Color.White.copy(alpha = 0.72f),
+                color = Color(0xFF486057),
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 13.sp,
-                letterSpacing = 0.8.sp,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                currentEvent.headline,
-                color = Color.White,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 31.sp,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                currentEvent.message,
-                color = Color.White.copy(alpha = 0.82f),
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center,
+                letterSpacing = 0.7.sp,
             )
 
-            if (currentEvent.amount > 0.0) {
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    formatMoney(currentEvent.amount, currentEvent.currency),
-                    color = Color.White,
-                    fontWeight = FontWeight.Black,
-                    fontSize = 34.sp,
+            if (showQr) {
+                Spacer(Modifier.height(10.dp))
+                QrWithLogo(
+                    qr = qr,
+                    modifier = Modifier.size(188.dp),
                 )
+                Spacer(Modifier.height(12.dp))
+            } else {
+                Spacer(Modifier.height(34.dp))
             }
 
-            if (currentEvent.orderId > 0) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = background,
+                ),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(66.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.13f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            symbol,
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize =
+                                if (symbol.length > 1) 13.sp else 31.sp,
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(
+                            currentEvent.headline,
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 22.sp,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            currentEvent.message,
+                            color = Color.White.copy(alpha = 0.82f),
+                            fontSize = 13.sp,
+                        )
+
+                        if (currentEvent.orderId > 0) {
+                            Spacer(Modifier.height(7.dp))
+                            Text(
+                                "Order #" + currentEvent.orderId,
+                                color = Color.White.copy(alpha = 0.64f),
+                                fontSize = 10.sp,
+                            )
+                        }
+                    }
+
+                    if (currentEvent.amount > 0.0) {
+                        Text(
+                            formatMoney(
+                                currentEvent.amount,
+                                currentEvent.currency,
+                            ),
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 23.sp,
+                            textAlign = TextAlign.End,
+                        )
+                    }
+                }
+            }
+
+            if (showQr) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Order #" + currentEvent.orderId,
-                    color = Color.White.copy(alpha = 0.65f),
-                    fontSize = 12.sp,
+                    "QR stays available while this message is shown.",
+                    color = PmdMuted,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center,
                 )
             }
         }
 
         ConnectionBadge(
             connected = connected,
-            light = true,
             modifier = Modifier.align(Alignment.BottomStart),
         )
     }
