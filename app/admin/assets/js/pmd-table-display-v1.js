@@ -28,6 +28,8 @@
   var selectedState = boot.selected || null;
   var simulationUntil = 0;
   var requestSerial = 0;
+  var lastPresentedReactionKey = '';
+  var liveReactionUntil = 0;
 
   function money(amount, currency) {
     try {
@@ -92,6 +94,30 @@
       reactionOrder.hidden = orderId < 1;
       reactionOrder.textContent = orderId > 0 ? ('Order #' + orderId) : '';
     }
+  }
+
+  function livePresentationEvent(event) {
+    event = event || {type:'idle', key:'idle'};
+    var type = String(event.type || 'idle');
+    if (type === 'idle' || type === 'table_unavailable') return event;
+
+    var key = String(event.key || (type + '-unknown'));
+    var now = Date.now();
+
+    if (key !== lastPresentedReactionKey) {
+      lastPresentedReactionKey = key;
+      liveReactionUntil = now + 3800;
+      return event;
+    }
+
+    if (now < liveReactionUntil) return event;
+
+    return {
+      type:'idle',
+      key:'idle',
+      headline:'Scan to view the menu',
+      message:''
+    };
   }
 
   function simulate(type) {
@@ -193,7 +219,7 @@
 
       selectedState = payload;
       renderIdentity(payload);
-      if (Date.now() >= simulationUntil) renderEvent(payload.event || {type:'idle'}, payload);
+      if (Date.now() >= simulationUntil) renderEvent(livePresentationEvent(payload.event || {type:'idle'}), payload);
       setLive(true, 'Live');
       if (lastSync) lastSync.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
     } catch (error) {
@@ -205,6 +231,8 @@
   if (tableSelect) {
     tableSelect.addEventListener('change', function () {
       simulationUntil = 0;
+      lastPresentedReactionKey = '';
+      liveReactionUntil = 0;
       var url = new URL(window.location.href);
       url.searchParams.set('table', tableSelect.value);
       window.history.replaceState({}, '', url.toString());
@@ -221,7 +249,7 @@
     });
   });
 
-  if (selectedState) renderEvent(selectedState.event || {type:'idle'}, selectedState);
+  if (selectedState) renderEvent(livePresentationEvent(selectedState.event || {type:'idle'}), selectedState);
   setLive(true, 'Live');
   refresh();
   window.setInterval(refresh, 2000);
