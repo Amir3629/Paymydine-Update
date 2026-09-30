@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R9 */
+/* PMD_INVENTORY_CONTROL_R10 */
 (function () {
   'use strict';
 
@@ -27,7 +27,15 @@
     search: '',
     recipeSearch: '',
     commonSearch: '',
-    shoppingDays: 1
+    shoppingDays: 1,
+    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10
+    // Each workflow keeps its own category/search/visible-card state.
+    browsers: {
+      catalog: {query: '', section: 'Popular', limit: 18},
+      purchase: {query: '', section: 'Popular', limit: 12},
+      waste: {query: '', section: 'All', limit: 12},
+      recipe: {query: '', section: 'All', limit: 12}
+    }
   };
 
   function esc(value) {
@@ -37,6 +45,377 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  /* ============================================================
+     PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10
+     One visual stock language reused by add, purchase, waste, recipe,
+     storage rows, count rows and shopping. No remote image service is used:
+     every catalogue item gets a deterministic item/category visual instantly.
+     ============================================================ */
+
+  var browserSections = [
+    {key:'Popular', label:'Popular', icon:'★'},
+    {key:'All', label:'All', icon:'▦'},
+    {key:'Fresh', label:'Fresh', icon:'🥬'},
+    {key:'Protein', label:'Meat & fish', icon:'🥩'},
+    {key:'Dairy', label:'Dairy', icon:'🧀'},
+    {key:'Pantry', label:'Pantry', icon:'🍚'},
+    {key:'Bakery', label:'Bakery', icon:'🥖'},
+    {key:'Drinks', label:'Drinks', icon:'🥤'},
+    {key:'Frozen', label:'Frozen', icon:'❄️'},
+    {key:'Supplies', label:'Supplies', icon:'📦'}
+  ];
+
+  var popularCatalogNames = [
+    'Tomato','Onion','Garlic','Potato','Lemon','Cucumber','Lettuce',
+    'Chicken breast','Beef mince','Eggs','Milk','Butter','Mozzarella',
+    'White rice','Wheat flour','Olive oil','Spaghetti','French fries',
+    'Coffee beans','Still water','Cola','Beer','Paper bag','Napkin'
+  ];
+
+  function browserState(mode) {
+    mode = String(mode || 'catalog');
+    if (!state.browsers[mode]) {
+      state.browsers[mode] = {query:'', section:'All', limit:12};
+    }
+    return state.browsers[mode];
+  }
+
+  function stockSection(category) {
+    category = String(category || '');
+    if (['Produce','Fruit','Fresh herbs'].indexOf(category) !== -1) return 'Fresh';
+    if (['Meat','Poultry','Seafood'].indexOf(category) !== -1) return 'Protein';
+    if (category === 'Dairy & eggs') return 'Dairy';
+    if ([
+      'Spices','Dry goods','Nuts & seeds','Oils & condiments',
+      'Middle Eastern pantry','Asian pantry','Indian pantry',
+      'Mexican & Latin pantry'
+    ].indexOf(category) !== -1) return 'Pantry';
+    if (['Bakery','Bakery & dessert'].indexOf(category) !== -1) return 'Bakery';
+    if (['Coffee & tea','Soft drinks','Beer & cider','Wine','Spirits'].indexOf(category) !== -1) return 'Drinks';
+    if (category === 'Frozen') return 'Frozen';
+    if (['Packaging','Cleaning'].indexOf(category) !== -1) return 'Supplies';
+    return 'Pantry';
+  }
+
+  function sectionSlug(value) {
+    return String(value || 'pantry').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  }
+
+  function visualEmoji(row) {
+    row = row || {};
+    var name = normalizeCatalogText(row.name || '');
+    var category = String(row.category || '');
+
+    var rules = [
+      [/tomato/, '🍅'], [/(onion|shallot)/, '🧅'], [/garlic/, '🧄'],
+      [/(potato|croquette)/, '🥔'], [/(carrot)/, '🥕'], [/(corn|maize)/, '🌽'],
+      [/(cucumber|gherkin|pickle)/, '🥒'], [/(eggplant|aubergine)/, '🍆'],
+      [/(chili|jalapeno|habanero|pepper)/, '🌶️'], [/(avocado)/, '🥑'],
+      [/(broccoli)/, '🥦'], [/(mushroom|shiitake)/, '🍄'],
+      [/(lettuce|cabbage|spinach|rocket|kale|chard|bok choy|herb|parsley|coriander|mint|basil|dill|thyme|oregano)/, '🥬'],
+      [/(lemon)/, '🍋'], [/(lime)/, '🍋‍🟩'], [/(orange|mandarin)/, '🍊'],
+      [/(apple)/, '🍎'], [/(pear)/, '🍐'], [/(banana)/, '🍌'],
+      [/(pineapple)/, '🍍'], [/(mango)/, '🥭'], [/(watermelon)/, '🍉'],
+      [/(melon)/, '🍈'], [/(strawberry)/, '🍓'], [/(blueberry|berry)/, '🫐'],
+      [/(grape)/, '🍇'], [/(peach)/, '🍑'], [/(coconut)/, '🥥'], [/(kiwi)/, '🥝'],
+      [/(beef|veal|steak|lamb|goat|pork|schnitzel)/, '🥩'],
+      [/(bacon|ham|prosciutto|salami)/, '🥓'], [/(sausage|bratwurst|sucuk|chorizo)/, '🌭'],
+      [/(chicken|turkey|duck|poultry|nugget|wing)/, '🍗'],
+      [/(salmon|tuna|cod|haddock|bass|bream|trout|mackerel|sardine|anchovy|fish)/, '🐟'],
+      [/(shrimp|prawn)/, '🍤'], [/(crab)/, '🦀'], [/(lobster)/, '🦞'], [/(squid)/, '🦑'],
+      [/(milk|ayran|kefir)/, '🥛'], [/(cheese|mozzarella|parmesan|cheddar|gouda|feta|halloumi|ricotta|labneh)/, '🧀'],
+      [/(egg)/, '🥚'], [/(butter|cream|yogurt)/, '🧈'],
+      [/(rice)/, '🍚'], [/(noodle|ramen|udon|soba|spaghetti|penne|fusilli|lasagne|tagliatelle|pasta)/, '🍝'],
+      [/(bread|bun|pita|baguette|loaf|pretzel)/, '🥖'], [/(flour|oat|barley|semolina)/, '🌾'],
+      [/(bean|lentil|chickpea|pea)/, '🫘'], [/(almond|walnut|hazelnut|peanut|cashew|pistachio|nut)/, '🥜'],
+      [/(olive oil|olive)/, '🫒'], [/(oil)/, '🧴'], [/(honey)/, '🍯'],
+      [/(sauce|ketchup|mayonnaise|mustard|paste|puree|jam|tahini|hummus)/, '🥫'],
+      [/(coffee)/, '☕'], [/(tea)/, '🍵'], [/(water)/, '💧'], [/(juice)/, '🧃'],
+      [/(cola|soda|lemonade|tonic|energy drink)/, '🥤'], [/(beer|cider)/, '🍺'],
+      [/(wine|prosecco|champagne)/, '🍷'], [/(vodka|gin|rum|whisky|whiskey|tequila|mezcal|brandy|cognac|raki|arak|ouzo|sake|soju|aperol|campari|vermouth|liqueur|amaretto)/, '🥃'],
+      [/(fries|frozen|gyoza|spring roll|falafel)/, '❄️'],
+      [/(box|container|cup|lid|bag|napkin|straw|cutlery|foil|film|paper)/, '📦'],
+      [/(detergent|cleaner|soap|sanitizer|sanitiser|degreaser|rinse aid)/, '🧽']
+    ];
+
+    for (var i = 0; i < rules.length; i += 1) {
+      if (rules[i][0].test(name)) return rules[i][1];
+    }
+
+    var section = stockSection(category);
+    return {
+      Fresh:'🥬', Protein:'🥩', Dairy:'🧀', Pantry:'🍚',
+      Bakery:'🥖', Drinks:'🥤', Frozen:'❄️', Supplies:'📦'
+    }[section] || '🍽️';
+  }
+
+  function visualMarkup(row, size) {
+    var section = stockSection(row && row.category);
+    return '<span class="pmd-inv-item-visual is-' + esc(sectionSlug(section)) +
+      ' is-' + esc(size || 'sm') + '" aria-hidden="true"><span>' +
+      esc(visualEmoji(row)) + '</span></span>';
+  }
+
+  function catalogTemplateForItem(item) {
+    if (!item) return null;
+    var exact = normalizeCatalogText(item.name);
+    var rows = commonStockTemplates();
+    for (var i = 0; i < rows.length; i += 1) {
+      if (normalizeCatalogText(rows[i].name) === exact) return rows[i];
+    }
+    return bestCatalogMatch(item.name, 82);
+  }
+
+  function existingItemForTemplate(template) {
+    if (!template) return null;
+    var target = normalizeCatalogText(template.name);
+    var aliases = Array.isArray(template.aliases)
+      ? template.aliases.map(normalizeCatalogText)
+      : [];
+
+    return items().find(function (item) {
+      var name = normalizeCatalogText(item.name);
+      return name === target || aliases.indexOf(name) !== -1;
+    }) || null;
+  }
+
+  function browserSource(mode) {
+    return (mode === 'waste' || mode === 'recipe') ? items() : commonStockTemplates();
+  }
+
+  function browserMatch(row, query, mode) {
+    query = String(query || '').trim();
+    if (!query) return true;
+
+    if (mode === 'catalog' || mode === 'purchase') {
+      return catalogScore(row, query) > 0;
+    }
+
+    var template = catalogTemplateForItem(row);
+    var haystack = [
+      row.name, row.category, row.supplier_name,
+      template && Array.isArray(template.aliases) ? template.aliases.join(' ') : ''
+    ].join(' ');
+    return normalizeCatalogText(haystack).indexOf(normalizeCatalogText(query)) !== -1;
+  }
+
+  function browserSort(rows, section) {
+    rows = rows.slice();
+
+    if (section === 'Popular') {
+      var rank = {};
+      popularCatalogNames.forEach(function (name, index) {
+        rank[normalizeCatalogText(name)] = index;
+      });
+      rows.sort(function (a, b) {
+        var ar = Object.prototype.hasOwnProperty.call(rank, normalizeCatalogText(a.name))
+          ? rank[normalizeCatalogText(a.name)]
+          : 9999;
+        var br = Object.prototype.hasOwnProperty.call(rank, normalizeCatalogText(b.name))
+          ? rank[normalizeCatalogText(b.name)]
+          : 9999;
+        if (ar !== br) return ar - br;
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      });
+      return rows.filter(function (row) {
+        return Object.prototype.hasOwnProperty.call(rank, normalizeCatalogText(row.name));
+      });
+    }
+
+    rows.sort(function (a, b) {
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
+    return rows;
+  }
+
+  function browserAvailableSections(rows, mode) {
+    var present = {};
+    rows.forEach(function (row) {
+      present[stockSection(row.category)] = true;
+    });
+
+    return browserSections.filter(function (section) {
+      if (section.key === 'Popular') return mode === 'catalog' || mode === 'purchase';
+      if (section.key === 'All') return true;
+      return Boolean(present[section.key]);
+    });
+  }
+
+  function renderVisualBrowser(mode) {
+    mode = String(mode || '');
+    var grid = root.querySelector('[data-pmd-inv-browser-grid="' + mode + '"]');
+    var cats = root.querySelector('[data-pmd-inv-browser-categories="' + mode + '"]');
+    var more = root.querySelector('[data-pmd-inv-browser-more="' + mode + '"]');
+    if (!grid || !cats) return;
+
+    var bState = browserState(mode);
+    var allRows = browserSource(mode);
+    var filtered = allRows.filter(function (row) {
+      if (!browserMatch(row, bState.query, mode)) return false;
+      if (bState.section === 'All' || bState.section === 'Popular') return true;
+      return stockSection(row.category) === bState.section;
+    });
+    filtered = browserSort(filtered, bState.section);
+
+    var sections = browserAvailableSections(allRows, mode);
+    if (!sections.some(function (section) { return section.key === bState.section; })) {
+      bState.section = sections.length ? sections[0].key : 'All';
+      return renderVisualBrowser(mode);
+    }
+
+    cats.innerHTML = sections.map(function (section) {
+      return '<button type="button" class="' +
+        (section.key === bState.section ? 'is-active' : '') +
+        '" data-pmd-inv-browser-section="' + esc(mode) +
+        '" data-pmd-inv-browser-section-key="' + esc(section.key) + '">' +
+        '<span aria-hidden="true">' + esc(section.icon) + '</span>' +
+        '<b>' + esc(section.label) + '</b></button>';
+    }).join('');
+
+    var visible = filtered.slice(0, Math.max(1, Number(bState.limit || 12)));
+    if (!visible.length) {
+      grid.innerHTML = '<div class="pmd-inv-pos-browser__empty">No matching items.</div>';
+      if (more) more.hidden = true;
+      return;
+    }
+
+    grid.innerHTML = visible.map(function (row) {
+      var sourceIndex = allRows.indexOf(row);
+      var isStockMode = mode === 'waste' || mode === 'recipe';
+      var existing = isStockMode ? row : existingItemForTemplate(row);
+      var selected = false;
+      var added = false;
+
+      if (mode === 'waste') {
+        var wasteSelect = root.querySelector('[data-pmd-waste-item]');
+        selected = wasteSelect && Number(wasteSelect.value || 0) === Number(row.id || 0);
+      } else if (mode === 'recipe') {
+        added = Array.prototype.some.call(
+          root.querySelectorAll('[data-pmd-recipe-item]'),
+          function (select) { return Number(select.value || 0) === Number(row.id || 0); }
+        );
+      } else if (mode === 'catalog') {
+        added = Boolean(existing);
+      }
+
+      var meta = isStockMode
+        ? ownerQuantityLabel(row, row.estimated_on_hand, 2) + ' on hand'
+        : ((row.category || 'Stock item') + ' · buy ' + (row.purchase_unit || row.unit || 'piece'));
+
+      return '<button type="button" class="pmd-inv-pos-card' +
+        (selected ? ' is-selected' : '') +
+        (added ? ' is-added' : '') +
+        '" data-pmd-inv-browser-card="' + esc(mode) + '"' +
+        (isStockMode
+          ? ' data-pmd-inv-browser-item-id="' + esc(row.id) + '"'
+          : ' data-pmd-inv-browser-common-index="' + esc(sourceIndex) + '"') +
+        '>' +
+          visualMarkup(row, 'lg') +
+          '<span class="pmd-inv-pos-card__copy"><strong>' + esc(row.name || '') + '</strong>' +
+          '<small>' + esc(meta) + '</small></span>' +
+          (added ? '<span class="pmd-inv-pos-card__badge">' + (mode === 'recipe' ? 'Added' : 'In stock') + '</span>' : '') +
+          (selected ? '<span class="pmd-inv-pos-card__badge">Selected</span>' : '') +
+        '</button>';
+    }).join('');
+
+    if (more) {
+      more.hidden = filtered.length <= visible.length;
+      more.textContent = filtered.length > visible.length
+        ? ('Show ' + String(Math.min(18, filtered.length - visible.length)) + ' more')
+        : 'Show more';
+    }
+  }
+
+  function renderVisualBrowsers() {
+    ['catalog','purchase','waste','recipe'].forEach(renderVisualBrowser);
+  }
+
+  function selectBrowserCard(button) {
+    if (!button) return;
+    var mode = String(button.getAttribute('data-pmd-inv-browser-card') || '');
+    var commonIndex = button.getAttribute('data-pmd-inv-browser-common-index');
+    var itemId = Number(button.getAttribute('data-pmd-inv-browser-item-id') || 0);
+
+    if (mode === 'catalog') {
+      var template = commonStockTemplates()[Number(commonIndex)];
+      var existing = existingItemForTemplate(template);
+      if (existing) {
+        prepareItemEditor(Number(existing.id || 0));
+        toast('Already in stock — opened it for editing.');
+      } else {
+        applyCommonStock(Number(commonIndex));
+      }
+      renderVisualBrowser('catalog');
+      return;
+    }
+
+    if (mode === 'purchase') {
+      var purchaseTemplate = commonStockTemplates()[Number(commonIndex)];
+      if (!purchaseTemplate) return;
+      var stockItem = existingItemForTemplate(purchaseTemplate);
+      addPurchaseLine({
+        item_name: stockItem ? stockItem.name : purchaseTemplate.name,
+        quantity: '',
+        unit: stockItem
+          ? (stockItem.purchase_unit || stockItem.unit || 'piece')
+          : (purchaseTemplate.purchase_unit || purchaseTemplate.unit || 'piece'),
+        unit_cost: stockItem ? Number(stockItem.purchase_unit_cost || 0) : ''
+      });
+      var purchaseRows = root.querySelectorAll('[data-pmd-inv-purchase-lines] .pmd-inv-line');
+      var lastPurchase = purchaseRows.length ? purchaseRows[purchaseRows.length - 1] : null;
+      var qtyInput = lastPurchase && lastPurchase.querySelector('[data-pmd-purchase-qty]');
+      if (qtyInput) qtyInput.focus();
+      return;
+    }
+
+    if (mode === 'waste') {
+      var waste = root.querySelector('[data-pmd-waste-item]');
+      if (!waste || !itemId) return;
+      waste.value = String(itemId);
+      updateWasteUnitOptions();
+      renderVisualBrowser('waste');
+      var wasteQty = root.querySelector('[data-pmd-inv-form="waste"] [name="quantity"]');
+      if (wasteQty) wasteQty.focus();
+      return;
+    }
+
+    if (mode === 'recipe') {
+      if (!itemId) return;
+      var recipeRows = Array.prototype.slice.call(
+        root.querySelectorAll('[data-pmd-inv-recipe-lines] .pmd-inv-line')
+      );
+      var targetRow = recipeRows.find(function (row) {
+        var select = row.querySelector('[data-pmd-recipe-item]');
+        return select && Number(select.value || 0) === itemId;
+      });
+
+      if (!targetRow) {
+        targetRow = recipeRows.find(function (row) {
+          var select = row.querySelector('[data-pmd-recipe-item]');
+          return select && !Number(select.value || 0);
+        });
+      }
+
+      if (!targetRow) {
+        addRecipeLine({item_id:itemId});
+        recipeRows = Array.prototype.slice.call(
+          root.querySelectorAll('[data-pmd-inv-recipe-lines] .pmd-inv-line')
+        );
+        targetRow = recipeRows[recipeRows.length - 1] || null;
+      } else {
+        var targetSelect = targetRow.querySelector('[data-pmd-recipe-item]');
+        if (targetSelect) {
+          targetSelect.value = String(itemId);
+          updateRecipeLineUnit(targetRow);
+        }
+      }
+
+      renderVisualBrowser('recipe');
+      var recipeQty = targetRow && targetRow.querySelector('[data-pmd-recipe-qty]');
+      if (recipeQty) recipeQty.focus();
+    }
   }
 
   function csrf() {
@@ -656,6 +1035,7 @@
       host.hidden = true;
       host.innerHTML = '';
     }
+    renderVisualBrowser('catalog');
     var name = form.querySelector('[name="name"]');
     if (name) name.focus();
   }
@@ -754,8 +1134,11 @@
 
       return '<tr class="is-' + esc(status) + '">' +
         '<td class="pmd-inv__item-name">' +
-          '<button type="button" class="pmd-inv__item-edit" data-pmd-inv-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button>' +
-          '<small>' + esc(meta || 'Stock item') + '</small>' +
+          '<div class="pmd-inv-stock-item-cell">' +
+            visualMarkup(item, 'sm') +
+            '<div><button type="button" class="pmd-inv__item-edit" data-pmd-inv-edit-item="' + esc(item.id) + '">' + esc(item.name) + '</button>' +
+            '<small>' + esc(meta || 'Stock item') + '</small></div>' +
+          '</div>' +
         '</td>' +
         '<td><span class="pmd-inv__qty">' + esc(num(onHand.qty, 2)) + ' <small>' + esc(onHand.unit) + '</small></span></td>' +
         '<td><span class="pmd-inv__days">' + esc(days) + '</span></td>' +
@@ -793,6 +1176,7 @@
         : num(item.days_left, 1) + ' days left';
 
       return '<div class="pmd-inv-r6-order-row">' +
+        visualMarkup(item, 'xs') +
         '<div><strong>' + esc(item.name) + '</strong><small>' + esc(detail) + '</small></div>' +
         '<b>' + esc(buy.qty > 0 ? (num(buy.qty, 2) + ' ' + buy.unit) : 'Review') + '</b>' +
       '</div>';
@@ -889,7 +1273,8 @@
       var supplier = item.supplier_name || 'Supplier not set';
       var projectedUse = Number(item.avg_daily_usage || 0) * shoppingHorizonDays();
 
-      return '<div class="pmd-inv-shopping-row">' +
+      return '<div class="pmd-inv-shopping-row pmd-inv-shopping-row--visual">' +
+        visualMarkup(item, 'sm') +
         '<div><strong>' + esc(item.name) + '</strong><small>' +
           esc(supplier + ' · projected use ' + num(projectedUse, 2) + ' ' + item.unit) +
         '</small></div>' +
@@ -1230,6 +1615,7 @@
     renderShoppingList();
     syncSelects();
     syncPurchaseDatalist();
+    renderVisualBrowsers();
   }
 
   function prepareItemEditor(itemId) {
@@ -1239,6 +1625,10 @@
 
     form.reset();
     state.commonSearch = '';
+    var catalogBrowserState = browserState('catalog');
+    catalogBrowserState.query = '';
+    catalogBrowserState.section = 'Popular';
+    catalogBrowserState.limit = 18;
     var commonSearch = modal.querySelector('[data-pmd-inv-common-search]');
     if (commonSearch) commonSearch.value = '';
 
@@ -1282,8 +1672,12 @@
     var advanced = modal.querySelector('.pmd-inv-r6-advanced');
     if (advanced) advanced.open = Boolean(item);
 
+    var catalogBrowser = modal.querySelector('[data-pmd-inv-visual-browser="catalog"]');
+    if (catalogBrowser) catalogBrowser.hidden = Boolean(item);
+
     updatePackageHelp(form);
     renderCommonStock();
+    renderVisualBrowser('catalog');
   }
 
   function openRecipeForMenu(menuId) {
@@ -1325,6 +1719,20 @@
     }
     if (name === 'waste') {
       updateWasteUnitOptions();
+    }
+    if (['item','purchase','waste','recipe'].indexOf(name) !== -1) {
+      var browserMode = name === 'item' ? 'catalog' : name;
+      var activeBrowser = browserState(browserMode);
+      activeBrowser.query = '';
+      activeBrowser.limit = browserMode === 'catalog' ? 18 : 12;
+      if (browserMode === 'catalog' || browserMode === 'purchase') {
+        activeBrowser.section = 'Popular';
+      } else {
+        activeBrowser.section = 'All';
+      }
+      var browserSearch = root.querySelector('[data-pmd-inv-browser-search="' + browserMode + '"]');
+      if (browserSearch) browserSearch.value = '';
+      renderVisualBrowser(browserMode);
     }
     if (name === 'count') {
       renderCountLines();
@@ -1548,7 +1956,7 @@
     host.innerHTML = items().map(function (item) {
       var expected = ownerQuantity(item, item.estimated_on_hand);
       return '<div class="pmd-inv-count-row" data-pmd-count-item="' + esc(item.id) + '" data-pmd-count-expected="' + esc(item.estimated_on_hand) + '" data-pmd-count-factor="' + esc(purchaseFactor(item)) + '" data-pmd-count-unit="' + esc(expected.unit) + '">' +
-        '<strong>' + esc(item.name) + ' <small>' + esc(expected.unit) + '</small></strong>' +
+        '<div class="pmd-inv-count-row__item">' + visualMarkup(item, 'xs') + '<strong>' + esc(item.name) + ' <small>' + esc(expected.unit) + '</small></strong></div>' +
         '<span>Expected <b>' + esc(num(expected.qty, 2)) + '</b></span>' +
         '<input type="number" min="0" step="0.0001" data-pmd-count-actual data-pmd-inv-stepper data-pmd-inv-stepper-step="1" placeholder="Actual ' + esc(expected.unit) + '">' +
         '<span class="pmd-inv-count-variance" data-pmd-count-variance>Variance —</span>' +
@@ -1631,6 +2039,35 @@
   }
 
   root.addEventListener('click', function (event) {
+    var browserCard = event.target.closest('[data-pmd-inv-browser-card]');
+    if (browserCard) {
+      event.preventDefault();
+      selectBrowserCard(browserCard);
+      return;
+    }
+
+    var browserSection = event.target.closest('[data-pmd-inv-browser-section]');
+    if (browserSection) {
+      event.preventDefault();
+      var sectionMode = String(browserSection.getAttribute('data-pmd-inv-browser-section') || '');
+      var sectionKey = String(browserSection.getAttribute('data-pmd-inv-browser-section-key') || 'All');
+      var sectionState = browserState(sectionMode);
+      sectionState.section = sectionKey;
+      sectionState.limit = sectionMode === 'catalog' ? 18 : 12;
+      renderVisualBrowser(sectionMode);
+      return;
+    }
+
+    var browserMore = event.target.closest('[data-pmd-inv-browser-more]');
+    if (browserMore) {
+      event.preventDefault();
+      var moreMode = String(browserMore.getAttribute('data-pmd-inv-browser-more') || '');
+      var moreState = browserState(moreMode);
+      moreState.limit += 18;
+      renderVisualBrowser(moreMode);
+      return;
+    }
+
     var stepButton = event.target.closest('[data-pmd-inv-stepper-dir]');
     if (stepButton) {
       event.preventDefault();
@@ -1815,10 +2252,21 @@
       event.preventDefault();
       var line = removeLine.closest('.pmd-inv-line');
       if (line) line.remove();
+      renderVisualBrowser('recipe');
     }
   });
 
   root.addEventListener('input', function (event) {
+    if (event.target.matches('[data-pmd-inv-browser-search]')) {
+      var browserMode = String(event.target.getAttribute('data-pmd-inv-browser-search') || '');
+      var bState = browserState(browserMode);
+      bState.query = String(event.target.value || '').trim();
+      bState.section = bState.query ? 'All' : ((browserMode === 'catalog' || browserMode === 'purchase') ? 'Popular' : 'All');
+      bState.limit = browserMode === 'catalog' ? 18 : 12;
+      renderVisualBrowser(browserMode);
+      return;
+    }
+
     if (event.target.matches('input[data-pmd-inv-stepper]')) {
       syncNumericStepper(event.target);
     }
@@ -1832,6 +2280,15 @@
     if (event.target.matches('[data-pmd-inv-common-search]')) {
       state.commonSearch = String(event.target.value || '').trim();
       renderCommonStock();
+      var catalogState = browserState('catalog');
+      catalogState.query = state.commonSearch;
+      catalogState.section = state.commonSearch ? 'All' : 'Popular';
+      catalogState.limit = 18;
+      var catalogSearch = root.querySelector('[data-pmd-inv-browser-search="catalog"]');
+      if (catalogSearch && catalogSearch.value !== state.commonSearch) {
+        catalogSearch.value = state.commonSearch;
+      }
+      renderVisualBrowser('catalog');
       return;
     }
 
@@ -1864,11 +2321,13 @@
 
     if (event.target.matches('[data-pmd-waste-item]')) {
       updateWasteUnitOptions();
+      renderVisualBrowser('waste');
       return;
     }
 
     if (event.target.matches('[data-pmd-recipe-item]')) {
       updateRecipeLineUnit(event.target.closest('.pmd-inv-line'));
+      renderVisualBrowser('recipe');
       return;
     }
 
@@ -2074,7 +2533,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '9.0.0',
+    version: '10.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
