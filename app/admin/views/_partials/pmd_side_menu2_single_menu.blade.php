@@ -197,6 +197,19 @@ html #pmd-sidebar-language {
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.menu', 'Menu') }}</span>
         </a>
 
+        @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
+        {{-- PMD_INVENTORY_CONTROL_NAV_R1 --}}
+        <a class="pmd-sm2__item {{ $pmdActive(['pmdinventory']) ? 'is-active' : '' }}" href="{{ admin_url('pmdinventory') }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7 12 3l8 4-8 4-8-4Z"/>
+                <path d="M4 7v10l8 4 8-4V7"/>
+                <path d="M12 11v10"/>
+                <path d="M8 5l8 4"/>
+            </svg>
+            <span class="pmd-sm2__label">Stock</span>
+        </a>
+        @endif
+
         <a class="pmd-sm2__item {{ $pmdActive(['pmdsettings', 'pmddevices', 'pmdfinance', 'pmdadvanced', 'languages', 'currencies']) ? 'is-active' : '' }}" href="{{ admin_url('settings') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.08a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.2 15a1.65 1.65 0 0 0-1.51-1H5.6v-3h.09A1.65 1.65 0 0 0 7.2 10a1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.93 6l.06.06A1.65 1.65 0 0 0 10.8 6.4a1.65 1.65 0 0 0 1-1.51V4.8h3v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06 2.12 2.12-.06.06A1.65 1.65 0 0 0 19.4 10a1.65 1.65 0 0 0 1.51 1H21v3h-.09A1.65 1.65 0 0 0 19.4 15z"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.settings', 'Settings') }}</span>
