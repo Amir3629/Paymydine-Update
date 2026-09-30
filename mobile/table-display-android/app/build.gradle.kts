@@ -12,8 +12,8 @@ android {
         applicationId = "com.paymydine.tabledisplay"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0-table-companion"
+        versionCode = 2
+        versionName = "0.1.1-table-companion"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "TABLE_DISPLAY_API_PATH", "\"/admin/api/table-display/v1\"")
     }
