@@ -15,7 +15,7 @@ android {
         versionCode = 1
         versionName = "0.1.0-table-companion"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "TABLE_DISPLAY_API_PATH", "\"/api/v1/table-display\"")
+        buildConfigField("String", "TABLE_DISPLAY_API_PATH", "\"/admin/api/table-display/v1\"")
     }
 
     buildTypes {
