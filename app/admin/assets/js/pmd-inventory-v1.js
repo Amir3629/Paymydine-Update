@@ -2464,6 +2464,12 @@
       }
 
       if (kind === 'waste') {
+        if (!Number(payload.item_id || 0)) {
+          toast('Choose the stock item that was wasted.', true);
+          renderVisualBrowser('waste');
+          return;
+        }
+
         var wasteItem = itemById(payload.item_id);
         if (wasteItem) {
           var wasteUnit = String(payload.quantity_unit || wasteItem.unit || '');
