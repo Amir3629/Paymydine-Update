@@ -10,6 +10,7 @@
   var tableSelect = root.querySelector('[data-pmd-table-display-table]');
   var idle = root.querySelector('[data-pmd-table-display-idle]');
   var reaction = root.querySelector('[data-pmd-table-display-reaction]');
+  var screen = root.querySelector('.pmd-table-display-screen');
   var qr = root.querySelector('[data-pmd-table-display-qr]');
   var logo = root.querySelector('[data-pmd-table-display-logo]');
   var restaurant = root.querySelector('[data-pmd-table-display-restaurant]');
@@ -64,7 +65,8 @@
     var type = String(event.type || 'idle');
     var isIdle = type === 'idle';
 
-    if (idle) idle.hidden = !isIdle;
+    if (idle) idle.hidden = false;
+    if (screen) screen.classList.toggle('has-reaction', !isIdle);
     if (reaction) {
       reaction.hidden = isIdle;
       reaction.className = 'pmd-table-display-reaction is-' + type;
