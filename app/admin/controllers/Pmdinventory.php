@@ -31,7 +31,7 @@ class Pmdinventory extends AdminController
 
         $this->bodyClass = trim(
             ($this->bodyClass ?? '').
-            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r9-page'
+            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r10-page'
         );
 
         // PMD_INVENTORY_DASHBOARD_SHELL_R2
@@ -39,6 +39,7 @@ class Pmdinventory extends AdminController
         // warm admin chrome shown by the first Inventory R1 build.
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-platform-card-system-v1.css');
+        // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10 - reusable visual stock catalogue.
         // PMD_INVENTORY_CARD_GEOMETRY_R9 - centered cards + shared steppers.
         // PMD_INVENTORY_CARD_LANGUAGE_R8 - Inventory composers inherit the
         // validated platform modal/card shell, then apply their feature-owned
@@ -49,7 +50,7 @@ class Pmdinventory extends AdminController
 
         $this->addCss(
             asset('app/admin/assets/css/pmd-inventory-v1.css')
-            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r9')
+            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r10')
         );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
