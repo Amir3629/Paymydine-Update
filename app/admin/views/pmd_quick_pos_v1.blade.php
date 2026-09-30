@@ -1146,9 +1146,9 @@ window.PMDQuickPOSConfig = {
 {{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
      Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
      cannot substitute an older bundled runtime. --}}
-<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260928-r129"></script>
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260930-r131"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r129"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260930-r131"></script>
 @endif
 <script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
