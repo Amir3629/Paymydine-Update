@@ -157,7 +157,6 @@
                                 </span>
                             </div>
                             <h2>{{ $pmdSettingsText('Scan to view the menu') }}</h2>
-                            <p>{{ $pmdSettingsText('Open your camera and scan the QR code.') }}</p>
                             <small>Powered by PayMyDine</small>
                         </div>
 
