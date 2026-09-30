@@ -3,7 +3,7 @@
 namespace App\Services\Inventory;
 
 /**
- * PMD_INVENTORY_GLOBAL_CATALOG_R7
+ * PMD_INVENTORY_GLOBAL_CATALOG_R10
  *
  * Broad restaurant stock starter catalogue. It is deliberately a suggestion
  * layer, not a closed taxonomy: restaurants can always type their own item.
@@ -620,6 +620,19 @@ final class PmdInventoryStockCatalog
                 'trim',
                 explode('|', (string)($row[1] ?? ''))
             )));
+
+            // PMD_INVENTORY_GERMAN_MARKET_ALIASES_R10
+            // Germany is a primary launch market. Owners can search the visual
+            // catalogue using the supermarket/kitchen words they actually use
+            // (for example Zwiebel, Hackfleisch, Sahne, Brötchen, Pommes).
+            $germanAliases = self::germanAliases($name);
+            if ($germanAliases) {
+                $aliases = array_values(array_unique(array_merge(
+                    $aliases,
+                    $germanAliases
+                )));
+            }
+
             $cuisines = array_values(array_filter(array_map(
                 'trim',
                 explode('|', (string)($row[2] ?? ''))
@@ -639,6 +652,197 @@ final class PmdInventoryStockCatalog
                 'cuisines' => $cuisines,
             ];
         }
+    }
+
+    /**
+     * PMD_INVENTORY_GERMAN_MARKET_ALIASES_R10
+     *
+     * High-frequency German supermarket / restaurant vocabulary. This keeps
+     * the master catalogue language-neutral while making the Germany workflow
+     * feel native. Unknown/custom items are still always allowed.
+     */
+    private static function germanAliases(string $name): array
+    {
+        static $map = [
+            'Tomato' => ['Tomate', 'Tomaten'],
+            'Cherry tomato' => ['Cherrytomate', 'Cocktailtomate'],
+            'Cucumber' => ['Gurke', 'Salatgurke'],
+            'Onion' => ['Zwiebel', 'Zwiebeln'],
+            'Red onion' => ['rote Zwiebel', 'rote Zwiebeln'],
+            'Spring onion' => ['Frühlingszwiebel', 'Lauchzwiebel'],
+            'Garlic' => ['Knoblauch'],
+            'Ginger' => ['Ingwer'],
+            'Potato' => ['Kartoffel', 'Kartoffeln'],
+            'Sweet potato' => ['Süßkartoffel', 'Süsskartoffel'],
+            'Carrot' => ['Karotte', 'Möhre', 'Moehre'],
+            'Celery' => ['Sellerie'],
+            'Leek' => ['Lauch', 'Porree'],
+            'Zucchini' => ['Zucchini'],
+            'Eggplant' => ['Aubergine'],
+            'Bell pepper' => ['Paprika', 'Paprikaschote'],
+            'Red bell pepper' => ['rote Paprika'],
+            'Green bell pepper' => ['grüne Paprika', 'gruene Paprika'],
+            'Yellow bell pepper' => ['gelbe Paprika'],
+            'Chili pepper' => ['Chili', 'Peperoni'],
+            'Broccoli' => ['Brokkoli'],
+            'Cauliflower' => ['Blumenkohl'],
+            'Cabbage' => ['Weißkohl', 'Weisskohl', 'Kohl'],
+            'Red cabbage' => ['Rotkohl', 'Blaukraut'],
+            'Chinese cabbage' => ['Chinakohl'],
+            'Lettuce' => ['Salat', 'Eisbergsalat'],
+            'Romaine lettuce' => ['Römersalat', 'Romana Salat'],
+            'Spinach' => ['Spinat'],
+            'Rocket' => ['Rucola'],
+            'Mushroom' => ['Champignon', 'Pilze', 'Pilz'],
+            'Green beans' => ['grüne Bohnen', 'gruene Bohnen'],
+            'Peas' => ['Erbsen'],
+            'Corn' => ['Mais'],
+            'Avocado' => ['Avocado'],
+            'Asparagus' => ['Spargel'],
+            'Beetroot' => ['Rote Bete', 'Rote Beete'],
+            'Radish' => ['Radieschen'],
+            'Pumpkin' => ['Kürbis', 'Kuerbis'],
+            'Lemon' => ['Zitrone', 'Zitronen'],
+            'Lime' => ['Limette', 'Limetten'],
+            'Orange' => ['Orange', 'Orangen'],
+            'Apple' => ['Apfel', 'Äpfel', 'Aepfel'],
+            'Pear' => ['Birne', 'Birnen'],
+            'Banana' => ['Banane', 'Bananen'],
+            'Pineapple' => ['Ananas'],
+            'Mango' => ['Mango'],
+            'Watermelon' => ['Wassermelone'],
+            'Melon' => ['Melone'],
+            'Strawberry' => ['Erdbeere', 'Erdbeeren'],
+            'Blueberry' => ['Blaubeere', 'Heidelbeere'],
+            'Raspberry' => ['Himbeere', 'Himbeeren'],
+            'Blackberry' => ['Brombeere', 'Brombeeren'],
+            'Grape' => ['Traube', 'Weintraube'],
+            'Peach' => ['Pfirsich'],
+            'Plum' => ['Pflaume'],
+            'Apricot' => ['Aprikose'],
+            'Parsley' => ['Petersilie'],
+            'Coriander' => ['Koriander'],
+            'Mint' => ['Minze'],
+            'Basil' => ['Basilikum'],
+            'Dill' => ['Dill'],
+            'Rosemary' => ['Rosmarin'],
+            'Thyme' => ['Thymian'],
+            'Oregano' => ['Oregano'],
+            'Salt' => ['Salz'],
+            'Black pepper' => ['schwarzer Pfeffer', 'Pfeffer'],
+            'Paprika' => ['Paprikapulver'],
+            'Cumin' => ['Kreuzkümmel', 'Kreuzkuemmel'],
+            'Cinnamon' => ['Zimt'],
+            'Nutmeg' => ['Muskat', 'Muskatnuss'],
+            'Beef' => ['Rindfleisch'],
+            'Beef mince' => ['Rinderhack', 'Rinderhackfleisch', 'Hackfleisch'],
+            'Beef tenderloin' => ['Rinderfilet'],
+            'Beef ribeye' => ['Ribeye', 'Entrecôte', 'Entrecote'],
+            'Veal' => ['Kalbfleisch'],
+            'Lamb' => ['Lammfleisch'],
+            'Lamb mince' => ['Lammhack', 'Lammhackfleisch'],
+            'Pork' => ['Schweinefleisch'],
+            'Pork belly' => ['Schweinebauch'],
+            'Bacon' => ['Speck', 'Bacon'],
+            'Ham' => ['Schinken'],
+            'Sausage' => ['Wurst', 'Würstchen', 'Wuerstchen'],
+            'Chicken' => ['Hähnchen', 'Haehnchen', 'Huhn'],
+            'Chicken breast' => ['Hähnchenbrust', 'Haehnchenbrust'],
+            'Chicken thigh' => ['Hähnchenschenkel', 'Haehnchenschenkel'],
+            'Chicken wing' => ['Hähnchenflügel', 'Haehnchenfluegel'],
+            'Turkey' => ['Pute', 'Putenfleisch'],
+            'Duck' => ['Ente'],
+            'Salmon' => ['Lachs'],
+            'Tuna' => ['Thunfisch'],
+            'Cod' => ['Kabeljau'],
+            'Sea bass' => ['Wolfsbarsch'],
+            'Sea bream' => ['Dorade'],
+            'Trout' => ['Forelle'],
+            'Shrimp' => ['Garnele', 'Garnelen', 'Shrimps'],
+            'Squid' => ['Tintenfisch', 'Calamari'],
+            'Octopus' => ['Oktopus'],
+            'Mussel' => ['Muschel', 'Miesmuschel'],
+            'Milk' => ['Milch', 'Vollmilch'],
+            'Skim milk' => ['Magermilch', 'fettarme Milch'],
+            'Oat milk' => ['Hafermilch', 'Haferdrink'],
+            'Soy milk' => ['Sojamilch', 'Sojadrink'],
+            'Cream' => ['Sahne', 'Schlagsahne'],
+            'Yogurt' => ['Joghurt'],
+            'Butter' => ['Butter'],
+            'Mozzarella' => ['Mozzarella'],
+            'Parmesan' => ['Parmesan'],
+            'Cheddar' => ['Cheddar'],
+            'Gouda' => ['Gouda'],
+            'Feta' => ['Feta', 'Schafskäse', 'Schafskaese'],
+            'Cream cheese' => ['Frischkäse', 'Frischkaese'],
+            'Eggs' => ['Ei', 'Eier'],
+            'White rice' => ['Reis', 'Langkornreis'],
+            'Basmati rice' => ['Basmatireis'],
+            'Wheat flour' => ['Mehl', 'Weizenmehl'],
+            'Bread flour' => ['Brotmehl'],
+            'Whole wheat flour' => ['Vollkornmehl'],
+            'Breadcrumbs' => ['Paniermehl', 'Semmelbrösel', 'Semmelbroesel'],
+            'Spaghetti' => ['Spaghetti', 'Nudeln'],
+            'Penne' => ['Penne', 'Nudeln'],
+            'Fusilli' => ['Fusilli', 'Nudeln'],
+            'Red lentils' => ['rote Linsen'],
+            'Green lentils' => ['grüne Linsen', 'gruene Linsen'],
+            'Chickpeas' => ['Kichererbsen'],
+            'Kidney beans' => ['Kidneybohnen'],
+            'White beans' => ['weiße Bohnen', 'weisse Bohnen'],
+            'Sugar' => ['Zucker'],
+            'Brown sugar' => ['brauner Zucker'],
+            'Icing sugar' => ['Puderzucker'],
+            'Almonds' => ['Mandeln'],
+            'Walnuts' => ['Walnüsse', 'Walnuesse'],
+            'Hazelnuts' => ['Haselnüsse', 'Haselnuesse'],
+            'Peanuts' => ['Erdnüsse', 'Erdnuesse'],
+            'Olive oil' => ['Olivenöl', 'Olivenoel'],
+            'Sunflower oil' => ['Sonnenblumenöl', 'Sonnenblumenoel'],
+            'Vinegar' => ['Essig'],
+            'Ketchup' => ['Ketchup'],
+            'Mayonnaise' => ['Mayonnaise', 'Mayo'],
+            'Mustard' => ['Senf'],
+            'Honey' => ['Honig'],
+            'Bread' => ['Brot'],
+            'Burger bun' => ['Burgerbrötchen', 'Burgerbroetchen'],
+            'Pita bread' => ['Pitabrot'],
+            'Coffee beans' => ['Kaffeebohnen'],
+            'Ground coffee' => ['Kaffeepulver', 'gemahlener Kaffee'],
+            'Black tea' => ['Schwarztee'],
+            'Green tea' => ['Grüntee', 'Gruentee'],
+            'Still water' => ['stilles Wasser', 'Wasser still'],
+            'Sparkling water' => ['Mineralwasser', 'Sprudel', 'Wasser mit Kohlensäure'],
+            'Cola' => ['Cola'],
+            'Orange soda' => ['Orangenlimonade'],
+            'Apple juice' => ['Apfelsaft'],
+            'Orange juice' => ['Orangensaft'],
+            'Beer' => ['Bier'],
+            'Pilsner' => ['Pils', 'Pilsner'],
+            'Wheat beer' => ['Weizenbier', 'Weißbier', 'Weissbier'],
+            'Red wine' => ['Rotwein'],
+            'White wine' => ['Weißwein', 'Weisswein'],
+            'French fries' => ['Pommes', 'Pommes frites', 'Fritten'],
+            'Sweet potato fries' => ['Süßkartoffelpommes', 'Suesskartoffelpommes'],
+            'Onion rings' => ['Zwiebelringe'],
+            'Chicken nuggets' => ['Hähnchennuggets', 'Haehnchennuggets'],
+            'Takeaway box' => ['Take-away Box', 'Verpackungsbox', 'Essensbox'],
+            'Paper cup' => ['Pappbecher'],
+            'Paper bag' => ['Papiertüte', 'Papiertuete'],
+            'Napkin' => ['Serviette', 'Servietten'],
+            'Aluminium foil' => ['Alufolie'],
+            'Cling film' => ['Frischhaltefolie'],
+            'Baking paper' => ['Backpapier'],
+            'Pizza box' => ['Pizzakarton'],
+            'Dishwasher detergent' => ['Spülmaschinenreiniger', 'Spuelmaschinenreiniger'],
+            'Dish soap' => ['Spülmittel', 'Spuelmittel'],
+            'Surface sanitizer' => ['Flächendesinfektion', 'Flaechendesinfektion'],
+            'Floor cleaner' => ['Bodenreiniger'],
+            'Glass cleaner' => ['Glasreiniger'],
+            'Hand soap' => ['Handseife'],
+        ];
+
+        return $map[$name] ?? [];
     }
 
     private static function score(array $item, string $query): int
