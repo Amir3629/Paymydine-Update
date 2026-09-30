@@ -1111,6 +1111,11 @@ document.documentElement.classList.add(
             height:24px;
         }
 
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--display {
+            color:#0d6b4f;
+            background:#eef8f4;
+        }
+
         #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--android {
             color:#3ddc84;
             background:#eefbf4;
@@ -1174,7 +1179,7 @@ document.documentElement.classList.add(
 
     <section
         id="pmd-cashier-settings-launcher-v107"
-        aria-label="Cashier App downloads"
+        aria-label="PayMyDine app downloads"
         data-open="0"
     >
         <div
@@ -1182,6 +1187,26 @@ document.documentElement.classList.add(
             id="pmd-cashier-launcher-menu-v107"
             hidden
         >
+            <a
+                class="pmd-cashier-launcher-v107__download"
+                {{-- PMD_TABLE_COMPANION_ANDROID_V1 --}}
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-table-display-preview/PayMyDine-Table-Companion-0.1.0.apk"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--display" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="3" width="16" height="18" rx="3"/>
+                        <path d="M8 7h8M8 11h8M10 17h4"/>
+                        <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>
+                    </svg>
+                </span>
+                <span class="pmd-cashier-launcher-v107__copy">
+                    <strong>Table Companion · Android</strong>
+                    <small>Android 8+ · Table Display 0.1.0 · Guest-facing monitor</small>
+                </span>
+            </a>
+
             <a
                 class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
