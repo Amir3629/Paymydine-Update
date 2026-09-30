@@ -319,7 +319,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         }
 
         $dataTables = [];
-        $displayTables = [];
         $tableFloorById = [];
 
         foreach (
@@ -439,36 +438,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'open_orders' => 0,
             ];
 
-            $displayTables[] = [
-                'id' => (string)$id,
-                'number' => $number,
-                'name' => $name,
-                'area' => trim((string)(
-                    $table['section']
-                    ?? $floorName
-                )),
-                'capacity' => $capacity,
-                'status' => $status,
-                'waiter_call' => in_array(
-                    $status,
-                    ['attention', 'waiter-call'],
-                    true
-                ),
-                'cleaning' => $status === 'cleaning',
-                'note' => $note,
-                'open_orders' => 0,
-                'x' => max(64.0, $x),
-                'y' => max(54.0, $y),
-                'w' => 108,
-                'h' => 88,
-                'is_merged' => false,
-                'merge_id' => null,
-                'member_ids' => [],
-                'smallest_number' => is_numeric($number)
-                    ? (float)$number
-                    : 999999,
-            ];
-
             if (
                 $floorId !== ''
                 && $floorId !== $defaultFloorId
@@ -478,16 +447,51 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             }
         }
 
+        /*
+         * Merge/group state is a small location-option authority. Read only
+         * that one canonical state here; the expensive waiter-dashboard data
+         * and owner layout queries stay out of the POS critical path.
+         */
+        $floorState = [
+            'tables' => [],
+            'merges' => [],
+        ];
+
+        try {
+            $source = new class extends PmdFloorV1 {
+                public function pmdQuickPosFastFloorStateV130(): array
+                {
+                    return $this->canonicalizeState(
+                        $this->readState()
+                    );
+                }
+            };
+
+            $floorState =
+                $source->pmdQuickPosFastFloorStateV130();
+        } catch (\Throwable $ignored) {
+        }
+
+        $floorData = [
+            'tables' => $dataTables,
+            'orders' => [],
+            'current_orders' => [],
+        ];
+
+        $displayTables =
+            $this->quickPosBuildFloorDisplayTables(
+                $floorData,
+                [],
+                $floorState,
+                'full'
+            );
+
         $floorBootstrap = [
             'version' => 'pmd-qpos-lazy-floor-v130',
             'server_first_paint' => true,
             'mode' => 'full',
             'zoom' => 1.0,
-            'data' => [
-                'tables' => $dataTables,
-                'orders' => [],
-                'current_orders' => [],
-            ],
+            'data' => $floorData,
             'layout' => [
                 'ok' => true,
                 'tables' => [],
@@ -496,10 +500,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                     'height' => 560,
                 ],
             ],
-            'state' => [
-                'tables' => [],
-                'merges' => [],
-            ],
+            'state' => $floorState,
             'display_tables' => $displayTables,
             'endpoints' => [
                 'data' => '/admin/pos/floor-data',
@@ -4127,13 +4128,21 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ?? ''
             ));
 
-            $status = ($waiterCall || $note !== '' || $linkedOrderHasNote)
-                ? 'attention'
-                : ($cleaning
-                    ? 'cleaning'
-                    : ($reserved
-                        ? 'reserved'
-                        : ($occupied ? 'occupied' : 'available')));
+            $tableEnabled =
+                ($raw['table_status'] ?? true) !== false
+                && ($raw['enabled'] ?? true) !== false
+                && $rawStatus !== 'disabled'
+                && $rawStatus !== 'inactive';
+
+            $status = !$tableEnabled
+                ? 'disabled'
+                : (($waiterCall || $note !== '' || $linkedOrderHasNote)
+                    ? 'attention'
+                    : ($cleaning
+                        ? 'cleaning'
+                        : ($reserved
+                            ? 'reserved'
+                            : ($occupied ? 'occupied' : 'available'))));
 
             /*
              * Match Floor V1 normalize() exactly for first paint.
@@ -4250,6 +4259,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             });
 
             $priority = [
+                'disabled' => 6,
                 'available' => 1,
                 'occupied' => 2,
                 'reserved' => 3,
