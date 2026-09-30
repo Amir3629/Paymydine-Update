@@ -217,12 +217,6 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         $initialBootstrap = $this->quickPosBootstrapPayload($mode);
 
         /*
-         * PMD_QPOS_EXACT_DASHBOARD_FLOOR_V26
-         *
-         * Quick POS does not render a second Floor. It supplies the same
-         * canonical Floor context used by Dashboard/Manager/Reservations.
-         */
-        /*
          * PMD_QPOS_LAZY_FLOOR_V130
          *
          * /admin/pos already has the canonical table/floor registry in its
