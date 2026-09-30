@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R8 */
+/* PMD_INVENTORY_CONTROL_R9 */
 (function () {
   'use strict';
 
@@ -52,6 +52,125 @@
       maximumFractionDigits: max,
       minimumFractionDigits: 0
     }).format(value);
+  }
+
+  /* PMD_INVENTORY_CARD_GEOMETRY_R9
+   * Inventory lives inside the owner shell, whose transformed content area can
+   * become the containing block for position:fixed. Correct that offset before
+   * paint so every card is centered on the real browser viewport, exactly like
+   * the Owner Dashboard table manager.
+   */
+  function alignModalToViewport(modal) {
+    if (!modal) return;
+
+    modal.style.setProperty('--pmd-inv-modal-shift-x', '0px');
+    modal.style.setProperty('--pmd-inv-modal-shift-y', '0px');
+
+    var rect = modal.getBoundingClientRect();
+    var shiftX = Math.abs(rect.left) > 0.5 ? -rect.left : 0;
+    var shiftY = Math.abs(rect.top) > 0.5 ? -rect.top : 0;
+
+    modal.style.setProperty('--pmd-inv-modal-shift-x', shiftX + 'px');
+    modal.style.setProperty('--pmd-inv-modal-shift-y', shiftY + 'px');
+  }
+
+  function stepperNumber(value, fallback) {
+    var parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : Number(fallback || 0);
+  }
+
+  function stepperPrecision(value) {
+    value = String(value == null ? '' : value);
+    var dot = value.indexOf('.');
+    return dot === -1 ? 0 : Math.min(4, value.length - dot - 1);
+  }
+
+  function syncNumericStepper(input) {
+    if (!input) return;
+    var wrap = input.closest('.pmd-inv-stepper-r9');
+    if (!wrap) return;
+
+    var minus = wrap.querySelector('[data-pmd-inv-stepper-dir="-1"]');
+    var plus = wrap.querySelector('[data-pmd-inv-stepper-dir="1"]');
+    var value = input.value === '' ? null : Number(input.value);
+    var min = input.hasAttribute('min') ? Number(input.getAttribute('min')) : null;
+    var max = input.hasAttribute('max') ? Number(input.getAttribute('max')) : null;
+    var blocked = Boolean(input.disabled || input.readOnly || state.busy);
+
+    if (minus) {
+      minus.disabled = blocked || (
+        value !== null && Number.isFinite(min) && value <= min
+      );
+    }
+    if (plus) {
+      plus.disabled = blocked || (
+        value !== null && Number.isFinite(max) && value >= max
+      );
+    }
+  }
+
+  function enhanceNumericSteppers(scope) {
+    scope = scope || root;
+    scope.querySelectorAll('input[data-pmd-inv-stepper]').forEach(function (input) {
+      if (input.closest('.pmd-inv-stepper-r9')) {
+        syncNumericStepper(input);
+        return;
+      }
+
+      var wrap = document.createElement('div');
+      wrap.className = 'pmd-inv-stepper-r9';
+
+      var minus = document.createElement('button');
+      minus.type = 'button';
+      minus.setAttribute('data-pmd-inv-stepper-dir', '-1');
+      minus.setAttribute('aria-label', 'Decrease');
+      minus.innerHTML = '<span aria-hidden="true">−</span>';
+
+      var plus = document.createElement('button');
+      plus.type = 'button';
+      plus.setAttribute('data-pmd-inv-stepper-dir', '1');
+      plus.setAttribute('aria-label', 'Increase');
+      plus.innerHTML = '<span aria-hidden="true">+</span>';
+
+      input.parentNode.insertBefore(wrap, input);
+      wrap.appendChild(minus);
+      wrap.appendChild(input);
+      wrap.appendChild(plus);
+      syncNumericStepper(input);
+    });
+  }
+
+  function stepNumericInput(button) {
+    var wrap = button && button.closest('.pmd-inv-stepper-r9');
+    var input = wrap && wrap.querySelector('input[type="number"]');
+    if (!input || input.disabled || input.readOnly || state.busy) return;
+
+    var direction = Number(button.getAttribute('data-pmd-inv-stepper-dir') || 0);
+    if (!direction) return;
+
+    var configuredStep = stepperNumber(
+      input.getAttribute('data-pmd-inv-stepper-step'),
+      1
+    );
+    var step = configuredStep > 0 ? configuredStep : 1;
+    var min = input.hasAttribute('min') ? Number(input.getAttribute('min')) : null;
+    var max = input.hasAttribute('max') ? Number(input.getAttribute('max')) : null;
+    var current = input.value === ''
+      ? (Number.isFinite(min) ? min : 0)
+      : stepperNumber(input.value, 0);
+    var next = current + (direction * step);
+
+    if (Number.isFinite(min)) next = Math.max(min, next);
+    if (Number.isFinite(max)) next = Math.min(max, next);
+
+    var precision = Math.max(
+      stepperPrecision(step),
+      stepperPrecision(input.getAttribute('step'))
+    );
+    input.value = String(Number(next.toFixed(Math.min(4, precision))));
+    input.dispatchEvent(new Event('input', {bubbles:true}));
+    input.dispatchEvent(new Event('change', {bubbles:true}));
+    syncNumericStepper(input);
   }
 
   function money(value) {
@@ -1211,18 +1330,23 @@
       renderCountLines();
     }
 
-    // PMD_INVENTORY_CARD_LANGUAGE_R8
-    // Apply the visual plane BEFORE revealing the card so there is no
-    // first-frame jump between the dashboard and the composer.
+    // PMD_INVENTORY_CARD_GEOMETRY_R9
+    // Build steppers and correct the owner-shell fixed-position offset while the
+    // modal is invisible. The first painted frame is already centered.
     document.documentElement.classList.add(
       'pmd-inventory-card-open-r8',
-      'pmd-inventory-card-bgblur-r8'
+      'pmd-inventory-card-bgblur-r8',
+      'pmd-inventory-card-open-r9'
     );
+    modal.style.visibility = 'hidden';
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     document.documentElement.style.overflow = 'hidden';
+    enhanceNumericSteppers(modal);
+    alignModalToViewport(modal);
+    modal.style.visibility = '';
 
-    var focus = modal.querySelector('input:not([type="hidden"]):not([type="file"]),select,button:not([hidden])');
+    var focus = modal.querySelector('input:not([type="hidden"]):not([type="file"]),select,button:not([hidden]):not([data-pmd-inv-stepper-dir])');
     if (focus) window.setTimeout(function () { focus.focus(); }, 30);
   }
 
@@ -1230,6 +1354,9 @@
     if (!modal) return;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
+    modal.style.visibility = '';
+    modal.style.removeProperty('--pmd-inv-modal-shift-x');
+    modal.style.removeProperty('--pmd-inv-modal-shift-y');
 
     var form = modal.querySelector('form');
     if (form && !state.busy) form.reset();
@@ -1277,7 +1404,8 @@
       document.documentElement.style.overflow = '';
       document.documentElement.classList.remove(
         'pmd-inventory-card-open-r8',
-        'pmd-inventory-card-bgblur-r8'
+        'pmd-inventory-card-bgblur-r8',
+        'pmd-inventory-card-open-r9'
       );
     }
   }
@@ -1295,12 +1423,13 @@
     row.className = 'pmd-inv-line';
     row.innerHTML =
       '<input type="text" list="pmd-inv-purchase-items-r1" data-pmd-purchase-name placeholder="Stock item" value="' + esc(data.item_name || '') + '" required>' +
-      '<input type="number" min="0.0001" step="0.0001" data-pmd-purchase-qty placeholder="Qty" value="' + esc(data.quantity == null ? '' : data.quantity) + '" required>' +
+      '<input type="number" min="0.0001" step="0.0001" data-pmd-purchase-qty data-pmd-inv-stepper data-pmd-inv-stepper-step="1" placeholder="Qty" value="' + esc(data.quantity == null ? '' : data.quantity) + '" required>' +
       '<select data-pmd-purchase-unit>' + unitOptions(data.unit || 'piece') + '</select>' +
       '<input type="number" min="0" step="0.0001" data-pmd-purchase-cost placeholder="Cost / unit" value="' + esc(data.unit_cost == null ? '' : data.unit_cost) + '">' +
       '<button type="button" class="pmd-inv-line__remove" data-pmd-inv-remove-line aria-label="Remove line">×</button>';
 
     host.appendChild(row);
+    enhanceNumericSteppers(row);
     var input = row.querySelector('[data-pmd-purchase-name]');
     if (input && input.value) syncPurchaseLineToKnownItem(input);
   }
@@ -1338,10 +1467,11 @@
     row.className = 'pmd-inv-line is-recipe';
     row.innerHTML =
       '<select data-pmd-recipe-item required>' + itemOptions('Choose stock item') + '</select>' +
-      '<input type="number" min="0.0001" step="0.0001" data-pmd-recipe-qty placeholder="Amount" value="' + esc(data.qty_per_sale == null ? '' : data.qty_per_sale) + '" required>' +
+      '<input type="number" min="0.0001" step="0.0001" data-pmd-recipe-qty data-pmd-inv-stepper data-pmd-inv-stepper-step="1" placeholder="Amount" value="' + esc(data.qty_per_sale == null ? '' : data.qty_per_sale) + '" required>' +
       '<span class="pmd-inv-recipe-unit" data-pmd-recipe-unit>unit</span>' +
       '<button type="button" class="pmd-inv-line__remove" data-pmd-inv-remove-line aria-label="Remove ingredient">×</button>';
     host.appendChild(row);
+    enhanceNumericSteppers(row);
 
     if (data.item_id) {
       row.querySelector('[data-pmd-recipe-item]').value = String(data.item_id);
@@ -1420,10 +1550,11 @@
       return '<div class="pmd-inv-count-row" data-pmd-count-item="' + esc(item.id) + '" data-pmd-count-expected="' + esc(item.estimated_on_hand) + '" data-pmd-count-factor="' + esc(purchaseFactor(item)) + '" data-pmd-count-unit="' + esc(expected.unit) + '">' +
         '<strong>' + esc(item.name) + ' <small>' + esc(expected.unit) + '</small></strong>' +
         '<span>Expected <b>' + esc(num(expected.qty, 2)) + '</b></span>' +
-        '<input type="number" min="0" step="0.0001" data-pmd-count-actual placeholder="Actual ' + esc(expected.unit) + '">' +
+        '<input type="number" min="0" step="0.0001" data-pmd-count-actual data-pmd-inv-stepper data-pmd-inv-stepper-step="1" placeholder="Actual ' + esc(expected.unit) + '">' +
         '<span class="pmd-inv-count-variance" data-pmd-count-variance>Variance —</span>' +
       '</div>';
     }).join('');
+    enhanceNumericSteppers(host);
   }
 
   function updateCountVariance(input) {
@@ -1500,6 +1631,13 @@
   }
 
   root.addEventListener('click', function (event) {
+    var stepButton = event.target.closest('[data-pmd-inv-stepper-dir]');
+    if (stepButton) {
+      event.preventDefault();
+      stepNumericInput(stepButton);
+      return;
+    }
+
     var actionToggle = event.target.closest('[data-pmd-inv-actions-toggle]');
     if (actionToggle) {
       event.preventDefault();
@@ -1681,6 +1819,10 @@
   });
 
   root.addEventListener('input', function (event) {
+    if (event.target.matches('input[data-pmd-inv-stepper]')) {
+      syncNumericStepper(event.target);
+    }
+
     if (event.target.matches('[data-pmd-inv-search]')) {
       state.search = String(event.target.value || '').trim();
       renderStock();
@@ -1920,11 +2062,19 @@
     if (event.key === 'Escape') closeAllModals();
   });
 
+  // PMD_INVENTORY_VIEWPORT_RESIZE_R9
+  window.addEventListener('resize', function () {
+    root.querySelectorAll('.pmd-inv-modal:not([hidden])').forEach(function (modal) {
+      alignModalToViewport(modal);
+    });
+  });
+
+  enhanceNumericSteppers(root);
   bootHeaderNotification();
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '8.0.0',
+    version: '9.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
