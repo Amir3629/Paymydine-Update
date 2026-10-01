@@ -36,6 +36,8 @@
     $devicePlatformPolicy = (array)($devicePlatform['policy'] ?? []);
     $devicePlatformDesired = (array)($devicePlatform['desired'] ?? []);
     $devicePlatformDevices = (array)($devicePlatform['devices'] ?? []);
+    $devicePlatformDeployment = (array)($devicePlatform['deployment'] ?? []);
+    $devicePlatformTableOptions = (array)($devicePlatform['table_options'] ?? []);
 @endphp
 
 <div id="pmd-devices-page" class="pmd-owner-page" data-pmd-owner-page data-pmd-device-inline-v6>
@@ -214,6 +216,52 @@
                     </div>
                 </div>
 
+                <div class="pmd-device-platform-deployment">
+                    <div class="pmd-device-platform-deployment__copy">
+                        <h3>{{ $pmdSettingsText('Bulk table deployment') }}</h3>
+                        <p>{{ $pmdSettingsText('For a new restaurant, enter one reusable 6-digit deployment code on every Table Companion. The devices appear below as Unassigned; assign each one to a table from this page.') }}</p>
+                    </div>
+
+                    @if(!empty($devicePlatformDeployment['code']))
+                        <div class="pmd-device-platform-deployment__active">
+                            <div>
+                                <span>{{ $pmdSettingsText('Deployment code') }}</span>
+                                <strong>{{ e($devicePlatformDeployment['code']) }}</strong>
+                                <small>
+                                    {{ (int)($devicePlatformDeployment['paired_count'] ?? 0) }}
+                                    /
+                                    {{ (int)($devicePlatformDeployment['expected_count'] ?? 0) }}
+                                    {{ $pmdSettingsText('devices paired') }}
+                                </small>
+                            </div>
+                            <form
+                                data-request="onCancelPmdTableDeployment"
+                                data-request-flash
+                                data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                            >
+                                <button class="pmd-owner-action" type="submit">
+                                    {{ $pmdSettingsText('End deployment') }}
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        <form
+                            class="pmd-device-platform-deployment__start"
+                            data-request="onStartPmdTableDeployment"
+                            data-request-flash
+                            data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                        >
+                            <label>
+                                <span>{{ $pmdSettingsText('How many table displays?') }}</span>
+                                <input type="number" min="1" max="200" name="expected_count" value="20">
+                            </label>
+                            <button class="pmd-owner-action pmd-device-platform-primary" type="submit">
+                                {{ $pmdSettingsText('Start deployment') }}
+                            </button>
+                        </form>
+                    @endif
+                </div>
+
                 <div class="pmd-device-platform-list-head">
                     <div>
                         <h3>{{ $pmdSettingsText('Managed devices') }}</h3>
@@ -253,19 +301,50 @@
                                 </small>
                             </div>
 
-                            <form
-                                class="pmd-device-platform-row-actions"
-                                data-request="onPmdDevicePlatformCommand"
-                                data-request-flash
-                                data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
-                            >
-                                <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
-                                <button type="submit" name="action" value="WAKE">{{ $pmdSettingsText('Wake') }}</button>
-                                <button type="submit" name="action" value="SLEEP">{{ $pmdSettingsText('Sleep') }}</button>
-                                <button type="submit" name="action" value="IDENTIFY">{{ $pmdSettingsText('Identify') }}</button>
-                                <button type="submit" name="action" value="RELOAD_APP">{{ $pmdSettingsText('Reload') }}</button>
-                                <button type="submit" name="action" value="REBOOT" data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
-                            </form>
+                            <div class="pmd-device-platform-controlstack">
+                                @if(
+                                    ($device['kind'] ?? '') === 'table_display'
+                                    && empty($device['assignment'])
+                                )
+                                    <form
+                                        class="pmd-device-platform-assign"
+                                        data-request="onAssignPmdTableDisplay"
+                                        data-request-flash
+                                        data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                                    >
+                                        <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                        <select name="table_id" required>
+                                            <option value="">{{ $pmdSettingsText('Assign table…') }}</option>
+                                            @foreach($devicePlatformTableOptions as $tableOption)
+                                                @if(!empty($tableOption['enabled']))
+                                                    <option value="{{ (int)($tableOption['id'] ?? 0) }}">
+                                                        {{ $pmdSettingsText('Table') }}
+                                                        {{ e($tableOption['number'] ?? '') }}
+                                                        @if(!empty($tableOption['floor']))
+                                                            · {{ e($tableOption['floor']) }}
+                                                        @endif
+                                                    </option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                        <button type="submit">{{ $pmdSettingsText('Assign') }}</button>
+                                    </form>
+                                @endif
+
+                                <form
+                                    class="pmd-device-platform-row-actions"
+                                    data-request="onPmdDevicePlatformCommand"
+                                    data-request-flash
+                                    data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                                >
+                                    <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                    <button type="submit" name="action" value="WAKE">{{ $pmdSettingsText('Wake') }}</button>
+                                    <button type="submit" name="action" value="SLEEP">{{ $pmdSettingsText('Sleep') }}</button>
+                                    <button type="submit" name="action" value="IDENTIFY">{{ $pmdSettingsText('Identify') }}</button>
+                                    <button type="submit" name="action" value="RELOAD_APP">{{ $pmdSettingsText('Reload') }}</button>
+                                    <button type="submit" name="action" value="REBOOT" data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
+                                </form>
+                            </div>
                         </div>
                     @empty
                         <div class="pmd-owner-empty">
