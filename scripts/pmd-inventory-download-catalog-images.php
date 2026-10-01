@@ -162,23 +162,27 @@ foreach ($eligible as $index => [$row, $catalogRow]) {
     $sourcePath = null;
     $tmp = $target.'.source-'.bin2hex(random_bytes(4));
 
-    $webpUrl = $imageBase.'/'.encodePath($fileName).'?download=true';
-    if (downloadFile($webpUrl, $tmp, 5 * 1024 * 1024) && imageLooksValid($tmp)) {
-        $sourcePath = $fileName;
-    } else {
+    // Prefer the PNG variant because it preserves any clean alpha/cutout edge
+    // supplied by Ingredient Atlas. We then composite that onto a guaranteed
+    // white PMD card. Fall back to WebP only if PNG retrieval fails.
+    $pngFile = preg_replace(
+        '#^images/webp/512/(.+)\.webp$#',
+        'images/png/512/$1.png',
+        $fileName
+    );
+
+    if (is_string($pngFile) && $pngFile !== $fileName) {
+        $pngUrl = $imageBase.'/'.encodePath($pngFile).'?download=true';
+        if (downloadFile($pngUrl, $tmp, 8 * 1024 * 1024) && imageLooksValid($tmp)) {
+            $sourcePath = $pngFile;
+        }
+    }
+
+    if (!$sourcePath) {
         @unlink($tmp);
-
-        $pngFile = preg_replace(
-            '#^images/webp/512/(.+)\.webp$#',
-            'images/png/512/$1.png',
-            $fileName
-        );
-
-        if (is_string($pngFile) && $pngFile !== $fileName) {
-            $pngUrl = $imageBase.'/'.encodePath($pngFile).'?download=true';
-            if (downloadFile($pngUrl, $tmp, 8 * 1024 * 1024) && imageLooksValid($tmp)) {
-                $sourcePath = $pngFile;
-            }
+        $webpUrl = $imageBase.'/'.encodePath($fileName).'?download=true';
+        if (downloadFile($webpUrl, $tmp, 5 * 1024 * 1024) && imageLooksValid($tmp)) {
+            $sourcePath = $fileName;
         }
     }
 
