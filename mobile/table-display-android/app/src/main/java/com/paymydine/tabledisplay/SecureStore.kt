@@ -28,19 +28,29 @@ class SecureStore(context: Context) {
     fun token(): String? = getSecret("device_token")
     fun deviceId(): Long = prefs.getLong("device_id", 0L)
 
-    fun savePairing(host: String, token: String, deviceId: Long) {
+    fun savePairing(
+        host: String,
+        token: String,
+        deviceId: Long,
+        centrallyManaged: Boolean = false,
+    ) {
         prefs.edit()
             .putString("host", normalizeHost(host))
             .putLong("device_id", deviceId)
+            .putBoolean("centrally_managed", centrallyManaged)
             .apply()
         putSecret("device_token", token)
     }
+
+    fun centrallyManaged(): Boolean =
+        prefs.getBoolean("centrally_managed", false)
 
     fun clearPairing() {
         prefs.edit()
             .remove("host")
             .remove("device_id")
             .remove("device_token")
+            .remove("centrally_managed")
             .remove("display_snapshot_v1")
             .remove("device_screen_state")
             .remove("device_brightness")
