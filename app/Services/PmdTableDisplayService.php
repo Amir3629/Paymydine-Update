@@ -125,6 +125,8 @@ final class PmdTableDisplayService
             abort(403, 'This order belongs to another restaurant location.');
         }
 
+        $this->assertLiveBoundTableDisplay($locationId, $tableId);
+
         $eventId = (string)Str::uuid();
         $expiresAt = now()->addMinutes(5);
         $currency = $this->currencyCode();
@@ -221,6 +223,55 @@ final class PmdTableDisplayService
             'message' => $message,
             'occurred_at' => $occurredAt,
         ], $extra);
+    }
+
+    private function assertLiveBoundTableDisplay(
+        int $locationId,
+        int $tableId
+    ): void {
+        if (!Schema::hasTable('pmd_site_access_devices')) {
+            abort(409, 'No Table Companion is paired with this restaurant yet.');
+        }
+
+        $assigned = null;
+        $rows = DB::table('pmd_site_access_devices')
+            ->where('location_id', $locationId)
+            ->where('device_kind', 'table_display')
+            ->whereNull('revoked_at')
+            ->orderByDesc('last_seen_at')
+            ->get();
+
+        foreach ($rows as $row) {
+            $platform = json_decode(
+                (string)($row->platform_info ?? '{}'),
+                true
+            );
+            if (
+                is_array($platform)
+                && (int)($platform['table_id'] ?? 0) === $tableId
+            ) {
+                $assigned = $row;
+                break;
+            }
+        }
+
+        if (!$assigned) {
+            abort(
+                409,
+                'No Table Companion is assigned to this table. Assign the device in Settings > Devices & hardware.'
+            );
+        }
+
+        $lastSeen = $assigned->last_seen_at ?? null;
+        if (
+            !$lastSeen
+            || Carbon::parse($lastSeen)->lt(now()->subSeconds(90))
+        ) {
+            abort(
+                409,
+                'The Table Companion for this table is offline. Wake or reconnect the device first.'
+            );
+        }
     }
 
     private function latestOrder(int $tableId): ?array
