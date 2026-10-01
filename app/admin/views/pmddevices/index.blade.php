@@ -281,6 +281,8 @@
                                         {{ e($device['kind_label'] ?? 'Device') }}
                                         @if(!empty($device['assignment']))
                                             · {{ e($device['assignment']) }}
+                                        @elseif(($device['kind'] ?? '') === 'table_display')
+                                            · {{ $pmdSettingsText('Unassigned') }}
                                         @endif
                                         @if(!empty($device['model']))
                                             · {{ e($device['model']) }}
