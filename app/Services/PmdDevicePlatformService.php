@@ -263,6 +263,30 @@ final class PmdDevicePlatformService
             abort(404, 'Restaurant table was not found.');
         }
 
+        // One physical table should have one active guest-facing Companion.
+        // Reject accidental duplicate assignments during bulk installation.
+        $otherDisplays = DB::table('pmd_site_access_devices')
+            ->where('location_id', $locationId)
+            ->where('device_kind', 'table_display')
+            ->whereNull('revoked_at')
+            ->where('id', '!=', $deviceId)
+            ->get();
+
+        foreach ($otherDisplays as $otherDisplay) {
+            $otherPlatform = $this->decode(
+                (string)($otherDisplay->platform_info ?? '')
+            );
+            if ((int)($otherPlatform['table_id'] ?? 0) === $tableId) {
+                abort(
+                    409,
+                    'That table is already assigned to '.
+                    (trim((string)($otherDisplay->device_name ?? ''))
+                        ?: 'another Table Companion').
+                    '. Reassign or revoke that device first.'
+                );
+            }
+        }
+
         $platform = $this->decode((string)($device->platform_info ?? ''));
         $platform['table_id'] = $tableId;
         $platform['bound_at'] = now()->toIso8601String();
