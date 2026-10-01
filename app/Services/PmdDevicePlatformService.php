@@ -820,6 +820,20 @@ final class PmdDevicePlatformService
                 'updated_at' => now(),
             ]);
 
+        if ($status === 'failed') {
+            $this->recordLog($device, [
+                'level' => 'warning',
+                'event' => 'command_failed',
+                'message' => (string)$row->command.' failed on device.',
+                'context' => [
+                    'command_id' => $commandId,
+                    'command' => (string)$row->command,
+                    'result' => $result,
+                ],
+                'occurred_at' => now()->toIso8601String(),
+            ]);
+        }
+
         return ['ok' => true, 'command_id' => $commandId, 'status' => $status];
     }
 
