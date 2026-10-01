@@ -311,6 +311,34 @@ class DeviceCredentialStore(context: Context) {
             .apply()
     fun clearIdentity() = prefs.edit().clear().apply()
 
+    // PMD_DEVICE_SHELL_V1
+    // Device control preferences are operational state, never human credentials.
+    fun setDeviceShellState(
+        screenState: String,
+        brightness: Int,
+        managed: Boolean,
+    ) {
+        prefs.edit()
+            .putString("device_shell_screen_state", screenState)
+            .putInt(
+                "device_shell_brightness",
+                brightness.coerceIn(0, 100),
+            )
+            .putBoolean("device_shell_managed", managed)
+            .apply()
+    }
+
+    fun deviceShellScreenState(): String =
+        prefs.getString("device_shell_screen_state", "awake")
+            ?: "awake"
+
+    fun deviceShellBrightness(): Int =
+        prefs.getInt("device_shell_brightness", 80)
+            .coerceIn(0, 100)
+
+    fun deviceShellManaged(): Boolean =
+        prefs.getBoolean("device_shell_managed", true)
+
     private fun offlineLoginRecord(): JSONObject? {
         val raw = getSecret(OFFLINE_LOGIN_KEY) ?: return null
         return runCatching { JSONObject(raw) }
