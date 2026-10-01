@@ -99,7 +99,7 @@ jobs:
         run: |
           set -euo pipefail
           APK_IN="mobile/table-display-android/app/build/outputs/apk/debug/app-debug.apk"
-          APK_OUT="mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk"
+          APK_OUT="mobile/table-display-android/PayMyDine-Table-Companion-0.1.3.apk"
           test -f "$APK_IN"
           cp "$APK_IN" "$APK_OUT"
           sha256sum "$APK_OUT" > "$APK_OUT.sha256"
@@ -108,21 +108,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK="mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk"
+          APK="mobile/table-display-android/PayMyDine-Table-Companion-0.1.3.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.tabledisplay.preview'" <<<"$BADGING"
-          grep -Fq "versionCode='3'" <<<"$BADGING"
-          grep -Fq "versionName='0.1.2-table-companion-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='4'" <<<"$BADGING"
+          grep -Fq "versionName='0.1.3-table-companion-debug'" <<<"$BADGING"
           sha256sum "$APK"
 
       - uses: actions/upload-artifact@v4
         with:
           name: paymydine-table-companion-v1
           path: |
-            mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk
-            mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk.sha256
+            mobile/table-display-android/PayMyDine-Table-Companion-0.1.3.apk
+            mobile/table-display-android/PayMyDine-Table-Companion-0.1.3.apk.sha256
           if-no-files-found: error
 
       - name: Publish preview APK
@@ -136,4 +136,4 @@ jobs:
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "PayMyDine Table Companion Preview"               --notes "Preview APK for the dedicated PayMyDine tabletop display."               --prerelease
           fi
-          gh release upload "$TAG"             mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk             mobile/table-display-android/PayMyDine-Table-Companion-0.1.2.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
+          gh release upload "$TAG"             mobile/table-display-android/PayMyDine-Table-Companion-0.1.3.apk             mobile/table-display-android/PayMyDine-Table-Companion-0.1.3.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
