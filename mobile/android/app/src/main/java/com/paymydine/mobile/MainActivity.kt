@@ -33,6 +33,20 @@ class MainActivity : ComponentActivity() {
         setContent { PayMyDineApp(app) }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val app = application as PayMyDineApplication
+        app.deviceShell.attach(this, "restaurant_app")
+        app.ensureDeviceControlRunning()
+    }
+
+    override fun onPause() {
+        (application as PayMyDineApplication)
+            .deviceShell
+            .detach(this)
+        super.onPause()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
