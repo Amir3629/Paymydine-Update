@@ -353,6 +353,37 @@ class Pmddevices extends AdminController
     }
 
     /** PMD_DEVICE_PLATFORM_V1 */
+    public function onAssignPmdTableDisplayTerminal()
+    {
+        $this->assertDevicePlatformManager();
+
+        $deviceId = max(0, (int)post('device_id', 0));
+        $terminalId = max(0, (int)post('terminal_device_id', 0));
+        if ($deviceId < 1) {
+            throw new \RuntimeException('Choose a Table Companion device.');
+        }
+
+        $result = app(PmdDevicePlatformService::class)
+            ->assignTableDisplayTerminal(
+                $this->devicePlatformLocationId(),
+                $deviceId,
+                $terminalId > 0 ? $terminalId : null,
+                $this->devicePlatformStaffId()
+            );
+
+        if (!empty($result['terminal_device_id'])) {
+            flash()->success(
+                'Contactless terminal linked to device #'.$deviceId.': '.
+                (string)($result['terminal_name'] ?? 'Payment terminal').'.'
+            );
+        } else {
+            flash()->success(
+                'Contactless terminal link removed from device #'.$deviceId.'.'
+            );
+        }
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
     public function onSavePmdDevicePlatformPolicy()
     {
         $this->assertDevicePlatformManager();
