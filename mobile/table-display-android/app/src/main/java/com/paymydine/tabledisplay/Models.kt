@@ -4,6 +4,7 @@ data class PairResult(
     val token: String,
     val deviceId: Long,
     val locationId: Long,
+    val deploymentMode: Boolean,
 )
 
 data class DeviceTable(
