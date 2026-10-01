@@ -52,6 +52,9 @@ class DeviceShellManager(
     private var identifyActive = false
 
     @Volatile
+    private var readyLogged = false
+
+    @Volatile
     private var lastDesired = DeviceDesiredState(
         screenState = credentials.deviceShellScreenState(),
         brightness = credentials.deviceShellBrightness(),
@@ -93,6 +96,25 @@ class DeviceShellManager(
             token = token,
             payload = heartbeatPayload(),
         )
+
+        if (!readyLogged) {
+            runCatching {
+                client.log(
+                    tenantHost = host,
+                    token = token,
+                    level = "info",
+                    event = "device_shell_ready",
+                    message = "PayMyDine Android Device Shell is online.",
+                    context = mapOf(
+                        "mode" to currentMode(),
+                        "app_version" to BuildConfig.VERSION_NAME,
+                        "device_owner" to isDeviceOwner(),
+                        "network_type" to networkType(),
+                    ),
+                )
+            }
+            readyLogged = true
+        }
 
         lastDesired = result.desired
         if (!identifyActive) {
