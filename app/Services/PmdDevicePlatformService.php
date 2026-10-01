@@ -28,6 +28,7 @@ final class PmdDevicePlatformService
             && Schema::hasTable('pmd_device_commands')
             && Schema::hasTable('pmd_device_policies')
         ) {
+            $this->ensureRuntimeOverrideColumns();
             return;
         }
 
@@ -41,6 +42,7 @@ final class PmdDevicePlatformService
 
         require_once $path;
         (new \System\Database\Migrations\CreatePmdDevicePlatformV1())->up();
+        $this->ensureRuntimeOverrideColumns();
     }
 
     public function dashboard(int $locationId): array
@@ -216,6 +218,7 @@ final class PmdDevicePlatformService
 
         $policy = $this->policy($locationId);
         $desired = $this->desiredState($locationId, $policy, $kind, $mode);
+        $desired = $this->applyRuntimeOverride($deviceId, $desired);
 
         return [
             'ok' => true,
@@ -321,6 +324,47 @@ final class PmdDevicePlatformService
         $devices = $query->get();
         $ids = [];
 
+        if ($deviceId && $devices->isNotEmpty()) {
+            $overrideMinutes = max(
+                1,
+                min(480, (int)($payload['override_minutes'] ?? 120))
+            );
+            $runtimeUpdate = [
+                'override_until' => now()->addMinutes($overrideMinutes),
+                'updated_at' => now(),
+            ];
+
+            if ($command === 'WAKE') {
+                $runtimeUpdate['override_screen_state'] = 'awake';
+                $runtimeUpdate['override_brightness'] = (int)(
+                    $payload['brightness']
+                    ?? $this->policy($locationId)['open_brightness']
+                    ?? 80
+                );
+            } elseif ($command === 'SLEEP') {
+                $runtimeUpdate['override_screen_state'] = 'closed';
+                $runtimeUpdate['override_brightness'] = (int)(
+                    $payload['brightness']
+                    ?? $this->policy($locationId)['closed_brightness']
+                    ?? 1
+                );
+            } elseif ($command === 'SET_BRIGHTNESS') {
+                $runtimeUpdate['override_brightness'] = max(
+                    0,
+                    min(100, (int)($payload['brightness'] ?? 80))
+                );
+            }
+
+            if (
+                array_key_exists('override_screen_state', $runtimeUpdate)
+                || array_key_exists('override_brightness', $runtimeUpdate)
+            ) {
+                DB::table('pmd_device_runtime')
+                    ->where('device_id', $deviceId)
+                    ->update($runtimeUpdate);
+            }
+        }
+
         foreach ($devices as $device) {
             $commandId = (string)Str::uuid();
             DB::table('pmd_device_commands')->insert([
@@ -392,6 +436,18 @@ final class PmdDevicePlatformService
         }
 
         $existing = $this->policy($locationId);
+
+        if (Schema::hasTable('pmd_device_runtime')) {
+            DB::table('pmd_device_runtime')
+                ->where('location_id', $locationId)
+                ->update([
+                    'override_screen_state' => null,
+                    'override_brightness' => null,
+                    'override_until' => null,
+                    'updated_at' => now(),
+                ]);
+        }
+
         DB::table('pmd_device_policies')->updateOrInsert(
             ['location_id' => $locationId],
             [
@@ -695,6 +751,87 @@ final class PmdDevicePlatformService
         }
 
         return trim((string)setting('timezone', 'Europe/Berlin')) ?: 'Europe/Berlin';
+    }
+
+    private function applyRuntimeOverride(
+        int $deviceId,
+        array $desired
+    ): array {
+        if (!Schema::hasTable('pmd_device_runtime')) {
+            return $desired;
+        }
+
+        $row = DB::table('pmd_device_runtime')
+            ->where('device_id', $deviceId)
+            ->first();
+
+        if (!$row || empty($row->override_until)) {
+            return $desired;
+        }
+
+        $until = Carbon::parse($row->override_until);
+        if ($until->isPast()) {
+            DB::table('pmd_device_runtime')
+                ->where('device_id', $deviceId)
+                ->update([
+                    'override_screen_state' => null,
+                    'override_brightness' => null,
+                    'override_until' => null,
+                    'updated_at' => now(),
+                ]);
+            return $desired;
+        }
+
+        if (!empty($row->override_screen_state)) {
+            $desired['screen_state'] = $this->screenState(
+                $row->override_screen_state
+            );
+        }
+        if ($row->override_brightness !== null) {
+            $desired['brightness'] = max(
+                0,
+                min(100, (int)$row->override_brightness)
+            );
+        }
+
+        $desired['reason'] = 'device_manual_override';
+        $desired['override_until'] = $until->toIso8601String();
+
+        return $desired;
+    }
+
+    private function ensureRuntimeOverrideColumns(): void
+    {
+        if (!Schema::hasTable('pmd_device_runtime')) {
+            return;
+        }
+
+        $missing = [];
+        foreach ([
+            'override_screen_state',
+            'override_brightness',
+            'override_until',
+        ] as $column) {
+            if (!Schema::hasColumn('pmd_device_runtime', $column)) {
+                $missing[] = $column;
+            }
+        }
+
+        if (!$missing) {
+            return;
+        }
+
+        Schema::table('pmd_device_runtime', function ($table) use ($missing) {
+            if (in_array('override_screen_state', $missing, true)) {
+                $table->string('override_screen_state', 24)->nullable();
+            }
+            if (in_array('override_brightness', $missing, true)) {
+                $table->unsignedTinyInteger('override_brightness')->nullable();
+            }
+            if (in_array('override_until', $missing, true)) {
+                $table->timestamp('override_until')->nullable()->index();
+            }
+        });
     }
 
     private function screenState($value): string
