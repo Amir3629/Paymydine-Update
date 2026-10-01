@@ -12,8 +12,8 @@ use Illuminate\Http\Request;
 /**
  * PMD_TABLE_DISPLAY_V1
  *
- * Waiter-only transport that asks the physical table display to start card
- * payment. It deliberately does not mark an order paid; settlement remains
+ * Operational POS transport that asks the physical table display to start
+ * card/contactless payment. It deliberately does not mark an order paid; settlement remains
  * owned by the configured provider / canonical PayMyDine payment services.
  */
 final class PmdTableDisplayPaymentController
@@ -35,8 +35,17 @@ final class PmdTableDisplayPaymentController
         $role = strtolower(trim((string)app(PmdDefaultStaffRoleService::class)
             ->roleCodeForUser($user)));
 
-        if (!in_array($role, [PmdDefaultStaffRoleService::WAITER, 'waiter'], true)) {
-            abort(403, 'Card payment on the table display is available to waiter access only.');
+        if (!in_array($role, [
+            PmdDefaultStaffRoleService::OWNER,
+            PmdDefaultStaffRoleService::MANAGER,
+            PmdDefaultStaffRoleService::CASHIER,
+            PmdDefaultStaffRoleService::WAITER,
+            'owner',
+            'manager',
+            'cashier',
+            'waiter',
+        ], true)) {
+            abort(403, 'This PayMyDine role cannot request card payment on the table device.');
         }
 
         $orderId = (int)$order;
