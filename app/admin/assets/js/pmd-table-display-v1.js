@@ -9,18 +9,16 @@
   var setupCodeUrl = root.getAttribute('data-setup-code-url') || '/admin/table-display/setup-code';
   var tableSelect = root.querySelector('[data-pmd-table-display-table]');
   var idle = root.querySelector('[data-pmd-table-display-idle]');
-  var reaction = root.querySelector('[data-pmd-table-display-reaction]');
   var screen = root.querySelector('.pmd-table-display-screen');
   var qr = root.querySelector('[data-pmd-table-display-qr]');
   var logo = root.querySelector('[data-pmd-table-display-logo]');
   var restaurant = root.querySelector('[data-pmd-table-display-restaurant]');
   var tableLabel = root.querySelector('[data-pmd-table-display-table-label]');
-  var reactionTable = root.querySelector('[data-pmd-table-display-reaction-table]');
-  var reactionIcon = root.querySelector('[data-pmd-table-display-reaction-icon]');
-  var reactionHeadline = root.querySelector('[data-pmd-table-display-reaction-headline]');
-  var reactionMessage = root.querySelector('[data-pmd-table-display-reaction-message]');
-  var reactionAmount = root.querySelector('[data-pmd-table-display-reaction-amount]');
-  var reactionOrder = root.querySelector('[data-pmd-table-display-reaction-order]');
+  var message = root.querySelector('[data-pmd-table-display-message]');
+  var messageIcon = root.querySelector('[data-pmd-table-display-message-icon]');
+  var messageTitle = root.querySelector('[data-pmd-table-display-message-title]');
+  var messageSubtitle = root.querySelector('[data-pmd-table-display-message-subtitle]');
+  var messageAmount = root.querySelector('[data-pmd-table-display-message-amount]');
   var liveStatus = root.querySelector('[data-pmd-table-display-live-status]');
   var lastSync = root.querySelector('[data-pmd-table-display-last-sync]');
   var deviceState = root.querySelector('[data-pmd-table-display-device-state]');
@@ -52,47 +50,107 @@
     payload = payload || selectedState || {};
     var table = payload.table || {};
     var identity = payload.restaurant || boot.restaurant || {};
-    if (tableLabel) tableLabel.textContent = table.name || ('Table ' + (table.number || ''));
-    if (reactionTable) reactionTable.textContent = table.name || ('Table ' + (table.number || ''));
+    if (tableLabel) tableLabel.textContent = 'TABLE ' + String(table.number || table.id || '');
     if (qr && table.qr_image_url) qr.setAttribute('src', table.qr_image_url);
     if (restaurant) restaurant.textContent = identity.name || 'PayMyDine';
     if (logo && identity.logo) logo.setAttribute('src', identity.logo);
   }
 
+  function eventPresentation(event) {
+    event = event || {type:'idle'};
+    var type = String(event.type || 'idle');
+
+    if (type === 'order_received') {
+      return {
+        icon:'✓',
+        title:'Order received',
+        subtitle:'Sent to the kitchen.',
+        amount:''
+      };
+    }
+    if (type === 'waiter_call') {
+      return {
+        icon:'●',
+        title:'A team member is on the way',
+        subtitle:'We have notified the restaurant team.',
+        amount:''
+      };
+    }
+    if (type === 'payment_requested') {
+      return {
+        icon:'▣',
+        title:'Ready for card payment',
+        subtitle:'Tap or insert your card to complete payment.',
+        amount:Number(event.amount || 0) > 0
+          ? money(event.amount, event.currency)
+          : ''
+      };
+    }
+    if (type === 'payment_success') {
+      return {
+        icon:'✓',
+        title:'Payment approved',
+        subtitle:'Thank you for visiting us.',
+        amount:Number(event.amount || 0) > 0
+          ? money(event.amount, event.currency)
+          : ''
+      };
+    }
+    if (type === 'table_unavailable') {
+      return {
+        icon:'!',
+        title:'Table unavailable',
+        subtitle:'Please ask a team member for assistance.',
+        amount:''
+      };
+    }
+
+    return {
+      icon:'',
+      title:'Scan to order',
+      subtitle:'',
+      amount:''
+    };
+  }
+
   function renderEvent(event, payload) {
-    event = event || {type: 'idle'};
+    event = event || {type:'idle'};
     payload = payload || selectedState || {};
     renderIdentity(payload);
 
     var type = String(event.type || 'idle');
     var isIdle = type === 'idle';
+    var presented = eventPresentation(event);
 
     if (idle) idle.hidden = false;
-    if (screen) screen.classList.toggle('has-reaction', !isIdle);
-    if (reaction) {
-      reaction.hidden = isIdle;
-      reaction.className = 'pmd-table-display-reaction is-' + type;
+    if (screen) {
+      screen.classList.toggle('has-reaction', !isIdle && type !== 'table_unavailable');
+      screen.classList.toggle('is-unavailable', type === 'table_unavailable');
     }
-    if (deviceState) deviceState.textContent = isIdle ? 'QR ready' : String(event.headline || type).replace(/_/g, ' ');
-    if (isIdle) return;
 
-    if (reactionIcon) reactionIcon.textContent =
-      type === 'waiter_call' ? '↟' :
-      type === 'payment_requested' ? '▣' :
-      type === 'table_unavailable' ? '×' : '✓';
-
-    if (reactionHeadline) reactionHeadline.textContent = event.headline || 'PayMyDine';
-    if (reactionMessage) reactionMessage.textContent = event.message || '';
-
-    if (reactionAmount) {
-      var hasAmount = Number(event.amount || 0) > 0;
-      reactionAmount.hidden = !hasAmount;
-      reactionAmount.textContent = hasAmount ? money(event.amount, event.currency) : '';
+    if (message) {
+      message.className = 'pmd-table-display-message' +
+        (isIdle ? '' : ' is-event is-' + type);
     }
-    if (reactionOrder) {
-      var orderId = Number(event.order_id || 0);
-      reactionOrder.hidden = orderId < 1;
-      reactionOrder.textContent = orderId > 0 ? ('Order #' + orderId) : '';
+
+    if (messageIcon) {
+      messageIcon.hidden = isIdle;
+      messageIcon.textContent = presented.icon;
+    }
+    if (messageTitle) messageTitle.textContent = presented.title;
+    if (messageSubtitle) {
+      messageSubtitle.hidden = !presented.subtitle;
+      messageSubtitle.textContent = presented.subtitle;
+    }
+    if (messageAmount) {
+      messageAmount.hidden = !presented.amount;
+      messageAmount.textContent = presented.amount;
+    }
+
+    if (deviceState) {
+      deviceState.textContent = isIdle
+        ? 'QR ready'
+        : presented.title;
     }
   }
 
@@ -106,7 +164,7 @@
 
     if (key !== lastPresentedReactionKey) {
       lastPresentedReactionKey = key;
-      liveReactionUntil = now + 3800;
+      liveReactionUntil = now + 2200;
       return event;
     }
 
@@ -115,7 +173,7 @@
     return {
       type:'idle',
       key:'idle',
-      headline:'Scan to view the menu',
+      headline:'Scan to order',
       message:''
     };
   }
@@ -125,18 +183,18 @@
     var event = {type: type};
 
     if (type === 'order_received') {
-      Object.assign(event, {headline:'Order received', message:'Your order was sent to the restaurant.', order_id:order.id || 184});
+      Object.assign(event, {headline:'Order received', message:'Sent to the kitchen.', order_id:order.id || 184});
     } else if (type === 'waiter_call') {
-      Object.assign(event, {headline:'Waiter called', message:'A team member has been notified.'});
+      Object.assign(event, {headline:'A team member is on the way', message:'We have notified the restaurant team.'});
     } else if (type === 'payment_requested') {
-      Object.assign(event, {headline:'Ready to pay', message:'Tap or insert your card on the table display.', order_id:order.id || 184, amount:order.remaining_amount || order.total || 28.40, currency:'EUR'});
+      Object.assign(event, {headline:'Ready for card payment', message:'Tap or insert your card to complete payment.', order_id:order.id || 184, amount:order.remaining_amount || order.total || 28.40, currency:'EUR'});
     } else if (type === 'payment_success') {
-      Object.assign(event, {headline:'Payment approved', message:'Thank you. Your payment was received.', order_id:order.id || 184, amount:order.total || 28.40, currency:'EUR'});
+      Object.assign(event, {headline:'Payment approved', message:'Thank you for visiting us.', order_id:order.id || 184, amount:order.total || 28.40, currency:'EUR'});
     } else {
       event = {type:'idle'};
     }
 
-    simulationUntil = type === 'idle' ? 0 : Date.now() + 6500;
+    simulationUntil = type === 'idle' ? 0 : Date.now() + 2200;
     renderEvent(event, selectedState);
     if (type !== 'idle') {
       window.setTimeout(function () {
@@ -144,7 +202,7 @@
           simulationUntil = 0;
           renderEvent((selectedState && selectedState.event) || {type:'idle'}, selectedState);
         }
-      }, 6600);
+      }, 2250);
     }
   }
 
