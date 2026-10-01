@@ -93,13 +93,58 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
         $selectedDate = $date->format('Y-m-d');
         $tableId = max(0, (int)request()->query('table_id', 0));
+        $search = trim((string)request()->query('search', ''));
+        $searchOnly = filter_var(
+            request()->query('search_only', false),
+            FILTER_VALIDATE_BOOLEAN
+        );
+
+        // PMD_QRES_CROSS_DATE_SEARCH_R136
+        // Keep the normal selected-date transport fast. Cross-date search is
+        // a separate, SQL-scoped request and never hydrates the whole history.
+        if ($searchOnly && mb_strlen($search) >= 2) {
+            try {
+                $matches = app(
+                    \Admin\Services\PmdReservationsScheduleV1::class
+                )->searchOtherDates(
+                    $locationId,
+                    (string)app()->getLocale(),
+                    $search,
+                    $selectedDate,
+                    $tableId ?: null,
+                    80
+                );
+
+                return response()->json([
+                    'ok' => true,
+                    'version' => 'pmd-qpos-quick-reservations-r136',
+                    'date' => $selectedDate,
+                    'today' => $berlinNow->format('Y-m-d'),
+                    'table_id' => $tableId ?: null,
+                    'search' => $search,
+                    'other_date_reservations' => $matches,
+                    'count' => count($matches),
+                ]);
+            } catch (\Throwable $searchError) {
+                report($searchError);
+
+                return response()->json([
+                    'ok' => false,
+                    'version' => 'pmd-qpos-quick-reservations-r136',
+                    'date' => $selectedDate,
+                    'other_date_reservations' => [],
+                    'error' => 'Reservation search could not be loaded.',
+                ], 500);
+            }
+        }
 
         try {
             $payload = app(
                 \Admin\Services\PmdReservationsScheduleV1::class
             )->payload(
                 $locationId,
-                (string)app()->getLocale()
+                (string)app()->getLocale(),
+                $selectedDate
             );
 
             $reservations = collect(
@@ -133,7 +178,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             })->values()->all();
 
             /*
-             * PMD_QPOS_RESERVATION_HOURS_R129
+             * PMD_QPOS_RESERVATION_HOURS_R131
              * Quick Reservations uses the exact same location-scoped opening
              * hours authority as the full Reservations Hour screen and the
              * canonical Composer. This is read-only presentation data.
@@ -182,7 +227,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
             return response()->json([
                 'ok' => true,
-                'version' => 'pmd-qpos-quick-reservations-r129',
+                'version' => 'pmd-qpos-quick-reservations-r136',
                 'location_id' => $locationId,
                 'date' => $selectedDate,
                 'today' => (string)($payload['today'] ?? $berlinNow->format('Y-m-d')),
@@ -197,7 +242,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 
             return response()->json([
                 'ok' => false,
-                'version' => 'pmd-qpos-quick-reservations-r129',
+                'version' => 'pmd-qpos-quick-reservations-r136',
                 'date' => $selectedDate,
                 'reservations' => [],
                 'opening_hours' => [],

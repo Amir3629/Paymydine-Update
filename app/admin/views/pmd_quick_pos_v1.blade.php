@@ -80,7 +80,7 @@
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260928-r129">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260929-r136">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -422,7 +422,7 @@
             </div>
         </section>
 
-        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R128
+        {{-- PMD_QPOS_QUICK_RESERVATIONS_WORKSPACE_R136
              Exact same three-column Quick POS shell:
              Reservations | Schedule | canonical table rail. --}}
         <aside
@@ -430,12 +430,8 @@
             data-qpos-reservations-left
             @if($pmdInitialWorkspace !== 'reservations') hidden @endif
         >
-            <header class="pmd-qres-head">
-                <h2>Reservations</h2>
-                <button type="button" class="pmd-qres-new" data-qres-new>+ New</button>
-            </header>
+            <div class="pmd-qres-datebar pmd-qres-datebar--top">
 
-            <div class="pmd-qres-datebar">
                 <button type="button" data-qres-shift="-1" aria-label="Previous day">‹</button>
                 <input
                     type="date"
@@ -451,15 +447,16 @@
                 <input type="search" autocomplete="off" placeholder="Search reservations…" data-qres-search>
             </label>
 
-            <div class="pmd-qres-filter-row">
-                <button type="button" class="is-active" data-qres-filter="all">All</button>
-                <button type="button" data-qres-filter="upcoming">Upcoming</button>
-                <button type="button" data-qres-filter="past">Past</button>
-            </div>
-
-            <div class="pmd-qres-table-filter" data-qres-table-filter>
-                <span data-qres-table-filter-text></span>
-                <button type="button" data-qres-clear-table aria-label="Clear table filter">×</button>
+            {{-- PMD_QPOS_RESERVATION_TABLE_SCOPE_R133
+                 Reuse the History two-button visual language, but keep
+                 Reservation filtering isolated from History's data handlers. --}}
+            <div
+                class="pmd-qpos-history-scope-v87 pmd-qres-table-scope-r133"
+                data-qres-table-scope
+                aria-label="Reservation table scope"
+            >
+                <button type="button" data-qres-scope="selected">Selected table</button>
+                <button type="button" data-qres-scope="all" class="is-active">All tables</button>
             </div>
 
             <div class="pmd-qres-list" data-qres-list>
@@ -474,14 +471,163 @@
         >
             <header class="pmd-qres-center-head">
                 <div class="pmd-qres-center-title">
-                    <h2>Daily reservations</h2>
-                    <small data-qres-date-label>{{ $pmdQuickReservationsToday }}</small>
+                    <h2 data-qres-date-label>{{ $pmdQuickReservationsToday }}</h2>
                 </div>
                 <div class="pmd-qres-center-actions">
-                    <button type="button" class="pmd-qres-today" data-qres-today>Today</button>
                     <time class="pmd-qres-clock" data-qres-clock>{{ now()->format('H:i') }}</time>
                 </div>
             </header>
+
+            {{-- PMD_QPOS_QUICK_RESERVATION_EDITOR_R136
+                 POS-native reservation create/edit surface. It stays inside the
+                 middle Quick Reservations card and writes through the canonical
+                 Reservations handler; no modal is used in Quick mode. --}}
+            <section class="pmd-qres-quick-editor" data-qres-quick-editor hidden aria-hidden="true">
+                <form data-qres-quick-form novalidate>
+                    <div class="pmd-qres-composer-title-r132">
+                        <div>
+                            <h2 data-qres-quick-title>New reservation</h2>
+                            <small data-qres-quick-context>Quick mode</small>
+                        </div>
+                        <button type="button" class="pmd-qres-composer-close-r132" data-qres-quick-cancel aria-label="Close">
+                            <svg aria-hidden="true"><use href="#pmd-composer-icon-x"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="pmd-qres-past-note-r136" data-qres-past-note hidden>
+                        Past date · reservation details are read-only
+                    </div>
+
+                    <div class="pmd-qres-composer-body-r132">
+                        <section class="pmd-qres-composer-primary-r132">
+                            <label class="pmd-qres-composer-field-r132 is-name">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-user"/></svg>Name</span>
+                                <input type="text" name="first_name" autocomplete="name" placeholder="Guest name" required>
+                            </label>
+
+                            <label class="pmd-qres-composer-field-r132 is-date">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-calendar"/></svg>Reservation Date</span>
+                                <input type="date" name="reserve_date" required>
+                            </label>
+
+                            <label class="pmd-qres-composer-field-r132 is-time">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-clock"/></svg>Reservation Time</span>
+                                <input type="time" name="reserve_time" step="900" required>
+                            </label>
+
+                            <div class="pmd-qres-composer-field-r132 is-duration">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-hourglass"/></svg>Reservation Duration</span>
+                                <div class="pmd-composer-stepper-r12 pmd-qres-composer-stepper-r132" role="group" aria-label="Reservation duration">
+                                    <button type="button" data-qres-duration-step="-15" aria-label="Decrease reservation duration"><span aria-hidden="true">−</span></button>
+                                    <div class="pmd-composer-stepper-r12__value">
+                                        <input name="duration" type="number" min="30" max="180" step="15" value="45" inputmode="numeric" aria-label="Reservation duration">
+                                        <span class="pmd-composer-stepper-r12__suffix" aria-hidden="true">min</span>
+                                    </div>
+                                    <button type="button" data-qres-duration-step="15" aria-label="Increase reservation duration"><span aria-hidden="true">+</span></button>
+                                </div>
+                            </div>
+
+                            <div class="pmd-qres-composer-field-r132 is-guests">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-users"/></svg>Guest Number</span>
+                                <div class="pmd-composer-stepper-r12 pmd-qres-composer-stepper-r132" role="group" aria-label="Guest number">
+                                    <button type="button" data-qres-guests-step="-1" aria-label="Decrease guest number"><span aria-hidden="true">−</span></button>
+                                    <div class="pmd-composer-stepper-r12__value">
+                                        <input type="number" name="guest_num" min="1" max="99" step="1" value="1" inputmode="numeric" aria-label="Guest number" required>
+                                    </div>
+                                    <button type="button" data-qres-guests-step="1" aria-label="Increase guest number"><span aria-hidden="true">+</span></button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="pmd-qres-composer-preferences-r132">
+                            <div class="pmd-qres-composer-section-title-r132">
+                                <svg aria-hidden="true"><use href="#pmd-composer-icon-preferences"/></svg>
+                                <b>Table preferences</b>
+                            </div>
+                            <div class="pmd-qres-composer-preference-options-r132">
+                                <label data-qres-feature="near_window">
+                                    <input type="checkbox" name="pmd_table_features[]" value="near_window">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M4 12h16M12 4v16"></path></svg>
+                                        <b>Near window</b>
+                                    </span>
+                                </label>
+                                <label data-qres-feature="quiet_area">
+                                    <input type="checkbox" name="pmd_table_features[]" value="quiet_area">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"></path><path d="m16 9 5 6M21 9l-5 6"></path></svg>
+                                        <b>Quiet area</b>
+                                    </span>
+                                </label>
+                                <label data-qres-feature="accessible">
+                                    <input type="checkbox" name="pmd_table_features[]" value="accessible">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="2"></circle><path d="M7 9h5l2 5h3M9 9v5a4 4 0 1 0 4 4M13 14l2 6h4"></path></svg>
+                                        <b>Accessible</b>
+                                    </span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="pmd-qres-composer-assignment-r132">
+                            <div class="pmd-qres-composer-section-title-r132">
+                                <svg aria-hidden="true"><use href="#pmd-composer-icon-table"/></svg>
+                                <b>Table assignment</b>
+                            </div>
+                            <div class="pmd-qres-composer-modes-r132">
+                                <label data-qres-quick-auto>
+                                    <input type="radio" name="assignment_mode" value="auto" checked>
+                                    <span data-qres-auto-label>Finding table…</span>
+                                </label>
+                                <label data-qres-quick-choose>
+                                    <input type="radio" name="assignment_mode" value="choose">
+                                    <span data-qres-choose-label>Choose table(s)</span>
+                                </label>
+                                <label data-qres-quick-later>
+                                    <input type="radio" name="assignment_mode" value="later">
+                                    <span data-qres-later-label>Assign later</span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section class="pmd-qres-composer-contact-r132">
+                            <label class="pmd-qres-composer-field-r132">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-phone"/></svg>Contact (optional)</span>
+                                <input type="tel" name="telephone" autocomplete="tel" placeholder="Phone number">
+                            </label>
+                            <label class="pmd-qres-composer-field-r132">
+                                <span><svg aria-hidden="true"><use href="#pmd-composer-icon-mail"/></svg>E-mail (optional)</span>
+                                <input type="email" name="email" autocomplete="email" placeholder="name@example.com">
+                            </label>
+                        </section>
+
+                        <label class="pmd-qres-composer-field-r132 pmd-qres-composer-notes-r132">
+                            <span><svg aria-hidden="true"><use href="#pmd-composer-icon-notes"/></svg>Comment</span>
+                            <textarea name="comment" rows="3" placeholder="Request, occasion, allergy, seating note…"></textarea>
+                        </label>
+
+                        <div class="pmd-qres-quick-status pmd-qres-composer-status-r132" data-qres-quick-status aria-live="polite"></div>
+                    </div>
+
+                    <footer class="pmd-qres-composer-footer-r132">
+                        <button type="button" class="pmd-qres-composer-cancel-r132" data-qres-quick-cancel><span>Cancel</span></button>
+                        <button type="submit" class="pmd-qres-composer-save-r132" data-qres-quick-save>
+                            <svg aria-hidden="true"><use href="#pmd-composer-icon-device-floppy"/></svg>
+                            <span>Save Reservation</span>
+                        </button>
+                    </footer>
+
+                    <input type="hidden" name="reservation_id" value="">
+                    <input type="hidden" name="last_name" value="">
+                    <input type="hidden" name="occasion_id" value="0">
+                    <input type="hidden" name="notify" value="0">
+                    <input type="hidden" name="source" value="quick-pos-reservations-r136">
+                    <input type="hidden" name="location_id" value="">
+                    <input type="hidden" name="pmd_floor_id" value="">
+                    <input type="hidden" name="pmd_floor_name" value="">
+                    <input type="hidden" name="pmd_floor_locked" value="0">
+                </form>
+            </section>
 
             <div class="pmd-qres-timeline" data-qres-timeline>
                 <div class="pmd-qres-loading">Loading schedule…</div>
@@ -496,7 +642,7 @@
                 <button type="button" class="pmd-qpos-cart-close" data-qpos-cart-close aria-label="Close cart">×</button>
                 <div class="pmd-qpos-guests">
                     <button type="button" data-qpos-guests-minus>−</button>
-                    <span><b data-qpos-guests>1</b><small>pax</small></span>
+                    <span><b data-qpos-guests>1</b><small>P</small></span>
                     <button type="button" data-qpos-guests-plus>+</button>
                 </div>
             </div>
@@ -1150,7 +1296,7 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260930-r131"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129"></script>
+<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260929-r136"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
