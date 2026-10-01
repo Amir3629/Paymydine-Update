@@ -302,7 +302,7 @@ final class PmdTableDisplayService
             if (!empty($payload['expires_at']) && now()->greaterThanOrEqualTo(Carbon::parse($payload['expires_at']))) return null;
         } catch (\Throwable $ignored) { return null; }
 
-        return $this->event('payment_requested', (string)($payload['headline'] ?? 'Ready to pay'), (string)($payload['message'] ?? 'Tap or insert your card on the table display.'), $this->iso($row->occurred_at ?? $row->created_at ?? null), [
+        return $this->event('payment_requested', (string)($payload['headline'] ?? 'Ready for card payment'), (string)($payload['message'] ?? 'Tap or insert your card to complete payment.'), $this->iso($row->occurred_at ?? $row->created_at ?? null), [
             'order_id' => (int)($payload['order_id'] ?? 0),
             'amount' => round((float)($payload['amount'] ?? 0), 2),
             'currency' => (string)($payload['currency'] ?? $this->currencyCode()),
