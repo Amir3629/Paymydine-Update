@@ -69,6 +69,29 @@ class CreatePmdDevicePlatformV1 extends Migration
             });
         }
 
+        if (!Schema::hasTable('pmd_device_logs')) {
+            Schema::create('pmd_device_logs', function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('location_id')->index();
+                $table->unsignedBigInteger('device_id')->index();
+                $table->string('level', 16)->default('info')->index();
+                $table->string('event', 80)->index();
+                $table->text('message');
+                $table->text('context')->nullable();
+                $table->timestamp('occurred_at')->nullable()->index();
+                $table->timestamp('created_at')->nullable();
+
+                $table->index(
+                    ['device_id', 'occurred_at'],
+                    'pmd_device_logs_device_time_idx'
+                );
+                $table->index(
+                    ['location_id', 'level', 'occurred_at'],
+                    'pmd_device_logs_location_level_idx'
+                );
+            });
+        }
+
         if (!Schema::hasTable('pmd_device_deployment_sessions')) {
             Schema::create('pmd_device_deployment_sessions', function (Blueprint $table): void {
                 $table->bigIncrements('id');
@@ -117,6 +140,7 @@ class CreatePmdDevicePlatformV1 extends Migration
 
     public function down(): void
     {
+        Schema::dropIfExists('pmd_device_logs');
         Schema::dropIfExists('pmd_device_commands');
         Schema::dropIfExists('pmd_device_deployment_sessions');
         Schema::dropIfExists('pmd_device_runtime');
