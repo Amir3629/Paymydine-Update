@@ -762,7 +762,13 @@ final class PmdDevicePlatformService
             }
         }
 
-        $devices = $query->get();
+        $devices = $query->get()->filter(function ($device) {
+            $capabilities = $this->decodeList(
+                (string)($device->capabilities ?? '')
+            );
+
+            return in_array('device_platform_v1', $capabilities, true);
+        })->values();
         $ids = [];
 
         if ($deviceId && $devices->isNotEmpty()) {
@@ -800,9 +806,34 @@ final class PmdDevicePlatformService
                 array_key_exists('override_screen_state', $runtimeUpdate)
                 || array_key_exists('override_brightness', $runtimeUpdate)
             ) {
-                DB::table('pmd_device_runtime')
+                $targetDevice = $devices->first();
+                $runtimeExists = DB::table('pmd_device_runtime')
                     ->where('device_id', $deviceId)
-                    ->update($runtimeUpdate);
+                    ->exists();
+
+                if ($runtimeExists) {
+                    DB::table('pmd_device_runtime')
+                        ->where('device_id', $deviceId)
+                        ->update($runtimeUpdate);
+                } elseif ($targetDevice) {
+                    $platform = $this->decode(
+                        (string)($targetDevice->platform_info ?? '')
+                    );
+                    DB::table('pmd_device_runtime')->insert(array_merge(
+                        [
+                            'device_id' => $deviceId,
+                            'location_id' => $locationId,
+                            'device_kind' => (string)$targetDevice->device_kind,
+                            'device_mode' => $this->cut(
+                                $platform['device_mode'] ?? null,
+                                40
+                            ),
+                            'screen_state' => 'awake',
+                            'created_at' => now(),
+                        ],
+                        $runtimeUpdate
+                    ));
+                }
             }
         }
 
