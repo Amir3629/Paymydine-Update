@@ -1210,7 +1210,7 @@ document.documentElement.classList.add(
             <a
                 class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
-                href="{{ url('/downloads/paymydine/PayMyDine-Android-0.3.38.apk') }}"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-android-local-first-preview/PayMyDine-Android-0.3.39.apk"
                 target="_blank"
                 rel="noopener noreferrer"
             >
@@ -1225,7 +1225,7 @@ document.documentElement.classList.add(
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
                     <strong>Android Restaurant App</strong>
-                    <small>Android 8+ · Local-First POS 0.3.38 · V129 Cloud re-entry</small>
+                    <small>Android 8+ · Local-First POS 0.3.39 · Device Shell · V129 Cloud re-entry</small>
                 </span>
             </a>
 
