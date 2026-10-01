@@ -28,6 +28,7 @@ final class PmdDevicePlatformService
             Schema::hasTable('pmd_device_runtime')
             && Schema::hasTable('pmd_device_commands')
             && Schema::hasTable('pmd_device_policies')
+            && Schema::hasTable('pmd_device_deployment_sessions')
         ) {
             $this->ensureRuntimeOverrideColumns();
             return;
