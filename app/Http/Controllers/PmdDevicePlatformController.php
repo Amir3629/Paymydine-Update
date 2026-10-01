@@ -39,6 +39,28 @@ final class PmdDevicePlatformController extends Controller
         );
     }
 
+    public function log(
+        Request $request,
+        PmdDevicePlatformAuthService $auth,
+        PmdDevicePlatformService $platform
+    ): JsonResponse {
+        $device = $auth->authenticate($request);
+
+        $data = $request->validate([
+            'level' => ['nullable', 'string', 'in:debug,info,warning,error'],
+            'event' => ['required', 'string', 'max:80'],
+            'message' => ['nullable', 'string', 'max:1000'],
+            'context' => ['nullable', 'array'],
+            'occurred_at' => ['nullable', 'date'],
+        ]);
+
+        return response()->json(
+            $platform->recordLog($device, $data),
+            200,
+            ['Cache-Control' => 'no-store, private']
+        );
+    }
+
     public function acknowledge(
         Request $request,
         PmdDevicePlatformAuthService $auth,
