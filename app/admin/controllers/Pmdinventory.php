@@ -54,7 +54,7 @@ class Pmdinventory extends AdminController
         );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
-            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r16')
+            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r17')
         );
         AdminMenu::setContext('dashboard');
     }
