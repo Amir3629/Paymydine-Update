@@ -6215,6 +6215,13 @@ html body.page.pmd-inventory-page #pmd-inventory-v1
 }
 
 html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__categories {
+  flex-wrap: wrap !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
 .pmd-inv-r11-quick-stock .pmd-inv-pos-card {
   background: #fff !important;
 }
