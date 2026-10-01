@@ -3,6 +3,7 @@
 namespace Admin\Controllers;
 
 use Admin\Classes\AdminController;
+use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Models\Cash_drawers_model;
@@ -12,9 +13,11 @@ use Admin\Models\Pos_configs_model;
 use Admin\Models\Pos_devices_model;
 use Admin\Models\Terminal_devices_model;
 use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\PmdDevicePlatformService;
 use App\Services\PmdTableDisplayService;
 use App\Services\Platform\LocationPlatformContext;
 use App\Services\Turkey\TurkeyIntegrationConfigurationService;
+use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\Turkey\TurkeyTenantContext;
 use App\Services\Turkey\TurkeyTenantProvisioningService;
 use Illuminate\Support\Facades\Schema;
@@ -44,8 +47,10 @@ class Pmddevices extends AdminController
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-device-inline-v7.css');
+        $this->addCss('css/pmd-device-platform-v1.css');
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-device-inline-v6.js');
+        $this->addJs('js/pmd-device-platform-v1.js');
 
         AdminMenu::setContext('settings', 'system');
     }
@@ -123,6 +128,24 @@ class Pmddevices extends AdminController
             ],
         ];
 
+        // PMD_DEVICE_PLATFORM_V1
+        try {
+            $devicePlatformLocationId = $this->devicePlatformLocationId();
+            $this->vars['pmdDevicePlatform'] = app(PmdDevicePlatformService::class)
+                ->dashboard($devicePlatformLocationId);
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Device Platform dashboard load failed', [
+                'message' => $error->getMessage(),
+            ]);
+            $this->vars['pmdDevicePlatform'] = [
+                'devices' => [],
+                'stats' => ['total' => 0, 'online' => 0, 'offline' => 0, 'sleeping' => 0],
+                'policy' => [],
+                'desired' => [],
+                'error' => $error->getMessage(),
+            ];
+        }
+
         // One server-rendered modal catalog. Existing device controllers remain
         // the POST/AJAX authority; this only supplies values/options to the card.
         $this->vars['pmdDeviceModalCatalog'] = [
@@ -179,6 +202,104 @@ class Pmddevices extends AdminController
         return response()->json(
             app(PmdTableDisplayService::class)->state($tableId)
         );
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onPmdDevicePlatformCommand()
+    {
+        $this->assertDevicePlatformManager();
+
+        $locationId = $this->devicePlatformLocationId();
+        $service = app(PmdDevicePlatformService::class);
+        $action = strtoupper(trim((string)post('action', '')));
+        $deviceId = (int)post('device_id', 0);
+        $targetKind = trim((string)post('target_kind', ''));
+        $payload = [];
+
+        if ($action === 'OPEN_RESTAURANT') {
+            $service->setManualMode(
+                $locationId,
+                'open',
+                $this->devicePlatformStaffId()
+            );
+            $result = $service->issue(
+                $locationId,
+                'WAKE',
+                null,
+                null,
+                [],
+                $this->devicePlatformStaffId()
+            );
+            flash()->success(
+                'Open Restaurant sent to '.(int)$result['count'].' PayMyDine device(s).'
+            );
+            return;
+        }
+
+        if ($action === 'CLOSE_RESTAURANT') {
+            $service->setManualMode(
+                $locationId,
+                'closed',
+                $this->devicePlatformStaffId()
+            );
+            $result = $service->issue(
+                $locationId,
+                'SLEEP',
+                null,
+                null,
+                [],
+                $this->devicePlatformStaffId()
+            );
+            flash()->success(
+                'Close Restaurant sent to '.(int)$result['count'].' PayMyDine device(s).'
+            );
+            return;
+        }
+
+        if ($action === 'USE_SCHEDULE') {
+            $service->setManualMode(
+                $locationId,
+                'auto',
+                $this->devicePlatformStaffId()
+            );
+            flash()->success('Device schedule is active again.');
+            return;
+        }
+
+        if ($action === 'SET_BRIGHTNESS') {
+            $payload['brightness'] = max(
+                0,
+                min(100, (int)post('brightness', 80))
+            );
+        }
+
+        $result = $service->issue(
+            $locationId,
+            $action,
+            $deviceId > 0 ? $deviceId : null,
+            $targetKind !== '' ? $targetKind : null,
+            $payload,
+            $this->devicePlatformStaffId()
+        );
+
+        flash()->success(
+            $action.' sent to '.(int)$result['count'].' PayMyDine device(s).'
+        );
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onSavePmdDevicePlatformPolicy()
+    {
+        $this->assertDevicePlatformManager();
+
+        $policy = (array)post('device_policy', []);
+        app(PmdDevicePlatformService::class)->savePolicy(
+            $this->devicePlatformLocationId(),
+            $policy,
+            $this->devicePlatformStaffId()
+        );
+
+        flash()->success('Device schedule saved.');
     }
 
     public function onSaveTurkeyFiscalDevice()
@@ -415,6 +536,53 @@ class Pmddevices extends AdminController
         } catch (\Throwable $error) {
             logger()->warning('PMD devices query failed', ['table' => $table, 'message' => $error->getMessage()]);
             return collect();
+        }
+    }
+
+    protected function devicePlatformLocationId(): int
+    {
+        try {
+            $state = app(LocationPlatformContext::class)->state();
+            $locationId = (int)($state['location_id'] ?? 0);
+            if ($locationId > 0) {
+                return $locationId;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        return 1;
+    }
+
+    protected function devicePlatformStaffId(): ?int
+    {
+        try {
+            $user = AdminAuth::getUser();
+            if (!$user) {
+                return null;
+            }
+
+            $staffId = (int)($user->staff->staff_id ?? $user->staff_id ?? 0);
+            return $staffId > 0 ? $staffId : null;
+        } catch (\Throwable $ignored) {
+            return null;
+        }
+    }
+
+    protected function assertDevicePlatformManager(): void
+    {
+        $user = AdminAuth::getUser();
+        if (!$user) {
+            throw new \RuntimeException('Authentication required.');
+        }
+
+        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($user);
+        if (!in_array($role, [
+            PmdDefaultStaffRoleService::OWNER,
+            PmdDefaultStaffRoleService::MANAGER,
+        ], true)) {
+            throw new \RuntimeException(
+                'Only Owner or Manager can control restaurant devices.'
+            );
         }
     }
 
