@@ -50,3 +50,25 @@
   .pmd-device-platform-now{align-items:flex-start;flex-direction:column}
   .pmd-device-platform-now small{text-align:left}
 }
+
+.pmd-device-platform-deployment{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:6px 0 20px;padding:16px;border:1px solid #d9ebe3;border-radius:16px;background:#f7fbf9}
+.pmd-device-platform-deployment__copy{min-width:0;flex:1 1 auto}
+.pmd-device-platform-deployment__copy h3{margin:0;color:#112b23;font-size:16px}
+.pmd-device-platform-deployment__copy p{max-width:720px;margin:5px 0 0;color:#718079;font-size:12px;line-height:1.45}
+.pmd-device-platform-deployment__active{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.pmd-device-platform-deployment__active>div{min-width:150px;padding:10px 14px;border:1px solid #cae7da;border-radius:13px;background:#fff;text-align:center}
+.pmd-device-platform-deployment__active span,.pmd-device-platform-deployment__active small{display:block;color:#718079;font-size:10px;font-weight:700}
+.pmd-device-platform-deployment__active strong{display:block;margin:2px 0;color:#0d6b4f;font-size:27px;line-height:1.05;letter-spacing:.12em}
+.pmd-device-platform-deployment__start{display:flex;align-items:flex-end;gap:9px;flex:0 0 auto}
+.pmd-device-platform-deployment__start label{display:flex;flex-direction:column;gap:5px;color:#52625c;font-size:10px;font-weight:800}
+.pmd-device-platform-deployment__start input{width:110px;min-height:38px;padding:7px 9px;border:1px solid #ccd9d3;border-radius:9px;background:#fff}
+.pmd-device-platform-controlstack{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.pmd-device-platform-assign{display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.pmd-device-platform-assign select{max-width:200px;min-height:31px;padding:5px 8px;border:1px solid #d5e1dc;border-radius:8px;background:#fff;color:#27453b;font-size:10px;font-weight:700}
+.pmd-device-platform-assign button{min-height:31px;padding:5px 9px;border:1px solid #0d6b4f;border-radius:8px;background:#0d6b4f;color:#fff;font-size:10px;font-weight:900;cursor:pointer}
+@media(max-width:900px){
+  .pmd-device-platform-deployment{align-items:flex-start;flex-direction:column}
+  .pmd-device-platform-deployment__active,.pmd-device-platform-deployment__start{width:100%;justify-content:space-between}
+  .pmd-device-platform-controlstack{align-items:flex-start}
+  .pmd-device-platform-assign{justify-content:flex-start}
+}
