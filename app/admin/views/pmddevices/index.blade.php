@@ -292,20 +292,23 @@
                                 <span>{{ !empty($device['online']) ? $pmdSettingsText('Online') : $pmdSettingsText('Offline') }}</span>
                                 <small>
                                     {{ e($device['screen_state'] ?? 'unknown') }}
+                                    @if(!empty($device['network_type']))
+                                        · {{ e(strtoupper((string)$device['network_type'])) }}
+                                    @endif
                                     @if(!empty($device['app_version']))
                                         · {{ e($device['app_version']) }}
                                     @endif
                                     @if(isset($device['battery_level']) && $device['battery_level'] !== null)
                                         · {{ (int)$device['battery_level'] }}%
                                     @endif
+                                    @if(!empty($device['last_seen_at']))
+                                        · {{ $pmdSettingsText('last seen') }} {{ e(CarbonCarbon::parse($device['last_seen_at'])->diffForHumans()) }}
+                                    @endif
                                 </small>
                             </div>
 
                             <div class="pmd-device-platform-controlstack">
-                                @if(
-                                    ($device['kind'] ?? '') === 'table_display'
-                                    && empty($device['assignment'])
-                                )
+                                @if(($device['kind'] ?? '') === 'table_display')
                                     <form
                                         class="pmd-device-platform-assign"
                                         data-request="onAssignPmdTableDisplay"
@@ -317,7 +320,10 @@
                                             <option value="">{{ $pmdSettingsText('Assign table…') }}</option>
                                             @foreach($devicePlatformTableOptions as $tableOption)
                                                 @if(!empty($tableOption['enabled']))
-                                                    <option value="{{ (int)($tableOption['id'] ?? 0) }}">
+                                                    <option
+                                                        value="{{ (int)($tableOption['id'] ?? 0) }}"
+                                                        {{ (int)($device['table_id'] ?? 0) === (int)($tableOption['id'] ?? 0) ? 'selected' : '' }}
+                                                    >
                                                         {{ $pmdSettingsText('Table') }}
                                                         {{ e($tableOption['number'] ?? '') }}
                                                         @if(!empty($tableOption['floor']))
@@ -327,7 +333,7 @@
                                                 @endif
                                             @endforeach
                                         </select>
-                                        <button type="submit">{{ $pmdSettingsText('Assign') }}</button>
+                                        <button type="submit">{{ $pmdSettingsText(!empty($device['assignment']) ? 'Reassign' : 'Assign') }}</button>
                                     </form>
                                 @endif
 
@@ -340,6 +346,11 @@
                                     <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
                                     <button type="submit" name="action" value="WAKE">{{ $pmdSettingsText('Wake') }}</button>
                                     <button type="submit" name="action" value="SLEEP">{{ $pmdSettingsText('Sleep') }}</button>
+                                    <label class="pmd-device-platform-brightness">
+                                        <span>{{ $pmdSettingsText('Brightness') }}</span>
+                                        <input type="number" min="0" max="100" name="brightness" value="{{ (int)($device['brightness'] ?? 80) }}">
+                                        <button type="submit" name="action" value="SET_BRIGHTNESS">{{ $pmdSettingsText('Set') }}</button>
+                                    </label>
                                     <button type="submit" name="action" value="IDENTIFY">{{ $pmdSettingsText('Identify') }}</button>
                                     <button type="submit" name="action" value="RELOAD_APP">{{ $pmdSettingsText('Reload') }}</button>
                                     <button type="submit" name="action" value="REBOOT" data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
