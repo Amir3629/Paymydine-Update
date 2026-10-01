@@ -2,7 +2,7 @@ name: PayMyDine Android Device Shell V1
 
 on:
   push:
-    branches: [feature/android-local-first-v1, feature/android-device-shell-v1]
+    branches: [feature/android-local-first-v1, feature/android-device-shell-v1, feature/device-platform-rollout-v1]
   workflow_dispatch:
 
 concurrency:
@@ -18,22 +18,19 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: V129 server syntax and contract
+      - name: Device Platform server syntax and Android contract
         shell: bash
         run: |
           set -euo pipefail
-          php -l app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          php -l app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          php -l app/admin/Services/PmdDefaultStaffRoleService.php
-          php -l app/admin/controllers/Reservations.php
-          node tests/pmd-qpos-v128-mobile-invoice-reservations.test.mjs
-          node tests/pmd-qpos-v129-mobile-cloud-reentry.test.mjs
-          grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_V129' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          grep -Fq 'safeNextTargetV129' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_V129' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -Fq 'routeCloudAdminNavigationV129' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -Fq 'PMD_DEVICE_SHELL_V1' mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
+          php -l app/Services/PmdDevicePlatformService.php
+          php -l app/Services/PmdDevicePlatformAuthService.php
+          php -l app/Http/Controllers/PmdDevicePlatformController.php
+          php -l app/Services/PmdMobileSync/PmdMobilePairingService.php
+          php -l routes/pmd-device-platform-v1.php
+          php -l routes/pmd-mobile-sync-v1.php
           grep -Fq 'DeviceShellManager' mobile/android/app/src/main/java/com/paymydine/mobile/PayMyDineApplication.kt
+          grep -Fq 'DeviceControlService' mobile/android/app/src/main/java/com/paymydine/mobile/PayMyDineApplication.kt
+          grep -Fq 'device-platform' mobile/android/app/src/main/java/com/paymydine/mobile/device/DevicePlatformClient.kt
           grep -Fq 'versionCode = 52' mobile/android/app/build.gradle.kts
           grep -Fq 'versionName = "0.3.39-device-shell-v1"' mobile/android/app/build.gradle.kts
 
@@ -90,7 +87,7 @@ jobs:
           }
 
       - name: Prepare temporary branch signing key
-        if: github.ref == 'refs/heads/feature/android-device-shell-v1'
+        if: github.ref == 'refs/heads/feature/android-device-shell-v1' || github.ref == 'refs/heads/feature/device-platform-rollout-v1'
         shell: bash
         run: |
           set -euo pipefail
