@@ -34,6 +34,7 @@ data class DisplayEvent(
 
 data class DisplayState(
     val restaurantName: String,
+    val restaurantLogoUrl: String,
     val table: DisplayTable,
     val event: DisplayEvent,
     val serverTime: String,
