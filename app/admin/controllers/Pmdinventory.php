@@ -31,7 +31,7 @@ class Pmdinventory extends AdminController
 
         $this->bodyClass = trim(
             ($this->bodyClass ?? '').
-            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r10-page'
+            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r12-page'
         );
 
         // PMD_INVENTORY_DASHBOARD_SHELL_R2
@@ -39,7 +39,7 @@ class Pmdinventory extends AdminController
         // warm admin chrome shown by the first Inventory R1 build.
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-platform-card-system-v1.css');
-        // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10 - reusable visual stock catalogue.
+        // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R12 - reusable visual stock catalogue.
         // PMD_INVENTORY_CARD_GEOMETRY_R9 - centered cards + shared steppers.
         // PMD_INVENTORY_CARD_LANGUAGE_R8 - Inventory composers inherit the
         // validated platform modal/card shell, then apply their feature-owned
@@ -50,11 +50,11 @@ class Pmdinventory extends AdminController
 
         $this->addCss(
             asset('app/admin/assets/css/pmd-inventory-v1.css')
-            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r10')
+            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r12')
         );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
-            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r10')
+            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r12')
         );
         AdminMenu::setContext('dashboard');
     }
@@ -110,7 +110,7 @@ class Pmdinventory extends AdminController
             // PMD_INVENTORY_GLOBAL_CATALOG_R7
             // Broad multi-cuisine inventory suggestions with aliases. This is
             // only a helper catalogue; restaurants can always type custom stock.
-            'common_stock' => PmdInventoryStockCatalog::all(),
+            'common_stock' => $this->catalogWithImages(),
             'waste_reasons' => [
                 'Spoilage',
                 'Prep trim',
@@ -125,6 +125,27 @@ class Pmdinventory extends AdminController
         ];
 
         return $this->makeView('pmdinventory/index');
+    }
+
+    protected function catalogWithImages(): array
+    {
+        $directory = base_path('app/admin/assets/images/pmd-inventory-items');
+
+        return array_map(static function (array $row) use ($directory): array {
+            $name = trim((string)($row['name'] ?? ''));
+            $slug = Str::slug($name);
+            if ($slug === '') {
+                $slug = substr(sha1($name), 0, 20);
+            }
+
+            $filename = $slug.'.webp';
+            $path = $directory.DIRECTORY_SEPARATOR.$filename;
+            $row['image_url'] = is_file($path) && (int)@filesize($path) > 5000
+                ? asset('app/admin/assets/images/pmd-inventory-items/'.$filename)
+                : null;
+
+            return $row;
+        }, PmdInventoryStockCatalog::all());
     }
 
     public function onSnapshot(): JsonResponse
