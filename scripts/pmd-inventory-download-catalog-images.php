@@ -279,6 +279,9 @@ function atlasKind(array $row): string
     if (in_array($category, ['personal-care', 'personal care', 'personal_care'], true)) {
         return 'personal-care';
     }
+    if ($category === 'pet' || str_starts_with($category, 'pet-')) {
+        return 'pet';
+    }
 
     return 'food';
 }
