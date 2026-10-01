@@ -1190,7 +1190,7 @@ document.documentElement.classList.add(
             <a
                 class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_TABLE_COMPANION_ANDROID_V1 --}}
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-table-display-preview/PayMyDine-Table-Companion-0.1.3.apk"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-table-display-preview/PayMyDine-Table-Companion-0.1.4.apk"
                 target="_blank"
                 rel="noopener noreferrer"
             >
@@ -1203,7 +1203,7 @@ document.documentElement.classList.add(
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
                     <strong>Table Companion · Android</strong>
-                    <small>Android 8+ · Table Display 0.1.3 · Guest-facing monitor</small>
+                    <small>Android 8+ · Table Display 0.1.4 · Guest-facing monitor</small>
                 </span>
             </a>
 
