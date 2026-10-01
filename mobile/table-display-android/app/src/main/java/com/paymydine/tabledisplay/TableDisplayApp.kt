@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -34,12 +36,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -48,8 +52,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.text.NumberFormat
 import java.util.Currency
 
@@ -122,12 +130,13 @@ fun TableDisplayApp(
                 displayState =
                     if (
                         currentEvent.type == "idle" ||
-                        currentEvent.type == "table_unavailable"
+                        currentEvent.type == "table_unavailable" ||
+                        currentEvent.type == "payment_requested"
                     ) {
                         next
                     } else if (currentEvent.key != lastPresentedReactionKey) {
                         lastPresentedReactionKey = currentEvent.key
-                        reactionVisibleUntil = nowMs + 3_800L
+                        reactionVisibleUntil = nowMs + 2_200L
                         next
                     } else if (nowMs < reactionVisibleUntil) {
                         next
@@ -136,7 +145,7 @@ fun TableDisplayApp(
                             event = currentEvent.copy(
                                 type = "idle",
                                 key = "idle",
-                                headline = "Scan to view the menu",
+                                headline = "Scan to order",
                                 message = "",
                                 orderId = 0L,
                                 amount = 0.0,
@@ -531,21 +540,22 @@ private fun DisplayScreen(
         return
     }
 
-    if (state.event.type == "idle") {
-        IdleDisplay(
+    if (state.event.type == "table_unavailable") {
+        UnavailableDisplay(
             state = state,
             connected = connected,
         )
-    } else {
-        ReactionDisplay(
-            state = state,
-            connected = connected,
-        )
+        return
     }
+
+    TableSurface(
+        state = state,
+        connected = connected,
+    )
 }
 
 @Composable
-private fun IdleDisplay(
+private fun TableSurface(
     state: DisplayState,
     connected: Boolean,
 ) {
@@ -557,57 +567,262 @@ private fun IdleDisplay(
         modifier = Modifier
             .fillMaxSize()
             .background(PmdCream)
-            .padding(22.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 8.dp),
+                .padding(bottom = 34.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(7.dp),
-            ) {
-                BrandMark(30.dp)
-                Text(
-                    state.restaurantName,
-                    color = Color(0xFF32453D),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                )
-            }
-
-            Spacer(Modifier.height(18.dp))
-            Text(
-                state.table.name.uppercase(),
-                color = Color(0xFF486057),
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 15.sp,
-                letterSpacing = 0.7.sp,
+            TableHeader(
+                restaurantName = state.restaurantName,
+                restaurantLogoUrl = state.restaurantLogoUrl,
+                tableNumber = state.table.number,
             )
-            Spacer(Modifier.height(12.dp))
+
+            Spacer(Modifier.height(16.dp))
 
             QrWithLogo(
                 qr = qr,
-                modifier = Modifier.size(250.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.72f)
+                    .widthIn(max = 282.dp)
+                    .aspectRatio(1f),
             )
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(12.dp))
+
+            GuestMessageLine(
+                event = state.event,
+            )
+        }
+
+        Text(
+            "Powered by PayMyDine",
+            modifier = Modifier.align(Alignment.BottomCenter),
+            color = Color(0xFF7B8581),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+        )
+
+        ConnectionBadge(
+            connected = connected,
+            modifier = Modifier.align(Alignment.BottomStart),
+        )
+    }
+}
+
+@Composable
+private fun TableHeader(
+    restaurantName: String,
+    restaurantLogoUrl: String,
+    tableNumber: String,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RestaurantLogo(
+                logoUrl = restaurantLogoUrl,
+                size = 32.dp,
+            )
             Text(
-                "Scan to view the menu",
+                restaurantName,
+                color = Color(0xFF32453D),
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 13.sp,
+                maxLines = 1,
+            )
+        }
+
+        Text(
+            "TABLE " + tableNumber,
+            color = Color(0xFF486057),
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 14.sp,
+            letterSpacing = 0.7.sp,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun GuestMessageLine(
+    event: DisplayEvent,
+) {
+    val type = event.type
+    val idle = type == "idle"
+
+    val icon =
+        when (type) {
+            "payment_requested" -> "CARD"
+            "order_received",
+            "waiter_call",
+            "payment_success",
+            -> "✓"
+            else -> ""
+        }
+
+    val title =
+        when (type) {
+            "order_received" -> "Order received"
+            "waiter_call" -> "A team member is on the way"
+            "payment_requested" -> "Ready for card payment"
+            "payment_success" -> "Payment approved"
+            else -> "Scan to order"
+        }
+
+    val subtitle =
+        when (type) {
+            "order_received" -> "Sent to the kitchen."
+            "waiter_call" -> "We have notified the restaurant team."
+            "payment_requested" -> "Tap or insert your card to complete payment."
+            "payment_success" -> "Thank you for visiting us."
+            else -> ""
+        }
+
+    val accent =
+        when (type) {
+            "payment_requested" -> PmdBlue
+            "waiter_call" -> PmdAmber
+            else -> PmdGreen
+        }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(78.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (idle) {
+            Text(
+                title,
                 color = PmdDark,
                 fontSize = 27.sp,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(20.dp))
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(0.96f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(11.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.11f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        icon,
+                        color = accent,
+                        fontWeight = FontWeight.Black,
+                        fontSize = if (icon.length > 1) 9.sp else 20.sp,
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text(
+                        title,
+                        color = PmdDark,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 18.sp,
+                        maxLines = 1,
+                    )
+                    if (subtitle.isNotBlank()) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            subtitle,
+                            color = PmdMuted,
+                            fontSize = 10.sp,
+                            maxLines = 2,
+                        )
+                    }
+                }
+
+                if (event.amount > 0.0) {
+                    Text(
+                        formatMoney(
+                            event.amount,
+                            event.currency,
+                        ),
+                        color = accent,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.End,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnavailableDisplay(
+    state: DisplayState,
+    connected: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PmdCream)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            TableHeader(
+                restaurantName = state.restaurantName,
+                restaurantLogoUrl = state.restaurantLogoUrl,
+                tableNumber = state.table.number,
+            )
+
+            Spacer(Modifier.height(76.dp))
+
+            Box(
+                modifier = Modifier
+                    .size(82.dp)
+                    .clip(CircleShape)
+                    .background(PmdRed.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "!",
+                    color = PmdRed,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 36.sp,
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+
             Text(
-                "Powered by PayMyDine",
-                color = Color(0xFF7B8581),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
+                "Table unavailable",
+                color = PmdDark,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 26.sp,
+                textAlign = TextAlign.Center,
+            )
+
+            Spacer(Modifier.height(7.dp))
+
+            Text(
+                "Please ask a team member for assistance.",
+                color = PmdMuted,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
             )
         }
 
@@ -619,160 +834,60 @@ private fun IdleDisplay(
 }
 
 @Composable
-private fun ReactionDisplay(
-    state: DisplayState,
-    connected: Boolean,
+private fun RestaurantLogo(
+    logoUrl: String,
+    size: Dp,
 ) {
-    val currentEvent = state.event
-    val background =
-        when (currentEvent.type) {
-            "payment_requested" -> PmdBlue
-            "waiter_call" -> PmdAmber
-            "table_unavailable" -> PmdRed
-            else -> PmdGreen
-        }
-    val symbol =
-        when (currentEvent.type) {
-            "payment_requested" -> "CARD"
-            "waiter_call" -> "CALL"
-            "table_unavailable" -> "!"
-            else -> "✓"
-        }
-    val showQr = currentEvent.type != "table_unavailable"
-    val qr = remember(state.table.menuUrl) {
-        generateQrCode(state.table.menuUrl)
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(PmdCream)
-            .padding(18.dp),
+    val bitmap by produceState<ImageBitmap?>(
+        initialValue = null,
+        key1 = logoUrl,
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(7.dp),
-            ) {
-                BrandMark(28.dp)
-                Text(
-                    state.restaurantName,
-                    color = Color(0xFF32453D),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                )
-            }
+        value = loadRestaurantLogo(logoUrl)
+    }
 
-            Spacer(Modifier.height(10.dp))
-            Text(
-                state.table.name.uppercase(),
-                color = Color(0xFF486057),
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 13.sp,
-                letterSpacing = 0.7.sp,
-            )
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap!!,
+            contentDescription = null,
+            modifier = Modifier
+                .size(size)
+                .clip(RoundedCornerShape(8.dp)),
+            contentScale = ContentScale.Fit,
+        )
+    } else {
+        BrandMark(size)
+    }
+}
 
-            if (showQr) {
-                Spacer(Modifier.height(10.dp))
-                QrWithLogo(
-                    qr = qr,
-                    modifier = Modifier.size(188.dp),
-                )
-                Spacer(Modifier.height(12.dp))
-            } else {
-                Spacer(Modifier.height(34.dp))
-            }
+private suspend fun loadRestaurantLogo(
+    logoUrl: String,
+): ImageBitmap? = withContext(Dispatchers.IO) {
+    if (
+        !logoUrl.startsWith("https://", ignoreCase = true) &&
+        !logoUrl.startsWith("http://", ignoreCase = true)
+    ) {
+        return@withContext null
+    }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = background,
-                ),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(66.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.13f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            symbol,
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize =
-                                if (symbol.length > 1) 13.sp else 31.sp,
-                        )
-                    }
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        Text(
-                            currentEvent.headline,
-                            color = Color.White,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            currentEvent.message,
-                            color = Color.White.copy(alpha = 0.82f),
-                            fontSize = 13.sp,
-                        )
-
-                        if (currentEvent.orderId > 0) {
-                            Spacer(Modifier.height(7.dp))
-                            Text(
-                                "Order #" + currentEvent.orderId,
-                                color = Color.White.copy(alpha = 0.64f),
-                                fontSize = 10.sp,
-                            )
-                        }
-                    }
-
-                    if (currentEvent.amount > 0.0) {
-                        Text(
-                            formatMoney(
-                                currentEvent.amount,
-                                currentEvent.currency,
-                            ),
-                            color = Color.White,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 23.sp,
-                            textAlign = TextAlign.End,
-                        )
-                    }
-                }
-            }
-
-            if (showQr) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "QR stays available while this message is shown.",
-                    color = PmdMuted,
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Center,
-                )
-            }
+    runCatching {
+        val connection = (URL(logoUrl).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 8_000
+            readTimeout = 8_000
+            useCaches = true
+            setRequestProperty("Accept", "image/*")
         }
 
-        ConnectionBadge(
-            connected = connected,
-            modifier = Modifier.align(Alignment.BottomStart),
-        )
-    }
+        try {
+            if (connection.responseCode !in 200..299) {
+                return@runCatching null
+            }
+
+            BitmapFactory.decodeStream(connection.inputStream)
+                ?.asImageBitmap()
+        } finally {
+            connection.disconnect()
+        }
+    }.getOrNull()
 }
 
 @Composable
