@@ -93,7 +93,10 @@ final class PmdTableDisplayService
         ];
     }
 
-    /** Publish a waiter -> table-display card handoff. This does not settle money. */
+    /**
+     * Start a real linked-terminal payment for the active Table Companion.
+     * Settlement remains owned exclusively by TerminalPaymentService/provider.
+     */
     public function requestCardPayment(
         int $orderId,
         ?int $userId = null,
@@ -188,7 +191,7 @@ final class PmdTableDisplayService
         }
 
         $terminalResult = app(
-            AppServicesTerminalPaymentsTerminalPaymentService::class
+            \App\Services\TerminalPayments\TerminalPaymentService::class
         )->createAttempt(
             $orderId,
             $providerCode,
@@ -213,6 +216,26 @@ final class PmdTableDisplayService
         $terminalStatus = strtolower(
             trim((string)($terminalResult['status'] ?? 'pending'))
         );
+
+        if (
+            $terminalStatus === 'paid'
+            || !empty($terminalResult['payment_recorded'])
+        ) {
+            return [
+                'ok' => true,
+                'event_id' => null,
+                'table_id' => $tableId,
+                'order_id' => $orderId,
+                'amount' => $remaining,
+                'currency' => $currency,
+                'attempt_id' => $attemptId ?: null,
+                'provider_code' => $providerCode,
+                'terminal_device_id' => $terminalDeviceId,
+                'terminal_status' => 'paid',
+                'expires_at' => null,
+                'message' => 'Contactless payment was approved by the linked terminal.',
+            ];
+        }
 
         DB::transaction(function () use (
             $locationId,
