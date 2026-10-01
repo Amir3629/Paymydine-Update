@@ -41,3 +41,23 @@ data class DisplayState(
 )
 
 class TableNotBoundException : Exception()
+
+
+data class DeviceDesiredState(
+    val screenState: String,
+    val brightness: Int,
+    val reason: String,
+    val kiosk: Boolean,
+)
+
+data class DeviceCommand(
+    val commandId: String,
+    val command: String,
+    val payload: Map<String, String>,
+)
+
+data class DeviceHeartbeatResult(
+    val desired: DeviceDesiredState,
+    val commands: List<DeviceCommand>,
+    val pollAfterSeconds: Long,
+)
