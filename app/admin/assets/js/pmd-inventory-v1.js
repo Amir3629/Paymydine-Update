@@ -49,7 +49,7 @@
   }
 
   /* ============================================================
-     PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10
+     PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R14
      One visual stock language reused by add, purchase, waste, recipe,
      storage rows, count rows and shopping. No remote image service is used:
      every catalogue item gets a deterministic item/category visual instantly.
@@ -219,7 +219,7 @@
   }
 
   function visualMarkup(row, size) {
-    var section = stockSection(row && row.category);
+    var section = stockSection(row && row.category, row && row.name);
     var photo = inventoryPhotoUrl(row);
     return '<span class="pmd-inv-item-visual is-' + esc(sectionSlug(section)) +
       ' is-' + esc(size || 'sm') + '" aria-hidden="true">' +
@@ -305,7 +305,7 @@
   function browserAvailableSections(rows, mode) {
     var present = {};
     rows.forEach(function (row) {
-      present[stockSection(row.category)] = true;
+      present[stockSection(row.category, row.name)] = true;
     });
 
     return browserSections.filter(function (section) {
@@ -327,7 +327,7 @@
     var filtered = allRows.filter(function (row) {
       if (!browserMatch(row, bState.query, mode)) return false;
       if (bState.section === 'All' || bState.section === 'Popular') return true;
-      return stockSection(row.category) === bState.section;
+      return stockSection(row.category, row.name) === bState.section;
     });
     filtered = browserSort(filtered, bState.section);
 
