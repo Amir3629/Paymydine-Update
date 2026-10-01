@@ -11,6 +11,9 @@
 
   var active = false;
   var sending = false;
+  var waiting = false;
+  var activeAttemptId = 0;
+  var pollGeneration = 0;
   var observer = null;
   var timer = null;
 
@@ -191,6 +194,9 @@
   function leaveTableCard() {
     active = false;
     sending = false;
+    waiting = false;
+    activeAttemptId = 0;
+    pollGeneration += 1;
     root.classList.remove('pmd-qpos-table-card-active-v1');
     var p = panel();
     if (p) p.hidden = true;
@@ -221,15 +227,171 @@
 
     var submit = submitButton();
     if (submit) {
-      submit.disabled = sending || amountDue() <= 0;
+      submit.disabled = sending || waiting || amountDue() <= 0;
       submit.textContent = sending
         ? 'Sending to table…'
-        : 'Send to table device ' + money(amountDue());
+        : (waiting
+          ? 'Waiting for contactless…'
+          : 'Send to table device ' + money(amountDue()));
+    }
+  }
+
+  function sleep(ms) {
+    return new Promise(function (resolve) {
+      window.setTimeout(resolve, ms);
+    });
+  }
+
+  function terminalFailureStatus(status) {
+    return [
+      'failed',
+      'cancelled',
+      'canceled',
+      'declined',
+      'expired',
+      'rejected'
+    ].indexOf(String(status || '').toLowerCase()) !== -1;
+  }
+
+  async function refreshAttempt(attemptId) {
+    var response = await fetch(
+      '/admin/pos/table-display-payment-attempt/' +
+        encodeURIComponent(String(attemptId)) +
+        '/refresh',
+      {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrf()
+        },
+        body: '{}'
+      }
+    );
+
+    var json = {};
+    try { json = await response.json(); } catch (ignored) {}
+    if (!response.ok) {
+      throw new Error(
+        json.message || json.error || ('HTTP ' + response.status)
+      );
+    }
+
+    return json;
+  }
+
+  async function pollAttempt(attemptId, generation) {
+    var maxChecks = 160;
+
+    for (var check = 0; check < maxChecks; check += 1) {
+      if (
+        !active ||
+        !waiting ||
+        generation !== pollGeneration ||
+        attemptId !== activeAttemptId
+      ) {
+        return;
+      }
+
+      if (check > 0) {
+        await sleep(1500);
+      }
+
+      var json;
+      try {
+        json = await refreshAttempt(attemptId);
+      } catch (error) {
+        if (
+          !active ||
+          generation !== pollGeneration ||
+          attemptId !== activeAttemptId
+        ) {
+          return;
+        }
+
+        setStatus(
+          'Payment status is temporarily unavailable. Retrying…',
+          false
+        );
+        continue;
+      }
+
+      var status = String(json.status || '').toLowerCase();
+
+      if (json.simulated) {
+        waiting = false;
+        setStatus(
+          json.message ||
+            'TEST only — no real payment was recorded.',
+          true
+        );
+        updateUi();
+        return;
+      }
+
+      if (json.payment_recorded || status === 'paid') {
+        waiting = false;
+        setStatus('Payment approved and recorded.', false);
+
+        var submit = submitButton();
+        if (submit) {
+          submit.disabled = true;
+          submit.textContent = 'Paid ✓';
+        }
+
+        window.setTimeout(function () {
+          if (
+            generation !== pollGeneration ||
+            attemptId !== activeAttemptId
+          ) {
+            return;
+          }
+
+          var close = root.querySelector('[data-qpos-payment-close]');
+          leaveTableCard();
+          if (close) close.click();
+        }, 1200);
+        return;
+      }
+
+      if (terminalFailureStatus(status)) {
+        waiting = false;
+        setStatus(
+          json.message ||
+            ('Payment ' + (status || 'failed') + '.'),
+          true
+        );
+        updateUi();
+        return;
+      }
+
+      setStatus(
+        json.message ||
+          'Waiting for the customer to tap or insert their card…',
+        false
+      );
+      updateUi();
+    }
+
+    if (
+      active &&
+      generation === pollGeneration &&
+      attemptId === activeAttemptId
+    ) {
+      waiting = false;
+      setStatus(
+        'The terminal is still waiting. Check the payment device before trying again.',
+        true
+      );
+      updateUi();
     }
   }
 
   async function sendRequest() {
-    if (!active || sending) return;
+    if (!active || sending || waiting) return;
     var current = state();
     var orderId = Number(current && current.activeOrderId || 0);
     if (orderId < 1) {
@@ -267,18 +429,25 @@
         throw new Error(json.message || json.error || ('HTTP ' + response.status));
       }
 
-      setStatus('Sent to the table device. The customer can now tap/insert their card.', false);
-      var submit = submitButton();
-      if (submit) {
-        submit.disabled = true;
-        submit.textContent = 'Sent to table device ✓';
+      var attemptId = Number(json.attempt_id || 0);
+      if (attemptId < 1) {
+        throw new Error(
+          'PayMyDine did not return a payment attempt ID.'
+        );
       }
 
-      window.setTimeout(function () {
-        var close = root.querySelector('[data-qpos-payment-close]');
-        leaveTableCard();
-        if (close) close.click();
-      }, 1100);
+      activeAttemptId = attemptId;
+      waiting = true;
+      pollGeneration += 1;
+      var generation = pollGeneration;
+
+      setStatus(
+        'Sent to the linked contactless terminal. Waiting for the customer to pay…',
+        false
+      );
+      updateUi();
+
+      await pollAttempt(attemptId, generation);
     } catch (error) {
       setStatus(
         (error && error.message) || 'Could not reach the table device.',
