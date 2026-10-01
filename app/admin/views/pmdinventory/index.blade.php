@@ -11,6 +11,58 @@
     $hasItems = !empty($snapshot['items']);
     $attentionCount = (int)(($summary['critical_items'] ?? 0) + ($summary['low_items'] ?? 0));
 
+    // PMD_INVENTORY_STABLE_FIRST_PAINT_R16
+    // Paint the first usable shelf on the server so a refresh never shows an
+    // empty Quick Stock box while the large catalogue JavaScript initializes.
+    $popularNames = [
+        'Tomato','Onion','Garlic','Potato','Lemon','Cucumber','Lettuce',
+        'Banana','Apple','Chicken breast','Beef mince','Eggs','Milk','Butter',
+        'Mozzarella','White rice','Wheat flour','Olive oil','Spaghetti',
+        'Coffee beans','Still water','Orange juice','Cola','Lager beer',
+        'Vodka','Red wine','Dish soap','Paper towels','Mop','Bin bags',
+    ];
+
+    $catalogByKey = [];
+    foreach ($commonStock as $catalogIndex => $catalogRow) {
+        if (!is_array($catalogRow)) continue;
+        $key = \Illuminate\Support\Str::slug((string)($catalogRow['name'] ?? ''));
+        if ($key === '') continue;
+        $catalogRow['_pmd_index'] = $catalogIndex;
+        if (!isset($catalogByKey[$key])) $catalogByKey[$key] = $catalogRow;
+    }
+
+    $popularStock = [];
+    foreach ($popularNames as $popularName) {
+        $key = \Illuminate\Support\Str::slug($popularName);
+        if (isset($catalogByKey[$key])) $popularStock[] = $catalogByKey[$key];
+    }
+
+    $existingStockKeys = [];
+    foreach ((array)($snapshot['items'] ?? []) as $stockRow) {
+        if (!is_array($stockRow)) continue;
+        $key = \Illuminate\Support\Str::slug((string)($stockRow['name'] ?? ''));
+        if ($key !== '') $existingStockKeys[$key] = true;
+    }
+
+    $catalogMainCounts = ['Food' => 0, 'Drinks' => 0, 'Alcohol' => 0, 'Supplies' => 0];
+    $alcoholCategories = ['Beer & cider','Wine','Spirits'];
+    $drinkCategories = ['Coffee & tea','Juice','Water & mixers','Soft drinks','Beverages'];
+    $supplyCategories = ['Cleaning','Paper & hygiene','Packaging','Kitchen & utility','Household supplies','Personal care'];
+
+    foreach ($commonStock as $catalogRow) {
+        if (!is_array($catalogRow)) continue;
+        $category = (string)($catalogRow['category'] ?? '');
+        if (in_array($category, $alcoholCategories, true)) {
+            $catalogMainCounts['Alcohol']++;
+        } elseif (in_array($category, $drinkCategories, true)) {
+            $catalogMainCounts['Drinks']++;
+        } elseif (in_array($category, $supplyCategories, true)) {
+            $catalogMainCounts['Supplies']++;
+        } else {
+            $catalogMainCounts['Food']++;
+        }
+    }
+
     $bootstrap = [
         'ready' => $ready,
         'ai_receipts' => $aiReceipts,
@@ -96,7 +148,7 @@
                 </div>
             @endif
 
-            {{-- PMD_INVENTORY_SUPERMARKET_MASTER_CATALOG_R14 --}}
+            {{-- PMD_INVENTORY_STABLE_FIRST_PAINT_R16 --}}
             <section class="pmd-inv-pos-browser pmd-inv-pos-browser--dashboard pmd-inv-r11-quick-stock" data-pmd-inv-visual-browser="dashboard" aria-label="Quick stock catalogue">
                 <div class="pmd-inv-pos-browser__top pmd-inv-r11-quick-stock__top">
                     <div>
@@ -113,9 +165,81 @@
                         <button type="button" class="pmd-inv-r11-quick-action is-quiet" data-pmd-inv-open="item">Custom item</button>
                     </div>
                 </div>
-                <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="dashboard"></div>
-                <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="dashboard"></div>
-                <button type="button" class="pmd-inv-pos-browser__more" data-pmd-inv-browser-more="dashboard" hidden>Show more</button>
+                <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="dashboard">
+                    <div class="pmd-inv-pos-browser__main-row">
+                        <button type="button" class="is-active" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Popular">
+                            <span aria-hidden="true">★</span><b>Popular</b><em>{{ count($popularStock) }}</em>
+                        </button>
+                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="All">
+                            <span aria-hidden="true">▦</span><b>All items</b><em>{{ count($commonStock) }}</em>
+                        </button>
+                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Food">
+                            <span aria-hidden="true">🥬</span><b>Food</b><em>{{ $catalogMainCounts['Food'] }}</em>
+                        </button>
+                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Drinks">
+                            <span aria-hidden="true">🧃</span><b>Non-alcoholic</b><em>{{ $catalogMainCounts['Drinks'] }}</em>
+                        </button>
+                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Alcohol">
+                            <span aria-hidden="true">🍷</span><b>Alcohol</b><em>{{ $catalogMainCounts['Alcohol'] }}</em>
+                        </button>
+                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Supplies">
+                            <span aria-hidden="true">🧽</span><b>Supplies</b><em>{{ $catalogMainCounts['Supplies'] }}</em>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="dashboard" data-pmd-inv-server-rendered="1">
+                    @foreach(array_slice($popularStock, 0, 12) as $popularRow)
+                        @php
+                            $rowKeys = [];
+                            $rowKeys[] = \Illuminate\Support\Str::slug((string)($popularRow['name'] ?? ''));
+                            foreach ((array)($popularRow['aliases'] ?? []) as $alias) {
+                                $rowKeys[] = \Illuminate\Support\Str::slug((string)$alias);
+                            }
+                            $rowAdded = false;
+                            foreach (array_filter(array_unique($rowKeys)) as $rowKey) {
+                                if (isset($existingStockKeys[$rowKey])) {
+                                    $rowAdded = true;
+                                    break;
+                                }
+                            }
+                            $rowImage = trim((string)($popularRow['image_url'] ?? ''));
+                            $rowUnit = (string)($popularRow['purchase_unit'] ?? $popularRow['unit'] ?? 'piece');
+                            $rowCategory = (string)($popularRow['category'] ?? 'Stock item');
+                        @endphp
+                        <button type="button"
+                                class="pmd-inv-pos-card{{ $rowAdded ? ' is-added' : '' }}"
+                                data-pmd-inv-browser-card="dashboard"
+                                data-pmd-inv-browser-common-index="{{ (int)($popularRow['_pmd_index'] ?? 0) }}">
+                            <span class="pmd-inv-item-visual is-pantry is-lg" aria-hidden="true">
+                                @if($rowImage !== '')
+                                    <img src="{{ $rowImage }}"
+                                         alt=""
+                                         loading="eager"
+                                         fetchpriority="{{ $loop->index < 6 ? 'high' : 'auto' }}"
+                                         decoding="async"
+                                         data-pmd-inv-real-image>
+                                @endif
+                                <span class="pmd-inv-item-visual__emoji">🍽️</span>
+                            </span>
+                            <span class="pmd-inv-pos-card__copy">
+                                <strong>{{ (string)($popularRow['name'] ?? '') }}</strong>
+                                <small>{{ $rowCategory }} · buy {{ $rowUnit }}</small>
+                            </span>
+                            @if($rowAdded)
+                                <span class="pmd-inv-pos-card__badge">In stock</span>
+                            @endif
+                        </button>
+                    @endforeach
+                </div>
+
+                @php($popularRemaining = max(0, count($popularStock) - min(12, count($popularStock))))
+                <button type="button"
+                        class="pmd-inv-pos-browser__more"
+                        data-pmd-inv-browser-more="dashboard"
+                        @if($popularRemaining < 1) hidden @endif>
+                    Show {{ min(24, $popularRemaining) }} more
+                </button>
             </section>
 
             <section class="pmd-inv-r6-empty" data-pmd-inv-empty-state @if($hasItems) hidden @endif>
