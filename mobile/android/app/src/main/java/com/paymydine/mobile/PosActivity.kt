@@ -83,17 +83,6 @@ class PosActivity : ComponentActivity() {
     private val app: PayMyDineApplication
         get() = application as PayMyDineApplication
 
-    override fun onResume() {
-        super.onResume()
-        app.deviceShell.attach(this, "pos")
-        app.ensureDeviceControlRunning()
-    }
-
-    override fun onPause() {
-        app.deviceShell.detach(this)
-        super.onPause()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -238,6 +227,8 @@ class PosActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        app.deviceShell.attach(this, "pos")
+        app.ensureDeviceControlRunning()
         applyDeviceOrientationPolicyV115()
         webView?.onResume()
         webView?.resumeTimers()
@@ -290,6 +281,7 @@ class PosActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        app.deviceShell.detach(this)
         webView?.onPause()
         super.onPause()
     }
