@@ -70,6 +70,7 @@ final class PmdDevicePlatformService
             'commands' => self::COMMANDS,
             'deployment' => $this->activeDeployment($locationId),
             'table_options' => $this->tableOptions($locationId),
+            'terminal_options' => $this->terminalOptions($locationId),
             'stats' => [
                 'total' => count($devices),
                 'online' => $online,
@@ -286,6 +287,104 @@ final class PmdDevicePlatformService
         ];
     }
 
+    public function assignTableDisplayTerminal(
+        int $locationId,
+        int $deviceId,
+        ?int $terminalDeviceId,
+        ?int $staffId
+    ): array {
+        $this->ensureStorage();
+
+        $device = DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->where('location_id', $locationId)
+            ->where('device_kind', 'table_display')
+            ->whereNull('revoked_at')
+            ->first();
+
+        if (!$device) {
+            abort(404, 'Table Companion device was not found.');
+        }
+
+        $terminal = null;
+        if ($terminalDeviceId) {
+            if (!Schema::hasTable('terminal_devices')) {
+                abort(503, 'Payment-terminal storage is unavailable.');
+            }
+
+            $query = DB::table('terminal_devices')
+                ->where('terminal_device_id', $terminalDeviceId);
+
+            if (Schema::hasColumn('terminal_devices', 'is_active')) {
+                $query->where('is_active', 1);
+            }
+            if (Schema::hasColumn('terminal_devices', 'location_id')) {
+                $query->where(function ($location) use ($locationId) {
+                    $location->whereNull('location_id')
+                        ->orWhere('location_id', $locationId);
+                });
+            }
+
+            $terminal = $query->first();
+            if (!$terminal) {
+                abort(
+                    404,
+                    'That active payment terminal is not available for this restaurant location.'
+                );
+            }
+
+            $provider = strtolower(trim((string)($terminal->provider_code ?? '')));
+            if (!in_array($provider, ['sumup', 'worldline', 'square', 'vr_payment'], true)) {
+                abort(
+                    422,
+                    'This terminal provider cannot be used for Table Companion contactless payment.'
+                );
+            }
+        }
+
+        $platform = $this->decode((string)($device->platform_info ?? ''));
+        $platform['payment_terminal_device_id'] = $terminal
+            ? (int)$terminal->terminal_device_id
+            : null;
+        $platform['payment_terminal_provider'] = $terminal
+            ? strtolower(trim((string)($terminal->provider_code ?? '')))
+            : null;
+        $platform['payment_terminal_bound_at'] = $terminal
+            ? now()->toIso8601String()
+            : null;
+        $platform['payment_terminal_bound_by_staff_id'] = $terminal
+            ? ($staffId ?: null)
+            : null;
+
+        DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->update([
+                'platform_info' => json_encode(
+                    $platform,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
+                'updated_at' => now(),
+            ]);
+
+        return [
+            'ok' => true,
+            'device_id' => $deviceId,
+            'terminal_device_id' => $terminal
+                ? (int)$terminal->terminal_device_id
+                : null,
+            'provider_code' => $terminal
+                ? strtolower(trim((string)($terminal->provider_code ?? '')))
+                : null,
+            'terminal_name' => $terminal
+                ? (
+                    trim((string)($terminal->reader_label ?? ''))
+                    ?: trim((string)($terminal->reader_id ?? ''))
+                    ?: 'Payment terminal'
+                )
+                : null,
+        ];
+    }
+
     private function tableOptions(int $locationId): array
     {
         return collect(app(PmdTableDisplayService::class)->tables())
@@ -301,6 +400,65 @@ final class PmdDevicePlatformService
             ])
             ->values()
             ->all();
+    }
+
+    private function terminalOptions(int $locationId): array
+    {
+        if (!Schema::hasTable('terminal_devices')) {
+            return [];
+        }
+
+        try {
+            $query = DB::table('terminal_devices')
+                ->whereIn('provider_code', [
+                    'sumup',
+                    'worldline',
+                    'square',
+                    'vr_payment',
+                ]);
+
+            if (Schema::hasColumn('terminal_devices', 'is_active')) {
+                $query->where('is_active', 1);
+            }
+            if (Schema::hasColumn('terminal_devices', 'location_id')) {
+                $query->where(function ($location) use ($locationId) {
+                    $location->whereNull('location_id')
+                        ->orWhere('location_id', $locationId);
+                });
+            }
+
+            return $query
+                ->orderBy('provider_code')
+                ->orderBy('terminal_device_id')
+                ->get()
+                ->map(static function ($terminal) {
+                    $provider = strtolower(
+                        trim((string)($terminal->provider_code ?? ''))
+                    );
+                    $label = trim((string)($terminal->reader_label ?? ''));
+                    $reader = trim((string)($terminal->reader_id ?? ''));
+
+                    return [
+                        'id' => (int)($terminal->terminal_device_id ?? 0),
+                        'provider_code' => $provider,
+                        'name' => $label !== ''
+                            ? $label
+                            : ($reader !== '' ? $reader : ucfirst($provider).' terminal'),
+                        'reader_id' => $reader,
+                        'status' => strtolower(
+                            trim((string)($terminal->terminal_status ?? ''))
+                        ),
+                        'environment' => strtolower(
+                            trim((string)($terminal->environment ?? ''))
+                        ),
+                    ];
+                })
+                ->filter(static fn (array $row) => (int)$row['id'] > 0)
+                ->values()
+                ->all();
+        } catch (\Throwable $error) {
+            return [];
+        }
     }
 
     private function deploymentCodeHash(string $code): string
@@ -391,6 +549,9 @@ final class PmdDevicePlatformService
                 'mode' => $mode ?: $kind,
                 'table_id' => $kind === 'table_display'
                     ? (int)($platform['table_id'] ?? 0)
+                    : 0,
+                'payment_terminal_device_id' => $kind === 'table_display'
+                    ? (int)($platform['payment_terminal_device_id'] ?? 0)
                     : 0,
                 'assignment' => $assignment,
                 'online' => $online,
