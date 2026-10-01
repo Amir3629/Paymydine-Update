@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pmd_deep_green">#063F36</color>
+    <color name="pmd_green">#0A6B57</color>
+    <color name="pmd_brand_green">#00A651</color>
+    <color name="pmd_brand_lime">#8FD32F</color>
+    <color name="pmd_gold">#F2C23E</color>
+    <color name="pmd_background">#F4F8F6</color>
+    <color name="pmd_surface">#FFFFFF</color>
+    <color name="pmd_text">#17342F</color>
+    <color name="pmd_muted">#6D7C79</color>
+    <color name="pmd_icon_background">#FFFFFF</color>
+</resources>

@@ -93,7 +93,10 @@ final class PmdTableDisplayService
         ];
     }
 
-    /** Publish a waiter -> table-display card handoff. This does not settle money. */
+    /**
+     * Start a real linked-terminal payment for the active Table Companion.
+     * Settlement remains owned exclusively by TerminalPaymentService/provider.
+     */
     public function requestCardPayment(
         int $orderId,
         ?int $userId = null,
@@ -119,17 +122,136 @@ final class PmdTableDisplayService
         $settled = max(0.0, (float)($order->settled_amount ?? 0));
         $remaining = round(max(0.0, $total - $settled), 2);
         if ($remaining <= 0.0001) abort(422, 'This order is already fully paid.');
+        if ($settled > 0.0001) {
+            abort(
+                422,
+                'Table-device contactless payment is available only before any partial payment. Use the canonical split/external-terminal flow for a partially settled order.'
+            );
+        }
 
         $locationId = max(1, (int)($order->location_id ?? $this->locationId($tableId)));
         if ($expectedLocationId && $expectedLocationId !== $locationId) {
             abort(403, 'This order belongs to another restaurant location.');
         }
 
+        $display = $this->assertLiveBoundTableDisplay(
+            $locationId,
+            $tableId
+        );
+        $platform = (array)($display['platform'] ?? []);
+        $terminalDeviceId = (int)(
+            $platform['payment_terminal_device_id']
+            ?? 0
+        );
+
+        if ($terminalDeviceId < 1) {
+            abort(
+                409,
+                'This Table Companion has no contactless terminal linked. Link an active payment terminal under Settings > Devices & hardware.'
+            );
+        }
+
+        if (!Schema::hasTable('terminal_devices')) {
+            abort(503, 'Payment-terminal storage is unavailable.');
+        }
+
+        $terminalQuery = DB::table('terminal_devices')
+            ->where('terminal_device_id', $terminalDeviceId);
+
+        if (Schema::hasColumn('terminal_devices', 'is_active')) {
+            $terminalQuery->where('is_active', 1);
+        }
+        if (Schema::hasColumn('terminal_devices', 'location_id')) {
+            $terminalQuery->where(function ($query) use ($locationId) {
+                $query->whereNull('location_id')
+                    ->orWhere('location_id', $locationId);
+            });
+        }
+
+        $terminal = $terminalQuery->first();
+        if (!$terminal) {
+            abort(
+                409,
+                'The contactless terminal linked to this Table Companion is inactive or belongs to another restaurant location.'
+            );
+        }
+
+        $providerCode = strtolower(
+            trim((string)($terminal->provider_code ?? ''))
+        );
+        if (!in_array(
+            $providerCode,
+            ['sumup', 'worldline', 'square', 'vr_payment'],
+            true
+        )) {
+            abort(
+                422,
+                'The linked contactless terminal provider is not supported by PayMyDine terminal payments.'
+            );
+        }
+
+        $terminalResult = app(
+            \App\Services\TerminalPayments\TerminalPaymentService::class
+        )->createAttempt(
+            $orderId,
+            $providerCode,
+            (string)$terminalDeviceId
+        );
+
+        if (empty($terminalResult['success'])) {
+            abort(
+                422,
+                (string)(
+                    $terminalResult['message']
+                    ?? $terminalResult['error']
+                    ?? 'The linked contactless terminal could not start payment.'
+                )
+            );
+        }
+
         $eventId = (string)Str::uuid();
         $expiresAt = now()->addMinutes(5);
         $currency = $this->currencyCode();
+        $attemptId = (int)($terminalResult['attempt_id'] ?? 0);
+        $terminalStatus = strtolower(
+            trim((string)($terminalResult['status'] ?? 'pending'))
+        );
 
-        DB::transaction(function () use ($locationId, $tableId, $orderId, $remaining, $currency, $eventId, $expiresAt, $userId, $staffId) {
+        if (
+            $terminalStatus === 'paid'
+            || !empty($terminalResult['payment_recorded'])
+        ) {
+            return [
+                'ok' => true,
+                'event_id' => null,
+                'table_id' => $tableId,
+                'order_id' => $orderId,
+                'amount' => $remaining,
+                'currency' => $currency,
+                'attempt_id' => $attemptId ?: null,
+                'provider_code' => $providerCode,
+                'terminal_device_id' => $terminalDeviceId,
+                'terminal_status' => 'paid',
+                'expires_at' => null,
+                'message' => 'Contactless payment was approved by the linked terminal.',
+            ];
+        }
+
+        DB::transaction(function () use (
+            $locationId,
+            $tableId,
+            $orderId,
+            $remaining,
+            $currency,
+            $eventId,
+            $expiresAt,
+            $userId,
+            $staffId,
+            $attemptId,
+            $providerCode,
+            $terminalDeviceId,
+            $terminalStatus
+        ) {
             $aggregateId = (string)$tableId;
             DB::table('pmd_sync_aggregate_versions')->insertOrIgnore([
                 'location_id' => $locationId,
@@ -167,8 +289,12 @@ final class PmdTableDisplayService
                     'order_id' => $orderId,
                     'amount' => $remaining,
                     'currency' => $currency,
-                    'headline' => 'Ready to pay',
-                    'message' => 'Tap or insert your card on the table display.',
+                    'headline' => 'Ready for contactless payment',
+                    'message' => 'Tap or insert your card on this table payment device.',
+                    'attempt_id' => $attemptId ?: null,
+                    'provider_code' => $providerCode,
+                    'terminal_device_id' => $terminalDeviceId,
+                    'terminal_status' => $terminalStatus,
                     'expires_at' => $expiresAt->toIso8601String(),
                 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'occurred_at' => now(),
@@ -184,8 +310,12 @@ final class PmdTableDisplayService
             'order_id' => $orderId,
             'amount' => $remaining,
             'currency' => $currency,
+            'attempt_id' => $attemptId ?: null,
+            'provider_code' => $providerCode,
+            'terminal_device_id' => $terminalDeviceId,
+            'terminal_status' => $terminalStatus,
             'expires_at' => $expiresAt->toIso8601String(),
-            'message' => 'Card payment requested on the table display.',
+            'message' => 'Contactless payment was sent to the terminal linked to this Table Companion.',
         ];
     }
 
@@ -196,17 +326,17 @@ final class PmdTableDisplayService
         $events = [];
         if ($displayEvent) $events[] = $displayEvent;
         if ($order && !empty($order['settled_at']) && $this->recent($order['settled_at'], 45)) {
-            $events[] = $this->event('payment_success', 'Payment approved', 'Thank you. Your payment was received.', $order['settled_at'], [
+            $events[] = $this->event('payment_success', 'Payment approved', 'Thank you for visiting us.', $order['settled_at'], [
                 'order_id' => $order['id'], 'amount' => $order['settled_amount'], 'currency' => $this->currencyCode(),
             ]);
         }
         if ($order && !empty($order['created_at']) && $this->recent($order['created_at'], 35)) {
-            $events[] = $this->event('order_received', 'Order received', 'Your order was sent to the restaurant.', $order['created_at'], ['order_id' => $order['id']]);
+            $events[] = $this->event('order_received', 'Order received', 'Sent to the kitchen.', $order['created_at'], ['order_id' => $order['id']]);
         }
         if ($waiterCall && !empty($waiterCall['created_at']) && $this->recent($waiterCall['created_at'], 35)) {
-            $events[] = $this->event('waiter_call', 'Waiter called', 'A team member has been notified.', $waiterCall['created_at']);
+            $events[] = $this->event('waiter_call', 'A team member is on the way', 'We have notified the restaurant team.', $waiterCall['created_at']);
         }
-        if (!$events) return $this->event('idle', 'Scan to view the menu', 'Use your phone camera to scan this table QR code.', null);
+        if (!$events) return $this->event('idle', 'Scan to order', '', null);
 
         usort($events, fn ($a, $b) => strcmp((string)($b['occurred_at'] ?? ''), (string)($a['occurred_at'] ?? '')));
         return $events[0];
@@ -221,6 +351,65 @@ final class PmdTableDisplayService
             'message' => $message,
             'occurred_at' => $occurredAt,
         ], $extra);
+    }
+
+    private function assertLiveBoundTableDisplay(
+        int $locationId,
+        int $tableId
+    ): array {
+        if (!Schema::hasTable('pmd_site_access_devices')) {
+            abort(409, 'No Table Companion is paired with this restaurant yet.');
+        }
+
+        $assigned = null;
+        $rows = DB::table('pmd_site_access_devices')
+            ->where('location_id', $locationId)
+            ->where('device_kind', 'table_display')
+            ->whereNull('revoked_at')
+            ->orderByDesc('last_seen_at')
+            ->get();
+
+        foreach ($rows as $row) {
+            $platform = json_decode(
+                (string)($row->platform_info ?? '{}'),
+                true
+            );
+            if (
+                is_array($platform)
+                && (int)($platform['table_id'] ?? 0) === $tableId
+            ) {
+                $assigned = $row;
+                break;
+            }
+        }
+
+        if (!$assigned) {
+            abort(
+                409,
+                'No Table Companion is assigned to this table. Assign the device in Settings > Devices & hardware.'
+            );
+        }
+
+        $lastSeen = $assigned->last_seen_at ?? null;
+        if (
+            !$lastSeen
+            || Carbon::parse($lastSeen)->lt(now()->subSeconds(90))
+        ) {
+            abort(
+                409,
+                'The Table Companion for this table is offline. Wake or reconnect the device first.'
+            );
+        }
+
+        $platform = json_decode(
+            (string)($assigned->platform_info ?? '{}'),
+            true
+        );
+
+        return [
+            'device' => $assigned,
+            'platform' => is_array($platform) ? $platform : [],
+        ];
     }
 
     private function latestOrder(int $tableId): ?array
@@ -302,10 +491,14 @@ final class PmdTableDisplayService
             if (!empty($payload['expires_at']) && now()->greaterThanOrEqualTo(Carbon::parse($payload['expires_at']))) return null;
         } catch (\Throwable $ignored) { return null; }
 
-        return $this->event('payment_requested', (string)($payload['headline'] ?? 'Ready to pay'), (string)($payload['message'] ?? 'Tap or insert your card on the table display.'), $this->iso($row->occurred_at ?? $row->created_at ?? null), [
+        return $this->event('payment_requested', (string)($payload['headline'] ?? 'Ready for card payment'), (string)($payload['message'] ?? 'Tap or insert your card to complete payment.'), $this->iso($row->occurred_at ?? $row->created_at ?? null), [
             'order_id' => (int)($payload['order_id'] ?? 0),
             'amount' => round((float)($payload['amount'] ?? 0), 2),
             'currency' => (string)($payload['currency'] ?? $this->currencyCode()),
+            'attempt_id' => (int)($payload['attempt_id'] ?? 0),
+            'provider_code' => (string)($payload['provider_code'] ?? ''),
+            'terminal_device_id' => (int)($payload['terminal_device_id'] ?? 0),
+            'terminal_status' => (string)($payload['terminal_status'] ?? ''),
         ]);
     }
 
@@ -367,12 +560,45 @@ final class PmdTableDisplayService
             try { return Schema::hasTable('settings') ? DB::table('settings')->where('item', $key)->value('value') : null; }
             catch (\Throwable $ignored) { return null; }
         };
+
         $name = trim((string)($get('pmd_restaurant_identity_name') ?: $get('site_name') ?: ''));
         if ($name === '' && $locationId && Schema::hasTable('locations')) {
-            try { $name = trim((string)DB::table('locations')->where('location_id', $locationId)->value('location_name')); } catch (\Throwable $ignored) {}
+            try { $name = trim((string)DB::table('locations')->where('location_id', $locationId)->value('location_name')); }
+            catch (\Throwable $ignored) {}
         }
+
+        /*
+         * PMD_TABLE_DISPLAY_RESTAURANT_IDENTITY_V3
+         * Use the restaurant's canonical uploaded identity logo. Tenant
+         * settings may store either a full URL, /uploads/... or a bare media
+         * filename, so normalize it exactly like the table QR studio does.
+         */
         $logo = trim((string)($get('pmd_restaurant_identity_logo') ?: $get('site_logo') ?: ''));
-        return ['name' => $name ?: 'PayMyDine', 'logo' => $logo ?: '/brand/paymydine-logo.svg'];
+        if ($logo === '') {
+            $logo = '/brand/paymydine-logo.svg';
+        } elseif (!preg_match('#^https?://#i', $logo)) {
+            $logoPath = '/'.ltrim(
+                str_replace('\\\\', '/', (string)(parse_url($logo, PHP_URL_PATH) ?: $logo)),
+                '/'
+            );
+
+            if (
+                str_starts_with($logoPath, '/api/media/')
+                || str_starts_with($logoPath, '/assets/media/')
+                || str_starts_with($logoPath, '/brand/')
+            ) {
+                $logo = $logoPath;
+            } elseif (str_starts_with($logoPath, '/uploads/')) {
+                $logo = '/assets/media'.$logoPath;
+            } else {
+                $logo = '/api/media/'.basename($logoPath);
+            }
+        }
+
+        return [
+            'name' => $name ?: 'PayMyDine',
+            'logo' => $logo,
+        ];
     }
 
     private function currencyCode(): string

@@ -86,3 +86,212 @@
   font-size:9px!important;
   text-align:right;
 }
+
+
+/* PMD_TABLE_DISPLAY_COMPACT_SURFACE_V3
+ * Final tabletop surface: restaurant identity + table number share one row,
+ * QR remains the primary visual, and short events replace only the scan line.
+ */
+.pmd-table-display-idle{
+  inset:0;
+  display:flex!important;
+  flex-direction:column;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  padding:18px 20px 14px!important;
+  text-align:center;
+}
+.pmd-table-display-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  min-height:38px;
+  width:100%;
+}
+.pmd-table-display-brand{
+  position:static!important;
+  inset:auto!important;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start!important;
+  min-width:0;
+  flex:1 1 auto;
+  gap:8px;
+  color:#32453d;
+  font-size:12px;
+  font-weight:900;
+  text-align:left;
+}
+.pmd-table-display-brand img{
+  flex:0 0 30px;
+  width:30px!important;
+  height:30px!important;
+  border-radius:8px;
+  object-fit:contain;
+  background:transparent;
+}
+.pmd-table-display-brand span{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.pmd-table-display-table-label{
+  flex:0 0 auto;
+  margin:0!important;
+  color:#486057;
+  font-size:13px!important;
+  font-weight:900;
+  letter-spacing:.07em;
+  line-height:1;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.pmd-table-display-qr-wrap{
+  position:relative;
+  width:min(64%,275px)!important;
+  max-width:275px!important;
+  margin:20px auto 0!important;
+  aspect-ratio:1;
+  border:1px solid #d8e0db;
+  border-radius:20px;
+  background:#fff;
+  padding:10px;
+  box-shadow:0 13px 36px rgba(35,63,52,.11);
+}
+.pmd-table-display-screen.has-reaction .pmd-table-display-idle{
+  justify-content:flex-start!important;
+  padding:18px 20px 14px!important;
+}
+.pmd-table-display-screen.has-reaction .pmd-table-display-qr-wrap{
+  width:min(64%,275px)!important;
+  max-width:275px!important;
+}
+.pmd-table-display-message{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  min-height:68px;
+  margin-top:12px;
+  padding:6px 10px;
+  border-radius:16px;
+  transition:background .18s ease,transform .18s ease;
+}
+.pmd-table-display-message__icon{
+  display:grid;
+  place-items:center;
+  flex:0 0 36px;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background:#e7f5ef;
+  color:#0d6b4f;
+  font-size:18px;
+  font-weight:900;
+}
+.pmd-table-display-message__icon[hidden],
+.pmd-table-display-message__subtitle[hidden],
+.pmd-table-display-message__amount[hidden]{
+  display:none!important;
+}
+.pmd-table-display-message__copy{
+  min-width:0;
+}
+.pmd-table-display-message h2{
+  margin:0!important;
+  color:var(--ink);
+  font-size:24px!important;
+  line-height:1.08;
+  font-weight:900;
+  text-align:center;
+}
+.pmd-table-display-message p{
+  max-width:320px;
+  margin:4px 0 0!important;
+  color:#6f7d77;
+  font-size:10px!important;
+  line-height:1.35;
+  text-align:left;
+}
+.pmd-table-display-message__amount{
+  flex:0 0 auto;
+  color:#0d6b4f;
+  font-size:15px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.pmd-table-display-message.is-event{
+  justify-content:flex-start;
+  width:auto;
+  max-width:96%;
+  min-height:58px;
+  margin-left:auto;
+  margin-right:auto;
+  padding:8px 12px;
+  background:rgba(13,107,79,.07);
+  text-align:left;
+}
+.pmd-table-display-message.is-event h2{
+  font-size:18px!important;
+  text-align:left;
+}
+.pmd-table-display-message.is-waiter_call{
+  background:rgba(118,81,26,.08);
+}
+.pmd-table-display-message.is-waiter_call .pmd-table-display-message__icon,
+.pmd-table-display-message.is-waiter_call .pmd-table-display-message__amount{
+  background:#f6eddc;
+  color:#76511a;
+}
+.pmd-table-display-message.is-payment_requested{
+  background:rgba(23,62,100,.08);
+}
+.pmd-table-display-message.is-payment_requested .pmd-table-display-message__icon,
+.pmd-table-display-message.is-payment_requested .pmd-table-display-message__amount{
+  background:#e6eef7;
+  color:#173e64;
+}
+.pmd-table-display-message.is-payment_success{
+  background:rgba(13,107,79,.08);
+}
+.pmd-table-display-powered{
+  position:static!important;
+  display:block;
+  margin-top:auto;
+  padding-top:4px;
+  color:#8b9791;
+  font-size:9px;
+  font-weight:700;
+  text-align:center;
+}
+.pmd-table-display-screen.is-unavailable .pmd-table-display-qr-wrap{
+  opacity:.18;
+  filter:grayscale(1);
+}
+.pmd-table-display-screen.is-unavailable .pmd-table-display-message{
+  background:rgba(110,52,52,.08);
+}
+.pmd-table-display-screen.is-unavailable .pmd-table-display-message__icon{
+  background:#f5e7e7;
+  color:#6e3434;
+}
+.pmd-table-display-reaction{
+  display:none!important;
+}
+@media(max-width:640px){
+  .pmd-table-display-idle{
+    padding:15px 16px 12px!important;
+  }
+  .pmd-table-display-qr-wrap{
+    width:min(66%,260px)!important;
+    max-width:260px!important;
+    margin-top:16px!important;
+  }
+  .pmd-table-display-screen.has-reaction .pmd-table-display-qr-wrap{
+    width:min(66%,260px)!important;
+    max-width:260px!important;
+  }
+}

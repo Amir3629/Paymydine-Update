@@ -81,6 +81,7 @@
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260928-r129">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -1150,6 +1151,7 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260930-r131"></script>
 @endif
+<script defer src="/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261001-r2"></script>
 <script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>

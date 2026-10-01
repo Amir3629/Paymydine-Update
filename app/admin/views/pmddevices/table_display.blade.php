@@ -145,28 +145,33 @@
                     <div class="pmd-table-display-device-camera"></div>
                     <div class="pmd-table-display-screen">
                         <div class="pmd-table-display-idle" data-pmd-table-display-idle>
-                            <div class="pmd-table-display-brand">
-                                <img data-pmd-table-display-logo src="{{ e($restaurant['logo'] ?? '/brand/paymydine-logo.svg') }}" alt="">
-                                <span data-pmd-table-display-restaurant>{{ e($restaurant['name'] ?? 'PayMyDine') }}</span>
+                            <div class="pmd-table-display-topbar">
+                                <div class="pmd-table-display-brand">
+                                    <img data-pmd-table-display-logo src="{{ e($restaurant['logo'] ?? '/brand/paymydine-logo.svg') }}" alt="">
+                                    <span data-pmd-table-display-restaurant>{{ e($restaurant['name'] ?? 'PayMyDine') }}</span>
+                                </div>
+                                <div class="pmd-table-display-table-label" data-pmd-table-display-table-label>
+                                    TABLE {{ e(data_get($selected, 'table.number', '')) }}
+                                </div>
                             </div>
-                            <div class="pmd-table-display-table-label" data-pmd-table-display-table-label>{{ e(data_get($selected, 'table.name', 'Table')) }}</div>
+
                             <div class="pmd-table-display-qr-wrap">
-                                <img data-pmd-table-display-qr src="{{ e(data_get($selected, 'table.qr_image_url', '')) }}" alt="Table menu QR code">
+                                <img data-pmd-table-display-qr src="{{ e(data_get($selected, 'table.qr_image_url', '')) }}" alt="Table order QR code">
                                 <span class="pmd-table-display-qr-logo" aria-hidden="true">
                                     <img src="/brand/paymydine-logo.svg" alt="">
                                 </span>
                             </div>
-                            <h2>{{ $pmdSettingsText('Scan to view the menu') }}</h2>
-                            <small>Powered by PayMyDine</small>
-                        </div>
 
-                        <div class="pmd-table-display-reaction" data-pmd-table-display-reaction hidden>
-                            <div class="pmd-table-display-reaction-icon" data-pmd-table-display-reaction-icon>✓</div>
-                            <div class="pmd-table-display-reaction-table" data-pmd-table-display-reaction-table></div>
-                            <h2 data-pmd-table-display-reaction-headline></h2>
-                            <p data-pmd-table-display-reaction-message></p>
-                            <strong data-pmd-table-display-reaction-amount hidden></strong>
-                            <small data-pmd-table-display-reaction-order hidden></small>
+                            <div class="pmd-table-display-message" data-pmd-table-display-message>
+                                <span class="pmd-table-display-message__icon" data-pmd-table-display-message-icon hidden>✓</span>
+                                <div class="pmd-table-display-message__copy">
+                                    <h2 data-pmd-table-display-message-title>{{ $pmdSettingsText('Scan to order') }}</h2>
+                                    <p class="pmd-table-display-message__subtitle" data-pmd-table-display-message-subtitle hidden></p>
+                                </div>
+                                <strong class="pmd-table-display-message__amount" data-pmd-table-display-message-amount hidden></strong>
+                            </div>
+
+                            <small class="pmd-table-display-powered">Powered by PayMyDine</small>
                         </div>
                     </div>
                     <div class="pmd-table-display-device-footer">
