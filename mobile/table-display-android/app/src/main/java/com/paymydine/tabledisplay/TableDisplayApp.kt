@@ -80,6 +80,7 @@ fun TableDisplayApp(
     store: SecureStore,
     api: ApiClient,
     paymentBridge: PaymentBridge,
+    deviceShell: DeviceShellController,
 ) {
     MaterialTheme {
         var screen by remember {
@@ -88,7 +89,11 @@ fun TableDisplayApp(
             )
         }
         var tables by remember { mutableStateOf<List<DeviceTable>>(emptyList()) }
-        var displayState by remember { mutableStateOf<DisplayState?>(null) }
+        var displayState by remember {
+            mutableStateOf(
+                if (store.isPaired()) store.displaySnapshot() else null,
+            )
+        }
         var loading by remember { mutableStateOf(false) }
         var error by remember { mutableStateOf<String?>(null) }
         var connected by remember { mutableStateOf(true) }
@@ -124,6 +129,7 @@ fun TableDisplayApp(
 
             try {
                 val next = api.state(host, token)
+                store.saveDisplaySnapshot(next)
                 val currentEvent = next.event
                 val nowMs = System.currentTimeMillis()
 
@@ -185,12 +191,34 @@ fun TableDisplayApp(
             }
         }
 
+        LaunchedEffect(screen) {
+            if (!store.isPaired()) return@LaunchedEffect
+
+            var nextPollSeconds = 2L
+            while (true) {
+                nextPollSeconds =
+                    runCatching {
+                        deviceShell.heartbeatOnce()
+                    }.getOrDefault(10L)
+
+                delay(nextPollSeconds.coerceIn(5L, 60L) * 1_000L)
+            }
+        }
+
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = PmdCream,
         ) {
-            when (screen) {
-                Screen.SETUP -> SetupScreen(
+            when {
+                store.isPaired() && deviceShell.identifyActive ->
+                    IdentifyDeviceScreen(
+                        deviceId = store.deviceId(),
+                    )
+
+                store.isPaired() && deviceShell.screenState == "closed" ->
+                    ClosedDeviceScreen()
+
+                screen == Screen.SETUP -> SetupScreen(
                     loading = loading,
                     error = error,
                     initialHost = store.host() ?: "tomo.paymydine.com",
@@ -223,7 +251,7 @@ fun TableDisplayApp(
                     },
                 )
 
-                Screen.TABLES -> TableSelectionScreen(
+                screen == Screen.TABLES -> TableSelectionScreen(
                     tables = tables,
                     loading = loading,
                     error = error,
@@ -252,12 +280,55 @@ fun TableDisplayApp(
                     },
                 )
 
-                Screen.DISPLAY -> DisplayScreen(
+                else -> DisplayScreen(
                     state = displayState,
                     connected = connected,
                     error = error,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ClosedDeviceScreen() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+    )
+}
+
+@Composable
+private fun IdentifyDeviceScreen(
+    deviceId: Long,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PmdDark)
+            .padding(28.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            BrandMark(82.dp)
+            Spacer(Modifier.height(20.dp))
+            Text(
+                "THIS PAYMYDINE DEVICE",
+                color = Color.White,
+                fontWeight = FontWeight.Black,
+                fontSize = 24.sp,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Device #" + deviceId,
+                color = Color.White.copy(alpha = 0.72f),
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+            )
         }
     }
 }
