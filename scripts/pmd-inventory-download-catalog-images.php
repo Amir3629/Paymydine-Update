@@ -36,9 +36,10 @@ if (!is_file($autoload)) {
 }
 require $autoload;
 
-$options = getopt('', ['force', 'clean', 'limit::', 'sleep-ms::']);
+$options = getopt('', ['force', 'clean', 'retighten', 'limit::', 'sleep-ms::']);
 $force = array_key_exists('force', $options);
 $clean = array_key_exists('clean', $options);
+$retighten = array_key_exists('retighten', $options);
 $limit = max(0, (int)($options['limit'] ?? 0));
 $sleepMs = max(0, min(2000, (int)($options['sleep-ms'] ?? 45)));
 
@@ -71,6 +72,35 @@ if ($clean) {
     foreach (glob($outDir.'/*.webp') ?: [] as $file) {
         @unlink($file);
     }
+}
+
+// PMD_INVENTORY_IMAGE_TIGHTEN_R16
+// Reframe already-downloaded white-canvas assets locally. This is intentionally
+// network-free so production can fix undersized product photography in seconds.
+if ($retighten) {
+    $files = glob($outDir.'/*.webp') ?: [];
+    $ok = 0;
+    $failed = 0;
+    $total = count($files);
+
+    echo "PayMyDine Inventory R16 - tighten existing product images\n";
+    echo "Images: {$total}\n";
+
+    foreach ($files as $index => $file) {
+        $n = $index + 1;
+        $name = basename($file);
+        echo "[{$n}/{$total}] TIGHTEN {$name} ... ";
+        if (tightenExistingWhiteWebp($file)) {
+            echo "OK\n";
+            $ok++;
+        } else {
+            echo "SKIP\n";
+            $failed++;
+        }
+    }
+
+    echo "\nDone. tightened={$ok} skipped={$failed}\n";
+    exit(0);
 }
 
 echo "PayMyDine Inventory R14 - Supermarket Master Catalog\n";
@@ -546,18 +576,49 @@ function normalizeToWhiteWebp(string $sourcePath, string $targetPath): bool
     $source = @imagecreatefromstring($raw);
     if (!$source) return false;
 
+    $ok = renderTightWhiteWebp($source, $targetPath);
+    imagedestroy($source);
+    return $ok;
+}
+
+function tightenExistingWhiteWebp(string $path): bool
+{
+    $raw = @file_get_contents($path);
+    if (!is_string($raw) || $raw === '') return false;
+
+    $source = @imagecreatefromstring($raw);
+    if (!$source) return false;
+
+    $ok = renderTightWhiteWebp($source, $path);
+    imagedestroy($source);
+    return $ok;
+}
+
+function renderTightWhiteWebp($source, string $targetPath): bool
+{
     $width = imagesx($source);
     $height = imagesy($source);
-    if ($width < 1 || $height < 1) {
-        imagedestroy($source);
-        return false;
+    if ($width < 1 || $height < 1) return false;
+
+    $bounds = detectProductBounds($source, $width, $height);
+    $sx = $bounds['x'];
+    $sy = $bounds['y'];
+    $sw = $bounds['w'];
+    $sh = $bounds['h'];
+
+    // Never let a noisy edge pixel produce an absurd crop.
+    if ($sw < 36 || $sh < 36) {
+        $sx = 0;
+        $sy = 0;
+        $sw = $width;
+        $sh = $height;
     }
 
     $canvasSize = 512;
-    $inner = 458;
-    $scale = min($inner / $width, $inner / $height);
-    $targetWidth = max(1, (int)round($width * $scale));
-    $targetHeight = max(1, (int)round($height * $scale));
+    $inner = 470;
+    $scale = min($inner / $sw, $inner / $sh);
+    $targetWidth = max(1, (int)round($sw * $scale));
+    $targetHeight = max(1, (int)round($sh * $scale));
     $x = (int)floor(($canvasSize - $targetWidth) / 2);
     $y = (int)floor(($canvasSize - $targetHeight) / 2);
 
@@ -571,12 +632,12 @@ function normalizeToWhiteWebp(string $sourcePath, string $targetPath): bool
         $source,
         $x,
         $y,
-        0,
-        0,
+        $sx,
+        $sy,
         $targetWidth,
         $targetHeight,
-        $width,
-        $height
+        $sw,
+        $sh
     );
 
     $tmp = $targetPath.'.tmp-'.bin2hex(random_bytes(4));
@@ -586,7 +647,6 @@ function normalizeToWhiteWebp(string $sourcePath, string $targetPath): bool
     }
 
     imagedestroy($canvas);
-    imagedestroy($source);
 
     if (!$ok || !is_file($tmp) || (int)@filesize($tmp) < 3000) {
         @unlink($tmp);
@@ -600,6 +660,60 @@ function normalizeToWhiteWebp(string $sourcePath, string $targetPath): bool
     }
 
     return true;
+}
+
+function detectProductBounds($image, int $width, int $height): array
+{
+    $minX = $width;
+    $minY = $height;
+    $maxX = -1;
+    $maxY = -1;
+
+    // Sample every second pixel. 512px catalog images do not need a full
+    // million-channel scan, and this keeps the VPS pass fast.
+    $step = 2;
+    for ($y = 0; $y < $height; $y += $step) {
+        for ($x = 0; $x < $width; $x += $step) {
+            $rgba = imagecolorat($image, $x, $y);
+            $a = ($rgba >> 24) & 0x7F;
+            $r = ($rgba >> 16) & 0xFF;
+            $g = ($rgba >> 8) & 0xFF;
+            $b = $rgba & 0xFF;
+
+            // Transparent pixels are background. On flattened white assets,
+            // count a pixel as product only when it differs meaningfully from
+            // near-white. Shadows and pale products are retained.
+            if ($a >= 118) continue;
+            $distance = (255 - $r) + (255 - $g) + (255 - $b);
+            $spread = max($r, $g, $b) - min($r, $g, $b);
+            if ($distance < 34 && $spread < 10) continue;
+
+            $minX = min($minX, $x);
+            $minY = min($minY, $y);
+            $maxX = max($maxX, $x);
+            $maxY = max($maxY, $y);
+        }
+    }
+
+    if ($maxX < $minX || $maxY < $minY) {
+        return ['x' => 0, 'y' => 0, 'w' => $width, 'h' => $height];
+    }
+
+    // Keep a small breathing margin around the detected product.
+    $padX = max(8, (int)round(($maxX - $minX + 1) * 0.07));
+    $padY = max(8, (int)round(($maxY - $minY + 1) * 0.07));
+
+    $minX = max(0, $minX - $padX);
+    $minY = max(0, $minY - $padY);
+    $maxX = min($width - 1, $maxX + $padX);
+    $maxY = min($height - 1, $maxY + $padY);
+
+    return [
+        'x' => $minX,
+        'y' => $minY,
+        'w' => max(1, $maxX - $minX + 1),
+        'h' => max(1, $maxY - $minY + 1),
+    ];
 }
 
 function downloadFile(string $url, string $target, int $maxBytes): bool

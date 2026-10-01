@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R14 */
+/* PMD_INVENTORY_CONTROL_R16 */
 (function () {
   'use strict';
 
@@ -28,14 +28,14 @@
     recipeSearch: '',
     commonSearch: '',
     shoppingDays: 1,
-    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R15
+    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R16
     // Each workflow keeps its own category/search/visible-card state.
     browsers: {
-      dashboard: {query: '', section: 'Popular', limit: 12},
-      catalog: {query: '', section: 'Popular', limit: 18},
-      purchase: {query: '', section: 'Popular', limit: 12},
-      waste: {query: '', section: 'All', limit: 12},
-      recipe: {query: '', section: 'All', limit: 12}
+      dashboard: {query: '', main: 'Popular', section: 'All', limit: 12},
+      catalog: {query: '', main: 'Popular', section: 'All', limit: 18},
+      purchase: {query: '', main: 'Popular', section: 'All', limit: 12},
+      waste: {query: '', main: 'All', section: 'All', limit: 12},
+      recipe: {query: '', main: 'All', section: 'All', limit: 12}
     }
   };
 
@@ -49,41 +49,51 @@
   }
 
   /* ============================================================
-     PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R14
+     PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R16
      One visual stock language reused by add, purchase, waste, recipe,
      storage rows, count rows and shopping. No remote image service is used:
      every catalogue item gets a deterministic item/category visual instantly.
      ============================================================ */
 
-  var browserSections = [
+  var mainBrowserSections = [
     {key:'Popular', label:'Popular', icon:'★'},
-    {key:'All', label:'All', icon:'▦'},
-    {key:'Produce', label:'Vegetables', icon:'🥬'},
-    {key:'Fruit', label:'Fruit', icon:'🍎'},
-    {key:'Herbs', label:'Fresh herbs', icon:'🌿'},
-    {key:'Meat', label:'Meat', icon:'🥩'},
-    {key:'Poultry', label:'Poultry', icon:'🍗'},
-    {key:'Seafood', label:'Seafood', icon:'🐟'},
-    {key:'Dairy', label:'Dairy & eggs', icon:'🧀'},
-    {key:'DryGoods', label:'Grains & dry goods', icon:'🌾'},
-    {key:'Spices', label:'Spices', icon:'🫙'},
-    {key:'Pantry', label:'Pantry', icon:'🥫'},
-    {key:'Condiments', label:'Oils & sauces', icon:'🫒'},
-    {key:'Bakery', label:'Bakery', icon:'🥖'},
-    {key:'Frozen', label:'Frozen', icon:'❄️'},
-    {key:'CoffeeTea', label:'Coffee & tea', icon:'☕'},
-    {key:'Juice', label:'Juices', icon:'🧃'},
-    {key:'WaterMixers', label:'Water & mixers', icon:'💧'},
-    {key:'SoftDrinks', label:'Soft drinks', icon:'🥤'},
-    {key:'BeerCider', label:'Beer & cider', icon:'🍺'},
-    {key:'Wine', label:'Wine', icon:'🍷'},
-    {key:'Spirits', label:'Spirits', icon:'🥃'},
-    {key:'Cleaning', label:'Cleaning', icon:'🧽'},
-    {key:'PaperHygiene', label:'Paper & hygiene', icon:'🧻'},
-    {key:'Packaging', label:'Packaging', icon:'📦'},
-    {key:'KitchenUtility', label:'Kitchen & utility', icon:'🧹'},
-    {key:'HouseholdSupplies', label:'Household', icon:'🪣'},
-    {key:'PersonalCare', label:'Personal care', icon:'🧴'}
+    {key:'All', label:'All items', icon:'▦'},
+    {key:'Food', label:'Food', icon:'🥬'},
+    {key:'Drinks', label:'Non-alcoholic', icon:'🧃'},
+    {key:'Alcohol', label:'Alcohol', icon:'🍷'},
+    {key:'Supplies', label:'Supplies', icon:'🧽'}
+  ];
+
+  var detailBrowserSections = [
+    {key:'Produce', parent:'Food', label:'Vegetables', icon:'🥬'},
+    {key:'Fruit', parent:'Food', label:'Fruit', icon:'🍎'},
+    {key:'Herbs', parent:'Food', label:'Fresh herbs', icon:'🌿'},
+    {key:'Meat', parent:'Food', label:'Meat', icon:'🥩'},
+    {key:'Poultry', parent:'Food', label:'Poultry', icon:'🍗'},
+    {key:'Seafood', parent:'Food', label:'Seafood', icon:'🐟'},
+    {key:'Dairy', parent:'Food', label:'Dairy & eggs', icon:'🧀'},
+    {key:'DryGoods', parent:'Food', label:'Grains & dry goods', icon:'🌾'},
+    {key:'Spices', parent:'Food', label:'Spices', icon:'🫙'},
+    {key:'Pantry', parent:'Food', label:'Pantry', icon:'🥫'},
+    {key:'Condiments', parent:'Food', label:'Oils & sauces', icon:'🫒'},
+    {key:'Bakery', parent:'Food', label:'Bakery', icon:'🥖'},
+    {key:'Frozen', parent:'Food', label:'Frozen', icon:'❄️'},
+
+    {key:'CoffeeTea', parent:'Drinks', label:'Coffee & tea', icon:'☕'},
+    {key:'Juice', parent:'Drinks', label:'Juices', icon:'🧃'},
+    {key:'WaterMixers', parent:'Drinks', label:'Water & mixers', icon:'💧'},
+    {key:'SoftDrinks', parent:'Drinks', label:'Soft drinks', icon:'🥤'},
+
+    {key:'BeerCider', parent:'Alcohol', label:'Beer & cider', icon:'🍺'},
+    {key:'Wine', parent:'Alcohol', label:'Wine', icon:'🍷'},
+    {key:'Spirits', parent:'Alcohol', label:'Spirits', icon:'🥃'},
+
+    {key:'Cleaning', parent:'Supplies', label:'Cleaning', icon:'🧽'},
+    {key:'PaperHygiene', parent:'Supplies', label:'Paper & hygiene', icon:'🧻'},
+    {key:'Packaging', parent:'Supplies', label:'Packaging', icon:'📦'},
+    {key:'KitchenUtility', parent:'Supplies', label:'Kitchen & utility', icon:'🧹'},
+    {key:'HouseholdSupplies', parent:'Supplies', label:'Household', icon:'🪣'},
+    {key:'PersonalCare', parent:'Supplies', label:'Personal care', icon:'🧴'}
   ];
 
   var popularCatalogNames = [
@@ -94,10 +104,76 @@
     'Vodka','Red wine','Dish soap','Paper towels','Mop','Bin bags'
   ];
 
+  var commonBrowserIndexCache = null;
+
+  function commonBrowserMode(mode) {
+    return mode === 'dashboard' || mode === 'catalog' || mode === 'purchase';
+  }
+
+  function mainSectionForDetail(detail) {
+    for (var i = 0; i < detailBrowserSections.length; i += 1) {
+      if (detailBrowserSections[i].key === detail) return detailBrowserSections[i].parent;
+    }
+    return 'Food';
+  }
+
+  function rowMainSection(row) {
+    return mainSectionForDetail(stockSection(row && row.category, row && row.name));
+  }
+
+  function buildBrowserIndex(rows, mode) {
+    var index = {
+      all: rows.slice(),
+      popular: [],
+      byMain: {Food:[], Drinks:[], Alcohol:[], Supplies:[]},
+      bySection: {},
+      mainCounts: {All: rows.length, Popular: 0, Food: 0, Drinks: 0, Alcohol: 0, Supplies: 0},
+      sectionCounts: {}
+    };
+
+    var popularRank = {};
+    popularCatalogNames.forEach(function (name, position) {
+      popularRank[normalizeCatalogText(name)] = position;
+    });
+
+    rows.forEach(function (row) {
+      var detail = stockSection(row && row.category, row && row.name);
+      var main = mainSectionForDetail(detail);
+      if (!index.bySection[detail]) index.bySection[detail] = [];
+      index.bySection[detail].push(row);
+      index.sectionCounts[detail] = Number(index.sectionCounts[detail] || 0) + 1;
+
+      if (!index.byMain[main]) index.byMain[main] = [];
+      index.byMain[main].push(row);
+      index.mainCounts[main] = Number(index.mainCounts[main] || 0) + 1;
+
+      if (
+        commonBrowserMode(mode)
+        && Object.prototype.hasOwnProperty.call(popularRank, normalizeCatalogText(row.name))
+      ) {
+        index.popular.push(row);
+      }
+    });
+
+    index.popular = browserSort(index.popular, 'Popular');
+    index.mainCounts.Popular = index.popular.length;
+    return index;
+  }
+
+  function browserIndex(rows, mode) {
+    if (commonBrowserMode(mode)) {
+      if (!commonBrowserIndexCache) {
+        commonBrowserIndexCache = buildBrowserIndex(rows, mode);
+      }
+      return commonBrowserIndexCache;
+    }
+    return buildBrowserIndex(rows, mode);
+  }
+
   function browserState(mode) {
     mode = String(mode || 'catalog');
     if (!state.browsers[mode]) {
-      state.browsers[mode] = {query:'', section:'All', limit:12};
+      state.browsers[mode] = {query:'', main:'All', section:'All', limit:12};
     }
     return state.browsers[mode];
   }
@@ -242,6 +318,47 @@
       esc(visualEmoji(row)) + '</span></span>';
   }
 
+  var preloadedCatalogPhotos = {};
+  var browserRenderTokens = {};
+
+  function markCatalogPhotoLoaded(url) {
+    url = String(url || '').trim();
+    if (url) preloadedCatalogPhotos[url] = true;
+  }
+
+  function preloadBrowserPhotos(rows) {
+    var urls = [];
+    (rows || []).forEach(function (row) {
+      var url = inventoryPhotoUrl(row);
+      if (!url || preloadedCatalogPhotos[url] || urls.indexOf(url) !== -1) return;
+      urls.push(url);
+    });
+
+    if (!urls.length) return Promise.resolve();
+
+    var jobs = urls.map(function (url) {
+      return new Promise(function (resolve) {
+        var image = new Image();
+        var done = function () {
+          markCatalogPhotoLoaded(url);
+          resolve();
+        };
+        image.onload = done;
+        image.onerror = done;
+        image.decoding = 'async';
+        image.src = url;
+        if (image.complete) done();
+      });
+    });
+
+    // Keep the current shelf in place while the next shelf warms up. The
+    // timeout prevents a single broken asset from making navigation feel stuck.
+    return Promise.race([
+      Promise.all(jobs),
+      new Promise(function (resolve) { window.setTimeout(resolve, 900); })
+    ]);
+  }
+
   function catalogTemplateForItem(item) {
     if (!item) return null;
     var exact = normalizeCatalogText(item.name);
@@ -314,20 +431,7 @@
     return rows;
   }
 
-  function browserAvailableSections(rows, mode) {
-    var present = {};
-    rows.forEach(function (row) {
-      present[stockSection(row.category, row.name)] = true;
-    });
-
-    return browserSections.filter(function (section) {
-      if (section.key === 'Popular') return mode === 'catalog' || mode === 'purchase' || mode === 'dashboard';
-      if (section.key === 'All') return true;
-      return Boolean(present[section.key]);
-    });
-  }
-
-  function renderVisualBrowser(mode) {
+  function renderVisualBrowser(mode, photosReady) {
     mode = String(mode || '');
     var grid = root.querySelector('[data-pmd-inv-browser-grid="' + mode + '"]');
     var cats = root.querySelector('[data-pmd-inv-browser-categories="' + mode + '"]');
@@ -336,48 +440,110 @@
 
     var bState = browserState(mode);
     var allRows = browserSource(mode);
-    var filtered = allRows.filter(function (row) {
-      if (!browserMatch(row, bState.query, mode)) return false;
-      if (bState.section === 'All' || bState.section === 'Popular') return true;
-      return stockSection(row.category, row.name) === bState.section;
-    });
-    filtered = browserSort(filtered, bState.section);
+    var index = browserIndex(allRows, mode);
+    var query = String(bState.query || '').trim();
 
-    var sections = browserAvailableSections(allRows, mode);
-    if (!sections.some(function (section) { return section.key === bState.section; })) {
-      bState.section = sections.length ? sections[0].key : 'All';
-      return renderVisualBrowser(mode);
+    if (!bState.main) bState.main = commonBrowserMode(mode) ? 'Popular' : 'All';
+    if (!bState.section) bState.section = 'All';
+
+    var filtered;
+    if (query) {
+      filtered = allRows.filter(function (row) {
+        return browserMatch(row, query, mode);
+      });
+    } else if (bState.main === 'Popular') {
+      filtered = index.popular.slice();
+    } else if (bState.main === 'All') {
+      filtered = index.all.slice();
+    } else if (bState.section !== 'All') {
+      filtered = (index.bySection[bState.section] || []).slice();
+    } else {
+      filtered = (index.byMain[bState.main] || []).slice();
     }
 
-    var popularCount = browserSort(allRows, 'Popular').length;
-    cats.innerHTML = sections.map(function (section) {
-      var count = 0;
-      if (section.key === 'All') {
-        count = allRows.length;
-      } else if (section.key === 'Popular') {
-        count = popularCount;
-      } else {
-        count = allRows.filter(function (row) {
-          return stockSection(row.category, row.name) === section.key;
-        }).length;
+    if (bState.main !== 'Popular') {
+      filtered = browserSort(filtered, 'All');
+    }
+
+    var mainSections = mainBrowserSections.filter(function (section) {
+      if (section.key === 'Popular') {
+        return commonBrowserMode(mode) && Number(index.mainCounts.Popular || 0) > 0;
       }
+      if (section.key === 'All') return true;
+      return Number(index.mainCounts[section.key] || 0) > 0;
+    });
+
+    var detailSections = detailBrowserSections.filter(function (section) {
+      return section.parent === bState.main && Number(index.sectionCounts[section.key] || 0) > 0;
+    });
+
+    var mainHtml = '<div class="pmd-inv-pos-browser__main-row">';
+    mainHtml += mainSections.map(function (section) {
+      var count = section.key === 'All'
+        ? allRows.length
+        : Number(index.mainCounts[section.key] || 0);
 
       return '<button type="button" class="' +
-        (section.key === bState.section ? 'is-active' : '') +
-        '" data-pmd-inv-browser-section="' + esc(mode) +
-        '" data-pmd-inv-browser-section-key="' + esc(section.key) + '">' +
+        (section.key === bState.main ? 'is-active' : '') +
+        '" data-pmd-inv-browser-main="' + esc(mode) +
+        '" data-pmd-inv-browser-main-key="' + esc(section.key) + '">' +
         '<span aria-hidden="true">' + esc(section.icon) + '</span>' +
         '<b>' + esc(section.label) + '</b>' +
         '<em>' + esc(count) + '</em></button>';
     }).join('');
+    mainHtml += '</div>';
+
+    var activeMainMeta = mainBrowserSections.find(function (section) {
+      return section.key === bState.main;
+    });
+    var activeMainLabel = activeMainMeta ? activeMainMeta.label : bState.main;
+    var detailHtml = '<div class="pmd-inv-pos-browser__detail-row' +
+      (detailSections.length ? '' : ' is-empty') + '">';
+
+    if (detailSections.length) {
+      var mainCount = Number(index.mainCounts[bState.main] || 0);
+      detailHtml += '<button type="button" class="' + (bState.section === 'All' ? 'is-active' : '') +
+        '" data-pmd-inv-browser-section="' + esc(mode) +
+        '" data-pmd-inv-browser-section-key="All"><b>All ' +
+        esc(activeMainLabel) +
+        '</b><em>' + esc(mainCount) + '</em></button>' +
+        detailSections.map(function (section) {
+          return '<button type="button" class="' +
+            (section.key === bState.section ? 'is-active' : '') +
+            '" data-pmd-inv-browser-section="' + esc(mode) +
+            '" data-pmd-inv-browser-section-key="' + esc(section.key) + '">' +
+            '<span aria-hidden="true">' + esc(section.icon) + '</span>' +
+            '<b>' + esc(section.label) + '</b>' +
+            '<em>' + esc(Number(index.sectionCounts[section.key] || 0)) + '</em></button>';
+        }).join('');
+    } else {
+      detailHtml += '<span>Choose Food, Non-alcoholic, Alcohol or Supplies for detailed categories.</span>';
+    }
+    detailHtml += '</div>';
+
+    cats.innerHTML = mainHtml + detailHtml;
 
     var visible = filtered.slice(0, Math.max(1, Number(bState.limit || 12)));
     if (!visible.length) {
       grid.innerHTML = '<div class="pmd-inv-pos-browser__empty">No matching items.</div>';
+      grid.classList.remove('is-switching');
       if (more) more.hidden = true;
       return;
     }
 
+    if (mode === 'dashboard' && !photosReady) {
+      var renderToken = Number(browserRenderTokens[mode] || 0) + 1;
+      browserRenderTokens[mode] = renderToken;
+      grid.classList.add('is-switching');
+
+      preloadBrowserPhotos(visible).then(function () {
+        if (browserRenderTokens[mode] !== renderToken) return;
+        renderVisualBrowser(mode, true);
+      });
+      return;
+    }
+
+    grid.classList.remove('is-switching');
     grid.innerHTML = visible.map(function (row) {
       var sourceIndex = allRows.indexOf(row);
       var isStockMode = mode === 'waste' || mode === 'recipe';
@@ -417,6 +583,8 @@
         '</button>';
     }).join('');
 
+    grid.removeAttribute('data-pmd-inv-server-rendered');
+
     if (more) {
       more.hidden = filtered.length <= visible.length;
       more.textContent = filtered.length > visible.length
@@ -425,8 +593,13 @@
     }
   }
 
-  function renderVisualBrowsers() {
-    ['dashboard','catalog','purchase','waste','recipe'].forEach(renderVisualBrowser);
+  function renderOpenVisualBrowsers(renderDashboard) {
+    if (renderDashboard) renderVisualBrowser('dashboard');
+
+    root.querySelectorAll('.pmd-inv-modal:not([hidden]) [data-pmd-inv-visual-browser]').forEach(function (browser) {
+      var mode = String(browser.getAttribute('data-pmd-inv-visual-browser') || '');
+      if (mode) renderVisualBrowser(mode);
+    });
   }
 
   function selectBrowserCard(button) {
@@ -1730,6 +1903,8 @@
     }).join('');
   }
 
+  var firstInventoryRender = true;
+
   function renderAll() {
     if (!state.ready) return;
     renderUiState();
@@ -1740,8 +1915,16 @@
     renderRecentActivity();
     renderShoppingList();
     syncSelects();
-    syncPurchaseDatalist();
-    renderVisualBrowsers();
+
+    // PMD_INVENTORY_STABLE_FIRST_PAINT_R16
+    // Blade already paints the Popular shelf. Do not destroy and rebuild those
+    // image nodes on boot; that was the source of the empty -> chips -> images
+    // sequence visible during refresh. Hidden modal browsers are also deferred
+    // until the user actually opens them.
+    var serverGrid = root.querySelector('[data-pmd-inv-browser-grid="dashboard"][data-pmd-inv-server-rendered="1"]');
+    var shouldRenderDashboard = !(firstInventoryRender && serverGrid);
+    renderOpenVisualBrowsers(shouldRenderDashboard);
+    firstInventoryRender = false;
   }
 
   function prepareItemEditor(itemId) {
@@ -1753,8 +1936,9 @@
     state.commonSearch = '';
     var catalogBrowserState = browserState('catalog');
     catalogBrowserState.query = '';
-    catalogBrowserState.section = 'Popular';
-    catalogBrowserState.limit = 18;
+    catalogBrowserState.main = 'Popular';
+    catalogBrowserState.section = 'All';
+    catalogBrowserState.limit = 24;
     var commonSearch = modal.querySelector('[data-pmd-inv-common-search]');
     if (commonSearch) commonSearch.value = '';
 
@@ -1838,6 +2022,7 @@
     if (name === 'purchase') {
       var lines = root.querySelector('[data-pmd-inv-purchase-lines]');
       if (lines && !lines.children.length) addPurchaseLine({});
+      syncPurchaseDatalist();
     }
     if (name === 'recipe') {
       var recipeLines = root.querySelector('[data-pmd-inv-recipe-lines]');
@@ -1850,12 +2035,9 @@
       var browserMode = name === 'item' ? 'catalog' : name;
       var activeBrowser = browserState(browserMode);
       activeBrowser.query = '';
-      activeBrowser.limit = browserMode === 'catalog' ? 18 : 12;
-      if (browserMode === 'catalog' || browserMode === 'purchase' || browserMode === 'dashboard') {
-        activeBrowser.section = 'Popular';
-      } else {
-        activeBrowser.section = 'All';
-      }
+      activeBrowser.limit = browserMode === 'catalog' ? 24 : 12;
+      activeBrowser.main = commonBrowserMode(browserMode) ? 'Popular' : 'All';
+      activeBrowser.section = 'All';
       var browserSearch = root.querySelector('[data-pmd-inv-browser-search="' + browserMode + '"]');
       if (browserSearch) browserSearch.value = '';
       renderVisualBrowser(browserMode);
@@ -2172,6 +2354,22 @@
       return;
     }
 
+    var browserMain = event.target.closest('[data-pmd-inv-browser-main]');
+    if (browserMain) {
+      event.preventDefault();
+      var mainMode = String(browserMain.getAttribute('data-pmd-inv-browser-main') || '');
+      var mainKey = String(browserMain.getAttribute('data-pmd-inv-browser-main-key') || 'All');
+      var mainState = browserState(mainMode);
+      mainState.main = mainKey;
+      mainState.section = 'All';
+      mainState.query = '';
+      mainState.limit = mainMode === 'catalog' ? 24 : (mainMode === 'dashboard' ? 12 : 12);
+      var mainSearch = root.querySelector('[data-pmd-inv-browser-search="' + mainMode + '"]');
+      if (mainSearch) mainSearch.value = '';
+      renderVisualBrowser(mainMode);
+      return;
+    }
+
     var browserSection = event.target.closest('[data-pmd-inv-browser-section]');
     if (browserSection) {
       event.preventDefault();
@@ -2179,7 +2377,10 @@
       var sectionKey = String(browserSection.getAttribute('data-pmd-inv-browser-section-key') || 'All');
       var sectionState = browserState(sectionMode);
       sectionState.section = sectionKey;
-      sectionState.limit = sectionMode === 'catalog' ? 24 : (sectionMode === 'dashboard' ? 18 : 12);
+      sectionState.query = '';
+      sectionState.limit = sectionMode === 'catalog' ? 24 : (sectionMode === 'dashboard' ? 12 : 12);
+      var sectionSearch = root.querySelector('[data-pmd-inv-browser-search="' + sectionMode + '"]');
+      if (sectionSearch) sectionSearch.value = '';
       renderVisualBrowser(sectionMode);
       return;
     }
@@ -2387,8 +2588,11 @@
       var browserMode = String(event.target.getAttribute('data-pmd-inv-browser-search') || '');
       var bState = browserState(browserMode);
       bState.query = String(event.target.value || '').trim();
-      bState.section = bState.query ? 'All' : ((browserMode === 'catalog' || browserMode === 'purchase' || browserMode === 'dashboard') ? 'Popular' : 'All');
-      bState.limit = browserMode === 'catalog' ? 24 : (browserMode === 'dashboard' ? 18 : 12);
+      bState.main = bState.query
+        ? 'All'
+        : (commonBrowserMode(browserMode) ? 'Popular' : 'All');
+      bState.section = 'All';
+      bState.limit = browserMode === 'catalog' ? 24 : (browserMode === 'dashboard' ? 12 : 12);
       renderVisualBrowser(browserMode);
       return;
     }
@@ -2408,7 +2612,8 @@
       renderCommonStock();
       var catalogState = browserState('catalog');
       catalogState.query = state.commonSearch;
-      catalogState.section = state.commonSearch ? 'All' : 'Popular';
+      catalogState.main = state.commonSearch ? 'All' : 'Popular';
+      catalogState.section = 'All';
       catalogState.limit = 24;
       var catalogSearch = root.querySelector('[data-pmd-inv-browser-search="catalog"]');
       if (catalogSearch && catalogSearch.value !== state.commonSearch) {
@@ -2663,6 +2868,7 @@
   root.addEventListener('load', function (event) {
     var image = event.target;
     if (!image || !image.matches || !image.matches('[data-pmd-inv-real-image]')) return;
+    markCatalogPhotoLoaded(image.currentSrc || image.src);
     var visual = image.closest('.pmd-inv-item-visual');
     if (visual) visual.classList.add('has-photo');
   }, true);
@@ -2680,7 +2886,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '15.0.0',
+    version: '16.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
