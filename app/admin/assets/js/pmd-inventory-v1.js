@@ -337,13 +337,26 @@
       return renderVisualBrowser(mode);
     }
 
+    var popularCount = browserSort(allRows, 'Popular').length;
     cats.innerHTML = sections.map(function (section) {
+      var count = 0;
+      if (section.key === 'All') {
+        count = allRows.length;
+      } else if (section.key === 'Popular') {
+        count = popularCount;
+      } else {
+        count = allRows.filter(function (row) {
+          return stockSection(row.category, row.name) === section.key;
+        }).length;
+      }
+
       return '<button type="button" class="' +
         (section.key === bState.section ? 'is-active' : '') +
         '" data-pmd-inv-browser-section="' + esc(mode) +
         '" data-pmd-inv-browser-section-key="' + esc(section.key) + '">' +
         '<span aria-hidden="true">' + esc(section.icon) + '</span>' +
-        '<b>' + esc(section.label) + '</b></button>';
+        '<b>' + esc(section.label) + '</b>' +
+        '<em>' + esc(count) + '</em></button>';
     }).join('');
 
     var visible = filtered.slice(0, Math.max(1, Number(bState.limit || 12)));
@@ -395,7 +408,7 @@
     if (more) {
       more.hidden = filtered.length <= visible.length;
       more.textContent = filtered.length > visible.length
-        ? ('Show ' + String(Math.min(18, filtered.length - visible.length)) + ' more')
+        ? ('Show ' + String(Math.min(24, filtered.length - visible.length)) + ' more')
         : 'Show more';
     }
   }
@@ -2154,7 +2167,7 @@
       var sectionKey = String(browserSection.getAttribute('data-pmd-inv-browser-section-key') || 'All');
       var sectionState = browserState(sectionMode);
       sectionState.section = sectionKey;
-      sectionState.limit = sectionMode === 'catalog' ? 18 : 12;
+      sectionState.limit = sectionMode === 'catalog' ? 24 : (sectionMode === 'dashboard' ? 18 : 12);
       renderVisualBrowser(sectionMode);
       return;
     }
@@ -2164,7 +2177,7 @@
       event.preventDefault();
       var moreMode = String(browserMore.getAttribute('data-pmd-inv-browser-more') || '');
       var moreState = browserState(moreMode);
-      moreState.limit += 18;
+      moreState.limit += 24;
       renderVisualBrowser(moreMode);
       return;
     }
@@ -2363,7 +2376,7 @@
       var bState = browserState(browserMode);
       bState.query = String(event.target.value || '').trim();
       bState.section = bState.query ? 'All' : ((browserMode === 'catalog' || browserMode === 'purchase' || browserMode === 'dashboard') ? 'Popular' : 'All');
-      bState.limit = browserMode === 'catalog' ? 18 : 12;
+      bState.limit = browserMode === 'catalog' ? 24 : (browserMode === 'dashboard' ? 18 : 12);
       renderVisualBrowser(browserMode);
       return;
     }
@@ -2384,7 +2397,7 @@
       var catalogState = browserState('catalog');
       catalogState.query = state.commonSearch;
       catalogState.section = state.commonSearch ? 'All' : 'Popular';
-      catalogState.limit = 18;
+      catalogState.limit = 24;
       var catalogSearch = root.querySelector('[data-pmd-inv-browser-search="catalog"]');
       if (catalogSearch && catalogSearch.value !== state.commonSearch) {
         catalogSearch.value = state.commonSearch;
