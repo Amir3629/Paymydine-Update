@@ -28,7 +28,7 @@
     recipeSearch: '',
     commonSearch: '',
     shoppingDays: 1,
-    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R14
+    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R15
     // Each workflow keeps its own category/search/visible-card state.
     browsers: {
       dashboard: {query: '', section: 'Popular', limit: 12},
@@ -222,10 +222,21 @@
   function visualMarkup(row, size) {
     var section = stockSection(row && row.category, row && row.name);
     var photo = inventoryPhotoUrl(row);
+    var visualSize = String(size || 'sm');
+
+    // PMD_INVENTORY_IMAGE_STABILITY_R15
+    // Local catalog photos are already known before markup is rendered.
+    // Mark the visual as photographic immediately instead of waiting for the
+    // image load event. This removes the emoji -> photo flash every time a
+    // category is re-rendered. If the file is genuinely missing, the existing
+    // error handler removes has-photo and reveals the deterministic fallback.
     return '<span class="pmd-inv-item-visual is-' + esc(sectionSlug(section)) +
-      ' is-' + esc(size || 'sm') + '" aria-hidden="true">' +
+      ' is-' + esc(visualSize) + (photo ? ' has-photo' : '') +
+      '" aria-hidden="true">' +
       (photo
-        ? '<img src="' + esc(photo) + '" alt="" loading="lazy" decoding="async" data-pmd-inv-real-image>'
+        ? '<img src="' + esc(photo) + '" alt="" loading="' +
+          (visualSize === 'lg' ? 'eager' : 'lazy') +
+          '" decoding="async" data-pmd-inv-real-image>'
         : '') +
       '<span class="pmd-inv-item-visual__emoji">' +
       esc(visualEmoji(row)) + '</span></span>';
@@ -2669,7 +2680,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '14.0.0',
+    version: '15.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);

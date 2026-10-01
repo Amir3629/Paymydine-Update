@@ -6230,3 +6230,64 @@ html body.page.pmd-inventory-page #pmd-inventory-v1
 .pmd-inv-r11-quick-stock .pmd-inv-pos-card__copy > small {
   color: #788983 !important;
 }
+
+
+/* ============================================================
+   PMD_INVENTORY_IMAGE_STABILITY_R15
+   Bigger catalog photography + zero photo/emoji cross-fade on category
+   changes. R14 images are local; there is no reason to animate them in.
+   ============================================================ */
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.is-lg {
+  height: 124px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual > img[data-pmd-inv-real-image] {
+  inset: 2px !important;
+  width: calc(100% - 4px) !important;
+  height: calc(100% - 4px) !important;
+  padding: 0 !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  background: #fff !important;
+  opacity: 1 !important;
+  transform: scale(1.08) !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.has-photo > img[data-pmd-inv-real-image] {
+  opacity: 1 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual > .pmd-inv-item-visual__emoji {
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.has-photo > .pmd-inv-item-visual__emoji {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-card {
+  min-height: 205px !important;
+}
+
+@media (max-width: 820px) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-item-visual.is-lg {
+    height: 112px !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-r11-quick-stock .pmd-inv-pos-card {
+    min-height: 190px !important;
+  }
+}
