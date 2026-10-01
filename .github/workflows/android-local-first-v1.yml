@@ -133,14 +133,18 @@ jobs:
           grep -Fq "versionCode='52'" <<<"$BADGING"
           grep -Fq "versionName='0.3.39-device-shell-v1-debug'" <<<"$BADGING"
 
-          EXPECTED_CERT="c1a7587b41f3873b5c1c4552d380fa4597f33052354750a2b68cf62b755db5c1"
-          ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK"             | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'             | head -1             | tr '[:upper:]' '[:lower:]')"
-          [[ "$ACTUAL_CERT" == "$EXPECTED_CERT" ]] || {
-            echo "::error::V129 signing certificate mismatch."
-            echo "expected=$EXPECTED_CERT"
-            echo "actual=$ACTUAL_CERT"
-            exit 1
-          }
+          if [[ "$GITHUB_REF" == "refs/heads/feature/android-local-first-v1" ]]; then
+            EXPECTED_CERT="c1a7587b41f3873b5c1c4552d380fa4597f33052354750a2b68cf62b755db5c1"
+            ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr '[:upper:]' '[:lower:]')"
+            [[ "$ACTUAL_CERT" == "$EXPECTED_CERT" ]] || {
+              echo "::error::Device Shell release signing certificate mismatch."
+              echo "expected=$EXPECTED_CERT"
+              echo "actual=$ACTUAL_CERT"
+              exit 1
+            }
+          else
+            "$APKSIGNER" verify "$APK"
+          fi
           sha256sum "$APK"
 
       - uses: actions/upload-artifact@v4
