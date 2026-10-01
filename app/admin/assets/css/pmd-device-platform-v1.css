@@ -72,3 +72,8 @@
   .pmd-device-platform-controlstack{align-items:flex-start}
   .pmd-device-platform-assign{justify-content:flex-start}
 }
+
+.pmd-device-platform-brightness{display:flex;align-items:center;gap:4px;padding:3px 4px;border:1px solid #e0e8e4;border-radius:8px;background:#f8fbf9}
+.pmd-device-platform-brightness span{padding-left:3px;color:#6b7b74;font-size:9px;font-weight:800}
+.pmd-device-platform-brightness input{width:45px;min-height:25px;padding:3px 4px;border:1px solid #d5e1dc;border-radius:6px;background:#fff;color:#27453b;font-size:10px;font-weight:800;text-align:center}
+.pmd-device-platform-brightness button{min-height:25px!important;padding:3px 6px!important}
