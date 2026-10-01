@@ -8,5 +8,6 @@ require_once __DIR__.'/routes/root-app-before.php';
 // Register native Android browser/API routes before the Admin catch-all.
 require_once __DIR__.'/routes/pmd-mobile-sync-v1.php';
 require_once __DIR__.'/routes/pmd-table-display-v1.php';
+require_once __DIR__.'/routes/pmd-device-platform-v1.php';
 require_once __DIR__.'/routes/admin-notifications.php';
 require_once __DIR__.'/routes/root-fiskaly-markers.php';
