@@ -344,7 +344,10 @@ final class PmdDevicePlatformService
             ->get()
             ->keyBy('device_id');
 
-        return $trusted->map(function ($device) use ($runtime) {
+        $tableOptions = collect($this->tableOptions($locationId))
+            ->keyBy(static fn (array $row) => (int)($row['id'] ?? 0));
+
+        return $trusted->map(function ($device) use ($runtime, $tableOptions) {
             $platform = $this->decode((string)($device->platform_info ?? ''));
             $caps = $this->decodeList((string)($device->capabilities ?? ''));
             $live = $runtime->get((int)$device->id);
@@ -361,7 +364,20 @@ final class PmdDevicePlatformService
 
             $assignment = null;
             if ($kind === 'table_display' && !empty($platform['table_id'])) {
-                $assignment = 'Table '.(string)$platform['table_id'];
+                $table = $tableOptions->get((int)$platform['table_id']);
+                $assignment = $table
+                    ? (
+                        'Table '.(
+                            trim((string)($table['number'] ?? ''))
+                            ?: (string)$platform['table_id']
+                        )
+                        .(
+                            !empty($table['floor'])
+                                ? ' · '.(string)$table['floor']
+                                : ''
+                        )
+                    )
+                    : 'Table '.(string)$platform['table_id'];
             } elseif ($mode === 'kds' && !empty($platform['station_name'])) {
                 $assignment = (string)$platform['station_name'];
             }
