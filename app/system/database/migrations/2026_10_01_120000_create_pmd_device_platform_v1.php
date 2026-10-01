@@ -69,6 +69,29 @@ class CreatePmdDevicePlatformV1 extends Migration
             });
         }
 
+        if (!Schema::hasTable('pmd_device_deployment_sessions')) {
+            Schema::create('pmd_device_deployment_sessions', function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->uuid('public_id')->unique();
+                $table->unsignedBigInteger('location_id')->index();
+                $table->string('device_kind', 40)->default('table_display')->index();
+                $table->char('code_hash', 64)->index();
+                $table->text('code_ciphertext');
+                $table->unsignedSmallInteger('expected_count')->default(1);
+                $table->unsignedSmallInteger('paired_count')->default(0);
+                $table->string('status', 24)->default('active')->index();
+                $table->unsignedBigInteger('created_by_staff_id')->nullable();
+                $table->timestamp('expires_at')->index();
+                $table->timestamp('completed_at')->nullable();
+                $table->timestamps();
+
+                $table->index(
+                    ['location_id', 'device_kind', 'status', 'expires_at'],
+                    'pmd_device_deploy_location_kind_idx'
+                );
+            });
+        }
+
         if (!Schema::hasTable('pmd_device_policies')) {
             Schema::create('pmd_device_policies', function (Blueprint $table): void {
                 $table->bigIncrements('id');
@@ -95,6 +118,7 @@ class CreatePmdDevicePlatformV1 extends Migration
     public function down(): void
     {
         Schema::dropIfExists('pmd_device_commands');
+        Schema::dropIfExists('pmd_device_deployment_sessions');
         Schema::dropIfExists('pmd_device_runtime');
         Schema::dropIfExists('pmd_device_policies');
     }
