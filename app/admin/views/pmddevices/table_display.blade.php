@@ -166,7 +166,7 @@
                                 <span class="pmd-table-display-message__icon" data-pmd-table-display-message-icon hidden>✓</span>
                                 <div class="pmd-table-display-message__copy">
                                     <h2 data-pmd-table-display-message-title>{{ $pmdSettingsText('Scan to order') }}</h2>
-                                    <p data-pmd-table-display-message-subtitle hidden></p>
+                                    <p class="pmd-table-display-message__subtitle" data-pmd-table-display-message-subtitle hidden></p>
                                 </div>
                                 <strong class="pmd-table-display-message__amount" data-pmd-table-display-message-amount hidden></strong>
                             </div>
