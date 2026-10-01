@@ -103,6 +103,10 @@ class ApiClient {
 
             DisplayState(
                 restaurantName = restaurant.optString("name", "PayMyDine"),
+                restaurantLogoUrl = absoluteUrl(
+                    host,
+                    restaurant.optString("logo", "/brand/paymydine-logo.svg"),
+                ),
                 table = DisplayTable(
                     id = table.optLong("id"),
                     number = table.optString("number"),
@@ -115,11 +119,11 @@ class ApiClient {
                     key = event.optString("key", "idle"),
                     headline = event.optString(
                         "headline",
-                        "Scan to view the menu",
+                        "Scan to order",
                     ),
                     message = event.optString(
                         "message",
-                        "Use your phone camera to scan this table QR code.",
+                        "",
                     ),
                     orderId = event.optLong("order_id"),
                     amount = event.optDouble("amount", 0.0),
@@ -128,6 +132,22 @@ class ApiClient {
                 serverTime = json.optString("server_time"),
             )
         }
+
+    private fun absoluteUrl(
+        host: String,
+        value: String,
+    ): String {
+        val raw = value.trim()
+        if (raw.startsWith("https://", ignoreCase = true)) return raw
+        if (raw.startsWith("http://", ignoreCase = true)) return raw
+
+        val normalized = SecureStore.normalizeHost(host)
+        if (raw.isBlank()) {
+            return normalized + "/brand/paymydine-logo.svg"
+        }
+
+        return normalized + "/" + raw.trimStart('/')
+    }
 
     private fun request(
         host: String,
