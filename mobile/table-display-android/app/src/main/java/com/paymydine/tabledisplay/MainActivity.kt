@@ -9,6 +9,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ComponentActivity() {
+    private lateinit var deviceShell: DeviceShellController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -19,11 +21,19 @@ class MainActivity : ComponentActivity() {
         val api = ApiClient()
         val paymentBridge = PaymentBridgeRegistry.resolve(this)
 
+        deviceShell =
+            DeviceShellController(
+                activity = this,
+                store = store,
+                client = DevicePlatformClient(),
+            )
+
         setContent {
             TableDisplayApp(
                 store = store,
                 api = api,
                 paymentBridge = paymentBridge,
+                deviceShell = deviceShell,
             )
         }
     }
@@ -31,6 +41,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         enterDisplayMode()
+        if (::deviceShell.isInitialized) {
+            deviceShell.enterDedicatedMode()
+        }
     }
 
     private fun enterDisplayMode() {
