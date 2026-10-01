@@ -53,6 +53,7 @@ class DeviceShellController(
         private set
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var readyLogged = false
     private var lastDesired = DeviceDesiredState(
         screenState = screenState,
         brightness = brightness,
@@ -105,6 +106,25 @@ class DeviceShellController(
             token = token,
             payload = heartbeatPayload(),
         )
+
+        if (!readyLogged) {
+            runCatching {
+                client.log(
+                    host = host,
+                    token = token,
+                    level = "info",
+                    event = "device_shell_ready",
+                    message = "Table Companion Device Shell is online.",
+                    context = mapOf(
+                        "mode" to "table_display",
+                        "app_version" to BuildConfig.VERSION_NAME,
+                        "device_owner" to deviceOwnerMode,
+                        "network_type" to networkType(),
+                    ),
+                )
+            }
+            readyLogged = true
+        }
 
         lastDesired = result.desired
         if (!identifyActive) {
