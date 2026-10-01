@@ -517,6 +517,22 @@ final class PmdInventoryStockCatalog
             ['Tomato juice', 'tomato juice', 'bar|global'],
         ]);
 
+        // PMD_INVENTORY_SUPERMARKET_MASTER_CATALOG_R14
+        // Common wholesale beverage families kept in the curated core so they
+        // remain available even before the optional Atlas materializer runs.
+        self::group($items, 'Juice', 'ml', 'bottle', null, [
+            ['Grape juice', 'grape juice|traubensaft', 'bar|cafe|global'],
+            ['Mango juice', 'mango juice|mangosaft', 'bar|cafe|global'],
+            ['Grapefruit juice', 'grapefruit juice|grapefruitsaft', 'bar|cafe'],
+            ['Pomegranate juice', 'pomegranate juice|granatapfelsaft', 'bar|cafe|middle eastern'],
+            ['Peach juice', 'peach juice|pfirsichsaft', 'bar|cafe'],
+            ['Blackcurrant juice', 'blackcurrant juice|cassis juice|johannisbeersaft', 'bar|cafe'],
+            ['Multivitamin juice', 'multi vitamin juice|multivitaminsaft', 'cafe|global'],
+            ['Cherry juice', 'sour cherry juice|kirschsaft|sauerkirschsaft', 'bar|cafe'],
+            ['Carrot juice', 'carrot juice|karottensaft', 'cafe|global'],
+            ['Passion fruit juice', 'passionfruit juice|maracuja juice', 'bar|cafe'],
+        ]);
+
         self::group($items, 'Beer & cider', 'ml', 'bottle', null, [
             ['Lager beer', 'lager|beer lager|bira', 'bar|global'],
             ['Pilsner beer', 'pilsner|pils', 'bar|global'],
@@ -525,6 +541,14 @@ final class PmdInventoryStockCatalog
             ['Stout beer', 'stout|porter beer', 'bar'],
             ['Alcohol-free beer', 'non alcoholic beer|0 beer', 'bar'],
             ['Cider', 'apple cider alcoholic', 'bar'],
+            ['Pear cider', 'perry|pear cider', 'bar'],
+            ['Pale ale', 'pale ale beer', 'bar'],
+            ['Amber ale', 'amber ale beer', 'bar'],
+            ['Porter beer', 'porter', 'bar'],
+            ['Sour beer', 'sour ale', 'bar'],
+            ['Radler', 'shandy|beer lemonade mix', 'bar|german'],
+            ['Craft lager', 'craft beer lager', 'bar'],
+            ['Alcohol-free wheat beer', 'non alcoholic wheat beer|alkoholfreies weizen', 'bar|german'],
         ]);
 
         self::group($items, 'Wine', 'ml', 'bottle', null, [
@@ -536,6 +560,15 @@ final class PmdInventoryStockCatalog
             ['Dessert wine', 'sweet wine', 'bar'],
             ['Port wine', 'port', 'bar'],
             ['Sherry', 'sherry wine', 'bar'],
+            ['Prosecco', 'prosecco sparkling wine', 'bar|italian'],
+            ['Cava', 'cava sparkling wine', 'bar|spanish'],
+            ['Sauvignon Blanc', 'sauvignon blanc wine', 'bar'],
+            ['Chardonnay', 'chardonnay wine', 'bar'],
+            ['Riesling', 'riesling wine', 'bar|german'],
+            ['Pinot Grigio', 'pinot grigio|pinot gris wine', 'bar'],
+            ['Cabernet Sauvignon', 'cabernet sauvignon wine', 'bar'],
+            ['Merlot', 'merlot wine', 'bar'],
+            ['Pinot Noir', 'pinot noir wine', 'bar'],
         ]);
 
         self::group($items, 'Spirits', 'ml', 'bottle', null, [
@@ -564,6 +597,20 @@ final class PmdInventoryStockCatalog
             ['Coffee liqueur', 'kahlua style liqueur', 'bar'],
             ['Irish cream', 'baileys style cream liqueur', 'bar'],
             ['Amaretto', 'almond liqueur', 'bar|italian'],
+            ['Scotch whisky', 'scotch|scotch whiskey', 'bar'],
+            ['Irish whiskey', 'irish whisky|irish whiskey', 'bar'],
+            ['Rye whiskey', 'rye whisky|rye whiskey', 'bar'],
+            ['Tennessee whiskey', 'tennessee whisky|tennessee whiskey', 'bar'],
+            ['London dry gin', 'dry gin|london gin', 'bar'],
+            ['Pink gin', 'pink gin', 'bar'],
+            ['Aged rum', 'aged rum|gold rum', 'bar'],
+            ['Tequila anejo', 'añejo tequila|anejo tequila', 'bar|mexican'],
+            ['Sambuca', 'sambuca liqueur', 'bar|italian'],
+            ['Limoncello', 'lemon liqueur|limoncello', 'bar|italian'],
+            ['Grappa', 'grappa spirit', 'bar|italian'],
+            ['Absinthe', 'absinthe spirit', 'bar'],
+            ['Peach schnapps', 'peach schnapps liqueur', 'bar'],
+            ['Blue curacao', 'blue curaçao|orange liqueur blue', 'bar'],
         ]);
 
         self::group($items, 'Frozen', 'g', 'kg', 1000, [
@@ -608,6 +655,43 @@ final class PmdInventoryStockCatalog
             ['Floor cleaner', 'floor detergent', 'restaurant supplies'],
             ['Glass cleaner', 'window cleaner', 'restaurant supplies'],
             ['Hand soap', 'liquid hand soap', 'restaurant supplies'],
+            ['Bleach', 'chlorine bleach|bleaching cleaner', 'restaurant supplies'],
+            ['Disinfectant spray', 'disinfection spray|surface disinfectant', 'restaurant supplies'],
+            ['Drain cleaner', 'drain opener|pipe cleaner', 'restaurant supplies'],
+            ['Descaler', 'limescale remover|coffee machine descaler', 'restaurant supplies|cafe'],
+            ['Oven cleaner', 'oven and grill cleaner', 'restaurant supplies'],
+            ['Stainless steel cleaner', 'steel polish|stainless cleaner', 'restaurant supplies'],
+            ['Laundry detergent', 'washing detergent', 'restaurant supplies'],
+            ['Fabric softener', 'laundry softener', 'restaurant supplies'],
+        ]);
+
+        self::group($items, 'Kitchen & utility', 'piece', 'piece', 1, [
+            ['Mop', 'floor mop|mop head', 'restaurant supplies'],
+            ['Broom', 'floor broom|sweeping broom', 'restaurant supplies'],
+            ['Dustpan', 'dust pan', 'restaurant supplies'],
+            ['Cleaning brush', 'scrubbing brush|utility brush', 'restaurant supplies'],
+            ['Dish brush', 'washing up brush', 'restaurant supplies'],
+            ['Cleaning sponge', 'dish sponge|scrub sponge', 'restaurant supplies'],
+            ['Scouring pad', 'scrubber|scourer', 'restaurant supplies'],
+            ['Microfiber cloth', 'microfibre cloth|cleaning cloth|tuch', 'restaurant supplies'],
+            ['Kitchen cloth', 'dish cloth|cleaning rag', 'restaurant supplies'],
+            ['Squeegee', 'window squeegee|floor squeegee', 'restaurant supplies'],
+            ['Cleaning bucket', 'mop bucket|bucket', 'restaurant supplies'],
+            ['Rubber gloves', 'cleaning gloves|dishwashing gloves', 'restaurant supplies'],
+            ['Disposable gloves', 'nitrile gloves|vinyl gloves|food gloves', 'restaurant supplies'],
+            ['Coffee filter', 'coffee filters|filter paper', 'cafe|restaurant supplies'],
+            ['Batteries', 'battery|aa battery|aaa battery', 'restaurant supplies'],
+        ]);
+
+        self::group($items, 'Paper & hygiene', 'pack', 'pack', 1, [
+            ['Paper towels', 'kitchen roll|paper towel roll', 'restaurant supplies'],
+            ['Toilet paper', 'toilet roll|bath tissue', 'restaurant supplies'],
+            ['Facial tissues', 'tissue box|paper tissues', 'restaurant supplies'],
+            ['Wet wipes', 'cleaning wipes|moist wipes', 'restaurant supplies'],
+            ['Disinfecting wipes', 'sanitizing wipes|sanitising wipes', 'restaurant supplies'],
+            ['Bin bags', 'trash bags|garbage bags|bin liners', 'restaurant supplies'],
+            ['Hand towels', 'paper hand towels|c-fold towels', 'restaurant supplies'],
+            ['Centerfeed roll', 'blue roll|center feed paper', 'restaurant supplies'],
         ]);
 
         // PMD_INVENTORY_SUPERMARKET_MASTER_CATALOG_R14
