@@ -72,6 +72,7 @@ private val PmdRed = Color(0xFF6E3434)
 private enum class Screen {
     SETUP,
     TABLES,
+    WAITING_ASSIGNMENT,
     DISPLAY,
 }
 
@@ -173,7 +174,11 @@ fun TableDisplayApp(
                 }
             } catch (_: TableNotBoundException) {
                 connected = true
-                loadTables()
+                if (store.centrallyManaged()) {
+                    screen = Screen.WAITING_ASSIGNMENT
+                } else {
+                    loadTables()
+                }
             } catch (t: Throwable) {
                 connected = false
                 if (displayState == null) {
@@ -183,7 +188,11 @@ fun TableDisplayApp(
         }
 
         LaunchedEffect(screen) {
-            if (screen == Screen.DISPLAY && store.isPaired()) {
+            if (
+                (screen == Screen.DISPLAY ||
+                    screen == Screen.WAITING_ASSIGNMENT) &&
+                store.isPaired()
+            ) {
                 while (true) {
                     loadDisplayState()
                     delay(2_000)
@@ -236,12 +245,18 @@ fun TableDisplayApp(
                                     host = host,
                                     token = result.token,
                                     deviceId = result.deviceId,
+                                    centrallyManaged = result.deploymentMode,
                                 )
-                                tables = api.tables(
-                                    store.host()!!,
-                                    store.token()!!,
-                                )
-                                screen = Screen.TABLES
+
+                                if (result.deploymentMode) {
+                                    screen = Screen.WAITING_ASSIGNMENT
+                                } else {
+                                    tables = api.tables(
+                                        store.host()!!,
+                                        store.token()!!,
+                                    )
+                                    screen = Screen.TABLES
+                                }
                             } catch (t: Throwable) {
                                 error = t.message ?: "Pairing failed."
                             } finally {
@@ -250,6 +265,12 @@ fun TableDisplayApp(
                         }
                     },
                 )
+
+                screen == Screen.WAITING_ASSIGNMENT ->
+                    WaitingForAssignmentScreen(
+                        deviceId = store.deviceId(),
+                        connected = connected,
+                    )
 
                 screen == Screen.TABLES -> TableSelectionScreen(
                     tables = tables,
@@ -434,6 +455,58 @@ private fun SetupScreen(
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center,
             )
+        }
+    }
+}
+
+@Composable
+private fun WaitingForAssignmentScreen(
+    deviceId: Long,
+    connected: Boolean,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PmdCream)
+            .padding(28.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier.widthIn(max = 520.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            BrandMark(68.dp)
+            Spacer(Modifier.height(18.dp))
+            Text(
+                "Waiting for table assignment",
+                color = PmdDark,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 26.sp,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "This device joined the restaurant deployment session. Assign it to a table from PayMyDine Admin → Devices & hardware.",
+                color = PmdMuted,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(20.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color.White)
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+            ) {
+                Text(
+                    "DEVICE #" + deviceId,
+                    color = PmdGreen,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 17.sp,
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            ConnectionBadge(connected = connected)
         }
     }
 }
