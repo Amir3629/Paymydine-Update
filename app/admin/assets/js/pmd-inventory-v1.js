@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R13 */
+/* PMD_INVENTORY_CONTROL_R14 */
 (function () {
   'use strict';
 
@@ -28,7 +28,7 @@
     recipeSearch: '',
     commonSearch: '',
     shoppingDays: 1,
-    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10
+    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R14
     // Each workflow keeps its own category/search/visible-card state.
     browsers: {
       dashboard: {query: '', section: 'Popular', limit: 12},
@@ -58,14 +58,32 @@
   var browserSections = [
     {key:'Popular', label:'Popular', icon:'★'},
     {key:'All', label:'All', icon:'▦'},
-    {key:'Fresh', label:'Fresh', icon:'🥬'},
-    {key:'Protein', label:'Meat & fish', icon:'🥩'},
-    {key:'Dairy', label:'Dairy', icon:'🧀'},
-    {key:'Pantry', label:'Pantry', icon:'🍚'},
+    {key:'Produce', label:'Vegetables', icon:'🥬'},
+    {key:'Fruit', label:'Fruit', icon:'🍎'},
+    {key:'Herbs', label:'Fresh herbs', icon:'🌿'},
+    {key:'Meat', label:'Meat', icon:'🥩'},
+    {key:'Poultry', label:'Poultry', icon:'🍗'},
+    {key:'Seafood', label:'Seafood', icon:'🐟'},
+    {key:'Dairy', label:'Dairy & eggs', icon:'🧀'},
+    {key:'DryGoods', label:'Grains & dry goods', icon:'🌾'},
+    {key:'Spices', label:'Spices', icon:'🫙'},
+    {key:'Pantry', label:'Pantry', icon:'🥫'},
+    {key:'Condiments', label:'Oils & sauces', icon:'🫒'},
     {key:'Bakery', label:'Bakery', icon:'🥖'},
-    {key:'Drinks', label:'Drinks', icon:'🥤'},
     {key:'Frozen', label:'Frozen', icon:'❄️'},
-    {key:'Supplies', label:'Supplies', icon:'📦'}
+    {key:'CoffeeTea', label:'Coffee & tea', icon:'☕'},
+    {key:'Juice', label:'Juices', icon:'🧃'},
+    {key:'WaterMixers', label:'Water & mixers', icon:'💧'},
+    {key:'SoftDrinks', label:'Soft drinks', icon:'🥤'},
+    {key:'BeerCider', label:'Beer & cider', icon:'🍺'},
+    {key:'Wine', label:'Wine', icon:'🍷'},
+    {key:'Spirits', label:'Spirits', icon:'🥃'},
+    {key:'Cleaning', label:'Cleaning', icon:'🧽'},
+    {key:'PaperHygiene', label:'Paper & hygiene', icon:'🧻'},
+    {key:'Packaging', label:'Packaging', icon:'📦'},
+    {key:'KitchenUtility', label:'Kitchen & utility', icon:'🧹'},
+    {key:'HouseholdSupplies', label:'Household', icon:'🪣'},
+    {key:'PersonalCare', label:'Personal care', icon:'🧴'}
   ];
 
   var popularCatalogNames = [
@@ -83,20 +101,49 @@
     return state.browsers[mode];
   }
 
-  function stockSection(category) {
+  function stockSection(category, name) {
     category = String(category || '');
-    if (['Produce','Fruit','Fresh herbs'].indexOf(category) !== -1) return 'Fresh';
-    if (['Meat','Poultry','Seafood'].indexOf(category) !== -1) return 'Protein';
+    name = normalizeCatalogText(name || '');
+    var lower = category.toLowerCase();
+
+    if (category === 'Produce') return 'Produce';
+    if (category === 'Fruit') return 'Fruit';
+    if (category === 'Fresh herbs') return 'Herbs';
+    if (category === 'Meat') return 'Meat';
+    if (category === 'Poultry') return 'Poultry';
+    if (category === 'Seafood') return 'Seafood';
     if (category === 'Dairy & eggs') return 'Dairy';
-    if ([
-      'Spices','Dry goods','Nuts & seeds','Oils & condiments',
-      'Middle Eastern pantry','Asian pantry','Indian pantry',
-      'Mexican & Latin pantry'
-    ].indexOf(category) !== -1) return 'Pantry';
+    if (category === 'Dry goods') return 'DryGoods';
+    if (category === 'Spices') return 'Spices';
+    if (category === 'Oils & condiments') return 'Condiments';
+    if (['Middle Eastern pantry','Asian pantry','Indian pantry','Mexican & Latin pantry','Nuts & seeds'].indexOf(category) !== -1) return 'Pantry';
     if (['Bakery','Bakery & dessert'].indexOf(category) !== -1) return 'Bakery';
-    if (['Coffee & tea','Soft drinks','Beer & cider','Wine','Spirits'].indexOf(category) !== -1) return 'Drinks';
     if (category === 'Frozen') return 'Frozen';
-    if (['Packaging','Cleaning'].indexOf(category) !== -1) return 'Supplies';
+    if (category === 'Coffee & tea') return 'CoffeeTea';
+    if (category === 'Juice') return 'Juice';
+    if (category === 'Water & mixers') return 'WaterMixers';
+    if (category === 'Soft drinks') {
+      if (/juice|nectar/.test(name)) return 'Juice';
+      if (/water|tonic|club soda|soda water/.test(name)) return 'WaterMixers';
+      return 'SoftDrinks';
+    }
+    if (category === 'Beverages') return 'SoftDrinks';
+    if (category === 'Beer & cider') return 'BeerCider';
+    if (category === 'Wine') return 'Wine';
+    if (category === 'Spirits') return 'Spirits';
+    if (category === 'Cleaning') return 'Cleaning';
+    if (category === 'Paper & hygiene') return 'PaperHygiene';
+    if (category === 'Kitchen & utility') return 'KitchenUtility';
+    if (category === 'Household supplies') return 'HouseholdSupplies';
+    if (category === 'Personal care') return 'PersonalCare';
+    if (category === 'Packaging') {
+      if (/napkin|tissue|paper towel|toilet paper|foil|film|baking paper|parchment/.test(name)) return 'PaperHygiene';
+      if (/mop|broom|brush|sponge|cloth|dustpan|bucket|squeegee|glove/.test(name)) return 'KitchenUtility';
+      return 'Packaging';
+    }
+
+    if (/personal care/.test(lower)) return 'PersonalCare';
+    if (/household/.test(lower)) return 'HouseholdSupplies';
     return 'Pantry';
   }
 
@@ -145,10 +192,15 @@
       if (rules[i][0].test(name)) return rules[i][1];
     }
 
-    var section = stockSection(category);
+    var section = stockSection(category, row.name);
     return {
-      Fresh:'🥬', Protein:'🥩', Dairy:'🧀', Pantry:'🍚',
-      Bakery:'🥖', Drinks:'🥤', Frozen:'❄️', Supplies:'📦'
+      Produce:'🥬', Fruit:'🍎', Herbs:'🌿', Meat:'🥩', Poultry:'🍗',
+      Seafood:'🐟', Dairy:'🧀', DryGoods:'🌾', Spices:'🫙', Pantry:'🥫',
+      Condiments:'🫒', Bakery:'🥖', Frozen:'❄️', CoffeeTea:'☕',
+      Juice:'🧃', WaterMixers:'💧', SoftDrinks:'🥤', BeerCider:'🍺',
+      Wine:'🍷', Spirits:'🥃', Cleaning:'🧽', PaperHygiene:'🧻',
+      Packaging:'📦', KitchenUtility:'🧹', HouseholdSupplies:'🪣',
+      PersonalCare:'🧴'
     }[section] || '🍽️';
   }
 
@@ -2603,7 +2655,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '13.0.0',
+    version: '14.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
