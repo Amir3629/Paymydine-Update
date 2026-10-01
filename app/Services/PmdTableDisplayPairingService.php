@@ -192,8 +192,6 @@ final class PmdTableDisplayPairingService
                 $existingPlatform,
                 $platformInfo,
                 [
-                'installation_id' => mb_substr(trim($installationId), 0, 96),
-                'table_id' => null,
                 'paired_protocol' => 'pmd-table-display-v1',
                 'device_mode' => 'table_display',
                 'centrally_managed' => $deploymentMode,
