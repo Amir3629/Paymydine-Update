@@ -6630,3 +6630,207 @@ html body.page.pmd-inventory-page #pmd-inventory-v1
     height: auto !important;
   }
 }
+
+
+/* ============================================================
+   PMD_INVENTORY_POS_GRID_R18
+   Stable POS-style inventory shelf: compact square cards, no stretched
+   columns, no page-width expansion, and no visual transitions/blinking.
+   ============================================================ */
+
+html body.page.pmd-inventory-page #pmd-inventory-v1,
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-r11-quick-stock,
+html body.page.pmd-inventory-page #pmd-inventory-v1 .pmd-inv-pos-browser {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1 {
+  overflow-x: hidden !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock {
+  overflow: hidden !important;
+  padding: 14px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__categories,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__main-row,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__detail-row {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__main-row {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  gap: 8px !important;
+  padding: 0 1px 2px !important;
+  scrollbar-width: thin !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__detail-row {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  white-space: nowrap !important;
+  scrollbar-width: thin !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+  grid-auto-flow: row !important;
+  grid-auto-columns: auto !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+  justify-items: stretch !important;
+  justify-content: stretch !important;
+  overflow: visible !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-card {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1 !important;
+  justify-self: stretch !important;
+  align-self: stretch !important;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) !important;
+  grid-template-rows: minmax(0,1fr) 40px !important;
+  gap: 7px !important;
+  padding: 8px !important;
+  overflow: hidden !important;
+  border: 1px solid #cfdde2 !important;
+  border-radius: 15px !important;
+  background: #fff !important;
+  box-shadow: 0 4px 12px rgba(24,61,52,.045) !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-card:hover {
+  transform: none !important;
+  border-color: #9fc9bc !important;
+  box-shadow: 0 5px 14px rgba(24,61,52,.065) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-item-visual.is-lg {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  align-self: stretch !important;
+  border: 1px solid #edf1f2 !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-item-visual > img[data-pmd-inv-real-image] {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 2px !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  background: #fff !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-card__copy {
+  min-width: 0 !important;
+  min-height: 40px !important;
+  padding: 0 2px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-card__copy > strong {
+  font-size: 12.5px !important;
+  line-height: 1.12 !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-card__copy > small {
+  margin-top: 3px !important;
+  font-size: 9px !important;
+  line-height: 1.05 !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-card__badge {
+  top: 7px !important;
+  right: 7px !important;
+  min-height: 22px !important;
+  padding: 0 7px !important;
+  font-size: 8px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__grid.is-switching::after {
+  display: none !important;
+  content: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__grid.is-switching {
+  pointer-events: none !important;
+}
+
+@media (max-width: 1180px) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-r11-quick-stock .pmd-inv-pos-browser__grid {
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 820px) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-r11-quick-stock .pmd-inv-pos-browser__grid {
+    grid-template-columns: repeat(3, minmax(0,1fr)) !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-r11-quick-stock .pmd-inv-pos-browser__grid {
+    grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+  }
+}

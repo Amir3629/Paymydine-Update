@@ -31,7 +31,7 @@ class Pmdinventory extends AdminController
 
         $this->bodyClass = trim(
             ($this->bodyClass ?? '').
-            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r17-page'
+            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r18-page'
         );
 
         // PMD_INVENTORY_DASHBOARD_SHELL_R2
@@ -39,7 +39,7 @@ class Pmdinventory extends AdminController
         // warm admin chrome shown by the first Inventory R1 build.
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-platform-card-system-v1.css');
-        // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R17 - reusable visual stock catalogue.
+        // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R18 - reusable visual stock catalogue.
         // PMD_INVENTORY_CARD_GEOMETRY_R9 - centered cards + shared steppers.
         // PMD_INVENTORY_CARD_LANGUAGE_R8 - Inventory composers inherit the
         // validated platform modal/card shell, then apply their feature-owned
@@ -50,11 +50,11 @@ class Pmdinventory extends AdminController
 
         $this->addCss(
             asset('app/admin/assets/css/pmd-inventory-v1.css')
-            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r17')
+            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r18')
         );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
-            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r17')
+            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r18')
         );
         AdminMenu::setContext('dashboard');
     }
@@ -129,13 +129,28 @@ class Pmdinventory extends AdminController
 
     protected function catalogWithImages(): array
     {
-        $directory = base_path('app/admin/assets/images/pmd-inventory-atlas');
+        $atlasDirectory = base_path('app/admin/assets/images/pmd-inventory-atlas');
+        $reweDirectory = base_path('app/admin/assets/images/pmd-inventory-rewe');
+        $reweManifestPath = base_path('storage/app/pmd-inventory-rewe-catalog-r18.json');
         $rows = PmdInventoryStockCatalog::all();
 
-        // PMD_INVENTORY_SUPERMARKET_MASTER_CATALOG_R14
-        // Runtime Atlas rows carry an exact image slug. Build an alias index so
-        // curated PMD core rows such as "Paper cup" can also reuse a matching
-        // Atlas image whose canonical display name/slugs differ slightly.
+        // PMD_INVENTORY_REWE_PRIORITY_R18
+        // Reviewed REWE product photography is the first image source. Atlas
+        // remains the fallback for everything the uploaded pack does not cover.
+        $reweImageMap = [];
+        if (is_file($reweManifestPath) && (int)@filesize($reweManifestPath) > 10) {
+            $decoded = json_decode((string)@file_get_contents($reweManifestPath), true);
+            if (is_array($decoded['image_map'] ?? null)) {
+                foreach ($decoded['image_map'] as $key => $slug) {
+                    $key = Str::slug((string)$key);
+                    $slug = Str::slug((string)$slug);
+                    if ($key !== '' && $slug !== '') {
+                        $reweImageMap[$key] = $slug;
+                    }
+                }
+            }
+        }
+
         $atlasImageByKey = [];
         foreach ($rows as $row) {
             $imageSlug = trim((string)($row['image_slug'] ?? $row['atlas_slug'] ?? ''));
@@ -156,39 +171,74 @@ class Pmdinventory extends AdminController
             }
         }
 
-        return array_map(static function (array $row) use ($directory, $atlasImageByKey): array {
+        return array_map(static function (array $row) use (
+            $atlasDirectory,
+            $reweDirectory,
+            $reweImageMap,
+            $atlasImageByKey
+        ): array {
             $name = trim((string)($row['name'] ?? ''));
-            $candidates = [];
+            $nameKey = Str::slug($name);
 
-            $direct = trim((string)($row['image_slug'] ?? $row['atlas_slug'] ?? ''));
-            if ($direct !== '') {
-                $candidates[] = $direct;
+            $reweCandidates = [];
+            $directRewe = trim((string)($row['rewe_image_slug'] ?? ''));
+            if ($directRewe !== '') {
+                $reweCandidates[] = Str::slug($directRewe);
+            }
+            if ($nameKey !== '' && isset($reweImageMap[$nameKey])) {
+                $reweCandidates[] = $reweImageMap[$nameKey];
+            }
+            foreach ((array)($row['aliases'] ?? []) as $alias) {
+                $aliasKey = Str::slug((string)$alias);
+                if ($aliasKey !== '' && isset($reweImageMap[$aliasKey])) {
+                    $reweCandidates[] = $reweImageMap[$aliasKey];
+                }
             }
 
-            $nameKey = Str::slug($name);
+            $row['image_url'] = null;
+            $row['image_source'] = null;
+
+            foreach (array_values(array_unique(array_filter($reweCandidates))) as $slug) {
+                $filename = $slug.'.webp';
+                $path = $reweDirectory.DIRECTORY_SEPARATOR.$filename;
+                if (!is_file($path) || (int)@filesize($path) < 3000) {
+                    continue;
+                }
+
+                $row['image_url'] = asset('app/admin/assets/images/pmd-inventory-rewe/'.$filename);
+                $row['image_source'] = 'rewe';
+                return $row;
+            }
+
+            $atlasCandidates = [];
+            $direct = trim((string)($row['image_slug'] ?? $row['atlas_slug'] ?? ''));
+            if ($direct !== '') {
+                $atlasCandidates[] = $direct;
+            }
+
             if ($nameKey !== '') {
                 if (isset($atlasImageByKey[$nameKey])) {
-                    $candidates[] = $atlasImageByKey[$nameKey];
+                    $atlasCandidates[] = $atlasImageByKey[$nameKey];
                 }
-                $candidates[] = $nameKey;
+                $atlasCandidates[] = $nameKey;
             }
 
             foreach ((array)($row['aliases'] ?? []) as $alias) {
                 $aliasKey = Str::slug((string)$alias);
                 if ($aliasKey !== '' && isset($atlasImageByKey[$aliasKey])) {
-                    $candidates[] = $atlasImageByKey[$aliasKey];
+                    $atlasCandidates[] = $atlasImageByKey[$aliasKey];
                 }
             }
 
-            $row['image_url'] = null;
-            foreach (array_values(array_unique(array_filter($candidates))) as $slug) {
+            foreach (array_values(array_unique(array_filter($atlasCandidates))) as $slug) {
                 $filename = $slug.'.webp';
-                $path = $directory.DIRECTORY_SEPARATOR.$filename;
+                $path = $atlasDirectory.DIRECTORY_SEPARATOR.$filename;
                 if (!is_file($path) || (int)@filesize($path) < 3000) {
                     continue;
                 }
 
                 $row['image_url'] = asset('app/admin/assets/images/pmd-inventory-atlas/'.$filename);
+                $row['image_source'] = 'atlas';
                 break;
             }
 

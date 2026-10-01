@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R16 */
+/* PMD_INVENTORY_CONTROL_R18 */
 (function () {
   'use strict';
 
@@ -28,7 +28,7 @@
     recipeSearch: '',
     commonSearch: '',
     shoppingDays: 1,
-    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R16
+    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R18
     // Each workflow keeps its own category/search/visible-card state.
     browsers: {
       dashboard: {query: '', main: 'Popular', section: 'All', limit: 12},
@@ -351,12 +351,11 @@
       });
     });
 
-    // Keep the current shelf in place while the next shelf warms up. The
-    // timeout prevents a single broken asset from making navigation feel stuck.
-    return Promise.race([
-      Promise.all(jobs),
-      new Promise(function (resolve) { window.setTimeout(resolve, 900); })
-    ]);
+    // PMD_INVENTORY_ZERO_BLINK_R18
+    // These are local product assets. Keep the current shelf visible until
+    // every next-shelf image has either loaded or failed, then swap once.
+    // No timeout means we never replace the grid with half-decoded imagery.
+    return Promise.all(jobs);
   }
 
   function catalogTemplateForItem(item) {
@@ -2884,7 +2883,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '17.0.0',
+    version: '18.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
