@@ -186,9 +186,6 @@
                             <span aria-hidden="true">🧽</span><b>Supplies</b><em>{{ $catalogMainCounts['Supplies'] }}</em>
                         </button>
                     </div>
-                    <div class="pmd-inv-pos-browser__detail-row is-empty">
-                        <span>Choose Food, Non-alcoholic, Alcohol or Supplies for detailed categories.</span>
-                    </div>
                 </div>
 
                 <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="dashboard" data-pmd-inv-server-rendered="1">
