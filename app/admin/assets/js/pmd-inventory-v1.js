@@ -88,9 +88,10 @@
 
   var popularCatalogNames = [
     'Tomato','Onion','Garlic','Potato','Lemon','Cucumber','Lettuce',
-    'Chicken breast','Beef mince','Eggs','Milk','Butter','Mozzarella',
-    'White rice','Wheat flour','Olive oil','Spaghetti','French fries',
-    'Coffee beans','Still water','Cola','Beer','Paper bag','Napkin'
+    'Banana','Apple','Chicken breast','Beef mince','Eggs','Milk','Butter',
+    'Mozzarella','White rice','Wheat flour','Olive oil','Spaghetti',
+    'Coffee beans','Still water','Orange juice','Cola','Lager beer',
+    'Vodka','Red wine','Dish soap','Paper towels','Mop','Bin bags'
   ];
 
   function browserState(mode) {
