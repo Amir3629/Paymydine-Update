@@ -77,3 +77,16 @@
 .pmd-device-platform-brightness span{padding-left:3px;color:#6b7b74;font-size:9px;font-weight:800}
 .pmd-device-platform-brightness input{width:45px;min-height:25px;padding:3px 4px;border:1px solid #d5e1dc;border-radius:6px;background:#fff;color:#27453b;font-size:10px;font-weight:800;text-align:center}
 .pmd-device-platform-brightness button{min-height:25px!important;padding:3px 6px!important}
+
+.pmd-device-platform-logs{margin-top:18px;padding-top:16px;border-top:1px solid #e4ece8}
+.pmd-device-platform-log{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #edf2ef}
+.pmd-device-platform-log:first-of-type{border-top:0}
+.pmd-device-platform-log__level{min-width:58px;padding:4px 7px;border-radius:999px;background:#eef3f1;color:#53675f;font-size:9px;font-weight:900;text-align:center}
+.pmd-device-platform-log__level.is-warning{background:#fff7df;color:#8a6718}
+.pmd-device-platform-log__level.is-error{background:#fff0f0;color:#9b3838}
+.pmd-device-platform-log>div{min-width:0}
+.pmd-device-platform-log strong,.pmd-device-platform-log small{display:block}
+.pmd-device-platform-log strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#183a30;font-size:11px}
+.pmd-device-platform-log small{margin-top:2px;color:#74817c;font-size:10px;line-height:1.35}
+.pmd-device-platform-log time{color:#8a9691;font-size:9px;white-space:nowrap}
+@media(max-width:700px){.pmd-device-platform-log{grid-template-columns:auto 1fr}.pmd-device-platform-log time{grid-column:2}}
