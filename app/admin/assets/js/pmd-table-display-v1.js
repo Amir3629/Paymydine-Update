@@ -157,7 +157,11 @@
   function livePresentationEvent(event) {
     event = event || {type:'idle', key:'idle'};
     var type = String(event.type || 'idle');
-    if (type === 'idle' || type === 'table_unavailable') return event;
+    if (
+      type === 'idle' ||
+      type === 'table_unavailable' ||
+      type === 'payment_requested'
+    ) return event;
 
     var key = String(event.key || (type + '-unknown'));
     var now = Date.now();
