@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -66,6 +67,8 @@ final class PmdDevicePlatformService
             'policy' => $policy,
             'desired' => $desired,
             'commands' => self::COMMANDS,
+            'deployment' => $this->activeDeployment($locationId),
+            'table_options' => $this->tableOptions($locationId),
             'stats' => [
                 'total' => count($devices),
                 'online' => $online,
@@ -73,6 +76,239 @@ final class PmdDevicePlatformService
                 'sleeping' => $sleeping,
             ],
         ];
+    }
+
+    public function createDeploymentSession(
+        int $locationId,
+        int $expectedCount,
+        ?int $staffId
+    ): array {
+        $this->ensureStorage();
+
+        $expectedCount = max(1, min(200, $expectedCount));
+
+        DB::table('pmd_device_deployment_sessions')
+            ->where('location_id', $locationId)
+            ->where('device_kind', 'table_display')
+            ->where('status', 'active')
+            ->update([
+                'status' => 'cancelled',
+                'updated_at' => now(),
+            ]);
+
+        $code = (string)random_int(100000, 999999);
+        $publicId = (string)Str::uuid();
+        $expiresAt = now()->addHours(2);
+
+        DB::table('pmd_device_deployment_sessions')->insert([
+            'public_id' => $publicId,
+            'location_id' => $locationId,
+            'device_kind' => 'table_display',
+            'code_hash' => $this->deploymentCodeHash($code),
+            'code_ciphertext' => Crypt::encryptString($code),
+            'expected_count' => $expectedCount,
+            'paired_count' => 0,
+            'status' => 'active',
+            'created_by_staff_id' => $staffId ?: null,
+            'expires_at' => $expiresAt,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $this->activeDeployment($locationId) ?: [];
+    }
+
+    public function cancelDeploymentSession(
+        int $locationId,
+        ?int $staffId
+    ): void {
+        $this->ensureStorage();
+
+        DB::table('pmd_device_deployment_sessions')
+            ->where('location_id', $locationId)
+            ->where('status', 'active')
+            ->update([
+                'status' => 'cancelled',
+                'updated_at' => now(),
+            ]);
+    }
+
+    public function activeDeployment(int $locationId): ?array
+    {
+        $this->ensureStorage();
+
+        $row = DB::table('pmd_device_deployment_sessions')
+            ->where('location_id', $locationId)
+            ->where('device_kind', 'table_display')
+            ->where('status', 'active')
+            ->orderByDesc('id')
+            ->first();
+
+        if (!$row) {
+            return null;
+        }
+
+        if (Carbon::parse($row->expires_at)->isPast()) {
+            DB::table('pmd_device_deployment_sessions')
+                ->where('id', (int)$row->id)
+                ->update([
+                    'status' => 'expired',
+                    'updated_at' => now(),
+                ]);
+            return null;
+        }
+
+        $code = null;
+        try {
+            $code = Crypt::decryptString((string)$row->code_ciphertext);
+        } catch (\Throwable $ignored) {
+        }
+
+        return [
+            'id' => (int)$row->id,
+            'public_id' => (string)$row->public_id,
+            'device_kind' => (string)$row->device_kind,
+            'code' => $code,
+            'expected_count' => (int)$row->expected_count,
+            'paired_count' => (int)$row->paired_count,
+            'remaining_count' => max(
+                0,
+                (int)$row->expected_count - (int)$row->paired_count
+            ),
+            'expires_at' => Carbon::parse($row->expires_at)->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Called from the Table Companion pairing transaction. The row is locked
+     * but not consumed until the device insert succeeds.
+     */
+    public function lockDeploymentByCode(string $code)
+    {
+        $this->ensureStorage();
+
+        return DB::table('pmd_device_deployment_sessions')
+            ->where('device_kind', 'table_display')
+            ->where('code_hash', $this->deploymentCodeHash($code))
+            ->where('status', 'active')
+            ->where('expires_at', '>', now())
+            ->whereColumn('paired_count', '<', 'expected_count')
+            ->orderByDesc('id')
+            ->lockForUpdate()
+            ->first();
+    }
+
+    public function markDeploymentPaired(int $sessionId): void
+    {
+        $row = DB::table('pmd_device_deployment_sessions')
+            ->where('id', $sessionId)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$row) {
+            return;
+        }
+
+        $paired = min(
+            (int)$row->expected_count,
+            (int)$row->paired_count + 1
+        );
+
+        DB::table('pmd_device_deployment_sessions')
+            ->where('id', $sessionId)
+            ->update([
+                'paired_count' => $paired,
+                'status' => $paired >= (int)$row->expected_count
+                    ? 'completed'
+                    : 'active',
+                'completed_at' => $paired >= (int)$row->expected_count
+                    ? now()
+                    : null,
+                'updated_at' => now(),
+            ]);
+    }
+
+    public function assignTableDisplay(
+        int $locationId,
+        int $deviceId,
+        int $tableId,
+        ?int $staffId
+    ): array {
+        $this->ensureStorage();
+
+        if (!Schema::hasTable('pmd_site_access_devices')) {
+            abort(503, 'Trusted-device storage is unavailable.');
+        }
+
+        $device = DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->where('location_id', $locationId)
+            ->where('device_kind', 'table_display')
+            ->whereNull('revoked_at')
+            ->first();
+
+        if (!$device) {
+            abort(404, 'Table Companion device was not found.');
+        }
+
+        $table = collect(app(PmdTableDisplayService::class)->tables())
+            ->first(static fn (array $row) =>
+                (int)($row['id'] ?? 0) === $tableId
+                && (int)($row['location_id'] ?? 0) === $locationId
+            );
+
+        if (!$table) {
+            abort(404, 'Restaurant table was not found.');
+        }
+
+        $platform = $this->decode((string)($device->platform_info ?? ''));
+        $platform['table_id'] = $tableId;
+        $platform['bound_at'] = now()->toIso8601String();
+        $platform['bound_by_staff_id'] = $staffId ?: null;
+        $platform['centrally_managed'] = true;
+
+        DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->update([
+                'platform_info' => json_encode(
+                    $platform,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
+                'updated_at' => now(),
+            ]);
+
+        return [
+            'ok' => true,
+            'device_id' => $deviceId,
+            'table_id' => $tableId,
+            'table_name' => (string)($table['name'] ?? ('Table '.$tableId)),
+        ];
+    }
+
+    private function tableOptions(int $locationId): array
+    {
+        return collect(app(PmdTableDisplayService::class)->tables())
+            ->filter(static fn (array $row) =>
+                (int)($row['location_id'] ?? 0) === $locationId
+            )
+            ->map(static fn (array $row) => [
+                'id' => (int)($row['id'] ?? 0),
+                'number' => (string)($row['number'] ?? ''),
+                'name' => (string)($row['name'] ?? 'Table'),
+                'floor' => (string)($row['floor'] ?? ''),
+                'enabled' => (bool)($row['enabled'] ?? true),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function deploymentCodeHash(string $code): string
+    {
+        return hash_hmac(
+            'sha256',
+            'pmd-device-deployment|'.trim($code),
+            (string)config('app.key', 'pmd-device-platform')
+        );
     }
 
     public function devices(int $locationId): array
