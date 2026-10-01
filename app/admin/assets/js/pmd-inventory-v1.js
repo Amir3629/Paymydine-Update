@@ -493,16 +493,16 @@
     }).join('');
     mainHtml += '</div>';
 
-    var activeMainMeta = mainBrowserSections.find(function (section) {
-      return section.key === bState.main;
-    });
-    var activeMainLabel = activeMainMeta ? activeMainMeta.label : bState.main;
-    var detailHtml = '<div class="pmd-inv-pos-browser__detail-row' +
-      (detailSections.length ? '' : ' is-empty') + '">';
-
+    var detailHtml = '';
     if (detailSections.length) {
+      var activeMainMeta = mainBrowserSections.find(function (section) {
+        return section.key === bState.main;
+      });
+      var activeMainLabel = activeMainMeta ? activeMainMeta.label : bState.main;
       var mainCount = Number(index.mainCounts[bState.main] || 0);
-      detailHtml += '<button type="button" class="' + (bState.section === 'All' ? 'is-active' : '') +
+
+      detailHtml = '<div class="pmd-inv-pos-browser__detail-row">' +
+        '<button type="button" class="' + (bState.section === 'All' ? 'is-active' : '') +
         '" data-pmd-inv-browser-section="' + esc(mode) +
         '" data-pmd-inv-browser-section-key="All"><b>All ' +
         esc(activeMainLabel) +
@@ -515,11 +515,9 @@
             '<span aria-hidden="true">' + esc(section.icon) + '</span>' +
             '<b>' + esc(section.label) + '</b>' +
             '<em>' + esc(Number(index.sectionCounts[section.key] || 0)) + '</em></button>';
-        }).join('');
-    } else {
-      detailHtml += '<span>Choose Food, Non-alcoholic, Alcohol or Supplies for detailed categories.</span>';
+        }).join('') +
+      '</div>';
     }
-    detailHtml += '</div>';
 
     cats.innerHTML = mainHtml + detailHtml;
 
@@ -2886,7 +2884,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '16.0.0',
+    version: '17.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
