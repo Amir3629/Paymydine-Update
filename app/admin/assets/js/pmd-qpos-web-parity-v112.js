@@ -992,7 +992,7 @@
     liveSelectedSignatureV73: '',
     /* PMD_QPOS_PICKUP_CHECK_STATE_V78 */
     pickupOrdersSignatureV78: '',
-    livePollAfterMsV73: 2000,
+    livePollAfterMsV73: 5000,
     visualHydrated: false,
     floorMapOpen: false,
     submitting: false,
@@ -2082,7 +2082,12 @@
 
   function startLiveSyncV73() {
     state.liveTablesSignatureV73 = liveSyncTableSignatureV73(state.tables);
-    scheduleLiveSyncV73(700);
+
+    /* PMD_QPOS_QUIET_FIRST_PAINT_V131
+     * First HTML already contains the authoritative table rail. Do not fire a
+     * recurring reconciliation request while CSS/JS/images are still settling.
+     * Push notifications remain immediate; heartbeat starts after first paint. */
+    scheduleLiveSyncV73(4000);
   }
 
   function renderFloors() {
@@ -2825,6 +2830,38 @@
      * Re-fit after two frames so the shared engine measures the real
      * full-screen viewport instead of its historical 560px initial frame. */
     var instance = exactFloorInstance();
+
+    /* PMD_QPOS_LAZY_FLOOR_V130
+     * The hidden Floor is seeded from the already-loaded POS bootstrap so
+     * /admin/pos can paint without a second synchronous dashboard/layout pass.
+     * On the first explicit Map open, refresh the existing canonical Floor
+     * instance in the background. PmdSharedFloorMultiFloorV1 already wraps
+     * refresh() and re-applies the active-floor registry afterwards. */
+    if (
+      instance &&
+      typeof instance.refresh === 'function' &&
+      !instance.__pmdQposCanonicalFloorLoadedV130
+    ) {
+      instance.__pmdQposCanonicalFloorLoadedV130 = true;
+
+      Promise.resolve(instance.refresh()).then(function () {
+        if (
+          state.floorMapOpen &&
+          typeof instance.fit === 'function'
+        ) {
+          window.requestAnimationFrame(function () {
+            instance.fit();
+          });
+        }
+      }).catch(function (error) {
+        instance.__pmdQposCanonicalFloorLoadedV130 = false;
+        console.warn(
+          '[PMD Quick POS V130] Canonical Floor refresh failed',
+          error
+        );
+      });
+    }
+
     if (instance && typeof instance.fit === 'function') {
       window.requestAnimationFrame(function () {
         window.requestAnimationFrame(function () {
@@ -3169,8 +3206,10 @@
     renderHistoryTableRailV88();
     renderHistoryTableWorkspaceV93();
 
-    /* PMD_QPOS_IDLE_TABLE_WARMUP_CALL_V42 */
-    scheduleTableWarmupV42();
+    /* PMD_QPOS_NO_BOOT_REQUEST_BURST_V131
+     * Do not prefetch up to ten occupied-table payloads during initial/render
+     * paint. Pointer/focus/touch prefetch above remains, so the table the
+     * operator is actually approaching is still warmed before click. */
 
     // PMD_QPOS_TABLE_RAIL_RENDER_EVENT_R128
     // Quick Reservations keeps the canonical rail and only reapplies its
