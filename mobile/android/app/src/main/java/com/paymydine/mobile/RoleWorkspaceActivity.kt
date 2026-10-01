@@ -35,6 +35,20 @@ class RoleWorkspaceActivity : ComponentActivity() {
     private val app: PayMyDineApplication
         get() = application as PayMyDineApplication
 
+    override fun onResume() {
+        super.onResume()
+        val app = application as PayMyDineApplication
+        app.deviceShell.attach(this, "restaurant_app")
+        app.ensureDeviceControlRunning()
+    }
+
+    override fun onPause() {
+        (application as PayMyDineApplication)
+            .deviceShell
+            .detach(this)
+        super.onPause()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
