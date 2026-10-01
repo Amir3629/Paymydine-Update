@@ -23,17 +23,27 @@
     return instance && instance.state ? instance.state : null;
   }
 
-  function isWaiter() {
+  function canUseTableDevicePayment() {
     var current = state();
     if (!current) return false;
+
     var role = String(
       current.boot && current.boot.user && current.boot.user.role || ''
     ).toLowerCase();
 
-    return (
-      String(current.mode || '').toLowerCase() === 'waiter' &&
-      (role === 'pmd-waiter' || role === 'waiter')
-    );
+    var mode = String(current.mode || '').toLowerCase();
+    var allowedRole = [
+      'pmd-owner',
+      'pmd-manager',
+      'pmd-cashier',
+      'pmd-waiter',
+      'owner',
+      'manager',
+      'cashier',
+      'waiter'
+    ].indexOf(role) !== -1;
+
+    return allowedRole && (mode === 'cashier' || mode === 'waiter');
   }
 
   function paymentOpen() {
@@ -90,7 +100,7 @@
   }
 
   function ensureMethod() {
-    if (!isWaiter() || !paymentOpen()) return;
+    if (!canUseTableDevicePayment() || !paymentOpen()) return;
     var box = methodBox();
     if (!box) return;
 
@@ -105,7 +115,7 @@
       button.type = 'button';
       button.setAttribute('data-payment-method', 'table_card');
       button.setAttribute('data-pmd-table-card-method-v1', '1');
-      button.textContent = 'Card payment';
+      button.textContent = 'Table device';
       button.addEventListener('click', function (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -120,7 +130,7 @@
   }
 
   function ensurePanel() {
-    if (!isWaiter() || !paymentOpen()) return null;
+    if (!canUseTableDevicePayment() || !paymentOpen()) return null;
     var box = methodBox();
     if (!box) return null;
 
@@ -134,9 +144,9 @@
     node.innerHTML =
       '<div class="pmd-table-card-panel-v1__icon" aria-hidden="true">▣</div>' +
       '<div class="pmd-table-card-panel-v1__copy">' +
-        '<span>TABLE DISPLAY</span>' +
-        '<strong>Card payment on this table</strong>' +
-        '<small>The guest pays on the small screen assigned to this table. PayMyDine waits for the real gateway result.</small>' +
+        '<span>TABLE DEVICE · CONTACTLESS</span>' +
+        '<strong>Contactless payment on this table</strong>' +
+        '<small>Send the amount to the small table device for contactless/card payment. PayMyDine only accepts the real provider result.</small>' +
       '</div>' +
       '<b data-pmd-table-card-amount-v1></b>' +
       '<div class="pmd-table-card-panel-v1__status" data-pmd-table-card-status-v1 hidden></div>';
@@ -159,7 +169,7 @@
   }
 
   function chooseTableCard() {
-    if (!isWaiter() || !paymentOpen()) return;
+    if (!canUseTableDevicePayment() || !paymentOpen()) return;
     active = true;
     sending = false;
     setStatus('', false);
@@ -188,7 +198,7 @@
   }
 
   function updateUi() {
-    if (!isWaiter() || !paymentOpen()) {
+    if (!canUseTableDevicePayment() || !paymentOpen()) {
       leaveTableCard();
       return;
     }
@@ -214,7 +224,7 @@
       submit.disabled = sending || amountDue() <= 0;
       submit.textContent = sending
         ? 'Sending to table…'
-        : 'Request card payment ' + money(amountDue());
+        : 'Send to table device ' + money(amountDue());
     }
   }
 
@@ -246,7 +256,7 @@
           },
           body: JSON.stringify({
             expected_remaining: amountDue(),
-            source: 'quick_pos_waiter'
+            source: 'quick_pos_table_device'
           })
         }
       );
@@ -257,11 +267,11 @@
         throw new Error(json.message || json.error || ('HTTP ' + response.status));
       }
 
-      setStatus('Sent to the table display. Waiting for the customer to pay.', false);
+      setStatus('Sent to the table device. The customer can now tap/insert their card.', false);
       var submit = submitButton();
       if (submit) {
         submit.disabled = true;
-        submit.textContent = 'Sent to table ✓';
+        submit.textContent = 'Sent to table device ✓';
       }
 
       window.setTimeout(function () {
@@ -271,7 +281,7 @@
       }, 1100);
     } catch (error) {
       setStatus(
-        (error && error.message) || 'Could not reach the table display.',
+        (error && error.message) || 'Could not reach the table device.',
         true
       );
     } finally {
