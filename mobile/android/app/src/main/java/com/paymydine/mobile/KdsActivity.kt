@@ -34,6 +34,20 @@ import com.paymydine.mobile.ui.PmdTheme
  * outages instead of depending on an Admin WebView.
  */
 class KdsActivity : ComponentActivity() {
+    override fun onResume() {
+        super.onResume()
+        val app = application as PayMyDineApplication
+        app.deviceShell.attach(this, "kds")
+        app.ensureDeviceControlRunning()
+    }
+
+    override fun onPause() {
+        (application as PayMyDineApplication)
+            .deviceShell
+            .detach(this)
+        super.onPause()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val app = application as PayMyDineApplication
