@@ -65,14 +65,14 @@ jobs:
           gradle-version: '8.13'
 
       - name: Restore stable PayMyDine preview signing key
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/feature/android-local-first-v1' || github.ref == 'refs/heads/feature/android-device-shell-v1')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: paymydine-android-preview-debug-keystore-v1
 
       - name: Verify pinned PayMyDine preview certificate
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/feature/android-local-first-v1' || github.ref == 'refs/heads/feature/android-device-shell-v1')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         shell: bash
         run: |
           set -euo pipefail
@@ -88,6 +88,14 @@ jobs:
             echo "actual=$ACTUAL_PREVIEW_SHA256"
             exit 1
           }
+
+      - name: Prepare temporary branch signing key
+        if: github.ref == 'refs/heads/feature/android-device-shell-v1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair             -keystore "$HOME/.android/debug.keystore"             -storepass android             -alias androiddebugkey             -keypass android             -keyalg RSA             -keysize 2048             -validity 10000             -dname "CN=PayMyDine Device Shell Branch,O=PayMyDine,C=DE"             >/dev/null 2>&1
 
       - name: Unit tests
         working-directory: mobile/android
@@ -136,7 +144,7 @@ jobs:
           sha256sum "$APK"
 
       - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/feature/android-local-first-v1' || github.ref == 'refs/heads/feature/android-device-shell-v1')
+        if: github.event_name == 'push'
         with:
           name: paymydine-android-device-shell-v1
           path: |
@@ -147,7 +155,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish V129 preview release
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/feature/android-local-first-v1' || github.ref == 'refs/heads/feature/android-device-shell-v1')
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
