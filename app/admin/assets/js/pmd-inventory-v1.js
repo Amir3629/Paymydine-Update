@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R11 */
+/* PMD_INVENTORY_CONTROL_R12 */
 (function () {
   'use strict';
 
@@ -152,10 +152,29 @@
     }[section] || '🍽️';
   }
 
+  function inventoryPhotoUrl(row) {
+    row = row || {};
+    var direct = String(row.image_url || '').trim();
+    if (direct) return direct;
+
+    if (row.id || row.name) {
+      var template = catalogTemplateForItem(row);
+      var mapped = template ? String(template.image_url || '').trim() : '';
+      if (mapped) return mapped;
+    }
+
+    return '';
+  }
+
   function visualMarkup(row, size) {
     var section = stockSection(row && row.category);
+    var photo = inventoryPhotoUrl(row);
     return '<span class="pmd-inv-item-visual is-' + esc(sectionSlug(section)) +
-      ' is-' + esc(size || 'sm') + '" aria-hidden="true"><span>' +
+      ' is-' + esc(size || 'sm') + '" aria-hidden="true">' +
+      (photo
+        ? '<img src="' + esc(photo) + '" alt="" loading="lazy" decoding="async" data-pmd-inv-real-image>'
+        : '') +
+      '<span class="pmd-inv-item-visual__emoji">' +
       esc(visualEmoji(row)) + '</span></span>';
   }
 
@@ -2564,12 +2583,27 @@
     });
   });
 
+  root.addEventListener('load', function (event) {
+    var image = event.target;
+    if (!image || !image.matches || !image.matches('[data-pmd-inv-real-image]')) return;
+    var visual = image.closest('.pmd-inv-item-visual');
+    if (visual) visual.classList.add('has-photo');
+  }, true);
+
+  root.addEventListener('error', function (event) {
+    var image = event.target;
+    if (!image || !image.matches || !image.matches('[data-pmd-inv-real-image]')) return;
+    var visual = image.closest('.pmd-inv-item-visual');
+    if (visual) visual.classList.remove('has-photo');
+    image.remove();
+  }, true);
+
   enhanceNumericSteppers(root);
   bootHeaderNotification();
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '11.0.0',
+    version: '12.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
