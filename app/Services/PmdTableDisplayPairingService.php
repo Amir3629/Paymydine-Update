@@ -106,22 +106,112 @@ final class PmdTableDisplayPairingService
                 ->lockForUpdate()
                 ->first();
 
+            $deployment = null;
             if (!$challenge) {
-                abort(410, 'This Table Companion setup code is invalid or expired.');
+                $deployment = app(PmdDevicePlatformService::class)
+                    ->lockDeploymentByCode($code);
+            }
+
+            if (!$challenge && !$deployment) {
+                abort(410, 'This Table Companion setup/deployment code is invalid or expired.');
+            }
+
+            $locationId = (int)(
+                $challenge->location_id
+                ?? $deployment->location_id
+                ?? 0
+            );
+            $pairedByStaffId = (int)(
+                $challenge->staff_id
+                ?? $deployment->created_by_staff_id
+                ?? 0
+            );
+            $deploymentMode = $deployment !== null;
+
+            $normalizedInstallationId = mb_substr(
+                trim($installationId),
+                0,
+                96
+            );
+
+            // A transport retry or reinstall must not leave two active trusted
+            // records for the same physical Table Companion.
+            $existingDevice = null;
+            $existingPlatform = [];
+            if ($normalizedInstallationId !== '') {
+                $candidates = DB::table('pmd_site_access_devices')
+                    ->where('location_id', $locationId)
+                    ->where('device_kind', self::DEVICE_KIND)
+                    ->whereNull('revoked_at')
+                    ->orderByDesc('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($candidates as $candidate) {
+                    $candidatePlatform = $this->platformInfo($candidate);
+                    if (
+                        trim((string)($candidatePlatform['installation_id'] ?? ''))
+                        === $normalizedInstallationId
+                    ) {
+                        $existingDevice = $candidate;
+                        $existingPlatform = $candidatePlatform;
+                        break;
+                    }
+                }
+            }
+
+            $sameDeploymentRetry = (
+                $deployment
+                && $existingDevice
+                && (int)($existingPlatform['deployment_session_id'] ?? 0)
+                    === (int)$deployment->id
+            );
+
+            if ($existingDevice) {
+                DB::table('pmd_site_access_devices')
+                    ->where('id', (int)$existingDevice->id)
+                    ->update([
+                        'revoked_at' => now(),
+                        'updated_at' => now(),
+                    ]);
             }
 
             $rawToken = $this->randomToken();
-            $deviceName = trim($deviceName) ?: 'PayMyDine Table Companion';
+
+            if ($deploymentMode && $normalizedInstallationId !== '') {
+                $deviceName = 'PMD-DISPLAY-'.strtoupper(
+                    substr(hash('sha256', $normalizedInstallationId), 0, 6)
+                );
+            } else {
+                $deviceName = trim($deviceName)
+                    ?: 'PayMyDine Table Companion';
+            }
             $deviceName = mb_substr($deviceName, 0, 128);
 
-            $platformInfo = array_merge($platformInfo, [
-                'installation_id' => mb_substr(trim($installationId), 0, 96),
-                'table_id' => null,
+            $platformInfo = array_merge(
+                $existingPlatform,
+                $platformInfo,
+                [
                 'paired_protocol' => 'pmd-table-display-v1',
+                'device_mode' => 'table_display',
+                'centrally_managed' => $deploymentMode,
+                'deployment_session_id' => $deploymentMode
+                    ? (int)$deployment->id
+                    : null,
+                'installation_id' => $normalizedInstallationId,
+                // Preserve a previous central assignment across a safe re-pair.
+                'table_id' => (int)($existingPlatform['table_id'] ?? 0) > 0
+                    ? (int)$existingPlatform['table_id']
+                    : null,
+                'payment_terminal_device_id' => (
+                    (int)($existingPlatform['payment_terminal_device_id'] ?? 0) > 0
+                )
+                    ? (int)$existingPlatform['payment_terminal_device_id']
+                    : null,
             ]);
 
             $deviceId = DB::table('pmd_site_access_devices')->insertGetId([
-                'location_id' => (int)$challenge->location_id,
+                'location_id' => $locationId,
                 'device_kind' => self::DEVICE_KIND,
                 'staff_id' => null,
                 'pos_device_id' => null,
@@ -132,12 +222,17 @@ final class PmdTableDisplayPairingService
                     'table_qr',
                     'live_reactions',
                     'waiter_payment_handoff',
+                    'table_payment_handoff',
+                    'device_platform_v1',
+                    'managed_power',
+                    'offline_snapshot',
+                    'lock_task_capable',
                 ], JSON_UNESCAPED_SLASHES),
                 'platform_info' => json_encode(
                     $platformInfo,
                     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
                 ),
-                'paired_by_staff_id' => (int)($challenge->staff_id ?? 0) ?: null,
+                'paired_by_staff_id' => $pairedByStaffId ?: null,
                 'paired_at' => now(),
                 'last_seen_at' => now(),
                 'revoked_at' => null,
@@ -145,24 +240,34 @@ final class PmdTableDisplayPairingService
                 'updated_at' => now(),
             ]);
 
-            DB::table('pmd_site_access_challenges')
-                ->where('id', (int)$challenge->id)
-                ->update([
-                    'status' => 'approved',
-                    'approved_by_staff_id' => (int)($challenge->staff_id ?? 0) ?: null,
-                    'approved_at' => now(),
-                    'used_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            if ($challenge) {
+                DB::table('pmd_site_access_challenges')
+                    ->where('id', (int)$challenge->id)
+                    ->update([
+                        'status' => 'approved',
+                        'approved_by_staff_id' => $pairedByStaffId ?: null,
+                        'approved_at' => now(),
+                        'used_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            if ($deployment && !$sameDeploymentRetry) {
+                app(PmdDevicePlatformService::class)
+                    ->markDeploymentPaired((int)$deployment->id);
+            }
 
             return [
                 'ok' => true,
                 'protocol' => 'pmd-table-display-v1',
                 'device_token' => $rawToken,
                 'device_id' => (int)$deviceId,
-                'location_id' => (int)$challenge->location_id,
+                'location_id' => $locationId,
                 'bound_table_id' => null,
-                'message' => 'Device paired. Choose the table on the device.',
+                'deployment_mode' => $deploymentMode,
+                'message' => $deploymentMode
+                    ? 'Device joined the deployment session. Assign its table from PayMyDine Admin.'
+                    : 'Device paired. Choose the table on the device.',
             ];
         });
     }
@@ -270,8 +375,8 @@ final class PmdTableDisplayPairingService
             'event' => $state['event'] ?? [
                 'type' => 'idle',
                 'key' => 'idle',
-                'headline' => 'Scan to view the menu',
-                'message' => 'Use your phone camera to scan this table QR code.',
+                'headline' => 'Scan to order',
+                'message' => '',
             ],
         ];
     }

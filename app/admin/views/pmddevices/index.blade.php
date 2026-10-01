@@ -29,6 +29,17 @@
     $turkeyFiscal = $data['turkey_fiscal'] ?? null;
     $stats = $data['stats'] ?? ['pos'=>0,'terminals'=>0,'drawers'=>0,'kds'=>0,'biometric'=>0];
     $stats['terminals'] = $terminals->count();
+
+    // PMD_DEVICE_PLATFORM_V1
+    $devicePlatform = (array)($pmdDevicePlatform ?? []);
+    $devicePlatformStats = (array)($devicePlatform['stats'] ?? []);
+    $devicePlatformPolicy = (array)($devicePlatform['policy'] ?? []);
+    $devicePlatformDesired = (array)($devicePlatform['desired'] ?? []);
+    $devicePlatformDevices = (array)($devicePlatform['devices'] ?? []);
+    $devicePlatformDeployment = (array)($devicePlatform['deployment'] ?? []);
+    $devicePlatformTableOptions = (array)($devicePlatform['table_options'] ?? []);
+    $devicePlatformTerminalOptions = (array)($devicePlatform['terminal_options'] ?? []);
+    $devicePlatformRecentLogs = (array)($devicePlatform['recent_logs'] ?? []);
 @endphp
 
 <div id="pmd-devices-page" class="pmd-owner-page" data-pmd-owner-page data-pmd-device-inline-v6>
@@ -66,6 +77,352 @@
             </div>
         </div>
     </section>
+
+    {{-- PMD_DEVICE_PLATFORM_V1 --}}
+    <section class="pmd-owner-section" id="device-platform">
+        <div class="pmd-owner-card pmd-device-platform-card" data-accent="emerald">
+            <div class="pmd-owner-card__header">
+                <div class="pmd-owner-card__icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="3" y="4" width="18" height="13" rx="2"></rect>
+                        <path d="M8 21h8M12 17v4M7 8h.01M10 8h7"></path>
+                    </svg>
+                </div>
+                <div class="pmd-owner-card__title">
+                    <h2>{{ $pmdSettingsText('PayMyDine Device Control') }}</h2>
+                    <p>{{ $pmdSettingsText('One control plane for Table Companion, Android POS, KDS, customer displays and future kiosks.') }}</p>
+                </div>
+                <div class="pmd-owner-card__actions">
+                    <span class="pmd-owner-status {{ (($devicePlatformStats['offline'] ?? 0) < 1) ? 'is-active' : '' }}">
+                        {{ (int)($devicePlatformStats['online'] ?? 0) }} {{ $pmdSettingsText('online') }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="pmd-owner-card__body">
+                @if(!empty($devicePlatform['error']))
+                    <div class="pmd-device-platform-alert">{{ e($devicePlatform['error']) }}</div>
+                @endif
+
+                <div class="pmd-device-platform-stats">
+                    <div><span>{{ $pmdSettingsText('Trusted devices') }}</span><strong>{{ (int)($devicePlatformStats['total'] ?? 0) }}</strong></div>
+                    <div><span>{{ $pmdSettingsText('Online') }}</span><strong>{{ (int)($devicePlatformStats['online'] ?? 0) }}</strong></div>
+                    <div><span>{{ $pmdSettingsText('Offline') }}</span><strong>{{ (int)($devicePlatformStats['offline'] ?? 0) }}</strong></div>
+                    <div><span>{{ $pmdSettingsText('Closed / sleeping') }}</span><strong>{{ (int)($devicePlatformStats['sleeping'] ?? 0) }}</strong></div>
+                </div>
+
+                <div class="pmd-device-platform-now">
+                    <div>
+                        <span>{{ $pmdSettingsText('Current automatic state') }}</span>
+                        <strong>{{ (($devicePlatformDesired['screen_state'] ?? 'awake') === 'awake') ? $pmdSettingsText('Open / awake') : $pmdSettingsText('Closed / low power') }}</strong>
+                    </div>
+                    <small>
+                        {{ e(str_replace('_', ' ', (string)($devicePlatformDesired['reason'] ?? 'schedule'))) }}
+                        @if(!empty($devicePlatformDesired['timezone']))
+                            · {{ e($devicePlatformDesired['timezone']) }}
+                        @endif
+                    </small>
+                </div>
+
+                <form
+                    class="pmd-device-platform-actions"
+                    data-request="onPmdDevicePlatformCommand"
+                    data-request-flash
+                    data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                >
+                    <button class="pmd-owner-action pmd-device-platform-primary" type="submit" name="action" value="OPEN_RESTAURANT">
+                        {{ $pmdSettingsText('Open restaurant') }}
+                    </button>
+                    <button class="pmd-owner-action" type="submit" name="action" value="CLOSE_RESTAURANT">
+                        {{ $pmdSettingsText('Close restaurant') }}
+                    </button>
+                    <button class="pmd-owner-action" type="submit" name="action" value="USE_SCHEDULE">
+                        {{ $pmdSettingsText('Use opening-hours schedule') }}
+                    </button>
+                    <button class="pmd-owner-action" type="submit" name="action" value="RELOAD_APP">
+                        {{ $pmdSettingsText('Reload all apps') }}
+                    </button>
+                </form>
+
+                <div class="pmd-device-platform-grid">
+                    <div class="pmd-device-platform-pane">
+                        <h3>{{ $pmdSettingsText('Device schedule') }}</h3>
+                        <p>{{ $pmdSettingsText('PayMyDine uses the restaurant Opening Hours as the authority. Devices wake before opening and enter closed mode after closing.') }}</p>
+
+                        <form
+                            data-request="onSavePmdDevicePlatformPolicy"
+                            data-request-flash
+                            data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                        >
+                            <div class="pmd-device-platform-policy-grid">
+                                <label class="pmd-device-platform-check">
+                                    <input type="checkbox" name="device_policy[schedule_enabled]" value="1" {{ !empty($devicePlatformPolicy['schedule_enabled']) ? 'checked' : '' }}>
+                                    <span>{{ $pmdSettingsText('Use Opening Hours automatically') }}</span>
+                                </label>
+
+                                <label>
+                                    <span>{{ $pmdSettingsText('Wake before opening') }}</span>
+                                    <div class="pmd-device-platform-number">
+                                        <input type="number" min="0" max="240" name="device_policy[wake_before_minutes]" value="{{ (int)($devicePlatformPolicy['wake_before_minutes'] ?? 30) }}">
+                                        <small>min</small>
+                                    </div>
+                                </label>
+
+                                <label>
+                                    <span>{{ $pmdSettingsText('Sleep after closing') }}</span>
+                                    <div class="pmd-device-platform-number">
+                                        <input type="number" min="0" max="240" name="device_policy[sleep_after_minutes]" value="{{ (int)($devicePlatformPolicy['sleep_after_minutes'] ?? 30) }}">
+                                        <small>min</small>
+                                    </div>
+                                </label>
+
+                                <label>
+                                    <span>{{ $pmdSettingsText('Open brightness') }}</span>
+                                    <div class="pmd-device-platform-number">
+                                        <input type="number" min="10" max="100" name="device_policy[open_brightness]" value="{{ (int)($devicePlatformPolicy['open_brightness'] ?? 80) }}">
+                                        <small>%</small>
+                                    </div>
+                                </label>
+
+                                <label>
+                                    <span>{{ $pmdSettingsText('Closed brightness') }}</span>
+                                    <div class="pmd-device-platform-number">
+                                        <input type="number" min="0" max="10" name="device_policy[closed_brightness]" value="{{ (int)($devicePlatformPolicy['closed_brightness'] ?? 1) }}">
+                                        <small>%</small>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="pmd-device-platform-modes">
+                                <label><input type="checkbox" name="device_policy[table_display_enabled]" value="1" {{ !empty($devicePlatformPolicy['table_display_enabled']) ? 'checked' : '' }}> {{ $pmdSettingsText('Table displays') }}</label>
+                                <label><input type="checkbox" name="device_policy[kds_enabled]" value="1" {{ !empty($devicePlatformPolicy['kds_enabled']) ? 'checked' : '' }}> {{ $pmdSettingsText('KDS') }}</label>
+                                <label><input type="checkbox" name="device_policy[customer_display_enabled]" value="1" {{ !empty($devicePlatformPolicy['customer_display_enabled']) ? 'checked' : '' }}> {{ $pmdSettingsText('Customer displays') }}</label>
+                                <label><input type="checkbox" name="device_policy[kiosk_enabled]" value="1" {{ !empty($devicePlatformPolicy['kiosk_enabled']) ? 'checked' : '' }}> {{ $pmdSettingsText('Self-service kiosks') }}</label>
+                                <label><input type="checkbox" name="device_policy[pos_enabled]" value="1" {{ !empty($devicePlatformPolicy['pos_enabled']) ? 'checked' : '' }}> {{ $pmdSettingsText('Cashier POS') }}</label>
+                            </div>
+
+                            <button class="pmd-owner-action pmd-device-platform-primary" type="submit">
+                                {{ $pmdSettingsText('Save device schedule') }}
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="pmd-device-platform-pane">
+                        <h3>{{ $pmdSettingsText('How power management works') }}</h3>
+                        <div class="pmd-device-platform-explainer">
+                            <div><strong>Open</strong><span>Screen awake, normal brightness, app stays in dedicated PayMyDine mode.</span></div>
+                            <div><strong>Closed</strong><span>Screen becomes black / minimum brightness but Android and Wi-Fi stay alive for remote wake.</span></div>
+                            <div><strong>Power loss</strong><span>On supported hardware, AC restore boots Android and PayMyDine starts automatically.</span></div>
+                            <div><strong>Fully powered off</strong><span>A powered-off device has no Wi-Fi and cannot receive a Cloud wake command.</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pmd-device-platform-deployment">
+                    <div class="pmd-device-platform-deployment__copy">
+                        <h3>{{ $pmdSettingsText('Bulk table deployment') }}</h3>
+                        <p>{{ $pmdSettingsText('For a new restaurant, enter one reusable 6-digit deployment code on every Table Companion. The devices appear below as Unassigned; assign each one to a table from this page.') }}</p>
+                    </div>
+
+                    @if(!empty($devicePlatformDeployment['code']))
+                        <div class="pmd-device-platform-deployment__active">
+                            <div>
+                                <span>{{ $pmdSettingsText('Deployment code') }}</span>
+                                <strong>{{ e($devicePlatformDeployment['code']) }}</strong>
+                                <small>
+                                    {{ (int)($devicePlatformDeployment['paired_count'] ?? 0) }}
+                                    /
+                                    {{ (int)($devicePlatformDeployment['expected_count'] ?? 0) }}
+                                    {{ $pmdSettingsText('devices paired') }}
+                                </small>
+                            </div>
+                            <form
+                                data-request="onCancelPmdTableDeployment"
+                                data-request-flash
+                                data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                            >
+                                <button class="pmd-owner-action" type="submit">
+                                    {{ $pmdSettingsText('End deployment') }}
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        <form
+                            class="pmd-device-platform-deployment__start"
+                            data-request="onStartPmdTableDeployment"
+                            data-request-flash
+                            data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                        >
+                            <label>
+                                <span>{{ $pmdSettingsText('How many table displays?') }}</span>
+                                <input type="number" min="1" max="200" name="expected_count" value="20">
+                            </label>
+                            <button class="pmd-owner-action pmd-device-platform-primary" type="submit">
+                                {{ $pmdSettingsText('Start deployment') }}
+                            </button>
+                        </form>
+                    @endif
+                </div>
+
+                <div class="pmd-device-platform-list-head">
+                    <div>
+                        <h3>{{ $pmdSettingsText('Managed devices') }}</h3>
+                        <p>{{ $pmdSettingsText('Live heartbeat, app version, assignment and remote controls.') }}</p>
+                    </div>
+                </div>
+
+                <div class="pmd-owner-list pmd-device-platform-list">
+                    @forelse($devicePlatformDevices as $device)
+                        <div class="pmd-owner-list-row pmd-device-platform-row">
+                            <div class="pmd-device-platform-device">
+                                <span class="pmd-device-platform-dot {{ !empty($device['online']) ? 'is-online' : '' }}"></span>
+                                <div>
+                                    <strong>{{ e($device['name'] ?? 'PayMyDine device') }}</strong>
+                                    <small>
+                                        {{ e($device['kind_label'] ?? 'Device') }}
+                                        @if(!empty($device['assignment']))
+                                            · {{ e($device['assignment']) }}
+                                        @elseif(($device['kind'] ?? '') === 'table_display')
+                                            · {{ $pmdSettingsText('Unassigned') }}
+                                        @endif
+                                        @if(!empty($device['model']))
+                                            · {{ e($device['model']) }}
+                                        @endif
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="pmd-device-platform-health">
+                                <span>{{ !empty($device['online']) ? $pmdSettingsText('Online') : $pmdSettingsText('Offline') }}</span>
+                                <small>
+                                    {{ e($device['screen_state'] ?? 'unknown') }}
+                                    @if(!empty($device['network_type']))
+                                        · {{ e(strtoupper((string)$device['network_type'])) }}
+                                    @endif
+                                    @if(!empty($device['app_version']))
+                                        · {{ e($device['app_version']) }}
+                                    @endif
+                                    @if(isset($device['battery_level']) && $device['battery_level'] !== null)
+                                        · {{ (int)$device['battery_level'] }}%
+                                    @endif
+                                    @if(!empty($device['last_seen_at']))
+                                        · {{ $pmdSettingsText('last seen') }} {{ e(\Carbon\Carbon::parse($device['last_seen_at'])->diffForHumans()) }}
+                                    @endif
+                                </small>
+                            </div>
+
+                            <div class="pmd-device-platform-controlstack">
+                                @if(($device['kind'] ?? '') === 'table_display')
+                                    <form
+                                        class="pmd-device-platform-assign"
+                                        data-request="onAssignPmdTableDisplay"
+                                        data-request-flash
+                                        data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                                    >
+                                        <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                        <select name="table_id" required>
+                                            <option value="">{{ $pmdSettingsText('Assign table…') }}</option>
+                                            @foreach($devicePlatformTableOptions as $tableOption)
+                                                @if(!empty($tableOption['enabled']))
+                                                    <option
+                                                        value="{{ (int)($tableOption['id'] ?? 0) }}"
+                                                        {{ (int)($device['table_id'] ?? 0) === (int)($tableOption['id'] ?? 0) ? 'selected' : '' }}
+                                                    >
+                                                        {{ $pmdSettingsText('Table') }}
+                                                        {{ e($tableOption['number'] ?? '') }}
+                                                        @if(!empty($tableOption['floor']))
+                                                            · {{ e($tableOption['floor']) }}
+                                                        @endif
+                                                    </option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                        <button type="submit">{{ $pmdSettingsText(!empty($device['assignment']) ? 'Reassign' : 'Assign') }}</button>
+                                    </form>
+
+                                    <form
+                                        class="pmd-device-platform-assign pmd-device-platform-terminal-assign"
+                                        data-request="onAssignPmdTableDisplayTerminal"
+                                        data-request-flash
+                                        data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                                    >
+                                        <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                        <select name="terminal_device_id">
+                                            <option value="">{{ $pmdSettingsText('No contactless terminal') }}</option>
+                                            @foreach($devicePlatformTerminalOptions as $terminalOption)
+                                                <option
+                                                    value="{{ (int)($terminalOption['id'] ?? 0) }}"
+                                                    {{ (int)($device['payment_terminal_device_id'] ?? 0) === (int)($terminalOption['id'] ?? 0) ? 'selected' : '' }}
+                                                >
+                                                    {{ e(strtoupper((string)($terminalOption['provider_code'] ?? ''))) }}
+                                                    · {{ e($terminalOption['name'] ?? 'Terminal') }}
+                                                    @if(!empty($terminalOption['environment']))
+                                                        · {{ e(strtoupper((string)$terminalOption['environment'])) }}
+                                                    @endif
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button type="submit">{{ $pmdSettingsText('Link payment') }}</button>
+                                    </form>
+                                @endif
+
+                                <form
+                                    class="pmd-device-platform-row-actions"
+                                    data-request="onPmdDevicePlatformCommand"
+                                    data-request-flash
+                                    data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                                >
+                                    <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                    <button type="submit" name="action" value="WAKE">{{ $pmdSettingsText('Wake') }}</button>
+                                    <button type="submit" name="action" value="SLEEP">{{ $pmdSettingsText('Sleep') }}</button>
+                                    <label class="pmd-device-platform-brightness">
+                                        <span>{{ $pmdSettingsText('Brightness') }}</span>
+                                        <input type="number" min="0" max="100" name="brightness" value="{{ (int)($device['brightness'] ?? 80) }}">
+                                        <button type="submit" name="action" value="SET_BRIGHTNESS">{{ $pmdSettingsText('Set') }}</button>
+                                    </label>
+                                    <button type="submit" name="action" value="IDENTIFY">{{ $pmdSettingsText('Identify') }}</button>
+                                    <button type="submit" name="action" value="RELOAD_APP">{{ $pmdSettingsText('Reload') }}</button>
+                                    <button type="submit" name="action" value="REBOOT" data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="pmd-owner-empty">
+                            {{ $pmdSettingsText('No trusted PayMyDine device has reported to Device Control yet. Pair a Table Companion or Android Restaurant App first.') }}
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="pmd-device-platform-logs">
+                    <div class="pmd-device-platform-list-head">
+                        <div>
+                            <h3>{{ $pmdSettingsText('Recent device logs') }}</h3>
+                            <p>{{ $pmdSettingsText('Sanitized operational events from managed PayMyDine devices. Credentials and card data are never stored here.') }}</p>
+                        </div>
+                    </div>
+                    @forelse($devicePlatformRecentLogs as $deviceLog)
+                        <div class="pmd-device-platform-log">
+                            <span class="pmd-device-platform-log__level is-{{ e($deviceLog['level'] ?? 'info') }}">
+                                {{ e(strtoupper((string)($deviceLog['level'] ?? 'info'))) }}
+                            </span>
+                            <div>
+                                <strong>{{ e($deviceLog['device_name'] ?? 'PayMyDine device') }} · {{ e($deviceLog['event'] ?? 'device_event') }}</strong>
+                                <small>{{ e($deviceLog['message'] ?? '') }}</small>
+                            </div>
+                            <time>
+                                @if(!empty($deviceLog['occurred_at']))
+                                    {{ e(\Carbon\Carbon::parse($deviceLog['occurred_at'])->diffForHumans()) }}
+                                @endif
+                            </time>
+                        </div>
+                    @empty
+                        <div class="pmd-owner-empty">{{ $pmdSettingsText('No device log events yet.') }}</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="pmd-owner-section" id="pos-devices">
         <div class="pmd-owner-card" data-accent="cyan">
             <div class="pmd-owner-card__header">

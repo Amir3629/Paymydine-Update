@@ -1030,7 +1030,14 @@ final class PmdMobilePairingService
             if (!is_array($capabilities)) $capabilities = [];
             $capabilities = array_values(array_unique(array_merge(
                 $capabilities,
-                ['staff_portal', 'mobile_app', 'mobile_sync_v1']
+                [
+                    'staff_portal',
+                    'mobile_app',
+                    'mobile_sync_v1',
+                    'device_platform_v1',
+                    'managed_power',
+                    'offline_storage',
+                ]
             )));
 
             $update = [

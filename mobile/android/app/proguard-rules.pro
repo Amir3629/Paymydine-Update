@@ -1,0 +1,2 @@
+-keepattributes SourceFile,LineNumberTable
+-keep class com.paymydine.mobile.data.** { *; }
