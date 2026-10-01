@@ -9,6 +9,13 @@ on:
       - 'app/Services/PmdDevicePlatformService.php'
       - 'app/Services/PmdDevicePlatformAuthService.php'
       - 'app/Http/Controllers/PmdDevicePlatformController.php'
+      - 'app/Http/Controllers/PmdTableDisplayPaymentController.php'
+      - 'app/admin/controllers/Pmddevices.php'
+      - 'app/admin/views/pmddevices/index.blade.php'
+      - 'app/admin/views/pmd_quick_pos_v1.blade.php'
+      - 'app/admin/assets/js/pmd-table-display-waiter-payment-v1.js'
+      - 'app/admin/assets/css/pmd-table-display-waiter-payment-v1.css'
+      - 'routes/admin-quick-mode.php'
       - 'app/system/database/migrations/2026_10_01_120000_create_pmd_device_platform_v1.php'
       - 'routes/pmd-device-platform-v1.php'
       - 'app/Services/PmdTableDisplayPairingService.php'
@@ -43,6 +50,9 @@ jobs:
           php -l app/Services/PmdDevicePlatformService.php
           php -l app/Services/PmdDevicePlatformAuthService.php
           php -l app/Http/Controllers/PmdDevicePlatformController.php
+          php -l app/Http/Controllers/PmdTableDisplayPaymentController.php
+          php -l app/admin/controllers/Pmddevices.php
+          php -l routes/admin-quick-mode.php
           php -l app/system/database/migrations/2026_10_01_120000_create_pmd_device_platform_v1.php
           php -l routes/pmd-device-platform-v1.php
           php -l app/Services/PmdTableDisplayPairingService.php
@@ -50,9 +60,13 @@ jobs:
           php -l app/Http/Controllers/PmdTableDisplayPublicController.php
           php -l app/main/routes/pmd-table-display-v1.php
           node --check app/admin/assets/js/pmd-table-display-v1.js
+          node --check app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
           grep -Fq 'ecc=H' app/Services/PmdTableDisplayService.php
           grep -Fq 'pmd-table-display-qr-logo' app/admin/views/pmddevices/table_display.blade.php
           grep -Fq 'pair_table_display' app/Services/PmdTableDisplayPairingService.php
+          grep -Fq 'table-display-payment-attempt' routes/admin-quick-mode.php
+          grep -Fq 'TerminalPaymentService::class' app/Services/PmdTableDisplayService.php
+          grep -Fq 'pmd_device_logs' app/Services/PmdDevicePlatformService.php
 
   android:
     runs-on: ubuntu-latest
