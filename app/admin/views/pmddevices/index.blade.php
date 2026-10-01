@@ -302,7 +302,7 @@
                                         · {{ (int)$device['battery_level'] }}%
                                     @endif
                                     @if(!empty($device['last_seen_at']))
-                                        · {{ $pmdSettingsText('last seen') }} {{ e(CarbonCarbon::parse($device['last_seen_at'])->diffForHumans()) }}
+                                        · {{ $pmdSettingsText('last seen') }} {{ e(\Carbon\Carbon::parse($device['last_seen_at'])->diffForHumans()) }}
                                     @endif
                                 </small>
                             </div>
