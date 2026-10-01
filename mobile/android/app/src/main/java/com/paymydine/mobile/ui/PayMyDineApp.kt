@@ -205,6 +205,7 @@ fun PayMyDineApp(app: PayMyDineApplication) {
             app.credentials.setTenantHost(pairedHost)
             app.credentials.setDeviceId(pairedResult.deviceId)
             app.credentials.putDeviceToken(pairedResult.deviceToken)
+            app.ensureDeviceControlRunning()
             app.credentials.clearPairingAttempt()
             paired = true
         }
