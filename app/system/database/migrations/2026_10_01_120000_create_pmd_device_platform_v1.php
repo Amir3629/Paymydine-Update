@@ -28,6 +28,9 @@ class CreatePmdDevicePlatformV1 extends Migration
                 $table->string('network_type', 32)->nullable();
                 $table->string('ip_address', 45)->nullable();
                 $table->string('last_command_id', 64)->nullable();
+                $table->string('override_screen_state', 24)->nullable();
+                $table->unsignedTinyInteger('override_brightness')->nullable();
+                $table->timestamp('override_until')->nullable()->index();
                 $table->text('metadata')->nullable();
                 $table->timestamp('last_boot_at')->nullable();
                 $table->timestamp('last_seen_at')->nullable()->index();
