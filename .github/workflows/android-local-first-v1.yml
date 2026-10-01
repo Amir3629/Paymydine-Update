@@ -1,12 +1,12 @@
-name: PayMyDine Android V129 Cloud Re-entry
+name: PayMyDine Android Device Shell V1
 
 on:
   push:
-    branches: [feature/android-local-first-v1]
+    branches: [feature/android-local-first-v1, feature/android-device-shell-v1]
   workflow_dispatch:
 
 concurrency:
-  group: pmd-android-v129-${{ github.ref }}
+  group: pmd-android-device-shell-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -32,8 +32,10 @@ jobs:
           grep -Fq 'safeNextTargetV129' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -Fq 'PMD_ANDROID_CLOUD_REENTRY_V129' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
           grep -Fq 'routeCloudAdminNavigationV129' mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
-          grep -Fq 'versionCode = 51' mobile/android/app/build.gradle.kts
-          grep -Fq 'versionName = "0.3.38-v129-cloud-reentry"' mobile/android/app/build.gradle.kts
+          grep -Fq 'PMD_DEVICE_SHELL_V1' mobile/android/app/src/main/java/com/paymydine/mobile/security/DeviceCredentialStore.kt
+          grep -Fq 'DeviceShellManager' mobile/android/app/src/main/java/com/paymydine/mobile/PayMyDineApplication.kt
+          grep -Fq 'versionCode = 52' mobile/android/app/build.gradle.kts
+          grep -Fq 'versionName = "0.3.39-device-shell-v1"' mobile/android/app/build.gradle.kts
 
   android:
     runs-on: ubuntu-latest
@@ -63,14 +65,14 @@ jobs:
           gradle-version: '8.13'
 
       - name: Restore stable PayMyDine preview signing key
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/feature/android-local-first-v1' || github.ref == 'refs/heads/feature/android-device-shell-v1')
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: paymydine-android-preview-debug-keystore-v1
 
       - name: Verify pinned PayMyDine preview certificate
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/feature/android-local-first-v1' || github.ref == 'refs/heads/feature/android-device-shell-v1')
         shell: bash
         run: |
           set -euo pipefail
@@ -106,22 +108,22 @@ jobs:
           APK_IN="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK_IN"
           cp "$APK_IN" mobile/android/PayMyDine-POS-Tablet-Preview.apk
-          cp "$APK_IN" mobile/android/PayMyDine-Android-0.3.38.apk
+          cp "$APK_IN" mobile/android/PayMyDine-Android-0.3.39.apk
           sha256sum mobile/android/PayMyDine-POS-Tablet-Preview.apk             > mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-          sha256sum mobile/android/PayMyDine-Android-0.3.38.apk             > mobile/android/PayMyDine-Android-0.3.38.apk.sha256
+          sha256sum mobile/android/PayMyDine-Android-0.3.39.apk             > mobile/android/PayMyDine-Android-0.3.39.apk.sha256
 
       - name: Verify V129 package, version and signing identity
         shell: bash
         run: |
           set -euo pipefail
-          APK="mobile/android/PayMyDine-Android-0.3.38.apk"
+          APK="mobile/android/PayMyDine-Android-0.3.39.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='51'" <<<"$BADGING"
-          grep -Fq "versionName='0.3.38-v129-cloud-reentry-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='52'" <<<"$BADGING"
+          grep -Fq "versionName='0.3.39-device-shell-v1-debug'" <<<"$BADGING"
 
           EXPECTED_CERT="c1a7587b41f3873b5c1c4552d380fa4597f33052354750a2b68cf62b755db5c1"
           ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK"             | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'             | head -1             | tr '[:upper:]' '[:lower:]')"
@@ -134,22 +136,22 @@ jobs:
           sha256sum "$APK"
 
       - uses: actions/upload-artifact@v4
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/feature/android-local-first-v1' || github.ref == 'refs/heads/feature/android-device-shell-v1')
         with:
-          name: paymydine-android-v129-cloud-reentry
+          name: paymydine-android-device-shell-v1
           path: |
             mobile/android/PayMyDine-POS-Tablet-Preview.apk
             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256
-            mobile/android/PayMyDine-Android-0.3.38.apk
-            mobile/android/PayMyDine-Android-0.3.38.apk.sha256
+            mobile/android/PayMyDine-Android-0.3.39.apk
+            mobile/android/PayMyDine-Android-0.3.39.apk.sha256
           if-no-files-found: error
 
       - name: Publish V129 preview release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/android-local-first-v1'
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/feature/android-local-first-v1' || github.ref == 'refs/heads/feature/android-device-shell-v1')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: pmd-android-local-first-preview
         run: |
           set -euo pipefail
-          gh release upload "$TAG"             mobile/android/PayMyDine-POS-Tablet-Preview.apk             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256             mobile/android/PayMyDine-Android-0.3.38.apk             mobile/android/PayMyDine-Android-0.3.38.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
+          gh release upload "$TAG"             mobile/android/PayMyDine-POS-Tablet-Preview.apk             mobile/android/PayMyDine-POS-Tablet-Preview.apk.sha256             mobile/android/PayMyDine-Android-0.3.39.apk             mobile/android/PayMyDine-Android-0.3.39.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
