@@ -128,11 +128,70 @@ final class PmdTableDisplayPairingService
             );
             $deploymentMode = $deployment !== null;
 
+            $normalizedInstallationId = mb_substr(
+                trim($installationId),
+                0,
+                96
+            );
+
+            // A transport retry or reinstall must not leave two active trusted
+            // records for the same physical Table Companion.
+            $existingDevice = null;
+            $existingPlatform = [];
+            if ($normalizedInstallationId !== '') {
+                $candidates = DB::table('pmd_site_access_devices')
+                    ->where('location_id', $locationId)
+                    ->where('device_kind', self::DEVICE_KIND)
+                    ->whereNull('revoked_at')
+                    ->orderByDesc('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                foreach ($candidates as $candidate) {
+                    $candidatePlatform = $this->platformInfo($candidate);
+                    if (
+                        trim((string)($candidatePlatform['installation_id'] ?? ''))
+                        === $normalizedInstallationId
+                    ) {
+                        $existingDevice = $candidate;
+                        $existingPlatform = $candidatePlatform;
+                        break;
+                    }
+                }
+            }
+
+            $sameDeploymentRetry = (
+                $deployment
+                && $existingDevice
+                && (int)($existingPlatform['deployment_session_id'] ?? 0)
+                    === (int)$deployment->id
+            );
+
+            if ($existingDevice) {
+                DB::table('pmd_site_access_devices')
+                    ->where('id', (int)$existingDevice->id)
+                    ->update([
+                        'revoked_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+            }
+
             $rawToken = $this->randomToken();
-            $deviceName = trim($deviceName) ?: 'PayMyDine Table Companion';
+
+            if ($deploymentMode && $normalizedInstallationId !== '') {
+                $deviceName = 'PMD-DISPLAY-'.strtoupper(
+                    substr(hash('sha256', $normalizedInstallationId), 0, 6)
+                );
+            } else {
+                $deviceName = trim($deviceName)
+                    ?: 'PayMyDine Table Companion';
+            }
             $deviceName = mb_substr($deviceName, 0, 128);
 
-            $platformInfo = array_merge($platformInfo, [
+            $platformInfo = array_merge(
+                $existingPlatform,
+                $platformInfo,
+                [
                 'installation_id' => mb_substr(trim($installationId), 0, 96),
                 'table_id' => null,
                 'paired_protocol' => 'pmd-table-display-v1',
@@ -140,6 +199,16 @@ final class PmdTableDisplayPairingService
                 'centrally_managed' => $deploymentMode,
                 'deployment_session_id' => $deploymentMode
                     ? (int)$deployment->id
+                    : null,
+                'installation_id' => $normalizedInstallationId,
+                // Preserve a previous central assignment across a safe re-pair.
+                'table_id' => (int)($existingPlatform['table_id'] ?? 0) > 0
+                    ? (int)$existingPlatform['table_id']
+                    : null,
+                'payment_terminal_device_id' => (
+                    (int)($existingPlatform['payment_terminal_device_id'] ?? 0) > 0
+                )
+                    ? (int)$existingPlatform['payment_terminal_device_id']
                     : null,
             ]);
 
@@ -155,6 +224,7 @@ final class PmdTableDisplayPairingService
                     'table_qr',
                     'live_reactions',
                     'waiter_payment_handoff',
+                    'table_payment_handoff',
                     'device_platform_v1',
                     'managed_power',
                     'offline_snapshot',
@@ -184,7 +254,7 @@ final class PmdTableDisplayPairingService
                     ]);
             }
 
-            if ($deployment) {
+            if ($deployment && !$sameDeploymentRetry) {
                 app(PmdDevicePlatformService::class)
                     ->markDeploymentPaired((int)$deployment->id);
             }
