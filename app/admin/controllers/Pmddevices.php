@@ -288,6 +288,71 @@ class Pmddevices extends AdminController
     }
 
     /** PMD_DEVICE_PLATFORM_V1 */
+    public function onStartPmdTableDeployment()
+    {
+        $this->assertDevicePlatformManager();
+
+        $expectedCount = max(
+            1,
+            min(200, (int)post('expected_count', 20))
+        );
+
+        $deployment = app(PmdDevicePlatformService::class)
+            ->createDeploymentSession(
+                $this->devicePlatformLocationId(),
+                $expectedCount,
+                $this->devicePlatformStaffId()
+            );
+
+        flash()->success(
+            'Table deployment started. Code '.
+            (string)($deployment['code'] ?? '').
+            ' can pair up to '.$expectedCount.' displays for two hours.'
+        );
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onCancelPmdTableDeployment()
+    {
+        $this->assertDevicePlatformManager();
+
+        app(PmdDevicePlatformService::class)
+            ->cancelDeploymentSession(
+                $this->devicePlatformLocationId(),
+                $this->devicePlatformStaffId()
+            );
+
+        flash()->success('Table display deployment session cancelled.');
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onAssignPmdTableDisplay()
+    {
+        $this->assertDevicePlatformManager();
+
+        $deviceId = max(0, (int)post('device_id', 0));
+        $tableId = max(0, (int)post('table_id', 0));
+        if ($deviceId < 1 || $tableId < 1) {
+            throw new \RuntimeException(
+                'Choose a Table Companion and a restaurant table.'
+            );
+        }
+
+        $result = app(PmdDevicePlatformService::class)
+            ->assignTableDisplay(
+                $this->devicePlatformLocationId(),
+                $deviceId,
+                $tableId,
+                $this->devicePlatformStaffId()
+            );
+
+        flash()->success(
+            'Device #'.$deviceId.' assigned to '.
+            (string)($result['table_name'] ?? ('Table '.$tableId)).'.'
+        );
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
     public function onSavePmdDevicePlatformPolicy()
     {
         $this->assertDevicePlatformManager();
