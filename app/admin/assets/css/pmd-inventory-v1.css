@@ -6291,3 +6291,235 @@ html body.page.pmd-inventory-page #pmd-inventory-v1
     min-height: 190px !important;
   }
 }
+
+
+/* ============================================================
+   PMD_INVENTORY_HIERARCHY_AND_STABLE_PAINT_R16
+   Two-level departments, stable category height, and larger product imagery.
+   ============================================================ */
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__categories,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-browser__categories {
+  display: block !important;
+  width: 100% !important;
+  min-height: 94px !important;
+  margin: 0 0 12px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__main-row {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  min-height: 44px !important;
+  margin: 0 0 8px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  box-sizing: border-box !important;
+  min-height: 42px !important;
+  width: 100% !important;
+  padding: 4px 7px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  border: 1px solid #dce9e5 !important;
+  border-radius: 14px !important;
+  background: rgba(247,251,249,.86) !important;
+  scrollbar-width: thin !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row.is-empty {
+  justify-content: flex-start !important;
+  color: #789089 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row.is-empty > span {
+  padding: 0 9px !important;
+  font-size: 10.5px !important;
+  line-height: 1.25 !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__main-row > button,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row > button {
+  flex: 0 0 auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  border: 1px solid #d3e2df !important;
+  border-radius: 999px !important;
+  background: #fff !important;
+  color: #36564e !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  box-shadow: 0 2px 8px rgba(36,75,64,.035) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__main-row > button {
+  min-height: 42px !important;
+  gap: 7px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row > button {
+  min-height: 32px !important;
+  gap: 6px !important;
+  padding: 0 11px !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__main-row > button > span,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row > button > span {
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__main-row > button > b,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row > button > b {
+  font-size: inherit !important;
+  line-height: 1 !important;
+  font-weight: inherit !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__main-row > button > em,
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row > button > em {
+  min-width: 22px !important;
+  height: 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 6px !important;
+  border-radius: 999px !important;
+  background: #edf5f2 !important;
+  color: #627a73 !important;
+  font-size: 8.5px !important;
+  line-height: 1 !important;
+  font-style: normal !important;
+  font-weight: 900 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__main-row > button.is-active {
+  border-color: #08745d !important;
+  background: #08745d !important;
+  color: #fff !important;
+  box-shadow: 0 8px 18px rgba(8,116,93,.15) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row > button.is-active {
+  border-color: #9ccdbf !important;
+  background: #eaf6f1 !important;
+  color: #08634f !important;
+  box-shadow: inset 0 0 0 1px rgba(8,116,93,.04) !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__main-row > button.is-active > em {
+  background: rgba(255,255,255,.18) !important;
+  color: #fff !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__detail-row > button.is-active > em {
+  background: #d8eee6 !important;
+  color: #08634f !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.is-lg {
+  height: 140px !important;
+  border-radius: 15px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual > img[data-pmd-inv-real-image] {
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  transform: none !important;
+  background: #fff !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-r11-quick-stock .pmd-inv-pos-card {
+  min-height: 222px !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__grid.is-switching {
+  position: relative !important;
+  pointer-events: none !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-pos-browser__grid.is-switching::after {
+  content: "Loading category…" !important;
+  position: absolute !important;
+  right: 10px !important;
+  top: 10px !important;
+  z-index: 10 !important;
+  padding: 5px 9px !important;
+  border: 1px solid #d6e6e1 !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.94) !important;
+  color: #58726a !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 12px rgba(31,68,58,.06) !important;
+}
+
+@media (max-width: 820px) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser__categories,
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-r11-quick-stock .pmd-inv-pos-browser__categories {
+    min-height: 98px !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-pos-browser__main-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding-bottom: 2px !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-item-visual.is-lg {
+    height: 122px !important;
+  }
+
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-r11-quick-stock .pmd-inv-pos-card {
+    min-height: 204px !important;
+  }
+}
