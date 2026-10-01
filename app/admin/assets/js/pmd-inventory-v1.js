@@ -1936,8 +1936,9 @@
     state.commonSearch = '';
     var catalogBrowserState = browserState('catalog');
     catalogBrowserState.query = '';
-    catalogBrowserState.section = 'Popular';
-    catalogBrowserState.limit = 18;
+    catalogBrowserState.main = 'Popular';
+    catalogBrowserState.section = 'All';
+    catalogBrowserState.limit = 24;
     var commonSearch = modal.querySelector('[data-pmd-inv-common-search]');
     if (commonSearch) commonSearch.value = '';
 
