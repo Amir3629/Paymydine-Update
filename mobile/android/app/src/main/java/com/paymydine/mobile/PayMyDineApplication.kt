@@ -7,6 +7,8 @@ import com.paymydine.mobile.data.local.KdsRepository
 import com.paymydine.mobile.data.local.LocalPosRepository
 import com.paymydine.mobile.data.local.OfflineImageCache
 import com.paymydine.mobile.data.local.PmdDatabase
+import com.paymydine.mobile.device.DeviceControlService
+import com.paymydine.mobile.device.DeviceShellManager
 import com.paymydine.mobile.edge.EdgeService
 import com.paymydine.mobile.network.ConnectivityObserver
 import com.paymydine.mobile.network.EdgeDiscovery
@@ -38,6 +40,8 @@ class PayMyDineApplication : Application() {
         private set
     lateinit var edgeDiscovery: EdgeDiscovery
         private set
+    lateinit var deviceShell: DeviceShellManager
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -48,10 +52,18 @@ class PayMyDineApplication : Application() {
         offlineImageCache = OfflineImageCache(this)
         kdsRepository = KdsRepository(database)
         credentials = DeviceCredentialStore(this)
+        deviceShell = DeviceShellManager(this, credentials)
         connectivity = ConnectivityObserver(this).also { it.start() }
         edgeDiscovery = EdgeDiscovery(this).also { it.start() }
         SyncEngine.schedulePeriodic(this)
         EdgeService.startIfEnabled(this)
+        ensureDeviceControlRunning()
+    }
+
+    fun ensureDeviceControlRunning() {
+        if (!credentials.deviceToken().isNullOrBlank()) {
+            DeviceControlService.start(this)
+        }
     }
 
     fun handleIntent(intent: Intent?) {
