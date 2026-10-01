@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R11
+/* PMD_INVENTORY_CONTROL_R12
  * A practical stock ledger: dense enough for operations, calm enough for daily use.
  */
 :root {
@@ -6019,5 +6019,65 @@ html body.page.pmd-inventory-page #pmd-inventory-v1
   html body.page.pmd-inventory-page #pmd-inventory-v1
   .pmd-inv-r11-quick-stock .pmd-inv-pos-browser__grid {
     grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_INVENTORY_REAL_CATALOG_PHOTOS_R12
+   Locally cached CC0/Public Domain photos. Emoji remains the immediate
+   fallback, so missing or failed downloads never break the stock UI.
+   ============================================================ */
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual > img[data-pmd-inv-real-image] {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  border: 0 !important;
+  border-radius: inherit !important;
+  background: #eef4f1 !important;
+  opacity: 0 !important;
+  transform: scale(1.015) !important;
+  transition: opacity .14s ease !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.has-photo > img[data-pmd-inv-real-image] {
+  opacity: 1 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual > .pmd-inv-item-visual__emoji {
+  transition: opacity .12s ease !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.has-photo > .pmd-inv-item-visual__emoji {
+  opacity: 0 !important;
+}
+
+html body.page.pmd-inventory-page #pmd-inventory-v1
+.pmd-inv-item-visual.has-photo::after {
+  z-index: 3 !important;
+  inset: 0 !important;
+  height: 100% !important;
+  border-radius: inherit !important;
+  background: linear-gradient(180deg,rgba(255,255,255,.03),rgba(8,42,34,.05)) !important;
+  transform: none !important;
+  pointer-events: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-item-visual > img[data-pmd-inv-real-image],
+  html body.page.pmd-inventory-page #pmd-inventory-v1
+  .pmd-inv-item-visual > .pmd-inv-item-visual__emoji {
+    transition: none !important;
   }
 }
