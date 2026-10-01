@@ -38,6 +38,7 @@ class ApiClient {
             token = json.getString("device_token"),
             deviceId = json.getLong("device_id"),
             locationId = json.getLong("location_id"),
+            deploymentMode = json.optBoolean("deployment_mode", false),
         )
     }
 
