@@ -96,13 +96,35 @@
                 </div>
             @endif
 
+            {{-- PMD_INVENTORY_ONE_CLICK_SHELF_R11 --}}
+            <section class="pmd-inv-pos-browser pmd-inv-pos-browser--dashboard pmd-inv-r11-quick-stock" data-pmd-inv-visual-browser="dashboard" aria-label="Quick stock catalogue">
+                <div class="pmd-inv-pos-browser__top pmd-inv-r11-quick-stock__top">
+                    <div>
+                        <span>Quick stock</span>
+                        <strong>Tap what just arrived</strong>
+                        <small>Pick an item to start a purchase immediately. Search food, drinks and supplies without opening another screen.</small>
+                    </div>
+                    <div class="pmd-inv-r11-quick-tools">
+                        <label class="pmd-inv-pos-browser__search">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                            <input type="search" placeholder="Search tomato, onion, vodka…" autocomplete="off" data-pmd-inv-browser-search="dashboard">
+                        </label>
+                        <button type="button" class="pmd-inv-r11-quick-action" data-pmd-inv-open="purchase">Add purchase</button>
+                        <button type="button" class="pmd-inv-r11-quick-action is-quiet" data-pmd-inv-open="item">Custom item</button>
+                    </div>
+                </div>
+                <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="dashboard"></div>
+                <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="dashboard"></div>
+                <button type="button" class="pmd-inv-pos-browser__more" data-pmd-inv-browser-more="dashboard" hidden>Show more</button>
+            </section>
+
             <section class="pmd-inv-r6-empty" data-pmd-inv-empty-state @if($hasItems) hidden @endif>
                 <div class="pmd-inv-r6-empty__icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24"><path d="M4 7 12 3l8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7"/><path d="M12 11v10"/></svg>
                 </div>
                 <span>First setup</span>
-                <h2>Add the stock that is in the restaurant now.</h2>
-                <p>Start from a supplier bill, or add one item manually.</p>
+                <h2>Start by tapping the items above.</h2>
+                <p>Each tap opens a ready-to-fill purchase line. Use the buttons below for a supplier bill or a custom item.</p>
                 <div class="pmd-inv-r6-empty__actions">
                     <button type="button" class="pmd-inv-btn pmd-inv-btn--blue" data-pmd-inv-open="purchase">
                         Add purchase
