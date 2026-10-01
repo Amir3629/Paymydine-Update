@@ -1,6 +1,5 @@
 package com.paymydine.tabledisplay
 
-import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -230,21 +229,19 @@ class DeviceShellController(
                     mapOf("action" to "managed_reboot"),
                 )
 
-                runCatching {
+                try {
                     devicePolicyManager.reboot(adminComponent)
-                }.onFailure { error ->
-                    runCatching {
-                        client.acknowledge(
-                            host,
-                            token,
-                            command.commandId,
-                            "failed",
-                            mapOf(
-                                "reason" to
-                                    (error.message ?: "Managed reboot failed."),
-                            ),
-                        )
-                    }
+                } catch (error: Throwable) {
+                    client.acknowledge(
+                        host,
+                        token,
+                        command.commandId,
+                        "failed",
+                        mapOf(
+                            "reason" to
+                                (error.message ?: "Managed reboot failed."),
+                        ),
+                    )
                 }
             }
 
