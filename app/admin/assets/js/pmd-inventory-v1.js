@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R10 */
+/* PMD_INVENTORY_CONTROL_R11 */
 (function () {
   'use strict';
 
@@ -31,6 +31,7 @@
     // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R10
     // Each workflow keeps its own category/search/visible-card state.
     browsers: {
+      dashboard: {query: '', section: 'Popular', limit: 12},
       catalog: {query: '', section: 'Popular', limit: 18},
       purchase: {query: '', section: 'Popular', limit: 12},
       waste: {query: '', section: 'All', limit: 12},
@@ -189,7 +190,7 @@
     query = String(query || '').trim();
     if (!query) return true;
 
-    if (mode === 'catalog' || mode === 'purchase') {
+    if (mode === 'catalog' || mode === 'purchase' || mode === 'dashboard') {
       return catalogScore(row, query) > 0;
     }
 
@@ -237,7 +238,7 @@
     });
 
     return browserSections.filter(function (section) {
-      if (section.key === 'Popular') return mode === 'catalog' || mode === 'purchase';
+      if (section.key === 'Popular') return mode === 'catalog' || mode === 'purchase' || mode === 'dashboard';
       if (section.key === 'All') return true;
       return Boolean(present[section.key]);
     });
@@ -296,7 +297,7 @@
           root.querySelectorAll('[data-pmd-recipe-item]'),
           function (select) { return Number(select.value || 0) === Number(row.id || 0); }
         );
-      } else if (mode === 'catalog') {
+      } else if (mode === 'catalog' || mode === 'dashboard') {
         added = Boolean(existing);
       }
 
@@ -329,7 +330,7 @@
   }
 
   function renderVisualBrowsers() {
-    ['catalog','purchase','waste','recipe'].forEach(renderVisualBrowser);
+    ['dashboard','catalog','purchase','waste','recipe'].forEach(renderVisualBrowser);
   }
 
   function selectBrowserCard(button) {
@@ -337,6 +338,35 @@
     var mode = String(button.getAttribute('data-pmd-inv-browser-card') || '');
     var commonIndex = button.getAttribute('data-pmd-inv-browser-common-index');
     var itemId = Number(button.getAttribute('data-pmd-inv-browser-item-id') || 0);
+
+    if (mode === 'dashboard') {
+      var dashboardTemplate = commonStockTemplates()[Number(commonIndex)];
+      if (!dashboardTemplate) return;
+
+      var dashboardStockItem = existingItemForTemplate(dashboardTemplate);
+      openModal('purchase');
+
+      var purchaseHost = root.querySelector('[data-pmd-inv-purchase-lines]');
+      if (purchaseHost) purchaseHost.innerHTML = '';
+
+      addPurchaseLine({
+        item_name: dashboardStockItem ? dashboardStockItem.name : dashboardTemplate.name,
+        quantity: 1,
+        unit: dashboardStockItem
+          ? (dashboardStockItem.purchase_unit || dashboardStockItem.unit || 'piece')
+          : (dashboardTemplate.purchase_unit || dashboardTemplate.unit || 'piece'),
+        unit_cost: dashboardStockItem ? Number(dashboardStockItem.purchase_unit_cost || 0) : ''
+      });
+
+      var quickRows = root.querySelectorAll('[data-pmd-inv-purchase-lines] .pmd-inv-line');
+      var quickLast = quickRows.length ? quickRows[quickRows.length - 1] : null;
+      var quickQty = quickLast && quickLast.querySelector('[data-pmd-purchase-qty]');
+      if (quickQty) {
+        quickQty.focus();
+        try { quickQty.select(); } catch (ignore) {}
+      }
+      return;
+    }
 
     if (mode === 'catalog') {
       var template = commonStockTemplates()[Number(commonIndex)];
@@ -1725,7 +1755,7 @@
       var activeBrowser = browserState(browserMode);
       activeBrowser.query = '';
       activeBrowser.limit = browserMode === 'catalog' ? 18 : 12;
-      if (browserMode === 'catalog' || browserMode === 'purchase') {
+      if (browserMode === 'catalog' || browserMode === 'purchase' || browserMode === 'dashboard') {
         activeBrowser.section = 'Popular';
       } else {
         activeBrowser.section = 'All';
@@ -2261,7 +2291,7 @@
       var browserMode = String(event.target.getAttribute('data-pmd-inv-browser-search') || '');
       var bState = browserState(browserMode);
       bState.query = String(event.target.value || '').trim();
-      bState.section = bState.query ? 'All' : ((browserMode === 'catalog' || browserMode === 'purchase') ? 'Popular' : 'All');
+      bState.section = bState.query ? 'All' : ((browserMode === 'catalog' || browserMode === 'purchase' || browserMode === 'dashboard') ? 'Popular' : 'All');
       bState.limit = browserMode === 'catalog' ? 18 : 12;
       renderVisualBrowser(browserMode);
       return;
@@ -2539,7 +2569,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '10.0.0',
+    version: '11.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
