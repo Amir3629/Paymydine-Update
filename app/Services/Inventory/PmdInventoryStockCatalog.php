@@ -694,13 +694,75 @@ final class PmdInventoryStockCatalog
             ['Centerfeed roll', 'blue roll|center feed paper', 'restaurant supplies'],
         ]);
 
-        // PMD_INVENTORY_SUPERMARKET_MASTER_CATALOG_R14
-        // The checked-in list above remains the curated restaurant core with
-        // recipe-friendly units. A locally materialized Ingredient Atlas layer
-        // may add the much broader supermarket/wholesale assortment (food,
-        // beverages, household, cleaning, paper/hygiene and related supplies).
-        // Static PMD rows always win exact-name collisions.
+        // PMD_INVENTORY_REWE_PRIORITY_R18
+        // The curated PMD list remains authoritative. A reviewed REWE runtime
+        // layer may add real supermarket SKUs/variants, then Ingredient Atlas
+        // fills the remaining broad catalogue. Earlier layers win name
+        // collisions so a reviewed REWE item is never replaced by Atlas.
+        $items = self::mergeRuntimeReweCatalog($items);
         $items = self::mergeRuntimeAtlasCatalog($items);
+
+        return $items;
+    }
+
+    private static function mergeRuntimeReweCatalog(array $items): array
+    {
+        $root = dirname(__DIR__, 3);
+        $path = $root.'/storage/app/pmd-inventory-rewe-catalog-r18.json';
+
+        if (!is_file($path) || (int)@filesize($path) < 10) {
+            return $items;
+        }
+
+        try {
+            $decoded = json_decode((string)@file_get_contents($path), true);
+            $runtime = is_array($decoded['items'] ?? null)
+                ? $decoded['items']
+                : [];
+
+            $seen = [];
+            foreach ($items as $item) {
+                $key = self::normalize((string)($item['name'] ?? ''));
+                if ($key !== '') {
+                    $seen[$key] = true;
+                }
+            }
+
+            foreach ($runtime as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                $name = trim((string)($row['name'] ?? ''));
+                $key = self::normalize($name);
+                if ($name === '' || $key === '' || isset($seen[$key])) {
+                    continue;
+                }
+
+                $aliases = array_values(array_unique(array_filter(array_map(
+                    static fn ($value) => trim((string)$value),
+                    is_array($row['aliases'] ?? null) ? $row['aliases'] : []
+                ))));
+
+                $items[] = [
+                    'name' => mb_substr($name, 0, 190),
+                    'category' => mb_substr(trim((string)($row['category'] ?? 'Produce')), 0, 100),
+                    'unit' => trim((string)($row['unit'] ?? 'g')) ?: 'g',
+                    'purchase_unit' => trim((string)($row['purchase_unit'] ?? 'kg')) ?: 'kg',
+                    'purchase_to_base' => isset($row['purchase_to_base'])
+                        && is_numeric($row['purchase_to_base'])
+                        ? max(0.0001, (float)$row['purchase_to_base'])
+                        : null,
+                    'aliases' => $aliases,
+                    'cuisines' => [],
+                    'catalog_source' => 'rewe-reviewed',
+                    'rewe_image_slug' => trim((string)($row['rewe_image_slug'] ?? '')),
+                ];
+                $seen[$key] = true;
+            }
+        } catch (\Throwable $error) {
+            return $items;
+        }
 
         return $items;
     }
