@@ -217,13 +217,21 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
         $initialBootstrap = $this->quickPosBootstrapPayload($mode);
 
         /*
-         * PMD_QPOS_EXACT_DASHBOARD_FLOOR_V26
+         * PMD_QPOS_LAZY_FLOOR_V130
          *
-         * Quick POS does not render a second Floor. It supplies the same
-         * canonical Floor context used by Dashboard/Manager/Reservations.
+         * /admin/pos already has the canonical table/floor registry in its
+         * first bootstrap. Do not synchronously rebuild the hidden Floor by
+         * re-running Waiter Dashboard + Floor state + Floor layout before the
+         * cashier can paint. Seed the hidden workspace from the bootstrap and
+         * let the existing canonical Floor instance refresh itself only when
+         * Map is actually opened.
          */
-        $exactFloor = $this->quickPosExactFloorContext(
-            (int)($initialBootstrap['location_id'] ?? 0)
+        $exactFloor = $this->quickPosFastFloorContextV130(
+            $initialBootstrap
+        );
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'quick_pos_floor_light_v130'
         );
 
         return view()->file(
@@ -234,6 +242,294 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 'pmdQuickPosExactFloor' => $exactFloor,
             ]
         );
+    }
+
+    /**
+     * PMD_QPOS_LAZY_FLOOR_V130
+     *
+     * Lightweight first-paint projection for the hidden POS Map workspace.
+     * It deliberately reuses the table/floor registry already loaded by
+     * quickPosBootstrapPayload(). No second DB/dashboard/layout authority is
+     * queried here. The canonical Floor runtime refreshes from its existing
+     * endpoints on first Map open.
+     */
+    protected function quickPosFastFloorContextV130(
+        array $bootstrap
+    ): array {
+        $locationId = max(
+            0,
+            (int)($bootstrap['location_id'] ?? 0)
+        );
+
+        $floors = array_values(
+            (array)($bootstrap['floors'] ?? [])
+        );
+
+        $defaultFloorId = trim((string)(
+            $bootstrap['default_floor_id']
+            ?? ''
+        ));
+
+        if ($defaultFloorId === '' && $floors) {
+            $defaultFloorId = trim((string)(
+                $floors[0]['id']
+                ?? ''
+            ));
+        }
+
+        $activeFloorId = trim((string)(
+            $bootstrap['active_floor_id']
+            ?? $defaultFloorId
+        ));
+
+        $activeFloor = null;
+        foreach ($floors as $floor) {
+            if (
+                is_array($floor)
+                && (string)($floor['id'] ?? '') === $activeFloorId
+            ) {
+                $activeFloor = $floor;
+                break;
+            }
+        }
+
+        if (!$activeFloor) {
+            $activeFloor = $floors[0] ?? [
+                'id' => $defaultFloorId,
+                'name' => 'Main Floor',
+                'is_default' => true,
+                'sort' => 0,
+            ];
+        }
+
+        $floorNames = [];
+        foreach ($floors as $floor) {
+            if (!is_array($floor)) continue;
+            $floorId = trim((string)($floor['id'] ?? ''));
+            if ($floorId === '') continue;
+            $floorNames[$floorId] =
+                trim((string)($floor['name'] ?? ''))
+                ?: 'Floor';
+        }
+
+        $dataTables = [];
+        $tableFloorById = [];
+
+        foreach (
+            array_values((array)($bootstrap['tables'] ?? []))
+            as $index => $table
+        ) {
+            if (!is_array($table)) continue;
+
+            $id = (int)($table['id'] ?? 0);
+            if ($id < 1) continue;
+
+            $number = trim((string)(
+                $table['number']
+                ?? $id
+            ));
+            if ($number === '') {
+                $number = (string)$id;
+            }
+
+            $name = trim((string)(
+                $table['name']
+                ?? ''
+            )) ?: 'Table '.$number;
+
+            $floorId = trim((string)(
+                $table['floor_id']
+                ?? $defaultFloorId
+            ));
+            if ($floorId === '') {
+                $floorId = $defaultFloorId;
+            }
+
+            $floorName = trim((string)(
+                $table['floor_name']
+                ?? ($floorNames[$floorId] ?? 'Main Floor')
+            )) ?: 'Main Floor';
+
+            $enabled =
+                ($table['enabled'] ?? true) !== false
+                && ($table['table_status'] ?? true) !== false;
+
+            $status = $enabled
+                ? strtolower(trim((string)(
+                    $table['status']
+                    ?? 'available'
+                )))
+                : 'disabled';
+
+            if (!in_array(
+                $status,
+                [
+                    'available',
+                    'occupied',
+                    'cleaning',
+                    'reserved',
+                    'disabled',
+                    'attention',
+                    'waiter-call',
+                ],
+                true
+            )) {
+                $status = 'available';
+            }
+
+            $x = isset($table['floor_x'])
+                && is_numeric($table['floor_x'])
+                    ? (float)$table['floor_x']
+                    : 80.0 + (($index % 6) * 150.0);
+
+            $y = isset($table['floor_y'])
+                && is_numeric($table['floor_y'])
+                    ? (float)$table['floor_y']
+                    : 60.0 + (floor($index / 6) * 110.0);
+
+            $capacity = max(
+                0,
+                (int)($table['capacity'] ?? 0)
+            );
+
+            $note = trim((string)(
+                $table['floor_notes']
+                ?? $table['note']
+                ?? ''
+            ));
+
+            /*
+             * Exact Floor normalize() understands this canonical-compatible
+             * subset. table_id is explicitly present so no layout identity
+             * query is needed for first paint.
+             */
+            $dataTables[] = [
+                'id' => (string)$id,
+                'table_id' => $id,
+                'number' => $number,
+                'table_no' => $number,
+                'name' => $name,
+                'table_name' => $name,
+                'capacity' => $capacity,
+                'section' => trim((string)(
+                    $table['section']
+                    ?? ''
+                )),
+                'floor_name' => $floorName,
+                'floor_x' => $x,
+                'floor_y' => $y,
+                'table_status' => $enabled,
+                'enabled' => $enabled,
+                'operational_status' => $status,
+                'status' => $status,
+                'floor_notes' => $note,
+                'note' => $note,
+                'waiter_call' => in_array(
+                    $status,
+                    ['attention', 'waiter-call'],
+                    true
+                ),
+                'open_orders' => 0,
+            ];
+
+            if (
+                $floorId !== ''
+                && $floorId !== $defaultFloorId
+            ) {
+                $tableFloorById[(string)$id] =
+                    $floorName;
+            }
+        }
+
+        /*
+         * Merge/group state is a small location-option authority. Read only
+         * that one canonical state here; the expensive waiter-dashboard data
+         * and owner layout queries stay out of the POS critical path.
+         */
+        $floorState = [
+            'tables' => [],
+            'merges' => [],
+        ];
+
+        try {
+            $source = new class extends PmdFloorV1 {
+                public function pmdQuickPosFastFloorStateV130(): array
+                {
+                    return $this->canonicalizeState(
+                        $this->readState()
+                    );
+                }
+            };
+
+            $floorState =
+                $source->pmdQuickPosFastFloorStateV130();
+        } catch (\Throwable $ignored) {
+        }
+
+        $floorData = [
+            'tables' => $dataTables,
+            'orders' => [],
+            'current_orders' => [],
+        ];
+
+        $displayTables =
+            $this->quickPosBuildFloorDisplayTables(
+                $floorData,
+                [],
+                $floorState,
+                'full'
+            );
+
+        $floorBootstrap = [
+            'version' => 'pmd-qpos-lazy-floor-v130',
+            'server_first_paint' => true,
+            'mode' => 'full',
+            'zoom' => 1.0,
+            'data' => $floorData,
+            'layout' => [
+                'ok' => true,
+                'tables' => [],
+                'floor' => [
+                    'width' => 1000,
+                    'height' => 560,
+                ],
+            ],
+            'state' => $floorState,
+            'display_tables' => $displayTables,
+            'endpoints' => [
+                'data' => '/admin/pos/floor-data',
+                'reservation_busy' =>
+                    '/admin/pos/reservation-busy',
+                'layout' => admin_url(
+                    'pmd-owner-dashboard-floor-layout'
+                ),
+                'state' => admin_url(
+                    'pmd-floor-v1/state'
+                ),
+                'order' => admin_url(
+                    'waiter-pos/{table}'
+                ),
+            ],
+        ];
+
+        return [
+            'bootstrap' => $floorBootstrap,
+            'display_tables' => $displayTables,
+            'mode' => 'full',
+            'zoom' => 1.0,
+            'location_id' => $locationId,
+            'registry' => $floors,
+            'active' => $activeFloor,
+            'cookie_name' => trim((string)(
+                $bootstrap['floor_cookie_name']
+                ?? ''
+            )),
+            'table_floor_map' => [
+                'by_id' => $tableFloorById,
+                'by_number' => [],
+                'by_name' => [],
+            ],
+        ];
     }
 
     /**
@@ -748,10 +1044,22 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $defaultFloorId = (string)$floorService->defaultFloorId();
         }
 
+        /*
+         * PMD_QPOS_LEAN_LIVE_HEARTBEAT_V131
+         *
+         * The recurring heartbeat exists to reconcile physical table state.
+         * Do NOT rebuild financial/note/waiter-call signals every two seconds:
+         * push-notifications handles immediate attention events and the browser
+         * preserves existing signal fields when the lean table rows arrive.
+         *
+         * This removes the recurring 36h/600-order scan, 2-day/300-notification
+         * scan and activity reconciliation from every heartbeat.
+         */
         $tables = $this->quickPosTables(
             $locationId,
             $floorSnapshot,
-            $defaultFloorId
+            $defaultFloorId,
+            false
         );
 
         $selectedPayload = null;
@@ -794,7 +1102,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'version' => 'pmd-quick-pos-live-v73',
             'mode' => $mode,
             'location_id' => $locationId,
-            'poll_after_ms' => 2000,
+            'poll_after_ms' => 5000,
             'revision' => sha1(
                 is_string($revisionSource) ? $revisionSource : ''
             ),
@@ -3826,13 +4134,21 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ?? ''
             ));
 
-            $status = ($waiterCall || $note !== '' || $linkedOrderHasNote)
-                ? 'attention'
-                : ($cleaning
-                    ? 'cleaning'
-                    : ($reserved
-                        ? 'reserved'
-                        : ($occupied ? 'occupied' : 'available')));
+            $tableEnabled =
+                ($raw['table_status'] ?? true) !== false
+                && ($raw['enabled'] ?? true) !== false
+                && $rawStatus !== 'disabled'
+                && $rawStatus !== 'inactive';
+
+            $status = !$tableEnabled
+                ? 'disabled'
+                : (($waiterCall || $note !== '' || $linkedOrderHasNote)
+                    ? 'attention'
+                    : ($cleaning
+                        ? 'cleaning'
+                        : ($reserved
+                            ? 'reserved'
+                            : ($occupied ? 'occupied' : 'available'))));
 
             /*
              * Match Floor V1 normalize() exactly for first paint.
@@ -3949,6 +4265,7 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             });
 
             $priority = [
+                'disabled' => 6,
                 'available' => 1,
                 'occupied' => 2,
                 'reserved' => 3,

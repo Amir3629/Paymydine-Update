@@ -12,6 +12,7 @@ use Admin\Models\Pos_configs_model;
 use Admin\Models\Pos_devices_model;
 use Admin\Models\Terminal_devices_model;
 use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\PmdTableDisplayService;
 use App\Services\Platform\LocationPlatformContext;
 use App\Services\Turkey\TurkeyIntegrationConfigurationService;
 use App\Services\Turkey\TurkeyTenantContext;
@@ -134,6 +135,39 @@ class Pmddevices extends AdminController
         ];
 
         return $this->makeView('pmddevices/index');
+    }
+
+    /** PMD_TABLE_DISPLAY_V1 */
+    public function tabledisplay()
+    {
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Table display', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Table display', 'settings.'));
+
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-table-display-preview-page');
+        $this->addCss('css/pmd-table-display-v1.css');
+        $this->addJs('js/pmd-table-display-v1.js');
+
+        $selectedTableId = (int)request()->query('table', 0);
+        $this->vars['pmdTableDisplay'] = app(PmdTableDisplayService::class)
+            ->previewPayload($selectedTableId > 0 ? $selectedTableId : null);
+
+        return $this->makeView('pmddevices/table_display');
+    }
+
+    /** PMD_TABLE_DISPLAY_V1 */
+    public function tabledisplaystate()
+    {
+        $tableId = (int)request()->query('table', 0);
+        if ($tableId < 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Choose a table.',
+            ], 422);
+        }
+
+        return response()->json(
+            app(PmdTableDisplayService::class)->state($tableId)
+        );
     }
 
     public function onSaveTurkeyFiscalDevice()

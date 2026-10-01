@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Tue Sep 29 09:38:37 UTC 2026
+-- Generated UTC: Thu Oct  1 09:54:23 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -1853,7 +1853,7 @@ CREATE TABLE `ti_migrations` (
   `migration` varchar(128) NOT NULL,
   `batch` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=215 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=223 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2355,6 +2355,339 @@ CREATE TABLE `ti_pmd_admin_presence_sessions` (
   KEY `ti_pmd_admin_presence_sessions_last_seen_at_index` (`last_seen_at`),
   KEY `ti_pmd_admin_presence_sessions_expires_at_index` (`expires_at`),
   KEY `ti_pmd_admin_presence_sessions_logout_at_index` (`logout_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_external_reviews`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_external_reviews`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_external_reviews` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned NOT NULL,
+  `provider` varchar(30) NOT NULL DEFAULT 'google',
+  `provider_review_id` varchar(128) NOT NULL,
+  `google_location_name` varchar(191) DEFAULT NULL,
+  `reviewer_name` varchar(191) DEFAULT NULL,
+  `reviewer_photo_url` text DEFAULT NULL,
+  `rating` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `comment` text DEFAULT NULL,
+  `review_created_at` timestamp NULL DEFAULT NULL,
+  `review_updated_at` timestamp NULL DEFAULT NULL,
+  `owner_reply` text DEFAULT NULL,
+  `owner_reply_updated_at` timestamp NULL DEFAULT NULL,
+  `raw_payload` longtext DEFAULT NULL,
+  `synced_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_external_reviews_provider_location_review_unique` (`provider`,`location_id`,`provider_review_id`),
+  KEY `ti_pmd_external_reviews_location_id_index` (`location_id`),
+  KEY `ti_pmd_external_reviews_provider_index` (`provider`),
+  KEY `ti_pmd_external_reviews_google_location_name_index` (`google_location_name`),
+  KEY `ti_pmd_external_reviews_rating_index` (`rating`),
+  KEY `ti_pmd_external_reviews_review_created_at_index` (`review_created_at`),
+  KEY `ti_pmd_external_reviews_review_updated_at_index` (`review_updated_at`),
+  KEY `ti_pmd_external_reviews_synced_at_index` (`synced_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_google_business_connections`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_google_business_connections`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_google_business_connections` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned NOT NULL,
+  `tenant_host` varchar(191) DEFAULT NULL,
+  `oauth_client_id_encrypted` text DEFAULT NULL,
+  `oauth_client_secret_encrypted` text DEFAULT NULL,
+  `places_api_key_encrypted` text DEFAULT NULL,
+  `pubsub_topic` varchar(500) DEFAULT NULL,
+  `pubsub_token_encrypted` text DEFAULT NULL,
+  `credentials_updated_at` timestamp NULL DEFAULT NULL,
+  `google_account_name` varchar(191) DEFAULT NULL,
+  `google_account_display_name` varchar(191) DEFAULT NULL,
+  `google_location_name` varchar(191) DEFAULT NULL,
+  `google_location_title` varchar(191) DEFAULT NULL,
+  `google_place_id` varchar(191) DEFAULT NULL,
+  `google_maps_uri` text DEFAULT NULL,
+  `google_write_review_uri` text DEFAULT NULL,
+  `google_reviews_uri` text DEFAULT NULL,
+  `access_token_encrypted` text DEFAULT NULL,
+  `refresh_token_encrypted` text DEFAULT NULL,
+  `token_expires_at` timestamp NULL DEFAULT NULL,
+  `scopes` text DEFAULT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'disconnected',
+  `google_average_rating` decimal(3,2) DEFAULT NULL,
+  `google_total_review_count` int(10) unsigned NOT NULL DEFAULT 0,
+  `notifications_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `last_synced_at` timestamp NULL DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_google_business_connections_location_id_unique` (`location_id`),
+  KEY `ti_pmd_google_business_connections_tenant_host_index` (`tenant_host`),
+  KEY `ti_pmd_google_business_connections_google_account_name_index` (`google_account_name`),
+  KEY `ti_pmd_google_business_connections_google_location_name_index` (`google_location_name`),
+  KEY `ti_pmd_google_business_connections_google_place_id_index` (`google_place_id`),
+  KEY `ti_pmd_google_business_connections_status_index` (`status`),
+  KEY `ti_pmd_google_business_connections_last_synced_at_index` (`last_synced_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_count_lines`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_count_lines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_count_lines` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `count_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `expected_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `counted_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `variance_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `unit_cost_snapshot` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_inventory_count_line_unique` (`count_id`,`item_id`),
+  KEY `ti_pmd_inventory_count_lines_count_id_index` (`count_id`),
+  KEY `ti_pmd_inventory_count_lines_item_id_index` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_counts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_counts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_counts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'completed',
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `counted_at` timestamp NOT NULL,
+  `note` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_pmd_inventory_counts_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_counts_status_index` (`status`),
+  KEY `ti_pmd_inventory_counts_counted_at_index` (`counted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_items`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_items` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `name` varchar(190) NOT NULL,
+  `sku` varchar(120) DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `base_unit` varchar(30) NOT NULL DEFAULT 'piece',
+  `purchase_unit` varchar(30) DEFAULT NULL,
+  `purchase_to_base` decimal(16,4) NOT NULL DEFAULT 1.0000,
+  `unit_cost` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `reorder_point` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `par_level` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `supplier_name` varchar(190) DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_by` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_inventory_items_location_active_idx` (`location_id`,`active`),
+  KEY `ti_pmd_inventory_items_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_items_active_index` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_movements`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_movements`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_movements` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `movement_type` varchar(40) NOT NULL,
+  `qty_delta` decimal(16,4) NOT NULL,
+  `unit_cost` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `reference_type` varchar(80) DEFAULT NULL,
+  `reference_id` bigint(20) unsigned DEFAULT NULL,
+  `reason` varchar(160) DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `occurred_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_inventory_movements_item_time_idx` (`location_id`,`item_id`,`occurred_at`),
+  KEY `pmd_inventory_movements_reference_idx` (`reference_type`,`reference_id`),
+  KEY `ti_pmd_inventory_movements_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_movements_item_id_index` (`item_id`),
+  KEY `ti_pmd_inventory_movements_movement_type_index` (`movement_type`),
+  KEY `ti_pmd_inventory_movements_staff_id_index` (`staff_id`),
+  KEY `ti_pmd_inventory_movements_occurred_at_index` (`occurred_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_receipts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_receipts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_receipts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `supplier_name` varchar(190) DEFAULT NULL,
+  `purchased_at` date DEFAULT NULL,
+  `source` varchar(40) NOT NULL DEFAULT 'manual',
+  `file_path` varchar(500) DEFAULT NULL,
+  `original_name` varchar(255) DEFAULT NULL,
+  `mime_type` varchar(100) DEFAULT NULL,
+  `ai_status` varchar(40) NOT NULL DEFAULT 'not_requested',
+  `ai_payload_json` text DEFAULT NULL,
+  `total_amount` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `created_by` bigint(20) unsigned DEFAULT NULL,
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_pmd_inventory_receipts_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_receipts_ai_status_index` (`ai_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_recipes`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_recipes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_recipes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `menu_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `qty_per_sale` decimal(16,4) NOT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  `updated_by` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `effective_from` timestamp NULL DEFAULT NULL,
+  `effective_to` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_pmd_inventory_recipes_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_recipes_menu_id_index` (`menu_id`),
+  KEY `ti_pmd_inventory_recipes_item_id_index` (`item_id`),
+  KEY `ti_pmd_inventory_recipes_effective_from_index` (`effective_from`),
+  KEY `ti_pmd_inventory_recipes_effective_to_index` (`effective_to`),
+  KEY `pmd_inventory_recipe_current_idx` (`location_id`,`menu_id`,`item_id`,`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_mobile_edges`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_mobile_edges`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_mobile_edges` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `fingerprint_sha256` char(64) NOT NULL,
+  `port` int(10) unsigned NOT NULL DEFAULT 8443,
+  `protocol` varchar(32) NOT NULL DEFAULT 'pmd-edge-v1',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `last_seen_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_mobile_edge_location_uidx` (`location_id`),
+  KEY `pmd_mobile_edge_device_idx` (`device_id`,`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_mobile_pair_exchanges`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_mobile_pair_exchanges`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_mobile_pair_exchanges` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `public_id` char(36) NOT NULL,
+  `exchange_hash` char(64) NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `expires_at` timestamp NOT NULL,
+  `used_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_mobile_pair_public_uidx` (`public_id`),
+  UNIQUE KEY `pmd_mobile_pair_hash_uidx` (`exchange_hash`),
+  KEY `pmd_mobile_pair_device_idx` (`device_id`,`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_mobile_pair_requests`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_mobile_pair_requests`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_mobile_pair_requests` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `pair_request` char(36) NOT NULL,
+  `challenge_id` bigint(20) unsigned NOT NULL,
+  `code_challenge` char(43) NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `staff_id` bigint(20) unsigned NOT NULL,
+  `device_name` varchar(128) NOT NULL DEFAULT 'PayMyDine Android',
+  `status` varchar(24) NOT NULL DEFAULT 'pending',
+  `device_id` bigint(20) unsigned DEFAULT NULL,
+  `approved_at` timestamp NULL DEFAULT NULL,
+  `expires_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_mobile_pair_request_uidx` (`pair_request`),
+  UNIQUE KEY `pmd_mobile_pair_challenge_uidx` (`challenge_id`),
+  KEY `pmd_mobile_pair_loc_status_idx` (`location_id`,`status`,`expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -2988,6 +3321,30 @@ CREATE TABLE `ti_pmd_staff_chat_messages` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_staff_login_pins`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_staff_login_pins`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_staff_login_pins` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) unsigned NOT NULL,
+  `staff_id` bigint(20) unsigned NOT NULL,
+  `pin_lookup` varchar(64) NOT NULL,
+  `pin_hash` varchar(255) NOT NULL,
+  `last_used_at` timestamp NULL DEFAULT NULL,
+  `disabled_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_staff_login_pins_user_id_unique` (`user_id`),
+  UNIQUE KEY `ti_pmd_staff_login_pins_pin_lookup_unique` (`pin_lookup`),
+  KEY `pmd_staff_pin_staff_active_idx` (`staff_id`,`disabled_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_staff_requests`
 --
 
@@ -3014,6 +3371,92 @@ CREATE TABLE `ti_pmd_staff_requests` (
   KEY `pmd_staff_requests_location_status_idx` (`location_id`,`status`),
   KEY `pmd_staff_requests_staff_status_idx` (`staff_id`,`status`),
   KEY `pmd_staff_requests_person_created_idx` (`person_id`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_sync_aggregate_versions`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_sync_aggregate_versions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_sync_aggregate_versions` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `aggregate` varchar(64) NOT NULL,
+  `aggregate_id` varchar(128) NOT NULL,
+  `version` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_sync_ver_aggregate_uidx` (`location_id`,`aggregate`,`aggregate_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_sync_commands`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_sync_commands`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_sync_commands` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `command_id` char(36) NOT NULL,
+  `idempotency_key` varchar(96) NOT NULL,
+  `request_hash` char(64) NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `user_id` bigint(20) unsigned DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `aggregate` varchar(64) NOT NULL,
+  `aggregate_id` varchar(128) NOT NULL,
+  `base_version` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `command_type` varchar(96) NOT NULL,
+  `payload` longtext NOT NULL,
+  `status` varchar(24) NOT NULL DEFAULT 'RECEIVED',
+  `result_payload` longtext DEFAULT NULL,
+  `error_code` varchar(96) DEFAULT NULL,
+  `received_at` timestamp NULL DEFAULT NULL,
+  `applied_at` timestamp NULL DEFAULT NULL,
+  `rejected_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_sync_cmd_command_uidx` (`command_id`),
+  UNIQUE KEY `pmd_sync_cmd_idem_uidx` (`idempotency_key`),
+  KEY `pmd_sync_cmd_loc_status_idx` (`location_id`,`status`,`id`),
+  KEY `pmd_sync_cmd_aggregate_idx` (`aggregate`,`aggregate_id`,`id`),
+  KEY `pmd_sync_cmd_device_idx` (`device_id`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_sync_events`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_sync_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_sync_events` (
+  `sequence` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `event_id` char(36) NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `device_id` bigint(20) unsigned DEFAULT NULL,
+  `user_id` bigint(20) unsigned DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `aggregate` varchar(64) NOT NULL,
+  `aggregate_id` varchar(128) NOT NULL,
+  `aggregate_version` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `event_type` varchar(96) NOT NULL,
+  `payload` longtext NOT NULL,
+  `occurred_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`sequence`),
+  UNIQUE KEY `pmd_sync_evt_event_uidx` (`event_id`),
+  KEY `pmd_sync_evt_loc_seq_idx` (`location_id`,`sequence`),
+  KEY `pmd_sync_evt_aggregate_idx` (`aggregate`,`aggregate_id`,`aggregate_version`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -4327,7 +4770,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-29  9:38:38
+-- Dump completed on 2026-10-01  9:54:24
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -6706,6 +7149,91 @@ CREATE TABLE `ti_pmd_admin_presence_sessions` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_external_reviews`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_external_reviews`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_external_reviews` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned NOT NULL,
+  `provider` varchar(30) NOT NULL DEFAULT 'google',
+  `provider_review_id` varchar(128) NOT NULL,
+  `google_location_name` varchar(191) DEFAULT NULL,
+  `reviewer_name` varchar(191) DEFAULT NULL,
+  `reviewer_photo_url` text DEFAULT NULL,
+  `rating` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `comment` text DEFAULT NULL,
+  `review_created_at` timestamp NULL DEFAULT NULL,
+  `review_updated_at` timestamp NULL DEFAULT NULL,
+  `owner_reply` text DEFAULT NULL,
+  `owner_reply_updated_at` timestamp NULL DEFAULT NULL,
+  `raw_payload` longtext DEFAULT NULL,
+  `synced_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_external_reviews_provider_location_review_unique` (`provider`,`location_id`,`provider_review_id`),
+  KEY `ti_pmd_external_reviews_location_id_index` (`location_id`),
+  KEY `ti_pmd_external_reviews_provider_index` (`provider`),
+  KEY `ti_pmd_external_reviews_google_location_name_index` (`google_location_name`),
+  KEY `ti_pmd_external_reviews_rating_index` (`rating`),
+  KEY `ti_pmd_external_reviews_review_created_at_index` (`review_created_at`),
+  KEY `ti_pmd_external_reviews_review_updated_at_index` (`review_updated_at`),
+  KEY `ti_pmd_external_reviews_synced_at_index` (`synced_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_google_business_connections`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_google_business_connections`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_google_business_connections` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned NOT NULL,
+  `tenant_host` varchar(191) DEFAULT NULL,
+  `oauth_client_id_encrypted` text DEFAULT NULL,
+  `oauth_client_secret_encrypted` text DEFAULT NULL,
+  `places_api_key_encrypted` text DEFAULT NULL,
+  `pubsub_topic` varchar(500) DEFAULT NULL,
+  `pubsub_token_encrypted` text DEFAULT NULL,
+  `credentials_updated_at` timestamp NULL DEFAULT NULL,
+  `google_account_name` varchar(191) DEFAULT NULL,
+  `google_account_display_name` varchar(191) DEFAULT NULL,
+  `google_location_name` varchar(191) DEFAULT NULL,
+  `google_location_title` varchar(191) DEFAULT NULL,
+  `google_place_id` varchar(191) DEFAULT NULL,
+  `google_maps_uri` text DEFAULT NULL,
+  `google_write_review_uri` text DEFAULT NULL,
+  `google_reviews_uri` text DEFAULT NULL,
+  `access_token_encrypted` text DEFAULT NULL,
+  `refresh_token_encrypted` text DEFAULT NULL,
+  `token_expires_at` timestamp NULL DEFAULT NULL,
+  `scopes` text DEFAULT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'disconnected',
+  `google_average_rating` decimal(3,2) DEFAULT NULL,
+  `google_total_review_count` int(10) unsigned NOT NULL DEFAULT 0,
+  `notifications_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `last_synced_at` timestamp NULL DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_google_business_connections_location_id_unique` (`location_id`),
+  KEY `ti_pmd_google_business_connections_tenant_host_index` (`tenant_host`),
+  KEY `ti_pmd_google_business_connections_google_account_name_index` (`google_account_name`),
+  KEY `ti_pmd_google_business_connections_google_location_name_index` (`google_location_name`),
+  KEY `ti_pmd_google_business_connections_google_place_id_index` (`google_place_id`),
+  KEY `ti_pmd_google_business_connections_status_index` (`status`),
+  KEY `ti_pmd_google_business_connections_last_synced_at_index` (`last_synced_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_guest_payment_intents`
 --
 
@@ -6772,6 +7300,175 @@ CREATE TABLE `ti_pmd_integration_secret_references` (
   KEY `ti_pmd_integration_secret_references_provider_code_index` (`provider_code`),
   KEY `ti_pmd_integration_secret_references_environment_index` (`environment`),
   KEY `ti_pmd_integration_secret_references_enabled_index` (`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_count_lines`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_count_lines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_count_lines` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `count_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `expected_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `counted_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `variance_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `unit_cost_snapshot` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_inventory_count_line_unique` (`count_id`,`item_id`),
+  KEY `ti_pmd_inventory_count_lines_count_id_index` (`count_id`),
+  KEY `ti_pmd_inventory_count_lines_item_id_index` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_counts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_counts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_counts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'completed',
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `counted_at` timestamp NOT NULL,
+  `note` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_pmd_inventory_counts_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_counts_status_index` (`status`),
+  KEY `ti_pmd_inventory_counts_counted_at_index` (`counted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_items`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_items` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `name` varchar(190) NOT NULL,
+  `sku` varchar(120) DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `base_unit` varchar(30) NOT NULL DEFAULT 'piece',
+  `purchase_unit` varchar(30) DEFAULT NULL,
+  `purchase_to_base` decimal(16,4) NOT NULL DEFAULT 1.0000,
+  `unit_cost` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `reorder_point` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `par_level` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `supplier_name` varchar(190) DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_by` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_inventory_items_location_active_idx` (`location_id`,`active`),
+  KEY `ti_pmd_inventory_items_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_items_active_index` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_movements`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_movements`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_movements` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `movement_type` varchar(40) NOT NULL,
+  `qty_delta` decimal(16,4) NOT NULL,
+  `unit_cost` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `reference_type` varchar(80) DEFAULT NULL,
+  `reference_id` bigint(20) unsigned DEFAULT NULL,
+  `reason` varchar(160) DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `occurred_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_inventory_movements_item_time_idx` (`location_id`,`item_id`,`occurred_at`),
+  KEY `pmd_inventory_movements_reference_idx` (`reference_type`,`reference_id`),
+  KEY `ti_pmd_inventory_movements_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_movements_item_id_index` (`item_id`),
+  KEY `ti_pmd_inventory_movements_movement_type_index` (`movement_type`),
+  KEY `ti_pmd_inventory_movements_staff_id_index` (`staff_id`),
+  KEY `ti_pmd_inventory_movements_occurred_at_index` (`occurred_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_receipts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_receipts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_receipts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `supplier_name` varchar(190) DEFAULT NULL,
+  `purchased_at` date DEFAULT NULL,
+  `source` varchar(40) NOT NULL DEFAULT 'manual',
+  `file_path` varchar(500) DEFAULT NULL,
+  `original_name` varchar(255) DEFAULT NULL,
+  `mime_type` varchar(100) DEFAULT NULL,
+  `ai_status` varchar(40) NOT NULL DEFAULT 'not_requested',
+  `ai_payload_json` text DEFAULT NULL,
+  `total_amount` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `created_by` bigint(20) unsigned DEFAULT NULL,
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_pmd_inventory_receipts_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_receipts_ai_status_index` (`ai_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_recipes`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_recipes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_recipes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `menu_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `qty_per_sale` decimal(16,4) NOT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  `updated_by` bigint(20) unsigned DEFAULT NULL,
+  `effective_from` timestamp NULL DEFAULT NULL,
+  `effective_to` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_inventory_recipe_current_idx` (`location_id`,`menu_id`,`item_id`,`active`),
+  KEY `ti_pmd_inventory_recipes_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_recipes_menu_id_index` (`menu_id`),
+  KEY `ti_pmd_inventory_recipes_item_id_index` (`item_id`),
+  KEY `ti_pmd_inventory_recipes_effective_from_index` (`effective_from`),
+  KEY `ti_pmd_inventory_recipes_effective_to_index` (`effective_to`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -8276,7 +8973,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-29  9:38:38
+-- Dump completed on 2026-10-01  9:54:25
 
 -- ==================================================
 -- DATABASE: rosana
@@ -11045,7 +11742,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-29  9:38:38
+-- Dump completed on 2026-10-01  9:54:26
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -12573,6 +13270,91 @@ CREATE TABLE `ti_payments` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `ti_pmd_external_reviews`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_external_reviews`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_external_reviews` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned NOT NULL,
+  `provider` varchar(30) NOT NULL DEFAULT 'google',
+  `provider_review_id` varchar(128) NOT NULL,
+  `google_location_name` varchar(191) DEFAULT NULL,
+  `reviewer_name` varchar(191) DEFAULT NULL,
+  `reviewer_photo_url` text DEFAULT NULL,
+  `rating` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `comment` text DEFAULT NULL,
+  `review_created_at` timestamp NULL DEFAULT NULL,
+  `review_updated_at` timestamp NULL DEFAULT NULL,
+  `owner_reply` text DEFAULT NULL,
+  `owner_reply_updated_at` timestamp NULL DEFAULT NULL,
+  `raw_payload` longtext DEFAULT NULL,
+  `synced_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_external_reviews_provider_location_review_unique` (`provider`,`location_id`,`provider_review_id`),
+  KEY `ti_pmd_external_reviews_location_id_index` (`location_id`),
+  KEY `ti_pmd_external_reviews_provider_index` (`provider`),
+  KEY `ti_pmd_external_reviews_google_location_name_index` (`google_location_name`),
+  KEY `ti_pmd_external_reviews_rating_index` (`rating`),
+  KEY `ti_pmd_external_reviews_review_created_at_index` (`review_created_at`),
+  KEY `ti_pmd_external_reviews_review_updated_at_index` (`review_updated_at`),
+  KEY `ti_pmd_external_reviews_synced_at_index` (`synced_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_google_business_connections`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_google_business_connections`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_google_business_connections` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` int(10) unsigned NOT NULL,
+  `tenant_host` varchar(191) DEFAULT NULL,
+  `oauth_client_id_encrypted` text DEFAULT NULL,
+  `oauth_client_secret_encrypted` text DEFAULT NULL,
+  `places_api_key_encrypted` text DEFAULT NULL,
+  `pubsub_topic` varchar(500) DEFAULT NULL,
+  `pubsub_token_encrypted` text DEFAULT NULL,
+  `credentials_updated_at` timestamp NULL DEFAULT NULL,
+  `google_account_name` varchar(191) DEFAULT NULL,
+  `google_account_display_name` varchar(191) DEFAULT NULL,
+  `google_location_name` varchar(191) DEFAULT NULL,
+  `google_location_title` varchar(191) DEFAULT NULL,
+  `google_place_id` varchar(191) DEFAULT NULL,
+  `google_maps_uri` text DEFAULT NULL,
+  `google_write_review_uri` text DEFAULT NULL,
+  `google_reviews_uri` text DEFAULT NULL,
+  `access_token_encrypted` text DEFAULT NULL,
+  `refresh_token_encrypted` text DEFAULT NULL,
+  `token_expires_at` timestamp NULL DEFAULT NULL,
+  `scopes` text DEFAULT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'disconnected',
+  `google_average_rating` decimal(3,2) DEFAULT NULL,
+  `google_total_review_count` int(10) unsigned NOT NULL DEFAULT 0,
+  `notifications_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `last_synced_at` timestamp NULL DEFAULT NULL,
+  `last_error` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_google_business_connections_location_id_unique` (`location_id`),
+  KEY `ti_pmd_google_business_connections_tenant_host_index` (`tenant_host`),
+  KEY `ti_pmd_google_business_connections_google_account_name_index` (`google_account_name`),
+  KEY `ti_pmd_google_business_connections_google_location_name_index` (`google_location_name`),
+  KEY `ti_pmd_google_business_connections_google_place_id_index` (`google_place_id`),
+  KEY `ti_pmd_google_business_connections_status_index` (`status`),
+  KEY `ti_pmd_google_business_connections_last_synced_at_index` (`last_synced_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `ti_pmd_integration_secret_references`
 --
 
@@ -12599,6 +13381,175 @@ CREATE TABLE `ti_pmd_integration_secret_references` (
   KEY `ti_pmd_integration_secret_references_provider_code_index` (`provider_code`),
   KEY `ti_pmd_integration_secret_references_environment_index` (`environment`),
   KEY `ti_pmd_integration_secret_references_enabled_index` (`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_count_lines`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_count_lines`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_count_lines` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `count_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `expected_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `counted_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `variance_qty` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `unit_cost_snapshot` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pmd_inventory_count_line_unique` (`count_id`,`item_id`),
+  KEY `ti_pmd_inventory_count_lines_count_id_index` (`count_id`),
+  KEY `ti_pmd_inventory_count_lines_item_id_index` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_counts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_counts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_counts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'completed',
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `counted_at` timestamp NOT NULL,
+  `note` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_pmd_inventory_counts_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_counts_status_index` (`status`),
+  KEY `ti_pmd_inventory_counts_counted_at_index` (`counted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_items`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_items` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `name` varchar(190) NOT NULL,
+  `sku` varchar(120) DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `base_unit` varchar(30) NOT NULL DEFAULT 'piece',
+  `purchase_unit` varchar(30) DEFAULT NULL,
+  `purchase_to_base` decimal(16,4) NOT NULL DEFAULT 1.0000,
+  `unit_cost` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `reorder_point` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `par_level` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `supplier_name` varchar(190) DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_by` bigint(20) unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_inventory_items_location_active_idx` (`location_id`,`active`),
+  KEY `ti_pmd_inventory_items_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_items_active_index` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_movements`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_movements`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_movements` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `movement_type` varchar(40) NOT NULL,
+  `qty_delta` decimal(16,4) NOT NULL,
+  `unit_cost` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `reference_type` varchar(80) DEFAULT NULL,
+  `reference_id` bigint(20) unsigned DEFAULT NULL,
+  `reason` varchar(160) DEFAULT NULL,
+  `note` text DEFAULT NULL,
+  `staff_id` bigint(20) unsigned DEFAULT NULL,
+  `occurred_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_inventory_movements_item_time_idx` (`location_id`,`item_id`,`occurred_at`),
+  KEY `pmd_inventory_movements_reference_idx` (`reference_type`,`reference_id`),
+  KEY `ti_pmd_inventory_movements_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_movements_item_id_index` (`item_id`),
+  KEY `ti_pmd_inventory_movements_movement_type_index` (`movement_type`),
+  KEY `ti_pmd_inventory_movements_staff_id_index` (`staff_id`),
+  KEY `ti_pmd_inventory_movements_occurred_at_index` (`occurred_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_receipts`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_receipts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_receipts` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `supplier_name` varchar(190) DEFAULT NULL,
+  `purchased_at` date DEFAULT NULL,
+  `source` varchar(40) NOT NULL DEFAULT 'manual',
+  `file_path` varchar(500) DEFAULT NULL,
+  `original_name` varchar(255) DEFAULT NULL,
+  `mime_type` varchar(100) DEFAULT NULL,
+  `ai_status` varchar(40) NOT NULL DEFAULT 'not_requested',
+  `ai_payload_json` text DEFAULT NULL,
+  `total_amount` decimal(16,4) NOT NULL DEFAULT 0.0000,
+  `created_by` bigint(20) unsigned DEFAULT NULL,
+  `confirmed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `ti_pmd_inventory_receipts_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_receipts_ai_status_index` (`ai_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_inventory_recipes`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_inventory_recipes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_inventory_recipes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `menu_id` bigint(20) unsigned NOT NULL,
+  `item_id` bigint(20) unsigned NOT NULL,
+  `qty_per_sale` decimal(16,4) NOT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT 1,
+  `updated_by` bigint(20) unsigned DEFAULT NULL,
+  `effective_from` timestamp NULL DEFAULT NULL,
+  `effective_to` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_inventory_recipe_current_idx` (`location_id`,`menu_id`,`item_id`,`active`),
+  KEY `ti_pmd_inventory_recipes_location_id_index` (`location_id`),
+  KEY `ti_pmd_inventory_recipes_menu_id_index` (`menu_id`),
+  KEY `ti_pmd_inventory_recipes_item_id_index` (`item_id`),
+  KEY `ti_pmd_inventory_recipes_effective_from_index` (`effective_from`),
+  KEY `ti_pmd_inventory_recipes_effective_to_index` (`effective_to`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -13347,4 +14298,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-29  9:38:39
+-- Dump completed on 2026-10-01  9:54:26

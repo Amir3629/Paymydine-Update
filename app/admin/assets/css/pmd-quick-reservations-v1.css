@@ -1,4 +1,4 @@
-/* PMD_QPOS_QUICK_RESERVATIONS_R129
+/* PMD_QPOS_QUICK_RESERVATIONS_R136
  * Same Quick POS shell, cleaner reservation density.
  * Right table rail remains untouched/canonical.
  */
@@ -53,7 +53,6 @@
 
 /* ---------- left reservations rail ---------- */
 
-.pmd-qres-head,
 .pmd-qres-center-head {
   min-height: 72px;
   display: flex;
@@ -65,7 +64,6 @@
   background: #fff;
 }
 
-.pmd-qres-head h2,
 .pmd-qres-center-head h2 {
   margin: 0;
   color: #111827;
@@ -166,38 +164,6 @@
 .pmd-qres-search input::placeholder {
   color: #8a9490;
   font-weight: 600;
-}
-
-.pmd-qres-filter-row {
-  display: flex;
-  gap: 7px;
-  padding: 0 10px 9px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.pmd-qres-filter-row::-webkit-scrollbar {
-  display: none;
-}
-
-.pmd-qres-filter-row button {
-  min-height: 40px;
-  flex: 0 0 auto;
-  padding: 0 13px;
-  border: 1px solid #d9dee4;
-  border-radius: 11px;
-  background: #fff;
-  color: #2c3742;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.pmd-qres-filter-row button.is-active {
-  border-color: #032f25;
-  background: #032f25;
-  color: #fff;
 }
 
 .pmd-qres-table-filter {
@@ -302,6 +268,19 @@
   white-space: nowrap;
 }
 
+.pmd-qres-list-note {
+  display: block;
+  margin-top: 4px;
+  overflow: hidden;
+  color: #84918c;
+  font-size: 11px;
+  line-height: 1.25;
+  font-style: normal;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .pmd-qres-empty,
 .pmd-qres-error,
 .pmd-qres-closed {
@@ -362,12 +341,14 @@
   min-width: 0;
 }
 
-.pmd-qres-center-title small {
-  display: block;
-  margin-top: 5px;
-  color: #6f7d77;
-  font-size: 12.5px;
-  font-weight: 750;
+.pmd-qres-center-title h2 {
+  margin: 0;
+  color: #14211d;
+  font-size: 22px;
+  line-height: 1.08;
+  font-weight: 950;
+  letter-spacing: -.025em;
+  font-variant-numeric: tabular-nums;
 }
 
 .pmd-qres-center-actions {
@@ -419,17 +400,6 @@
   border-top: 0;
 }
 
-.pmd-qres-hour-row.is-current::before {
-  content: "";
-  position: absolute;
-  z-index: 2;
-  left: 73px;
-  right: 0;
-  top: 0;
-  height: 2px;
-  background: #0b765e;
-}
-
 .pmd-qres-hour-label {
   min-width: 0;
   display: flex;
@@ -448,15 +418,15 @@
 }
 
 .pmd-qres-hour-row.is-current .pmd-qres-hour-label {
-  color: #075c47;
-  background: #f2f8f5;
+  color: #53635d;
+  background: #fbfcfc;
 }
 
 .pmd-qres-hour-lane {
   min-width: 0;
   min-height: 75px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
+  grid-template-columns: 1fr;
   align-content: start;
   gap: 7px;
   padding: 7px 9px;
@@ -487,13 +457,14 @@
 
 .pmd-qres-booking-card {
   min-width: 0;
-  min-height: 60px;
+  min-height: 72px;
   display: block;
-  padding: 9px 11px;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid #b8d6cb;
   border-left: 4px solid #075c47;
   border-radius: 11px;
-  background: #f4faf7;
+  background: #f7fbf9;
   color: #14241f;
   text-align: left;
   cursor: pointer;
@@ -505,53 +476,1135 @@
 .pmd-qres-booking-card:focus-visible {
   border-color: #8bbdac;
   border-left-color: #032f25;
-  background: #eef8f3;
+  background: #f2f9f6;
   outline: none;
   box-shadow: none;
   transform: none;
 }
 
-.pmd-qres-booking-main {
+.pmd-qres-booking-cells {
   min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(150px, 1.6fr) 54px minmax(90px, 1fr) 94px 78px;
 }
 
-.pmd-qres-booking-main strong {
+.pmd-qres-booking-cell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 10px;
+  border-right: 1px solid #d6e5df;
+}
+
+.pmd-qres-booking-cell:last-child {
+  border-right: 0;
+}
+
+.pmd-qres-booking-cell small,
+.pmd-qres-booking-note small {
+  color: #7b8983;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.pmd-qres-booking-cell strong {
   min-width: 0;
   overflow: hidden;
-  color: #15251f;
-  font-size: 15px;
+  color: #17231f;
+  font-size: 13px;
   line-height: 1.2;
   font-weight: 950;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pmd-qres-booking-main b {
-  flex: 0 0 auto;
+.pmd-qres-booking-cell.is-people strong,
+.pmd-qres-booking-cell.is-duration strong,
+.pmd-qres-booking-cell.is-time strong {
   color: #075c47;
-  font-size: 13px;
-  font-weight: 950;
 }
 
-.pmd-qres-booking-meta {
+.pmd-qres-booking-note {
   min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 11px;
-  margin-top: 6px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 7px;
+  border-top: 1px solid #d6e5df;
+  background: rgba(255,255,255,.56);
+}
+
+.pmd-qres-booking-note > span {
+  min-width: 0;
   overflow: hidden;
-  color: #64736d;
-  font-size: 11.5px;
-  line-height: 1.2;
-  font-weight: 750;
+  color: #596861;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pmd-qres-closed {
   min-height: 260px;
+}
+
+/* ---------- inline Quick Reservation editor ---------- */
+
+.pmd-qpos-reservations-center.is-editor-open-r132 > .pmd-qres-center-head,
+.pmd-qpos-reservations-center.is-editor-open-r132 > .pmd-qres-timeline {
+  display: none !important;
+}
+
+.pmd-qres-quick-editor[hidden] {
+  display: none !important;
+}
+
+.pmd-qpos-reservations-center.is-editor-open-r132 .pmd-qres-quick-editor {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  border: 0;
+  background: #fff;
+}
+
+.pmd-qres-quick-editor form {
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  overflow: hidden;
+  color: #143d35;
+}
+
+.pmd-qres-composer-title-r132 {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 22px;
+  border-bottom: 1px solid #dce5e1;
+  background: #fff;
+}
+
+.pmd-qres-composer-title-r132 h2 {
+  margin: 0;
+  color: #143d35;
+  font-size: 25px;
+  font-weight: 760;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+}
+
+.pmd-qres-composer-title-r132 small {
+  display: block;
+  margin-top: 4px;
+  color: #6f7f79;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pmd-qres-composer-close-r132 {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d2ddd8;
+  border-radius: 13px;
+  background: #fff;
+  color: #28463f;
+  cursor: pointer;
+}
+
+.pmd-qres-composer-close-r132 svg,
+.pmd-qres-composer-title-r132 svg,
+.pmd-qres-composer-body-r132 svg,
+.pmd-qres-composer-footer-r132 svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-qres-composer-body-r132 {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 20px 22px 24px;
+  background: #f7faf8;
+}
+
+.pmd-qres-composer-primary-r132 {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  grid-template-areas:
+    "name date"
+    "time time"
+    "duration guests";
+  column-gap: 18px;
+  row-gap: 13px;
+  align-items: start;
+}
+
+.pmd-qres-composer-field-r132 {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.pmd-qres-composer-field-r132.is-name { grid-area: name; }
+.pmd-qres-composer-field-r132.is-date { grid-area: date; }
+.pmd-qres-composer-field-r132.is-time { grid-area: time; }
+.pmd-qres-composer-field-r132.is-duration { grid-area: duration; }
+.pmd-qres-composer-field-r132.is-guests { grid-area: guests; }
+
+.pmd-qres-composer-field-r132 > span,
+.pmd-qres-composer-section-title-r132 {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #28463f;
+  font-size: 13px;
+  font-weight: 690;
+  line-height: 1.2;
+}
+
+.pmd-qres-composer-field-r132 > span > svg,
+.pmd-qres-composer-section-title-r132 > svg {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  box-sizing: border-box;
+  padding: 7px;
+  border-radius: 11px;
+  background: linear-gradient(145deg,rgba(255,255,255,.98),rgba(233,242,230,.82));
+  box-shadow: 0 6px 15px rgba(49,78,68,.08), inset 0 1px 0 #fff;
+  color: #258b70;
+}
+
+.pmd-qres-composer-field-r132 input:not([type="checkbox"]):not([type="radio"]),
+.pmd-qres-composer-field-r132 textarea,
+.pmd-qres-composer-table-r132 {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  box-sizing: border-box;
+  border: 1px solid #cfe0d8;
+  border-radius: 15px;
+  background: #fff;
+  color: #173d34;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 560;
+  outline: none;
+}
+
+.pmd-qres-composer-field-r132 input:not([type="checkbox"]):not([type="radio"]) {
+  padding: 0 15px;
+}
+
+.pmd-qres-composer-field-r132 textarea {
+  min-height: 74px;
+  max-height: 120px;
+  padding: 13px 15px;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.pmd-qres-composer-field-r132 input:focus,
+.pmd-qres-composer-field-r132 textarea:focus,
+.pmd-qres-composer-table-r132:focus-visible {
+  border-color: #76ad9d;
+  box-shadow: 0 0 0 3px rgba(37,139,112,.12);
+}
+
+.pmd-qres-composer-stepper-r132 {
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 48px minmax(0,1fr) 48px;
+}
+
+.pmd-qres-composer-stepper-r132 > button {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cfe0d8;
+  background: #fff;
+  color: #14765f;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.pmd-qres-composer-stepper-r132 > button:first-child {
+  border-radius: 15px 0 0 15px;
+}
+
+.pmd-qres-composer-stepper-r132 > button:last-child {
+  border-radius: 0 15px 15px 0;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__value {
+  min-width: 0;
+  position: relative;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__value > input {
+  height: 50px;
+  min-height: 50px;
+  border-radius: 0 !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  text-align: center;
+  padding: 0 34px 0 12px !important;
+  font-weight: 760 !important;
+  -moz-appearance: textfield;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__value > input::-webkit-outer-spin-button,
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__value > input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__suffix {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: #72827c;
+  font-size: 12px;
+  font-weight: 760;
+  pointer-events: none;
+}
+
+.pmd-qres-composer-preferences-r132,
+.pmd-qres-composer-assignment-r132 {
+  margin-top: 18px;
+}
+
+.pmd-qres-composer-preference-options-r132 {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.pmd-qres-composer-preference-options-r132 label {
+  min-width: 0;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+}
+
+.pmd-qres-composer-preference-options-r132 input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 14px;
+  box-sizing: border-box;
+  border: 1px solid #cfe0d8;
+  border-radius: 14px;
+  background: #fff;
+  color: #28463f;
+  font-size: 13px;
+  font-weight: 720;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span > svg {
+  width: 18px;
+  height: 18px;
+  color: #14765f;
+}
+
+.pmd-qres-composer-preference-options-r132 input:checked + span {
+  border-color: #70ad9a;
+  background: #edf7f3;
+  box-shadow: 0 0 0 2px rgba(37,139,112,.08);
+}
+
+.pmd-qres-composer-modes-r132 {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.pmd-qres-composer-modes-r132 label {
+  min-width: 0;
+  display: block;
+  margin: 0;
+  cursor: pointer;
+}
+
+.pmd-qres-composer-modes-r132 input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pmd-qres-composer-modes-r132 label > span {
+  min-height: 50px;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+  border: 1px solid #cfe0d8;
+  border-radius: 15px;
+  background: #fff;
+  color: #28463f;
+  font-size: 14px;
+  font-weight: 720;
+  text-align: center;
+}
+
+.pmd-qres-composer-modes-r132 input:checked + span {
+  border-color: #70ad9a;
+  background: #edf7f3;
+  color: #145b49;
+  box-shadow: 0 0 0 2px rgba(37,139,112,.08);
+}
+
+.pmd-qres-composer-table-r132 {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 7px 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pmd-qres-composer-table-r132 > span {
+  min-width: 0;
+}
+
+.pmd-qres-composer-table-r132 strong {
+  display: block;
+  overflow: hidden;
+  color: #145b49;
+  font-size: 14px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-qres-composer-table-r132 small {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: #74827d;
+  font-size: 10.5px;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-qres-composer-table-r132 > svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  color: #46645b;
+}
+
+.pmd-qres-composer-contact-r132 {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.pmd-qres-composer-notes-r132 {
+  margin-top: 18px;
+}
+
+.pmd-qres-composer-status-r132 {
+  min-height: 22px;
+  padding: 10px 0 0;
+  color: #557168;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pmd-qres-composer-status-r132.is-error {
+  color: #a22d3d;
+}
+
+.pmd-qres-composer-footer-r132 {
+  min-height: 82px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 15px 30px 20px;
+  box-sizing: border-box;
+  border-top: 1px solid #dce5e1;
+  background: rgba(255,255,255,.96);
+}
+
+.pmd-qres-composer-footer-r132 button {
+  height: 54px;
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 24px;
+  border-radius: 18px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 760;
+  cursor: pointer;
+}
+
+.pmd-qres-composer-cancel-r132 {
+  width: 178px;
+  min-width: 178px;
+  border: 1px solid rgba(53,82,74,.14);
+  background: rgba(255,255,255,.9);
+  color: #233f39;
+  box-shadow: 0 8px 20px rgba(36,62,55,.05), inset 0 1px 0 #fff;
+}
+
+.pmd-qres-composer-save-r132 {
+  width: 248px;
+  min-width: 248px;
+  border: 1px solid #0c6954;
+  background: linear-gradient(180deg,#14866b,#0e725b);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(14,114,91,.18);
+}
+
+.pmd-qres-composer-footer-r132 button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table.is-reservation-editor-table-r132 {
+  outline: 3px solid #075c47 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(7,92,71,.14) !important;
+}
+
+/* ---------- R136 POS editor + canonical time wheel ---------- */
+
+/*
+ * Quick Reservation keeps the canonical Composer geometry/icons, but its
+ * visual treatment belongs to Quick POS: white/grey cards, charcoal text,
+ * and the same dark active state used by History scope controls.
+ */
+.pmd-qres-quick-editor form {
+  color: #111827;
+}
+
+.pmd-qres-composer-title-r132 {
+  border-bottom-color: #e5e7eb;
+  background: #fff;
+}
+
+.pmd-qres-composer-title-r132 h2 {
+  color: #111827;
+}
+
+.pmd-qres-composer-title-r132 small {
+  color: #6b7280;
+}
+
+.pmd-qres-composer-close-r132 {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.pmd-qres-composer-body-r132 {
+  background: #f8fafc;
+}
+
+.pmd-qres-composer-field-r132 > span,
+.pmd-qres-composer-section-title-r132 {
+  color: #374151;
+}
+
+.pmd-qres-composer-field-r132 > span > svg,
+.pmd-qres-composer-section-title-r132 > svg {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #475569;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-field-r132 input:not([type="checkbox"]):not([type="radio"]),
+.pmd-qres-composer-field-r132 textarea,
+.pmd-qres-composer-table-r132 {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #111827;
+}
+
+.pmd-qres-composer-field-r132 input::placeholder,
+.pmd-qres-composer-field-r132 textarea::placeholder {
+  color: #9ca3af;
+}
+
+.pmd-qres-composer-field-r132 input:focus,
+.pmd-qres-composer-field-r132 textarea:focus,
+.pmd-qres-composer-table-r132:focus-visible {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+}
+
+/* R134: same three-row Jade reservation-time interaction as the canonical
+   /admin/reservations Composer, with Quick POS neutral colors. */
+.pmd-qres-quick-editor .pmd-jade-time-field-v221 {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  align-self: start;
+}
+
+.pmd-qres-quick-editor .pmd-jade-native-time-v221 {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221 {
+  position: relative;
+  width: 100%;
+  height: 142px;
+  min-height: 142px;
+  display: grid;
+  grid-template-columns:
+    minmax(0,1fr)
+    14px
+    minmax(0,1fr)
+    minmax(66px,.78fr);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221:focus-within {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79,70,229,.10);
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221::before,
+.pmd-qres-quick-editor .pmd-jade-wheel-v221::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  height: 36px;
+  pointer-events: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221::before {
+  top: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,.98) 0%,
+    rgba(255,255,255,.72) 42%,
+    rgba(255,255,255,0) 100%
+  );
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221::after {
+  bottom: 0;
+  background: linear-gradient(
+    0deg,
+    rgba(255,255,255,.98) 0%,
+    rgba(255,255,255,.72) 42%,
+    rgba(255,255,255,0) 100%
+  );
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__column {
+  position: relative;
+  z-index: 2;
+  height: 140px;
+  min-height: 140px;
+  box-sizing: border-box;
+  padding: 48px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: transparent;
+  touch-action: pan-y;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__column::-webkit-scrollbar {
+  display: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__column.is-minute,
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__column.is-period {
+  border-left: 1px solid #edf0f3;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #64748b;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 620;
+  line-height: 44px;
+  opacity: .46;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  transform: none;
+  transition: none;
+  cursor: pointer;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item.is-selected,
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item[aria-selected="true"] {
+  position: relative;
+  z-index: 6;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 820;
+  opacity: 1;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item:disabled,
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__item[aria-disabled="true"] {
+  color: #9ca3af;
+  opacity: .25;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__separator {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #111827;
+  font-size: 20px;
+  font-weight: 820;
+  pointer-events: none;
+}
+
+.pmd-qres-quick-editor .pmd-jade-wheel-v221__highlight {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 7px;
+  left: 7px;
+  height: 46px;
+  transform: translateY(-50%);
+  border: 1px solid #e5e7eb;
+  border-radius: 13px;
+  background: linear-gradient(
+    90deg,
+    rgba(243,244,246,.72),
+    rgba(248,250,252,.96),
+    rgba(243,244,246,.72)
+  );
+  pointer-events: none;
+}
+
+.pmd-qres-quick-editor
+.pmd-jade-wheel-v221.is-no-available-time
+.pmd-jade-wheel-v221__column {
+  overflow-y: hidden;
+  pointer-events: none;
+  opacity: .18;
+}
+
+.pmd-qres-quick-editor
+.pmd-jade-wheel-v221.is-no-available-time
+.pmd-jade-wheel-v221__separator {
+  opacity: .18;
+}
+
+.pmd-qres-quick-editor
+.pmd-jade-wheel-v221.is-no-available-time
+.pmd-jade-wheel-v221__highlight {
+  z-index: 7;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.pmd-qres-quick-editor
+.pmd-jade-wheel-v221.is-no-available-time
+.pmd-jade-wheel-v221__highlight::after {
+  content: attr(data-pmd-no-time-label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 750;
+  text-align: center;
+  white-space: nowrap;
+}
+
+
+.pmd-qres-composer-stepper-r132 > button {
+  border-color: #d1d5db;
+  background: #f9fafb;
+  color: #111827;
+}
+
+.pmd-qres-composer-stepper-r132 .pmd-composer-stepper-r12__suffix {
+  color: #6b7280;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span,
+.pmd-qres-composer-modes-r132 label > span {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #374151;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span > svg {
+  color: #475569;
+}
+
+.pmd-qres-composer-preference-options-r132 input:checked + span {
+  border-color: #9ca3af;
+  background: #f3f4f6;
+  color: #111827;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-modes-r132 input:checked + span {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-table-r132 strong {
+  color: #111827;
+}
+
+.pmd-qres-composer-table-r132 small,
+.pmd-qres-composer-table-r132 > svg,
+.pmd-qres-composer-status-r132 {
+  color: #6b7280;
+}
+
+.pmd-qres-composer-footer-r132 {
+  border-top-color: #e5e7eb;
+  background: #fff;
+}
+
+.pmd-qres-composer-cancel-r132 {
+  border-color: #d1d5db;
+  background: #fff;
+  color: #111827;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-save-r132 {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+  box-shadow: none;
+}
+
+.pmd-qres-composer-save-r132:hover {
+  background: #1f2937;
+  border-color: #1f2937;
+}
+
+/* R136: one coherent sharp POS palette.
+   Cobalt owns interactive selection; green is reserved for the final save. */
+.pmd-qres-composer-field-r132 > span > svg,
+.pmd-qres-composer-section-title-r132 > svg {
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  box-shadow: none !important;
+}
+
+.pmd-qres-composer-stepper-r132 > button:first-child {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.pmd-qres-composer-stepper-r132 > button:last-child {
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
+}
+.pmd-qres-composer-stepper-r132 > button:last-child:hover {
+  border-color: #1e40af;
+  background: #1e40af;
+}
+
+.pmd-qres-composer-preference-options-r132 label > span > svg {
+  color: #1d4ed8 !important;
+}
+
+.pmd-qres-composer-preference-options-r132 label input:checked + span {
+  border-color: #1d4ed8 !important;
+  background: #1d4ed8 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+.pmd-qres-composer-preference-options-r132 label input:checked + span > svg {
+  color: #fff !important;
+}
+
+.pmd-qres-composer-modes-r132 label input:checked + span {
+  border-color: #1d4ed8 !important;
+  background: #1d4ed8 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.pmd-qres-composer-modes-r132 label > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-qres-composer-save-r132,
+.pmd-qres-composer-save-r132:hover {
+  border-color: #16a34a;
+  background: #16a34a;
+  color: #fff;
+  box-shadow: none;
+}
+.pmd-qres-composer-save-r132:hover {
+  border-color: #15803d;
+  background: #15803d;
+}
+
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-table.is-reservation-editor-table-r132,
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-table.is-reservation-filter-r129 {
+  outline-color: #1d4ed8 !important;
+  box-shadow: 0 0 0 4px rgba(29,78,216,.14) !important;
+}
+
+/* Past business dates remain visible but become read-only without clearing
+   any entered values. Close/Cancel stay available. */
+.pmd-qres-past-note-r136 {
+  flex: 0 0 auto;
+  padding: 8px 22px;
+  border-bottom: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: .01em;
+}
+.pmd-qres-past-note-r136[hidden] {
+  display: none !important;
+}
+.pmd-qres-quick-editor.is-past-date-r136 .pmd-qres-composer-body-r132 {
+  background: #f8fafc;
+}
+.pmd-qres-quick-editor.is-past-date-r136
+.pmd-qres-composer-body-r132 input:disabled,
+.pmd-qres-quick-editor.is-past-date-r136
+.pmd-qres-composer-body-r132 textarea:disabled {
+  opacity: 1;
+  color: #475569;
+  background: #f8fafc;
+  -webkit-text-fill-color: #475569;
+}
+.pmd-qres-quick-editor.is-past-date-r136
+.pmd-qres-composer-body-r132 button:disabled,
+.pmd-qres-quick-editor.is-past-date-r136
+.pmd-qres-composer-body-r132 label:has(input:disabled) {
+  cursor: not-allowed;
+}
+.pmd-qres-quick-editor.is-past-date-r136 .pmd-qres-composer-save-r132 {
+  opacity: .42;
+  filter: grayscale(.18);
+}
+
+/* Search keeps selected-date matches first and separates cross-date results. */
+.pmd-qres-search-group-r136 {
+  display: grid;
+  gap: 7px;
+  padding: 4px 0 2px;
+}
+.pmd-qres-search-group-r136.is-other-r136 {
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+.pmd-qres-search-heading-r136 {
+  min-height: 31px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+.pmd-qres-search-heading-r136 strong {
+  color: #111827;
+  font-size: 11.5px;
+  font-weight: 900;
+}
+.pmd-qres-search-heading-r136 span {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pmd-qres-search-empty-r136 {
+  padding: 15px 10px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 11px;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 11px;
+  font-weight: 720;
+  text-align: center;
+}
+.pmd-qres-list-loading.is-compact-r136 span {
+  height: 48px;
+}
+.pmd-qres-list-card.is-other-date-r136 {
+  border-color: #dbe3ee;
+  background: #fbfdff;
+}
+.pmd-qres-list-date-r136 {
+  display: block !important;
+  margin-top: 4px !important;
+  color: #64748b !important;
+  font-size: 9.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap;
+}
+
+/* Same two-button language as History, isolated to Reservations behavior. */
+.pmd-qres-table-scope-r133 {
+  margin: 0;
+  padding: 0 10px 10px;
+  border-bottom: 1px solid #edf0f3;
+  background: #fff;
+}
+
+.pmd-qres-table-scope-r133 button {
+  min-height: 42px;
+}
+
+.pmd-qres-table-scope-r133 button.is-active {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+}
+
+/* ---------- reservation rail action ---------- */
+
+/* R133: one ordinary table-sized tile. The visible copy is exactly "New". */
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-pickup.is-qres-new-r133 {
+  min-height: 90px !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 12px 10px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 11px !important;
+  background: #f8fafc !important;
+  color: #111827 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  text-align: center !important;
+}
+
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-pickup.is-qres-new-r133 strong {
+  padding: 0 !important;
+  color: #111827 !important;
+  font-size: clamp(20px,1.8vw,25px) !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.02em !important;
+}
+
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-pickup.is-qres-new-r133 small {
+  display: none !important;
+}
+
+.pmd-qpos[data-workspace="reservations"]
+.pmd-qpos-pickup.is-qres-new-r133::after {
+  display: none !important;
+}
+
+.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table {
+  transition: none !important;
+}
+
+.pmd-qpos[data-workspace="reservations"] .pmd-qpos-table:hover {
+  transform: none !important;
+}
+
+.pmd-qpos-reservations-left.is-qres-refreshing-r131,
+.pmd-qpos-reservations-center.is-qres-refreshing-r131 {
+  cursor: progress;
 }
 
 /* ---------- profile workspace switch ---------- */
@@ -581,14 +1634,14 @@
   display: none !important;
 }
 
-/* Presentation-only table filter. It never changes canonical table status. */
+/* Presentation-only reservation scope. It never changes canonical table status. */
 .pmd-qpos[data-workspace="reservations"]
 .pmd-qpos-table.is-reservation-filter-r129,
 .pmd-qpos[data-workspace="reservations"]
 .pmd-qpos-table.is-reservation-filter-r128 {
-  outline: 3px solid #032f25 !important;
+  outline: 3px solid #111827 !important;
   outline-offset: 2px !important;
-  box-shadow: 0 0 0 4px rgba(3,47,37,.12) !important;
+  box-shadow: 0 0 0 4px rgba(17,24,39,.10) !important;
 }
 
 /* ---------- standalone Quick POS Composer structural bridge ---------- */
@@ -666,12 +1719,30 @@ body.pmd-qpos-body
     grid-template-columns: 68px minmax(0, 1fr);
   }
 
-  .pmd-qres-hour-row.is-current::before {
-    left: 63px;
-  }
-
   .pmd-qres-hour-lane {
     grid-template-columns: 1fr;
+  }
+
+  .pmd-qres-composer-body-r132 {
+    padding: 16px;
+  }
+
+  .pmd-qres-composer-modes-r132 {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+
+  .pmd-qres-composer-footer-r132 {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .pmd-qres-booking-cells {
+    grid-template-columns: minmax(120px, 1.5fr) 46px minmax(78px, 1fr);
+  }
+
+  .pmd-qres-booking-cell.is-duration,
+  .pmd-qres-booking-cell.is-time {
+    border-top: 1px solid #d6e5df;
   }
 
   body.pmd-qpos-body #pmd-reservation-composer-v1.show {
@@ -683,4 +1754,78 @@ body.pmd-qpos-body
     max-width: calc(100vw - 16px) !important;
     margin: 8px auto !important;
   }
+}
+
+@media (max-width: 700px) {
+  .pmd-qres-composer-title-r132 {
+    min-height: 66px;
+    padding: 12px 16px;
+  }
+
+  .pmd-qres-composer-title-r132 h2 {
+    font-size: 22px;
+  }
+
+  .pmd-qres-composer-primary-r132 {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "name"
+      "date"
+      "time"
+      "duration"
+      "guests";
+  }
+
+  .pmd-qres-quick-editor .pmd-jade-wheel-v221 {
+    height: 132px;
+    min-height: 132px;
+  }
+
+  .pmd-qres-quick-editor .pmd-jade-wheel-v221__column {
+    height: 130px;
+    min-height: 130px;
+    padding: 43px 0;
+  }
+
+  .pmd-qres-composer-contact-r132,
+  .pmd-qres-composer-preference-options-r132,
+  .pmd-qres-composer-modes-r132 {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-qres-composer-footer-r132 {
+    min-height: auto;
+    gap: 8px;
+    padding: 10px 12px 14px;
+  }
+
+  .pmd-qres-composer-cancel-r132,
+  .pmd-qres-composer-save-r132 {
+    width: auto;
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 0 12px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .pmd-qres-composer-footer-r132 {
+    flex-direction: column-reverse;
+  }
+
+  .pmd-qres-composer-cancel-r132,
+  .pmd-qres-composer-save-r132 {
+    width: 100%;
+    flex-basis: auto;
+  }
+}
+.pmd-qres-datebar--top {
+  padding-top: 12px;
+}
+
+
+/* PMD_QRES_ASSIGNMENT_SINGLE_ROW_R136 */
+.pmd-qres-composer-assignment-r132 > .pmd-qres-composer-table-r132,
+.pmd-qres-quick-table[data-qres-quick-table] {
+  display: none !important;
 }

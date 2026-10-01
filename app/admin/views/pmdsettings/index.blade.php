@@ -1111,6 +1111,11 @@ document.documentElement.classList.add(
             height:24px;
         }
 
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--display {
+            color:#0d6b4f;
+            background:#eef8f4;
+        }
+
         #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--android {
             color:#3ddc84;
             background:#eefbf4;
@@ -1174,7 +1179,7 @@ document.documentElement.classList.add(
 
     <section
         id="pmd-cashier-settings-launcher-v107"
-        aria-label="Cashier App downloads"
+        aria-label="PayMyDine app downloads"
         data-open="0"
     >
         <div
@@ -1182,6 +1187,26 @@ document.documentElement.classList.add(
             id="pmd-cashier-launcher-menu-v107"
             hidden
         >
+            <a
+                class="pmd-cashier-launcher-v107__download"
+                {{-- PMD_TABLE_COMPANION_ANDROID_V1 --}}
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-table-display-preview/PayMyDine-Table-Companion-0.1.2.apk"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--display" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="3" width="16" height="18" rx="3"/>
+                        <path d="M8 7h8M8 11h8M10 17h4"/>
+                        <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>
+                    </svg>
+                </span>
+                <span class="pmd-cashier-launcher-v107__copy">
+                    <strong>Table Companion · Android</strong>
+                    <small>Android 8+ · Table Display 0.1.2 · Guest-facing monitor</small>
+                </span>
+            </a>
+
             <a
                 class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
@@ -1221,35 +1246,6 @@ document.documentElement.classList.add(
                 </span>
             </a>
 
-            <a
-                class="pmd-cashier-launcher-v107__download"
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-desktop-v120-preview/PayMyDine-Desktop-1.2.0-mac-arm64.dmg"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--apple" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M15.55 2.1c.08 1.45-.49 2.55-1.2 3.35-.77.86-1.93 1.52-3.06 1.43-.1-1.39.4-2.46 1.13-3.27.74-.83 1.98-1.48 3.13-1.51ZM19.36 17.1c-.57 1.29-.84 1.86-1.58 3-.99 1.51-2.39 3.4-4.12 3.42-1.53.02-1.93-1-4.01-.99-2.08.01-2.52 1.02-4.05.99-1.72-.03-3.04-1.72-4.03-3.23C-1.2 16.05-1.49 11.08.22 8.46c1.22-1.86 3.13-2.95 4.92-2.95 1.83 0 2.98 1 4.49 1 1.47 0 2.36-1 4.47-1 1.59 0 3.28.87 4.5 2.37-3.95 2.17-3.31 7.82.76 9.22Z" transform="translate(2 0) scale(.82)"/>
-                    </svg>
-                </span>
-                <span class="pmd-cashier-launcher-v107__copy">
-                    <strong>Mac · Apple Silicon</strong>
-                    <small>M1 / M2 / M3 / M4</small>
-                </span>
-            </a>
-
-            <a
-                class="pmd-cashier-launcher-v107__download"
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-cashier-v1-preview/PayMyDine-Cashier-1.0.7-mac-x64.dmg"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--intel" aria-hidden="true">intel</span>
-                <span class="pmd-cashier-launcher-v107__copy">
-                    <strong>Mac · Intel</strong>
-                    <small>Intel x64</small>
-                </span>
-            </a>
         </div>
 
         <button
