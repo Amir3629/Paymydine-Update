@@ -26,4 +26,16 @@ Build command: gradle assembleDebug
 
 Debug package: com.paymydine.tabledisplay.preview
 
-Version: 0.1.3-table-companion-debug
+Version: 0.1.4-table-companion-debug
+
+
+## Device Shell
+
+- Reports app/OS/hardware/network/battery health to PayMyDine Device Control.
+- Opening Hours can automatically wake the screen before service and place it in low-power black-screen mode after closing.
+- Supports remote Wake, Sleep, Brightness, Reload and Identify.
+- Managed Reboot works only when restaurant hardware is provisioned as Android Device Owner.
+- Normal APK installs still run in immersive full-screen mode.
+- When provisioned as Device Owner, PayMyDine uses Android Lock Task so staff/guests do not see the Android launcher.
+- Last restaurant/table/QR snapshot is kept locally so a cold boot without WAN can immediately restore the last safe QR screen.
+- Fully powered-off hardware cannot receive a Wi-Fi/Cloud wake command; use soft sleep or hardware with AC-restore auto boot.
