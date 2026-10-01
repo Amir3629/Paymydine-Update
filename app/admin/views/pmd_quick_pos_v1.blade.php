@@ -76,14 +76,12 @@
     @else
         <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-pos-v1.css?v=20260928-r129">
     @endif
-    {{-- PMD_TABLE_DISPLAY_V1
-         Small-screen Card payment handoff is runtime-gated to waiter role. --}}
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20260929-r1">
     {{-- PMD_QPOS_QUICK_RESERVATIONS_R128
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260928-r129">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -1149,11 +1147,11 @@ window.PMDQuickPOSConfig = {
 {{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
      Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
      cannot substitute an older bundled runtime. --}}
-<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260928-r129"></script>
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260930-r131"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260928-r129"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260930-r131"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20260929-r1"></script>
+<script defer src="/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261001-r2"></script>
 <script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129"></script>
 <script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
