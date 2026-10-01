@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import org.json.JSONObject
 import java.security.KeyStore
 import java.util.UUID
 import javax.crypto.Cipher
@@ -40,11 +41,109 @@ class SecureStore(context: Context) {
             .remove("host")
             .remove("device_id")
             .remove("device_token")
+            .remove("display_snapshot_v1")
+            .remove("device_screen_state")
+            .remove("device_brightness")
             .apply()
     }
 
     fun isPaired(): Boolean =
         !host().isNullOrBlank() && !token().isNullOrBlank()
+
+    fun saveDisplaySnapshot(state: DisplayState) {
+        val safeEvent =
+            if (state.event.type == "table_unavailable") {
+                state.event
+            } else {
+                state.event.copy(
+                    type = "idle",
+                    key = "idle",
+                    headline = "Scan to order",
+                    message = "",
+                    orderId = 0L,
+                    amount = 0.0,
+                )
+            }
+
+        val json =
+            JSONObject()
+                .put("restaurant_name", state.restaurantName)
+                .put("restaurant_logo", state.restaurantLogoUrl)
+                .put(
+                    "table",
+                    JSONObject()
+                        .put("id", state.table.id)
+                        .put("number", state.table.number)
+                        .put("name", state.table.name)
+                        .put("menu_url", state.table.menuUrl)
+                        .put("enabled", state.table.enabled),
+                )
+                .put(
+                    "event",
+                    JSONObject()
+                        .put("type", safeEvent.type)
+                        .put("key", safeEvent.key)
+                        .put("headline", safeEvent.headline)
+                        .put("message", safeEvent.message)
+                        .put("order_id", safeEvent.orderId)
+                        .put("amount", safeEvent.amount)
+                        .put("currency", safeEvent.currency),
+                )
+                .put("server_time", state.serverTime)
+
+        prefs.edit()
+            .putString("display_snapshot_v1", json.toString())
+            .apply()
+    }
+
+    fun displaySnapshot(): DisplayState? {
+        val raw = prefs.getString("display_snapshot_v1", null) ?: return null
+        return runCatching {
+            val json = JSONObject(raw)
+            val table = json.getJSONObject("table")
+            val event = json.getJSONObject("event")
+            DisplayState(
+                restaurantName = json.optString("restaurant_name", "PayMyDine"),
+                restaurantLogoUrl = json.optString(
+                    "restaurant_logo",
+                    "/brand/paymydine-logo.svg",
+                ),
+                table = DisplayTable(
+                    id = table.optLong("id"),
+                    number = table.optString("number"),
+                    name = table.optString("name", "Table"),
+                    menuUrl = table.optString("menu_url"),
+                    enabled = table.optBoolean("enabled", true),
+                ),
+                event = DisplayEvent(
+                    type = event.optString("type", "idle"),
+                    key = event.optString("key", "idle"),
+                    headline = event.optString("headline", "Scan to order"),
+                    message = event.optString("message", ""),
+                    orderId = event.optLong("order_id"),
+                    amount = event.optDouble("amount", 0.0),
+                    currency = event.optString("currency", "EUR"),
+                ),
+                serverTime = json.optString("server_time"),
+            )
+        }.getOrNull()
+    }
+
+    fun saveDeviceControlState(
+        screenState: String,
+        brightness: Int,
+    ) {
+        prefs.edit()
+            .putString("device_screen_state", screenState)
+            .putInt("device_brightness", brightness.coerceIn(0, 100))
+            .apply()
+    }
+
+    fun deviceScreenState(): String =
+        prefs.getString("device_screen_state", "awake") ?: "awake"
+
+    fun deviceBrightness(): Int =
+        prefs.getInt("device_brightness", 80).coerceIn(0, 100)
 
     companion object {
         private const val KEY_ALIAS = "pmd-table-companion-v1"
