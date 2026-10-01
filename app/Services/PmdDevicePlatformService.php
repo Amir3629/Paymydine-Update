@@ -29,6 +29,7 @@ final class PmdDevicePlatformService
             && Schema::hasTable('pmd_device_commands')
             && Schema::hasTable('pmd_device_policies')
             && Schema::hasTable('pmd_device_deployment_sessions')
+            && Schema::hasTable('pmd_device_logs')
         ) {
             $this->ensureRuntimeOverrideColumns();
             return;
@@ -71,6 +72,7 @@ final class PmdDevicePlatformService
             'deployment' => $this->activeDeployment($locationId),
             'table_options' => $this->tableOptions($locationId),
             'terminal_options' => $this->terminalOptions($locationId),
+            'recent_logs' => $this->recentLogs($locationId, 20),
             'stats' => [
                 'total' => count($devices),
                 'online' => $online,
@@ -671,6 +673,108 @@ final class PmdDevicePlatformService
             'commands' => $this->pendingCommands($deviceId),
             'poll_after_seconds' => 10,
         ];
+    }
+
+    public function recordLog($device, array $input): array
+    {
+        $this->ensureStorage();
+
+        $level = strtolower(trim((string)($input['level'] ?? 'info')));
+        if (!in_array($level, ['debug', 'info', 'warning', 'error'], true)) {
+            $level = 'info';
+        }
+
+        $event = mb_substr(
+            trim((string)($input['event'] ?? 'device_event')),
+            0,
+            80
+        );
+        if ($event === '') {
+            $event = 'device_event';
+        }
+
+        $message = mb_substr(
+            trim((string)($input['message'] ?? '')),
+            0,
+            1000
+        );
+        $context = $this->redactLogContext(
+            (array)($input['context'] ?? [])
+        );
+
+        $occurredAt = now();
+        if (!empty($input['occurred_at'])) {
+            try {
+                $occurredAt = Carbon::parse((string)$input['occurred_at']);
+            } catch (\Throwable $ignored) {
+            }
+        }
+
+        $id = DB::table('pmd_device_logs')->insertGetId([
+            'location_id' => (int)$device->location_id,
+            'device_id' => (int)$device->id,
+            'level' => $level,
+            'event' => $event,
+            'message' => $message,
+            'context' => $context
+                ? json_encode(
+                    $context,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                )
+                : null,
+            'occurred_at' => $occurredAt,
+            'created_at' => now(),
+        ]);
+
+        // Keep tenant storage bounded. Device diagnostics are operational,
+        // not an unlimited archive.
+        $cutoff = now()->subDays(30);
+        DB::table('pmd_device_logs')
+            ->where('location_id', (int)$device->location_id)
+            ->where('occurred_at', '<', $cutoff)
+            ->delete();
+
+        return [
+            'ok' => true,
+            'log_id' => (int)$id,
+        ];
+    }
+
+    public function recentLogs(int $locationId, int $limit = 20): array
+    {
+        $this->ensureStorage();
+
+        $limit = max(1, min(100, $limit));
+        $devices = Schema::hasTable('pmd_site_access_devices')
+            ? DB::table('pmd_site_access_devices')
+                ->where('location_id', $locationId)
+                ->pluck('device_name', 'id')
+            : collect();
+
+        return DB::table('pmd_device_logs')
+            ->where('location_id', $locationId)
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get()
+            ->map(function ($row) use ($devices) {
+                return [
+                    'id' => (int)$row->id,
+                    'device_id' => (int)$row->device_id,
+                    'device_name' => (string)(
+                        $devices->get((int)$row->device_id)
+                        ?: ('Device #'.(int)$row->device_id)
+                    ),
+                    'level' => (string)$row->level,
+                    'event' => (string)$row->event,
+                    'message' => (string)$row->message,
+                    'occurred_at' => $row->occurred_at
+                        ? Carbon::parse($row->occurred_at)->toIso8601String()
+                        : null,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     public function acknowledge($device, string $commandId, string $status, array $result = []): array
@@ -1339,6 +1443,39 @@ final class PmdDevicePlatformService
         }
 
         return ucwords(str_replace('_', ' ', $kind ?: 'device'));
+    }
+
+    private function redactLogContext(array $context): array
+    {
+        $out = [];
+        foreach ($context as $key => $value) {
+            $normalized = strtolower((string)$key);
+            if (
+                str_contains($normalized, 'token')
+                || str_contains($normalized, 'password')
+                || str_contains($normalized, 'secret')
+                || str_contains($normalized, 'authorization')
+                || str_contains($normalized, 'cookie')
+                || str_contains($normalized, 'card')
+                || str_contains($normalized, 'pan')
+            ) {
+                $out[$key] = '[redacted]';
+                continue;
+            }
+
+            if (is_array($value)) {
+                $out[$key] = $this->redactLogContext($value);
+                continue;
+            }
+
+            if (is_scalar($value) || $value === null) {
+                $out[$key] = is_string($value)
+                    ? mb_substr($value, 0, 500)
+                    : $value;
+            }
+        }
+
+        return $out;
     }
 
     private function decode(string $value): array
