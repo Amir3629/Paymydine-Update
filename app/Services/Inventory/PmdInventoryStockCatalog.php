@@ -610,6 +610,83 @@ final class PmdInventoryStockCatalog
             ['Hand soap', 'liquid hand soap', 'restaurant supplies'],
         ]);
 
+        // PMD_INVENTORY_SUPERMARKET_MASTER_CATALOG_R14
+        // The checked-in list above remains the curated restaurant core with
+        // recipe-friendly units. A locally materialized Ingredient Atlas layer
+        // may add the much broader supermarket/wholesale assortment (food,
+        // beverages, household, cleaning, paper/hygiene and related supplies).
+        // Static PMD rows always win exact-name collisions.
+        $items = self::mergeRuntimeAtlasCatalog($items);
+
+        return $items;
+    }
+
+    private static function mergeRuntimeAtlasCatalog(array $items): array
+    {
+        $root = dirname(__DIR__, 3);
+        $path = function_exists('storage_path')
+            ? storage_path('app/pmd-inventory-atlas-catalog-r14.json')
+            : $root.'/storage/app/pmd-inventory-atlas-catalog-r14.json';
+
+        if (!is_file($path) || (int)@filesize($path) < 10) {
+            return $items;
+        }
+
+        try {
+            $decoded = json_decode((string)@file_get_contents($path), true);
+            $runtime = is_array($decoded['items'] ?? null)
+                ? $decoded['items']
+                : (is_array($decoded) ? $decoded : []);
+
+            $seen = [];
+            foreach ($items as $item) {
+                $key = self::normalize((string)($item['name'] ?? ''));
+                if ($key !== '') {
+                    $seen[$key] = true;
+                }
+            }
+
+            foreach ($runtime as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                $name = trim((string)($row['name'] ?? ''));
+                $key = self::normalize($name);
+                if ($name === '' || $key === '' || isset($seen[$key])) {
+                    continue;
+                }
+
+                $aliases = array_values(array_unique(array_filter(array_map(
+                    static fn ($value) => trim((string)$value),
+                    is_array($row['aliases'] ?? null) ? $row['aliases'] : []
+                ))));
+
+                $items[] = [
+                    'name' => mb_substr($name, 0, 190),
+                    'category' => mb_substr(trim((string)($row['category'] ?? 'Pantry')), 0, 100),
+                    'unit' => trim((string)($row['unit'] ?? 'piece')) ?: 'piece',
+                    'purchase_unit' => trim((string)($row['purchase_unit'] ?? ($row['unit'] ?? 'piece'))) ?: 'piece',
+                    'purchase_to_base' => isset($row['purchase_to_base'])
+                        && is_numeric($row['purchase_to_base'])
+                        ? max(0.0001, (float)$row['purchase_to_base'])
+                        : null,
+                    'aliases' => $aliases,
+                    'cuisines' => [],
+                    'catalog_source' => 'ingredient-atlas',
+                    'atlas_slug' => trim((string)($row['atlas_slug'] ?? '')),
+                    'image_slug' => trim((string)($row['image_slug'] ?? ($row['atlas_slug'] ?? ''))),
+                    'atlas_kind' => trim((string)($row['atlas_kind'] ?? '')),
+                    'atlas_category' => trim((string)($row['atlas_category'] ?? '')),
+                    'atlas_subcategory' => trim((string)($row['atlas_subcategory'] ?? '')),
+                ];
+                $seen[$key] = true;
+            }
+        } catch (\Throwable $error) {
+            // A damaged optional runtime catalog must never break Inventory.
+            return $items;
+        }
+
         return $items;
     }
 
