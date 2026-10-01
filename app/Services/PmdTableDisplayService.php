@@ -167,8 +167,8 @@ final class PmdTableDisplayService
                     'order_id' => $orderId,
                     'amount' => $remaining,
                     'currency' => $currency,
-                    'headline' => 'Ready to pay',
-                    'message' => 'Tap or insert your card on the table display.',
+                    'headline' => 'Ready for card payment',
+                    'message' => 'Tap or insert your card to complete payment.',
                     'expires_at' => $expiresAt->toIso8601String(),
                 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'occurred_at' => now(),
@@ -196,17 +196,17 @@ final class PmdTableDisplayService
         $events = [];
         if ($displayEvent) $events[] = $displayEvent;
         if ($order && !empty($order['settled_at']) && $this->recent($order['settled_at'], 45)) {
-            $events[] = $this->event('payment_success', 'Payment approved', 'Thank you. Your payment was received.', $order['settled_at'], [
+            $events[] = $this->event('payment_success', 'Payment approved', 'Thank you for visiting us.', $order['settled_at'], [
                 'order_id' => $order['id'], 'amount' => $order['settled_amount'], 'currency' => $this->currencyCode(),
             ]);
         }
         if ($order && !empty($order['created_at']) && $this->recent($order['created_at'], 35)) {
-            $events[] = $this->event('order_received', 'Order received', 'Your order was sent to the restaurant.', $order['created_at'], ['order_id' => $order['id']]);
+            $events[] = $this->event('order_received', 'Order received', 'Sent to the kitchen.', $order['created_at'], ['order_id' => $order['id']]);
         }
         if ($waiterCall && !empty($waiterCall['created_at']) && $this->recent($waiterCall['created_at'], 35)) {
-            $events[] = $this->event('waiter_call', 'Waiter called', 'A team member has been notified.', $waiterCall['created_at']);
+            $events[] = $this->event('waiter_call', 'A team member is on the way', 'We have notified the restaurant team.', $waiterCall['created_at']);
         }
-        if (!$events) return $this->event('idle', 'Scan to view the menu', 'Use your phone camera to scan this table QR code.', null);
+        if (!$events) return $this->event('idle', 'Scan to order', '', null);
 
         usort($events, fn ($a, $b) => strcmp((string)($b['occurred_at'] ?? ''), (string)($a['occurred_at'] ?? '')));
         return $events[0];
@@ -367,12 +367,45 @@ final class PmdTableDisplayService
             try { return Schema::hasTable('settings') ? DB::table('settings')->where('item', $key)->value('value') : null; }
             catch (\Throwable $ignored) { return null; }
         };
+
         $name = trim((string)($get('pmd_restaurant_identity_name') ?: $get('site_name') ?: ''));
         if ($name === '' && $locationId && Schema::hasTable('locations')) {
-            try { $name = trim((string)DB::table('locations')->where('location_id', $locationId)->value('location_name')); } catch (\Throwable $ignored) {}
+            try { $name = trim((string)DB::table('locations')->where('location_id', $locationId)->value('location_name')); }
+            catch (\Throwable $ignored) {}
         }
+
+        /*
+         * PMD_TABLE_DISPLAY_RESTAURANT_IDENTITY_V3
+         * Use the restaurant's canonical uploaded identity logo. Tenant
+         * settings may store either a full URL, /uploads/... or a bare media
+         * filename, so normalize it exactly like the table QR studio does.
+         */
         $logo = trim((string)($get('pmd_restaurant_identity_logo') ?: $get('site_logo') ?: ''));
-        return ['name' => $name ?: 'PayMyDine', 'logo' => $logo ?: '/brand/paymydine-logo.svg'];
+        if ($logo === '') {
+            $logo = '/brand/paymydine-logo.svg';
+        } elseif (!preg_match('#^https?://#i', $logo)) {
+            $logoPath = '/'.ltrim(
+                str_replace('\\\\', '/', (string)(parse_url($logo, PHP_URL_PATH) ?: $logo)),
+                '/'
+            );
+
+            if (
+                str_starts_with($logoPath, '/api/media/')
+                || str_starts_with($logoPath, '/assets/media/')
+                || str_starts_with($logoPath, '/brand/')
+            ) {
+                $logo = $logoPath;
+            } elseif (str_starts_with($logoPath, '/uploads/')) {
+                $logo = '/assets/media'.$logoPath;
+            } else {
+                $logo = '/api/media/'.basename($logoPath);
+            }
+        }
+
+        return [
+            'name' => $name ?: 'PayMyDine',
+            'logo' => $logo,
+        ];
     }
 
     private function currencyCode(): string
