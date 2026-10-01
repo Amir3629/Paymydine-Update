@@ -18,6 +18,10 @@ Route::group([
         ->withoutMiddleware([VerifyCsrfToken::class])
         ->middleware('throttle:120,1,pmd-device-platform-heartbeat');
 
+    Route::post('logs', [PmdDevicePlatformController::class, 'log'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:60,1,pmd-device-platform-logs');
+
     Route::post('ack', [PmdDevicePlatformController::class, 'acknowledge'])
         ->withoutMiddleware([VerifyCsrfToken::class])
         ->middleware('throttle:120,1,pmd-device-platform-ack');
