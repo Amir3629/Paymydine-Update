@@ -144,8 +144,19 @@ class Pmddevices extends AdminController
         Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Table display', 'settings.'));
 
         $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-table-display-preview-page');
-        $this->addCss('css/pmd-table-display-v1.css');
-        $this->addJs('js/pmd-table-display-v1.js');
+
+        // PMD_TABLE_DISPLAY_ASSET_HASH_V3
+        // Always advance the browser cache when this dedicated surface changes.
+        $pmdTableDisplayCss = base_path('app/admin/assets/css/pmd-table-display-v1.css');
+        $pmdTableDisplayJs = base_path('app/admin/assets/js/pmd-table-display-v1.js');
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-table-display-v1.css')
+            .'?v='.(string)(@filemtime($pmdTableDisplayCss) ?: 'v3')
+        );
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-table-display-v1.js')
+            .'?v='.(string)(@filemtime($pmdTableDisplayJs) ?: 'v3')
+        );
 
         $selectedTableId = (int)request()->query('table', 0);
         $this->vars['pmdTableDisplay'] = app(PmdTableDisplayService::class)
