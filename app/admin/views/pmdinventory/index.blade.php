@@ -96,18 +96,18 @@
                 </div>
             @endif
 
-            {{-- PMD_INVENTORY_ONE_CLICK_SHELF_R11 --}}
+            {{-- PMD_INVENTORY_SUPERMARKET_MASTER_CATALOG_R14 --}}
             <section class="pmd-inv-pos-browser pmd-inv-pos-browser--dashboard pmd-inv-r11-quick-stock" data-pmd-inv-visual-browser="dashboard" aria-label="Quick stock catalogue">
                 <div class="pmd-inv-pos-browser__top pmd-inv-r11-quick-stock__top">
                     <div>
                         <span>Quick stock</span>
                         <strong>Tap what just arrived</strong>
-                        <small>Pick an item to start a purchase immediately. Search food, drinks and supplies without opening another screen.</small>
+                        <small>Search {{ number_format(count($commonStock)) }} supermarket, wholesale, bar and cleaning items. Tap one to start a purchase.</small>
                     </div>
                     <div class="pmd-inv-r11-quick-tools">
                         <label class="pmd-inv-pos-browser__search">
                             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                            <input type="search" placeholder="Search tomato, onion, vodka…" autocomplete="off" data-pmd-inv-browser-search="dashboard">
+                            <input type="search" placeholder="Search tomato, juice, whisky, mop…" autocomplete="off" data-pmd-inv-browser-search="dashboard">
                         </label>
                         <button type="button" class="pmd-inv-r11-quick-action" data-pmd-inv-open="purchase">Add purchase</button>
                         <button type="button" class="pmd-inv-r11-quick-action is-quiet" data-pmd-inv-open="item">Custom item</button>
@@ -235,7 +235,7 @@
                             </div>
                             <label class="pmd-inv-pos-browser__search">
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                                <input type="search" placeholder="Search food, drinks, supplies…" autocomplete="off" data-pmd-inv-browser-search="catalog">
+                                <input type="search" placeholder="Search food, drinks, cleaning, supplies…" autocomplete="off" data-pmd-inv-browser-search="catalog">
                             </label>
                         </div>
                         <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="catalog"></div>
