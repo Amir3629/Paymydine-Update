@@ -31,7 +31,7 @@ class Pmdinventory extends AdminController
 
         $this->bodyClass = trim(
             ($this->bodyClass ?? '').
-            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r12-page'
+            ' pmd-admin-theme-v1 pmd-settings-suite pmd-inventory-page pmd-inventory-r13-page'
         );
 
         // PMD_INVENTORY_DASHBOARD_SHELL_R2
@@ -39,7 +39,7 @@ class Pmdinventory extends AdminController
         // warm admin chrome shown by the first Inventory R1 build.
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-platform-card-system-v1.css');
-        // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R12 - reusable visual stock catalogue.
+        // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R13 - reusable visual stock catalogue.
         // PMD_INVENTORY_CARD_GEOMETRY_R9 - centered cards + shared steppers.
         // PMD_INVENTORY_CARD_LANGUAGE_R8 - Inventory composers inherit the
         // validated platform modal/card shell, then apply their feature-owned
@@ -50,11 +50,11 @@ class Pmdinventory extends AdminController
 
         $this->addCss(
             asset('app/admin/assets/css/pmd-inventory-v1.css')
-            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r12')
+            .'?v='.(string)(@filemtime($inventoryCssPath) ?: 'r13')
         );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
-            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r12')
+            .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r13')
         );
         AdminMenu::setContext('dashboard');
     }
@@ -129,7 +129,7 @@ class Pmdinventory extends AdminController
 
     protected function catalogWithImages(): array
     {
-        $directory = base_path('app/admin/assets/images/pmd-inventory-items');
+        $directory = base_path('app/admin/assets/images/pmd-inventory-atlas');
 
         return array_map(static function (array $row) use ($directory): array {
             $name = trim((string)($row['name'] ?? ''));
@@ -141,7 +141,7 @@ class Pmdinventory extends AdminController
             $filename = $slug.'.webp';
             $path = $directory.DIRECTORY_SEPARATOR.$filename;
             $row['image_url'] = is_file($path) && (int)@filesize($path) > 5000
-                ? asset('app/admin/assets/images/pmd-inventory-items/'.$filename)
+                ? asset('app/admin/assets/images/pmd-inventory-atlas/'.$filename)
                 : null;
 
             return $row;
