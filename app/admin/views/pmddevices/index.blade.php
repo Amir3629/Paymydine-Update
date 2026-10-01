@@ -39,6 +39,7 @@
     $devicePlatformDeployment = (array)($devicePlatform['deployment'] ?? []);
     $devicePlatformTableOptions = (array)($devicePlatform['table_options'] ?? []);
     $devicePlatformTerminalOptions = (array)($devicePlatform['terminal_options'] ?? []);
+    $devicePlatformRecentLogs = (array)($devicePlatform['recent_logs'] ?? []);
 @endphp
 
 <div id="pmd-devices-page" class="pmd-owner-page" data-pmd-owner-page data-pmd-device-inline-v6>
@@ -389,6 +390,33 @@
                         <div class="pmd-owner-empty">
                             {{ $pmdSettingsText('No trusted PayMyDine device has reported to Device Control yet. Pair a Table Companion or Android Restaurant App first.') }}
                         </div>
+                    @endforelse
+                </div>
+
+                <div class="pmd-device-platform-logs">
+                    <div class="pmd-device-platform-list-head">
+                        <div>
+                            <h3>{{ $pmdSettingsText('Recent device logs') }}</h3>
+                            <p>{{ $pmdSettingsText('Sanitized operational events from managed PayMyDine devices. Credentials and card data are never stored here.') }}</p>
+                        </div>
+                    </div>
+                    @forelse($devicePlatformRecentLogs as $deviceLog)
+                        <div class="pmd-device-platform-log">
+                            <span class="pmd-device-platform-log__level is-{{ e($deviceLog['level'] ?? 'info') }}">
+                                {{ e(strtoupper((string)($deviceLog['level'] ?? 'info'))) }}
+                            </span>
+                            <div>
+                                <strong>{{ e($deviceLog['device_name'] ?? 'PayMyDine device') }} · {{ e($deviceLog['event'] ?? 'device_event') }}</strong>
+                                <small>{{ e($deviceLog['message'] ?? '') }}</small>
+                            </div>
+                            <time>
+                                @if(!empty($deviceLog['occurred_at']))
+                                    {{ e(\Carbon\Carbon::parse($deviceLog['occurred_at'])->diffForHumans()) }}
+                                @endif
+                            </time>
+                        </div>
+                    @empty
+                        <div class="pmd-owner-empty">{{ $pmdSettingsText('No device log events yet.') }}</div>
                     @endforelse
                 </div>
             </div>
