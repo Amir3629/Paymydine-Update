@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R12 */
+/* PMD_INVENTORY_CONTROL_R13 */
 (function () {
   'use strict';
 
@@ -2603,7 +2603,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '12.0.0',
+    version: '13.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
