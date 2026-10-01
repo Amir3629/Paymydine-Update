@@ -173,7 +173,7 @@
   function browserState(mode) {
     mode = String(mode || 'catalog');
     if (!state.browsers[mode]) {
-      state.browsers[mode] = {query:'', section:'All', limit:12};
+      state.browsers[mode] = {query:'', main:'All', section:'All', limit:12};
     }
     return state.browsers[mode];
   }
@@ -318,6 +318,47 @@
       esc(visualEmoji(row)) + '</span></span>';
   }
 
+  var preloadedCatalogPhotos = {};
+  var browserRenderTokens = {};
+
+  function markCatalogPhotoLoaded(url) {
+    url = String(url || '').trim();
+    if (url) preloadedCatalogPhotos[url] = true;
+  }
+
+  function preloadBrowserPhotos(rows) {
+    var urls = [];
+    (rows || []).forEach(function (row) {
+      var url = inventoryPhotoUrl(row);
+      if (!url || preloadedCatalogPhotos[url] || urls.indexOf(url) !== -1) return;
+      urls.push(url);
+    });
+
+    if (!urls.length) return Promise.resolve();
+
+    var jobs = urls.map(function (url) {
+      return new Promise(function (resolve) {
+        var image = new Image();
+        var done = function () {
+          markCatalogPhotoLoaded(url);
+          resolve();
+        };
+        image.onload = done;
+        image.onerror = done;
+        image.decoding = 'async';
+        image.src = url;
+        if (image.complete) done();
+      });
+    });
+
+    // Keep the current shelf in place while the next shelf warms up. The
+    // timeout prevents a single broken asset from making navigation feel stuck.
+    return Promise.race([
+      Promise.all(jobs),
+      new Promise(function (resolve) { window.setTimeout(resolve, 900); })
+    ]);
+  }
+
   function catalogTemplateForItem(item) {
     if (!item) return null;
     var exact = normalizeCatalogText(item.name);
@@ -390,7 +431,7 @@
     return rows;
   }
 
-  function renderVisualBrowser(mode) {
+  function renderVisualBrowser(mode, photosReady) {
     mode = String(mode || '');
     var grid = root.querySelector('[data-pmd-inv-browser-grid="' + mode + '"]');
     var cats = root.querySelector('[data-pmd-inv-browser-categories="' + mode + '"]');
@@ -452,14 +493,19 @@
     }).join('');
     mainHtml += '</div>';
 
-    var detailHtml = '';
+    var activeMainMeta = mainBrowserSections.find(function (section) {
+      return section.key === bState.main;
+    });
+    var activeMainLabel = activeMainMeta ? activeMainMeta.label : bState.main;
+    var detailHtml = '<div class="pmd-inv-pos-browser__detail-row' +
+      (detailSections.length ? '' : ' is-empty') + '">';
+
     if (detailSections.length) {
       var mainCount = Number(index.mainCounts[bState.main] || 0);
-      detailHtml = '<div class="pmd-inv-pos-browser__detail-row">' +
-        '<button type="button" class="' + (bState.section === 'All' ? 'is-active' : '') +
+      detailHtml += '<button type="button" class="' + (bState.section === 'All' ? 'is-active' : '') +
         '" data-pmd-inv-browser-section="' + esc(mode) +
         '" data-pmd-inv-browser-section-key="All"><b>All ' +
-        esc(String(mainBrowserSections.find(function (section) { return section.key === bState.main; }) || {}).label || bState.main) +
+        esc(activeMainLabel) +
         '</b><em>' + esc(mainCount) + '</em></button>' +
         detailSections.map(function (section) {
           return '<button type="button" class="' +
@@ -469,19 +515,35 @@
             '<span aria-hidden="true">' + esc(section.icon) + '</span>' +
             '<b>' + esc(section.label) + '</b>' +
             '<em>' + esc(Number(index.sectionCounts[section.key] || 0)) + '</em></button>';
-        }).join('') +
-      '</div>';
+        }).join('');
+    } else {
+      detailHtml += '<span>Choose Food, Non-alcoholic, Alcohol or Supplies for detailed categories.</span>';
     }
+    detailHtml += '</div>';
 
     cats.innerHTML = mainHtml + detailHtml;
 
     var visible = filtered.slice(0, Math.max(1, Number(bState.limit || 12)));
     if (!visible.length) {
       grid.innerHTML = '<div class="pmd-inv-pos-browser__empty">No matching items.</div>';
+      grid.classList.remove('is-switching');
       if (more) more.hidden = true;
       return;
     }
 
+    if (mode === 'dashboard' && !photosReady) {
+      var renderToken = Number(browserRenderTokens[mode] || 0) + 1;
+      browserRenderTokens[mode] = renderToken;
+      grid.classList.add('is-switching');
+
+      preloadBrowserPhotos(visible).then(function () {
+        if (browserRenderTokens[mode] !== renderToken) return;
+        renderVisualBrowser(mode, true);
+      });
+      return;
+    }
+
+    grid.classList.remove('is-switching');
     grid.innerHTML = visible.map(function (row) {
       var sourceIndex = allRows.indexOf(row);
       var isStockMode = mode === 'waste' || mode === 'recipe';
@@ -2805,6 +2867,7 @@
   root.addEventListener('load', function (event) {
     var image = event.target;
     if (!image || !image.matches || !image.matches('[data-pmd-inv-real-image]')) return;
+    markCatalogPhotoLoaded(image.currentSrc || image.src);
     var visual = image.closest('.pmd-inv-item-visual');
     if (visual) visual.classList.add('has-photo');
   }, true);
