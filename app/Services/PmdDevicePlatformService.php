@@ -388,6 +388,9 @@ final class PmdDevicePlatformService
                 'kind' => $kind,
                 'kind_label' => $this->kindLabel($kind, $mode),
                 'mode' => $mode ?: $kind,
+                'table_id' => $kind === 'table_display'
+                    ? (int)($platform['table_id'] ?? 0)
+                    : 0,
                 'assignment' => $assignment,
                 'online' => $online,
                 'screen_state' => (string)($live->screen_state ?? 'unknown'),
