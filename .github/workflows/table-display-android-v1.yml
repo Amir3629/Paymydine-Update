@@ -2,7 +2,7 @@ name: PayMyDine Table Companion Android V1
 
 on:
   push:
-    branches: [feature/table-display-v1, feature/device-platform-v1]
+    branches: [feature/table-display-v1, feature/device-platform-v1, feature/device-platform-rollout-v1]
     paths:
       - 'mobile/table-display-android/**'
       - 'app/Services/PmdTableDisplayService.php'
