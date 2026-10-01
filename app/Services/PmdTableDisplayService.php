@@ -119,19 +119,116 @@ final class PmdTableDisplayService
         $settled = max(0.0, (float)($order->settled_amount ?? 0));
         $remaining = round(max(0.0, $total - $settled), 2);
         if ($remaining <= 0.0001) abort(422, 'This order is already fully paid.');
+        if ($settled > 0.0001) {
+            abort(
+                422,
+                'Table-device contactless payment is available only before any partial payment. Use the canonical split/external-terminal flow for a partially settled order.'
+            );
+        }
 
         $locationId = max(1, (int)($order->location_id ?? $this->locationId($tableId)));
         if ($expectedLocationId && $expectedLocationId !== $locationId) {
             abort(403, 'This order belongs to another restaurant location.');
         }
 
-        $this->assertLiveBoundTableDisplay($locationId, $tableId);
+        $display = $this->assertLiveBoundTableDisplay(
+            $locationId,
+            $tableId
+        );
+        $platform = (array)($display['platform'] ?? []);
+        $terminalDeviceId = (int)(
+            $platform['payment_terminal_device_id']
+            ?? 0
+        );
+
+        if ($terminalDeviceId < 1) {
+            abort(
+                409,
+                'This Table Companion has no contactless terminal linked. Link an active payment terminal under Settings > Devices & hardware.'
+            );
+        }
+
+        if (!Schema::hasTable('terminal_devices')) {
+            abort(503, 'Payment-terminal storage is unavailable.');
+        }
+
+        $terminalQuery = DB::table('terminal_devices')
+            ->where('terminal_device_id', $terminalDeviceId);
+
+        if (Schema::hasColumn('terminal_devices', 'is_active')) {
+            $terminalQuery->where('is_active', 1);
+        }
+        if (Schema::hasColumn('terminal_devices', 'location_id')) {
+            $terminalQuery->where(function ($query) use ($locationId) {
+                $query->whereNull('location_id')
+                    ->orWhere('location_id', $locationId);
+            });
+        }
+
+        $terminal = $terminalQuery->first();
+        if (!$terminal) {
+            abort(
+                409,
+                'The contactless terminal linked to this Table Companion is inactive or belongs to another restaurant location.'
+            );
+        }
+
+        $providerCode = strtolower(
+            trim((string)($terminal->provider_code ?? ''))
+        );
+        if (!in_array(
+            $providerCode,
+            ['sumup', 'worldline', 'square', 'vr_payment'],
+            true
+        )) {
+            abort(
+                422,
+                'The linked contactless terminal provider is not supported by PayMyDine terminal payments.'
+            );
+        }
+
+        $terminalResult = app(
+            AppServicesTerminalPaymentsTerminalPaymentService::class
+        )->createAttempt(
+            $orderId,
+            $providerCode,
+            (string)$terminalDeviceId
+        );
+
+        if (empty($terminalResult['success'])) {
+            abort(
+                422,
+                (string)(
+                    $terminalResult['message']
+                    ?? $terminalResult['error']
+                    ?? 'The linked contactless terminal could not start payment.'
+                )
+            );
+        }
 
         $eventId = (string)Str::uuid();
         $expiresAt = now()->addMinutes(5);
         $currency = $this->currencyCode();
+        $attemptId = (int)($terminalResult['attempt_id'] ?? 0);
+        $terminalStatus = strtolower(
+            trim((string)($terminalResult['status'] ?? 'pending'))
+        );
 
-        DB::transaction(function () use ($locationId, $tableId, $orderId, $remaining, $currency, $eventId, $expiresAt, $userId, $staffId) {
+        DB::transaction(function () use (
+            $locationId,
+            $tableId,
+            $orderId,
+            $remaining,
+            $currency,
+            $eventId,
+            $expiresAt,
+            $userId,
+            $staffId,
+            $attemptId,
+            $providerCode,
+            $terminalDeviceId,
+            $terminalStatus
+        ) {
             $aggregateId = (string)$tableId;
             DB::table('pmd_sync_aggregate_versions')->insertOrIgnore([
                 'location_id' => $locationId,
@@ -169,8 +266,12 @@ final class PmdTableDisplayService
                     'order_id' => $orderId,
                     'amount' => $remaining,
                     'currency' => $currency,
-                    'headline' => 'Ready for card payment',
-                    'message' => 'Tap or insert your card to complete payment.',
+                    'headline' => 'Ready for contactless payment',
+                    'message' => 'Tap or insert your card on this table payment device.',
+                    'attempt_id' => $attemptId ?: null,
+                    'provider_code' => $providerCode,
+                    'terminal_device_id' => $terminalDeviceId,
+                    'terminal_status' => $terminalStatus,
                     'expires_at' => $expiresAt->toIso8601String(),
                 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'occurred_at' => now(),
@@ -186,8 +287,12 @@ final class PmdTableDisplayService
             'order_id' => $orderId,
             'amount' => $remaining,
             'currency' => $currency,
+            'attempt_id' => $attemptId ?: null,
+            'provider_code' => $providerCode,
+            'terminal_device_id' => $terminalDeviceId,
+            'terminal_status' => $terminalStatus,
             'expires_at' => $expiresAt->toIso8601String(),
-            'message' => 'Card payment requested on the table display.',
+            'message' => 'Contactless payment was sent to the terminal linked to this Table Companion.',
         ];
     }
 
@@ -228,7 +333,7 @@ final class PmdTableDisplayService
     private function assertLiveBoundTableDisplay(
         int $locationId,
         int $tableId
-    ): void {
+    ): array {
         if (!Schema::hasTable('pmd_site_access_devices')) {
             abort(409, 'No Table Companion is paired with this restaurant yet.');
         }
@@ -272,6 +377,16 @@ final class PmdTableDisplayService
                 'The Table Companion for this table is offline. Wake or reconnect the device first.'
             );
         }
+
+        $platform = json_decode(
+            (string)($assigned->platform_info ?? '{}'),
+            true
+        );
+
+        return [
+            'device' => $assigned,
+            'platform' => is_array($platform) ? $platform : [],
+        ];
     }
 
     private function latestOrder(int $tableId): ?array
@@ -357,6 +472,10 @@ final class PmdTableDisplayService
             'order_id' => (int)($payload['order_id'] ?? 0),
             'amount' => round((float)($payload['amount'] ?? 0), 2),
             'currency' => (string)($payload['currency'] ?? $this->currencyCode()),
+            'attempt_id' => (int)($payload['attempt_id'] ?? 0),
+            'provider_code' => (string)($payload['provider_code'] ?? ''),
+            'terminal_device_id' => (int)($payload['terminal_device_id'] ?? 0),
+            'terminal_status' => (string)($payload['terminal_status'] ?? ''),
         ]);
     }
 
