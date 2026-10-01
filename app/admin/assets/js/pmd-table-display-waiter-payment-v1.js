@@ -1,5 +1,5 @@
 /* PMD_TABLE_DISPLAY_V1
- * Waiter-only Card payment handoff for canonical Quick POS.
+ * Table-device card/contactless handoff for canonical Quick POS.
  * This extension never records settlement. It only publishes a payment request
  * for the small display bound to the selected table.
  */
