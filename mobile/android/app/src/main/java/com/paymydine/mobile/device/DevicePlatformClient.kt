@@ -110,6 +110,31 @@ class DevicePlatformClient {
         )
     }
 
+    suspend fun log(
+        tenantHost: String,
+        token: String,
+        level: String,
+        event: String,
+        message: String,
+        context: Map<String, Any?> = emptyMap(),
+    ) = withContext(Dispatchers.IO) {
+        val contextJson = JSONObject()
+        context.forEach { (key, value) ->
+            contextJson.put(key, value ?: JSONObject.NULL)
+        }
+
+        request(
+            tenantHost = tenantHost,
+            endpoint = "logs",
+            token = token,
+            body = JSONObject()
+                .put("level", level)
+                .put("event", event)
+                .put("message", message)
+                .put("context", contextJson),
+        )
+    }
+
     private fun request(
         tenantHost: String,
         endpoint: String,
