@@ -1,0 +1,158 @@
+name: PayMyDine Device App V2
+
+on:
+  push:
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, main]
+    paths:
+      - 'mobile/android/**'
+      - 'app/admin/views/pmdsettings/index.blade.php'
+      - 'app/Services/PmdDevicePlatformService.php'
+      - 'app/Services/PmdDevicePlatformAuthService.php'
+      - 'app/Services/PmdTableDisplayService.php'
+      - 'app/Services/PmdTableDisplayPairingService.php'
+      - 'app/Http/Controllers/PmdDevicePlatformController.php'
+      - 'app/Services/PmdMobileSync/**'
+      - 'app/Http/Controllers/PmdMobilePairController.php'
+      - 'app/Http/Controllers/PmdMobileWorkspaceAuthController.php'
+      - 'routes/pmd-device-platform-v1.php'
+      - 'routes/pmd-mobile-sync-v1.php'
+      - '.github/workflows/android-local-first-v1.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pmd-device-app-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  server-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Device App server and source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/Services/PmdDevicePlatformService.php
+          php -l app/Services/PmdDevicePlatformAuthService.php
+          php -l app/Services/PmdTableDisplayService.php
+          php -l app/Services/PmdTableDisplayPairingService.php
+          php -l app/Http/Controllers/PmdDevicePlatformController.php
+          php -l app/Services/PmdMobileSync/PmdMobilePairingService.php
+          php -l app/Http/Controllers/PmdMobilePairController.php
+          php -l app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+          php -l routes/pmd-device-platform-v1.php
+          php -l routes/pmd-mobile-sync-v1.php
+          grep -Fq 'TableDisplayActivity' mobile/android/app/src/main/AndroidManifest.xml
+          grep -Fq 'devicePurpose() == "table_display"' mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
+          grep -Fq 'UnifiedFirstRun' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -Fq 'versionCode = 54' mobile/android/app/build.gradle.kts
+          grep -Fq 'versionName = "0.4.1-device-app-v3"' mobile/android/app/build.gradle.kts
+          grep -Fq 'PayMyDine Device App · Android' app/admin/views/pmdsettings/index.blade.php
+          grep -Fq 'customerMenuTheme' app/Services/PmdTableDisplayService.php
+          grep -Fq 'Crossfade' mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/TableDisplayApp.kt
+          grep -Fq 'Staff app' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -Fq 'Customer app' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platform-tools' 'platforms;android-36' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Restore Device App preview signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: paymydine-device-app-preview-keystore-v1
+
+      - name: Prepare Device App preview key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
+            keytool -genkeypair               -keystore "$HOME/.android/debug.keystore"               -storepass android               -alias androiddebugkey               -keypass android               -keyalg RSA               -keysize 2048               -validity 10000               -dname "CN=PayMyDine Device App Preview,O=PayMyDine,C=DE"               >/dev/null 2>&1
+          fi
+
+      - name: Unit tests
+        working-directory: mobile/android
+        run: gradle --no-daemon testDebugUnitTest
+
+      - name: Assemble Device App
+        working-directory: mobile/android
+        run: gradle --no-daemon assembleDebug
+
+      - name: Android lint
+        working-directory: mobile/android
+        run: gradle --no-daemon lintDebug
+
+      - name: Prepare APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_IN="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+          APK_OUT="mobile/android/PayMyDine-Device-App-0.4.1.apk"
+          test -f "$APK_IN"
+          cp "$APK_IN" "$APK_OUT"
+          sha256sum "$APK_OUT" > "$APK_OUT.sha256"
+
+      - name: Verify package, version and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="mobile/android/PayMyDine-Device-App-0.4.1.apk"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          BADGING="$("$AAPT" dump badging "$APK" | head -1)"
+          echo "$BADGING"
+          grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
+          grep -Fq "versionCode='54'" <<<"$BADGING"
+          grep -Fq "versionName='0.4.1-device-app-v3-debug'" <<<"$BADGING"
+          "$APKSIGNER" verify "$APK"
+          sha256sum "$APK"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paymydine-device-app-v2
+          path: |
+            mobile/android/PayMyDine-Device-App-0.4.1.apk
+            mobile/android/PayMyDine-Device-App-0.4.1.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish Device App preview
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pmd-device-app-preview
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "PayMyDine Device App Preview"               --notes "Unified Android app for PayMyDine restaurant devices."               --prerelease
+          fi
+          gh release upload "$TAG"             mobile/android/PayMyDine-Device-App-0.4.1.apk             mobile/android/PayMyDine-Device-App-0.4.1.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
