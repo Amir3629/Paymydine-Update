@@ -345,20 +345,104 @@ return new class extends Migration
 
         $db = DB::connection($connection);
 
-        if ($schema->hasTable('pmd_inventory_storage_locations')) {
-            $hasStorage = $db->table('pmd_inventory_storage_locations')->exists();
-            if (!$hasStorage) {
-                $now = now();
-                foreach ([
-                    ['name' => 'Main storage', 'type' => 'storage'],
-                    ['name' => 'Kitchen', 'type' => 'kitchen'],
-                    ['name' => 'Bar', 'type' => 'bar'],
-                    ['name' => 'Fridge', 'type' => 'fridge'],
-                    ['name' => 'Freezer', 'type' => 'freezer'],
-                ] as $row) {
-                    // Location-specific defaults are created lazily by the service.
-                    // Do not guess a location_id during a tenant-wide migration.
+        // Backfill the old free-text supplier and SKU fields into the normalized
+        // V24 master data so existing restaurants do not have to teach the
+        // system every product again after deployment.
+        $items = $db->table('pmd_inventory_items')
+            ->where('active', 1)
+            ->get();
+
+        foreach ($items as $item) {
+            $locationId = (int)$item->location_id;
+            if ($locationId < 1) continue;
+
+            $supplierId = null;
+            $supplierName = trim((string)($item->supplier_name ?? ''));
+            if ($supplierName !== '') {
+                $supplierId = $db->table('pmd_inventory_suppliers')
+                    ->where('location_id', $locationId)
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($supplierName)])
+                    ->value('id');
+
+                if (!$supplierId) {
+                    $supplierId = $db->table('pmd_inventory_suppliers')->insertGetId([
+                        'location_id' => $locationId,
+                        'name' => mb_substr($supplierName, 0, 190),
+                        'lead_time_days' => 1,
+                        'min_order_value' => 0,
+                        'active' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
+
+                $supplierItemExists = $db->table('pmd_inventory_supplier_items')
+                    ->where('location_id', $locationId)
+                    ->where('supplier_id', $supplierId)
+                    ->where('item_id', (int)$item->id)
+                    ->exists();
+
+                if (!$supplierItemExists) {
+                    $db->table('pmd_inventory_supplier_items')->insert([
+                        'location_id' => $locationId,
+                        'supplier_id' => $supplierId,
+                        'item_id' => (int)$item->id,
+                        'pack_unit' => (string)($item->purchase_unit ?? $item->base_unit ?? 'piece'),
+                        'pack_to_base' => max(0.0001, (float)($item->purchase_to_base ?? 1)),
+                        'pack_cost' => max(0, (float)($item->unit_cost ?? 0) * max(0.0001, (float)($item->purchase_to_base ?? 1))),
+                        'min_order_qty' => 0,
+                        'order_multiple' => 1,
+                        'is_primary' => 1,
+                        'active' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                $db->table('pmd_inventory_items')
+                    ->where('id', (int)$item->id)
+                    ->whereNull('preferred_supplier_id')
+                    ->update([
+                        'preferred_supplier_id' => $supplierId,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            $legacySku = trim((string)($item->sku ?? ''));
+            if ($legacySku === '') continue;
+
+            $codes = preg_split('/[\\s,;|]+/', $legacySku, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            foreach ($codes as $code) {
+                $code = trim((string)$code);
+                if ($code === '') continue;
+                $normalized = preg_replace('/[\\s\\-]+/', '', $code) ?: $code;
+                if ($db->table('pmd_inventory_item_identifiers')
+                    ->where('location_id', $locationId)
+                    ->where('normalized_code', $normalized)
+                    ->exists()) {
+                    continue;
+                }
+
+                $length = strlen($normalized);
+                $type = ctype_digit($normalized)
+                    ? ($length === 8 ? 'EAN8' : ($length === 12 ? 'UPCA' : ($length === 13 ? 'EAN13' : ($length === 14 ? 'GTIN14' : 'numeric'))))
+                    : 'legacy';
+
+                $db->table('pmd_inventory_item_identifiers')->insert([
+                    'location_id' => $locationId,
+                    'item_id' => (int)$item->id,
+                    'supplier_id' => $supplierId,
+                    'code' => mb_substr($code, 0, 190),
+                    'normalized_code' => mb_substr($normalized, 0, 190),
+                    'code_type' => $type,
+                    'package_unit' => (string)($item->purchase_unit ?? $item->base_unit ?? 'piece'),
+                    'package_to_base' => max(0.0001, (float)($item->purchase_to_base ?? 1)),
+                    'is_primary' => 0,
+                    'verified_at' => null,
+                    'active' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
         }
     }
