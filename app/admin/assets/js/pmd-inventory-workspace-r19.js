@@ -688,6 +688,7 @@
     var host = workspace.querySelector('[data-r19-count]');
     var grid = workspace.querySelector('[data-r19-stock-grid]');
     var editor = workspace.querySelector('[data-r19-stock-editor]');
+    var blind = Boolean(operationSettings().blind_count);
     if (!host) return;
     if (editor) editor.hidden = true;
     if (grid) grid.hidden = true;
@@ -695,16 +696,18 @@
     host.hidden = false;
     host.innerHTML =
       '<div class="pmd-inv-r19-count-head"><div><h3>Physical count</h3>' +
-      '<small>Enter what is physically there now. Every active item is required so the new baseline stays complete.</small></div>' +
+      '<small>' + esc(blind
+        ? 'Blind count is active. Expected quantities and variances stay hidden until the count is completed.'
+        : 'Enter what is physically there now. Every active item is required so the new baseline stays complete.') + '</small></div>' +
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-cancel-count>Cancel</button></div>' +
-      '<div class="pmd-inv-r19-count-list">' +
+      '<div class="pmd-inv-r19-count-list' + (blind ? ' is-blind' : '') + '">' +
       items().map(function (item) {
         var owner = ownerQuantity(item, item.estimated_on_hand);
         return '<div class="pmd-inv-r19-count-row" data-r19-count-row="' + esc(item.id) + '">' +
           '<strong>' + esc(item.name) + '<span>' + esc(item.category || '') + '</span></strong>' +
-          '<span>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>' +
+          (blind ? '<span>Expected hidden</span>' : '<span>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>') +
           '<input type="number" min="0" step="0.01" placeholder="Actual ' + esc(owner.unit) + '" data-r19-count-input data-factor="' + esc(owner.factor) + '">' +
-          '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Variance —</span>' +
+          (blind ? '<span class="pmd-inv-r19-count-variance">Blind count</span>' : '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Variance —</span>') +
         '</div>';
       }).join('') +
       '</div>' +
@@ -720,6 +723,7 @@
   }
 
   function updateCountVariance(input) {
+    if (operationSettings().blind_count) return;
     var row = input.closest('[data-r19-count-row]');
     if (!row) return;
     var item = items().find(function (entry) { return Number(entry.id) === Number(row.getAttribute('data-r19-count-row')); });
