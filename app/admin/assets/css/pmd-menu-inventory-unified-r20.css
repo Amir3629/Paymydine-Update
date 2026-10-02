@@ -1769,6 +1769,11 @@ body.pmd-menu-manager-page #pmd-r2-clean-header .pmd-workspace-toggle-r23 svg {
   flex:0 0 18px !important;
 }
 
+body.pmd-menu-manager-page #pmd-menu-manager-main.pmd-menu-inventory-r23-inventory
+#pmd-r2-clean-header [data-pmd-stock-usage-setup-r22] {
+  display:none !important;
+}
+
 body.pmd-menu-manager-page #pmd-r2-clean-header .pmd-workspace-toggle-r23 span {
   display:block !important;
   color:inherit !important;
