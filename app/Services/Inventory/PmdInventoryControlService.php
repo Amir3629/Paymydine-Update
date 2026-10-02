@@ -1306,15 +1306,6 @@ final class PmdInventoryControlService
                     $started = true;
                 }
 
-                if ($hasSettledAt) {
-                    if ($started) {
-                        $paid->orWhereNotNull('o.settled_at');
-                    } else {
-                        $paid->whereNotNull('o.settled_at');
-                        $started = true;
-                    }
-                }
-
                 if ($hasSettledAmount) {
                     $amountPaid = static function ($amount) {
                         $amount
@@ -1326,7 +1317,16 @@ final class PmdInventoryControlService
                         $paid->orWhere($amountPaid);
                     } else {
                         $paid->where($amountPaid);
+                        $started = true;
                     }
+                }
+
+                // settled_at is only a fallback for older settlement schemas.
+                // When status/amount columns exist they remain authoritative,
+                // which prevents a refunded/cancelled order with a historical
+                // settled_at timestamp from consuming stock again.
+                if (!$started && $hasSettledAt) {
+                    $paid->whereNotNull('o.settled_at');
                 }
             });
         } elseif (in_array('status_id', $orderCols, true)) {
