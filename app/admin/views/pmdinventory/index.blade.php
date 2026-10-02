@@ -337,6 +337,7 @@
                         <summary>Activity <span>Purchases, waste and the last physical count</span></summary>
                         <div data-r19-activity-body></div>
                     </details>
+                    <section class="pmd-inv-v24-overview-insights" data-v24-overview-insights></section>
                 </section>
 
                 <section class="pmd-inv-r19-pane" data-r19-pane="stock" hidden>
