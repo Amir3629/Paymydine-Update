@@ -769,6 +769,21 @@ final class PmdInventoryControlService
         $purchasedAt = $this->date((string)($data['purchased_at'] ?? now()->toDateString()));
         $receiptId = max(0, (int)($data['receipt_id'] ?? 0));
 
+        // PMD_INVENTORY_WEIGHTED_COST_V24
+        // Capture theoretical on-hand before this receipt. Incoming purchase cost
+        // can then update the stored base-unit cost by weighted average without
+        // changing the stable stock-quantity ledger.
+        $prePurchaseStock = [];
+        try {
+            foreach ((array)($this->snapshot($locationId)['items'] ?? []) as $stockRow) {
+                if (is_array($stockRow) && !empty($stockRow['id'])) {
+                    $prePurchaseStock[(int)$stockRow['id']] = max(0, (float)($stockRow['estimated_on_hand'] ?? 0));
+                }
+            }
+        } catch (\Throwable $ignored) {
+            $prePurchaseStock = [];
+        }
+
         return DB::transaction(function () use (
             $locationId,
             $staffId,
@@ -776,9 +791,12 @@ final class PmdInventoryControlService
             $lines,
             $supplier,
             $purchasedAt,
-            $receiptId
+            $receiptId,
+            &$prePurchaseStock
         ) {
-            $source = $receiptId > 0 ? 'ai_receipt' : 'manual';
+            $source = $receiptId > 0
+                ? 'ai_receipt'
+                : ($this->nullableText($data['source'] ?? 'manual', 40) ?: 'manual');
 
             if ($receiptId > 0) {
                 $receipt = DB::table('pmd_inventory_receipts')
@@ -795,14 +813,28 @@ final class PmdInventoryControlService
                 $receiptId = (int)DB::table('pmd_inventory_receipts')->insertGetId([
                     'location_id' => $locationId,
                     'supplier_name' => $supplier ?: null,
+                    'supplier_id' => max(0, (int)($data['supplier_id'] ?? 0)) ?: null,
+                    'supplier_invoice_number' => $this->nullableText($data['supplier_invoice_number'] ?? null, 120),
+                    'purchase_order_id' => max(0, (int)($data['purchase_order_id'] ?? 0)) ?: null,
+                    'document_hash' => $this->nullableText($data['document_hash'] ?? null, 64),
                     'purchased_at' => $purchasedAt,
-                    'source' => 'manual',
+                    'source' => $source,
                     'ai_status' => 'not_requested',
                     'total_amount' => 0,
                     'created_by' => $staffId,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+            }
+
+            try {
+                app(PmdInventoryOperationsService::class)->updateReceiptMetadata(
+                    $locationId,
+                    $receiptId,
+                    $data
+                );
+            } catch (\RuntimeException $ignored) {
+                // Operations V24 may not be migrated yet during a rolling deploy.
             }
 
             $total = 0.0;
@@ -820,6 +852,10 @@ final class PmdInventoryControlService
                 $name = trim((string)($line['item_name'] ?? ''));
                 $unit = $this->unit($line['unit'] ?? 'piece');
                 $unitCost = max(0, $this->number($line['unit_cost'] ?? 0, 0));
+                $identifierId = max(0, (int)($line['identifier_id'] ?? 0));
+                $explicitPackageFactor = array_key_exists('package_to_base', $line)
+                    ? max(0.0001, $this->number($line['package_to_base'] ?? 1, 1))
+                    : null;
 
                 if ($itemId < 1) {
                     if ($name === '') {
@@ -939,7 +975,21 @@ final class PmdInventoryControlService
                 $purchaseToBase = max(0.0001, (float)($item->purchase_to_base ?? 1));
                 $lineUnit = strtolower($unit);
 
-                if ($lineUnit === $baseUnit) {
+                if ($identifierId > 0 && app(PmdInventoryOperationsService::class)->ready()) {
+                    $identifier = DB::table('pmd_inventory_item_identifiers')
+                        ->where('location_id', $locationId)
+                        ->where('id', $identifierId)
+                        ->where('item_id', $itemId)
+                        ->where('active', 1)
+                        ->first();
+                    if (!$identifier) {
+                        throw new InvalidArgumentException('Scanned package identifier is no longer available.');
+                    }
+                    $factor = max(0.0001, (float)$identifier->package_to_base);
+                    $unit = (string)$identifier->package_unit;
+                } elseif ($explicitPackageFactor !== null) {
+                    $factor = $explicitPackageFactor;
+                } elseif ($lineUnit === $baseUnit) {
                     $factor = 1.0;
                 } elseif ($lineUnit === $purchaseUnit) {
                     $factor = $purchaseToBase;
@@ -956,15 +1006,26 @@ final class PmdInventoryControlService
                     ? ($unitCost / $factor)
                     : max(0, (float)$item->unit_cost);
 
+                $oldQty = max(0, (float)($prePurchaseStock[$itemId] ?? 0));
+                $oldCost = max(0, (float)$item->unit_cost);
+                $weightedCost = $oldCost;
+                if ($unitCost > 0) {
+                    $weightedCost = ($oldQty + $baseQty) > 0
+                        ? (($oldQty * $oldCost) + ($baseQty * $effectiveCost)) / ($oldQty + $baseQty)
+                        : $effectiveCost;
+                }
+
                 DB::table('pmd_inventory_items')
                     ->where('id', $itemId)
                     ->update([
-                        'unit_cost' => round($effectiveCost, 6),
+                        'unit_cost' => round($weightedCost, 6),
                         'supplier_name' => $supplier ?: $item->supplier_name,
+                        'preferred_supplier_id' => max(0, (int)($line['supplier_id'] ?? $data['supplier_id'] ?? 0))
+                            ?: ($item->preferred_supplier_id ?? null),
                         'updated_at' => now(),
                     ]);
 
-                $this->movement(
+                $movementId = $this->movement(
                     $locationId,
                     $itemId,
                     'PURCHASE',
@@ -978,6 +1039,36 @@ final class PmdInventoryControlService
                     $purchasedAt.' '.now()->format('H:i:s')
                 );
 
+                $prePurchaseStock[$itemId] = $oldQty + $baseQty;
+
+                $ops = app(PmdInventoryOperationsService::class);
+                if ($ops->ready()) {
+                    $line['supplier_id'] = max(0, (int)($line['supplier_id'] ?? $data['supplier_id'] ?? 0)) ?: null;
+                    $ops->recordPurchaseMetadata(
+                        $locationId,
+                        $receiptId,
+                        $itemId,
+                        $baseQty,
+                        $effectiveCost,
+                        $unitCost > 0 ? $unitCost : ($effectiveCost * $factor),
+                        $unit,
+                        $line,
+                        $movementId
+                    );
+
+                    $barcode = trim((string)($line['barcode'] ?? ''));
+                    if ($barcode !== '' && !$ops->resolveIdentifier($locationId, $barcode)) {
+                        $ops->saveIdentifier($locationId, $staffId, [
+                            'item_id' => $itemId,
+                            'supplier_id' => $line['supplier_id'],
+                            'code' => $barcode,
+                            'package_unit' => $unit,
+                            'package_to_base' => $factor,
+                            'is_primary' => false,
+                        ]);
+                    }
+                }
+
                 $total += $qty * ($unitCost > 0 ? $unitCost : ($effectiveCost * $factor));
             }
 
@@ -986,6 +1077,9 @@ final class PmdInventoryControlService
                 ->where('location_id', $locationId)
                 ->update([
                     'supplier_name' => $supplier ?: null,
+                    'supplier_id' => max(0, (int)($data['supplier_id'] ?? 0)) ?: null,
+                    'supplier_invoice_number' => $this->nullableText($data['supplier_invoice_number'] ?? null, 120),
+                    'purchase_order_id' => max(0, (int)($data['purchase_order_id'] ?? 0)) ?: null,
                     'purchased_at' => $purchasedAt,
                     'source' => $source,
                     'total_amount' => round($total, 4),
