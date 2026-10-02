@@ -190,7 +190,14 @@
                     aria-label="Inventory KPIs"
                 >
                     @foreach($r20KpiSelection as $slot => $key)
-                        @php($card = $r20KpiCards[$key])
+                        @php
+                            // PMD_INVENTORY_R20_BLADE_PHP_BLOCK_FIX
+                            // Keep this as block syntax. Mixing inline @php(...) with
+                            // later block @php/@endphp directives can make Blade
+                            // mis-pair directives and surface as an unexpected
+                            // "endforeach" in the compiled view.
+                            $card = $r20KpiCards[$key];
+                        @endphp
                         <article
                             class="pmd-r2-kpi-v2401-card"
                             data-r20-kpi-slot="{{ $slot }}"
