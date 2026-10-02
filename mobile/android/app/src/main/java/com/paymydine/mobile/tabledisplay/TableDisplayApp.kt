@@ -3,7 +3,7 @@ package com.paymydine.mobile.tabledisplay
 import com.paymydine.mobile.R
 import android.graphics.BitmapFactory
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
