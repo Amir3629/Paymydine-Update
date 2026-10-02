@@ -51,7 +51,10 @@ require_once __DIR__.'/routes/menu-helpers.php';
 require_once __DIR__.'/routes/main-app-before.php';
 require_once __DIR__.'/routes/worldline-public.php';
 require_once __DIR__.'/routes/pmd-table-display-v1.php';
-require_once __DIR__.'/routes/pmd-kiosk-v1.php';
+// PMD_KIOSK_V1_ROUTE_ROOT_FIX
+// The kiosk route module is repository-root routes/pmd-kiosk-v1.php, not
+// app/main/routes/pmd-kiosk-v1.php. Use base_path so VPS route loading is stable.
+require_once base_path('routes/pmd-kiosk-v1.php');
 
 
 
