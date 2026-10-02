@@ -25,7 +25,8 @@
     menuName: '',
     query: '',
     category: 'All',
-    selected: {}
+    selected: {},
+    returnScrollY: 0
   };
 
   var catalogRows = [];
@@ -517,6 +518,7 @@
 
     usageState.menuId = menuId;
     usageState.menuName = menuName(menuId);
+    usageState.returnScrollY = Math.max(0, Number(window.scrollY || 0));
     usageState.query = '';
     usageState.category = 'All';
     resetUsageSelection(menuId);
@@ -531,12 +533,17 @@
   }
 
   function closeUsage() {
+    var returnY = Math.max(0, Number(usageState.returnScrollY || 0));
     usageState.menuId = 0;
     usageState.menuName = '';
     usageState.query = '';
     usageState.category = 'All';
     usageState.selected = {};
+    usageState.returnScrollY = 0;
     showMenu(true);
+    window.requestAnimationFrame(function () {
+      window.scrollTo({top: returnY, behavior: 'auto'});
+    });
   }
 
   function defaultUsageQty(item) {
