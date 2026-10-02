@@ -207,7 +207,7 @@
     data-pmd-dashboard-header-clone="menu-v1"
 >
     <div class="pmd-owner-header__left">
-        <h1 class="pmd-r2-clean-title">{{ $pmdInitialInventoryR23 ? 'Inventory' : $pmdT('title') }}</h1>
+        <h1 class="pmd-r2-clean-title" data-pmd-menu-title="{{ $pmdT('title') }}">{{ $pmdInitialInventoryR23 ? 'Inventory' : $pmdT('title') }}</h1>
 
         {{-- PMD_MENU_INVENTORY_R23_SINGLE_ACTION
              Workspace switching now lives in one Header action on the right. --}}
