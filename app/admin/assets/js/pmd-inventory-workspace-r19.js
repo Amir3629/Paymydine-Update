@@ -103,6 +103,32 @@
     return Array.isArray(rows) ? rows : [];
   }
 
+  function operations() {
+    var value = snapshot().operations;
+    return value && typeof value === 'object' ? value : {ready:false};
+  }
+
+  function operationSettings() {
+    var value = operations().settings;
+    return value && typeof value === 'object' ? value : {};
+  }
+
+  function operationStorageOptions(selected, allowEmpty) {
+    var rows = Array.isArray(operations().storage_locations) ? operations().storage_locations : [];
+    var html = allowEmpty ? '<option value="">Unassigned storage</option>' : '<option value="">Choose storage</option>';
+    html += rows.map(function (row) {
+      return '<option value="' + esc(row.id) + '"' + (String(selected || '') === String(row.id) ? ' selected' : '') + '>' +
+        esc(row.name || 'Storage') + '</option>';
+    }).join('');
+    return html;
+  }
+
+  function operationSupplier() {
+    var id = Number(valueOf(workspace,'[data-r19-purchase-supplier-id]',0) || 0);
+    var rows = Array.isArray(operations().suppliers) ? operations().suppliers : [];
+    return rows.find(function (row) { return Number(row.id) === id; }) || null;
+  }
+
   function catalog() {
     return catalogRows;
   }
