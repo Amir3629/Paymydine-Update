@@ -1738,10 +1738,6 @@ body.pmd-menu-manager-page
 }
 
 @media (max-width:520px) {
-  body.pmd-menu-manager-page .pmd-menu-kpis-r22 {
-    grid-auto-columns:82% !important;
-  }
-
   body.pmd-menu-manager-page .pmd-stock-usage-r20-selected-row {
     grid-template-columns:minmax(74px,1fr) 64px 86px 28px !important;
   }
