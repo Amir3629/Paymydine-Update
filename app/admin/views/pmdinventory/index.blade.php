@@ -425,7 +425,10 @@
     </div>
     <div class="pmd-inv-toast" role="status" aria-live="polite" data-pmd-inv-toast></div>
 
-    @if($ready)
+    {{-- PMD_MENU_INVENTORY_UNIFIED_R20
+         The combined Menu page uses the inline R20 workflows only. Do not
+         mount the legacy compatibility modals into that page. --}}
+    @if($ready && !$embedded)
         {{-- New physical stock item --}}
         <div class="pmd-inv-modal" data-pmd-inv-modal="item" hidden aria-hidden="true">
             <div class="pmd-inv-modal__backdrop" data-pmd-inv-close></div>
