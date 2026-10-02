@@ -1,4 +1,4 @@
-package com.paymydine.tabledisplay
+package com.paymydine.mobile.tabledisplay
 
 data class PairResult(
     val token: String,

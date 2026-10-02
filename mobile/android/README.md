@@ -1,4 +1,4 @@
-# PayMyDine Android Local-First V1
+# PayMyDine Device App
 
 Native Kotlin/Jetpack Compose restaurant app replacing the remote-page wrapper approach.
 
@@ -8,7 +8,7 @@ Native Kotlin/Jetpack Compose restaurant app replacing the remote-page wrapper a
 - Android 16 / API 36 target + compile SDK
 - native Compose UI; no WebView runtime
 - JDK 17 / Gradle 8.13
-- one APK with role-driven POS/Waiter/KDS surfaces
+- one APK with role-driven POS/Waiter/KDS/Reservations plus dedicated Table Display mode
 
 ## What is implemented on this branch
 
@@ -120,3 +120,14 @@ Do not call this production-certified until a real tenant/device matrix passes:
 - provider/terminal payment boundary tests
 
 See `docs/ANDROID_LOCAL_FIRST_ARCHITECTURE_V1.md`.
+
+
+## Unified device onboarding
+
+Version 0.4.0 uses one Android APK for restaurant-owned devices.
+
+1. Enter the restaurant name/code or PayMyDine address.
+2. Choose the closest staff role, or choose Table Display.
+3. Staff devices use the normal PayMyDine username/password flow. The server remains authoritative for the actual role and permissions.
+4. Table Display uses the existing six-digit setup/deployment code and stores no staff password.
+5. The selected device mode is restored after reboot. Device Owner / Lock Task can keep Android out of sight on dedicated hardware.

@@ -1189,28 +1189,8 @@ document.documentElement.classList.add(
         >
             <a
                 class="pmd-cashier-launcher-v107__download"
-                {{-- PMD_TABLE_COMPANION_ANDROID_V1 --}}
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-table-display-preview/PayMyDine-Table-Companion-0.1.4.apk"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--display" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="4" y="3" width="16" height="18" rx="3"/>
-                        <path d="M8 7h8M8 11h8M10 17h4"/>
-                        <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/>
-                    </svg>
-                </span>
-                <span class="pmd-cashier-launcher-v107__copy">
-                    <strong>Table Companion · Android</strong>
-                    <small>Android 8+ · Table Display 0.1.4 · Guest-facing monitor</small>
-                </span>
-            </a>
-
-            <a
-                class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-android-local-first-preview/PayMyDine-Android-0.3.39.apk"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.4.0.apk"
                 target="_blank"
                 rel="noopener noreferrer"
             >
@@ -1224,8 +1204,8 @@ document.documentElement.classList.add(
                     </svg>
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
-                    <strong>Android Restaurant App</strong>
-                    <small>Android 8+ · Local-First POS 0.3.39 · Device Shell · V129 Cloud re-entry</small>
+                    <strong>PayMyDine Device App · Android</strong>
+                    <small>Android 8+ · POS · KDS · staff workspaces · Table Display · Device Control</small>
                 </span>
             </a>
 
@@ -1259,7 +1239,7 @@ document.documentElement.classList.add(
             <span class="pmd-cashier-launcher-v107__brand" aria-hidden="true">
                 <img src="/brand/paymydine-logo.svg" alt="">
             </span>
-            <span class="pmd-cashier-launcher-v107__label">{{ $pmdSettingsText('Cashier App') }}</span>
+            <span class="pmd-cashier-launcher-v107__label">{{ $pmdSettingsText('PayMyDine Apps') }}</span>
             <svg class="pmd-cashier-launcher-v107__chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path d="m5 7.5 5 5 5-5"/>
             </svg>

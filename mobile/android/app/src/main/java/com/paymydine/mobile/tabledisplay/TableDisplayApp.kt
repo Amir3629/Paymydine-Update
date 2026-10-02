@@ -1,5 +1,6 @@
-package com.paymydine.tabledisplay
+package com.paymydine.mobile.tabledisplay
 
+import com.paymydine.mobile.R
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -82,6 +83,7 @@ fun TableDisplayApp(
     api: ApiClient,
     paymentBridge: PaymentBridge,
     deviceShell: DeviceShellController,
+    initialHost: String? = null,
 ) {
     MaterialTheme {
         var screen by remember {
@@ -230,7 +232,7 @@ fun TableDisplayApp(
                 screen == Screen.SETUP -> SetupScreen(
                     loading = loading,
                     error = error,
-                    initialHost = store.host() ?: "tomo.paymydine.com",
+                    initialHost = store.host() ?: initialHost ?: "restaurant.paymydine.com",
                     onPair = { host, code ->
                         scope.launch {
                             loading = true
@@ -378,7 +380,7 @@ private fun SetupScreen(
             BrandMark(68.dp)
             Spacer(Modifier.height(16.dp))
             Text(
-                "PayMyDine Table Companion",
+                "PayMyDine Table Display",
                 color = PmdDark,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 28.sp,

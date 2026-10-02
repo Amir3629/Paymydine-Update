@@ -396,6 +396,7 @@ fun PmdStaffLogin(
 fun PmdPairLogin(
     app: PayMyDineApplication,
     online: Boolean,
+    deviceName: String = "PayMyDine Device · Android",
     pairRequest: String,
     codeChallenge: String,
     requestCode: String?,
@@ -458,8 +459,7 @@ fun PmdPairLogin(
                             tenantBaseUrl = "https://$host",
                             pairRequest = pairRequest,
                             codeChallenge = codeChallenge,
-                            deviceName =
-                                "PayMyDine Android · Restaurant App",
+                            deviceName = deviceName,
                             username = username,
                             password = password,
                         )

@@ -1,5 +1,7 @@
-package com.paymydine.tabledisplay
+package com.paymydine.mobile.tabledisplay
 
+import com.paymydine.mobile.BuildConfig
+import com.paymydine.mobile.device.PmdDeviceAdminReceiver
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
@@ -114,7 +116,7 @@ class DeviceShellController(
                     token = token,
                     level = "info",
                     event = "device_shell_ready",
-                    message = "Table Companion Device Shell is online.",
+                    message = "PayMyDine Table Display is online.",
                     context = mapOf(
                         "mode" to "table_display",
                         "app_version" to BuildConfig.VERSION_NAME,

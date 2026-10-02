@@ -108,6 +108,11 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 .orEmpty(),
         )
     }
+    var memberHint by remember {
+        mutableStateOf(
+            app.credentials.onboardingMemberHint().orEmpty(),
+        )
+    }
     var pairingStatus by remember {
         mutableStateOf(
             when {
@@ -745,6 +750,9 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                 PmdPairLogin(
                     app = app,
                     online = online,
+                    deviceName =
+                        "PayMyDine Device · " +
+                            memberDisplayName(memberHint),
                     pairRequest = pairingAttempt,
                     codeChallenge = challenge,
                     requestCode = pairingCode,
@@ -767,28 +775,28 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                     },
                 )
             } else {
-                Onboarding(
+                UnifiedFirstRun(
                     tenantCode = tenantCode,
                     onTenantCode = {
                         tenantCode = it.trim().lowercase()
                     },
                     online = online,
-                    pairingStatus = pairingStatus,
-                    pairingCode = pairingCode,
                     lastError = lastError,
-                    onConnect = {
+                    onStaffSelected = { member ->
                         val code = normalizeTenantCode(tenantCode)
 
                         if (code == null) {
                             pairingStatus = "Not paired"
                             lastError =
-                                "Use the restaurant code from your PayMyDine URL. " +
-                                    "For example, tomo.paymydine.com means the code is tomo."
+                                "Enter your restaurant name or PayMyDine address."
                         } else {
-                            val host = "$code.paymydine.com"
+                            val host = code + ".paymydine.com"
                             val verifier = PairingPkce.newVerifier()
                             val requestId = UUID.randomUUID().toString()
 
+                            memberHint = member
+                            app.credentials.setDevicePurpose("staff")
+                            app.credentials.setOnboardingMemberHint(member)
                             tenantCode = code
                             pairingCode = null
                             app.credentials.setTenantHost(host)
@@ -797,13 +805,217 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             app.credentials.setPairingSubmitted(false)
                             pairingAttempt = requestId
                             pairingRequestSubmitted = false
-                            pairingStatus = "Sign in to request connection"
+                            pairingStatus = "Sign in to connect this device"
                             lastError = null
                         }
                     },
+                    onTableDisplay = {
+                        val code = normalizeTenantCode(tenantCode)
+
+                        if (code == null) {
+                            pairingStatus = "Not paired"
+                            lastError =
+                                "Enter your restaurant name or PayMyDine address."
+                        } else {
+                            val host = code + ".paymydine.com"
+                            memberHint = "table_display"
+                            app.credentials.setTenantHost(host)
+                            app.credentials.setDevicePurpose(
+                                "table_display",
+                            )
+                            app.credentials.setOnboardingMemberHint(
+                                "table_display",
+                            )
+                            context.startActivity(
+                                com.paymydine.mobile.TableDisplayActivity.intent(
+                                    context,
+                                    host,
+                                ),
+                            )
+                            hostActivity?.finish()
+                        }
+                    },
+                )
+
+            }
+        }
+    }
+}
+
+private fun memberDisplayName(value: String): String =
+    when (value.trim().lowercase()) {
+        "owner" -> "Owner"
+        "manager" -> "Manager"
+        "cashier" -> "Cashier"
+        "waiter" -> "Waiter"
+        "kitchen" -> "Kitchen / KDS"
+        "reservations" -> "Reservations"
+        "table_display" -> "Table Display"
+        else -> "Restaurant Staff"
+    }
+
+@Composable
+private fun UnifiedFirstRun(
+    tenantCode: String,
+    onTenantCode: (String) -> Unit,
+    online: Boolean,
+    lastError: String?,
+    onStaffSelected: (String) -> Unit,
+    onTableDisplay: () -> Unit,
+) {
+    var step by remember { mutableStateOf(1) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 30.dp, vertical = 34.dp),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Image(
+                painter = painterResource(R.drawable.pmd_brand_mark),
+                contentDescription = "PayMyDine",
+                modifier = Modifier.size(62.dp),
+            )
+            Column {
+                Text(
+                    "PayMyDine Device App",
+                    color = PmdDeepGreen,
+                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.headlineMedium,
+                )
+                Text(
+                    "One app for restaurant devices",
+                    color = PmdMuted,
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
         }
+
+        if (step == 1) {
+            Text(
+                "Which restaurant is this device for?",
+                modifier = Modifier.padding(top = 26.dp),
+                color = PmdText,
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 18.dp),
+                value = tenantCode,
+                onValueChange = onTenantCode,
+                label = {
+                    Text("Restaurant name or PayMyDine address")
+                },
+                placeholder = { Text("tomo") },
+                singleLine = true,
+            )
+            Text(
+                "Example: tomo or tomo.paymydine.com",
+                modifier = Modifier.padding(top = 7.dp),
+                color = PmdMuted,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                enabled =
+                    online &&
+                        normalizeTenantCode(tenantCode) != null,
+                onClick = { step = 2 },
+            ) {
+                Text("Choose device use")
+            }
+        } else {
+            Text(
+                "Who is using this device?",
+                modifier = Modifier.padding(top = 26.dp),
+                color = PmdText,
+                fontWeight = FontWeight.Black,
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                "Choose the closest role. Your PayMyDine account still decides the permissions.",
+                modifier = Modifier.padding(
+                    top = 8.dp,
+                    bottom = 12.dp,
+                ),
+                color = PmdMuted,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+
+            listOf(
+                "owner" to "Owner",
+                "manager" to "Manager",
+                "cashier" to "Cashier",
+                "waiter" to "Waiter",
+                "kitchen" to "Kitchen / KDS",
+                "reservations" to "Reservations",
+            ).forEach { (value, label) ->
+                OutlinedButton(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    enabled = online,
+                    onClick = { onStaffSelected(value) },
+                ) {
+                    Text(label)
+                }
+            }
+
+            Text(
+                "Guest-facing device",
+                modifier = Modifier.padding(top = 22.dp),
+                color = PmdMuted,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                enabled = online,
+                onClick = onTableDisplay,
+            ) {
+                Text("Table display")
+            }
+
+            OutlinedButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                onClick = { step = 1 },
+            ) {
+                Text("Change restaurant")
+            }
+        }
+
+        if (!online) {
+            Text(
+                "Internet is required for the first connection.",
+                modifier = Modifier.padding(top = 14.dp),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+        lastError
+            ?.takeIf { it.isNotBlank() }
+            ?.let {
+                Text(
+                    it,
+                    modifier = Modifier.padding(top = 12.dp),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
     }
 }
 

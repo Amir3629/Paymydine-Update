@@ -1,5 +1,6 @@
-package com.paymydine.tabledisplay
+package com.paymydine.mobile.tabledisplay
 
+import com.paymydine.mobile.BuildConfig
 import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

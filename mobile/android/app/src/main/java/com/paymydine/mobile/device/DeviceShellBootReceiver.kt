@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import com.paymydine.mobile.MainActivity
 import com.paymydine.mobile.PayMyDineApplication
+import com.paymydine.mobile.TableDisplayActivity
 
 class DeviceShellBootReceiver : BroadcastReceiver() {
     override fun onReceive(
@@ -19,6 +20,21 @@ class DeviceShellBootReceiver : BroadcastReceiver() {
             context.applicationContext
                 as? PayMyDineApplication
                 ?: return
+
+        if (app.credentials.devicePurpose() == "table_display") {
+            runCatching {
+                context.startActivity(
+                    TableDisplayActivity.intent(
+                        context,
+                        app.credentials.tenantHost(),
+                    ).addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP,
+                    ),
+                )
+            }
+            return
+        }
 
         if (app.credentials.deviceToken().isNullOrBlank()) {
             return

@@ -25,6 +25,17 @@ class MainActivity : ComponentActivity() {
         val app = application as PayMyDineApplication
         app.handleIntent(intent)
 
+        if (app.credentials.devicePurpose() == "table_display") {
+            startActivity(
+                TableDisplayActivity.intent(
+                    this,
+                    app.credentials.tenantHost(),
+                ),
+            )
+            finish()
+            return
+        }
+
         // PMD_ANDROID_DIRECT_LOGIN_LAUNCHER_V2
         // A paired device always opens the PayMyDine staff login. The server
         // selects the canonical destination from the authenticated staff role;

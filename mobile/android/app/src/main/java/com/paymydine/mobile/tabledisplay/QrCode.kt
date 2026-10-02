@@ -1,4 +1,4 @@
-package com.paymydine.tabledisplay
+package com.paymydine.mobile.tabledisplay
 
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.ImageBitmap
