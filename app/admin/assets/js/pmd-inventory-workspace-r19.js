@@ -1231,6 +1231,7 @@
         package_to_base:sourceLine ? Number(sourceLine.package_to_base || 0) || null : null,
         supplier_id:sourceLine ? (Number(sourceLine.supplier_id || 0) || null) : null,
         supplier_item_id:sourceLine ? (Number(sourceLine.supplier_item_id || 0) || null) : null,
+        supplier_sku:sourceLine ? String(sourceLine.supplier_sku || '') : '',
         identifier_id:sourceLine ? (Number(sourceLine.identifier_id || 0) || null) : null,
         barcode:sourceLine ? String(sourceLine.barcode || '') : ''
       };
