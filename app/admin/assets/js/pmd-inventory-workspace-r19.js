@@ -174,9 +174,12 @@
     state.busy = Boolean(next);
     workspace.querySelectorAll('button, input[type="file"]').forEach(function (node) {
       if (node.hasAttribute('data-r19-mode')) return;
-      if (state.busy) node.setAttribute('data-r19-busy-disabled', '1');
-      if (state.busy) node.disabled = true;
-      else if (node.getAttribute('data-r19-busy-disabled') === '1') {
+      if (state.busy) {
+        if (!node.disabled) {
+          node.setAttribute('data-r19-busy-disabled', '1');
+          node.disabled = true;
+        }
+      } else if (node.getAttribute('data-r19-busy-disabled') === '1') {
         node.disabled = false;
         node.removeAttribute('data-r19-busy-disabled');
       }
@@ -399,6 +402,13 @@
   }
 
   function renderOverview() {
+    var serverHost = workspace.querySelector('[data-r19-overview-stock][data-r19-server-overview="1"]');
+    if (serverHost) {
+      serverHost.removeAttribute('data-r19-server-overview');
+      renderActivity();
+      return;
+    }
+
     var rows = items().slice().sort(function (a, b) {
       var priority = {critical:0,low:1,setup:2,healthy:3};
       var ap = Object.prototype.hasOwnProperty.call(priority, a.status) ? priority[a.status] : 4;
@@ -779,7 +789,7 @@
     var token = ++state.purchaseRenderToken;
 
     if (reset) {
-      preloadRows(visible.slice(0, 18)).then(function () {
+      preloadRows(visible.slice(0, 6)).then(function () {
         if (token !== state.purchaseRenderToken) return;
         host.innerHTML = customCardHtml() + visible.map(productCardHtml).join('');
         if (more) {
