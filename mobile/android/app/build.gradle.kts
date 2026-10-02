@@ -10,7 +10,7 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 52
+        versionCode = 53
         // PMD_ANDROID_0_3_34_PHONE_WEB_ORIENTATION_V115
         // Phones stay portrait like mobile Web; tablets retain full-sensor rotation.
         // PMD_ANDROID_0_3_34_V115_V114_RELEASE_FINAL
@@ -39,7 +39,7 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.3.39-device-shell-v1" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
+        versionName = "0.4.0-device-app-v2" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
         // PMD_ANDROID_0_3_37_V129_CLOUD_REENTRY
         // PMD_ANDROID_0_3_36_V120_LOCAL_FIRST
         // V120 = Local-First transport + latest V119 kitchen-round behavior
@@ -62,6 +62,11 @@ android {
         // V111 carries V108 pay-before-Kitchen intent and V111 tablet UI offline.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SYNC_PROTOCOL_VERSION", "\"pmd-sync-v1\"")
+        buildConfigField(
+            "String",
+            "TABLE_DISPLAY_API_PATH",
+            "\"/api/v1/table-display\"",
+        )
     }
     signingConfigs {
         create("preview") {
@@ -167,6 +172,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.work:work-runtime-ktx:2.11.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    implementation("com.google.zxing:core:3.5.3")
     testImplementation("junit:junit:4.13.2")
 }
 

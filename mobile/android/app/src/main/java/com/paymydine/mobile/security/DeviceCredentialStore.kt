@@ -51,6 +51,47 @@ class DeviceCredentialStore(context: Context) {
     fun preferredWorkspace(): String? =
         prefs.getString("preferred_workspace", null)
             ?.takeIf { it in setOf("pos", "kds", "reservations") }
+
+    // PMD_UNIFIED_DEVICE_APP_V2
+    // Setup intent affects launch/routing only. It never grants permissions;
+    // the server remains authoritative for every staff role and capability.
+    fun setDevicePurpose(value: String?) {
+        val normalized = value?.trim()?.lowercase()
+        if (normalized in setOf("staff", "table_display")) {
+            prefs.edit().putString("device_purpose_v2", normalized).apply()
+        } else {
+            prefs.edit().remove("device_purpose_v2").apply()
+        }
+    }
+
+    fun devicePurpose(): String =
+        prefs.getString("device_purpose_v2", "staff")
+            ?.takeIf { it in setOf("staff", "table_display") }
+            ?: "staff"
+
+    fun setOnboardingMemberHint(value: String?) {
+        val normalized = value?.trim()?.lowercase()
+        val allowed = setOf(
+            "owner",
+            "manager",
+            "cashier",
+            "waiter",
+            "kitchen",
+            "reservations",
+            "table_display",
+        )
+        if (normalized in allowed) {
+            prefs.edit().putString(
+                "onboarding_member_hint_v2",
+                normalized,
+            ).apply()
+        } else {
+            prefs.edit().remove("onboarding_member_hint_v2").apply()
+        }
+    }
+
+    fun onboardingMemberHint(): String? =
+        prefs.getString("onboarding_member_hint_v2", null)
     // PMD_ANDROID_WORKSPACE_LEASE_V1
     // Passwords are never persisted. A successful Cloud re-auth only stores an
     // encrypted, short-lived continuation lease for the exact workspace.
