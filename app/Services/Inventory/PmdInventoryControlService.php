@@ -919,14 +919,28 @@ final class PmdInventoryControlService
                                 )
                             );
 
-                        $newBaseUnit = $useCatalogUnits ? $catalogBaseUnit : $unit;
-                        $newPurchaseUnit = $useCatalogUnits ? $catalogPurchaseUnit : $unit;
-                        $newFactor = $useCatalogUnits ? ($catalogFactor ?? 1.0) : 1.0;
+                        $explicitBaseUnit = $this->nullableText($line['base_unit'] ?? null, 30);
+                        $hasExplicitPackage = $explicitBaseUnit !== null && $explicitPackageFactor !== null;
+
+                        $newBaseUnit = $hasExplicitPackage
+                            ? $this->unit($explicitBaseUnit)
+                            : ($useCatalogUnits ? $catalogBaseUnit : $unit);
+                        $newPurchaseUnit = $hasExplicitPackage
+                            ? $unit
+                            : ($useCatalogUnits ? $catalogPurchaseUnit : $unit);
+                        $newFactor = $hasExplicitPackage
+                            ? $explicitPackageFactor
+                            : ($useCatalogUnits ? ($catalogFactor ?? 1.0) : 1.0);
                         $newBaseCost = $unitCost;
 
                         if (
-                            $useCatalogUnits
-                            && strtolower($unit) === strtolower($newPurchaseUnit)
+                            (
+                                $hasExplicitPackage
+                                || (
+                                    $useCatalogUnits
+                                    && strtolower($unit) === strtolower($newPurchaseUnit)
+                                )
+                            )
                             && $newFactor > 0
                         ) {
                             $newBaseCost = $unitCost / $newFactor;
@@ -955,6 +969,7 @@ final class PmdInventoryControlService
                             'reorder_point' => 0,
                             'par_level' => 0,
                             'supplier_name' => $supplier ?: null,
+                            'preferred_supplier_id' => max(0, (int)($line['supplier_id'] ?? $data['supplier_id'] ?? 0)) ?: null,
                             'active' => 1,
                             'created_by' => $staffId,
                             'created_at' => now(),
