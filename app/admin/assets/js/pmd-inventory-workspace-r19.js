@@ -970,13 +970,17 @@
   }
 
   function ensureBarcodeReview() {
-    if (!state.bulkReview || state.bulkReview.label !== 'Barcode purchase') {
+    // Keep an existing AI/shopping review intact and append scans to it.
+    // This avoids throwing away reviewed purchase lines if the operator scans
+    // an extra case before confirming.
+    if (!state.bulkReview) {
       state.bulkReview = {
         receiptId:0,
         label:'Barcode purchase',
         lines:[]
       };
     }
+    if (!Array.isArray(state.bulkReview.lines)) state.bulkReview.lines = [];
     return state.bulkReview;
   }
 
