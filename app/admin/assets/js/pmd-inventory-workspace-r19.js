@@ -907,6 +907,9 @@
         '<label>Quantity<input type="number" min="0.0001" step="0.01" value="1" data-r19-receive-qty></label>' +
         '<label>Unit<select data-r19-receive-unit>' + unitOptions(unit) + '</select></label>' +
         '<label>Cost / unit<input type="number" min="0" step="0.01" value="' + esc(cost) + '" data-r19-receive-cost></label>' +
+        (operations().ready ? '<label>Storage<select data-r19-receive-storage>' + operationStorageOptions(operationSettings().default_storage_location_id, true) + '</select></label>' : '') +
+        (operations().ready ? '<label>Lot / batch<input type="text" placeholder="Optional" data-r19-receive-lot></label>' : '') +
+        (operations().ready ? '<label>Expiry date<input type="date" data-r19-receive-expiry></label>' : '') +
       '</div>' +
       '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-submit-purchase>Add to stock</button></div>';
     host.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -926,8 +929,11 @@
     if (!name) return toast('Enter the item name.', true);
     if (!(qty > 0)) return toast('Enter the received quantity.', true);
     var existing = row ? existingItemForCatalog(row) : null;
+    var currentSupplier = operationSupplier();
     var payload = {
-      supplier_name:valueOf(workspace,'[data-r19-purchase-supplier]','').trim(),
+      supplier_id:currentSupplier ? Number(currentSupplier.id) : null,
+      supplier_name:currentSupplier ? String(currentSupplier.name || '') : valueOf(workspace,'[data-r19-purchase-supplier]','').trim(),
+      supplier_invoice_number:valueOf(workspace,'[data-r19-purchase-invoice]','').trim(),
       purchased_at:valueOf(workspace,'[data-r19-purchase-date]',todayKey()),
       lines:[{
         item_id:existing ? Number(existing.id) : 0,
@@ -936,7 +942,11 @@
         quantity:qty,
         unit:unit,
         unit_cost:cost,
-        barcode:custom ? normalizedBarcode(selection.barcode) : ''
+        barcode:custom ? normalizedBarcode(selection.barcode) : '',
+        supplier_id:currentSupplier ? Number(currentSupplier.id) : null,
+        storage_location_id:Number(valueOf(host,'[data-r19-receive-storage]',0)) || null,
+        lot_code:valueOf(host,'[data-r19-receive-lot]','').trim(),
+        expiry_date:valueOf(host,'[data-r19-receive-expiry]','')
       }]
     };
     setBusy(true);
@@ -1124,8 +1134,21 @@
     api.request('onScanReceipt', {}, data).then(function (json) {
       var extraction = json.extraction || {};
       var supplier = workspace.querySelector('[data-r19-purchase-supplier]');
+      var supplierSelect = workspace.querySelector('[data-r19-purchase-supplier-id]');
+      var invoice = workspace.querySelector('[data-r19-purchase-invoice]');
       var date = workspace.querySelector('[data-r19-purchase-date]');
       if (supplier && extraction.supplier_name) supplier.value = extraction.supplier_name;
+      if (supplierSelect && extraction.supplier_name) {
+        var wantedSupplier = normalize(extraction.supplier_name);
+        var supplierRows = Array.isArray(operations().suppliers) ? operations().suppliers : [];
+        var supplierMatch = supplierRows.find(function (row) {
+          return normalize(row.name) === wantedSupplier;
+        });
+        if (supplierMatch) supplierSelect.value = String(supplierMatch.id);
+      }
+      if (invoice && (extraction.invoice_number || extraction.invoice_no)) {
+        invoice.value = String(extraction.invoice_number || extraction.invoice_no || '');
+      }
       if (date && extraction.purchase_date) date.value = extraction.purchase_date;
       state.bulkReview = {
         receiptId:Number(json.receipt_id || 0),
@@ -1191,11 +1214,17 @@
       };
     }).filter(function (line) { return line.item_name && line.quantity > 0; });
     if (!lines.length) return toast('Keep at least one purchase line with a quantity.', true);
+    var currentSupplier = operationSupplier();
     var payload = {
       receipt_id:Number(state.bulkReview.receiptId || 0),
-      supplier_name:valueOf(workspace,'[data-r19-purchase-supplier]','').trim(),
+      supplier_id:currentSupplier ? Number(currentSupplier.id) : null,
+      supplier_name:currentSupplier ? String(currentSupplier.name || '') : valueOf(workspace,'[data-r19-purchase-supplier]','').trim(),
+      supplier_invoice_number:valueOf(workspace,'[data-r19-purchase-invoice]','').trim(),
       purchased_at:valueOf(workspace,'[data-r19-purchase-date]',todayKey()),
-      lines:lines
+      lines:lines.map(function (line) {
+        line.supplier_id = currentSupplier ? Number(currentSupplier.id) : null;
+        return line;
+      })
     };
     setBusy(true);
     api.request('onSavePurchase', payload).then(applyActionSnapshot)
