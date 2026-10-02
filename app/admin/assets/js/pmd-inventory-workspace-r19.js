@@ -48,6 +48,8 @@
     purchaseSelection: null,
     shoppingDays: 1,
     bulkReview: null,
+    barcodeOpen: false,
+    pendingBarcode: '',
     busy: false
   };
 
@@ -225,6 +227,25 @@
 
   function purchaseFactor(item) {
     return Math.max(.0001, Number(item && item.purchase_to_base || 1));
+  }
+
+  function barcodeTokens(item) {
+    return String(item && item.sku || '')
+      .split(/[\s,;|]+/)
+      .map(function (value) { return String(value || '').trim(); })
+      .filter(Boolean);
+  }
+
+  function normalizedBarcode(value) {
+    return String(value == null ? '' : value).trim().replace(/[\r\n\t]+/g, '');
+  }
+
+  function itemForBarcode(code) {
+    code = normalizedBarcode(code);
+    if (!code) return null;
+    return items().find(function (item) {
+      return barcodeTokens(item).indexOf(code) !== -1;
+    }) || null;
   }
 
   function ownerQuantity(item, baseQty) {
@@ -830,11 +851,11 @@
     return items().find(function (item) { return keys.indexOf(normalize(item.name)) !== -1; }) || null;
   }
 
-  function openPurchaseEditor(index, custom) {
+  function openPurchaseEditor(index, custom, barcode) {
     var row = custom ? null : catalog()[Number(index)];
     var host = workspace.querySelector('[data-r19-purchase-editor]');
     if (!host) return;
-    state.purchaseSelection = custom ? {custom:true} : row;
+    state.purchaseSelection = custom ? {custom:true, barcode:normalizedBarcode(barcode)} : row;
     var existing = row ? existingItemForCatalog(row) : null;
     var name = row ? row.name : '';
     var category = row ? (row.category || '') : '';
@@ -852,6 +873,7 @@
       '<div class="pmd-inv-r19-editor-fields">' +
         (custom ? '<label class="is-wide">Item name<input type="text" placeholder="Item name" data-r19-receive-name></label>' : '') +
         (custom ? '<label>Category<input type="text" placeholder="Food, Cleaning…" data-r19-receive-category></label>' : '') +
+        (custom && state.purchaseSelection.barcode ? '<label>Barcode / QR<input type="text" readonly value="' + esc(state.purchaseSelection.barcode) + '" data-r19-receive-barcode></label>' : '') +
         '<label>Quantity<input type="number" min="0.0001" step="0.01" value="1" data-r19-receive-qty></label>' +
         '<label>Unit<select data-r19-receive-unit>' + unitOptions(unit) + '</select></label>' +
         '<label>Cost / unit<input type="number" min="0" step="0.01" value="' + esc(cost) + '" data-r19-receive-cost></label>' +
@@ -883,7 +905,8 @@
         category:category,
         quantity:qty,
         unit:unit,
-        unit_cost:cost
+        unit_cost:cost,
+        barcode:custom ? normalizedBarcode(selection.barcode) : ''
       }]
     };
     setBusy(true);
@@ -896,6 +919,166 @@
       })
       .catch(function (error) { toast(error.message || 'Could not add purchase.', true); })
       .finally(function () { setBusy(false); });
+  }
+
+  function renderBarcodeLinkOptions() {
+    var select = workspace.querySelector('[data-r19-barcode-link-select]');
+    if (!select) return;
+    select.innerHTML = items().slice().sort(function (a, b) {
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    }).map(function (item) {
+      return '<option value="' + esc(item.id) + '">' + esc(item.name + ' · ' + ownerQuantityLabel(item, item.estimated_on_hand, 2)) + '</option>';
+    }).join('');
+  }
+
+  function setBarcodeStatus(message, error) {
+    var status = workspace.querySelector('[data-r19-barcode-status]');
+    if (!status) return;
+    status.textContent = String(message || '');
+    status.classList.toggle('is-error', Boolean(error));
+    status.classList.toggle('is-success', Boolean(message) && !error);
+  }
+
+  function focusBarcodeInput() {
+    var input = workspace.querySelector('[data-r19-barcode-input]');
+    if (!input || !state.barcodeOpen) return;
+    window.requestAnimationFrame(function () {
+      input.focus({preventScroll:true});
+      input.select();
+    });
+  }
+
+  function openBarcodeScanner() {
+    var panel = workspace.querySelector('[data-r19-barcode-panel]');
+    if (!panel) return;
+    state.barcodeOpen = true;
+    state.pendingBarcode = '';
+    panel.hidden = false;
+    var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
+    if (unknown) unknown.hidden = true;
+    setBarcodeStatus('Scanner ready. Scan the first item.', false);
+    renderBarcodeLinkOptions();
+    panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+    focusBarcodeInput();
+  }
+
+  function closeBarcodeScanner() {
+    var panel = workspace.querySelector('[data-r19-barcode-panel]');
+    if (panel) panel.hidden = true;
+    state.barcodeOpen = false;
+    state.pendingBarcode = '';
+  }
+
+  function ensureBarcodeReview() {
+    // Keep an existing AI/shopping review intact and append scans to it.
+    // This avoids throwing away reviewed purchase lines if the operator scans
+    // an extra case before confirming.
+    if (!state.bulkReview) {
+      state.bulkReview = {
+        receiptId:0,
+        label:'Barcode purchase',
+        lines:[]
+      };
+    }
+    if (!Array.isArray(state.bulkReview.lines)) state.bulkReview.lines = [];
+    return state.bulkReview;
+  }
+
+  function addBarcodeItemToDraft(item, code) {
+    if (!item) return;
+    var review = ensureBarcodeReview();
+    var unit = String(item.purchase_unit || item.unit || 'piece');
+    var cost = Number(item.purchase_unit_cost || 0);
+    var existing = review.lines.find(function (line) {
+      return Number(line.item_id || 0) === Number(item.id);
+    });
+    if (existing) {
+      existing.quantity = Number(existing.quantity || 0) + 1;
+    } else {
+      review.lines.push({
+        item_id:Number(item.id),
+        item_name:String(item.name || ''),
+        category:String(item.category || ''),
+        quantity:1,
+        unit:unit,
+        unit_cost:cost,
+        barcode:normalizedBarcode(code)
+      });
+    }
+    state.pendingBarcode = '';
+    var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
+    if (unknown) unknown.hidden = true;
+    setBarcodeStatus('Scanned ' + item.name + ' · added 1 ' + unit + ' to the purchase draft.', false);
+    renderBulkReview();
+    focusBarcodeInput();
+  }
+
+  function scanBarcode(code) {
+    code = normalizedBarcode(code);
+    var input = workspace.querySelector('[data-r19-barcode-input]');
+    if (input) input.value = '';
+    if (!code) {
+      setBarcodeStatus('No code received. Scan again.', true);
+      focusBarcodeInput();
+      return;
+    }
+    if (code.length > 120) {
+      setBarcodeStatus('The scanned code is too long to store.', true);
+      focusBarcodeInput();
+      return;
+    }
+
+    var item = itemForBarcode(code);
+    if (item) {
+      addBarcodeItemToDraft(item, code);
+      return;
+    }
+
+    state.pendingBarcode = code;
+    renderBarcodeLinkOptions();
+    var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
+    var unknownCode = workspace.querySelector('[data-r19-barcode-unknown-code]');
+    if (unknownCode) unknownCode.textContent = code;
+    if (unknown) unknown.hidden = false;
+    setBarcodeStatus('Unknown code. Link it once or create a new stock item.', true);
+  }
+
+  function linkPendingBarcode() {
+    var code = normalizedBarcode(state.pendingBarcode);
+    var select = workspace.querySelector('[data-r19-barcode-link-select]');
+    var itemId = Number(select && select.value || 0);
+    var item = items().find(function (row) { return Number(row.id) === itemId; });
+    if (!code || !item || state.busy) return;
+
+    var codes = barcodeTokens(item);
+    if (codes.indexOf(code) === -1) codes.push(code);
+    var factor = purchaseFactor(item);
+
+    setBusy(true);
+    api.request('onSaveItem', {
+      item_id:Number(item.id),
+      name:String(item.name || ''),
+      category:String(item.category || ''),
+      sku:codes.join(','),
+      purchase_unit:String(item.purchase_unit || item.unit || 'piece'),
+      purchase_to_base:factor,
+      purchase_cost:Number(item.purchase_unit_cost || (Number(item.unit_cost || 0) * factor)),
+      reorder_point:Number(item.reorder_point || 0) / factor,
+      par_level:Number(item.par_level || 0) / factor,
+      supplier_name:String(item.supplier_name || '')
+    }).then(applyActionSnapshot)
+      .then(function () {
+        var refreshed = items().find(function (row) { return Number(row.id) === itemId; }) || item;
+        addBarcodeItemToDraft(refreshed, code);
+        toast('Barcode linked to ' + item.name + '.');
+      })
+      .catch(function (error) {
+        setBarcodeStatus(error.message || 'Could not link this barcode.', true);
+      })
+      .finally(function () {
+        setBusy(false);
+        focusBarcodeInput();
+      });
   }
 
   function scanReceipt(file) {
@@ -961,7 +1144,12 @@
       var qty = Number(valueOf(node,'[data-r19-bulk-qty]',0));
       var unit = valueOf(node,'[data-r19-bulk-unit]','piece');
       var cost = Number(valueOf(node,'[data-r19-bulk-cost]',0));
-      var existing = findExistingByName(name);
+      var sourceLine = state.bulkReview && state.bulkReview.lines
+        ? state.bulkReview.lines[Number(node.getAttribute('data-r19-bulk-line'))]
+        : null;
+      var existing = sourceLine && Number(sourceLine.item_id || 0) > 0
+        ? items().find(function (row) { return Number(row.id) === Number(sourceLine.item_id); })
+        : findExistingByName(name);
       var template = catalogByKey[normalize(name)] || null;
       return {
         item_id:existing ? Number(existing.id) : 0,
@@ -1312,6 +1500,26 @@
       renderPurchaseGrid(true);
       return;
     }
+    if (event.target.closest('[data-r19-barcode-open]')) {
+      openBarcodeScanner();
+      return;
+    }
+    if (event.target.closest('[data-r19-barcode-close]')) {
+      closeBarcodeScanner();
+      return;
+    }
+    if (event.target.closest('[data-r19-barcode-link]')) {
+      linkPendingBarcode();
+      return;
+    }
+    if (event.target.closest('[data-r19-barcode-new]')) {
+      var pending = normalizedBarcode(state.pendingBarcode);
+      if (pending) {
+        openPurchaseEditor(null, true, pending);
+        setBarcodeStatus('Create the item below; this code will be saved with it.', false);
+      }
+      return;
+    }
     if (event.target.closest('[data-r19-custom-purchase]')) {
       openPurchaseEditor(null, true);
       return;
@@ -1387,6 +1595,14 @@
     if (event.target.closest('[data-r19-shopping-purchases]')) { shoppingToPurchases(); return; }
   });
 
+  workspace.addEventListener('keydown', function (event) {
+    if (!event.target.matches('[data-r19-barcode-input]')) return;
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    event.stopPropagation();
+    scanBarcode(event.target.value);
+  });
+
   workspace.addEventListener('input', function (event) {
     if (event.target.matches('[data-r19-stock-search]')) {
       state.stockSearch = String(event.target.value || '').trim();
@@ -1422,6 +1638,7 @@
 
   root.addEventListener('pmd:inventory-snapshot', function () {
     renderAllVisible();
+    if (state.barcodeOpen) renderBarcodeLinkOptions();
   });
 
   buildCatalogIndex();
@@ -1437,7 +1654,7 @@
   setMode(initialMode);
 
   window.PMDInventoryWorkspaceR19 = {
-    version:'20.0.0',
+    version:'23.0.0',
     setMode:setMode,
     refresh:function () {
       return api.refresh().then(function () {

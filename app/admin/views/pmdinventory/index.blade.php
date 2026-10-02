@@ -365,6 +365,12 @@
                                 <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-r19-receipt-input {{ $aiReceipts ? '' : 'disabled' }}>
                                 <span>{{ $aiReceipts ? 'Scan supplier bill with AI' : 'AI bill scan unavailable' }}</span>
                             </label>
+                            <button type="button" class="pmd-inv-r19-secondary pmd-inv-r23-barcode-button" data-r19-barcode-open>
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M20 5v14"></path>
+                                </svg>
+                                <span>Scan barcode / QR</span>
+                            </button>
                         </div>
                     </div>
                     <div class="pmd-inv-r19-purchase-meta">
@@ -372,6 +378,43 @@
                         <label>Purchase date<input type="date" value="{{ now()->toDateString() }}" data-r19-purchase-date></label>
                         <label class="pmd-inv-r19-search"><span>Search</span><input type="search" placeholder="Tomato, milk, vodka…" data-r19-purchase-search></label>
                     </div>
+
+                    {{-- PMD_INVENTORY_BARCODE_RECEIVING_R23
+                         USB/Bluetooth scanners normally act as fast keyboards:
+                         focus this input, scan, and Enter completes the code. --}}
+                    <section class="pmd-inv-r23-barcode" data-r19-barcode-panel hidden>
+                        <div class="pmd-inv-r23-barcode__head">
+                            <div>
+                                <span>Barcode receiving</span>
+                                <h3>Scan product or case codes</h3>
+                                <p>Scan a barcode or QR code. Known codes go straight into this purchase draft; unknown codes can be linked once to an existing stock item.</p>
+                            </div>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r19-barcode-close>Close</button>
+                        </div>
+                        <label class="pmd-inv-r23-barcode__input">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M20 5v14"></path>
+                            </svg>
+                            <input type="text" inputmode="text" autocomplete="off" spellcheck="false"
+                                placeholder="Scan now, or type a code and press Enter"
+                                data-r19-barcode-input>
+                        </label>
+                        <small class="pmd-inv-r23-barcode__hint">Works with common USB/Bluetooth keyboard-mode scanners. The scanner should send Enter after each code.</small>
+                        <div class="pmd-inv-r23-barcode__status" data-r19-barcode-status aria-live="polite"></div>
+                        <div class="pmd-inv-r23-barcode__unknown" data-r19-barcode-unknown hidden>
+                            <div>
+                                <strong data-r19-barcode-unknown-code></strong>
+                                <span>This code is not linked yet.</span>
+                            </div>
+                            <label>
+                                <span>Link to existing stock</span>
+                                <select data-r19-barcode-link-select></select>
+                            </label>
+                            <button type="button" class="pmd-inv-r19-primary" data-r19-barcode-link>Link & add</button>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r19-barcode-new>New item</button>
+                        </div>
+                    </section>
+
                     <div class="pmd-inv-r19-main-categories" data-r19-purchase-main></div>
                     <div class="pmd-inv-r19-subcategories" data-r19-purchase-sub></div>
                     <div class="pmd-inv-r19-product-grid" data-r19-purchase-grid></div>

@@ -183,9 +183,15 @@
     }
 @endphp
 
+@php
+    // PMD_MENU_INVENTORY_R23_SERVER_FIRST
+    // Paint the requested workspace on the server so Inventory never flashes Menu first.
+    $pmdInitialInventoryR23 = request()->query('workspace') === 'inventory';
+@endphp
+
 <div
     id="pmd-menu-manager-main"
-    class="pmd-owner-page pmd-menu-manager"
+    class="pmd-owner-page pmd-menu-manager{{ $pmdInitialInventoryR23 ? ' pmd-menu-inventory-r23-inventory' : '' }}"
     data-pmd-menu-manager
     data-pmd-combo-builder="0"
     data-pmd-can-manage-combos="{{ $canManageCombos ? '1' : '0' }}"
@@ -201,21 +207,10 @@
     data-pmd-dashboard-header-clone="menu-v1"
 >
     <div class="pmd-owner-header__left">
-        <h1 class="pmd-r2-clean-title">{{ $pmdT('title') }}</h1>
+        <h1 class="pmd-r2-clean-title" data-pmd-menu-title="{{ $pmdT('title') }}">{{ $pmdInitialInventoryR23 ? 'Inventory' : $pmdT('title') }}</h1>
 
-        {{-- PMD_MENU_INVENTORY_HEADER_R22_SAFE
-             The switcher stays in normal header flow beside the title.
-             No absolute positioning and no center-clock overlap. --}}
-        @if(!empty($pmdMenuCanManageInventoryR20))
-            <nav
-                class="pmd-product-workspace-r20 pmd-product-workspace-r22--header"
-                aria-label="Menu and inventory workspace"
-                data-pmd-unified-workspace-tabs
-            >
-                <button type="button" class="is-active" data-pmd-unified-workspace-tab="menu" aria-pressed="true">Menu</button>
-                <button type="button" data-pmd-unified-workspace-tab="inventory" aria-pressed="false">Inventory</button>
-            </nav>
-        @endif
+        {{-- PMD_MENU_INVENTORY_R23_SINGLE_ACTION
+             Workspace switching now lives in one Header action on the right. --}}
     </div>
 
     <div
@@ -390,6 +385,24 @@
                 </svg>
             </button>
         </div>
+
+        @if(!empty($pmdMenuCanManageInventoryR20))
+            {{-- R23: immediate neighbour of Notifications; one button, never a switcher. --}}
+            <button
+                type="button"
+                class="pmd-dashboard-lab__header-action pmd-workspace-toggle-r23"
+                data-pmd-workspace-toggle-r23
+                data-workspace="{{ $pmdInitialInventoryR23 ? 'inventory' : 'menu' }}"
+                aria-label="{{ $pmdInitialInventoryR23 ? 'Open Menu' : 'Open Inventory' }}"
+                title="{{ $pmdInitialInventoryR23 ? 'Open Menu' : 'Open Inventory' }}"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 5h16v14H4z"></path>
+                    <path d="M8 9h8M8 13h8"></path>
+                </svg>
+                <span data-pmd-workspace-toggle-label>{{ $pmdInitialInventoryR23 ? 'Menu' : 'Inventory' }}</span>
+            </button>
+        @endif
 
             <span
                 data-pmd-main-header-notification-gap-r67=""
@@ -909,7 +922,7 @@
     </script>
 <!-- PMD_DASHBOARD_HEADER_CLONE_V1_MENU_END -->
 
-    <section data-pmd-unified-menu-panel>
+    <section data-pmd-unified-menu-panel {{ $pmdInitialInventoryR23 ? 'hidden' : '' }}>
 
     {{-- PMD_MENU_KPI_PARITY_R22_SAFE
          Same card geometry/language as the role dashboards. Runtime updates
@@ -1488,7 +1501,7 @@
             </div>
         </section>
 
-        <section class="pmd-menu-inventory-r20-panel" data-pmd-unified-inventory-panel hidden>
+        <section class="pmd-menu-inventory-r20-panel" data-pmd-unified-inventory-panel {{ $pmdInitialInventoryR23 ? '' : 'hidden' }}>
             @include('pmdinventory/index', [
                 'pmdInventory' => $pmdInventoryR20 ?? [],
                 'pmdInventoryEmbedded' => true,
