@@ -73,11 +73,16 @@ class Pmdinventory extends AdminController
     {
         // PMD_MENU_INVENTORY_UNIFIED_R20
         // Inventory no longer owns a separate Owner/Manager page. Keep this
-        // controller as the write/AJAX authority, but send browser navigation
-        // into the Inventory workspace embedded inside Menu.
+        // controller as the write/AJAX authority, but send normal browser GETs
+        // into the Inventory workspace embedded inside Menu. AJAX handlers must
+        // remain on this controller, so their request is never redirected.
         $this->assertOwnerOrManager();
 
-        return redirect(admin_url('pmdmenus').'?workspace=inventory');
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmdmenus').'?workspace=inventory');
+        }
+
+        return null;
     }
 
     protected function catalogWithImages(): array
