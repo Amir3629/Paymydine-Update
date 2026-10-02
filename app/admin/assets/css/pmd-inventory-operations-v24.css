@@ -284,6 +284,33 @@ body.pmd-inventory-r19-page .pmd-inv-v24-modes button {
   display:grid;
   gap:8px;
 }
+.pmd-inv-v24-prep-lines {
+  display:grid;
+  gap:8px;
+}
+.pmd-inv-v24-prep-line {
+  display:grid;
+  grid-template-columns:minmax(190px,1fr) 120px 90px 34px;
+  align-items:center;
+  gap:8px;
+}
+.pmd-inv-v24-prep-line > span {
+  color:#667d76;
+  font-size:10.5px;
+  font-weight:750;
+}
+.pmd-inv-v24-prep-line button {
+  width:34px;
+  height:34px;
+  min-height:34px;
+  padding:0;
+  border:1px solid #e7cccc;
+  border-radius:9px;
+  background:#fff7f7;
+  color:#a73245;
+  font-size:18px;
+  font-weight:900;
+}
 .pmd-inv-v24-po-line {
   display:grid;
   grid-template-columns:minmax(190px,1.5fr) 90px 110px 120px 110px 34px;
@@ -478,13 +505,15 @@ body.pmd-menu-manager-page .pmd-inv-v24-pane .pmd-inv-r19-section-head p {
   }
   .pmd-inv-v24-po-line,
   .pmd-inv-v24-receive-line,
-  .pmd-inv-v24-scan-line {
+  .pmd-inv-v24-scan-line,
+  .pmd-inv-v24-prep-line {
     grid-template-columns:1fr 1fr;
     align-items:stretch;
   }
   .pmd-inv-v24-po-line > :first-child,
   .pmd-inv-v24-receive-line > :first-child,
-  .pmd-inv-v24-scan-line > :first-child {
+  .pmd-inv-v24-scan-line > :first-child,
+  .pmd-inv-v24-prep-line > :first-child {
     grid-column:1/-1;
   }
 }
