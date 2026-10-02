@@ -5781,6 +5781,7 @@ return response()->json([
             $tableNameNormalized = strtolower(trim((string)($request->table_name ?? '')));
             $isDelivery = $tableNameNormalized === 'delivery';
             $isPickup = in_array($tableNameNormalized, ['pickup', 'collection'], true);
+            $isKiosk = $tableNameNormalized === 'kiosk';
 
             if (!$isCashier && !$isDelivery && !$isPickup && $request->has('table_id')) {
                 $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
@@ -5796,6 +5797,7 @@ return response()->json([
                 'is_cashier' => $isCashier,
                 'is_delivery' => $isDelivery,
                 'is_pickup' => $isPickup,
+                'is_kiosk' => $isKiosk,
             ]);
 
             if (empty($request->table_id) && in_array($tableNameNormalized, ['delivery', 'cashier'], true)) {
@@ -5881,7 +5883,7 @@ return response()->json([
                 'stripe_payment_intent_id' => 'nullable|string|max:255',
             ];
 
-            if (!$isCashier && !$isDelivery && !$isPickup) {
+            if (!$isCashier && !$isDelivery && !$isPickup && !$isKiosk) {
                 $validationRules['table_id'] = 'required|string|max:50';
                 $validationRules['table_name'] = 'required|string|max:100';
             } else {
@@ -6038,6 +6040,8 @@ return response()->json([
                 $comment .= "Delivery Order | ";
             } elseif ($isPickup) {
                 $comment .= "Pickup Order | ";
+            } elseif ($isKiosk) {
+                $comment .= "Self-Service Kiosk · Eat Here | ";
             } else {
                 if ($request->filled('table_id')) {
                     $comment .= "Table ID: " . $request->table_id . " | ";
@@ -6068,7 +6072,7 @@ return response()->json([
                     $isPaidOrSettled = !empty($candidateOrder->settled_at)
                         || in_array(strtolower((string)($candidateOrder->settlement_status ?? '')), ['paid', 'settled'], true)
                         || (float)($candidateOrder->settled_amount ?? 0) >= (float)($candidateOrder->order_total ?? 0);
-                    $sameTableContext = (string)($candidateOrder->order_type ?? '') === (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)));
+                    $sameTableContext = (string)($candidateOrder->order_type ?? '') === (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : ($isKiosk ? 'kiosk' : $request->table_id))));
 
                     $storedGuestSessionId = '';
                     if (preg_match('/\[guest_session:([^\]]+)\]/', (string)($candidateOrder->comment ?? ''), $guestMatches)) {
@@ -6096,7 +6100,7 @@ return response()->json([
                 'email' => $request->customer_email ?? '',
                 'telephone' => $request->customer_phone ?? '',
                 'location_id' => $request->location_id ?? 1,
-                'order_type' => $isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)),
+                'order_type' => $isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : ($isKiosk ? 'kiosk' : $request->table_id))),
                 'order_total' => (float)$request->total_amount,
                 'order_date' => now()->format('Y-m-d'),
                 'order_time' => now()->format('H:i:s'),
