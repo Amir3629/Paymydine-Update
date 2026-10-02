@@ -123,6 +123,16 @@
     return html;
   }
 
+  function operationSupplierOptions(selected, allowEmpty) {
+    var rows = Array.isArray(operations().suppliers) ? operations().suppliers : [];
+    var html = allowEmpty ? '<option value="">No preferred supplier</option>' : '<option value="">Choose supplier</option>';
+    html += rows.map(function (row) {
+      return '<option value="' + esc(row.id) + '"' + (String(selected || '') === String(row.id) ? ' selected' : '') + '>' +
+        esc(row.name || 'Supplier') + '</option>';
+    }).join('');
+    return html;
+  }
+
   function operationSupplier() {
     var id = Number(valueOf(workspace,'[data-r19-purchase-supplier-id]',0) || 0);
     var rows = Array.isArray(operations().suppliers) ? operations().suppliers : [];
@@ -614,6 +624,7 @@
       '<div class="pmd-inv-r19-editor-fields">' +
         '<label>Target / par<input type="number" min="0" step="0.01" value="' + esc(target) + '" data-r19-edit-par></label>' +
         '<label>Reorder at<input type="number" min="0" step="0.01" value="' + esc(reorder) + '" data-r19-edit-reorder></label>' +
+        '<label>Safety stock<input type="number" min="0" step="0.01" value="' + esc(Number(item.safety_stock || 0) / factor) + '" data-r19-edit-safety></label>' +
         '<label>Purchase unit<select data-r19-edit-purchase-unit>' + unitOptions(item.purchase_unit || item.unit) + '</select></label>' +
         '<label>Cost / purchase unit<input type="number" min="0" step="0.01" value="' + esc(purchaseCost) + '" data-r19-edit-cost></label>' +
       '</div>' +
@@ -623,7 +634,9 @@
           '<label>Category<input type="text" value="' + esc(item.category || '') + '" data-r19-edit-category></label>' +
           '<label>SKU / code<input type="text" value="' + esc(item.sku || '') + '" data-r19-edit-sku></label>' +
           '<label>1 purchase unit contains<input type="number" min="0.0001" step="0.0001" value="' + esc(item.purchase_to_base || 1) + '" data-r19-edit-factor></label>' +
-          '<label class="is-wide">Supplier<input type="text" value="' + esc(item.supplier_name || '') + '" data-r19-edit-supplier></label>' +
+          (operations().ready ? '<label>Preferred supplier<select data-r19-edit-preferred-supplier>' + operationSupplierOptions(item.preferred_supplier_id, true) + '</select></label>' : '') +
+          '<label>Supplier label<input type="text" value="' + esc(item.supplier_name || '') + '" data-r19-edit-supplier></label>' +
+          '<label class="is-wide">Image URL<input type="url" value="' + esc(item.image_url || '') + '" placeholder="Optional product image" data-r19-edit-image></label>' +
         '</div>' +
       '</details>' +
       '<div class="pmd-inv-r19-editor-actions">' +
@@ -648,7 +661,10 @@
       purchase_cost: Number(valueOf(host,'[data-r19-edit-cost]', item.purchase_unit_cost || 0)),
       reorder_point: Number(valueOf(host,'[data-r19-edit-reorder]', 0)),
       par_level: Number(valueOf(host,'[data-r19-edit-par]', 0)),
-      supplier_name: valueOf(host,'[data-r19-edit-supplier]', item.supplier_name || '')
+      safety_stock: Number(valueOf(host,'[data-r19-edit-safety]', 0)),
+      preferred_supplier_id: Number(valueOf(host,'[data-r19-edit-preferred-supplier]', item.preferred_supplier_id || 0)) || null,
+      supplier_name: valueOf(host,'[data-r19-edit-supplier]', item.supplier_name || ''),
+      image_url: valueOf(host,'[data-r19-edit-image]', item.image_url || '')
     };
     if (!payload.name.trim()) return toast('Item name is required.', true);
     setBusy(true);
