@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R18 */
+/* PMD_INVENTORY_CONTROL_R19 */
 (function () {
   'use strict';
 
@@ -28,7 +28,7 @@
     recipeSearch: '',
     commonSearch: '',
     shoppingDays: 1,
-    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R18
+    // PMD_INVENTORY_SELF_CHECKOUT_BROWSER_R19
     // Each workflow keeps its own category/search/visible-card state.
     browsers: {
       dashboard: {query: '', main: 'Popular', section: 'All', limit: 12},
@@ -1905,19 +1905,25 @@
   function renderAll() {
     if (!state.ready) return;
     renderUiState();
+    syncSelects();
+
+    // PMD_INVENTORY_WORKSPACE_R19
+    // R19 owns the visible workspace. Do not spend time rebuilding the hidden
+    // R6/R18 dashboard, the 2k catalogue, attention list or activity stream on
+    // every inventory mutation. Legacy modals remain available for advanced
+    // editing, but all visible daily workflows are rendered by R19.
+    if (root.querySelector('[data-pmd-inv-r19-workspace]')) {
+      firstInventoryRender = false;
+      return;
+    }
+
     renderSummary();
     renderNextStep();
     renderStock();
     renderAttention();
     renderRecentActivity();
     renderShoppingList();
-    syncSelects();
 
-    // PMD_INVENTORY_STABLE_FIRST_PAINT_R16
-    // Blade already paints the Popular shelf. Do not destroy and rebuild those
-    // image nodes on boot; that was the source of the empty -> chips -> images
-    // sequence visible during refresh. Hidden modal browsers are also deferred
-    // until the user actually opens them.
     var serverGrid = root.querySelector('[data-pmd-inv-browser-grid="dashboard"][data-pmd-inv-server-rendered="1"]');
     var shouldRenderDashboard = !(firstInventoryRender && serverGrid);
     renderOpenVisualBrowsers(shouldRenderDashboard);
@@ -2322,6 +2328,11 @@
     if (!snapshot || typeof snapshot !== 'object') return;
     state.snapshot = snapshot;
     renderAll();
+    try {
+      root.dispatchEvent(new CustomEvent('pmd:inventory-snapshot', {
+        detail: {snapshot: state.snapshot}
+      }));
+    } catch (ignore) {}
   }
 
   function submitAction(form, handler, payload, successMessage) {
@@ -2883,12 +2894,29 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '18.0.0',
+    version: '19.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
         return json;
       });
+    },
+    request: request,
+    applySnapshot: applySnapshot,
+    getSnapshot: function () {
+      return state.snapshot;
+    },
+    getCatalog: function () {
+      return commonStockTemplates();
+    },
+    getConfig: function () {
+      return {
+        ready: state.ready,
+        aiReceipts: state.aiReceipts,
+        currency: state.currency,
+        units: bootstrap.units || {},
+        wasteReasons: bootstrap.waste_reasons || {}
+      };
     },
     getState: function () {
       return {

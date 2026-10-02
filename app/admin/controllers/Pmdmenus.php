@@ -5,13 +5,17 @@ namespace Admin\Controllers;
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminAuth;
 use Admin\Facades\AdminMenu;
+use Admin\Facades\AdminLocation;
 use Admin\Facades\Template;
 use Admin\Models\Allergens_model;
 use Admin\Models\Categories_model;
 use Admin\Models\Menu_combos_model;
 use Admin\Models\Menus_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
+use App\Services\Inventory\PmdInventoryControlService;
 
 /**
  * PMD Menu Manager V1.2.9
@@ -100,6 +104,18 @@ class Pmdmenus extends AdminController
                     )
                 ) ?: '1'
             )
+        );
+
+        // PMD_MENU_INVENTORY_BRIDGE_R19
+        $bridgeCss = base_path('app/admin/assets/css/pmd-menu-inventory-bridge-r19.css');
+        $bridgeJs = base_path('app/admin/assets/js/pmd-menu-inventory-bridge-r19.js');
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-menu-inventory-bridge-r19.css')
+            .'?v='.(string)(@filemtime($bridgeCss) ?: 'r19')
+        );
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-menu-inventory-bridge-r19.js')
+            .'?v='.(string)(@filemtime($bridgeJs) ?: 'r19')
         );
 
         AdminMenu::setContext('menus', 'restaurant');
@@ -477,7 +493,86 @@ class Pmdmenus extends AdminController
             'combos' => count($comboCards),
         ];
 
+        // PMD_MENU_INVENTORY_BRIDGE_R19
+        // Menu cards can edit their own stock usage directly. Inventory remains
+        // the data authority; Menu only receives a snapshot for the editor.
+        $pmdCanManageInventoryR19 = in_array(
+            $pmdMenuManagerRole,
+            ['owner', 'manager'],
+            true
+        );
+        $pmdInventorySnapshotR19 = null;
+        if ($pmdCanManageInventoryR19) {
+            try {
+                $inventory = app(PmdInventoryControlService::class);
+                if ($inventory->ready()) {
+                    $pmdInventorySnapshotR19 = $inventory->menuStockUsageSnapshot($this->pmdInventoryLocationR19());
+                }
+            } catch (\Throwable $error) {
+                $pmdInventorySnapshotR19 = null;
+            }
+        }
+        $this->vars['pmdMenuCanManageInventoryR19'] = $pmdCanManageInventoryR19;
+        $this->vars['pmdMenuInventorySnapshotR19'] = $pmdInventorySnapshotR19;
+
         return $this->makeView('pmdmenus/index');
+    }
+
+    public function onSaveStockUsageR19(): JsonResponse
+    {
+        try {
+            $role = app(PmdDefaultStaffRoleService::class)
+                ->roleCodeForUser(AdminAuth::getUser());
+
+            if (!in_array($role, [
+                PmdDefaultStaffRoleService::OWNER,
+                PmdDefaultStaffRoleService::MANAGER,
+                'owner',
+                'manager',
+            ], true)) {
+                abort(403);
+            }
+
+            $service = app(PmdInventoryControlService::class);
+            $service->saveRecipe(
+                $this->pmdInventoryLocationR19(),
+                $this->pmdInventoryStaffR19(),
+                request()->all()
+            );
+
+            return response()->json([
+                'ok' => true,
+                'snapshot' => $service->menuStockUsageSnapshot($this->pmdInventoryLocationR19()),
+            ]);
+        } catch (\Throwable $error) {
+            return response()->json([
+                'ok' => false,
+                'error' => $error->getMessage(),
+            ], 422);
+        }
+    }
+
+    private function pmdInventoryLocationR19(): int
+    {
+        try {
+            $id = (int)AdminLocation::getId();
+            if ($id > 0) return $id;
+        } catch (\Throwable $error) {
+        }
+
+        return max(1, (int)params('default_location_id', 1));
+    }
+
+    private function pmdInventoryStaffR19(): ?int
+    {
+        try {
+            $user = AdminAuth::getUser();
+            $staff = $user ? $user->staff : null;
+            $id = $staff ? (int)($staff->staff_id ?? $staff->getKey()) : 0;
+            return $id > 0 ? $id : null;
+        } catch (\Throwable $error) {
+            return null;
+        }
     }
 
     private function pmdSettingValueV17(string $key, $default)

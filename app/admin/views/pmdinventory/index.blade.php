@@ -11,57 +11,47 @@
     $hasItems = !empty($snapshot['items']);
     $attentionCount = (int)(($summary['critical_items'] ?? 0) + ($summary['low_items'] ?? 0));
 
-    // PMD_INVENTORY_STABLE_FIRST_PAINT_R16
-    // Paint the first usable shelf on the server so a refresh never shows an
-    // empty Quick Stock box while the large catalogue JavaScript initializes.
-    $popularNames = [
-        'Tomato','Onion','Garlic','Potato','Lemon','Cucumber','Lettuce',
-        'Banana','Apple','Chicken breast','Beef mince','Eggs','Milk','Butter',
-        'Mozzarella','White rice','Wheat flour','Olive oil','Spaghetti',
-        'Coffee beans','Still water','Orange juice','Cola','Lager beer',
-        'Vodka','Red wine','Dish soap','Paper towels','Mop','Bin bags',
-    ];
+    // PMD_INVENTORY_WORKSPACE_R19_SERVER_FIRST
+    $r19StockRows = is_array($snapshot['items'] ?? null) ? $snapshot['items'] : [];
+    $r19ItemsInStock = count(array_filter($r19StockRows, static fn ($row) =>
+        (float)($row['estimated_on_hand'] ?? 0) > 0
+    ));
+    $r19HealthValues = array_values(array_filter(array_map(static function ($row) {
+        return (float)($row['par_level'] ?? 0) > 0 && $row['stock_percent'] !== null
+            ? (int)$row['stock_percent']
+            : null;
+    }, $r19StockRows), static fn ($value) => $value !== null));
+    $r19StockHealth = count($r19HealthValues)
+        ? (int)round(array_sum($r19HealthValues) / count($r19HealthValues))
+        : null;
 
-    $catalogByKey = [];
-    foreach ($commonStock as $catalogIndex => $catalogRow) {
-        if (!is_array($catalogRow)) continue;
-        $key = \Illuminate\Support\Str::slug((string)($catalogRow['name'] ?? ''));
-        if ($key === '') continue;
-        $catalogRow['_pmd_index'] = $catalogIndex;
-        if (!isset($catalogByKey[$key])) $catalogByKey[$key] = $catalogRow;
-    }
-
-    $popularStock = [];
-    foreach ($popularNames as $popularName) {
-        $key = \Illuminate\Support\Str::slug($popularName);
-        if (isset($catalogByKey[$key])) $popularStock[] = $catalogByKey[$key];
-    }
-
-    $existingStockKeys = [];
-    foreach ((array)($snapshot['items'] ?? []) as $stockRow) {
-        if (!is_array($stockRow)) continue;
-        $key = \Illuminate\Support\Str::slug((string)($stockRow['name'] ?? ''));
-        if ($key !== '') $existingStockKeys[$key] = true;
-    }
-
-    $catalogMainCounts = ['Food' => 0, 'Drinks' => 0, 'Alcohol' => 0, 'Supplies' => 0];
-    $alcoholCategories = ['Beer & cider','Wine','Spirits'];
-    $drinkCategories = ['Coffee & tea','Juice','Water & mixers','Soft drinks','Beverages'];
-    $supplyCategories = ['Cleaning','Paper & hygiene','Packaging','Kitchen & utility','Household supplies','Personal care'];
-
+    $r19ImageByKey = [];
     foreach ($commonStock as $catalogRow) {
         if (!is_array($catalogRow)) continue;
-        $category = (string)($catalogRow['category'] ?? '');
-        if (in_array($category, $alcoholCategories, true)) {
-            $catalogMainCounts['Alcohol']++;
-        } elseif (in_array($category, $drinkCategories, true)) {
-            $catalogMainCounts['Drinks']++;
-        } elseif (in_array($category, $supplyCategories, true)) {
-            $catalogMainCounts['Supplies']++;
-        } else {
-            $catalogMainCounts['Food']++;
+        $url = trim((string)($catalogRow['image_url'] ?? ''));
+        if ($url === '') continue;
+        $keys = array_merge(
+            [(string)($catalogRow['name'] ?? '')],
+            is_array($catalogRow['aliases'] ?? null) ? $catalogRow['aliases'] : []
+        );
+        foreach ($keys as $key) {
+            $slug = \Illuminate\Support\Str::slug((string)$key);
+            if ($slug !== '' && !isset($r19ImageByKey[$slug])) {
+                $r19ImageByKey[$slug] = $url;
+            }
         }
     }
+
+    $r19StockGroups = [];
+    $r19CategoryCounts = [];
+    foreach ($r19StockRows as $row) {
+        $category = trim((string)($row['category'] ?? '')) ?: 'Other';
+        $r19StockGroups[$category] ??= [];
+        $r19StockGroups[$category][] = $row;
+        $r19CategoryCounts[$category] = ($r19CategoryCounts[$category] ?? 0) + 1;
+    }
+    ksort($r19StockGroups, SORT_NATURAL | SORT_FLAG_CASE);
+    ksort($r19CategoryCounts, SORT_NATURAL | SORT_FLAG_CASE);
 
     $bootstrap = [
         'ready' => $ready,
@@ -85,38 +75,6 @@
 
         @if($ready)
             <div class="pmd-owner-header__actions pmd-inv__mother-actions pmd-inv-r6-header__actions">
-                <div class="pmd-inv-r6-header__ops" data-pmd-inv-header-ops @unless($hasItems) hidden @endunless>
-                    <button type="button" class="pmd-inv-header-btn is-blue" data-pmd-inv-open="purchase">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 6V4h8v2M8 11h8M8 15h5"/></svg>
-                        <span>Add purchase</span>
-                    </button>
-
-                    <div class="pmd-inv-r6-action-menu" data-pmd-inv-action-menu>
-                        <button type="button" class="pmd-inv-r6-action-menu__toggle" data-pmd-inv-actions-toggle aria-expanded="false">
-                            Actions
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
-                        </button>
-                        <div class="pmd-inv-r6-action-menu__panel" data-pmd-inv-actions-panel hidden>
-                            <button type="button" data-pmd-inv-open="item">
-                                <span>Add stock item</span><small>Manual entry</small>
-                            </button>
-                            <button type="button" data-pmd-inv-open="recipe" data-pmd-inv-requires-items @unless($hasItems) hidden @endunless>
-                                <span>Connect menu</span><small>What each sale uses</small>
-                            </button>
-                            <button type="button" data-pmd-inv-open="count" data-pmd-inv-requires-items @unless($hasItems) hidden @endunless>
-                                <span>Count stock</span><small>Physical count</small>
-                            </button>
-                            <button type="button" data-pmd-inv-open="waste" data-pmd-inv-requires-items @unless($hasItems) hidden @endunless>
-                                <span>Record waste</span><small>Spill, spoilage, staff meal…</small>
-                            </button>
-                            <button type="button" data-pmd-inv-open="shopping" data-pmd-inv-requires-items @unless($hasItems) hidden @endunless>
-                                <span>Shopping list</span><small>Plan the next order</small>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <span class="pmd-inv__header-divider" aria-hidden="true"></span>
                 <span class="pmd-inv__notif-slot" data-pmd-inv-notif-slot aria-label="Notifications">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
@@ -148,192 +106,237 @@
                 </div>
             @endif
 
-            {{-- PMD_INVENTORY_STABLE_FIRST_PAINT_R16 --}}
-            <section class="pmd-inv-pos-browser pmd-inv-pos-browser--dashboard pmd-inv-r11-quick-stock" data-pmd-inv-visual-browser="dashboard" aria-label="Quick stock catalogue">
-                <div class="pmd-inv-pos-browser__top pmd-inv-r11-quick-stock__top">
-                    <div>
-                        <span>Quick stock</span>
-                        <strong>Tap what just arrived</strong>
-                        <small>Search {{ number_format(count($commonStock)) }} supermarket, wholesale, bar and cleaning items. Tap one to start a purchase.</small>
-                    </div>
-                    <div class="pmd-inv-r11-quick-tools">
-                        <label class="pmd-inv-pos-browser__search">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                            <input type="search" placeholder="Search tomato, juice, whisky, mop…" autocomplete="off" data-pmd-inv-browser-search="dashboard">
-                        </label>
-                        <button type="button" class="pmd-inv-r11-quick-action" data-pmd-inv-open="purchase">Add purchase</button>
-                        <button type="button" class="pmd-inv-r11-quick-action is-quiet" data-pmd-inv-open="item">Custom item</button>
-                    </div>
-                </div>
-                <div class="pmd-inv-pos-browser__categories" data-pmd-inv-browser-categories="dashboard">
-                    <div class="pmd-inv-pos-browser__main-row">
-                        <button type="button" class="is-active" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Popular">
-                            <span aria-hidden="true">★</span><b>Popular</b><em>{{ count($popularStock) }}</em>
-                        </button>
-                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="All">
-                            <span aria-hidden="true">▦</span><b>All items</b><em>{{ count($commonStock) }}</em>
-                        </button>
-                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Food">
-                            <span aria-hidden="true">🥬</span><b>Food</b><em>{{ $catalogMainCounts['Food'] }}</em>
-                        </button>
-                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Drinks">
-                            <span aria-hidden="true">🧃</span><b>Non-alcoholic</b><em>{{ $catalogMainCounts['Drinks'] }}</em>
-                        </button>
-                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Alcohol">
-                            <span aria-hidden="true">🍷</span><b>Alcohol</b><em>{{ $catalogMainCounts['Alcohol'] }}</em>
-                        </button>
-                        <button type="button" data-pmd-inv-browser-main="dashboard" data-pmd-inv-browser-main-key="Supplies">
-                            <span aria-hidden="true">🧽</span><b>Supplies</b><em>{{ $catalogMainCounts['Supplies'] }}</em>
-                        </button>
-                    </div>
-                </div>
+            {{-- PMD_INVENTORY_WORKSPACE_R19 --}}
+            <section class="pmd-inv-r19" data-pmd-inv-r19-workspace>
+                <nav class="pmd-inv-r19-product-switcher" aria-label="Restaurant product workspace">
+                    <a href="{{ admin_url('pmdmenus') }}">Menu</a>
+                    <a href="{{ admin_url('pmdinventory') }}" class="is-active" aria-current="page">Inventory</a>
+                </nav>
 
-                <div class="pmd-inv-pos-browser__grid" data-pmd-inv-browser-grid="dashboard" data-pmd-inv-server-rendered="1">
-                    @foreach(array_slice($popularStock, 0, 12) as $popularRow)
-                        @php
-                            $rowKeys = [];
-                            $rowKeys[] = \Illuminate\Support\Str::slug((string)($popularRow['name'] ?? ''));
-                            foreach ((array)($popularRow['aliases'] ?? []) as $alias) {
-                                $rowKeys[] = \Illuminate\Support\Str::slug((string)$alias);
-                            }
-                            $rowAdded = false;
-                            foreach (array_filter(array_unique($rowKeys)) as $rowKey) {
-                                if (isset($existingStockKeys[$rowKey])) {
-                                    $rowAdded = true;
-                                    break;
-                                }
-                            }
-                            $rowImage = trim((string)($popularRow['image_url'] ?? ''));
-                            $rowUnit = (string)($popularRow['purchase_unit'] ?? $popularRow['unit'] ?? 'piece');
-                            $rowCategory = (string)($popularRow['category'] ?? 'Stock item');
-                        @endphp
-                        <button type="button"
-                                class="pmd-inv-pos-card{{ $rowAdded ? ' is-added' : '' }}"
-                                data-pmd-inv-browser-card="dashboard"
-                                data-pmd-inv-browser-common-index="{{ (int)($popularRow['_pmd_index'] ?? 0) }}">
-                            <span class="pmd-inv-item-visual is-pantry is-lg" aria-hidden="true">
-                                @if($rowImage !== '')
-                                    <img src="{{ $rowImage }}"
-                                         alt=""
-                                         loading="eager"
-                                         fetchpriority="{{ $loop->index < 6 ? 'high' : 'auto' }}"
-                                         decoding="async"
-                                         data-pmd-inv-real-image>
-                                @endif
-                                <span class="pmd-inv-item-visual__emoji">🍽️</span>
-                            </span>
-                            <span class="pmd-inv-pos-card__copy">
-                                <strong>{{ (string)($popularRow['name'] ?? '') }}</strong>
-                                <small>{{ $rowCategory }} · buy {{ $rowUnit }}</small>
-                            </span>
-                            @if($rowAdded)
-                                <span class="pmd-inv-pos-card__badge">In stock</span>
-                            @endif
-                        </button>
-                    @endforeach
-                </div>
-
-                @php($popularRemaining = max(0, count($popularStock) - min(12, count($popularStock))))
-                <button type="button"
-                        class="pmd-inv-pos-browser__more"
-                        data-pmd-inv-browser-more="dashboard"
-                        @if($popularRemaining < 1) hidden @endif>
-                    Show {{ min(24, $popularRemaining) }} more
-                </button>
-            </section>
-
-            <section class="pmd-inv-r6-empty" data-pmd-inv-empty-state @if($hasItems) hidden @endif>
-                <div class="pmd-inv-r6-empty__icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24"><path d="M4 7 12 3l8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7"/><path d="M12 11v10"/></svg>
-                </div>
-                <span>First setup</span>
-                <h2>Start by tapping the items above.</h2>
-                <p>Each tap opens a ready-to-fill purchase line. Use the buttons below for a supplier bill or a custom item.</p>
-                <div class="pmd-inv-r6-empty__actions">
-                    <button type="button" class="pmd-inv-btn pmd-inv-btn--blue" data-pmd-inv-open="purchase">
-                        Add purchase
-                    </button>
-                    <button type="button" class="pmd-inv-btn pmd-inv-btn--ghost" data-pmd-inv-open="item">
-                        Add item manually
-                    </button>
-                </div>
-                <small>After that, PayMyDine will guide you to connect menu sales and make the first count.</small>
-            </section>
-
-            <div class="pmd-inv-r6-dashboard" data-pmd-inv-dashboard @unless($hasItems) hidden @endunless>
-                <section class="pmd-inv-r6-next" data-pmd-inv-next-step hidden></section>
-
-                <section class="pmd-inv-r6-kpis" aria-label="Inventory summary">
-                    <article>
-                        <span>Stock value</span>
-                        <strong data-pmd-inv-money="stock">{{ number_format((float)($summary['estimated_stock_value'] ?? 0), 2) }}</strong>
-                        <small>{{ $currency }}</small>
+                <section class="pmd-inv-r19-kpis" aria-label="Inventory summary" data-r19-kpis>
+                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="green">
+                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 7 12 3l8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7"/></svg>
+                        </span>
+                        <span class="pmd-r2-kpi-v2401-copy">
+                            <span class="pmd-r2-kpi-v2401-title">Stock value</span>
+                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="stock-value">{{ currency_format((float)($summary['estimated_stock_value'] ?? 0)) }}</strong>
+                            <small class="pmd-r2-kpi-v2401-description">Current inventory value</small>
+                        </span>
                     </article>
-                    <article>
-                        <span>Needs attention</span>
-                        <strong data-pmd-inv-stat="attention">{{ $attentionCount }}</strong>
-                        <small>low or critical items</small>
+
+                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="blue">
+                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 18V9M10 18V5M16 18v-7M22 18H2"/></svg>
+                        </span>
+                        <span class="pmd-r2-kpi-v2401-copy">
+                            <span class="pmd-r2-kpi-v2401-title">Stock health</span>
+                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="stock-health">{{ $r19StockHealth === null ? 'Set targets' : $r19StockHealth.'%' }}</strong>
+                            <small class="pmd-r2-kpi-v2401-description">Against your target / par levels</small>
+                        </span>
                     </article>
-                    <article>
-                        <span>Latest variance</span>
-                        <strong data-pmd-inv-money="variance">{{ number_format((float)($summary['unexplained_loss_value'] ?? 0), 2) }}</strong>
-                        <small>review signal · {{ $currency }}</small>
+
+                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="orange">
+                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.6 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/></svg>
+                        </span>
+                        <span class="pmd-r2-kpi-v2401-copy">
+                            <span class="pmd-r2-kpi-v2401-title">Needs attention</span>
+                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="attention">{{ $attentionCount }}</strong>
+                            <small class="pmd-r2-kpi-v2401-description">Low or critical items</small>
+                        </span>
+                    </article>
+
+                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="red">
+                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 10v6M14 10v6"/></svg>
+                        </span>
+                        <span class="pmd-r2-kpi-v2401-copy">
+                            <span class="pmd-r2-kpi-v2401-title">Waste · 30 days</span>
+                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="waste">{{ currency_format((float)($summary['waste_cost_30d'] ?? 0)) }}</strong>
+                            <small class="pmd-r2-kpi-v2401-description">Recorded stock loss</small>
+                        </span>
+                    </article>
+
+                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="purple">
+                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><path d="M5 5l14 14"/></svg>
+                        </span>
+                        <span class="pmd-r2-kpi-v2401-copy">
+                            <span class="pmd-r2-kpi-v2401-title">Latest variance</span>
+                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="variance">{{ currency_format((float)($summary['unexplained_loss_value'] ?? 0)) }}</strong>
+                            <small class="pmd-r2-kpi-v2401-description">Count difference to review</small>
+                        </span>
+                    </article>
+
+                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="cyan">
+                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3M8 12h8"/></svg>
+                        </span>
+                        <span class="pmd-r2-kpi-v2401-copy">
+                            <span class="pmd-r2-kpi-v2401-title">Items in stock</span>
+                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="in-stock">{{ $r19ItemsInStock }}</strong>
+                            <small class="pmd-r2-kpi-v2401-description">{{ count($r19StockRows) }} tracked inventory items</small>
+                        </span>
                     </article>
                 </section>
 
-                <div class="pmd-inv-r6-workspace">
-                    <section class="pmd-inv-r6-stock pmd-inv-card">
-                        <div class="pmd-inv-r6-card-head">
-                            <div>
-                                <span>Stock</span>
-                                <h2>What should be on hand</h2>
-                            </div>
-                            <label class="pmd-inv__search">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                                <input type="search" placeholder="Search stock…" data-pmd-inv-search autocomplete="off">
+                <nav class="pmd-inv-r19-modes" aria-label="Inventory workspace">
+                    <button type="button" class="is-active" data-r19-mode="overview">Overview</button>
+                    <button type="button" data-r19-mode="stock">Stock</button>
+                    <button type="button" data-r19-mode="purchases">Purchases</button>
+                    <button type="button" data-r19-mode="waste">Waste</button>
+                    <button type="button" data-r19-mode="shopping">Shopping</button>
+                </nav>
+
+                <section class="pmd-inv-r19-pane is-active" data-r19-pane="overview">
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Restaurant stock</span>
+                            <h2>What you have right now</h2>
+                            <p>Availability is compared with each item's target / par level. Items without a target stay neutral.</p>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-secondary" data-r19-go-mode="stock">Manage stock</button>
+                    </div>
+                    <div class="pmd-inv-r19-category-summary" data-r19-overview-categories>
+                        @foreach($r19CategoryCounts as $category => $count)
+                            <span><b>{{ $count }}</b>{{ $category }}</span>
+                        @endforeach
+                    </div>
+                    <div class="pmd-inv-r19-overview-groups" data-r19-overview-stock data-r19-server-overview="1">
+                        @if(!count($r19StockRows))
+                            <div class="pmd-inv-r19-empty">No restaurant stock yet. Open Purchases to receive your first item.</div>
+                        @else
+                            @foreach($r19StockGroups as $category => $groupRows)
+                                <section class="pmd-inv-r19-overview-group">
+                                    <h3>{{ $category }}</h3>
+                                    @foreach($groupRows as $row)
+                                        @php
+                                            $r19Image = $r19ImageByKey[\Illuminate\Support\Str::slug((string)($row['name'] ?? ''))] ?? '';
+                                            $r19Pct = $row['stock_percent'] ?? null;
+                                            $r19Status = (string)($row['status'] ?? 'healthy');
+                                            $r19Factor = max(0.0001, (float)($row['purchase_to_base'] ?? 1));
+                                            $r19PurchaseUnit = (string)($row['purchase_unit'] ?? $row['unit'] ?? 'piece');
+                                            $r19BaseUnit = (string)($row['unit'] ?? 'piece');
+                                            $r19UsePurchase = $r19PurchaseUnit !== '' && strtolower($r19PurchaseUnit) !== strtolower($r19BaseUnit);
+                                            $r19OwnerQty = (float)($row['estimated_on_hand'] ?? 0) / ($r19UsePurchase ? $r19Factor : 1);
+                                            $r19OwnerUnit = $r19UsePurchase ? $r19PurchaseUnit : $r19BaseUnit;
+                                        @endphp
+                                        <article class="pmd-inv-r19-stock-row is-{{ $r19Status }}">
+                                            <span class="pmd-inv-r19-stock-row__image">
+                                                @if($r19Image)<img src="{{ $r19Image }}" alt="" loading="eager" decoding="async">@endif
+                                            </span>
+                                            <span class="pmd-inv-r19-stock-row__copy">
+                                                <strong>{{ (string)($row['name'] ?? '') }}</strong>
+                                                <small>{{ (string)($row['category'] ?? 'Stock item') }}</small>
+                                                <span class="pmd-inv-r19-health-bar"><i style="width:{{ $r19Pct === null ? 0 : max(0,min(100,(int)$r19Pct)) }}%"></i></span>
+                                            </span>
+                                            <span class="pmd-inv-r19-stock-row__amount">
+                                                <strong>{{ number_format($r19OwnerQty, 2) }} {{ $r19OwnerUnit }}</strong>
+                                                <small>{{ $r19Pct === null ? 'Set target' : ((int)$r19Pct).'% of target' }}</small>
+                                            </span>
+                                        </article>
+                                    @endforeach
+                                </section>
+                            @endforeach
+                        @endif
+                    </div>
+                    <details class="pmd-inv-r19-activity" data-r19-activity>
+                        <summary>Activity <span>Purchases, waste and the last physical count</span></summary>
+                        <div data-r19-activity-body></div>
+                    </details>
+                </section>
+
+                <section class="pmd-inv-r19-pane" data-r19-pane="stock" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Current stock</span>
+                            <h2>Manage what the restaurant owns</h2>
+                            <p>Set targets, review availability and run a physical count without changing stock by hand.</p>
+                        </div>
+                        <div class="pmd-inv-r19-head-actions">
+                            <label class="pmd-inv-r19-search"><input type="search" placeholder="Search your stock…" data-r19-stock-search></label>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r19-start-count>Start physical count</button>
+                        </div>
+                    </div>
+                    <div class="pmd-inv-r19-main-categories" data-r19-stock-main></div>
+                    <div class="pmd-inv-r19-subcategories" data-r19-stock-sub hidden></div>
+                    <div class="pmd-inv-r19-stock-grid" data-r19-stock-grid></div>
+                    <section class="pmd-inv-r19-inline-editor" data-r19-stock-editor hidden></section>
+                    <section class="pmd-inv-r19-count" data-r19-count hidden></section>
+                </section>
+
+                <section class="pmd-inv-r19-pane" data-r19-pane="purchases" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Purchases</span>
+                            <h2>Receive stock</h2>
+                            <p>Tap an item, enter quantity, unit and cost, then add it directly to stock.</p>
+                        </div>
+                        <div class="pmd-inv-r19-head-actions">
+                            <label class="pmd-inv-r19-scan{{ $aiReceipts ? '' : ' is-disabled' }}">
+                                <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" data-r19-receipt-input {{ $aiReceipts ? '' : 'disabled' }}>
+                                <span>{{ $aiReceipts ? 'Scan supplier bill with AI' : 'AI bill scan unavailable' }}</span>
                             </label>
                         </div>
+                    </div>
+                    <div class="pmd-inv-r19-purchase-meta">
+                        <label>Supplier<input type="text" placeholder="Optional" data-r19-purchase-supplier></label>
+                        <label>Purchase date<input type="date" value="{{ now()->toDateString() }}" data-r19-purchase-date></label>
+                        <label class="pmd-inv-r19-search"><span>Search</span><input type="search" placeholder="Tomato, milk, vodka…" data-r19-purchase-search></label>
+                    </div>
+                    <div class="pmd-inv-r19-main-categories" data-r19-purchase-main></div>
+                    <div class="pmd-inv-r19-subcategories" data-r19-purchase-sub></div>
+                    <div class="pmd-inv-r19-product-grid" data-r19-purchase-grid></div>
+                    <button type="button" class="pmd-inv-r19-load-more" data-r19-purchase-more hidden>Show more</button>
+                    <section class="pmd-inv-r19-inline-editor" data-r19-purchase-editor hidden></section>
+                    <section class="pmd-inv-r19-receipt-review" data-r19-receipt-review hidden></section>
+                </section>
 
-                        <div class="pmd-inv__table-wrap">
-                            <table class="pmd-inv__table pmd-inv-r6-table">
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>On hand</th>
-                                        <th>Days left</th>
-                                        <th>Last variance</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody data-pmd-inv-stock-body></tbody>
-                            </table>
-                        </div>
-                    </section>
-
-                    <aside class="pmd-inv-r6-order pmd-inv-card">
-                        <div class="pmd-inv-r6-card-head">
-                            <div>
-                                <span>Next order</span>
-                                <h2>What needs buying</h2>
-                            </div>
-                        </div>
-                        <div class="pmd-inv-r6-order__body" data-pmd-inv-attention></div>
-                        <button type="button" class="pmd-inv-r6-order__button" data-pmd-inv-open="shopping">
-                            Plan shopping list
-                        </button>
-                    </aside>
-                </div>
-
-                <section class="pmd-inv-r6-activity pmd-inv-card">
-                    <div class="pmd-inv-r6-card-head">
+                <section class="pmd-inv-r19-pane" data-r19-pane="waste" hidden>
+                    <div class="pmd-inv-r19-section-head">
                         <div>
-                            <span>Recent activity</span>
-                            <h2>What changed</h2>
+                            <span>Waste & loss</span>
+                            <h2>Record what left stock without a normal sale</h2>
+                            <p>Choose an item, record the quantity and reason, and keep the waste history visible.</p>
+                        </div>
+                        <strong class="pmd-inv-r19-waste-today" data-r19-waste-today>Today · {{ currency_format(0) }}</strong>
+                    </div>
+                    <div class="pmd-inv-r19-main-categories" data-r19-waste-main></div>
+                    <div class="pmd-inv-r19-subcategories" data-r19-waste-sub hidden></div>
+                    <div class="pmd-inv-r19-stock-grid" data-r19-waste-grid></div>
+                    <section class="pmd-inv-r19-inline-editor" data-r19-waste-editor hidden></section>
+                    <div class="pmd-inv-r19-history">
+                        <div class="pmd-inv-r19-history__head"><h3>Recent waste</h3><span>Item · quantity · reason · value</span></div>
+                        <div data-r19-waste-history></div>
+                    </div>
+                </section>
+
+                <section class="pmd-inv-r19-pane" data-r19-pane="shopping" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Shopping</span>
+                            <h2>Plan the next order</h2>
+                            <p>Use current stock, target levels and recent usage. Adjust quantities before copying or printing the list.</p>
                         </div>
                     </div>
-                    <div class="pmd-inv-r6-recent" data-pmd-inv-recent></div>
+                    <div class="pmd-inv-r19-shopping-controls">
+                        <span>Cover</span>
+                        <button type="button" class="is-active" data-r19-shopping-days="1">Today</button>
+                        <button type="button" data-r19-shopping-days="3">3 days</button>
+                        <button type="button" data-r19-shopping-days="7">7 days</button>
+                    </div>
+                    <div class="pmd-inv-r19-shopping-summary" data-r19-shopping-summary></div>
+                    <div class="pmd-inv-r19-shopping-list" data-r19-shopping-list></div>
+                    <div class="pmd-inv-r19-shopping-actions">
+                        <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-copy>Copy list</button>
+                        <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-print>Print</button>
+                        <button type="button" class="pmd-inv-r19-primary" data-r19-shopping-purchases>Open Purchases</button>
+                    </div>
                 </section>
-            </div>
+            </section>
+
+            {{-- PMD_INVENTORY_LEGACY_DASHBOARD_RETIRED_R19 --}}
         @endif
     </div>
     <div class="pmd-inv-toast" role="status" aria-live="polite" data-pmd-inv-toast></div>

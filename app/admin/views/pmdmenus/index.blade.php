@@ -876,6 +876,14 @@
     </script>
 <!-- PMD_DASHBOARD_HEADER_CLONE_V1_MENU_END -->
 
+    {{-- PMD_MENU_INVENTORY_BRIDGE_R19 --}}
+    @if(!empty($pmdMenuCanManageInventoryR19))
+        <nav class="pmd-product-workspace-r19" aria-label="Restaurant product workspace">
+            <a href="{{ admin_url('pmdmenus') }}" class="is-active" aria-current="page">Menu</a>
+            <a href="{{ admin_url('pmdinventory') }}">Inventory</a>
+        </nav>
+    @endif
+
     <section class="pmd-menu-kpis" aria-label="{{ $pmdT('menu_overview') }}">
         <article class="pmd-menu-kpi" data-pmd-menu-kpi="foods">
             <div class="pmd-menu-kpi__icon" aria-hidden="true">
@@ -1123,6 +1131,9 @@
 
                         <div class="pmd-menu-card__actions">
                             <button type="button" class="pmd-menu-card__stock-btn" data-pmd-menu-stock data-menu-id="{{ (int)$item['id'] }}">{{ $item['is_stock_out'] ? $pmdT('stock_in') : $pmdT('stock_out') }}</button>
+                            @if(!empty($pmdMenuCanManageInventoryR19))
+                                <button type="button" class="pmd-menu-card__stock-usage-r19" data-pmd-stock-usage-r19="{{ (int)$item['id'] }}">Stock usage</button>
+                            @endif
                             <button type="button" class="pmd-menu-card__edit-btn" data-pmd-menu-edit="{{ (int)$item['id'] }}">{{ $pmdT('edit') }}</button>
                         </div>
                     </div>
@@ -1293,5 +1304,32 @@
 <script type="application/json" id="pmd-menu-manager-i18n">{!! json_encode($pmdMenuCopy, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) !!}</script>
 <script type="application/json" id="pmd-menu-manager-catalog">{!! json_encode($pmdMenuManagerCatalog ?? [], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) !!}</script>
 <script type="application/json" id="pmd-menu-manager-combo-catalog">{!! json_encode($pmdMenuManagerComboCatalog ?? [], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) !!}</script>
+
+{{-- PMD_MENU_INVENTORY_BRIDGE_R19 --}}
+<script type="application/json" id="pmd-menu-inventory-r19-data">{!! json_encode(
+    $pmdMenuInventorySnapshotR19 ?? null,
+    JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT
+) !!}</script>
+
+<div class="pmd-menu-inventory-r19-modal" data-pmd-menu-inventory-r19-modal hidden aria-hidden="true">
+    <div class="pmd-menu-inventory-r19-modal__backdrop" data-pmd-menu-inventory-r19-close></div>
+    <section class="pmd-menu-inventory-r19-modal__card" role="dialog" aria-modal="true" aria-labelledby="pmd-menu-inventory-r19-title">
+        <header>
+            <div>
+                <span>Inventory usage</span>
+                <h2 id="pmd-menu-inventory-r19-title" data-pmd-menu-inventory-r19-title>Stock usage</h2>
+                <p>Define what one sale consumes. Inventory will reduce these stock items automatically when this food is sold.</p>
+            </div>
+            <button type="button" data-pmd-menu-inventory-r19-close aria-label="Close">×</button>
+        </header>
+        <div class="pmd-menu-inventory-r19-lines" data-pmd-menu-inventory-r19-lines></div>
+        <div class="pmd-menu-inventory-r19-actions">
+            <button type="button" class="is-quiet" data-pmd-menu-inventory-r19-add>+ Ingredient</button>
+            <span></span>
+            <button type="button" class="is-quiet" data-pmd-menu-inventory-r19-close>Cancel</button>
+            <button type="button" class="is-primary" data-pmd-menu-inventory-r19-save>Save stock usage</button>
+        </div>
+    </section>
+</div>
 
 @include('pmdmenus/_modal_host')
