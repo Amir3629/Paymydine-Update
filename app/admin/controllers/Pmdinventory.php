@@ -58,6 +58,11 @@ class Pmdinventory extends AdminController
             asset('app/admin/assets/css/pmd-inventory-workspace-r19.css')
             .'?v='.(string)(@filemtime($workspaceCssPath) ?: 'r19')
         );
+        $operationsCssPath = base_path('app/admin/assets/css/pmd-inventory-operations-v24.css');
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-inventory-operations-v24.css')
+            .'?v='.(string)(@filemtime($operationsCssPath) ?: 'v24')
+        );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
             .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r19')
@@ -66,6 +71,11 @@ class Pmdinventory extends AdminController
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-workspace-r19.js')
             .'?v='.(string)(@filemtime($workspaceJsPath) ?: 'r19')
+        );
+        $operationsJsPath = base_path('app/admin/assets/js/pmd-inventory-operations-v24.js');
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-inventory-operations-v24.js')
+            .'?v='.(string)(@filemtime($operationsJsPath) ?: 'v24')
         );
         AdminMenu::setContext('dashboard');
     }
