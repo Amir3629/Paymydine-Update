@@ -882,7 +882,12 @@
     var insight = target.closest('[data-v24-insight-mode]');
     if (insight) {
       var insightMode = String(insight.getAttribute('data-v24-insight-mode') || '');
-      if (insightMode) setMode(insightMode);
+      if (['orders','suppliers','storage','ledger','settings'].indexOf(insightMode) !== -1) {
+        setMode(insightMode);
+      } else if (insightMode) {
+        var legacyMode = workspace.querySelector('[data-r19-mode="' + insightMode + '"]');
+        if (legacyMode) legacyMode.click();
+      }
       return;
     }
 
