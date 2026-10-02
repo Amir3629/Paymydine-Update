@@ -94,6 +94,17 @@
         }
     }
 
+    $r19StockGroups = [];
+    $r19CategoryCounts = [];
+    foreach ($r19StockRows as $row) {
+        $category = trim((string)($row['category'] ?? '')) ?: 'Other';
+        $r19StockGroups[$category] ??= [];
+        $r19StockGroups[$category][] = $row;
+        $r19CategoryCounts[$category] = ($r19CategoryCounts[$category] ?? 0) + 1;
+    }
+    ksort($r19StockGroups, SORT_NATURAL | SORT_FLAG_CASE);
+    ksort($r19CategoryCounts, SORT_NATURAL | SORT_FLAG_CASE);
+
     $bootstrap = [
         'ready' => $ready,
         'ai_receipts' => $aiReceipts,
@@ -271,33 +282,49 @@
                         </div>
                         <button type="button" class="pmd-inv-r19-secondary" data-r19-go-mode="stock">Manage stock</button>
                     </div>
-                    <div class="pmd-inv-r19-category-summary" data-r19-overview-categories></div>
-                    <div class="pmd-inv-r19-overview-groups" data-r19-overview-stock>
+                    <div class="pmd-inv-r19-category-summary" data-r19-overview-categories>
+                        @foreach($r19CategoryCounts as $category => $count)
+                            <span><b>{{ $count }}</b>{{ $category }}</span>
+                        @endforeach
+                    </div>
+                    <div class="pmd-inv-r19-overview-groups" data-r19-overview-stock data-r19-server-overview="1">
                         @if(!count($r19StockRows))
                             <div class="pmd-inv-r19-empty">No restaurant stock yet. Open Purchases to receive your first item.</div>
                         @else
-                            @foreach(array_slice($r19StockRows, 0, 8) as $row)
-                                @php
-                                    $r19Image = $r19ImageByKey[IlluminateSupportStr::slug((string)($row['name'] ?? ''))] ?? '';
-                                    $r19Pct = $row['stock_percent'] ?? null;
-                                    $r19Status = (string)($row['status'] ?? 'healthy');
-                                @endphp
-                                <article class="pmd-inv-r19-stock-row is-{{ $r19Status }}">
-                                    <span class="pmd-inv-r19-stock-row__image">
-                                        @if($r19Image)<img src="{{ $r19Image }}" alt="" loading="eager" decoding="async">@endif
-                                    </span>
-                                    <span class="pmd-inv-r19-stock-row__copy">
-                                        <strong>{{ (string)($row['name'] ?? '') }}</strong>
-                                        <small>{{ (string)($row['category'] ?? 'Stock item') }}</small>
-                                        <span class="pmd-inv-r19-health-bar"><i style="width:{{ $r19Pct === null ? 0 : max(0,min(100,(int)$r19Pct)) }}%"></i></span>
-                                    </span>
-                                    <span class="pmd-inv-r19-stock-row__amount">
-                                        <strong>{{ number_format((float)($row['estimated_on_hand'] ?? 0), 2) }} {{ (string)($row['unit'] ?? '') }}</strong>
-                                        <small>{{ $r19Pct === null ? 'Set target' : ((int)$r19Pct).'% of target' }}</small>
-                                    </span>
-                                </article>
+                            @foreach($r19StockGroups as $category => $groupRows)
+                                <section class="pmd-inv-r19-overview-group">
+                                    <h3>{{ $category }}</h3>
+                                    @foreach($groupRows as $row)
+                                        @php
+                                            $r19Image = $r19ImageByKey[\Illuminate\Support\Str::slug((string)($row['name'] ?? ''))] ?? '';
+                                            $r19Pct = $row['stock_percent'] ?? null;
+                                            $r19Status = (string)($row['status'] ?? 'healthy');
+                                            $r19Factor = max(0.0001, (float)($row['purchase_to_base'] ?? 1));
+                                            $r19PurchaseUnit = (string)($row['purchase_unit'] ?? $row['unit'] ?? 'piece');
+                                            $r19BaseUnit = (string)($row['unit'] ?? 'piece');
+                                            $r19UsePurchase = $r19PurchaseUnit !== '' && strtolower($r19PurchaseUnit) !== strtolower($r19BaseUnit);
+                                            $r19OwnerQty = (float)($row['estimated_on_hand'] ?? 0) / ($r19UsePurchase ? $r19Factor : 1);
+                                            $r19OwnerUnit = $r19UsePurchase ? $r19PurchaseUnit : $r19BaseUnit;
+                                        @endphp
+                                        <article class="pmd-inv-r19-stock-row is-{{ $r19Status }}">
+                                            <span class="pmd-inv-r19-stock-row__image">
+                                                @if($r19Image)<img src="{{ $r19Image }}" alt="" loading="eager" decoding="async">@endif
+                                            </span>
+                                            <span class="pmd-inv-r19-stock-row__copy">
+                                                <strong>{{ (string)($row['name'] ?? '') }}</strong>
+                                                <small>{{ (string)($row['category'] ?? 'Stock item') }}</small>
+                                                <span class="pmd-inv-r19-health-bar"><i style="width:{{ $r19Pct === null ? 0 : max(0,min(100,(int)$r19Pct)) }}%"></i></span>
+                                            </span>
+                                            <span class="pmd-inv-r19-stock-row__amount">
+                                                <strong>{{ number_format($r19OwnerQty, 2) }} {{ $r19OwnerUnit }}</strong>
+                                                <small>{{ $r19Pct === null ? 'Set target' : ((int)$r19Pct).'% of target' }}</small>
+                                            </span>
+                                        </article>
+                                    @endforeach
+                                </section>
                             @endforeach
                         @endif
+                    </div>
                     </div>
                     <details class="pmd-inv-r19-activity" data-r19-activity>
                         <summary>Activity <span>Purchases, waste and the last physical count</span></summary>
