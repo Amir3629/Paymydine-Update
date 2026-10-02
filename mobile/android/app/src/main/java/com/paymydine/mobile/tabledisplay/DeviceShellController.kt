@@ -38,6 +38,7 @@ class DeviceShellController(
     private val activity: ComponentActivity,
     private val store: SecureStore,
     private val client: DevicePlatformClient,
+    private val deviceMode: String = "table_display",
 ) {
     var screenState by mutableStateOf(store.deviceScreenState())
         private set
@@ -116,9 +117,14 @@ class DeviceShellController(
                     token = token,
                     level = "info",
                     event = "device_shell_ready",
-                    message = "PayMyDine Table Display is online.",
+                    message =
+                        if (deviceMode == "kiosk") {
+                            "PayMyDine Kiosk is online."
+                        } else {
+                            "PayMyDine Table Display is online."
+                        },
                     context = mapOf(
-                        "mode" to "table_display",
+                        "mode" to deviceMode,
                         "app_version" to BuildConfig.VERSION_NAME,
                         "device_owner" to deviceOwnerMode,
                         "network_type" to networkType(),
@@ -391,7 +397,7 @@ class DeviceShellController(
             System.currentTimeMillis() - SystemClock.elapsedRealtime()
 
         return JSONObject()
-            .put("device_mode", "table_display")
+            .put("device_mode", deviceMode)
             .put("app_version", BuildConfig.VERSION_NAME)
             .put("os_version", Build.VERSION.RELEASE)
             .put("manufacturer", Build.MANUFACTURER)
