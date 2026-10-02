@@ -240,6 +240,7 @@ require_once base_path('routes/admin-app-before.php');
 require_once base_path('routes/pmd-staff-portal-v1.php');
 require_once base_path('routes/pmd-mobile-sync-v1.php');
 require_once base_path('routes/pmd-table-display-v1.php');
+require_once base_path('routes/pmd-kiosk-v1.php');
 require_once base_path('routes/admin-app-notifications.php');
 require_once base_path('routes/fiskaly.php');
 require_once base_path('routes/debug.php');
