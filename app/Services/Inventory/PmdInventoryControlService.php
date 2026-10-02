@@ -799,7 +799,12 @@ final class PmdInventoryControlService
                             'location_id' => $locationId,
                             'name' => mb_substr($name, 0, 190),
                             'sku' => null,
-                            'category' => $catalog['category'] ?? null,
+                            // PMD_INVENTORY_INLINE_PURCHASE_R19
+                            // A custom item created directly from the Purchases
+                            // workspace may provide a reviewed category. Global
+                            // catalogue metadata still wins when available.
+                            'category' => $catalog['category']
+                                ?? $this->nullableText($line['category'] ?? null, 100),
                             'base_unit' => $newBaseUnit,
                             'purchase_unit' => $newPurchaseUnit,
                             'purchase_to_base' => $newFactor,
