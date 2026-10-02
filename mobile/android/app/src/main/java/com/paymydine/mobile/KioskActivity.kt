@@ -609,12 +609,6 @@ private fun KioskWelcomeScreen(
             )
 
             Spacer(Modifier.weight(1f))
-            Text(
-                "Menu · checkout · secure payment",
-                color = muted,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-            )
         }
     }
 }
@@ -1079,12 +1073,6 @@ private fun KioskCompleteScreen(
             ) {
                 Text("Start new order", fontWeight = FontWeight.Bold)
             }
-            Text(
-                "This screen resets automatically.",
-                modifier = Modifier.padding(top = 10.dp),
-                color = muted,
-                fontSize = 11.sp,
-            )
         }
     }
 }
