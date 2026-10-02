@@ -172,7 +172,10 @@
     menuPanel.hidden = true;
     inventoryPanel.hidden = true;
     usagePanel.hidden = false;
-    tabs.hidden = true;
+    // R21: the Menu / Inventory workspace switcher now lives in the header
+    // and stays visible while recipe stock usage is being edited.
+    tabs.hidden = false;
+    setTabState('menu');
     body.classList.add('pmd-menu-r20-inventory-active', 'pmd-menu-r20-stock-usage-active');
     setHeaderTitle('Stock usage');
     window.scrollTo({top: 0, behavior: 'auto'});
