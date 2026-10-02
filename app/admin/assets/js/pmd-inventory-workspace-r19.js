@@ -255,6 +255,7 @@
 
   function itemImage(item) {
     if (!item) return '';
+    if (item.image_url) return String(item.image_url);
     var key = normalize(item.name);
     if (imageByItemKey[key]) return imageByItemKey[key];
     var template = catalogTemplateForItem(item);
