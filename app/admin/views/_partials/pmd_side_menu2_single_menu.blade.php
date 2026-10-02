@@ -85,6 +85,16 @@
         || ($pmdSm2DashboardRoute !== 'cashierlab' && $pmdActive(['cashierlab']));
     $pmdSm2ReservationsIsActive = $pmdActive(['reservations']);
 
+    // PMD_MENU_INVENTORY_UNIFIED_R20
+    // Stock is now a workspace inside Menu, not a separate page.
+    $pmdSm2InventoryWorkspace = $pmdActive(['pmdinventory'])
+        || (
+            $pmdActive(['pmdmenus', 'menus'])
+            && (string)request()->query('workspace', '') === 'inventory'
+        );
+    $pmdSm2MenuWorkspace = $pmdActive(['pmdmenus', 'menus'])
+        && !$pmdSm2InventoryWorkspace;
+
     /* PMD_SIDE_MENU_AI_V1
      * Navigation visibility follows the same Admin.Dashboard permission as the
      * PMD Intelligence controller. This link grants no additional authority.
@@ -192,14 +202,14 @@ html #pmd-sidebar-language {
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.coupons_gifts', 'Discount') }}</span>
         </a>
 
-        <a class="pmd-sm2__item {{ $pmdActive(['pmdmenus', 'menus']) ? 'is-active' : '' }}" href="{{ admin_url('menu') }}">
+        <a class="pmd-sm2__item {{ $pmdSm2MenuWorkspace ? 'is-active' : '' }}" href="{{ admin_url('pmdmenus') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3v12h-5c-.023-3.681.184-7.406 5-12M19 15v6M8 4v17M5 4v3a3 3 0 1 0 6 0V4"/></svg>
             <span class="pmd-sm2__label">{{ $pmdSm2T('nav.menu', 'Menu') }}</span>
         </a>
 
         @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
-        {{-- PMD_INVENTORY_CONTROL_NAV_R1 --}}
-        <a class="pmd-sm2__item {{ $pmdActive(['pmdinventory']) ? 'is-active' : '' }}" href="{{ admin_url('pmdinventory') }}">
+        {{-- PMD_MENU_INVENTORY_UNIFIED_R20 --}}
+        <a class="pmd-sm2__item {{ $pmdSm2InventoryWorkspace ? 'is-active' : '' }}" href="{{ admin_url('pmdmenus') }}?workspace=inventory">
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 7 12 3l8 4-8 4-8-4Z"/>
                 <path d="M4 7v10l8 4 8-4V7"/>
