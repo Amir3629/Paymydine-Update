@@ -190,35 +190,31 @@
                     aria-label="Inventory KPIs"
                 >
                     @foreach($r20KpiSelection as $slot => $key)
-                        @php
-                            // PMD_INVENTORY_R20_BLADE_PHP_BLOCK_FIX
-                            // Keep this as block syntax. Mixing inline @php(...) with
-                            // later block @php/@endphp directives can make Blade
-                            // mis-pair directives and surface as an unexpected
-                            // "endforeach" in the compiled view.
-                            $card = $r20KpiCards[$key];
-                        @endphp
+                        {{-- PMD_INVENTORY_R20_KPI_CARD_SCOPE_FIX
+                             Do not introduce a temporary KPI card variable here.
+                             This Blade is rendered as an embedded view inside Menu
+                             and the compiled view lost that local assignment at runtime. --}}
                         <article
                             class="pmd-r2-kpi-v2401-card"
                             data-r20-kpi-slot="{{ $slot }}"
                             data-r20-kpi-key="{{ $key }}"
                             data-pmd-kpi-v2401-key="{{ $key }}"
-                            data-pmd-kpi-v2401-tone="{{ $card['tone'] }}"
-                            data-pmd-kpi-info-copy="{{ $card['info'] }}"
+                            data-pmd-kpi-v2401-tone="{{ $r20KpiCards[$key]['tone'] ?? 'green' }}"
+                            data-pmd-kpi-info-copy="{{ $r20KpiCards[$key]['info'] ?? '' }}"
                         >
                             <div class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" focusable="false">{!! $card['icon'] !!}</svg>
+                                <svg viewBox="0 0 24 24" focusable="false">{!! $r20KpiCards[$key]['icon'] ?? '' !!}</svg>
                             </div>
 
                             <div class="pmd-r2-kpi-v2401-copy">
-                                <span class="pmd-r2-kpi-v2401-title">{{ $card['title'] }}</span>
-                                <strong class="pmd-r2-kpi-v2401-value" data-r20-kpi-value>{{ $card['value'] }}</strong>
-                                <span class="pmd-r2-kpi-v2401-description">{{ $card['description'] }}</span>
+                                <span class="pmd-r2-kpi-v2401-title">{{ $r20KpiCards[$key]['title'] ?? $key }}</span>
+                                <strong class="pmd-r2-kpi-v2401-value" data-r20-kpi-value>{{ $r20KpiCards[$key]['value'] ?? '0' }}</strong>
+                                <span class="pmd-r2-kpi-v2401-description">{{ $r20KpiCards[$key]['description'] ?? '' }}</span>
                             </div>
 
                             <div class="pmd-kpi-info-panel" data-pmd-kpi-info-panel="1" aria-live="polite">
-                                <strong>{{ $card['title'] }}</strong>
-                                <span>{{ $card['info'] }}</span>
+                                <strong>{{ $r20KpiCards[$key]['title'] ?? $key }}</strong>
+                                <span>{{ $r20KpiCards[$key]['info'] ?? '' }}</span>
                             </div>
 
                             <button
