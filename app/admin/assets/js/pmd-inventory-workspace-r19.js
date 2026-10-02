@@ -706,6 +706,9 @@
     var grid = workspace.querySelector('[data-r19-stock-grid]');
     var editor = workspace.querySelector('[data-r19-stock-editor]');
     var blind = Boolean(operationSettings().blind_count);
+    var countDraft = {};
+    try { countDraft = JSON.parse(localStorage.getItem('pmd_inventory_count_draft_v24') || '{}') || {}; }
+    catch (ignore) { countDraft = {}; }
     if (!host) return;
     if (editor) editor.hidden = true;
     if (grid) grid.hidden = true;
@@ -723,13 +726,33 @@
         return '<div class="pmd-inv-r19-count-row" data-r19-count-row="' + esc(item.id) + '">' +
           '<strong>' + esc(item.name) + '<span>' + esc(item.category || '') + '</span></strong>' +
           (blind ? '<span>Expected hidden</span>' : '<span>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>') +
-          '<input type="number" min="0" step="0.01" placeholder="Actual ' + esc(owner.unit) + '" data-r19-count-input data-factor="' + esc(owner.factor) + '">' +
+          '<input type="number" min="0" step="0.01" placeholder="Actual ' + esc(owner.unit) + '" value="' + esc(countDraft[String(item.id)] == null ? '' : countDraft[String(item.id)]) + '" data-r19-count-input data-factor="' + esc(owner.factor) + '">' +
           (blind ? '<span class="pmd-inv-r19-count-variance">Blind count</span>' : '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Variance —</span>') +
         '</div>';
       }).join('') +
       '</div>' +
       '<div class="pmd-inv-r19-editor-fields" style="margin-top:10px"><label class="is-wide">Count note<input type="text" placeholder="Optional" data-r19-count-note></label></div>' +
-      '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-complete-count>Complete count</button></div>';
+      '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-secondary" data-r19-save-count-draft>Save draft</button><button type="button" class="pmd-inv-r19-primary" data-r19-complete-count>Complete count</button></div>';
+
+    if (!blind) {
+      host.querySelectorAll('[data-r19-count-input]').forEach(function (input) {
+        if (input.value !== '') updateCountVariance(input);
+      });
+    }
+  }
+
+  function saveCountDraft() {
+    var draft = {};
+    workspace.querySelectorAll('[data-r19-count-row]').forEach(function (row) {
+      var input = row.querySelector('[data-r19-count-input]');
+      if (input && input.value !== '') draft[String(row.getAttribute('data-r19-count-row'))] = input.value;
+    });
+    try {
+      localStorage.setItem('pmd_inventory_count_draft_v24', JSON.stringify(draft));
+      toast('Physical count draft saved on this device.');
+    } catch (ignore) {
+      toast('Could not save the count draft on this device.', true);
+    }
   }
 
   function cancelCount() {
@@ -780,6 +803,7 @@
       note:valueOf(workspace,'[data-r19-count-note]','')
     }).then(applyActionSnapshot)
       .then(function () {
+        try { localStorage.removeItem('pmd_inventory_count_draft_v24'); } catch (ignore) {}
         cancelCount();
         toast('Physical count completed.');
       })
@@ -1623,6 +1647,7 @@
     }
     if (event.target.closest('[data-r19-start-count]')) { startCount(); return; }
     if (event.target.closest('[data-r19-cancel-count]')) { cancelCount(); return; }
+    if (event.target.closest('[data-r19-save-count-draft]')) { saveCountDraft(); return; }
     if (event.target.closest('[data-r19-complete-count]')) { completeCount(); return; }
 
     var purchaseMain = event.target.closest('[data-r19-purchase-main-key]');
