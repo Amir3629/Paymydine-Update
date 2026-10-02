@@ -268,12 +268,17 @@
                     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
                 ) !!}</script>
 
-                <nav class="pmd-inv-r19-modes" aria-label="Inventory workspace">
+                <nav class="pmd-inv-r19-modes pmd-inv-v24-modes" aria-label="Inventory workspace">
                     <button type="button" class="is-active" data-r19-mode="overview">Overview</button>
                     <button type="button" data-r19-mode="stock">Stock</button>
                     <button type="button" data-r19-mode="purchases">Purchases</button>
+                    <button type="button" data-r19-mode="orders">Orders</button>
+                    <button type="button" data-r19-mode="suppliers">Suppliers</button>
+                    <button type="button" data-r19-mode="storage">Storage</button>
                     <button type="button" data-r19-mode="waste">Waste</button>
                     <button type="button" data-r19-mode="shopping">Shopping</button>
+                    <button type="button" data-r19-mode="ledger">Ledger</button>
+                    <button type="button" data-r19-mode="settings">Settings</button>
                 </nav>
 
                 <section class="pmd-inv-r19-pane is-active" data-r19-pane="overview">
@@ -373,10 +378,12 @@
                             </button>
                         </div>
                     </div>
-                    <div class="pmd-inv-r19-purchase-meta">
-                        <label>Supplier<input type="text" placeholder="Optional" data-r19-purchase-supplier></label>
+                    <div class="pmd-inv-r19-purchase-meta pmd-inv-v24-purchase-meta">
+                        <label>Supplier<select data-r19-purchase-supplier-id><option value="">Unassigned supplier</option></select></label>
+                        <label>Invoice number<input type="text" placeholder="Optional · duplicate protected" data-r19-purchase-invoice></label>
                         <label>Purchase date<input type="date" value="{{ now()->toDateString() }}" data-r19-purchase-date></label>
                         <label class="pmd-inv-r19-search"><span>Search</span><input type="search" placeholder="Tomato, milk, vodka…" data-r19-purchase-search></label>
+                        <input type="hidden" data-r19-purchase-supplier>
                     </div>
 
                     {{-- PMD_INVENTORY_BARCODE_RECEIVING_R23
@@ -399,7 +406,13 @@
                                 placeholder="Scan now, or type a code and press Enter"
                                 data-r19-barcode-input>
                         </label>
-                        <small class="pmd-inv-r23-barcode__hint">Works with common USB/Bluetooth keyboard-mode scanners. The scanner should send Enter after each code.</small>
+                        <div class="pmd-inv-v24-barcode-actions">
+                            <button type="button" class="pmd-inv-r19-secondary" data-r19-camera-start>Use camera</button>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r19-camera-stop hidden>Stop camera</button>
+                            <span data-r19-camera-support></span>
+                        </div>
+                        <video class="pmd-inv-v24-camera" data-r19-camera-video playsinline muted hidden></video>
+                        <small class="pmd-inv-r23-barcode__hint">USB/Bluetooth scanners work as keyboards. Camera scanning uses the browser BarcodeDetector when the device supports it.</small>
                         <div class="pmd-inv-r23-barcode__status" data-r19-barcode-status aria-live="polite"></div>
                         <div class="pmd-inv-r23-barcode__unknown" data-r19-barcode-unknown hidden>
                             <div>
@@ -409,6 +422,14 @@
                             <label>
                                 <span>Link to existing stock</span>
                                 <select data-r19-barcode-link-select></select>
+                            </label>
+                            <label>
+                                <span>Package unit</span>
+                                <input type="text" value="piece" placeholder="bottle / case / box" data-r19-barcode-package-unit>
+                            </label>
+                            <label>
+                                <span>1 scan = base quantity</span>
+                                <input type="number" min="0.0001" step="0.0001" value="1" data-r19-barcode-package-factor>
                             </label>
                             <button type="button" class="pmd-inv-r19-primary" data-r19-barcode-link>Link & add</button>
                             <button type="button" class="pmd-inv-r19-secondary" data-r19-barcode-new>New item</button>
@@ -421,6 +442,125 @@
                     <button type="button" class="pmd-inv-r19-load-more" data-r19-purchase-more hidden>Show more</button>
                     <section class="pmd-inv-r19-inline-editor" data-r19-purchase-editor hidden></section>
                     <section class="pmd-inv-r19-receipt-review" data-r19-receipt-review hidden></section>
+                </section>
+
+                {{-- PMD_INVENTORY_OPERATIONS_V24 --}}
+                <section class="pmd-inv-r19-pane pmd-inv-v24-pane" data-r19-pane="orders" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Purchase orders</span>
+                            <h2>Order first, receive exactly what arrived</h2>
+                            <p>Create supplier POs, track partial deliveries and receive stock with lot, expiry and storage details.</p>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-primary" data-v24-po-new>New purchase order</button>
+                    </div>
+                    <section class="pmd-inv-v24-card" data-v24-po-editor hidden>
+                        <div class="pmd-inv-v24-grid pmd-inv-v24-grid--4">
+                            <label>Supplier<select data-v24-po-supplier></select></label>
+                            <label>Order number<input type="text" placeholder="Auto if empty" data-v24-po-number></label>
+                            <label>Ordered date<input type="date" value="{{ now()->toDateString() }}" data-v24-po-date></label>
+                            <label>Expected date<input type="date" data-v24-po-expected></label>
+                        </div>
+                        <label class="pmd-inv-v24-wide">Notes<input type="text" placeholder="Optional" data-v24-po-notes></label>
+                        <div class="pmd-inv-v24-po-lines" data-v24-po-lines></div>
+                        <div class="pmd-inv-v24-actions">
+                            <button type="button" class="pmd-inv-r19-secondary" data-v24-po-add-line>Add item</button>
+                            <button type="button" class="pmd-inv-r19-primary" data-v24-po-save>Save PO</button>
+                            <button type="button" class="pmd-inv-r19-secondary" data-v24-po-cancel>Cancel</button>
+                        </div>
+                    </section>
+                    <div class="pmd-inv-v24-list" data-v24-po-list></div>
+                    <section class="pmd-inv-v24-card" data-v24-po-receive hidden></section>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-v24-pane" data-r19-pane="suppliers" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Supplier & product master</span>
+                            <h2>One stock item, many suppliers and package codes</h2>
+                            <p>Store supplier SKUs, case sizes, prices, minimums and GTIN/EAN/UPC package identifiers.</p>
+                        </div>
+                    </div>
+                    <div class="pmd-inv-v24-two">
+                        <section class="pmd-inv-v24-card">
+                            <h3>Add / update supplier</h3>
+                            <div class="pmd-inv-v24-grid pmd-inv-v24-grid--2">
+                                <label>Name<input type="text" data-v24-supplier-name></label>
+                                <label>Account code<input type="text" data-v24-supplier-account></label>
+                                <label>Order email<input type="email" data-v24-supplier-email></label>
+                                <label>Phone<input type="text" data-v24-supplier-phone></label>
+                                <label>Lead time · days<input type="number" min="0" value="1" data-v24-supplier-lead></label>
+                                <label>Minimum order value<input type="number" min="0" step="0.01" value="0" data-v24-supplier-min></label>
+                            </div>
+                            <button type="button" class="pmd-inv-r19-primary" data-v24-supplier-save>Save supplier</button>
+                        </section>
+                        <section class="pmd-inv-v24-card">
+                            <h3>Supplier pack for a stock item</h3>
+                            <div class="pmd-inv-v24-grid pmd-inv-v24-grid--2">
+                                <label>Supplier<select data-v24-map-supplier></select></label>
+                                <label>Stock item<select data-v24-map-item></select></label>
+                                <label>Supplier SKU<input type="text" data-v24-map-sku></label>
+                                <label>Pack unit<input type="text" placeholder="case / bottle / box" data-v24-map-unit></label>
+                                <label>1 pack = base quantity<input type="number" min="0.0001" step="0.0001" value="1" data-v24-map-factor></label>
+                                <label>Pack cost<input type="number" min="0" step="0.01" value="0" data-v24-map-cost></label>
+                                <label>Minimum qty<input type="number" min="0" step="0.01" value="0" data-v24-map-minqty></label>
+                                <label>Order multiple<input type="number" min="0.0001" step="0.01" value="1" data-v24-map-multiple></label>
+                            </div>
+                            <label class="pmd-inv-v24-check"><input type="checkbox" checked data-v24-map-primary> Preferred supplier/package</label>
+                            <button type="button" class="pmd-inv-r19-primary" data-v24-map-save>Save supplier pack</button>
+                        </section>
+                    </div>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Barcode / GTIN package links</h3><span>Every code stores its own pack conversion.</span></div>
+                        <div class="pmd-inv-v24-grid pmd-inv-v24-grid--5">
+                            <label>Stock item<select data-v24-code-item></select></label>
+                            <label>Supplier<select data-v24-code-supplier><option value="">Any supplier</option></select></label>
+                            <label>Barcode / GTIN / QR<input type="text" data-v24-code-value></label>
+                            <label>Package unit<input type="text" value="piece" data-v24-code-unit></label>
+                            <label>1 scan = base qty<input type="number" min="0.0001" step="0.0001" value="1" data-v24-code-factor></label>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-primary" data-v24-code-save>Save code</button>
+                        <div class="pmd-inv-v24-table" data-v24-code-list></div>
+                    </section>
+                    <div class="pmd-inv-v24-list" data-v24-supplier-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-v24-pane" data-r19-pane="storage" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Storage, lots & expiry</span>
+                            <h2>Know where stock is and what expires next</h2>
+                            <p>Move stock between storage areas, receive lot/expiry metadata and review upcoming expiry risk.</p>
+                        </div>
+                    </div>
+                    <div class="pmd-inv-v24-two">
+                        <section class="pmd-inv-v24-card">
+                            <h3>Add storage location</h3>
+                            <div class="pmd-inv-v24-grid pmd-inv-v24-grid--2">
+                                <label>Name<input type="text" placeholder="Bar 2 / Walk-in fridge" data-v24-storage-name></label>
+                                <label>Type<select data-v24-storage-type><option>storage</option><option>kitchen</option><option>bar</option><option>fridge</option><option>freezer</option><option>cellar</option></select></label>
+                            </div>
+                            <button type="button" class="pmd-inv-r19-primary" data-v24-storage-save>Save location</button>
+                        </section>
+                        <section class="pmd-inv-v24-card">
+                            <h3>Transfer stock</h3>
+                            <div class="pmd-inv-v24-grid pmd-inv-v24-grid--2">
+                                <label>Item<select data-v24-transfer-item></select></label>
+                                <label>Quantity · base unit<input type="number" min="0.0001" step="0.01" data-v24-transfer-qty></label>
+                                <label>From<select data-v24-transfer-from></select></label>
+                                <label>To<select data-v24-transfer-to></select></label>
+                            </div>
+                            <button type="button" class="pmd-inv-r19-primary" data-v24-transfer-save>Transfer</button>
+                        </section>
+                    </div>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Expiry watch</h3><span>Expired and soon-to-expire received lots.</span></div>
+                        <div class="pmd-inv-v24-table" data-v24-expiry-list></div>
+                    </section>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Storage balances</h3><span>Explicit purchase/transfer/waste movements by storage area.</span></div>
+                        <div class="pmd-inv-v24-table" data-v24-storage-balances></div>
+                    </section>
                 </section>
 
                 <section class="pmd-inv-r19-pane" data-r19-pane="waste" hidden>
@@ -463,6 +603,55 @@
                         <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-print>Print</button>
                         <button type="button" class="pmd-inv-r19-primary" data-r19-shopping-purchases>Open Purchases</button>
                     </div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-v24-pane" data-r19-pane="ledger" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div><span>Audit ledger</span><h2>Every stock movement stays traceable</h2><p>Purchases, waste, transfers, returns, reversals and staff attribution in one timeline.</p></div>
+                        <button type="button" class="pmd-inv-r19-secondary" data-v24-export>Export CSV</button>
+                    </div>
+                    <div class="pmd-inv-v24-table" data-v24-ledger></div>
+                    <section class="pmd-inv-v24-card">
+                        <h3>Return stock to supplier</h3>
+                        <div class="pmd-inv-v24-grid pmd-inv-v24-grid--4">
+                            <label>Item<select data-v24-return-item></select></label>
+                            <label>Quantity · base unit<input type="number" min="0.0001" step="0.01" data-v24-return-qty></label>
+                            <label>Storage<select data-v24-return-storage></select></label>
+                            <label>Reason<input type="text" value="Returned to supplier" data-v24-return-reason></label>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-primary" data-v24-return-save>Record return</button>
+                    </section>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-v24-pane" data-r19-pane="settings" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div><span>Inventory settings</span><h2>Match stock logic to how this restaurant works</h2><p>Choose the recipe-consumption event, expiry alerts, count behaviour and import/export tools.</p></div>
+                    </div>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-grid pmd-inv-v24-grid--3">
+                            <label>Recipe consumption<select data-v24-setting-trigger><option value="paid">Fully paid</option><option value="accepted">Order accepted</option><option value="kitchen">Kitchen / processing</option><option value="completed">Completed</option></select></label>
+                            <label>Default storage<select data-v24-setting-storage></select></label>
+                            <label>Expiry warning · days<input type="number" min="1" max="120" value="7" data-v24-setting-expiry></label>
+                        </div>
+                        <div class="pmd-inv-v24-setting-checks">
+                            <label><input type="checkbox" data-v24-setting-blind> Blind physical counts</label>
+                            <label><input type="checkbox" checked data-v24-setting-low> Low-stock alerts</label>
+                            <label><input type="checkbox" data-v24-setting-menu> Menu availability guard</label>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-primary" data-v24-settings-save>Save settings</button>
+                    </section>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Bulk tools</h3><span>CSV onboarding and data portability.</span></div>
+                        <div class="pmd-inv-v24-actions">
+                            <label class="pmd-inv-r19-secondary pmd-inv-v24-file">Import CSV<input type="file" accept=".csv,text/csv" data-v24-import-csv></label>
+                            <button type="button" class="pmd-inv-r19-secondary" data-v24-export>Export inventory CSV</button>
+                        </div>
+                        <small>Name is required. Supported columns include category, base_unit, purchase_unit, purchase_to_base, purchase_cost, reorder_point, par_level, safety_stock, supplier, supplier_sku, barcode, min_order_qty and order_multiple.</small>
+                    </section>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Cost history</h3><span>Recent supplier purchase prices for variance review.</span></div>
+                        <div class="pmd-inv-v24-table" data-v24-cost-history></div>
+                    </section>
                 </section>
             </section>
 
