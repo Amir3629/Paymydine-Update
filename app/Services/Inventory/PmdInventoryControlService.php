@@ -1045,6 +1045,7 @@ final class PmdInventoryControlService
                 $ops = app(PmdInventoryOperationsService::class);
                 if ($ops->ready()) {
                     $line['supplier_id'] = max(0, (int)($line['supplier_id'] ?? $data['supplier_id'] ?? 0)) ?: null;
+                    $line['purchased_at'] = $purchasedAt;
                     $ops->recordPurchaseMetadata(
                         $locationId,
                         $receiptId,
