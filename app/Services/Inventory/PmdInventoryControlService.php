@@ -250,7 +250,10 @@ final class PmdInventoryControlService
                 ),
                 'reorder_point' => round((float)$item->reorder_point, 4),
                 'par_level' => round((float)$item->par_level, 4),
+                'safety_stock' => round((float)($item->safety_stock ?? 0), 4),
                 'supplier_name' => (string)($item->supplier_name ?? ''),
+                'preferred_supplier_id' => !empty($item->preferred_supplier_id) ? (int)$item->preferred_supplier_id : null,
+                'image_url' => (string)($item->image_url ?? ''),
                 'estimated_on_hand' => $expected,
                 'stock_value' => round($value, 2),
                 'avg_daily_usage' => $dailyUsage,
@@ -423,6 +426,13 @@ final class PmdInventoryControlService
                 ->all()
             : [];
 
+        $operations = [];
+        try {
+            $operations = app(PmdInventoryOperationsService::class)->snapshot($locationId);
+        } catch (\Throwable $ignored) {
+            $operations = ['ready' => false];
+        }
+
         return [
             'ready' => true,
             'generated_at' => $now->toIso8601String(),
@@ -432,6 +442,7 @@ final class PmdInventoryControlService
             'recipes' => $recipes,
             'recent_purchases' => $recentPurchases,
             'recent_waste' => $recentWaste,
+            'operations' => $operations,
             'last_count' => $lastCount ? [
                 'id' => (int)$lastCount->id,
                 'counted_at' => (string)$lastCount->counted_at,
@@ -599,7 +610,16 @@ final class PmdInventoryControlService
                     )) * $purchaseToBase,
                     4
                 ),
+                'safety_stock' => round(
+                    max(0, $this->number(
+                        $data['safety_stock'] ?? ((float)($item->safety_stock ?? 0) / $purchaseToBase),
+                        (float)($item->safety_stock ?? 0) / $purchaseToBase
+                    )) * $purchaseToBase,
+                    4
+                ),
                 'supplier_name' => $this->nullableText($data['supplier_name'] ?? $item->supplier_name, 190),
+                'preferred_supplier_id' => max(0, (int)($data['preferred_supplier_id'] ?? ($item->preferred_supplier_id ?? 0))) ?: null,
+                'image_url' => $this->nullableText($data['image_url'] ?? ($item->image_url ?? null), 500),
                 'updated_at' => now(),
             ]);
 
@@ -704,7 +724,13 @@ final class PmdInventoryControlService
                 max(0, $this->number($data['par_level'] ?? 0, 0)) * $purchaseToBase,
                 4
             ),
+            'safety_stock' => round(
+                max(0, $this->number($data['safety_stock'] ?? 0, 0)) * $purchaseToBase,
+                4
+            ),
             'supplier_name' => $this->nullableText($data['supplier_name'] ?? null, 190),
+            'preferred_supplier_id' => max(0, (int)($data['preferred_supplier_id'] ?? 0)) ?: null,
+            'image_url' => $this->nullableText($data['image_url'] ?? null, 500),
             'active' => 1,
             'created_by' => $staffId,
             'created_at' => now(),
