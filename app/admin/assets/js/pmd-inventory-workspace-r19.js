@@ -50,6 +50,7 @@
     bulkReview: null,
     barcodeOpen: false,
     pendingBarcode: '',
+    countSessionId: 0,
     busy: false
   };
 
@@ -702,6 +703,31 @@
   }
 
   function startCount() {
+    if (state.busy) return;
+    setBusy(true);
+    api.request('onStartCountSession', {})
+      .then(function (json) {
+        state.countSessionId = Number(json && json.count_id || 0);
+        var serverDraft = Array.isArray(json && json.draft_lines) ? json.draft_lines : [];
+        if (serverDraft.length) {
+          var draft = {};
+          serverDraft.forEach(function (line) {
+            var item = items().find(function (row) { return Number(row.id) === Number(line.item_id); });
+            if (!item) return;
+            var owner = ownerQuantity(item, Number(line.counted_qty || 0));
+            draft[String(item.id)] = owner.qty;
+          });
+          try { localStorage.setItem('pmd_inventory_count_draft_v24', JSON.stringify(draft)); } catch (ignore) {}
+        }
+        renderCount();
+      })
+      .catch(function (error) {
+        toast(error.message || 'Could not start the physical count.', true);
+      })
+      .finally(function () { setBusy(false); });
+  }
+
+  function renderCount() {
     var host = workspace.querySelector('[data-r19-count]');
     var grid = workspace.querySelector('[data-r19-stock-grid]');
     var editor = workspace.querySelector('[data-r19-stock-editor]');
@@ -743,23 +769,51 @@
 
   function saveCountDraft() {
     var draft = {};
+    var lines = [];
     workspace.querySelectorAll('[data-r19-count-row]').forEach(function (row) {
       var input = row.querySelector('[data-r19-count-input]');
-      if (input && input.value !== '') draft[String(row.getAttribute('data-r19-count-row'))] = input.value;
+      if (input && input.value !== '') {
+        draft[String(row.getAttribute('data-r19-count-row'))] = input.value;
+        lines.push({
+          item_id:Number(row.getAttribute('data-r19-count-row')),
+          counted_qty:Number(input.value || 0) * Number(input.getAttribute('data-factor') || 1)
+        });
+      }
     });
-    try {
-      localStorage.setItem('pmd_inventory_count_draft_v24', JSON.stringify(draft));
+
+    try { localStorage.setItem('pmd_inventory_count_draft_v24', JSON.stringify(draft)); }
+    catch (ignore) {}
+
+    if (!state.countSessionId) {
       toast('Physical count draft saved on this device.');
-    } catch (ignore) {
-      toast('Could not save the count draft on this device.', true);
+      return;
     }
+
+    setBusy(true);
+    api.request('onSaveCountSession', {
+      count_id:state.countSessionId,
+      lines:lines,
+      note:valueOf(workspace,'[data-r19-count-note]','')
+    }).then(function () {
+      toast('Physical count draft saved and locked to this count session.');
+    }).catch(function (error) {
+      toast(error.message || 'Server draft failed; local draft is still saved.', true);
+    }).finally(function () { setBusy(false); });
   }
 
-  function cancelCount() {
+  function cancelCount(cancelServer) {
     var host = workspace.querySelector('[data-r19-count]');
     var grid = workspace.querySelector('[data-r19-stock-grid]');
     if (host) host.hidden = true;
     if (grid) grid.hidden = false;
+
+    var countId = Number(state.countSessionId || 0);
+    state.countSessionId = 0;
+
+    if (cancelServer && countId > 0) {
+      api.request('onCancelCountSession', {count_id:countId}).catch(function () {});
+      try { localStorage.removeItem('pmd_inventory_count_draft_v24'); } catch (ignore) {}
+    }
   }
 
   function updateCountVariance(input) {
@@ -799,12 +853,14 @@
     }
     setBusy(true);
     api.request('onCompleteCount', {
+      count_id:Number(state.countSessionId || 0) || null,
       lines:lines,
       note:valueOf(workspace,'[data-r19-count-note]','')
     }).then(applyActionSnapshot)
       .then(function () {
         try { localStorage.removeItem('pmd_inventory_count_draft_v24'); } catch (ignore) {}
-        cancelCount();
+        state.countSessionId = 0;
+        cancelCount(false);
         toast('Physical count completed.');
       })
       .catch(function (error) { toast(error.message || 'Could not complete count.', true); })
@@ -1646,7 +1702,7 @@
       return;
     }
     if (event.target.closest('[data-r19-start-count]')) { startCount(); return; }
-    if (event.target.closest('[data-r19-cancel-count]')) { cancelCount(); return; }
+    if (event.target.closest('[data-r19-cancel-count]')) { cancelCount(true); return; }
     if (event.target.closest('[data-r19-save-count-draft]')) { saveCountDraft(); return; }
     if (event.target.closest('[data-r19-complete-count]')) { completeCount(); return; }
 
