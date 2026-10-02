@@ -645,8 +645,8 @@
                         </div>
                         <div class="pmd-inv-v24-setting-checks">
                             <label><input type="checkbox" data-v24-setting-blind> Blind physical counts</label>
-                            <label><input type="checkbox" checked data-v24-setting-low> Low-stock alerts</label>
-                            <label><input type="checkbox" data-v24-setting-menu> Menu availability guard</label>
+                            <label><input type="checkbox" checked data-v24-setting-low> Low-stock attention alerts</label>
+                            <label><input type="checkbox" data-v24-setting-menu> Menu availability warnings</label>
                         </div>
                         <button type="button" class="pmd-inv-r19-primary" data-v24-settings-save>Save settings</button>
                     </section>
