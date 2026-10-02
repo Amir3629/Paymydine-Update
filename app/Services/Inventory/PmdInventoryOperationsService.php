@@ -557,6 +557,24 @@ final class PmdInventoryOperationsService
         return (int)DB::table('pmd_inventory_item_identifiers')->insertGetId($payload);
     }
 
+    public function supplierIdForName(int $locationId, ?int $staffId, string $name): ?int
+    {
+        if (!$this->ready()) return null;
+        $locationId = $this->location($locationId);
+        $name = $this->text($name, 190);
+        if ($name === '') return null;
+
+        $existing = DB::table('pmd_inventory_suppliers')
+            ->where('location_id', $locationId)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->where('active', 1)
+            ->value('id');
+
+        if ($existing) return (int)$existing;
+
+        return $this->saveSupplier($locationId, $staffId, ['name' => $name]);
+    }
+
     public function saveSupplier(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
