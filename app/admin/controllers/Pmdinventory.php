@@ -313,6 +313,42 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onSavePrepRecipe(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->savePrepRecipe(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'prep_recipe_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProduceBatch(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->produceBatch(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'production_batch_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onTransferStock(): JsonResponse
     {
         $this->assertOwnerOrManager();
