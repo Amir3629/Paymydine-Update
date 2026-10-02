@@ -102,6 +102,10 @@
     }
     setPicker(true);
     decorateRecipeCounts();
+    // Pull the latest paid-order usage before the owner edits a recipe.
+    if (api && typeof api.refresh === 'function') {
+      api.refresh().then(decorateRecipeCounts).catch(function () {});
+    }
     window.scrollTo({top: 0, behavior: 'auto'});
   }
 
@@ -120,6 +124,30 @@
   /* ============================================================
      Menu KPI component — same four-slot chooser language as Dashboard
      ============================================================ */
+
+  function refreshMenuKpiValuesFromDom() {
+    var cards = Array.prototype.slice.call(
+      menuPanel.querySelectorAll('[data-pmd-menu-card]')
+    );
+    var foods = cards.filter(function (card) {
+      return String(card.getAttribute('data-item-type') || 'food') !== 'combo';
+    });
+    var combos = cards.filter(function (card) {
+      return String(card.getAttribute('data-item-type') || '') === 'combo';
+    });
+    var stockOut = foods.filter(function (card) {
+      return String(card.getAttribute('data-stock-out') || '0') === '1';
+    }).length;
+    var disabled = foods.filter(function (card) {
+      return String(card.getAttribute('data-published') || '0') !== '1';
+    }).length;
+
+    if (menuKpiCatalog.menu_items) menuKpiCatalog.menu_items.value = foods.length;
+    if (menuKpiCatalog.stock_out) menuKpiCatalog.stock_out.value = stockOut;
+    if (menuKpiCatalog.disabled) menuKpiCatalog.disabled.value = disabled;
+    if (menuKpiCatalog.active) menuKpiCatalog.active.value = Math.max(0, foods.length - disabled);
+    if (menuKpiCatalog.combos) menuKpiCatalog.combos.value = combos.length;
+  }
 
   function saveMenuKpis() {
     try {
@@ -206,6 +234,7 @@
   function renderMenuKpis() {
     var section = document.querySelector('[data-pmd-menu-r21-kpis]');
     if (!section) return;
+    refreshMenuKpiValuesFromDom();
     var cards = Array.prototype.slice.call(section.querySelectorAll('[data-pmd-menu-r21-kpi-slot]'));
     cards.forEach(function (card, slot) {
       var key = menuKpiSelection[slot] || Object.keys(menuKpiCatalog)[slot];
@@ -316,6 +345,22 @@
       decorateRecipeCounts();
     });
   }
+
+  var menuStatsObserver = new MutationObserver(function (mutations) {
+    var relevant = mutations.some(function (mutation) {
+      return mutation.type === 'childList'
+        || mutation.attributeName === 'data-stock-out'
+        || mutation.attributeName === 'data-published';
+    });
+    if (relevant) renderMenuKpis();
+  });
+
+  menuStatsObserver.observe(menuPanel, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['data-stock-out', 'data-published']
+  });
 
   mountMenuKpis();
   decorateRecipeCounts();
