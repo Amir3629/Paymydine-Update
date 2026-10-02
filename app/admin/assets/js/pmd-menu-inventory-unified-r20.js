@@ -7,6 +7,7 @@
 
   if (window.PMDMenuInventoryUnifiedR20) return;
 
+  var pageRoot = document.getElementById('pmd-menu-manager-main');
   var workspaceSwitchButton = document.querySelector('[data-pmd-workspace-toggle-r23]');
   var menuPanel = document.querySelector('[data-pmd-unified-menu-panel]');
   var inventoryPanel = document.querySelector('[data-pmd-unified-inventory-panel]');
@@ -199,6 +200,7 @@
     syncWorkspaceAction('menu');
     setStockUsageSetup(false, true);
     body.classList.remove('pmd-menu-r20-inventory-active', 'pmd-menu-r20-stock-usage-active');
+    if (pageRoot) pageRoot.classList.remove('pmd-menu-inventory-r23-inventory');
     setHeaderTitle(originalHeaderTitle || 'Menu');
     if (updateUrl !== false) updateUrlWorkspace('menu');
     window.scrollTo({top: 0, behavior: 'auto'});
@@ -212,6 +214,7 @@
     setStockUsageSetup(false, true);
     body.classList.add('pmd-menu-r20-inventory-active');
     body.classList.remove('pmd-menu-r20-stock-usage-active');
+    if (pageRoot) pageRoot.classList.add('pmd-menu-inventory-r23-inventory');
     setHeaderTitle('Inventory');
     if (updateUrl !== false) updateUrlWorkspace('inventory');
 
