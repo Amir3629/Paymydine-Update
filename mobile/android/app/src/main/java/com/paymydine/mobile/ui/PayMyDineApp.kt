@@ -868,8 +868,9 @@ private fun UnifiedFirstRun(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 30.dp, vertical = 28.dp),
-        verticalArrangement = Arrangement.Center,
+            .padding(horizontal = 30.dp)
+            .padding(top = 72.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
