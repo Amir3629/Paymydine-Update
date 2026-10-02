@@ -6587,7 +6587,7 @@ return response()->json([
                         if ($paidOrSettled) {
                             $appendRejectReason = 'paid_or_settled';
                         } else {
-                            $expectedContext = (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)));
+                            $expectedContext = (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : ($isKiosk ? 'kiosk' : $request->table_id))));
                             if ((string)($candidateOrderForLog->order_type ?? '') !== $expectedContext) {
                                 $appendRejectReason = 'context_mismatch';
                             } else {
