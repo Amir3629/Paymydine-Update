@@ -1293,42 +1293,32 @@ final class PmdInventoryControlService
             in_array('settled_amount', $orderCols, true)
             && in_array('order_total', $orderCols, true);
 
-        if ($hasSettlementStatus || $hasSettledAt || $hasSettledAmount) {
-            $q->where(function ($paid) use (
-                $hasSettlementStatus,
-                $hasSettledAt,
-                $hasSettledAmount
-            ) {
-                $started = false;
+        if ($hasSettlementStatus) {
+            $q->where(function ($paid) use ($hasSettledAmount) {
+                $paid->whereIn('o.settlement_status', ['paid', 'settled']);
 
-                if ($hasSettlementStatus) {
-                    $paid->whereIn('o.settlement_status', ['paid', 'settled']);
-                    $started = true;
-                }
-
+                // Compatibility fallback only when the status itself is
+                // missing/blank. A cancelled/failed/refunded status must never
+                // become consuming merely because an old settled_amount is
+                // still present.
                 if ($hasSettledAmount) {
-                    $amountPaid = static function ($amount) {
-                        $amount
+                    $paid->orWhere(function ($amountFallback) {
+                        $amountFallback
+                            ->where(function ($missingStatus) {
+                                $missingStatus
+                                    ->whereNull('o.settlement_status')
+                                    ->orWhere('o.settlement_status', '');
+                            })
                             ->where('o.order_total', '>', 0)
                             ->whereColumn('o.settled_amount', '>=', 'o.order_total');
-                    };
-
-                    if ($started) {
-                        $paid->orWhere($amountPaid);
-                    } else {
-                        $paid->where($amountPaid);
-                        $started = true;
-                    }
-                }
-
-                // settled_at is only a fallback for older settlement schemas.
-                // When status/amount columns exist they remain authoritative,
-                // which prevents a refunded/cancelled order with a historical
-                // settled_at timestamp from consuming stock again.
-                if (!$started && $hasSettledAt) {
-                    $paid->whereNotNull('o.settled_at');
+                    });
                 }
             });
+        } elseif ($hasSettledAmount) {
+            $q->where('o.order_total', '>', 0)
+                ->whereColumn('o.settled_amount', '>=', 'o.order_total');
+        } elseif ($hasSettledAt) {
+            $q->whereNotNull('o.settled_at');
         } elseif (in_array('status_id', $orderCols, true)) {
             // Compatibility only for legacy databases that do not yet have
             // settlement columns.
