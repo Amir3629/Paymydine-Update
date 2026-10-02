@@ -767,14 +767,28 @@ private fun KioskWebView(
     }
     val target =
         base +
-            "/?pmd_kiosk=1" +
+            "/kiosk?pmd_kiosk=1" +
             "&kiosk_order_type=" +
             Uri.encode(serviceMode) +
             "&kiosk_session=" +
-            Uri.encode(sessionNonce)
+            Uri.encode(sessionNonce) +
+            "&kiosk_name=" +
+            Uri.encode(profile.restaurantName) +
+            "&kiosk_logo=" +
+            Uri.encode(profile.restaurantLogoUrl) +
+            "&kiosk_bg=" +
+            Uri.encode(profile.theme.background) +
+            "&kiosk_text=" +
+            Uri.encode(profile.theme.text) +
+            "&kiosk_muted=" +
+            Uri.encode(profile.theme.muted) +
+            "&kiosk_accent=" +
+            Uri.encode(profile.theme.accent) +
+            "&kiosk_surface=" +
+            Uri.encode(profile.theme.surface)
     val resetUrl =
         base +
-            "/?pmd_kiosk_reset=1" +
+            "/kiosk-reset?pmd_kiosk_reset=1" +
             "&kiosk_session=" +
             Uri.encode(sessionNonce)
 
@@ -966,26 +980,7 @@ private fun injectKioskGuestUi(
           window.__PMD_KIOSK_BRIDGE_SECRET__ =
             __PMD_KIOSK_BRIDGE_SECRET__;
 
-          function clean(value) {
-            return String(value || '').trim().toLowerCase();
-          }
-
-          function hideTableOnlyActions() {
-            document.querySelectorAll('button,a,[role="button"]').forEach(function (el) {
-              var text = clean(el.textContent);
-              var aria = clean(el.getAttribute('aria-label'));
-              var label = (text + ' ' + aria).trim();
-              var tableOnly =
-                /^(waiter|call waiter|kellner|service rufen|note|notiz|valet|parkservice|table order|tischbestellung)$/.test(label);
-              if (tableOnly) {
-                el.style.setProperty('display', 'none', 'important');
-              }
-            });
-          }
-
-          hideTableOnlyActions();
-          new MutationObserver(hideTableOnlyActions)
-            .observe(document.documentElement, { childList: true, subtree: true });
+          // Dedicated kiosk UI contains no table-only controls.
         })();
         """.trimIndent()
             .replace(
