@@ -449,6 +449,18 @@
   }
 
   function packageCost(identifier, item) {
+    var supplierItems = ops().supplier_items || [];
+    var mapped = supplierItems.find(function(row) {
+      return Number(row.item_id) === Number(identifier.item_id)
+        && (
+          !identifier.supplier_id
+          || Number(row.supplier_id) === Number(identifier.supplier_id)
+        )
+        && Math.abs(Number(row.pack_to_base || 1) - Number(identifier.package_to_base || 1)) < 0.0001;
+    });
+    if (mapped && Number(mapped.pack_cost || 0) > 0) {
+      return Number(mapped.pack_cost);
+    }
     var baseCost = Number(item && item.unit_cost || 0);
     return baseCost * Number(identifier.package_to_base || 1);
   }
