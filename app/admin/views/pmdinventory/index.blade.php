@@ -1,4 +1,5 @@
 @php
+    $embedded = !empty($pmdInventoryEmbedded);
     $inventory = is_array($pmdInventory ?? null) ? $pmdInventory : [];
     $snapshot = is_array($inventory['snapshot'] ?? null) ? $inventory['snapshot'] : [];
     $summary = is_array($snapshot['summary'] ?? null) ? $snapshot['summary'] : [];
@@ -53,6 +54,67 @@
     ksort($r19StockGroups, SORT_NATURAL | SORT_FLAG_CASE);
     ksort($r19CategoryCounts, SORT_NATURAL | SORT_FLAG_CASE);
 
+    // PMD_INVENTORY_KPI_PARITY_R20
+    // Use the same four-slot interaction model as Owner Dashboard. The two
+    // additional Inventory KPIs stay available through each card's chooser.
+    $r20KpiCards = [
+        'stock_value' => [
+            'key' => 'stock_value',
+            'title' => 'Stock value',
+            'value' => currency_format((float)($summary['estimated_stock_value'] ?? 0)),
+            'description' => 'Current inventory value',
+            'info' => 'Estimated value of the restaurant stock currently on hand.',
+            'tone' => 'green',
+            'icon' => '<path d="M4 7 12 3l8 4-8 4-8-4Z"></path><path d="M4 7v10l8 4 8-4V7"></path>',
+        ],
+        'stock_health' => [
+            'key' => 'stock_health',
+            'title' => 'Stock health',
+            'value' => $r19StockHealth === null ? 'Set targets' : $r19StockHealth.'%',
+            'description' => 'Against target / par levels',
+            'info' => 'Average availability across stock items that have a target / par level.',
+            'tone' => 'cyan',
+            'icon' => '<path d="M4 18V9M10 18V5M16 18v-7M22 18H2"></path>',
+        ],
+        'attention' => [
+            'key' => 'attention',
+            'title' => 'Needs attention',
+            'value' => (string)$attentionCount,
+            'description' => 'Low or critical items',
+            'info' => 'Items currently at or below their low / critical stock threshold.',
+            'tone' => 'orange',
+            'icon' => '<path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.6 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"></path>',
+        ],
+        'waste' => [
+            'key' => 'waste',
+            'title' => 'Waste · 30 days',
+            'value' => currency_format((float)($summary['waste_cost_30d'] ?? 0)),
+            'description' => 'Recorded stock loss',
+            'info' => 'Cost of waste movements recorded during the last 30 days.',
+            'tone' => 'red',
+            'icon' => '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path><path d="M10 10v6M14 10v6"></path>',
+        ],
+        'variance' => [
+            'key' => 'variance',
+            'title' => 'Latest variance',
+            'value' => currency_format((float)($summary['unexplained_loss_value'] ?? 0)),
+            'description' => 'Count difference to review',
+            'info' => 'Value difference found at the latest completed physical count.',
+            'tone' => 'purple',
+            'icon' => '<path d="M4 12h16M12 4v16"></path><path d="M5 5l14 14"></path>',
+        ],
+        'in_stock' => [
+            'key' => 'in_stock',
+            'title' => 'Items in stock',
+            'value' => (string)$r19ItemsInStock,
+            'description' => count($r19StockRows).' tracked inventory items',
+            'info' => 'Tracked inventory items whose current estimated on-hand quantity is above zero.',
+            'tone' => 'blue',
+            'icon' => '<path d="M4 7h16v13H4z"></path><path d="M8 7V4h8v3M8 12h8"></path>',
+        ],
+    ];
+    $r20KpiSelection = ['stock_value', 'stock_health', 'attention', 'waste'];
+
     $bootstrap = [
         'ready' => $ready,
         'ai_receipts' => $aiReceipts,
@@ -63,11 +125,14 @@
         'common_stock' => $commonStock,
         'error' => $inventory['error'] ?? null,
         'today' => now()->toDateString(),
+        'endpoint' => admin_url('pmdinventory'),
+        'embedded' => $embedded,
     ];
 @endphp
 
-<main id="pmd-inventory-v1" class="pmd-inv pmd-owner-page" data-pmd-inventory-root>
+<main id="pmd-inventory-v1" class="pmd-inv pmd-owner-page{{ $embedded ? ' pmd-inv--embedded' : '' }}" data-pmd-inventory-root data-pmd-inventory-embedded="{{ $embedded ? '1' : '0' }}">
     {{-- PMD_INVENTORY_SIMPLE_UI_R6 --}}
+    @unless($embedded)
     <header id="pmd-inv-clean-header" class="pmd-owner-header pmd-inv__mother-header pmd-inv-r6-header" aria-label="Stock control header">
         <div class="pmd-owner-header__left pmd-inv__mother-header-left">
             <h1>Stock control</h1>
@@ -84,6 +149,7 @@
             </div>
         @endif
     </header>
+    @endunless
 
     <div class="pmd-inv__stage pmd-inv-r6-stage">
         @if(!$ready)
@@ -108,78 +174,96 @@
 
             {{-- PMD_INVENTORY_WORKSPACE_R19 --}}
             <section class="pmd-inv-r19" data-pmd-inv-r19-workspace>
+                @unless($embedded)
                 <nav class="pmd-inv-r19-product-switcher" aria-label="Restaurant product workspace">
                     <a href="{{ admin_url('pmdmenus') }}">Menu</a>
                     <a href="{{ admin_url('pmdinventory') }}" class="is-active" aria-current="page">Inventory</a>
                 </nav>
 
-                <section class="pmd-inv-r19-kpis" aria-label="Inventory summary" data-r19-kpis>
-                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="green">
-                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="M4 7 12 3l8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7"/></svg>
-                        </span>
-                        <span class="pmd-r2-kpi-v2401-copy">
-                            <span class="pmd-r2-kpi-v2401-title">Stock value</span>
-                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="stock-value">{{ currency_format((float)($summary['estimated_stock_value'] ?? 0)) }}</strong>
-                            <small class="pmd-r2-kpi-v2401-description">Current inventory value</small>
-                        </span>
-                    </article>
+                @endunless
 
-                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="blue">
-                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="M4 18V9M10 18V5M16 18v-7M22 18H2"/></svg>
-                        </span>
-                        <span class="pmd-r2-kpi-v2401-copy">
-                            <span class="pmd-r2-kpi-v2401-title">Stock health</span>
-                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="stock-health">{{ $r19StockHealth === null ? 'Set targets' : $r19StockHealth.'%' }}</strong>
-                            <small class="pmd-r2-kpi-v2401-description">Against your target / par levels</small>
-                        </span>
-                    </article>
+                <section
+                    id="pmd-r2-reservation-kpis-v307"
+                    class="pmd-r2-kpis-v2401 pmd-dashboard2-kpis-v2 pmd-inv-r20-kpis"
+                    data-r19-kpis
+                    data-r20-inventory-kpis
+                    aria-label="Inventory KPIs"
+                >
+                    @foreach($r20KpiSelection as $slot => $key)
+                        @php($card = $r20KpiCards[$key])
+                        <article
+                            class="pmd-r2-kpi-v2401-card"
+                            data-r20-kpi-slot="{{ $slot }}"
+                            data-r20-kpi-key="{{ $key }}"
+                            data-pmd-kpi-v2401-key="{{ $key }}"
+                            data-pmd-kpi-v2401-tone="{{ $card['tone'] }}"
+                            data-pmd-kpi-info-copy="{{ $card['info'] }}"
+                        >
+                            <div class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false">{!! $card['icon'] !!}</svg>
+                            </div>
 
-                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="orange">
-                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.6 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/></svg>
-                        </span>
-                        <span class="pmd-r2-kpi-v2401-copy">
-                            <span class="pmd-r2-kpi-v2401-title">Needs attention</span>
-                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="attention">{{ $attentionCount }}</strong>
-                            <small class="pmd-r2-kpi-v2401-description">Low or critical items</small>
-                        </span>
-                    </article>
+                            <div class="pmd-r2-kpi-v2401-copy">
+                                <span class="pmd-r2-kpi-v2401-title">{{ $card['title'] }}</span>
+                                <strong class="pmd-r2-kpi-v2401-value" data-r20-kpi-value>{{ $card['value'] }}</strong>
+                                <span class="pmd-r2-kpi-v2401-description">{{ $card['description'] }}</span>
+                            </div>
 
-                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="red">
-                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/><path d="M10 10v6M14 10v6"/></svg>
-                        </span>
-                        <span class="pmd-r2-kpi-v2401-copy">
-                            <span class="pmd-r2-kpi-v2401-title">Waste · 30 days</span>
-                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="waste">{{ currency_format((float)($summary['waste_cost_30d'] ?? 0)) }}</strong>
-                            <small class="pmd-r2-kpi-v2401-description">Recorded stock loss</small>
-                        </span>
-                    </article>
+                            <div class="pmd-kpi-info-panel" data-pmd-kpi-info-panel="1" aria-live="polite">
+                                <strong>{{ $card['title'] }}</strong>
+                                <span>{{ $card['info'] }}</span>
+                            </div>
 
-                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="purple">
-                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><path d="M5 5l14 14"/></svg>
-                        </span>
-                        <span class="pmd-r2-kpi-v2401-copy">
-                            <span class="pmd-r2-kpi-v2401-title">Latest variance</span>
-                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="variance">{{ currency_format((float)($summary['unexplained_loss_value'] ?? 0)) }}</strong>
-                            <small class="pmd-r2-kpi-v2401-description">Count difference to review</small>
-                        </span>
-                    </article>
+                            <button
+                                type="button"
+                                class="pmd-kpi-info-button"
+                                data-r20-kpi-info
+                                aria-pressed="false"
+                                aria-label="About this KPI"
+                                title="About this KPI"
+                            >
+                                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                    <path d="M12 11v5"></path>
+                                    <path d="M12 8h.01"></path>
+                                </svg>
+                            </button>
 
-                    <article class="pmd-r2-kpi-v2401-card" data-pmd-kpi-v2401-tone="cyan">
-                        <span class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24"><path d="M4 7h16v13H4z"/><path d="M8 7V4h8v3M8 12h8"/></svg>
-                        </span>
-                        <span class="pmd-r2-kpi-v2401-copy">
-                            <span class="pmd-r2-kpi-v2401-title">Items in stock</span>
-                            <strong class="pmd-r2-kpi-v2401-value" data-r19-kpi="in-stock">{{ $r19ItemsInStock }}</strong>
-                            <small class="pmd-r2-kpi-v2401-description">{{ count($r19StockRows) }} tracked inventory items</small>
-                        </span>
-                    </article>
+                            <button
+                                type="button"
+                                class="pmd-r2-kpi-v2401-more"
+                                data-r20-kpi-menu-button
+                                aria-label="Choose KPI"
+                                aria-haspopup="menu"
+                                aria-expanded="false"
+                            ><span></span><span></span><span></span></button>
+
+                            <div class="pmd-r2-kpi-v2401-menu pmd-inv-r20-kpi-menu" data-r20-kpi-menu role="menu" hidden>
+                                <span class="pmd-dashboard-lab__kpi-menu-heading">Choose KPI</span>
+                                @foreach($r20KpiCards as $choiceKey => $choice)
+                                    <button
+                                        type="button"
+                                        class="pmd-r2-kpi-v2401-option{{ $choiceKey === $key ? ' is-selected' : '' }}"
+                                        data-r20-kpi-option="{{ $choiceKey }}"
+                                        role="menuitem"
+                                    >
+                                        <span class="pmd-r2-kpi-v2401-option-copy">
+                                            <strong>{{ $choice['title'] }}</strong>
+                                            <small>{{ $choiceKey === $key ? 'Visible in this card' : 'Show in this card' }}</small>
+                                        </span>
+                                        <span class="pmd-r2-kpi-v2401-check">{{ $choiceKey === $key ? '✓' : '' }}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </article>
+                    @endforeach
                 </section>
+
+                <script type="application/json" id="pmd-inventory-r20-kpi-data">{!! json_encode(
+                    $r20KpiCards,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE |
+                    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                ) !!}</script>
 
                 <nav class="pmd-inv-r19-modes" aria-label="Inventory workspace">
                     <button type="button" class="is-active" data-r19-mode="overview">Overview</button>
