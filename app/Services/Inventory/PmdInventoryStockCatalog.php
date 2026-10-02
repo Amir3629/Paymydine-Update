@@ -2,6 +2,8 @@
 
 namespace App\Services\Inventory;
 
+use Illuminate\Support\Str;
+
 /**
  * PMD_INVENTORY_GLOBAL_CATALOG_R10
  *
@@ -834,6 +836,121 @@ final class PmdInventoryStockCatalog
         }
 
         return $items;
+    }
+
+    /**
+     * PMD_INVENTORY_CATALOG_IMAGES_R20
+     *
+     * Shared presentational catalogue used by both the combined Menu/Inventory
+     * workspace and the legacy inventory endpoint. Reviewed REWE photography is
+     * preferred; Atlas remains the deterministic fallback.
+     */
+    public static function allWithImages(): array
+    {
+        $atlasDirectory = base_path('app/admin/assets/images/pmd-inventory-atlas');
+        $reweDirectory = base_path('app/admin/assets/images/pmd-inventory-rewe');
+        $reweManifestPath = base_path('storage/app/pmd-inventory-rewe-catalog-r18.json');
+        $rows = self::all();
+
+        $reweImageMap = [];
+        if (is_file($reweManifestPath) && (int)@filesize($reweManifestPath) > 10) {
+            $decoded = json_decode((string)@file_get_contents($reweManifestPath), true);
+            if (is_array($decoded['image_map'] ?? null)) {
+                foreach ($decoded['image_map'] as $key => $slug) {
+                    $key = Str::slug((string)$key);
+                    $slug = Str::slug((string)$slug);
+                    if ($key !== '' && $slug !== '') {
+                        $reweImageMap[$key] = $slug;
+                    }
+                }
+            }
+        }
+
+        $atlasImageByKey = [];
+        foreach ($rows as $row) {
+            $imageSlug = trim((string)($row['image_slug'] ?? $row['atlas_slug'] ?? ''));
+            if ($imageSlug === '') continue;
+
+            $keys = array_merge(
+                [(string)($row['name'] ?? '')],
+                is_array($row['aliases'] ?? null) ? $row['aliases'] : []
+            );
+
+            foreach ($keys as $key) {
+                $key = Str::slug((string)$key);
+                if ($key !== '' && !isset($atlasImageByKey[$key])) {
+                    $atlasImageByKey[$key] = $imageSlug;
+                }
+            }
+        }
+
+        return array_map(static function (array $row) use (
+            $atlasDirectory,
+            $reweDirectory,
+            $reweImageMap,
+            $atlasImageByKey
+        ): array {
+            $name = trim((string)($row['name'] ?? ''));
+            $nameKey = Str::slug($name);
+
+            $row['image_url'] = null;
+            $row['image_source'] = null;
+
+            $reweCandidates = [];
+            $directRewe = trim((string)($row['rewe_image_slug'] ?? ''));
+            if ($directRewe !== '') $reweCandidates[] = Str::slug($directRewe);
+
+            if ($nameKey !== '' && isset($reweImageMap[$nameKey])) {
+                $reweCandidates[] = $reweImageMap[$nameKey];
+            }
+
+            foreach ((array)($row['aliases'] ?? []) as $alias) {
+                $aliasKey = Str::slug((string)$alias);
+                if ($aliasKey !== '' && isset($reweImageMap[$aliasKey])) {
+                    $reweCandidates[] = $reweImageMap[$aliasKey];
+                }
+            }
+
+            foreach (array_values(array_unique(array_filter($reweCandidates))) as $slug) {
+                $filename = $slug.'.webp';
+                $path = $reweDirectory.DIRECTORY_SEPARATOR.$filename;
+                if (!is_file($path) || (int)@filesize($path) < 3000) continue;
+
+                $row['image_url'] = asset('app/admin/assets/images/pmd-inventory-rewe/'.$filename);
+                $row['image_source'] = 'rewe';
+                return $row;
+            }
+
+            $atlasCandidates = [];
+            $direct = trim((string)($row['image_slug'] ?? $row['atlas_slug'] ?? ''));
+            if ($direct !== '') $atlasCandidates[] = $direct;
+
+            if ($nameKey !== '') {
+                if (isset($atlasImageByKey[$nameKey])) {
+                    $atlasCandidates[] = $atlasImageByKey[$nameKey];
+                }
+                $atlasCandidates[] = $nameKey;
+            }
+
+            foreach ((array)($row['aliases'] ?? []) as $alias) {
+                $aliasKey = Str::slug((string)$alias);
+                if ($aliasKey !== '' && isset($atlasImageByKey[$aliasKey])) {
+                    $atlasCandidates[] = $atlasImageByKey[$aliasKey];
+                }
+            }
+
+            foreach (array_values(array_unique(array_filter($atlasCandidates))) as $slug) {
+                $filename = $slug.'.webp';
+                $path = $atlasDirectory.DIRECTORY_SEPARATOR.$filename;
+                if (!is_file($path) || (int)@filesize($path) < 3000) continue;
+
+                $row['image_url'] = asset('app/admin/assets/images/pmd-inventory-atlas/'.$filename);
+                $row['image_source'] = 'atlas';
+                break;
+            }
+
+            return $row;
+        }, $rows);
     }
 
     public static function bestMatch(string $term): ?array
