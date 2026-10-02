@@ -16,6 +16,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -91,6 +92,14 @@ class KioskActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enterKioskMode()
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    // Dedicated guest kiosk: Android back never leaves the flow.
+                }
+            },
+        )
 
         val app = application as PayMyDineApplication
         val store = SecureStore(
@@ -134,10 +143,6 @@ class KioskActivity : ComponentActivity() {
         if (::deviceShell.isInitialized) {
             deviceShell.enterDedicatedMode()
         }
-    }
-
-    override fun onBackPressed() {
-        // Guest navigation is handled inside the kiosk UI.
     }
 
     private fun enterKioskMode() {
@@ -738,7 +743,7 @@ private fun KioskMenuScreen(
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
+@SuppressLint("SetJavaScriptEnabled", "ClickableViewAccessibility")
 @Composable
 private fun KioskWebView(
     profile: KioskProfile,
