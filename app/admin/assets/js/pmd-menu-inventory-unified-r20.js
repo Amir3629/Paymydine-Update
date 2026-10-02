@@ -417,12 +417,19 @@
 
     function add(value, label, factor, note) {
       value = String(value || '').trim();
+      label = String(label || value).trim();
       factor = Number(factor || 0);
       if (!value || !(factor > 0)) return;
-      if (options.some(function (row) { return row.value === value; })) return;
+      if (options.some(function (row) {
+        return row.value === value
+          || (
+            normalizeUsageUnit(row.label) === normalizeUsageUnit(label)
+            && Math.abs(Number(row.factor || 0) - factor) < 0.000001
+          );
+      })) return;
       options.push({
         value: value,
-        label: String(label || value),
+        label: label,
         factor: factor,
         note: String(note || '')
       });
