@@ -1,5 +1,5 @@
 -- PayMyDine schema-only dump
--- Generated UTC: Thu Oct  1 09:54:23 UTC 2026
+-- Generated UTC: Fri Oct  2 07:14:41 UTC 2026
 -- Source server: vps-252f1bc4
 -- DATA ROWS ARE NOT INCLUDED
 
@@ -1853,7 +1853,7 @@ CREATE TABLE `ti_migrations` (
   `migration` varchar(128) NOT NULL,
   `batch` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=223 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=224 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2355,6 +2355,179 @@ CREATE TABLE `ti_pmd_admin_presence_sessions` (
   KEY `ti_pmd_admin_presence_sessions_last_seen_at_index` (`last_seen_at`),
   KEY `ti_pmd_admin_presence_sessions_expires_at_index` (`expires_at`),
   KEY `ti_pmd_admin_presence_sessions_logout_at_index` (`logout_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_device_commands`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_device_commands`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_device_commands` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `command_id` char(36) NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `device_kind` varchar(40) DEFAULT NULL,
+  `command` varchar(48) NOT NULL,
+  `payload` text DEFAULT NULL,
+  `status` varchar(24) NOT NULL DEFAULT 'pending',
+  `requested_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `requested_at` timestamp NULL DEFAULT NULL,
+  `expires_at` timestamp NULL DEFAULT NULL,
+  `delivered_at` timestamp NULL DEFAULT NULL,
+  `acknowledged_at` timestamp NULL DEFAULT NULL,
+  `completed_at` timestamp NULL DEFAULT NULL,
+  `result_payload` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_device_commands_command_id_unique` (`command_id`),
+  KEY `pmd_device_commands_device_status_idx` (`device_id`,`status`,`expires_at`),
+  KEY `ti_pmd_device_commands_location_id_index` (`location_id`),
+  KEY `ti_pmd_device_commands_device_id_index` (`device_id`),
+  KEY `ti_pmd_device_commands_device_kind_index` (`device_kind`),
+  KEY `ti_pmd_device_commands_command_index` (`command`),
+  KEY `ti_pmd_device_commands_status_index` (`status`),
+  KEY `ti_pmd_device_commands_expires_at_index` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_device_deployment_sessions`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_device_deployment_sessions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_device_deployment_sessions` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `public_id` char(36) NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `device_kind` varchar(40) NOT NULL DEFAULT 'table_display',
+  `code_hash` char(64) NOT NULL,
+  `code_ciphertext` text NOT NULL,
+  `expected_count` smallint(5) unsigned NOT NULL DEFAULT 1,
+  `paired_count` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `status` varchar(24) NOT NULL DEFAULT 'active',
+  `created_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `expires_at` timestamp NOT NULL,
+  `completed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_device_deployment_sessions_public_id_unique` (`public_id`),
+  KEY `pmd_device_deploy_location_kind_idx` (`location_id`,`device_kind`,`status`,`expires_at`),
+  KEY `ti_pmd_device_deployment_sessions_location_id_index` (`location_id`),
+  KEY `ti_pmd_device_deployment_sessions_device_kind_index` (`device_kind`),
+  KEY `ti_pmd_device_deployment_sessions_code_hash_index` (`code_hash`),
+  KEY `ti_pmd_device_deployment_sessions_status_index` (`status`),
+  KEY `ti_pmd_device_deployment_sessions_expires_at_index` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_device_logs`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_device_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_device_logs` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `level` varchar(16) NOT NULL DEFAULT 'info',
+  `event` varchar(80) NOT NULL,
+  `message` text NOT NULL,
+  `context` text DEFAULT NULL,
+  `occurred_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `pmd_device_logs_device_time_idx` (`device_id`,`occurred_at`),
+  KEY `pmd_device_logs_location_level_idx` (`location_id`,`level`,`occurred_at`),
+  KEY `ti_pmd_device_logs_location_id_index` (`location_id`),
+  KEY `ti_pmd_device_logs_device_id_index` (`device_id`),
+  KEY `ti_pmd_device_logs_level_index` (`level`),
+  KEY `ti_pmd_device_logs_event_index` (`event`),
+  KEY `ti_pmd_device_logs_occurred_at_index` (`occurred_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_device_policies`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_device_policies`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_device_policies` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `schedule_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `manual_mode` varchar(24) NOT NULL DEFAULT 'auto',
+  `manual_until` timestamp NULL DEFAULT NULL,
+  `wake_before_minutes` smallint(5) unsigned NOT NULL DEFAULT 30,
+  `sleep_after_minutes` smallint(5) unsigned NOT NULL DEFAULT 30,
+  `open_brightness` tinyint(3) unsigned NOT NULL DEFAULT 80,
+  `closed_brightness` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `table_display_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `kds_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `pos_enabled` tinyint(1) NOT NULL DEFAULT 0,
+  `customer_display_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `kiosk_enabled` tinyint(1) NOT NULL DEFAULT 1,
+  `updated_by_staff_id` bigint(20) unsigned DEFAULT NULL,
+  `metadata` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_device_policies_location_id_unique` (`location_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `ti_pmd_device_runtime`
+--
+
+DROP TABLE IF EXISTS `ti_pmd_device_runtime`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `ti_pmd_device_runtime` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `device_id` bigint(20) unsigned NOT NULL,
+  `location_id` bigint(20) unsigned NOT NULL,
+  `device_kind` varchar(40) NOT NULL,
+  `device_mode` varchar(40) DEFAULT NULL,
+  `app_version` varchar(80) DEFAULT NULL,
+  `os_version` varchar(80) DEFAULT NULL,
+  `manufacturer` varchar(120) DEFAULT NULL,
+  `model` varchar(160) DEFAULT NULL,
+  `screen_state` varchar(24) NOT NULL DEFAULT 'awake',
+  `brightness` tinyint(3) unsigned DEFAULT NULL,
+  `battery_level` tinyint(3) unsigned DEFAULT NULL,
+  `is_charging` tinyint(1) DEFAULT NULL,
+  `network_type` varchar(32) DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `last_command_id` varchar(64) DEFAULT NULL,
+  `override_screen_state` varchar(24) DEFAULT NULL,
+  `override_brightness` tinyint(3) unsigned DEFAULT NULL,
+  `override_until` timestamp NULL DEFAULT NULL,
+  `metadata` text DEFAULT NULL,
+  `last_boot_at` timestamp NULL DEFAULT NULL,
+  `last_seen_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ti_pmd_device_runtime_device_id_unique` (`device_id`),
+  KEY `pmd_device_runtime_location_kind_seen_idx` (`location_id`,`device_kind`,`last_seen_at`),
+  KEY `ti_pmd_device_runtime_location_id_index` (`location_id`),
+  KEY `ti_pmd_device_runtime_device_kind_index` (`device_kind`),
+  KEY `ti_pmd_device_runtime_device_mode_index` (`device_mode`),
+  KEY `ti_pmd_device_runtime_screen_state_index` (`screen_state`),
+  KEY `ti_pmd_device_runtime_override_until_index` (`override_until`),
+  KEY `ti_pmd_device_runtime_last_seen_at_index` (`last_seen_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -4770,7 +4943,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01  9:54:24
+-- Dump completed on 2026-10-02  7:14:41
 
 -- ==================================================
 -- DATABASE: mimoza
@@ -8973,7 +9146,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01  9:54:25
+-- Dump completed on 2026-10-02  7:14:42
 
 -- ==================================================
 -- DATABASE: rosana
@@ -11742,7 +11915,7 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01  9:54:26
+-- Dump completed on 2026-10-02  7:14:42
 -- WARNING: Database 'persian' not found or not accessible.
 
 -- ==================================================
@@ -14298,4 +14471,4 @@ CREATE TABLE `ti_working_hours` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-01  9:54:26
+-- Dump completed on 2026-10-02  7:14:42
