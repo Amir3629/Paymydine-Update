@@ -190,6 +190,8 @@
     var waste = Array.isArray(analytics.waste_by_reason_30d) ? analytics.waste_by_reason_30d : [];
     var variances = Array.isArray(analytics.top_variances) ? analytics.top_variances : [];
     var prices = Array.isArray(analytics.price_changes) ? analytics.price_changes : [];
+    var alerts = Array.isArray(ops().attention_alerts) ? ops().attention_alerts : [];
+    var menuRisk = Array.isArray(ops().menu_availability_risk) ? ops().menu_availability_risk : [];
     var itemCount = items().length;
     var coverage = itemCount > 0
       ? Math.round((Number(barcode.items_with_codes || 0) / itemCount) * 100)
@@ -213,6 +215,14 @@
         }).join('') + '</div>' : '') +
         (prices.length ? '<div><h3>Recent price movement</h3>' + prices.slice(0,4).map(function(row){
           return '<p><strong>' + esc(row.item_name) + '</strong><span>' + esc((row.change_pct > 0 ? '+' : '') + row.change_pct + '% · ' + money(row.latest_cost) + ' / ' + (row.purchase_unit || 'unit')) + '</span></p>';
+        }).join('') + '</div>' : '') +
+      '</div>' : '') +
+      ((alerts.length || menuRisk.length) ? '<div class="pmd-inv-v24-overview-detail">' +
+        (alerts.length ? '<div><h3>Stock attention</h3>' + alerts.slice(0,5).map(function(row){
+          return '<p><strong>' + esc(row.item_name) + '</strong><span>' + esc(String(row.status || '').toUpperCase() + (row.days_left == null ? '' : ' · ' + row.days_left + 'd left')) + '</span></p>';
+        }).join('') + '</div>' : '') +
+        (menuRisk.length ? '<div><h3>Menu availability warnings</h3>' + menuRisk.slice(0,5).map(function(row){
+          return '<p><strong>' + esc(row.menu_name) + '</strong><span>' + esc((row.blocked_by || []).map(function(item){ return item.item_name; }).join(', ')) + '</span></p>';
         }).join('') + '</div>' : '') +
       '</div>' : '');
   }
