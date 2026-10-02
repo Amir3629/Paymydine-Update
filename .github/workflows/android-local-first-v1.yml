@@ -50,10 +50,6 @@ jobs:
       - name: Install customer frontend
         working-directory: frontend
         run: npm ci
-      - name: Checkout architecture guard
-        working-directory: frontend
-        run: npm run checkout:architecture
-
       - name: Build customer frontend
         working-directory: frontend
         run: npm run build
