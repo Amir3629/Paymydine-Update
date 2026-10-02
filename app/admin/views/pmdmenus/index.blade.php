@@ -976,29 +976,28 @@
 
     <section class="pmd-menu-kpis pmd-menu-kpis-r22" data-pmd-menu-r22-kpis aria-label="{{ $pmdT('menu_overview') }}">
         @foreach($pmdMenuR22Selection as $slot => $key)
-            @php
-                $pmdMenuR22Card = $pmdMenuR22Kpis[$key];
-            @endphp
+            {{-- R22 deliberately indexes the catalogue directly. Avoid a
+                 temporary Blade variable so compiled-view scope stays stable. --}}
             <article
                 class="pmd-menu-kpi pmd-r2-kpi-v2401-card"
                 data-pmd-menu-r22-kpi-slot="{{ $slot }}"
                 data-pmd-menu-r22-kpi-key="{{ $key }}"
                 data-pmd-kpi-v2401-key="{{ $key }}"
-                data-pmd-kpi-v2401-tone="{{ $pmdMenuR22Card['tone'] }}"
+                data-pmd-kpi-v2401-tone="{{ $pmdMenuR22Kpis[$key]['tone'] }}"
             >
                 <div class="pmd-menu-kpi__icon pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false">{!! $pmdMenuR22Card['icon'] !!}</svg>
+                    <svg viewBox="0 0 24 24" focusable="false">{!! $pmdMenuR22Kpis[$key]['icon'] !!}</svg>
                 </div>
 
                 <div class="pmd-menu-kpi__copy pmd-r2-kpi-v2401-copy">
-                    <span class="pmd-r2-kpi-v2401-title">{{ $pmdMenuR22Card['title'] }}</span>
-                    <strong class="pmd-r2-kpi-v2401-value" data-pmd-menu-r22-kpi-value>{{ $pmdMenuR22Card['value'] }}</strong>
-                    <small class="pmd-r2-kpi-v2401-description">{{ $pmdMenuR22Card['description'] }}</small>
+                    <span class="pmd-r2-kpi-v2401-title">{{ $pmdMenuR22Kpis[$key]['title'] }}</span>
+                    <strong class="pmd-r2-kpi-v2401-value" data-pmd-menu-r22-kpi-value>{{ $pmdMenuR22Kpis[$key]['value'] }}</strong>
+                    <small class="pmd-r2-kpi-v2401-description">{{ $pmdMenuR22Kpis[$key]['description'] }}</small>
                 </div>
 
                 <div class="pmd-kpi-info-panel" data-pmd-menu-r22-kpi-info-panel aria-live="polite">
-                    <strong>{{ $pmdMenuR22Card['title'] }}</strong>
-                    <span>{{ $pmdMenuR22Card['info'] }}</span>
+                    <strong>{{ $pmdMenuR22Kpis[$key]['title'] }}</strong>
+                    <span>{{ $pmdMenuR22Kpis[$key]['info'] }}</span>
                 </div>
 
                 <button
