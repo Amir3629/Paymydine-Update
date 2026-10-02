@@ -181,6 +181,42 @@
     if (mode === 'settings') renderSettings();
   }
 
+  function renderOverviewInsights() {
+    var host = workspace.querySelector('[data-v24-overview-insights]');
+    if (!host) return;
+    var analytics = ops().analytics || {};
+    var barcode = ops().barcode_stats || {};
+    var expiry = analytics.expiry || {};
+    var waste = Array.isArray(analytics.waste_by_reason_30d) ? analytics.waste_by_reason_30d : [];
+    var variances = Array.isArray(analytics.top_variances) ? analytics.top_variances : [];
+    var prices = Array.isArray(analytics.price_changes) ? analytics.price_changes : [];
+    var itemCount = items().length;
+    var coverage = itemCount > 0
+      ? Math.round((Number(barcode.items_with_codes || 0) / itemCount) * 100)
+      : 0;
+
+    function mini(title, value, text, mode) {
+      return '<button type="button" class="pmd-inv-v24-insight" data-v24-insight-mode="' + esc(mode || '') + '">' +
+        '<span>' + esc(title) + '</span><strong>' + esc(value) + '</strong><small>' + esc(text) + '</small></button>';
+    }
+
+    host.innerHTML =
+      '<div class="pmd-inv-v24-insight-grid">' +
+        mini('Barcode coverage', coverage + '%', Number(barcode.linked_codes || 0) + ' linked package codes', 'suppliers') +
+        mini('Expiry watch', String(Number(expiry.expired || 0) + Number(expiry.expiring || 0)), Number(expiry.expired || 0) + ' expired · ' + Number(expiry.expiring || 0) + ' expiring', 'storage') +
+        mini('Waste reasons', String(waste.length), waste.length ? (waste[0].reason + ' · ' + money(waste[0].cost)) : 'No waste in the last 30 days', 'waste') +
+        mini('Price changes', String(prices.length), prices.length ? (prices[0].item_name + ' · ' + (prices[0].change_pct > 0 ? '+' : '') + prices[0].change_pct + '%') : 'No meaningful recent price change', 'suppliers') +
+      '</div>' +
+      ((variances.length || prices.length) ? '<div class="pmd-inv-v24-overview-detail">' +
+        (variances.length ? '<div><h3>Largest count variances</h3>' + variances.slice(0,4).map(function(row){
+          return '<p><strong>' + esc(row.item_name) + '</strong><span>' + esc((row.variance_qty > 0 ? '+' : '') + num(row.variance_qty,2) + ' ' + row.unit + ' · ' + money(row.variance_cost)) + '</span></p>';
+        }).join('') + '</div>' : '') +
+        (prices.length ? '<div><h3>Recent price movement</h3>' + prices.slice(0,4).map(function(row){
+          return '<p><strong>' + esc(row.item_name) + '</strong><span>' + esc((row.change_pct > 0 ? '+' : '') + row.change_pct + '% · ' + money(row.latest_cost) + ' / ' + (row.purchase_unit || 'unit')) + '</span></p>';
+        }).join('') + '</div>' : '') +
+      '</div>' : '');
+  }
+
   function renderOrders() {
     var host = workspace.querySelector('[data-v24-po-list]');
     if (!host) return;
@@ -371,6 +407,7 @@
 
   function renderAllV24() {
     syncSelects();
+    renderOverviewInsights();
     if (state.mode) renderMode(state.mode);
   }
 
@@ -842,6 +879,13 @@
   workspace.addEventListener('click', function(event){
     var target = event.target;
 
+    var insight = target.closest('[data-v24-insight-mode]');
+    if (insight) {
+      var insightMode = String(insight.getAttribute('data-v24-insight-mode') || '');
+      if (insightMode) setMode(insightMode);
+      return;
+    }
+
     if (target.closest('[data-r19-barcode-link]')) {
       event.preventDefault(); event.stopImmediatePropagation(); saveUnknownLink(); return;
     }
@@ -1064,6 +1108,7 @@
   if (support) support.textContent = ('BarcodeDetector' in window) ? 'Camera detector available' : 'Camera detector not available in this browser';
 
   syncSelects();
+  renderOverviewInsights();
   flushOfflineScans();
 
   window.PMDInventoryOperationsV24 = {
