@@ -202,19 +202,21 @@
 >
     <div class="pmd-owner-header__left">
         <h1 class="pmd-r2-clean-title">{{ $pmdT('title') }}</h1>
-    </div>
 
-    {{-- PMD_MENU_INVENTORY_HEADER_SWITCHER_R21 --}}
-    @if(!empty($pmdMenuCanManageInventoryR20))
-        <nav
-            class="pmd-product-workspace-r20 pmd-product-workspace-r21--header"
-            aria-label="Menu and inventory workspace"
-            data-pmd-unified-workspace-tabs
-        >
-            <button type="button" class="is-active" data-pmd-unified-workspace-tab="menu" aria-pressed="true">Menu</button>
-            <button type="button" data-pmd-unified-workspace-tab="inventory" aria-pressed="false">Inventory</button>
-        </nav>
-    @endif
+        {{-- PMD_MENU_INVENTORY_HEADER_SWITCHER_R21
+             Keep the workspace switcher beside the title, not in the global
+             center slot used by the live clock. --}}
+        @if(!empty($pmdMenuCanManageInventoryR20))
+            <nav
+                class="pmd-product-workspace-r20 pmd-product-workspace-r21--header"
+                aria-label="Menu and inventory workspace"
+                data-pmd-unified-workspace-tabs
+            >
+                <button type="button" class="is-active" data-pmd-unified-workspace-tab="menu" aria-pressed="true">Menu</button>
+                <button type="button" data-pmd-unified-workspace-tab="inventory" aria-pressed="false">Inventory</button>
+            </nav>
+        @endif
+    </div>
 
     <div
         class="pmd-owner-header__actions pmd-r2-clean-actions"
