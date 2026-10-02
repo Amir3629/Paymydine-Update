@@ -33,12 +33,23 @@ data class DisplayEvent(
     val currency: String,
 )
 
+data class DisplayTheme(
+    val id: String = "kazen_japanese",
+    val background: String = "#F5F1EB",
+    val text: String = "#25231F",
+    val muted: String = "#777168",
+    val accent: String = "#B5413F",
+    val surface: String = "#FBF8F3",
+    val isDark: Boolean = false,
+)
+
 data class DisplayState(
     val restaurantName: String,
     val restaurantLogoUrl: String,
     val table: DisplayTable,
     val event: DisplayEvent,
     val serverTime: String,
+    val theme: DisplayTheme = DisplayTheme(),
 )
 
 class TableNotBoundException : Exception()

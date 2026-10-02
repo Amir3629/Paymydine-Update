@@ -832,7 +832,6 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                                     host,
                                 ),
                             )
-                            hostActivity?.finish()
                         }
                     },
                 )
@@ -869,58 +868,34 @@ private fun UnifiedFirstRun(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 30.dp, vertical = 34.dp),
-        verticalArrangement = Arrangement.Center,
+            .padding(horizontal = 30.dp)
+            .padding(top = 72.dp, bottom = 28.dp),
+        verticalArrangement = Arrangement.Top,
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Image(
-                painter = painterResource(R.drawable.pmd_brand_mark),
-                contentDescription = "PayMyDine",
-                modifier = Modifier.size(62.dp),
-            )
-            Column {
-                Text(
-                    "PayMyDine Device App",
-                    color = PmdDeepGreen,
-                    fontWeight = FontWeight.Black,
-                    style = MaterialTheme.typography.headlineMedium,
-                )
-                Text(
-                    "One app for restaurant devices",
-                    color = PmdMuted,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        }
+        Image(
+            painter = painterResource(R.drawable.pmd_brand_mark),
+            contentDescription = "PayMyDine",
+            modifier = Modifier.size(76.dp),
+        )
+        Text(
+            "PayMyDine",
+            modifier = Modifier.padding(top = 10.dp),
+            color = PmdDeepGreen,
+            fontWeight = FontWeight.Black,
+            style = MaterialTheme.typography.headlineMedium,
+        )
 
         if (step == 1) {
-            Text(
-                "Which restaurant is this device for?",
-                modifier = Modifier.padding(top = 26.dp),
-                color = PmdText,
-                fontWeight = FontWeight.Black,
-                style = MaterialTheme.typography.headlineSmall,
-            )
             OutlinedTextField(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 18.dp),
+                    .padding(top = 34.dp),
                 value = tenantCode,
                 onValueChange = onTenantCode,
-                label = {
-                    Text("Restaurant name or PayMyDine address")
-                },
+                label = { Text("Restaurant") },
                 placeholder = { Text("tomo") },
                 singleLine = true,
-            )
-            Text(
-                "Example: tomo or tomo.paymydine.com",
-                modifier = Modifier.padding(top = 7.dp),
-                color = PmdMuted,
-                style = MaterialTheme.typography.bodySmall,
             )
             Button(
                 modifier = Modifier
@@ -931,24 +906,25 @@ private fun UnifiedFirstRun(
                         normalizeTenantCode(tenantCode) != null,
                 onClick = { step = 2 },
             ) {
-                Text("Choose device use")
+                Text("Continue")
             }
         } else {
             Text(
                 "Who is using this device?",
-                modifier = Modifier.padding(top = 26.dp),
+                modifier = Modifier.padding(top = 28.dp),
                 color = PmdText,
                 fontWeight = FontWeight.Black,
                 style = MaterialTheme.typography.headlineSmall,
             )
+
             Text(
-                "Choose the closest role. Your PayMyDine account still decides the permissions.",
-                modifier = Modifier.padding(
-                    top = 8.dp,
-                    bottom = 12.dp,
-                ),
+                "Staff app",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 22.dp),
                 color = PmdMuted,
-                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge,
             )
 
             listOf(
@@ -962,7 +938,7 @@ private fun UnifiedFirstRun(
                 OutlinedButton(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
+                        .padding(top = 7.dp),
                     enabled = online,
                     onClick = { onStaffSelected(value) },
                 ) {
@@ -971,16 +947,27 @@ private fun UnifiedFirstRun(
             }
 
             Text(
-                "Guest-facing device",
-                modifier = Modifier.padding(top = 22.dp),
+                "Customer app",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp),
                 color = PmdMuted,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.labelLarge,
             )
-            Button(
+            OutlinedButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 7.dp),
+                enabled = false,
+                onClick = {},
+            ) {
+                Text("Kiosk")
+            }
+            OutlinedButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 7.dp),
                 enabled = online,
                 onClick = onTableDisplay,
             ) {
@@ -999,8 +986,8 @@ private fun UnifiedFirstRun(
 
         if (!online) {
             Text(
-                "Internet is required for the first connection.",
-                modifier = Modifier.padding(top = 14.dp),
+                "Internet is required for setup.",
+                modifier = Modifier.padding(top = 12.dp),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )

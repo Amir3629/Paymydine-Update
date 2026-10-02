@@ -102,6 +102,7 @@ class ApiClient {
             val table = json.optJSONObject("table") ?: JSONObject()
             val restaurant = json.optJSONObject("restaurant") ?: JSONObject()
             val event = json.optJSONObject("event") ?: JSONObject()
+            val theme = json.optJSONObject("theme") ?: JSONObject()
 
             DisplayState(
                 restaurantName = restaurant.optString("name", "PayMyDine"),
@@ -132,6 +133,33 @@ class ApiClient {
                     currency = event.optString("currency", "EUR"),
                 ),
                 serverTime = json.optString("server_time"),
+                theme = DisplayTheme(
+                    id = theme.optString(
+                        "id",
+                        "kazen_japanese",
+                    ),
+                    background = theme.optString(
+                        "background",
+                        "#F5F1EB",
+                    ),
+                    text = theme.optString(
+                        "text",
+                        "#25231F",
+                    ),
+                    muted = theme.optString(
+                        "muted",
+                        "#777168",
+                    ),
+                    accent = theme.optString(
+                        "accent",
+                        "#B5413F",
+                    ),
+                    surface = theme.optString(
+                        "surface",
+                        "#FBF8F3",
+                    ),
+                    isDark = theme.optBoolean("is_dark", false),
+                ),
             )
         }
 
