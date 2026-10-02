@@ -1442,51 +1442,74 @@ final class PmdInventoryControlService
             $q->whereNotIn('o.status_id', $canceled);
         }
 
-        // PMD_INVENTORY_PAID_SALES_R22_SAFE
-        // The financial settlement columns are the canonical payment signal.
-        // Once an order is fully paid, its menu quantities consume the recipe
-        // immediately; kitchen status does not have to reach Completed first.
-        $hasSettlementStatus = in_array('settlement_status', $orderCols, true);
-        $hasSettledAt = in_array('settled_at', $orderCols, true);
-        $hasSettledAmount =
-            in_array('settled_amount', $orderCols, true)
-            && in_array('order_total', $orderCols, true);
+        // PMD_INVENTORY_CONSUMPTION_TRIGGER_V24
+        // Restaurants can choose when theoretical recipe consumption begins.
+        // "paid" preserves the proven R22 behaviour. "kitchen" follows the
+        // processing/completed statuses, "completed" waits for completed only,
+        // and "accepted" consumes any non-cancelled order in the time window.
+        $consumptionTrigger = 'paid';
+        try {
+            $ops = app(PmdInventoryOperationsService::class);
+            if ($ops->ready()) {
+                $consumptionTrigger = (string)($ops->settings($locationId)['consumption_trigger'] ?? 'paid');
+            }
+        } catch (\Throwable $ignored) {
+            $consumptionTrigger = 'paid';
+        }
 
-        if ($hasSettlementStatus) {
-            $q->where(function ($paid) use ($hasSettledAmount) {
-                $paid->whereIn('o.settlement_status', ['paid', 'settled']);
-
-                // Compatibility fallback only when the status itself is
-                // missing/blank. A cancelled/failed/refunded status must never
-                // become consuming merely because an old settled_amount is
-                // still present.
-                if ($hasSettledAmount) {
-                    $paid->orWhere(function ($amountFallback) {
-                        $amountFallback
-                            ->where(function ($missingStatus) {
-                                $missingStatus
-                                    ->whereNull('o.settlement_status')
-                                    ->orWhere('o.settlement_status', '');
-                            })
-                            ->where('o.order_total', '>', 0)
-                            ->whereColumn('o.settled_amount', '>=', 'o.order_total');
-                    });
-                }
-            });
-        } elseif ($hasSettledAmount) {
-            $q->where('o.order_total', '>', 0)
-                ->whereColumn('o.settled_amount', '>=', 'o.order_total');
-        } elseif ($hasSettledAt) {
-            $q->whereNotNull('o.settled_at');
-        } elseif (in_array('status_id', $orderCols, true)) {
-            // Compatibility only for legacy databases that do not yet have
-            // settlement columns.
+        if ($consumptionTrigger === 'completed' && in_array('status_id', $orderCols, true)) {
+            $completed = $this->settingIds('completed_order_status');
+            if ($completed) {
+                $q->whereIn('o.status_id', $completed);
+            }
+        } elseif ($consumptionTrigger === 'kitchen' && in_array('status_id', $orderCols, true)) {
             $consuming = array_values(array_unique(array_merge(
                 $this->settingIds('processing_order_status'),
                 $this->settingIds('completed_order_status')
             )));
             if ($consuming) {
                 $q->whereIn('o.status_id', $consuming);
+            }
+        } elseif ($consumptionTrigger !== 'accepted') {
+            // PMD_INVENTORY_PAID_SALES_R22_SAFE
+            // The financial settlement columns remain canonical when the
+            // restaurant uses the default paid trigger.
+            $hasSettlementStatus = in_array('settlement_status', $orderCols, true);
+            $hasSettledAt = in_array('settled_at', $orderCols, true);
+            $hasSettledAmount =
+                in_array('settled_amount', $orderCols, true)
+                && in_array('order_total', $orderCols, true);
+
+            if ($hasSettlementStatus) {
+                $q->where(function ($paid) use ($hasSettledAmount) {
+                    $paid->whereIn('o.settlement_status', ['paid', 'settled']);
+
+                    if ($hasSettledAmount) {
+                        $paid->orWhere(function ($amountFallback) {
+                            $amountFallback
+                                ->where(function ($missingStatus) {
+                                    $missingStatus
+                                        ->whereNull('o.settlement_status')
+                                        ->orWhere('o.settlement_status', '');
+                                })
+                                ->where('o.order_total', '>', 0)
+                                ->whereColumn('o.settled_amount', '>=', 'o.order_total');
+                        });
+                    }
+                });
+            } elseif ($hasSettledAmount) {
+                $q->where('o.order_total', '>', 0)
+                    ->whereColumn('o.settled_amount', '>=', 'o.order_total');
+            } elseif ($hasSettledAt) {
+                $q->whereNotNull('o.settled_at');
+            } elseif (in_array('status_id', $orderCols, true)) {
+                $consuming = array_values(array_unique(array_merge(
+                    $this->settingIds('processing_order_status'),
+                    $this->settingIds('completed_order_status')
+                )));
+                if ($consuming) {
+                    $q->whereIn('o.status_id', $consuming);
+                }
             }
         }
 
