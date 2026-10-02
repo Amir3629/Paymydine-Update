@@ -24,6 +24,8 @@ final class PmdInventoryOperationsService
             && Schema::hasTable('pmd_inventory_suppliers')
             && Schema::hasTable('pmd_inventory_purchase_orders')
             && Schema::hasTable('pmd_inventory_storage_locations')
+            && Schema::hasTable('pmd_inventory_prep_recipes')
+            && Schema::hasTable('pmd_inventory_production_batches')
             && Schema::hasTable('pmd_inventory_settings');
     }
 
@@ -37,6 +39,8 @@ final class PmdInventoryOperationsService
                 'identifiers' => [],
                 'storage_locations' => [],
                 'purchase_orders' => [],
+                'prep_recipes' => [],
+                'recent_production' => [],
                 'expiry_lots' => [],
                 'recent_movements' => [],
                 'cost_history' => [],
@@ -198,6 +202,88 @@ final class PmdInventoryOperationsService
                     'lines' => $lines,
                 ];
             })
+            ->values()
+            ->all();
+
+        $prepRecipes = DB::table('pmd_inventory_prep_recipes as pr')
+            ->leftJoin('pmd_inventory_items as oi', 'oi.id', '=', 'pr.output_item_id')
+            ->where('pr.location_id', $locationId)
+            ->where('pr.active', 1)
+            ->where('oi.active', 1)
+            ->orderBy('pr.name')
+            ->get([
+                'pr.*',
+                'oi.name as output_item_name',
+                'oi.base_unit as output_unit',
+            ])
+            ->map(function ($row) {
+                $lines = DB::table('pmd_inventory_prep_recipe_lines as pl')
+                    ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'pl.item_id')
+                    ->where('pl.prep_recipe_id', (int)$row->id)
+                    ->orderBy('i.name')
+                    ->get([
+                        'pl.id',
+                        'pl.item_id',
+                        'pl.qty_base',
+                        'i.name as item_name',
+                        'i.base_unit as unit',
+                    ])
+                    ->map(fn ($line) => [
+                        'id' => (int)$line->id,
+                        'item_id' => (int)$line->item_id,
+                        'item_name' => (string)($line->item_name ?? ''),
+                        'unit' => (string)($line->unit ?? 'piece'),
+                        'qty_base' => round((float)$line->qty_base, 4),
+                    ])
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => (int)$row->id,
+                    'name' => (string)$row->name,
+                    'output_item_id' => (int)$row->output_item_id,
+                    'output_item_name' => (string)($row->output_item_name ?? ''),
+                    'output_unit' => (string)($row->output_unit ?? 'piece'),
+                    'output_qty' => round((float)$row->output_qty, 4),
+                    'expected_yield_pct' => round((float)$row->expected_yield_pct, 2),
+                    'lines' => $lines,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $recentProduction = DB::table('pmd_inventory_production_batches as pb')
+            ->leftJoin('pmd_inventory_prep_recipes as pr', 'pr.id', '=', 'pb.prep_recipe_id')
+            ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'pb.output_item_id')
+            ->leftJoin('pmd_inventory_storage_locations as sl', 'sl.id', '=', 'pb.storage_location_id')
+            ->leftJoin('staffs as s', 's.staff_id', '=', 'pb.staff_id')
+            ->where('pb.location_id', $locationId)
+            ->orderByDesc('pb.produced_at')
+            ->orderByDesc('pb.id')
+            ->limit(40)
+            ->get([
+                'pb.*',
+                'pr.name as recipe_name',
+                'i.name as output_item_name',
+                'i.base_unit as output_unit',
+                'sl.name as storage_name',
+                's.staff_name as staff_name',
+            ])
+            ->map(fn ($row) => [
+                'id' => (int)$row->id,
+                'prep_recipe_id' => (int)$row->prep_recipe_id,
+                'recipe_name' => (string)($row->recipe_name ?? ''),
+                'output_item_id' => (int)$row->output_item_id,
+                'output_item_name' => (string)($row->output_item_name ?? ''),
+                'output_unit' => (string)($row->output_unit ?? 'piece'),
+                'output_qty' => round((float)$row->output_qty, 4),
+                'input_cost' => round((float)$row->input_cost, 2),
+                'batch_code' => (string)($row->batch_code ?? ''),
+                'expiry_date' => $row->expiry_date ? (string)$row->expiry_date : null,
+                'storage_name' => (string)($row->storage_name ?? ''),
+                'staff_name' => (string)($row->staff_name ?? ''),
+                'produced_at' => (string)$row->produced_at,
+            ])
             ->values()
             ->all();
 
@@ -450,6 +536,8 @@ final class PmdInventoryOperationsService
             'identifiers' => $identifiers,
             'storage_locations' => $storageLocations,
             'purchase_orders' => $purchaseOrders,
+            'prep_recipes' => $prepRecipes,
+            'recent_production' => $recentProduction,
             'expiry_lots' => $expiryLots,
             'recent_movements' => $recentMovements,
             'cost_history' => $costHistory,
