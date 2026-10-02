@@ -877,10 +877,12 @@
 <!-- PMD_DASHBOARD_HEADER_CLONE_V1_MENU_END -->
 
     {{-- PMD_MENU_INVENTORY_BRIDGE_R19 --}}
-    <nav class="pmd-product-workspace-r19" aria-label="Restaurant product workspace">
-        <a href="{{ admin_url('pmdmenus') }}" class="is-active" aria-current="page">Menu</a>
-        <a href="{{ admin_url('pmdinventory') }}">Inventory</a>
-    </nav>
+    @if(!empty($pmdMenuCanManageInventoryR19))
+        <nav class="pmd-product-workspace-r19" aria-label="Restaurant product workspace">
+            <a href="{{ admin_url('pmdmenus') }}" class="is-active" aria-current="page">Menu</a>
+            <a href="{{ admin_url('pmdinventory') }}">Inventory</a>
+        </nav>
+    @endif
 
     <section class="pmd-menu-kpis" aria-label="{{ $pmdT('menu_overview') }}">
         <article class="pmd-menu-kpi" data-pmd-menu-kpi="foods">
@@ -1129,7 +1131,9 @@
 
                         <div class="pmd-menu-card__actions">
                             <button type="button" class="pmd-menu-card__stock-btn" data-pmd-menu-stock data-menu-id="{{ (int)$item['id'] }}">{{ $item['is_stock_out'] ? $pmdT('stock_in') : $pmdT('stock_out') }}</button>
-                            <button type="button" class="pmd-menu-card__stock-usage-r19" data-pmd-stock-usage-r19="{{ (int)$item['id'] }}">Stock usage</button>
+                            @if(!empty($pmdMenuCanManageInventoryR19))
+                                <button type="button" class="pmd-menu-card__stock-usage-r19" data-pmd-stock-usage-r19="{{ (int)$item['id'] }}">Stock usage</button>
+                            @endif
                             <button type="button" class="pmd-menu-card__edit-btn" data-pmd-menu-edit="{{ (int)$item['id'] }}">{{ $pmdT('edit') }}</button>
                         </div>
                     </div>
