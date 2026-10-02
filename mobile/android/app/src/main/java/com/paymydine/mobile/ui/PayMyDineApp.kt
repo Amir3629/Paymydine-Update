@@ -809,6 +809,27 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             lastError = null
                         }
                     },
+                    onKiosk = {
+                        val code = normalizeTenantCode(tenantCode)
+
+                        if (code == null) {
+                            pairingStatus = "Not paired"
+                            lastError =
+                                "Enter your restaurant name or PayMyDine address."
+                        } else {
+                            val host = code + ".paymydine.com"
+                            memberHint = "kiosk"
+                            app.credentials.setTenantHost(host)
+                            app.credentials.setDevicePurpose("kiosk")
+                            app.credentials.setOnboardingMemberHint("kiosk")
+                            context.startActivity(
+                                com.paymydine.mobile.KioskActivity.intent(
+                                    context,
+                                    host,
+                                ),
+                            )
+                        }
+                    },
                     onTableDisplay = {
                         val code = normalizeTenantCode(tenantCode)
 
@@ -850,6 +871,7 @@ private fun memberDisplayName(value: String): String =
         "kitchen" -> "Kitchen / KDS"
         "reservations" -> "Reservations"
         "table_display" -> "Table Display"
+        "kiosk" -> "Kiosk"
         else -> "Restaurant Staff"
     }
 
@@ -860,6 +882,7 @@ private fun UnifiedFirstRun(
     online: Boolean,
     lastError: String?,
     onStaffSelected: (String) -> Unit,
+    onKiosk: () -> Unit,
     onTableDisplay: () -> Unit,
 ) {
     var step by remember { mutableStateOf(1) }
@@ -959,8 +982,8 @@ private fun UnifiedFirstRun(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 7.dp),
-                enabled = false,
-                onClick = {},
+                enabled = online,
+                onClick = onKiosk,
             ) {
                 Text("Kiosk")
             }
