@@ -545,10 +545,17 @@ class Pmdinventory extends AdminController
         $this->assertOwnerOrManager();
 
         return $this->action(function () {
-            $countId = app(PmdInventoryControlService::class)
-                ->startCountSession($this->locationId(), $this->staffId());
+            $service = app(PmdInventoryControlService::class);
+            $countId = $service->startCountSession($this->locationId(), $this->staffId());
 
-            return ['count_id' => $countId];
+            return [
+                'count_id' => $countId,
+                'draft_lines' => $service->countSessionDraft(
+                    $this->locationId(),
+                    $this->staffId(),
+                    $countId
+                ),
+            ];
         });
     }
 
