@@ -75,38 +75,6 @@
 
         @if($ready)
             <div class="pmd-owner-header__actions pmd-inv__mother-actions pmd-inv-r6-header__actions">
-                <div class="pmd-inv-r6-header__ops" data-pmd-inv-header-ops @unless($hasItems) hidden @endunless>
-                    <button type="button" class="pmd-inv-header-btn is-blue" data-pmd-inv-open="purchase">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v14H4zM8 6V4h8v2M8 11h8M8 15h5"/></svg>
-                        <span>Add purchase</span>
-                    </button>
-
-                    <div class="pmd-inv-r6-action-menu" data-pmd-inv-action-menu>
-                        <button type="button" class="pmd-inv-r6-action-menu__toggle" data-pmd-inv-actions-toggle aria-expanded="false">
-                            Actions
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
-                        </button>
-                        <div class="pmd-inv-r6-action-menu__panel" data-pmd-inv-actions-panel hidden>
-                            <button type="button" data-pmd-inv-open="item">
-                                <span>Add stock item</span><small>Manual entry</small>
-                            </button>
-                            <button type="button" data-pmd-inv-open="recipe" data-pmd-inv-requires-items @unless($hasItems) hidden @endunless>
-                                <span>Connect menu</span><small>What each sale uses</small>
-                            </button>
-                            <button type="button" data-pmd-inv-open="count" data-pmd-inv-requires-items @unless($hasItems) hidden @endunless>
-                                <span>Count stock</span><small>Physical count</small>
-                            </button>
-                            <button type="button" data-pmd-inv-open="waste" data-pmd-inv-requires-items @unless($hasItems) hidden @endunless>
-                                <span>Record waste</span><small>Spill, spoilage, staff meal…</small>
-                            </button>
-                            <button type="button" data-pmd-inv-open="shopping" data-pmd-inv-requires-items @unless($hasItems) hidden @endunless>
-                                <span>Shopping list</span><small>Plan the next order</small>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <span class="pmd-inv__header-divider" aria-hidden="true"></span>
                 <span class="pmd-inv__notif-slot" data-pmd-inv-notif-slot aria-label="Notifications">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
