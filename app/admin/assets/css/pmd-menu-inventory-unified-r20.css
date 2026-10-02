@@ -1177,26 +1177,22 @@ body.pmd-menu-manager-page .pmd-menu-card__stock-usage-r20 {
 }
 
 body.pmd-menu-manager-page.pmd-menu-stock-usage-setup-r22
-.pmd-menu-card__actions:has(.pmd-menu-card__stock-usage-r20) {
-  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
-}
-
-body.pmd-menu-manager-page.pmd-menu-stock-usage-setup-r22
-.pmd-menu-card__stock-usage-r20 {
-  display:inline-flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-}
-
-body.pmd-menu-manager-page.pmd-menu-stock-usage-setup-r22
 [data-pmd-menu-card][data-menu-id] {
   outline:2px solid rgba(8,116,93,.12) !important;
   outline-offset:-2px !important;
+  cursor:pointer !important;
 }
 
 body.pmd-menu-manager-page.pmd-menu-stock-usage-setup-r22
 [data-pmd-menu-card][data-menu-id]:hover {
   outline-color:#08745d !important;
+  box-shadow:0 10px 28px rgba(8,116,93,.10) !important;
+}
+
+body.pmd-menu-manager-page.pmd-menu-stock-usage-setup-r22
+[data-pmd-menu-card][data-menu-id] .pmd-menu-card__actions {
+  opacity:.46 !important;
+  pointer-events:none !important;
 }
 
 /* Menu KPI cards now use the same 100px visual language as role dashboards. */
@@ -1733,11 +1729,6 @@ body.pmd-menu-manager-page
     left:12px !important;
     width:auto !important;
     max-height:min(70vh,520px) !important;
-  }
-
-  body.pmd-menu-manager-page.pmd-menu-stock-usage-setup-r22
-  .pmd-menu-card__actions:has(.pmd-menu-card__stock-usage-r20) {
-    grid-template-columns:1fr !important;
   }
 
   body.pmd-menu-manager-page .pmd-stock-usage-r20-selected-row {
