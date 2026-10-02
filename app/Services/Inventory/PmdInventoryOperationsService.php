@@ -1166,13 +1166,24 @@ final class PmdInventoryOperationsService
             }
         }
 
-        DB::table('pmd_inventory_receipts')->where('location_id', $locationId)->where('id', $receiptId)->update([
-            'supplier_id' => $supplierId,
-            'supplier_invoice_number' => $invoice,
-            'purchase_order_id' => $poId,
-            'document_hash' => $hash,
-            'updated_at' => now(),
-        ]);
+        $payload = ['updated_at' => now()];
+        if (array_key_exists('supplier_id', $data)) {
+            $payload['supplier_id'] = $supplierId;
+        }
+        if (array_key_exists('supplier_invoice_number', $data)) {
+            $payload['supplier_invoice_number'] = $invoice;
+        }
+        if (array_key_exists('purchase_order_id', $data)) {
+            $payload['purchase_order_id'] = $poId;
+        }
+        if (array_key_exists('document_hash', $data)) {
+            $payload['document_hash'] = $hash;
+        }
+
+        DB::table('pmd_inventory_receipts')
+            ->where('location_id', $locationId)
+            ->where('id', $receiptId)
+            ->update($payload);
     }
 
     public function settings(int $locationId): array
