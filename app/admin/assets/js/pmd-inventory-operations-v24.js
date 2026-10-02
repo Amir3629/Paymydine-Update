@@ -651,6 +651,49 @@
     }).catch(function(error){ toast(error.message || 'Could not link package code.', true); });
   }
 
+  function createUnknownScannedItem() {
+    var code = String(state.pendingCode || '').trim();
+    if (!code) return toast('Scan an unknown code first.', true);
+
+    var name = window.prompt('New stock item name');
+    if (!name || !String(name).trim()) return;
+
+    var packageUnit = String(val('[data-r19-barcode-package-unit]','piece') || 'piece').trim();
+    var baseUnit = String(val('[data-r19-barcode-base-unit]','piece') || 'piece').trim();
+    var factor = Number(val('[data-r19-barcode-package-factor]',1) || 1);
+    var supplierId = Number(val('[data-r19-purchase-supplier-id]',0)) || null;
+    var supplier = supplierById(supplierId);
+
+    if (!(factor > 0)) return toast('Package conversion must be greater than zero.', true);
+
+    request('onSavePurchase', {
+      supplier_id:supplierId,
+      supplier_name:supplier ? supplier.name : '',
+      supplier_invoice_number:String(val('[data-r19-purchase-invoice]','')).trim(),
+      purchased_at:String(val('[data-r19-purchase-date]',new Date().toISOString().slice(0,10))),
+      source:'barcode',
+      lines:[{
+        item_id:0,
+        item_name:String(name).trim(),
+        category:'',
+        quantity:1,
+        unit:packageUnit,
+        base_unit:baseUnit,
+        package_to_base:factor,
+        unit_cost:0,
+        barcode:code,
+        supplier_id:supplierId
+      }]
+    }).then(function(json){
+      state.pendingCode = '';
+      var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
+      if (unknown) unknown.hidden = true;
+      toast('New item created and 1 ' + packageUnit + ' received.');
+    }).catch(function(error){
+      toast(error.message || 'Could not create the scanned item.', true);
+    });
+  }
+
   function confirmScanCart() {
     if (!state.scanLines.length) return;
     var supplierId = Number(val('[data-r19-purchase-supplier-id]',0)) || null;
@@ -789,6 +832,9 @@
 
     if (target.closest('[data-r19-barcode-link]')) {
       event.preventDefault(); event.stopImmediatePropagation(); saveUnknownLink(); return;
+    }
+    if (target.closest('[data-r19-barcode-new]')) {
+      event.preventDefault(); event.stopImmediatePropagation(); createUnknownScannedItem(); return;
     }
     if (target.closest('[data-r19-camera-start]')) { event.preventDefault(); startCamera(); return; }
     if (target.closest('[data-r19-camera-stop]')) { event.preventDefault(); stopCamera(); return; }
