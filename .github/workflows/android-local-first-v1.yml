@@ -50,6 +50,12 @@ jobs:
       - name: Install customer frontend
         working-directory: frontend
         run: npm ci
+      - name: Checkout safety guards
+        working-directory: frontend
+        run: |
+          npm run checkout:safety
+          npm run checkout:architecture
+
       - name: Build customer frontend
         working-directory: frontend
         run: npm run build
@@ -83,6 +89,8 @@ jobs:
           grep -Fq 'KioskActivity' mobile/android/app/src/main/AndroidManifest.xml
           grep -Fq 'devicePurpose() == "kiosk"' mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
           grep -Fq 'PayMyDineKiosk' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq '__PMD_KIOSK_BRIDGE_SECRET__' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq '__PMD_KIOSK_BRIDGE_SECRET__' frontend/features/customer-menu/checkout/paymentModalPaymentFlow.ts
           grep -Fq 'KIOSK_API_PATH' mobile/android/app/build.gradle.kts
           grep -Fq 'PmdKioskPublicController' routes/pmd-kiosk-v1.php
           grep -Fq "kiosk_order_type" frontend/features/customer-menu/checkout/paymentModalPaymentFlow.ts
