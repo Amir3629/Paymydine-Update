@@ -199,7 +199,7 @@ html #pmd-sidebar-language {
 
         <a class="pmd-sm2__item {{ $pmdSm2MenuWorkspace ? 'is-active' : '' }}" href="{{ admin_url('pmdmenus') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3v12h-5c-.023-3.681.184-7.406 5-12M19 15v6M8 4v17M5 4v3a3 3 0 1 0 6 0V4"/></svg>
-            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.menu', 'Menu') }}</span>
+            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.menu_inventory', 'Menu & Inventory') }}</span>
         </a>
 
         {{-- PMD_MENU_INVENTORY_UNIFIED_R20: separate Stock nav removed; use Menu > Inventory. --}}
