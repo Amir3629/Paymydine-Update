@@ -1336,25 +1336,75 @@
 
   function shoppingRows() {
     var days = Math.max(1, Number(state.shoppingDays || 1));
+    var operationData = operations();
+    var supplierItems = Array.isArray(operationData.supplier_items) ? operationData.supplier_items : [];
+    var suppliers = Array.isArray(operationData.suppliers) ? operationData.suppliers : [];
+
     return items().map(function (item) {
+      var supplierItem = supplierItems.find(function (row) {
+        return Number(row.item_id) === Number(item.id) && Boolean(row.is_primary);
+      }) || supplierItems.find(function (row) {
+        return Number(row.item_id) === Number(item.id);
+      }) || null;
+
+      var supplierId = supplierItem
+        ? Number(supplierItem.supplier_id || 0)
+        : Number(item.preferred_supplier_id || 0);
+      var supplier = suppliers.find(function (row) {
+        return Number(row.id) === supplierId;
+      }) || null;
+
       var onHand = Math.max(0, Number(item.estimated_on_hand || 0));
       var par = Math.max(0, Number(item.par_level || 0));
-      var usageNeed = Math.max(0, Number(item.avg_daily_usage || 0) * days);
-      var desired = Math.max(par, usageNeed);
-      if (desired <= 0 && Number(item.reorder_point || 0) > 0 && onHand <= Number(item.reorder_point || 0)) {
-        desired = Number(item.reorder_point || 0);
+      var safety = Math.max(0, Number(item.safety_stock || 0));
+      var leadDays = supplier ? Math.max(0, Number(supplier.lead_time_days || 0)) : 0;
+      var usageNeed = Math.max(0, Number(item.avg_daily_usage || 0) * (days + leadDays));
+      var desired = Math.max(par, usageNeed + safety);
+
+      if (
+        desired <= 0
+        && Number(item.reorder_point || 0) > 0
+        && onHand <= Number(item.reorder_point || 0)
+      ) {
+        desired = Number(item.reorder_point || 0) + safety;
       }
+
       var baseQty = Math.max(0, desired - onHand);
       if (baseQty <= .00005) return null;
-      var owner = ownerQuantity(item, baseQty);
-      var cost = owner.qty * Number(item.purchase_unit_cost || 0);
+
+      var factor = supplierItem
+        ? Math.max(.0001, Number(supplierItem.pack_to_base || 1))
+        : purchaseFactor(item);
+      var unit = supplierItem
+        ? String(supplierItem.pack_unit || item.purchase_unit || item.unit || 'piece')
+        : String(item.purchase_unit || item.unit || 'piece');
+      var rawPackQty = baseQty / factor;
+      var minimum = supplierItem ? Math.max(0, Number(supplierItem.min_order_qty || 0)) : 0;
+      var multiple = supplierItem ? Math.max(.0001, Number(supplierItem.order_multiple || 1)) : 1;
+      var packQty = Math.max(rawPackQty, minimum);
+
+      // Supplier quantities must respect order multiples/case rounding.
+      packQty = Math.ceil((packQty - 0.0000001) / multiple) * multiple;
+      if (packQty <= .00005) return null;
+
+      var unitCost = supplierItem
+        ? Math.max(0, Number(supplierItem.pack_cost || 0))
+        : Math.max(0, Number(item.purchase_unit_cost || 0));
+
       return {
         item:item,
-        qty:owner.qty,
-        unit:owner.unit,
-        factor:owner.factor,
-        estimatedCost:cost,
-        supplier:String(item.supplier_name || 'Unassigned supplier')
+        qty:packQty,
+        unit:unit,
+        factor:factor,
+        estimatedCost:packQty * unitCost,
+        unitCost:unitCost,
+        supplierId:supplierId || null,
+        supplierItemId:supplierItem ? Number(supplierItem.id) : null,
+        supplier:supplier ? String(supplier.name || '') : String(item.supplier_name || 'Unassigned supplier'),
+        leadDays:leadDays,
+        rawNeedBase:baseQty,
+        minimum:minimum,
+        multiple:multiple
       };
     }).filter(Boolean).sort(function (a,b) {
       return a.supplier.localeCompare(b.supplier) || String(a.item.name).localeCompare(String(b.item.name));
@@ -1385,10 +1435,10 @@
         currentSupplier = row.supplier;
         html += '<div class="pmd-inv-r19-shopping-supplier">' + esc(currentSupplier) + '</div>';
       }
-      html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) + '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) + '">' +
-        '<div><strong>' + esc(row.item.name) + '</strong><small>' + esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand') + '</small></div>' +
-        '<span>Need ' + esc(number(row.qty,2) + ' ' + row.unit) + '</span>' +
-        '<input type="number" min="0" step="0.01" value="' + esc(Number(row.qty.toFixed(2))) + '" data-r19-shopping-qty>' +
+      html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) + '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) + '" data-unit-cost="' + esc(row.unitCost) + '" data-supplier-id="' + esc(row.supplierId || '') + '" data-supplier-item-id="' + esc(row.supplierItemId || '') + '">' +
+        '<div><strong>' + esc(row.item.name) + '</strong><small>' + esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand · ' + (row.leadDays ? row.leadDays + 'd lead time' : 'no lead time set')) + '</small></div>' +
+        '<span>Buy ' + esc(number(row.qty,2) + ' ' + row.unit) + (row.multiple > 1 ? ' · multiple ' + number(row.multiple,2) : '') + '</span>' +
+        '<input type="number" min="0" step="' + esc(row.multiple || 1) + '" value="' + esc(Number(row.qty.toFixed(2))) + '" data-r19-shopping-qty>' +
         '<span>' + esc(money(row.estimatedCost)) + '</span>' +
       '</div>';
     });
@@ -1404,7 +1454,10 @@
         item:item,
         qty:qty,
         unit:String(node.getAttribute('data-unit') || item.purchase_unit || item.unit),
-        cost:Number(item.purchase_unit_cost || 0)
+        factor:Number(node.getAttribute('data-factor') || item.purchase_to_base || 1),
+        cost:Number(node.getAttribute('data-unit-cost') || item.purchase_unit_cost || 0),
+        supplier_id:Number(node.getAttribute('data-supplier-id') || 0) || null,
+        supplier_item_id:Number(node.getAttribute('data-supplier-item-id') || 0) || null
       } : null;
     }).filter(Boolean);
   }
@@ -1444,10 +1497,14 @@
       label:'Shopping draft',
       lines:rows.map(function (row) {
         return {
+          item_id:Number(row.item.id),
           item_name:row.item.name,
           quantity:row.qty,
           unit:row.unit,
-          unit_cost:Number(row.item.purchase_unit_cost || 0)
+          unit_cost:Number(row.cost || 0),
+          package_to_base:Number(row.factor || 1),
+          supplier_id:row.supplier_id,
+          supplier_item_id:row.supplier_item_id
         };
       })
     };
@@ -1715,7 +1772,7 @@
   setMode(initialMode);
 
   window.PMDInventoryWorkspaceR19 = {
-    version:'23.0.0',
+    version:'24.0.0',
     setMode:setMode,
     refresh:function () {
       return api.refresh().then(function () {
