@@ -353,29 +353,77 @@
   }
 
   function createPoFromShopping() {
-    var rows = Array.prototype.slice.call(workspace.querySelectorAll('[data-r19-shopping-row]'));
-    if (!rows.length) return toast('Shopping list is empty.', true);
-    state.poLines = rows.map(function(node){
+    var rows = Array.prototype.slice.call(workspace.querySelectorAll('[data-r19-shopping-row]')).map(function(node){
       var item = itemById(node.getAttribute('data-r19-shopping-row'));
       var qty = Number((node.querySelector('[data-r19-shopping-qty]') || {}).value || 0);
       if (!item || qty <= 0) return null;
-      var supplierItem = (ops().supplier_items || []).find(function(si){
-        return Number(si.item_id) === Number(item.id) && si.is_primary;
-      });
       return {
-        item_id:Number(item.id),
+        item:item,
         quantity:qty,
-        unit:String(supplierItem ? supplierItem.pack_unit : (item.purchase_unit || item.unit)),
-        pack_to_base:Number(supplierItem ? supplierItem.pack_to_base : (item.purchase_to_base || 1)),
-        unit_cost:Number(supplierItem ? supplierItem.pack_cost : (item.purchase_unit_cost || 0)),
-        supplier_item_id:Number(supplierItem ? supplierItem.id : 0)
+        unit:String(node.getAttribute('data-unit') || item.purchase_unit || item.unit || 'piece'),
+        pack_to_base:Number(node.getAttribute('data-factor') || item.purchase_to_base || 1),
+        unit_cost:Number(node.getAttribute('data-unit-cost') || item.purchase_unit_cost || 0),
+        supplier_id:Number(node.getAttribute('data-supplier-id') || 0) || null,
+        supplier_item_id:Number(node.getAttribute('data-supplier-item-id') || 0) || null
       };
     }).filter(Boolean);
-    setMode('orders');
-    var editor = workspace.querySelector('[data-v24-po-editor]');
-    if (editor) editor.hidden = false;
-    renderPoEditorLines();
-    toast('Shopping plan copied into a purchase order.');
+
+    if (!rows.length) return toast('Shopping list is empty.', true);
+
+    var groups = {};
+    rows.forEach(function(row){
+      var key = String(row.supplier_id || 0);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(row);
+    });
+
+    var groupKeys = Object.keys(groups);
+    setBusy(true);
+
+    var chain = Promise.resolve();
+    var lastSnapshot = null;
+    groupKeys.forEach(function(key){
+      chain = chain.then(function(){
+        var supplierId = Number(key) || null;
+        var supplier = supplierById(supplierId);
+        var leadDays = supplier ? Math.max(0, Number(supplier.lead_time_days || 0)) : 0;
+        var expected = new Date();
+        expected.setDate(expected.getDate() + leadDays);
+
+        return api.request('onSavePurchaseOrder',{
+          supplier_id:supplierId,
+          status:'draft',
+          ordered_at:new Date().toISOString().slice(0,10),
+          expected_at:expected.toISOString().slice(0,10),
+          notes:'Draft created from Shopping forecast',
+          lines:groups[key].map(function(row){
+            return {
+              item_id:Number(row.item.id),
+              supplier_item_id:row.supplier_item_id,
+              quantity:row.quantity,
+              unit:row.unit,
+              pack_to_base:row.pack_to_base,
+              unit_cost:row.unit_cost
+            };
+          })
+        }).then(function(json){
+          if (json && json.snapshot) {
+            lastSnapshot = json.snapshot;
+            if (api.applySnapshot) api.applySnapshot(json.snapshot);
+          }
+        });
+      });
+    });
+
+    chain.then(function(){
+      setMode('orders');
+      renderOrders();
+      toast(groupKeys.length + ' draft purchase order' + (groupKeys.length === 1 ? '' : 's') + ' created by supplier.');
+    }).catch(function(error){
+      toast(error.message || 'Could not create purchase orders.', true);
+    }).finally(function(){
+      setBusy(false);
+    });
   }
 
   function packageCost(identifier, item) {
@@ -855,12 +903,11 @@
     if (target.closest('[data-v24-settings-save]')) { saveSettings(); return; }
     if (target.closest('[data-v24-export]')) { exportCsv(); return; }
 
-    // Convert the existing shopping plan to a real PO with Alt/Option-click on
-    // "Open Purchases", while normal click keeps the legacy direct-purchase flow.
-    var shopping = target.closest('[data-r19-shopping-purchases]');
-    if (shopping && event.altKey) {
-      event.preventDefault(); event.stopImmediatePropagation();
-      createPoFromShopping(); return;
+    if (target.closest('[data-v24-shopping-po]')) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      createPoFromShopping();
+      return;
     }
   }, true);
 
