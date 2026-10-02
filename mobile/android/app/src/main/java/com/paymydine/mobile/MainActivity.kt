@@ -25,6 +25,17 @@ class MainActivity : ComponentActivity() {
         val app = application as PayMyDineApplication
         app.handleIntent(intent)
 
+        if (app.credentials.devicePurpose() == "kiosk") {
+            startActivity(
+                KioskActivity.intent(
+                    this,
+                    app.credentials.tenantHost(),
+                ),
+            )
+            finish()
+            return
+        }
+
         if (app.credentials.devicePurpose() == "table_display") {
             startActivity(
                 TableDisplayActivity.intent(
