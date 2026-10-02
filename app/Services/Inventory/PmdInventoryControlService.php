@@ -872,7 +872,13 @@ final class PmdInventoryControlService
                         $itemId = (int)DB::table('pmd_inventory_items')->insertGetId([
                             'location_id' => $locationId,
                             'name' => mb_substr($name, 0, 190),
-                            'sku' => null,
+                            // PMD_INVENTORY_BARCODE_RECEIVING_R23
+                            // A newly received item may be born from a barcode/QR scan.
+                            // Keep that code on the stock item so the next scan resolves instantly.
+                            'sku' => $this->nullableText(
+                                $line['barcode'] ?? $line['sku'] ?? null,
+                                120
+                            ),
                             // PMD_INVENTORY_INLINE_PURCHASE_R19
                             // A custom item created directly from the Purchases
                             // workspace may provide a reviewed category. Global
