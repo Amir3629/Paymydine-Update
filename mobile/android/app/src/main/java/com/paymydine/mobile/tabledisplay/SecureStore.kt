@@ -12,9 +12,13 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-class SecureStore(context: Context) {
+class SecureStore(
+    context: Context,
+    storeName: String = "pmd-table-companion-v1",
+    private val keyAlias: String = "pmd-table-companion-v1",
+) {
     private val prefs =
-        context.getSharedPreferences("pmd-table-companion-v1", Context.MODE_PRIVATE)
+        context.getSharedPreferences(storeName, Context.MODE_PRIVATE)
 
     fun installationId(): String {
         val existing = prefs.getString("installation_id", null)
@@ -195,8 +199,6 @@ class SecureStore(context: Context) {
         prefs.getInt("device_brightness", 80).coerceIn(0, 100)
 
     companion object {
-        private const val KEY_ALIAS = "pmd-table-companion-v1"
-
         fun normalizeHost(raw: String): String {
             var value = raw.trim().trimEnd('/')
             if (!value.startsWith("https://", ignoreCase = true)) {
@@ -246,7 +248,7 @@ class SecureStore(context: Context) {
 
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        val existing = store.getKey(KEY_ALIAS, null) as? SecretKey
+        val existing = store.getKey(keyAlias, null) as? SecretKey
         if (existing != null) return existing
 
         val generator =
@@ -256,7 +258,7 @@ class SecureStore(context: Context) {
             )
         generator.init(
             KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
+                keyAlias,
                 KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
             )
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
