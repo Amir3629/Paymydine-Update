@@ -601,7 +601,8 @@
                     <div class="pmd-inv-r19-shopping-actions">
                         <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-copy>Copy list</button>
                         <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-print>Print</button>
-                        <button type="button" class="pmd-inv-r19-primary" data-r19-shopping-purchases>Open Purchases</button>
+                        <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-purchases>Direct purchase</button>
+                        <button type="button" class="pmd-inv-r19-primary" data-v24-shopping-po>Create purchase order</button>
                     </div>
                 </section>
 
