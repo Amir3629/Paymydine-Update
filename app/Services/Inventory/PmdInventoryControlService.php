@@ -766,6 +766,17 @@ final class PmdInventoryControlService
         }
 
         $supplier = trim((string)($data['supplier_name'] ?? ''));
+        if ($supplier !== '' && empty($data['supplier_id'])) {
+            try {
+                $resolvedSupplierId = app(PmdInventoryOperationsService::class)
+                    ->supplierIdForName($locationId, $staffId, $supplier);
+                if ($resolvedSupplierId) {
+                    $data['supplier_id'] = $resolvedSupplierId;
+                }
+            } catch (\Throwable $ignored) {
+                // Preserve legacy free-text supplier receiving if V24 is unavailable.
+            }
+        }
         $purchasedAt = $this->date((string)($data['purchased_at'] ?? now()->toDateString()));
         $receiptId = max(0, (int)($data['receipt_id'] ?? 0));
 
