@@ -18,8 +18,13 @@ body.pmd-inventory-r19-page #pmd-inventory-v1 {
   overflow-x:hidden!important;
 }
 
-body.pmd-inventory-r19-page #pmd-inv-clean-header .pmd-inv-r6-header__actions {
+body.pmd-inventory-r19-page #pmd-inv-clean-header [data-pmd-inv-header-ops],
+body.pmd-inventory-r19-page #pmd-inv-clean-header .pmd-inv__header-divider {
   display:none!important;
+}
+
+body.pmd-inventory-r19-page #pmd-inv-clean-header .pmd-inv-r6-header__actions {
+  display:flex!important;
 }
 
 /* Retire the visible legacy dashboard. Compatibility modals stay mounted. */
