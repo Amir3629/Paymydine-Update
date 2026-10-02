@@ -186,6 +186,7 @@
     var summary = snap.summary || {};
     var rows = stockItems();
     var value = base.value == null ? '0' : String(base.value);
+    var description = String(base.description || '');
 
     if (key === 'stock_value') {
       value = money(summary.estimated_stock_value || 0);
@@ -210,13 +211,14 @@
       value = String(rows.filter(function (row) {
         return Number(row.estimated_on_hand || 0) > 0;
       }).length);
+      description = rows.length + ' tracked inventory items';
     }
 
     return {
       key: key,
       title: String(base.title || key),
       value: value,
-      description: String(base.description || ''),
+      description: description,
       info: String(base.info || base.description || ''),
       tone: String(base.tone || 'green'),
       icon: String(base.icon || '')
