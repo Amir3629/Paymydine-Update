@@ -30,7 +30,7 @@ body.pmd-menu-manager-page .pmd-product-workspace-r19 a.is-active {
   color:#fff!important;
 }
 
-body.pmd-menu-manager-page .pmd-menu-card__actions {
+body.pmd-menu-manager-page .pmd-menu-card__actions:has(.pmd-menu-card__stock-usage-r19) {
   grid-template-columns:repeat(3,minmax(0,1fr))!important;
 }
 
@@ -192,7 +192,7 @@ body.pmd-menu-manager-page .pmd-menu-card__stock-usage-r19:hover {
 .pmd-menu-inventory-r19-actions button:disabled { opacity:.45; cursor:not-allowed; }
 
 @media(max-width:700px){
-  body.pmd-menu-manager-page .pmd-menu-card__actions {
+  body.pmd-menu-manager-page .pmd-menu-card__actions:has(.pmd-menu-card__stock-usage-r19) {
     grid-template-columns:1fr!important;
   }
   .pmd-menu-inventory-r19-modal { padding:10px; }
