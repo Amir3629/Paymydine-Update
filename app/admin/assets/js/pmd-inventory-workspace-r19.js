@@ -18,17 +18,18 @@
   var units = config.units && typeof config.units === 'object' ? config.units : {};
   var wasteReasons = config.wasteReasons && typeof config.wasteReasons === 'object'
     ? config.wasteReasons
-    : {
-        spoilage:'Spoilage',
-        expired:'Expired',
-        prep_trim:'Prep waste / trim',
-        overcooked:'Overcooked',
-        spill_breakage:'Spill / breakage',
-        returned:'Returned item',
-        staff_meal:'Staff meal',
-        complimentary:'Complimentary',
-        other:'Other'
-      };
+    : ['Spoilage','Prep trim','Overcooked','Spill / breakage','Returned by guest','Staff meal','Comp / complimentary','Expired','Other'];
+
+  function wasteReasonEntries() {
+    if (Array.isArray(wasteReasons)) {
+      return wasteReasons.map(function (label) {
+        return {value:String(label), label:String(label)};
+      });
+    }
+    return Object.keys(wasteReasons).map(function (key) {
+      return {value:String(key), label:String(wasteReasons[key])};
+    });
+  }
 
   var state = {
     mode: 'overview',
@@ -1000,8 +1001,8 @@
     var purchase = String(item.purchase_unit || base);
     var options = '<option value="' + esc(base) + '">' + esc(base) + '</option>';
     if (purchase !== base) options = '<option value="' + esc(purchase) + '">' + esc(purchase) + '</option>' + options;
-    var reasons = Object.keys(wasteReasons).map(function (key) {
-      return '<option value="' + esc(key) + '">' + esc(wasteReasons[key]) + '</option>';
+    var reasons = wasteReasonEntries().map(function (entry) {
+      return '<option value="' + esc(entry.value) + '">' + esc(entry.label) + '</option>';
     }).join('');
     host.hidden = false;
     host.innerHTML =
@@ -1053,7 +1054,7 @@
         var item = items().find(function (entry) { return Number(entry.id) === Number(row.item_id); });
         var qty = item ? ownerQuantityLabel(item, row.qty || Math.abs(row.qty_delta || 0), 2) : number(row.qty || 0,2);
         return '<div class="pmd-inv-r19-history-row"><strong>' + esc(row.item_name || 'Item') + '</strong>' +
-          '<span>' + esc(qty) + '</span><span>' + esc(wasteReasons[row.reason] || row.reason || 'Other') + '</span>' +
+          '<span>' + esc(qty) + '</span><span>' + esc(row.reason || 'Other') + '</span>' +
           '<span>' + esc(money(row.cost || 0)) + '</span><span>' + esc(dateLabel(row.occurred_at)) + '</span></div>';
       }).join('') : '<div class="pmd-inv-r19-empty">No waste has been recorded yet.</div>';
     }
