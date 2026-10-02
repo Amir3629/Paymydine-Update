@@ -1282,6 +1282,7 @@
         '<label>Quantity<input type="number" min="0.0001" step="0.01" data-r19-waste-qty></label>' +
         '<label>Unit<select data-r19-waste-unit>' + options + '</select></label>' +
         '<label>Reason<select data-r19-waste-reason>' + reasons + '</select></label>' +
+        (operations().ready ? '<label>Storage<select data-r19-waste-storage>' + operationStorageOptions(operationSettings().default_storage_location_id, true) + '</select></label>' : '') +
         '<label class="is-wide">Note<input type="text" placeholder="Optional" data-r19-waste-note></label>' +
       '</div>' +
       '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-submit-waste>Record waste</button></div>';
@@ -1303,6 +1304,7 @@
     api.request('onRecordWaste', {
       item_id:item.id,
       quantity:baseQty,
+      storage_location_id:Number(valueOf(host,'[data-r19-waste-storage]',0)) || null,
       reason:valueOf(host,'[data-r19-waste-reason]','other'),
       note:valueOf(host,'[data-r19-waste-note]','')
     }).then(applyActionSnapshot)
