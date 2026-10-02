@@ -1178,7 +1178,7 @@ final class PmdInventoryOperationsService
             'base_unit_cost' => round(max(0, $baseUnitCost), 6),
             'purchase_unit_cost' => round(max(0, $purchaseUnitCost), 4),
             'purchase_unit' => $purchaseUnit,
-            'purchased_at' => now()->toDateString(),
+            'purchased_at' => $this->dateOrNull($line['purchased_at'] ?? null) ?: now()->toDateString(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
