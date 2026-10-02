@@ -165,6 +165,17 @@
     body.classList.remove('pmd-menu-r20-stock-usage-active');
     setHeaderTitle('Inventory');
     if (updateUrl !== false) updateUrlWorkspace('inventory');
+
+    // PMD_INVENTORY_PAID_REFRESH_R21
+    // Entering Inventory always asks the server for the newest theoretical
+    // stock, so a just-paid order is reflected without a full page reload.
+    if (api && typeof api.refresh === 'function') {
+      api.refresh().then(function () {
+        renderKpis();
+        updateUsageButtons();
+      }).catch(function () {});
+    }
+
     window.scrollTo({top: 0, behavior: 'auto'});
   }
 
