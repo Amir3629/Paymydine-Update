@@ -1158,6 +1158,12 @@ body.pmd-menu-manager-page
   color:#075f4f !important;
 }
 
+body.pmd-menu-manager-page.pmd-menu-r20-inventory-active
+#pmd-r2-clean-header
+[data-pmd-stock-usage-setup-r22] {
+  display:none !important;
+}
+
 /* One-shot Stock usage mode.
    The per-food action exists for the proven R20 click path but is hidden until
    the single header setup button is turned on. */
