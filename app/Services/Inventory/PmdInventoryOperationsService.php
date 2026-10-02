@@ -355,6 +355,94 @@ final class PmdInventoryOperationsService
             ->values()
             ->all();
 
+        $wasteByReason = DB::table('pmd_inventory_movements')
+            ->where('location_id', $locationId)
+            ->where('movement_type', 'WASTE')
+            ->where('occurred_at', '>=', now()->subDays(30))
+            ->groupBy('reason')
+            ->orderByRaw('SUM(ABS(qty_delta) * unit_cost) DESC')
+            ->limit(8)
+            ->get([
+                'reason',
+                DB::raw('COUNT(*) as entries'),
+                DB::raw('SUM(ABS(qty_delta) * unit_cost) as cost'),
+            ])
+            ->map(fn ($row) => [
+                'reason' => (string)($row->reason ?: 'Other'),
+                'entries' => (int)$row->entries,
+                'cost' => round((float)$row->cost, 2),
+            ])
+            ->values()
+            ->all();
+
+        $latestCountId = DB::table('pmd_inventory_counts')
+            ->where('location_id', $locationId)
+            ->where('status', 'completed')
+            ->orderByDesc('counted_at')
+            ->orderByDesc('id')
+            ->value('id');
+
+        $topVariances = $latestCountId
+            ? DB::table('pmd_inventory_count_lines as cl')
+                ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'cl.item_id')
+                ->where('cl.count_id', (int)$latestCountId)
+                ->orderByRaw('ABS(cl.variance_qty * cl.unit_cost_snapshot) DESC')
+                ->limit(8)
+                ->get([
+                    'cl.item_id',
+                    'i.name as item_name',
+                    'i.base_unit as unit',
+                    'cl.expected_qty',
+                    'cl.counted_qty',
+                    'cl.variance_qty',
+                    'cl.unit_cost_snapshot',
+                ])
+                ->map(fn ($row) => [
+                    'item_id' => (int)$row->item_id,
+                    'item_name' => (string)($row->item_name ?? ''),
+                    'unit' => (string)($row->unit ?? 'piece'),
+                    'expected_qty' => round((float)$row->expected_qty, 4),
+                    'counted_qty' => round((float)$row->counted_qty, 4),
+                    'variance_qty' => round((float)$row->variance_qty, 4),
+                    'variance_cost' => round((float)$row->variance_qty * (float)$row->unit_cost_snapshot, 2),
+                ])
+                ->values()
+                ->all()
+            : [];
+
+        $historyByItem = collect($costHistory)->groupBy('item_id');
+        $priceChanges = [];
+        foreach ($historyByItem as $itemId => $historyRows) {
+            $historyRows = collect($historyRows)->values();
+            if ($historyRows->count() < 2) continue;
+            $latestPrice = (float)($historyRows[0]['purchase_unit_cost'] ?? 0);
+            $previousPrice = (float)($historyRows[1]['purchase_unit_cost'] ?? 0);
+            if ($previousPrice <= 0) continue;
+            $pct = (($latestPrice - $previousPrice) / $previousPrice) * 100;
+            if (abs($pct) < 0.5) continue;
+            $priceChanges[] = [
+                'item_id' => (int)$itemId,
+                'item_name' => (string)($historyRows[0]['item_name'] ?? ''),
+                'supplier_name' => (string)($historyRows[0]['supplier_name'] ?? ''),
+                'purchase_unit' => (string)($historyRows[0]['purchase_unit'] ?? ''),
+                'latest_cost' => round($latestPrice, 4),
+                'previous_cost' => round($previousPrice, 4),
+                'change_pct' => round($pct, 1),
+            ];
+        }
+        usort($priceChanges, fn ($a, $b) => abs($b['change_pct']) <=> abs($a['change_pct']));
+        $priceChanges = array_slice($priceChanges, 0, 8);
+
+        $analytics = [
+            'waste_by_reason_30d' => $wasteByReason,
+            'top_variances' => $topVariances,
+            'price_changes' => $priceChanges,
+            'expiry' => [
+                'expired' => count(array_filter($expiryLots, fn ($row) => ($row['status'] ?? '') === 'expired')),
+                'expiring' => count(array_filter($expiryLots, fn ($row) => ($row['status'] ?? '') === 'expiring')),
+            ],
+        ];
+
         return [
             'ready' => true,
             'suppliers' => $suppliers,
@@ -372,6 +460,7 @@ final class PmdInventoryOperationsService
                 'linked_codes' => count($identifiers),
                 'items_with_codes' => count(array_unique(array_column($identifiers, 'item_id'))),
             ],
+            'analytics' => $analytics,
         ];
     }
 
