@@ -124,7 +124,7 @@
       node.innerHTML = supplierOptions(current, entry[1]);
     });
 
-    ['[data-v24-map-item]','[data-v24-code-item]','[data-v24-transfer-item]','[data-v24-return-item]'].forEach(function(selector){
+    ['[data-v24-map-item]','[data-v24-code-item]','[data-v24-transfer-item]','[data-v24-return-item]','[data-v24-merge-keep]','[data-v24-merge-remove]'].forEach(function(selector){
       var node = workspace.querySelector(selector);
       if (!node) return;
       var current = node.value;
@@ -297,6 +297,16 @@
           esc((supplier.lead_time_days || 0) + ' day lead time · ' + mapped.length + ' mapped item' + (mapped.length === 1 ? '' : 's')) +
           '</span></div><div><span>' + esc(supplier.order_email || supplier.email || 'No order email') + '</span><b>' + esc(money(supplier.min_order_value || 0)) + ' minimum</b></div></article>';
       }).join('') || '<div class="pmd-inv-r19-empty">No suppliers yet.</div>';
+    }
+
+    var performance = workspace.querySelector('[data-v24-supplier-performance]');
+    if (performance) {
+      var perfRows = ops().supplier_performance || [];
+      performance.innerHTML = '<div class="pmd-inv-v24-tr pmd-inv-v24-tr--head"><span>Supplier</span><span>Purchase lines</span><span>Last purchase</span><span>Activity</span></div>' +
+        (perfRows.map(function(row){
+          return '<div class="pmd-inv-v24-tr"><strong>' + esc(row.supplier_name || 'Supplier') + '</strong><span>' +
+            esc(row.purchase_lines_90d || 0) + '</span><span>' + esc(row.last_purchase_at || '—') + '</span><span>90-day history</span></div>';
+        }).join('') || '<div class="pmd-inv-r19-empty">Supplier activity appears after received purchases.</div>');
     }
 
     var codes = workspace.querySelector('[data-v24-code-list]');
@@ -672,36 +682,53 @@
   }
 
   function exportCsv() {
-    var rows = items();
-    var supplierItems = ops().supplier_items || [];
-    var identifiers = ops().identifiers || [];
-    var header = ['name','category','base_unit','purchase_unit','purchase_to_base','purchase_cost','reorder_point','par_level','safety_stock','supplier','supplier_sku','barcode','min_order_qty','order_multiple'];
-    var csv = [header.join(',')];
+    var csv = [];
     function q(value) { return '"' + String(value == null ? '' : value).replace(/"/g,'""') + '"'; }
-    rows.forEach(function(item){
-      var si = supplierItems.find(function(row){ return Number(row.item_id) === Number(item.id) && row.is_primary; });
-      var code = identifiers.find(function(row){ return Number(row.item_id) === Number(item.id) && row.is_primary; }) ||
-        identifiers.find(function(row){ return Number(row.item_id) === Number(item.id); });
-      csv.push([
-        item.name,item.category,item.unit,
-        si ? si.pack_unit : item.purchase_unit,
-        si ? si.pack_to_base : item.purchase_to_base,
-        si ? si.pack_cost : item.purchase_unit_cost,
-        Number(item.reorder_point || 0) / Math.max(.0001, Number(item.purchase_to_base || 1)),
-        Number(item.par_level || 0) / Math.max(.0001, Number(item.purchase_to_base || 1)),
-        Number(item.safety_stock || 0) / Math.max(.0001, Number(item.purchase_to_base || 1)),
-        si ? si.supplier_name : item.supplier_name,
-        si ? si.supplier_sku : '',
-        code ? code.code : '',
-        si ? si.min_order_qty : '',
-        si ? si.order_multiple : ''
-      ].map(q).join(','));
-    });
+    var fileName;
+
+    if (state.mode === 'ledger') {
+      var movements = ops().recent_movements || [];
+      csv.push(['occurred_at','item','movement_type','qty_delta','unit','unit_cost','storage','to_storage','reason','note','staff','reference_type','reference_id','reversal_of_id'].join(','));
+      movements.forEach(function(row){
+        csv.push([
+          row.occurred_at,row.item_name,row.movement_type,row.qty_delta,row.unit,row.unit_cost,
+          row.storage_name,row.to_storage_name,row.reason,row.note,row.staff_name,row.reference_type,row.reference_id,row.reversal_of_id
+        ].map(q).join(','));
+      });
+      fileName = 'paymydine-inventory-ledger-' + new Date().toISOString().slice(0,10) + '.csv';
+    } else {
+      var rows = items();
+      var supplierItems = ops().supplier_items || [];
+      var identifiers = ops().identifiers || [];
+      var header = ['name','category','base_unit','purchase_unit','purchase_to_base','purchase_cost','reorder_point','par_level','safety_stock','supplier','supplier_sku','barcode','min_order_qty','order_multiple'];
+      csv.push(header.join(','));
+      rows.forEach(function(item){
+        var si = supplierItems.find(function(row){ return Number(row.item_id) === Number(item.id) && row.is_primary; });
+        var code = identifiers.find(function(row){ return Number(row.item_id) === Number(item.id) && row.is_primary; }) ||
+          identifiers.find(function(row){ return Number(row.item_id) === Number(item.id); });
+        csv.push([
+          item.name,item.category,item.unit,
+          si ? si.pack_unit : item.purchase_unit,
+          si ? si.pack_to_base : item.purchase_to_base,
+          si ? si.pack_cost : item.purchase_unit_cost,
+          Number(item.reorder_point || 0) / Math.max(.0001, Number(item.purchase_to_base || 1)),
+          Number(item.par_level || 0) / Math.max(.0001, Number(item.purchase_to_base || 1)),
+          Number(item.safety_stock || 0) / Math.max(.0001, Number(item.purchase_to_base || 1)),
+          si ? si.supplier_name : item.supplier_name,
+          si ? si.supplier_sku : '',
+          code ? code.code : '',
+          si ? si.min_order_qty : '',
+          si ? si.order_multiple : ''
+        ].map(q).join(','));
+      });
+      fileName = 'paymydine-inventory-' + new Date().toISOString().slice(0,10) + '.csv';
+    }
+
     var blob = new Blob([csv.join('\n')],{type:'text/csv;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'paymydine-inventory-' + new Date().toISOString().slice(0,10) + '.csv';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -922,6 +949,19 @@
         reason:val('[data-v24-return-reason]','Returned to supplier')
       }).then(function(){ renderLedger(); toast('Supplier return recorded.'); })
         .catch(function(error){ toast(error.message || 'Could not record supplier return.', true); });
+      return;
+    }
+
+    if (target.closest('[data-v24-merge-save]')) {
+      var keepId = Number(val('[data-v24-merge-keep]',0));
+      var removeId = Number(val('[data-v24-merge-remove]',0));
+      if (!keepId || !removeId || keepId === removeId) return toast('Choose two different stock items.', true);
+      var keepItem = itemById(keepId);
+      var removeItem = itemById(removeId);
+      if (!window.confirm('Merge "' + (removeItem ? removeItem.name : 'duplicate') + '" into "' + (keepItem ? keepItem.name : 'kept item') + '" and archive the duplicate?')) return;
+      request('onMergeItems',{keep_item_id:keepId,merge_item_id:removeId})
+        .then(function(){ renderSettings(); toast('Duplicate stock item merged.'); })
+        .catch(function(error){ toast(error.message || 'Could not merge stock items.', true); });
       return;
     }
 
