@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_WORKSPACE_R19
+/* PMD_INVENTORY_WORKSPACE_R20
  * Visible daily workflow for Overview / Stock / Purchases / Waste / Shopping.
  * The R18 controller/service remain the write authority. This layer consumes
  * the exposed inventory API and deliberately avoids rebuilding hidden legacy UI.
@@ -14,6 +14,7 @@
   if (!api || typeof api.getSnapshot !== 'function') return;
 
   var config = api.getConfig ? api.getConfig() : {};
+  var embedded = Boolean(config.embedded);
   var currency = String(config.currency || 'EUR');
   var units = config.units && typeof config.units === 'object' ? config.units : {};
   var wasteReasons = config.wasteReasons && typeof config.wasteReasons === 'object'
@@ -1223,11 +1224,13 @@
     if (mode === 'waste') renderWaste();
     if (mode === 'shopping') renderShopping();
 
-    try {
-      var url = new URL(window.location.href);
-      url.searchParams.set('mode', mode);
-      window.history.replaceState({}, '', url.toString());
-    } catch (ignore) {}
+    if (!embedded) {
+      try {
+        var url = new URL(window.location.href);
+        url.searchParams.set('mode', mode);
+        window.history.replaceState({}, '', url.toString());
+      } catch (ignore) {}
+    }
   }
 
   function renderAllVisible() {
@@ -1425,14 +1428,16 @@
   renderKpis();
 
   var initialMode = 'overview';
-  try {
-    var requested = new URL(window.location.href).searchParams.get('mode');
-    if (requested) initialMode = requested;
-  } catch (ignore) {}
+  if (!embedded) {
+    try {
+      var requested = new URL(window.location.href).searchParams.get('mode');
+      if (requested) initialMode = requested;
+    } catch (ignore) {}
+  }
   setMode(initialMode);
 
   window.PMDInventoryWorkspaceR19 = {
-    version:'19.0.0',
+    version:'20.0.0',
     setMode:setMode,
     refresh:function () {
       return api.refresh().then(function () {

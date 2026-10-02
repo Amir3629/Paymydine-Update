@@ -71,189 +71,23 @@ class Pmdinventory extends AdminController
 
     public function index()
     {
+        // PMD_MENU_INVENTORY_UNIFIED_R20
+        // Inventory no longer owns a separate Owner/Manager page. Keep this
+        // controller as the write/AJAX authority, but send normal browser GETs
+        // into the Inventory workspace embedded inside Menu. AJAX handlers must
+        // remain on this controller, so their request is never redirected.
         $this->assertOwnerOrManager();
 
-        Template::setTitle('Stock control');
-        Template::setHeading('Stock control');
-
-        $inventory = app(PmdInventoryControlService::class);
-        $snapshot = null;
-        $error = null;
-
-        try {
-            $snapshot = $inventory->snapshot($this->locationId());
-        } catch (\Throwable $exception) {
-            $error = $exception->getMessage();
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmdmenus').'?workspace=inventory');
         }
 
-        $this->vars['pmdInventory'] = [
-            'snapshot' => $snapshot,
-            'error' => $error,
-            'ready' => $inventory->ready(),
-            'ai_receipts' => app(PmdInventoryReceiptAiService::class)->available(),
-            'currency' => $this->currencyCode(),
-            'units' => [
-                'piece' => 'piece',
-                'bottle' => 'bottle',
-                'can' => 'can',
-                'pack' => 'pack',
-                'case' => 'case',
-                'box' => 'box',
-                'tray' => 'tray',
-                'bag' => 'bag',
-                'bunch' => 'bunch',
-                'jar' => 'jar',
-                'tub' => 'tub',
-                'bucket' => 'bucket',
-                'crate' => 'crate',
-                'carton' => 'carton',
-                'keg' => 'keg',
-                'sack' => 'sack',
-                'roll' => 'roll',
-                'loaf' => 'loaf',
-                'dozen' => 'dozen',
-                'kg' => 'kg',
-                'g' => 'g',
-                'l' => 'l',
-                'ml' => 'ml',
-            ],
-            // PMD_INVENTORY_GLOBAL_CATALOG_R7
-            // Broad multi-cuisine inventory suggestions with aliases. This is
-            // only a helper catalogue; restaurants can always type custom stock.
-            'common_stock' => $this->catalogWithImages(),
-            'waste_reasons' => [
-                'Spoilage',
-                'Prep trim',
-                'Overcooked',
-                'Spill / breakage',
-                'Returned by guest',
-                'Staff meal',
-                'Comp / complimentary',
-                'Expired',
-                'Other',
-            ],
-        ];
-
-        return $this->makeView('pmdinventory/index');
+        return null;
     }
 
     protected function catalogWithImages(): array
     {
-        $atlasDirectory = base_path('app/admin/assets/images/pmd-inventory-atlas');
-        $reweDirectory = base_path('app/admin/assets/images/pmd-inventory-rewe');
-        $reweManifestPath = base_path('storage/app/pmd-inventory-rewe-catalog-r18.json');
-        $rows = PmdInventoryStockCatalog::all();
-
-        // PMD_INVENTORY_REWE_PRIORITY_R18
-        // Reviewed REWE product photography is the first image source. Atlas
-        // remains the fallback for everything the uploaded pack does not cover.
-        $reweImageMap = [];
-        if (is_file($reweManifestPath) && (int)@filesize($reweManifestPath) > 10) {
-            $decoded = json_decode((string)@file_get_contents($reweManifestPath), true);
-            if (is_array($decoded['image_map'] ?? null)) {
-                foreach ($decoded['image_map'] as $key => $slug) {
-                    $key = Str::slug((string)$key);
-                    $slug = Str::slug((string)$slug);
-                    if ($key !== '' && $slug !== '') {
-                        $reweImageMap[$key] = $slug;
-                    }
-                }
-            }
-        }
-
-        $atlasImageByKey = [];
-        foreach ($rows as $row) {
-            $imageSlug = trim((string)($row['image_slug'] ?? $row['atlas_slug'] ?? ''));
-            if ($imageSlug === '') {
-                continue;
-            }
-
-            $keys = array_merge(
-                [(string)($row['name'] ?? '')],
-                is_array($row['aliases'] ?? null) ? $row['aliases'] : []
-            );
-
-            foreach ($keys as $key) {
-                $key = Str::slug((string)$key);
-                if ($key !== '' && !isset($atlasImageByKey[$key])) {
-                    $atlasImageByKey[$key] = $imageSlug;
-                }
-            }
-        }
-
-        return array_map(static function (array $row) use (
-            $atlasDirectory,
-            $reweDirectory,
-            $reweImageMap,
-            $atlasImageByKey
-        ): array {
-            $name = trim((string)($row['name'] ?? ''));
-            $nameKey = Str::slug($name);
-
-            $reweCandidates = [];
-            $directRewe = trim((string)($row['rewe_image_slug'] ?? ''));
-            if ($directRewe !== '') {
-                $reweCandidates[] = Str::slug($directRewe);
-            }
-            if ($nameKey !== '' && isset($reweImageMap[$nameKey])) {
-                $reweCandidates[] = $reweImageMap[$nameKey];
-            }
-            foreach ((array)($row['aliases'] ?? []) as $alias) {
-                $aliasKey = Str::slug((string)$alias);
-                if ($aliasKey !== '' && isset($reweImageMap[$aliasKey])) {
-                    $reweCandidates[] = $reweImageMap[$aliasKey];
-                }
-            }
-
-            $row['image_url'] = null;
-            $row['image_source'] = null;
-
-            foreach (array_values(array_unique(array_filter($reweCandidates))) as $slug) {
-                $filename = $slug.'.webp';
-                $path = $reweDirectory.DIRECTORY_SEPARATOR.$filename;
-                if (!is_file($path) || (int)@filesize($path) < 3000) {
-                    continue;
-                }
-
-                $row['image_url'] = asset('app/admin/assets/images/pmd-inventory-rewe/'.$filename);
-                $row['image_source'] = 'rewe';
-                return $row;
-            }
-
-            $atlasCandidates = [];
-            $direct = trim((string)($row['image_slug'] ?? $row['atlas_slug'] ?? ''));
-            if ($direct !== '') {
-                $atlasCandidates[] = $direct;
-            }
-
-            if ($nameKey !== '') {
-                if (isset($atlasImageByKey[$nameKey])) {
-                    $atlasCandidates[] = $atlasImageByKey[$nameKey];
-                }
-                $atlasCandidates[] = $nameKey;
-            }
-
-            foreach ((array)($row['aliases'] ?? []) as $alias) {
-                $aliasKey = Str::slug((string)$alias);
-                if ($aliasKey !== '' && isset($atlasImageByKey[$aliasKey])) {
-                    $atlasCandidates[] = $atlasImageByKey[$aliasKey];
-                }
-            }
-
-            foreach (array_values(array_unique(array_filter($atlasCandidates))) as $slug) {
-                $filename = $slug.'.webp';
-                $path = $atlasDirectory.DIRECTORY_SEPARATOR.$filename;
-                if (!is_file($path) || (int)@filesize($path) < 3000) {
-                    continue;
-                }
-
-                $row['image_url'] = asset('app/admin/assets/images/pmd-inventory-atlas/'.$filename);
-                $row['image_source'] = 'atlas';
-                break;
-            }
-
-            return $row;
-        }, $rows);
+        return PmdInventoryStockCatalog::allWithImages();
     }
 
     public function onSnapshot(): JsonResponse

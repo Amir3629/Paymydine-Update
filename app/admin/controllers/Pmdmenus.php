@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use App\Services\Inventory\PmdInventoryControlService;
+use App\Services\Inventory\PmdInventoryReceiptAiService;
+use App\Services\Inventory\PmdInventoryStockCatalog;
 
 /**
  * PMD Menu Manager V1.2.9
@@ -32,7 +34,7 @@ class Pmdmenus extends AdminController
     {
         parent::__construct();
 
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-menu-manager-page pmd-menu-manager-v12 pmd-menu-manager-v129');
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-menu-manager-page pmd-menu-manager-v12 pmd-menu-manager-v129 pmd-menu-inventory-r20-page');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         // PMD_MENU_MANAGER_ASSET_CACHE_BUST_V1
@@ -106,17 +108,30 @@ class Pmdmenus extends AdminController
             )
         );
 
-        // PMD_MENU_INVENTORY_BRIDGE_R19
-        $bridgeCss = base_path('app/admin/assets/css/pmd-menu-inventory-bridge-r19.css');
-        $bridgeJs = base_path('app/admin/assets/js/pmd-menu-inventory-bridge-r19.js');
-        $this->addCss(
-            asset('app/admin/assets/css/pmd-menu-inventory-bridge-r19.css')
-            .'?v='.(string)(@filemtime($bridgeCss) ?: 'r19')
-        );
-        $this->addJs(
-            asset('app/admin/assets/js/pmd-menu-inventory-bridge-r19.js')
-            .'?v='.(string)(@filemtime($bridgeJs) ?: 'r19')
-        );
+        // PMD_MENU_INVENTORY_UNIFIED_R20
+        // Inventory is now a first-class workspace inside Menu. The legacy
+        // pmdinventory controller remains the write endpoint only.
+        foreach ([
+            'app/admin/assets/css/pmd-inventory-v1.css',
+            'app/admin/assets/css/pmd-inventory-workspace-r19.css',
+            'app/admin/assets/css/pmd-menu-inventory-unified-r20.css',
+        ] as $assetPath) {
+            $absolute = base_path($assetPath);
+            $this->addCss(
+                asset($assetPath).'?v='.(string)(@filemtime($absolute) ?: 'r20')
+            );
+        }
+
+        foreach ([
+            'app/admin/assets/js/pmd-inventory-v1.js',
+            'app/admin/assets/js/pmd-inventory-workspace-r19.js',
+            'app/admin/assets/js/pmd-menu-inventory-unified-r20.js',
+        ] as $assetPath) {
+            $absolute = base_path($assetPath);
+            $this->addJs(
+                asset($assetPath).'?v='.(string)(@filemtime($absolute) ?: 'r20')
+            );
+        }
 
         AdminMenu::setContext('menus', 'restaurant');
     }
@@ -493,31 +508,113 @@ class Pmdmenus extends AdminController
             'combos' => count($comboCards),
         ];
 
-        // PMD_MENU_INVENTORY_BRIDGE_R19
-        // Menu cards can edit their own stock usage directly. Inventory remains
-        // the data authority; Menu only receives a snapshot for the editor.
-        $pmdCanManageInventoryR19 = in_array(
+        // PMD_MENU_INVENTORY_UNIFIED_R20
+        $pmdCanManageInventoryR20 = in_array(
             $pmdMenuManagerRole,
             ['owner', 'manager'],
             true
         );
-        $pmdInventorySnapshotR19 = null;
-        if ($pmdCanManageInventoryR19) {
+
+        $pmdInventoryR20 = [
+            'snapshot' => [],
+            'error' => null,
+            'ready' => false,
+            'ai_receipts' => false,
+            'currency' => $this->pmdInventoryCurrencyR20(),
+            'units' => $this->pmdInventoryUnitsR20(),
+            'common_stock' => [],
+            'waste_reasons' => $this->pmdInventoryWasteReasonsR20(),
+        ];
+
+        if ($pmdCanManageInventoryR20) {
             try {
                 $inventory = app(PmdInventoryControlService::class);
-                if ($inventory->ready()) {
-                    $pmdInventorySnapshotR19 = $inventory->menuStockUsageSnapshot($this->pmdInventoryLocationR19());
+                $pmdInventoryR20['ready'] = $inventory->ready();
+                $pmdInventoryR20['ai_receipts'] = app(PmdInventoryReceiptAiService::class)->available();
+                $pmdInventoryR20['common_stock'] = PmdInventoryStockCatalog::allWithImages();
+
+                if ($pmdInventoryR20['ready']) {
+                    $pmdInventoryR20['snapshot'] = $inventory->snapshot(
+                        $this->pmdInventoryLocationR19()
+                    );
                 }
             } catch (\Throwable $error) {
-                $pmdInventorySnapshotR19 = null;
+                $pmdInventoryR20['error'] = $error->getMessage();
             }
         }
-        $this->vars['pmdMenuCanManageInventoryR19'] = $pmdCanManageInventoryR19;
-        $this->vars['pmdMenuInventorySnapshotR19'] = $pmdInventorySnapshotR19;
+
+        // R19 names remain as compatibility aliases for old cached Menu JS.
+        $this->vars['pmdMenuCanManageInventoryR19'] = $pmdCanManageInventoryR20;
+        $this->vars['pmdMenuCanManageInventoryR20'] = $pmdCanManageInventoryR20;
+        $this->vars['pmdMenuInventorySnapshotR19'] = null;
+        $this->vars['pmdInventoryR20'] = $pmdInventoryR20;
 
         return $this->makeView('pmdmenus/index');
     }
 
+    private function pmdInventoryUnitsR20(): array
+    {
+        return [
+            'piece' => 'piece',
+            'bottle' => 'bottle',
+            'can' => 'can',
+            'pack' => 'pack',
+            'case' => 'case',
+            'box' => 'box',
+            'tray' => 'tray',
+            'bag' => 'bag',
+            'bunch' => 'bunch',
+            'jar' => 'jar',
+            'tub' => 'tub',
+            'bucket' => 'bucket',
+            'crate' => 'crate',
+            'carton' => 'carton',
+            'keg' => 'keg',
+            'sack' => 'sack',
+            'roll' => 'roll',
+            'loaf' => 'loaf',
+            'dozen' => 'dozen',
+            'kg' => 'kg',
+            'g' => 'g',
+            'l' => 'l',
+            'ml' => 'ml',
+        ];
+    }
+
+    private function pmdInventoryWasteReasonsR20(): array
+    {
+        return [
+            'Spoilage',
+            'Prep trim',
+            'Overcooked',
+            'Spill / breakage',
+            'Returned by guest',
+            'Staff meal',
+            'Comp / complimentary',
+            'Expired',
+            'Other',
+        ];
+    }
+
+    private function pmdInventoryCurrencyR20(): string
+    {
+        foreach (['currency_code', 'default_currency', 'currency'] as $key) {
+            try {
+                $value = strtoupper(trim((string)setting($key, '')));
+                if (preg_match('/^[A-Z]{3}$/', $value)) return $value;
+            } catch (\Throwable $error) {
+            }
+        }
+
+        return 'EUR';
+    }
+
+    public function onSaveStockUsageR20(): JsonResponse
+    {
+        return $this->onSaveStockUsageR19();
+    }
+
+    // Compatibility alias for the R19 Menu bridge.
     public function onSaveStockUsageR19(): JsonResponse
     {
         try {

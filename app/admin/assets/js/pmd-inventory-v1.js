@@ -1,4 +1,4 @@
-/* PMD_INVENTORY_CONTROL_R19 */
+/* PMD_INVENTORY_CONTROL_R20 */
 (function () {
   'use strict';
 
@@ -964,7 +964,8 @@
       options.body = JSON.stringify(data || {});
     }
 
-    return fetch(window.location.href, options).then(function (response) {
+    var endpoint = String(bootstrap.endpoint || window.location.href || '');
+    return fetch(endpoint, options).then(function (response) {
       return response.json().catch(function () { return null; }).then(function (json) {
         if (!response.ok || !json || json.ok === false) {
           throw new Error(
@@ -2894,7 +2895,7 @@
   renderAll();
 
   window.PMDInventoryControlR1 = {
-    version: '19.0.0',
+    version: '20.0.0',
     refresh: function () {
       return request('onSnapshot', {}).then(function (json) {
         if (json.snapshot) applySnapshot(json.snapshot);
@@ -2915,7 +2916,9 @@
         aiReceipts: state.aiReceipts,
         currency: state.currency,
         units: bootstrap.units || {},
-        wasteReasons: bootstrap.waste_reasons || {}
+        wasteReasons: bootstrap.waste_reasons || {},
+        embedded: Boolean(bootstrap.embedded),
+        endpoint: String(bootstrap.endpoint || window.location.href || '')
       };
     },
     getState: function () {
