@@ -582,7 +582,7 @@
       'Accept': 'application/json',
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-IGNITER-REQUEST-HANDLER': 'onSaveStockUsageR19'
+      'X-IGNITER-REQUEST-HANDLER': 'onSaveStockUsageR20'
     };
     var meta = document.querySelector('meta[name="csrf-token"]');
     if (meta && meta.content) headers['X-CSRF-TOKEN'] = meta.content;
