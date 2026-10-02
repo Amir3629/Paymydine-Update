@@ -512,6 +512,9 @@ final class PmdInventoryOperationsService
         if ($duplicate && (int)$duplicate->item_id !== $itemId) {
             throw new InvalidArgumentException('This code is already linked to another stock item.');
         }
+        if ($duplicate && $id < 1) {
+            $id = (int)$duplicate->id;
+        }
 
         $isPrimary = $this->bool($data['is_primary'] ?? false);
         if ($isPrimary) {
