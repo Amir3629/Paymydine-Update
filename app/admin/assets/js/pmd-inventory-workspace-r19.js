@@ -75,6 +75,7 @@
     {key:'Juice', parent:'Drinks', label:'Juices'},
     {key:'WaterMixers', parent:'Drinks', label:'Water & mixers'},
     {key:'SoftDrinks', parent:'Drinks', label:'Soft drinks'},
+    {key:'AlcoholFree', parent:'Drinks', label:'Alcohol-free drinks'},
     {key:'BeerCider', parent:'Alcohol', label:'Beer & cider'},
     {key:'Wine', parent:'Alcohol', label:'Wine'},
     {key:'Spirits', parent:'Alcohol', label:'Spirits'},
@@ -254,6 +255,16 @@
   function detailSection(category, name) {
     category = String(category || '');
     name = normalize(name || '');
+
+    // Zero-alcohol beer/wine belongs with non-alcoholic drinks even if the
+    // source catalogue uses an alcoholic product family for taxonomy.
+    if (
+      /alcohol free|non alcoholic|zero alcohol|0 0/.test(name)
+      && ['Beer & cider','Wine','Spirits','Beverages','Soft drinks'].indexOf(category) !== -1
+    ) {
+      return 'AlcoholFree';
+    }
+
     if (category === 'Produce') return 'Produce';
     if (category === 'Fruit') return 'Fruit';
     if (category === 'Fresh herbs') return 'Herbs';
