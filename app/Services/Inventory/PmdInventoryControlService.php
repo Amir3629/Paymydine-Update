@@ -1283,10 +1283,58 @@ final class PmdInventoryControlService
             $q->whereNotIn('o.status_id', $canceled);
         }
 
-        // Mirror the restaurant's existing stock-consumption lifecycle where
-        // possible: preparation/processing and completed orders represent
-        // actual kitchen/bar consumption better than a merely-created order.
-        if (in_array('status_id', $orderCols, true)) {
+        // PMD_INVENTORY_PAID_SALES_R22_SAFE
+        // The financial settlement columns are the canonical payment signal.
+        // Once an order is fully paid, its menu quantities consume the recipe
+        // immediately; kitchen status does not have to reach Completed first.
+        $hasSettlementStatus = in_array('settlement_status', $orderCols, true);
+        $hasSettledAt = in_array('settled_at', $orderCols, true);
+        $hasSettledAmount =
+            in_array('settled_amount', $orderCols, true)
+            && in_array('order_total', $orderCols, true);
+
+        if ($hasSettlementStatus || $hasSettledAt || $hasSettledAmount) {
+            $q->where(function ($paid) use (
+                $hasSettlementStatus,
+                $hasSettledAt,
+                $hasSettledAmount
+            ) {
+                $started = false;
+
+                if ($hasSettlementStatus) {
+                    $paid->whereIn('o.settlement_status', ['paid', 'settled']);
+                    $started = true;
+                }
+
+                if ($hasSettledAt) {
+                    if ($started) {
+                        $paid->orWhereNotNull('o.settled_at');
+                    } else {
+                        $paid->whereNotNull('o.settled_at');
+                        $started = true;
+                    }
+                }
+
+                if ($hasSettledAmount) {
+                    $amountPaid = static function ($amount) {
+                        $amount
+                            ->where('o.order_total', '>', 0)
+                            ->whereRaw(
+                                'COALESCE(??, 0) >= COALESCE(??, 0) - 0.0001',
+                                ['o.settled_amount', 'o.order_total']
+                            );
+                    };
+
+                    if ($started) {
+                        $paid->orWhere($amountPaid);
+                    } else {
+                        $paid->where($amountPaid);
+                    }
+                }
+            });
+        } elseif (in_array('status_id', $orderCols, true)) {
+            // Compatibility only for legacy databases that do not yet have
+            // settlement columns.
             $consuming = array_values(array_unique(array_merge(
                 $this->settingIds('processing_order_status'),
                 $this->settingIds('completed_order_status')
