@@ -555,6 +555,18 @@ final class PmdTableDisplayService
         ]);
     }
 
+    /**
+     * Shared customer-facing identity/theme profile for native guest devices.
+     * Kiosk and Table Display intentionally use the same Customer Menu theme.
+     */
+    public function customerSurfaceProfile(?int $locationId = null): array
+    {
+        return [
+            'restaurant' => $this->restaurantIdentity($locationId),
+            'theme' => $this->customerMenuTheme(),
+        ];
+    }
+
     private function restaurantIdentity(?int $locationId = null): array
     {
         $get = function (string $key) {

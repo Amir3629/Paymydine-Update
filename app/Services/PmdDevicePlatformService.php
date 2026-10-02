@@ -69,7 +69,8 @@ final class PmdDevicePlatformService
             'policy' => $policy,
             'desired' => $desired,
             'commands' => self::COMMANDS,
-            'deployment' => $this->activeDeployment($locationId),
+            'deployment' => $this->activeDeployment($locationId, 'table_display'),
+            'kiosk_deployment' => $this->activeDeployment($locationId, 'kiosk'),
             'table_options' => $this->tableOptions($locationId),
             'terminal_options' => $this->terminalOptions($locationId),
             'recent_logs' => $this->recentLogs($locationId, 20),
@@ -85,15 +86,21 @@ final class PmdDevicePlatformService
     public function createDeploymentSession(
         int $locationId,
         int $expectedCount,
-        ?int $staffId
+        ?int $staffId,
+        string $deviceKind = 'table_display'
     ): array {
         $this->ensureStorage();
+
+        $deviceKind = strtolower(trim($deviceKind));
+        if (!in_array($deviceKind, ['table_display', 'kiosk'], true)) {
+            throw new \InvalidArgumentException('Unsupported deployment device kind.');
+        }
 
         $expectedCount = max(1, min(200, $expectedCount));
 
         DB::table('pmd_device_deployment_sessions')
             ->where('location_id', $locationId)
-            ->where('device_kind', 'table_display')
+            ->where('device_kind', $deviceKind)
             ->where('status', 'active')
             ->update([
                 'status' => 'cancelled',
@@ -107,7 +114,7 @@ final class PmdDevicePlatformService
         DB::table('pmd_device_deployment_sessions')->insert([
             'public_id' => $publicId,
             'location_id' => $locationId,
-            'device_kind' => 'table_display',
+            'device_kind' => $deviceKind,
             'code_hash' => $this->deploymentCodeHash($code),
             'code_ciphertext' => Crypt::encryptString($code),
             'expected_count' => $expectedCount,
@@ -119,17 +126,24 @@ final class PmdDevicePlatformService
             'updated_at' => now(),
         ]);
 
-        return $this->activeDeployment($locationId) ?: [];
+        return $this->activeDeployment($locationId, $deviceKind) ?: [];
     }
 
     public function cancelDeploymentSession(
         int $locationId,
-        ?int $staffId
+        ?int $staffId,
+        string $deviceKind = 'table_display'
     ): void {
         $this->ensureStorage();
 
+        $deviceKind = strtolower(trim($deviceKind));
+        if (!in_array($deviceKind, ['table_display', 'kiosk'], true)) {
+            throw new \InvalidArgumentException('Unsupported deployment device kind.');
+        }
+
         DB::table('pmd_device_deployment_sessions')
             ->where('location_id', $locationId)
+            ->where('device_kind', $deviceKind)
             ->where('status', 'active')
             ->update([
                 'status' => 'cancelled',
@@ -137,13 +151,20 @@ final class PmdDevicePlatformService
             ]);
     }
 
-    public function activeDeployment(int $locationId): ?array
-    {
+    public function activeDeployment(
+        int $locationId,
+        string $deviceKind = 'table_display'
+    ): ?array {
         $this->ensureStorage();
+
+        $deviceKind = strtolower(trim($deviceKind));
+        if (!in_array($deviceKind, ['table_display', 'kiosk'], true)) {
+            return null;
+        }
 
         $row = DB::table('pmd_device_deployment_sessions')
             ->where('location_id', $locationId)
-            ->where('device_kind', 'table_display')
+            ->where('device_kind', $deviceKind)
             ->where('status', 'active')
             ->orderByDesc('id')
             ->first();
@@ -187,12 +208,19 @@ final class PmdDevicePlatformService
      * Called from the Table Companion pairing transaction. The row is locked
      * but not consumed until the device insert succeeds.
      */
-    public function lockDeploymentByCode(string $code)
-    {
+    public function lockDeploymentByCode(
+        string $code,
+        string $deviceKind = 'table_display'
+    ) {
         $this->ensureStorage();
 
+        $deviceKind = strtolower(trim($deviceKind));
+        if (!in_array($deviceKind, ['table_display', 'kiosk'], true)) {
+            return null;
+        }
+
         return DB::table('pmd_device_deployment_sessions')
-            ->where('device_kind', 'table_display')
+            ->where('device_kind', $deviceKind)
             ->where('code_hash', $this->deploymentCodeHash($code))
             ->where('status', 'active')
             ->where('expires_at', '>', now())

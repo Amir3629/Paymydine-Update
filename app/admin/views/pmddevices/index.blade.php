@@ -37,6 +37,7 @@
     $devicePlatformDesired = (array)($devicePlatform['desired'] ?? []);
     $devicePlatformDevices = (array)($devicePlatform['devices'] ?? []);
     $devicePlatformDeployment = (array)($devicePlatform['deployment'] ?? []);
+    $devicePlatformKioskDeployment = (array)($devicePlatform['kiosk_deployment'] ?? []);
     $devicePlatformTableOptions = (array)($devicePlatform['table_options'] ?? []);
     $devicePlatformTerminalOptions = (array)($devicePlatform['terminal_options'] ?? []);
     $devicePlatformRecentLogs = (array)($devicePlatform['recent_logs'] ?? []);
@@ -90,7 +91,7 @@
                 </div>
                 <div class="pmd-owner-card__title">
                     <h2>{{ $pmdSettingsText('PayMyDine Device Control') }}</h2>
-                    <p>{{ $pmdSettingsText('One control plane for Table Companion, Android POS, KDS, customer displays and future kiosks.') }}</p>
+                    <p>{{ $pmdSettingsText('One control plane for Table Display, Android POS, KDS, customer displays and self-service kiosks.') }}</p>
                 </div>
                 <div class="pmd-owner-card__actions">
                     <span class="pmd-owner-status {{ (($devicePlatformStats['offline'] ?? 0) < 1) ? 'is-active' : '' }}">
@@ -259,6 +260,52 @@
                             </label>
                             <button class="pmd-owner-action pmd-device-platform-primary" type="submit">
                                 {{ $pmdSettingsText('Start deployment') }}
+                            </button>
+                        </form>
+                    @endif
+                </div>
+
+                <div class="pmd-device-platform-deployment pmd-device-platform-deployment--kiosk">
+                    <div class="pmd-device-platform-deployment__copy">
+                        <h3>{{ $pmdSettingsText('Self-service kiosk setup') }}</h3>
+                        <p>{{ $pmdSettingsText('Create one short-lived 6-digit code, enter it on each PayMyDine Kiosk, and the device becomes a managed restaurant screen with menu, checkout and payment.') }}</p>
+                    </div>
+
+                    @if(!empty($devicePlatformKioskDeployment['code']))
+                        <div class="pmd-device-platform-deployment__active">
+                            <div>
+                                <span>{{ $pmdSettingsText('Kiosk setup code') }}</span>
+                                <strong>{{ e($devicePlatformKioskDeployment['code']) }}</strong>
+                                <small>
+                                    {{ (int)($devicePlatformKioskDeployment['paired_count'] ?? 0) }}
+                                    /
+                                    {{ (int)($devicePlatformKioskDeployment['expected_count'] ?? 0) }}
+                                    {{ $pmdSettingsText('kiosks paired') }}
+                                </small>
+                            </div>
+                            <form
+                                data-request="onCancelPmdKioskDeployment"
+                                data-request-flash
+                                data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                            >
+                                <button class="pmd-owner-action" type="submit">
+                                    {{ $pmdSettingsText('End kiosk setup') }}
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        <form
+                            class="pmd-device-platform-deployment__start"
+                            data-request="onStartPmdKioskDeployment"
+                            data-request-flash
+                            data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                        >
+                            <label>
+                                <span>{{ $pmdSettingsText('How many kiosks?') }}</span>
+                                <input type="number" min="1" max="50" name="expected_count" value="2">
+                            </label>
+                            <button class="pmd-owner-action pmd-device-platform-primary" type="submit">
+                                {{ $pmdSettingsText('Create kiosk code') }}
                             </button>
                         </form>
                     @endif

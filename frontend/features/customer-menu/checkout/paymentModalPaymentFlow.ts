@@ -7,6 +7,27 @@ import {
 } from "@/features/checkout/checkout-state-utils"
 import { toPositiveAmount } from "@/features/checkout/checkout-utils"
 
+function notifyNativeKioskOrderComplete(orderId: number | string | null | undefined) {
+  if (typeof window === "undefined" || !orderId) return
+  const bridge = (window as any)?.PayMyDineKiosk
+  const bridgeSecret =
+    (window as any)?.__PMD_KIOSK_BRIDGE_SECRET__
+  if (
+    bridge &&
+    typeof bridge.orderComplete === "function" &&
+    typeof bridgeSecret === "string" &&
+    bridgeSecret.length > 20
+  ) {
+    try {
+      bridge.orderComplete(
+        String(orderId),
+        bridgeSecret,
+      )
+    } catch {}
+  }
+}
+
+
 export async function handlePaymentFlow({
   stripePaymentIntentId,
   forcedPaymentContext,
@@ -82,6 +103,15 @@ export async function handlePaymentFlow({
     setIsLoading(true)
     try {
       const isCashier = tableInfo?.is_codier || false
+      const kioskParams =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search)
+          : null
+      const isKioskMode = kioskParams?.get("pmd_kiosk") === "1"
+      const kioskOrderType =
+        kioskParams?.get("kiosk_order_type") === "pickup"
+          ? "pickup"
+          : "kiosk"
 
       const routeTableId =
         typeof window !== "undefined"
@@ -113,9 +143,13 @@ export async function handlePaymentFlow({
           : null
 
       const resolvedTableName =
-        (tableInfo?.table_name && String(tableInfo.table_name).trim() !== "")
-          ? String(tableInfo.table_name)
-          : (numericResolvedTableId ? `Table ${numericResolvedTableId}` : "Delivery")
+        isKioskMode
+          ? kioskOrderType
+          : (
+              (tableInfo?.table_name && String(tableInfo.table_name).trim() !== "")
+                ? String(tableInfo.table_name)
+                : (numericResolvedTableId ? `Table ${numericResolvedTableId}` : "Delivery")
+            )
 
       const resolvedLocationId = Number(tableInfo?.location_id || 1)
 
@@ -144,15 +178,23 @@ export async function handlePaymentFlow({
       const safePaymentCouponCode = isSplitPersonPayment ? null : (appliedCoupon?.code ? String(appliedCoupon.code) : null)
 
       const orderData = {
-        table_id: isCashier ? "cashier" : (numericResolvedTableId != null ? String(numericResolvedTableId) : null),
-        table_name: String(isCashier ? "Cashier" : resolvedTableName),
+        table_id: isKioskMode
+          ? null
+          : (isCashier ? "cashier" : (numericResolvedTableId != null ? String(numericResolvedTableId) : null)),
+        table_name: String(isKioskMode ? kioskOrderType : (isCashier ? "Cashier" : resolvedTableName)),
         location_id: resolvedLocationId,
         is_codier: Boolean(isCashier),
+        service_mode: isKioskMode ? kioskOrderType : undefined,
+        kiosk_session: isKioskMode ? (kioskParams?.get("kiosk_session") || undefined) : undefined,
         items: normalizedItemsForOrder,
         customer_name: String(
-          isCashier
-            ? "Cashier Customer"
-            : `${resolvedTableName} Customer`
+          isKioskMode
+            ? "Kiosk Customer"
+            : (
+                isCashier
+                  ? "Cashier Customer"
+                  : `${resolvedTableName} Customer`
+              )
         ),
         customer_phone: String(paymentFormData.phone || ""),
         customer_email: String(paymentFormData.email || ""),
@@ -234,6 +276,7 @@ export async function handlePaymentFlow({
           }
           setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
           setIsLoading(false)
+          notifyNativeKioskOrderComplete(paymentOrderIdCandidate)
           toast({
             title: t("paymentSuccessful"),
             description: `Order #${paymentOrderIdCandidate} paid successfully!`,
@@ -459,6 +502,7 @@ export async function handlePaymentFlow({
             resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
+          notifyNativeKioskOrderComplete(paymentOrderIdCandidate)
           return
         }
       }
@@ -477,6 +521,7 @@ export async function handlePaymentFlow({
         // Save order ID for status tracking
         if (orderId) {
           localStorage.setItem("lastOrderId", orderId)
+          notifyNativeKioskOrderComplete(orderId)
         }
 
         const returnUrl =

@@ -311,6 +311,46 @@ class Pmddevices extends AdminController
         );
     }
 
+    /** PMD_KIOSK_V1 */
+    public function onStartPmdKioskDeployment()
+    {
+        $this->assertDevicePlatformManager();
+
+        $expectedCount = max(
+            1,
+            min(50, (int)post('expected_count', 2))
+        );
+
+        $deployment = app(PmdDevicePlatformService::class)
+            ->createDeploymentSession(
+                $this->devicePlatformLocationId(),
+                $expectedCount,
+                $this->devicePlatformStaffId(),
+                'kiosk'
+            );
+
+        flash()->success(
+            'Kiosk deployment started. Code '.
+            (string)($deployment['code'] ?? '').
+            ' can pair up to '.$expectedCount.' self-service kiosk(s) for two hours.'
+        );
+    }
+
+    /** PMD_KIOSK_V1 */
+    public function onCancelPmdKioskDeployment()
+    {
+        $this->assertDevicePlatformManager();
+
+        app(PmdDevicePlatformService::class)
+            ->cancelDeploymentSession(
+                $this->devicePlatformLocationId(),
+                $this->devicePlatformStaffId(),
+                'kiosk'
+            );
+
+        flash()->success('Kiosk deployment session cancelled.');
+    }
+
     /** PMD_DEVICE_PLATFORM_V1 */
     public function onCancelPmdTableDeployment()
     {
