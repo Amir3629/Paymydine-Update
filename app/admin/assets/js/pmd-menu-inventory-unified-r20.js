@@ -987,6 +987,26 @@
     else showMenu(true);
   });
 
+  // R22 one-shot setup: after the header action is enabled, the whole food
+  // card is the target. Capture prevents Edit/Delete/Stock controls from also
+  // firing during this temporary setup mode.
+  document.addEventListener('click', function (event) {
+    if (!stockUsageSetupActive) return;
+
+    var foodCard = event.target.closest('[data-pmd-menu-card][data-menu-id]');
+    if (!foodCard || !menuPanel.contains(foodCard)) return;
+
+    var menuId = Number(foodCard.getAttribute('data-menu-id') || 0);
+    if (menuId < 1) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    setStockUsageSetup(false, true);
+    openUsage(menuId);
+  }, true);
+
   document.addEventListener('click', function (event) {
     var setupButton = event.target.closest('[data-pmd-stock-usage-setup-r22]');
     if (setupButton) {
