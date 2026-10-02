@@ -19,7 +19,9 @@
   if (!workspaceSwitchButton || !menuPanel || !inventoryPanel || !usagePanel || !inventoryRoot || !api) return;
 
   var headerTitle = document.querySelector('#pmd-r2-clean-header .pmd-r2-clean-title');
-  var originalHeaderTitle = headerTitle ? String(headerTitle.textContent || '').trim() : 'Menu';
+  var originalHeaderTitle = headerTitle
+    ? String(headerTitle.getAttribute('data-pmd-menu-title') || 'Menu').trim()
+    : 'Menu';
   var body = document.body;
 
   var usageState = {
@@ -215,7 +217,7 @@
 
     // R22: refresh once when Inventory is opened so a just-paid order is
     // reflected without a full page reload. This does not mutate workspace DOM.
-    if (api && typeof api.refresh === 'function') {
+    if (updateUrl !== false && api && typeof api.refresh === 'function') {
       api.refresh().catch(function () {});
     }
 
