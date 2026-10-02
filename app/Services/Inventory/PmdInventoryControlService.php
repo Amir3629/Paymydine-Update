@@ -797,6 +797,7 @@ final class PmdInventoryControlService
             $source = $receiptId > 0
                 ? 'ai_receipt'
                 : ($this->nullableText($data['source'] ?? 'manual', 40) ?: 'manual');
+            $receipt = null;
 
             if ($receiptId > 0) {
                 $receipt = DB::table('pmd_inventory_receipts')
@@ -1072,21 +1073,36 @@ final class PmdInventoryControlService
                 $total += $qty * ($unitCost > 0 ? $unitCost : ($effectiveCost * $factor));
             }
 
+            $receiptUpdate = [
+                'supplier_name' => $supplier ?: ($receipt->supplier_name ?? null),
+                'purchased_at' => $purchasedAt,
+                'source' => $source,
+                'total_amount' => round($total, 4),
+                'ai_status' => $receiptId > 0 && $source === 'ai_receipt' ? 'confirmed' : 'not_requested',
+                'confirmed_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            if (Schema::hasColumn('pmd_inventory_receipts', 'supplier_id')) {
+                $receiptUpdate['supplier_id'] = array_key_exists('supplier_id', $data)
+                    ? (max(0, (int)$data['supplier_id']) ?: null)
+                    : ($receipt->supplier_id ?? null);
+            }
+            if (Schema::hasColumn('pmd_inventory_receipts', 'supplier_invoice_number')) {
+                $receiptUpdate['supplier_invoice_number'] = array_key_exists('supplier_invoice_number', $data)
+                    ? $this->nullableText($data['supplier_invoice_number'] ?? null, 120)
+                    : ($receipt->supplier_invoice_number ?? null);
+            }
+            if (Schema::hasColumn('pmd_inventory_receipts', 'purchase_order_id')) {
+                $receiptUpdate['purchase_order_id'] = array_key_exists('purchase_order_id', $data)
+                    ? (max(0, (int)$data['purchase_order_id']) ?: null)
+                    : ($receipt->purchase_order_id ?? null);
+            }
+
             DB::table('pmd_inventory_receipts')
                 ->where('id', $receiptId)
                 ->where('location_id', $locationId)
-                ->update([
-                    'supplier_name' => $supplier ?: null,
-                    'supplier_id' => max(0, (int)($data['supplier_id'] ?? 0)) ?: null,
-                    'supplier_invoice_number' => $this->nullableText($data['supplier_invoice_number'] ?? null, 120),
-                    'purchase_order_id' => max(0, (int)($data['purchase_order_id'] ?? 0)) ?: null,
-                    'purchased_at' => $purchasedAt,
-                    'source' => $source,
-                    'total_amount' => round($total, 4),
-                    'ai_status' => $receiptId > 0 && $source === 'ai_receipt' ? 'confirmed' : 'not_requested',
-                    'confirmed_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                ->update($receiptUpdate);
 
             return $receiptId;
         });
