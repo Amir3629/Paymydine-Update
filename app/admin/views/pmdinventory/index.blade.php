@@ -428,6 +428,10 @@
                                 <input type="text" value="piece" placeholder="bottle / case / box" data-r19-barcode-package-unit>
                             </label>
                             <label>
+                                <span>Base tracking unit</span>
+                                <input type="text" value="piece" placeholder="ml / g / piece" data-r19-barcode-base-unit>
+                            </label>
+                            <label>
                                 <span>1 scan = base quantity</span>
                                 <input type="number" min="0.0001" step="0.0001" value="1" data-r19-barcode-package-factor>
                             </label>
