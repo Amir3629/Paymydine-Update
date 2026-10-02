@@ -611,7 +611,7 @@
                             <button type="button" class="pmd-inv-r19-primary" data-v24-production-save>Record production</button>
                         </section>
                     </div>
-                    <section class="pmd-in-v24-card pmd-inv-v24-card">
+                    <section class="pmd-inv-v24-card">
                         <div class="pmd-inv-v24-card-head"><h3>Prep recipes</h3><span>Ingredient quantities are stored in each item's base unit.</span></div>
                         <div class="pmd-inv-v24-list" data-v24-prep-list></div>
                     </section>
