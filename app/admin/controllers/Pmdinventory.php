@@ -540,6 +540,50 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onStartCountSession(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $countId = app(PmdInventoryControlService::class)
+                ->startCountSession($this->locationId(), $this->staffId());
+
+            return ['count_id' => $countId];
+        });
+    }
+
+    public function onSaveCountSession(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryControlService::class)->saveCountSession(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('count_id', 0),
+                (array)request()->input('lines', []),
+                request()->input('note')
+            );
+
+            return ['saved' => true];
+        });
+    }
+
+    public function onCancelCountSession(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryControlService::class)->cancelCountSession(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('count_id', 0)
+            );
+
+            return ['cancelled' => true];
+        });
+    }
+
     public function onCompleteCount(): JsonResponse
     {
         $this->assertOwnerOrManager();
