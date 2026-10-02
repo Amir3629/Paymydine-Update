@@ -1,0 +1,86 @@
+name: Google Business Integration V2 Gate
+
+on:
+  push:
+    branches:
+      - feat/google-business-profile-integration-v2
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      - 'routes/**'
+      - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/**'
+      - 'scripts/pmd-google-business-profile-integration-v2-deploy.sh'
+      - 'docs/GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2.md'
+      - '.github/workflows/google-business-integration-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PHP syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git diff --name-only origin/main...HEAD -- 'app/**/*.php' 'routes/*.php'             | while IFS= read -r file; do
+                [[ -z "$file" ]] && continue
+                php -l "$file"
+              done
+
+      - name: Deploy script syntax
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n scripts/pmd-google-business-profile-integration-v2-deploy.sh
+          bash -n scripts/pmd-google-business-profile-v2-live-overlay-deploy.sh
+
+      - name: Integration contract markers
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          grep -q 'class PmdGoogleBusinessService' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
+          grep -q 'PMD_GOOGLE_TENANT_CREDENTIALS_V3' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
+          grep -q 'oauth_client_secret_encrypted' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
+          grep -q 'api-v1-google-business.php' app/main/routes/api-health-media.php
+          grep -q 'PMD_GOOGLE_BUSINESS_ACTIVE_TENANT_ROUTES_V4' app/main/routes/api-v1-google-business.php
+          grep -q '/integrations/google-business/callback' app/main/routes/api-v1-google-business.php
+          grep -q 'PMD_GOOGLE_BUSINESS_COMPACT_MODAL_V8' app/admin/views/pmdsettings/restaurant.blade.php
+          grep -q 'pmd-provider-modal__dialog' app/admin/views/pmdsettings/restaurant.blade.php
+          grep -q 'pmd-payment-provider-catalogue-v1.css' app/admin/controllers/Pmdsettings.php
+          grep -q 'PMD_GOOGLE_BUSINESS_COMPACT_MODAL_V8' app/admin/assets/css/pmd-settings-restaurant-v1.css
+          grep -q 'google_business\[client_id\]' app/admin/views/pmdsettings/restaurant.blade.php
+          grep -q 'google_business\[client_secret\]' app/admin/views/pmdsettings/restaurant.blade.php
+          grep -q 'NEW_REVIEW' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
+          grep -q 'UPDATED_REVIEW' app/Services/GoogleBusiness/PmdGoogleBusinessService.php
+          grep -q 'pmd_google_write_review_url' routes/api.php
+          grep -q 'PMD_GOOGLE_BUSINESS_PROFILE_INTEGRATION_V2' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/ReviewShareEnhancer.tsx
+
+      - name: Node setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/package-lock.json
+
+      - name: Frontend dependencies
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Frontend TypeScript
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run typecheck:offline
+
+      - name: Frontend production build
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run build
