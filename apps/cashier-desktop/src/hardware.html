@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PayMyDine Hardware Setup</title>
+  <style>
+    :root{font-family:Inter,Roboto,Arial,sans-serif;--pmd-green:#053a32;--pmd-green-hover:#032e28;--pmd-gold:#d9b76a;--pmd-gold-soft:#fff9eb;--pmd-ink:#102f42;--pmd-muted:#647d8f;--pmd-line:#d3e1e8;--pmd-page:#f8fbfc;--pmd-white:#fff;color:var(--pmd-ink);background:var(--pmd-page)}
+    *{box-sizing:border-box}body{margin:0;padding:24px;min-height:100vh;background:linear-gradient(180deg,rgba(5,58,50,.055),rgba(5,58,50,0) 170px),var(--pmd-page)}
+    .wrap{max-width:760px;margin:0 auto}.hero{display:flex;align-items:center;gap:18px;margin:0 0 18px;padding:8px 4px 4px}.brand-logo{width:82px;height:64px;object-fit:contain;object-position:left center;display:block;flex:0 0 auto}.hero-copy{min-width:0}.eyebrow{display:inline-flex;align-items:center;min-height:24px;padding:0 9px;margin-bottom:6px;border:1px solid rgba(217,183,106,.72);border-radius:999px;background:var(--pmd-gold-soft);color:var(--pmd-green);font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}h1{font-size:25px;line-height:1.15;margin:0 0 5px;color:var(--pmd-green)}.muted{color:var(--pmd-muted);margin:0;line-height:1.48}.card{background:var(--pmd-white);border:1px solid var(--pmd-line);border-radius:18px;padding:21px;margin-top:14px;box-shadow:0 12px 30px rgba(16,47,66,.055)}.card h2{font-size:18px;margin:0 0 6px;color:var(--pmd-green)}label{display:block;font-weight:800;margin:16px 0 7px;color:#163d47}select,input[type="text"]{width:100%;height:48px;border:1px solid #c9d9df;border-radius:12px;padding:0 13px;background:#fff;color:#163d47;font-size:15px;outline:none}select:focus,input[type="text"]:focus{border-color:var(--pmd-gold);box-shadow:0 0 0 3px rgba(217,183,106,.18)}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}button{min-height:44px;border:1px solid #c9d9df;border-radius:12px;background:#fff;color:var(--pmd-green);padding:0 16px;font-weight:850;cursor:pointer}button:hover:not(:disabled){border-color:#9fb8b3;background:#f8fbfa}button.primary{background:var(--pmd-green);color:#fff;border-color:var(--pmd-green);box-shadow:0 8px 18px rgba(5,58,50,.13)}button.primary:hover:not(:disabled){background:var(--pmd-green-hover);border-color:var(--pmd-green-hover)}button:disabled{opacity:.48;cursor:not-allowed}.switch{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:17px;padding-top:17px;border-top:1px solid #edf2f3}.switch input{width:20px;height:20px;accent-color:var(--pmd-green)}details{margin-top:17px}summary{font-weight:850;color:var(--pmd-green);cursor:pointer}.status{min-height:48px;margin-top:14px;border:1px solid #dce6e5;border-radius:12px;padding:13px 14px;background:#f5f8f7;color:#48666c;white-space:pre-wrap;line-height:1.45}.status.ok{border-color:#c7e7d4;background:#edf8f1;color:#17613c}.status.error{border-color:#f0cbc8;background:#fff1ef;color:#9f2d28}.printer-meta{font-size:12px;color:#758b92;margin-top:7px;line-height:1.4;word-break:break-word}.virtual-note{margin-top:14px;border:1px solid #ead8aa;background:var(--pmd-gold-soft);border-radius:12px;padding:14px;color:#5c5132;line-height:1.5}.virtual-note strong{display:block;margin-bottom:4px;color:var(--pmd-green)}[hidden]{display:none!important}@media(max-width:620px){body{padding:15px}.hero{align-items:flex-start;gap:12px}.brand-logo{width:66px;height:54px}.card{padding:17px}}
+  </style>
+</head>
+<body>
+  <!-- PMD_DESKTOP_HARDWARE_V120 -->
+  <main class="wrap">
+    <div class="hero">
+      <img class="brand-logo" src="./paymydine-logo.svg" alt="PayMyDine">
+      <div class="hero-copy">
+        <div class="eyebrow">Desktop hardware</div>
+        <h1>Printer & cash drawer</h1>
+        <p class="muted">Optional native hardware setup for this PayMyDine computer.</p>
+      </div>
+    </div>
+
+    <section class="card">
+      <h2>Print output</h2>
+      <p class="muted">Use a real receipt printer at the restaurant, or Virtual PDF when testing without hardware.</p>
+      <label for="output-mode">Output mode</label>
+      <select id="output-mode">
+        <option value="physical">Physical receipt printer</option>
+        <option value="pdf">PayMyDine Virtual PDF — Debug / Preview</option>
+      </select>
+
+      <div id="physical-printer-fields">
+        <label for="printer">Receipt printer</label>
+        <select id="printer"><option value="">Loading printers…</option></select>
+        <div class="printer-meta" id="printer-meta"></div>
+        <div class="row"><button id="refresh">Find printers</button></div>
+      </div>
+
+      <div class="virtual-note" id="virtual-note" hidden>
+        <strong>No physical printer is used.</strong>
+        Print jobs are saved as PDF in <b>Desktop / PayMyDine Print Tests</b>. Cash drawer commands are disabled in this mode.
+      </div>
+
+      <div class="row"><button id="test-print">Test output</button></div>
+
+      <div class="switch">
+        <div>
+          <strong>Print receipt automatically after payment</strong>
+          <div class="muted">When the Platform opens a receipt after a successful payment, PayMyDine Desktop can send it to this output.</div>
+        </div>
+        <input type="checkbox" id="auto-print" checked>
+      </div>
+    </section>
+
+    <section class="card" id="drawer-card">
+      <h2>Cash drawer</h2>
+      <p class="muted">PayMyDine sends an ESC/POS kick through the selected receipt printer. Virtual PDF mode never touches drawer hardware.</p>
+      <div class="switch">
+        <div>
+          <strong>Open automatically after cash payment</strong>
+          <div class="muted">Only a successful server-confirmed Cash payment can trigger this. Card payments never open the drawer.</div>
+        </div>
+        <input type="checkbox" id="auto-open" checked>
+      </div>
+      <div class="row"><button class="primary" id="test-drawer">Test cash drawer</button></div>
+      <details>
+        <summary>Troubleshooting</summary>
+        <label for="drawer-command">Drawer command</label>
+        <input type="text" id="drawer-command" value="27,112,0,60,120">
+        <div class="row"><button id="diagnose">Try compatible drawer pulses</button></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <div class="row"><button class="primary" id="save">Save hardware setup</button></div>
+      <div class="status" id="status">Ready.</div>
+    </section>
+  </main>
+  <script src="./hardware-page.js"></script>
+</body>
+</html>
