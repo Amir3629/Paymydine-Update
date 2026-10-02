@@ -769,7 +769,14 @@ final class PmdInventoryOperationsService
         return DB::transaction(function () use ($locationId, $staffId, $data, $id, $supplierId, $lines, $status) {
             $orderNumber = $this->text($data['order_number'] ?? '', 80);
             if ($orderNumber === '') {
-                $orderNumber = 'PO-'.now()->format('Ymd').'-'.str_pad((string)(DB::table('pmd_inventory_purchase_orders')->where('location_id', $locationId)->count() + 1), 4, '0', STR_PAD_LEFT);
+                do {
+                    $orderNumber = 'PO-'.now()->format('Ymd-His').'-'.random_int(100, 999);
+                } while (
+                    DB::table('pmd_inventory_purchase_orders')
+                        ->where('location_id', $locationId)
+                        ->where('order_number', $orderNumber)
+                        ->exists()
+                );
             }
 
             $subtotal = 0.0;
