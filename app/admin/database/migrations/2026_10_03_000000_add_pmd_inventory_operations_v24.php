@@ -281,7 +281,9 @@ return new class extends Migration
                 $table->unsignedBigInteger('storage_location_id')->nullable()->index();
                 $table->string('batch_code', 160)->nullable();
                 $table->date('expiry_date')->nullable()->index();
+                $table->decimal('batch_multiplier', 16, 4)->default(1);
                 $table->decimal('output_qty', 16, 4);
+                $table->decimal('yield_pct', 8, 2)->default(100);
                 $table->decimal('input_cost', 16, 4)->default(0);
                 $table->unsignedBigInteger('staff_id')->nullable()->index();
                 $table->timestamp('produced_at')->index();
