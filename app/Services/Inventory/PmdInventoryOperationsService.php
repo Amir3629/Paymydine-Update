@@ -1098,7 +1098,6 @@ final class PmdInventoryOperationsService
         DB::transaction(function () use ($locationId, $keepItemId, $mergeItemId) {
             foreach ([
                 'pmd_inventory_movements',
-                'pmd_inventory_count_lines',
                 'pmd_inventory_lots',
                 'pmd_inventory_cost_history',
                 'pmd_inventory_supplier_items',
@@ -1107,6 +1106,55 @@ final class PmdInventoryOperationsService
             ] as $table) {
                 if (Schema::hasTable($table) && Schema::hasColumn($table, 'item_id')) {
                     DB::table($table)->where('item_id', $mergeItemId)->update(['item_id' => $keepItemId]);
+                }
+            }
+
+            if (Schema::hasTable('pmd_inventory_count_lines')) {
+                $countLines = DB::table('pmd_inventory_count_lines')
+                    ->where('item_id', $mergeItemId)
+                    ->get();
+
+                foreach ($countLines as $line) {
+                    $keptLine = DB::table('pmd_inventory_count_lines')
+                        ->where('count_id', $line->count_id)
+                        ->where('item_id', $keepItemId)
+                        ->first();
+
+                    if ($keptLine) {
+                        $keepCounted = (float)$keptLine->counted_qty;
+                        $mergeCounted = (float)$line->counted_qty;
+                        $combinedCounted = $keepCounted + $mergeCounted;
+                        $combinedCost = $combinedCounted > 0
+                            ? (
+                                ($keepCounted * (float)$keptLine->unit_cost_snapshot)
+                                + ($mergeCounted * (float)$line->unit_cost_snapshot)
+                              ) / $combinedCounted
+                            : max(
+                                (float)$keptLine->unit_cost_snapshot,
+                                (float)$line->unit_cost_snapshot
+                              );
+
+                        DB::table('pmd_inventory_count_lines')
+                            ->where('id', $keptLine->id)
+                            ->update([
+                                'expected_qty' => (float)$keptLine->expected_qty + (float)$line->expected_qty,
+                                'counted_qty' => $combinedCounted,
+                                'variance_qty' => (float)$keptLine->variance_qty + (float)$line->variance_qty,
+                                'unit_cost_snapshot' => round($combinedCost, 6),
+                                'updated_at' => now(),
+                            ]);
+
+                        DB::table('pmd_inventory_count_lines')
+                            ->where('id', $line->id)
+                            ->delete();
+                    } else {
+                        DB::table('pmd_inventory_count_lines')
+                            ->where('id', $line->id)
+                            ->update([
+                                'item_id' => $keepItemId,
+                                'updated_at' => now(),
+                            ]);
+                    }
                 }
             }
 
