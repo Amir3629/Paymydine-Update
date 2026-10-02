@@ -9,6 +9,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.WindowManager
+import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -757,6 +758,14 @@ private fun KioskWebView(
     var webView by remember { mutableStateOf<WebView?>(null) }
 
     val base = profile.menuUrl.trimEnd('/')
+    val trustedHost = remember(base) {
+        runCatching {
+            Uri.parse(base).host?.lowercase().orEmpty()
+        }.getOrDefault("")
+    }
+    val bridgeSecret = remember(sessionNonce) {
+        UUID.randomUUID().toString()
+    }
     val target =
         base +
             "/?pmd_kiosk=1" +
@@ -795,6 +804,25 @@ private fun KioskWebView(
                 webView = this
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
 
+                val kioskBridge =
+                    KioskJavascriptBridge(
+                        secret = bridgeSecret,
+                        onOrderComplete = onOrderComplete,
+                    )
+                fun enableKioskBridge(enabled: Boolean) {
+                    removeJavascriptInterface("PayMyDineKiosk")
+                    if (enabled) {
+                        addJavascriptInterface(
+                            kioskBridge,
+                            "PayMyDineKiosk",
+                        )
+                    }
+                }
+
+                val cookies = CookieManager.getInstance()
+                cookies.setAcceptCookie(true)
+                cookies.setAcceptThirdPartyCookies(this, true)
+
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.allowFileAccess = false
@@ -804,14 +832,30 @@ private fun KioskWebView(
                 settings.userAgentString =
                     settings.userAgentString + " PayMyDineKiosk/" + BuildConfig.VERSION_NAME
 
-                addJavascriptInterface(
-                    KioskJavascriptBridge(onOrderComplete),
-                    "PayMyDineKiosk",
-                )
+                enableKioskBridge(true)
                 webChromeClient = WebChromeClient()
                 webViewClient =
                     object : WebViewClient() {
                         private var resetComplete = false
+
+                        override fun onPageStarted(
+                            view: WebView,
+                            url: String?,
+                            favicon: android.graphics.Bitmap?,
+                        ) {
+                            super.onPageStarted(view, url, favicon)
+                            val pageHost =
+                                runCatching {
+                                    Uri.parse(url.orEmpty())
+                                        .host
+                                        ?.lowercase()
+                                        .orEmpty()
+                                }.getOrDefault("")
+                            enableKioskBridge(
+                                pageHost.isNotBlank() &&
+                                    pageHost == trustedHost,
+                            )
+                        }
 
                         override fun shouldOverrideUrlLoading(
                             view: WebView?,
@@ -827,6 +871,23 @@ private fun KioskWebView(
                             url: String,
                         ) {
                             super.onPageFinished(view, url)
+
+                            val pageHost =
+                                runCatching {
+                                    Uri.parse(url)
+                                        .host
+                                        ?.lowercase()
+                                        .orEmpty()
+                                }.getOrDefault("")
+                            if (
+                                pageHost.isBlank() ||
+                                pageHost != trustedHost
+                            ) {
+                                enableKioskBridge(false)
+                                return
+                            }
+
+                            enableKioskBridge(true)
 
                             if (!resetComplete && url.contains("pmd_kiosk_reset=1")) {
                                 resetComplete = true
@@ -848,7 +909,10 @@ private fun KioskWebView(
                                 return
                             }
 
-                            injectKioskGuestUi(view)
+                            injectKioskGuestUi(
+                                view,
+                                bridgeSecret,
+                            )
                         }
                     }
 
@@ -857,30 +921,51 @@ private fun KioskWebView(
                     false
                 }
 
-                loadUrl(resetUrl)
+                cookies.removeAllCookies {
+                    cookies.flush()
+                    post {
+                        loadUrl(resetUrl)
+                    }
+                }
             }
         },
     )
 }
 
 private class KioskJavascriptBridge(
+    private val secret: String,
     private val onOrderComplete: (String) -> Unit,
 ) {
     private val mainHandler = Handler(Looper.getMainLooper())
 
     @JavascriptInterface
-    fun orderComplete(orderId: String) {
+    fun orderComplete(
+        orderId: String,
+        providedSecret: String,
+    ) {
+        if (
+            providedSecret.isBlank() ||
+            providedSecret != secret
+        ) {
+            return
+        }
+
         mainHandler.post {
             onOrderComplete(orderId.trim())
         }
     }
 }
 
-private fun injectKioskGuestUi(webView: WebView) {
+private fun injectKioskGuestUi(
+    webView: WebView,
+    bridgeSecret: String,
+) {
     val script =
         """
         (function () {
           document.documentElement.setAttribute('data-pmd-kiosk', '1');
+          window.__PMD_KIOSK_BRIDGE_SECRET__ =
+            __PMD_KIOSK_BRIDGE_SECRET__;
 
           function clean(value) {
             return String(value || '').trim().toLowerCase();
@@ -904,6 +989,10 @@ private fun injectKioskGuestUi(webView: WebView) {
             .observe(document.documentElement, { childList: true, subtree: true });
         })();
         """.trimIndent()
+            .replace(
+                "__PMD_KIOSK_BRIDGE_SECRET__",
+                org.json.JSONObject.quote(bridgeSecret),
+            )
 
     webView.evaluateJavascript(script, null)
 }
