@@ -1300,6 +1300,30 @@ final class PmdInventoryOperationsService
         $expectedOutput = max(0.0001, (float)$recipe->output_qty * $multiplier);
         $yieldPct = ($actualOutputQty / $expectedOutput) * 100;
 
+        $available = [];
+        try {
+            foreach ((array)(app(PmdInventoryControlService::class)->snapshot($locationId)['items'] ?? []) as $stockRow) {
+                if (is_array($stockRow) && !empty($stockRow['id'])) {
+                    $available[(int)$stockRow['id']] = max(0, (float)($stockRow['estimated_on_hand'] ?? 0));
+                }
+            }
+        } catch (\Throwable $ignored) {
+            $available = [];
+        }
+
+        if ($available) {
+            foreach ($lines as $line) {
+                $required = max(0, (float)$line->qty_base * $multiplier);
+                $onHand = max(0, (float)($available[(int)$line->item_id] ?? 0));
+                if ($required > $onHand + 0.00005) {
+                    $name = (string)(DB::table('pmd_inventory_items')->where('id', (int)$line->item_id)->value('name') ?? 'Ingredient');
+                    throw new InvalidArgumentException(
+                        $name.' needs '.round($required, 4).' base units, but only '.round($onHand, 4).' are available.'
+                    );
+                }
+            }
+        }
+
         return DB::transaction(function () use (
             $locationId,
             $staffId,
