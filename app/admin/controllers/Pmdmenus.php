@@ -609,6 +609,12 @@ class Pmdmenus extends AdminController
         return 'EUR';
     }
 
+    public function onSaveStockUsageR20(): JsonResponse
+    {
+        return $this->onSaveStockUsageR19();
+    }
+
+    // Compatibility alias for the R19 Menu bridge.
     public function onSaveStockUsageR19(): JsonResponse
     {
         try {
