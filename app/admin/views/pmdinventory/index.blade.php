@@ -325,7 +325,6 @@
                             @endforeach
                         @endif
                     </div>
-                    </div>
                     <details class="pmd-inv-r19-activity" data-r19-activity>
                         <summary>Activity <span>Purchases, waste and the last physical count</span></summary>
                         <div data-r19-activity-body></div>
