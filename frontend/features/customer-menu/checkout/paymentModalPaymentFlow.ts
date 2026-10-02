@@ -10,9 +10,19 @@ import { toPositiveAmount } from "@/features/checkout/checkout-utils"
 function notifyNativeKioskOrderComplete(orderId: number | string | null | undefined) {
   if (typeof window === "undefined" || !orderId) return
   const bridge = (window as any)?.PayMyDineKiosk
-  if (bridge && typeof bridge.orderComplete === "function") {
+  const bridgeSecret =
+    (window as any)?.__PMD_KIOSK_BRIDGE_SECRET__
+  if (
+    bridge &&
+    typeof bridge.orderComplete === "function" &&
+    typeof bridgeSecret === "string" &&
+    bridgeSecret.length > 20
+  ) {
     try {
-      bridge.orderComplete(String(orderId))
+      bridge.orderComplete(
+        String(orderId),
+        bridgeSecret,
+      )
     } catch {}
   }
 }
