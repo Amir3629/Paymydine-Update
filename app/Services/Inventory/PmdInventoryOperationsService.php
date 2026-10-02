@@ -806,6 +806,79 @@ final class PmdInventoryOperationsService
         });
     }
 
+    public function updatePurchaseOrderStatus(
+        int $locationId,
+        ?int $staffId,
+        int $purchaseOrderId,
+        string $status
+    ): void {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $purchaseOrderId = max(0, $purchaseOrderId);
+        $status = strtolower(trim($status));
+
+        if (!in_array($status, ['draft', 'sent', 'partial', 'received', 'closed', 'cancelled'], true)) {
+            throw new InvalidArgumentException('Purchase-order status is not valid.');
+        }
+
+        $po = DB::table('pmd_inventory_purchase_orders')
+            ->where('location_id', $locationId)
+            ->where('id', $purchaseOrderId)
+            ->first();
+
+        if (!$po) {
+            throw new InvalidArgumentException('Purchase order was not found.');
+        }
+
+        if ((string)$po->status === 'cancelled' && $status !== 'cancelled') {
+            throw new InvalidArgumentException('A cancelled purchase order cannot be reopened.');
+        }
+
+        if ($status === 'cancelled') {
+            $received = DB::table('pmd_inventory_purchase_order_lines')
+                ->where('purchase_order_id', $purchaseOrderId)
+                ->where('received_qty', '>', 0)
+                ->exists();
+            if ($received) {
+                throw new InvalidArgumentException('A partially received purchase order cannot be cancelled. Receive or close the remainder instead.');
+            }
+        }
+
+        if ($status === 'received') {
+            $lines = DB::table('pmd_inventory_purchase_order_lines')
+                ->where('purchase_order_id', $purchaseOrderId)
+                ->get();
+            $complete = $lines->isNotEmpty() && $lines->every(
+                fn ($line) => (float)$line->received_qty + 0.00005 >= (float)$line->ordered_qty
+            );
+            if (!$complete) {
+                throw new InvalidArgumentException('Receive all ordered quantities before marking this PO received.');
+            }
+        }
+
+        $payload = [
+            'status' => $status,
+            'updated_at' => now(),
+        ];
+
+        if ($status === 'sent' && !$po->ordered_at) {
+            $payload['ordered_at'] = now()->toDateString();
+        }
+        if ($status === 'received' && !$po->received_at) {
+            $payload['received_at'] = now();
+        }
+        if ($status === 'closed' && !$po->received_at) {
+            $payload['received_at'] = now();
+        }
+        if ($status === 'sent' && Schema::hasColumn('pmd_inventory_purchase_orders', 'approved_by')) {
+            $payload['approved_by'] = $staffId;
+        }
+
+        DB::table('pmd_inventory_purchase_orders')
+            ->where('id', $purchaseOrderId)
+            ->update($payload);
+    }
+
     public function receivePurchaseOrder(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
