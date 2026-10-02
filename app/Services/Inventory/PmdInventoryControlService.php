@@ -1319,10 +1319,7 @@ final class PmdInventoryControlService
                     $amountPaid = static function ($amount) {
                         $amount
                             ->where('o.order_total', '>', 0)
-                            ->whereRaw(
-                                'COALESCE(??, 0) >= COALESCE(??, 0) - 0.0001',
-                                ['o.settled_amount', 'o.order_total']
-                            );
+                            ->whereColumn('o.settled_amount', '>=', 'o.order_total');
                     };
 
                     if ($started) {
