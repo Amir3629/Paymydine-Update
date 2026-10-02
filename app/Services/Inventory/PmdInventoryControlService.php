@@ -1350,6 +1350,36 @@ final class PmdInventoryControlService
         ]);
     }
 
+    public function countSessionDraft(
+        int $locationId,
+        ?int $staffId,
+        int $countId
+    ): array {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        $count = DB::table('pmd_inventory_counts')
+            ->where('location_id', $locationId)
+            ->where('id', $countId)
+            ->where('status', 'in_progress')
+            ->first();
+
+        if (!$count) return [];
+        if ($staffId && $count->staff_id && (int)$count->staff_id !== (int)$staffId) {
+            return [];
+        }
+
+        return DB::table('pmd_inventory_count_lines')
+            ->where('count_id', $countId)
+            ->get(['item_id', 'counted_qty'])
+            ->map(fn ($row) => [
+                'item_id' => (int)$row->item_id,
+                'counted_qty' => (float)$row->counted_qty,
+            ])
+            ->values()
+            ->all();
+    }
+
     public function saveCountSession(
         int $locationId,
         ?int $staffId,
