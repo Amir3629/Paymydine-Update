@@ -72,14 +72,16 @@ final class PmdInventoryReceiptAiService
             'JSON shape:',
             '{',
             '  "supplier_name": string|null,',
-            '  "purchase_date": "YYYY-MM-DD"|null,',
+            '  "invoice_number": string|null,',
+            '  "purchase_date": "YYYY-MM-DD"|null,'
             '  "currency": string|null,',
             '  "total_amount": number|null,',
             '  "lines": [',
             '    {',
             '      "item_name": string,',
+            '      "supplier_sku": string|null,',
             '      "quantity": number|null,',
-            '      "unit": string|null,',
+            '      "unit": string|null,'
             '      "unit_cost": number|null,',
             '      "line_total": number|null',
             '    }',
@@ -199,6 +201,7 @@ final class PmdInventoryReceiptAiService
 
             $lines[] = [
                 'item_name' => mb_substr($name, 0, 190),
+                'supplier_sku' => $this->nullableText($line['supplier_sku'] ?? null, 160),
                 'quantity' => $quantity,
                 'unit' => $this->normalizeUnit($line['unit'] ?? null),
                 'unit_cost' => $unitCost,
@@ -208,6 +211,7 @@ final class PmdInventoryReceiptAiService
 
         return [
             'supplier_name' => $this->nullableText($decoded['supplier_name'] ?? null, 190),
+            'invoice_number' => $this->nullableText($decoded['invoice_number'] ?? null, 120),
             'purchase_date' => $this->normalizeDate($decoded['purchase_date'] ?? null),
             'currency' => $this->nullableText($decoded['currency'] ?? null, 12),
             'total_amount' => $this->nullableNumber($decoded['total_amount'] ?? null),
