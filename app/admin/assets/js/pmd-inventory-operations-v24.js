@@ -189,11 +189,23 @@
       var received = (po.lines || []).reduce(function(sum,line){ return sum + Number(line.received_qty || 0); },0);
       var ordered = (po.lines || []).reduce(function(sum,line){ return sum + Number(line.ordered_qty || 0); },0);
       var canReceive = ['draft','sent','partial'].indexOf(String(po.status)) !== -1;
+      var actions = '<div class="pmd-inv-v24-po-actions">';
+      if (String(po.status) === 'draft') {
+        actions += '<button type="button" class="pmd-inv-r19-secondary" data-v24-po-status="' + esc(po.id) + '" data-status="sent">Mark sent</button>';
+        actions += '<button type="button" class="pmd-inv-r19-secondary" data-v24-po-status="' + esc(po.id) + '" data-status="cancelled">Cancel</button>';
+      }
+      if (canReceive) {
+        actions += '<button type="button" class="pmd-inv-r19-primary" data-v24-po-receive-open="' + esc(po.id) + '">Receive</button>';
+      }
+      if (['partial','received'].indexOf(String(po.status)) !== -1) {
+        actions += '<button type="button" class="pmd-inv-r19-secondary" data-v24-po-status="' + esc(po.id) + '" data-status="closed">Close</button>';
+      }
+      actions += '</div>';
       return '<article class="pmd-inv-v24-po">' +
         '<div><strong>' + esc(po.order_number) + '</strong><span>' + esc(po.supplier_name || 'Unassigned supplier') + '</span></div>' +
         '<div><b>' + esc(String(po.status).toUpperCase()) + '</b><span>' + esc(num(received,2) + ' / ' + num(ordered,2) + ' packs received') + '</span></div>' +
         '<div><strong>' + esc(money(po.subtotal || 0)) + '</strong><span>Expected ' + esc(po.expected_at || '—') + '</span></div>' +
-        (canReceive ? '<button type="button" class="pmd-inv-r19-primary" data-v24-po-receive-open="' + esc(po.id) + '">Receive</button>' : '') +
+        actions +
       '</article>';
     }).join('') : '<div class="pmd-inv-r19-empty">No purchase orders yet. Create one or convert the Shopping plan.</div>';
   }
@@ -791,6 +803,19 @@
         .catch(function(error){ toast(error.message || 'Could not save purchase order.', true); });
       return;
     }
+    var poStatus = target.closest('[data-v24-po-status]');
+    if (poStatus) {
+      var nextStatus = String(poStatus.getAttribute('data-status') || '');
+      var poIdForStatus = Number(poStatus.getAttribute('data-v24-po-status') || 0);
+      if (nextStatus === 'cancelled' && !window.confirm('Cancel this purchase order?')) return;
+      request('onUpdatePurchaseOrderStatus',{
+        purchase_order_id:poIdForStatus,
+        status:nextStatus
+      }).then(function(){ renderOrders(); toast('Purchase order updated.'); })
+        .catch(function(error){ toast(error.message || 'Could not update purchase order.', true); });
+      return;
+    }
+
     var receiveOpen = target.closest('[data-v24-po-receive-open]');
     if (receiveOpen) { openPoReceive(receiveOpen.getAttribute('data-v24-po-receive-open')); return; }
     if (target.closest('[data-v24-po-receive-close]')) {
