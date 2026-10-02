@@ -523,6 +523,10 @@
                         <div class="pmd-inv-v24-table" data-v24-code-list></div>
                     </section>
                     <div class="pmd-inv-v24-list" data-v24-supplier-list></div>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Supplier activity · 90 days</h3><span>Purchase-line activity and latest received date.</span></div>
+                        <div class="pmd-inv-v24-table" data-v24-supplier-performance></div>
+                    </section>
                 </section>
 
                 <section class="pmd-inv-r19-pane pmd-inv-v24-pane" data-r19-pane="storage" hidden>
@@ -648,6 +652,14 @@
                             <button type="button" class="pmd-inv-r19-secondary" data-v24-export>Export inventory CSV</button>
                         </div>
                         <small>Name is required. Supported columns include category, base_unit, purchase_unit, purchase_to_base, purchase_cost, reorder_point, par_level, safety_stock, supplier, supplier_sku, barcode, min_order_qty and order_multiple.</small>
+                    </section>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Merge duplicate stock items</h3><span>Moves history, codes, supplier mappings and active recipe references into the kept item; the duplicate is archived.</span></div>
+                        <div class="pmd-inv-v24-grid pmd-inv-v24-grid--2">
+                            <label>Keep item<select data-v24-merge-keep></select></label>
+                            <label>Merge & archive<select data-v24-merge-remove></select></label>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-secondary" data-v24-merge-save>Merge duplicate</button>
                     </section>
                     <section class="pmd-inv-v24-card">
                         <div class="pmd-inv-v24-card-head"><h3>Cost history</h3><span>Recent supplier purchase prices for variance review.</span></div>
