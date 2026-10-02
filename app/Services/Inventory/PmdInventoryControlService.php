@@ -1084,6 +1084,22 @@ final class PmdInventoryControlService
                         $movementId
                     );
 
+                    if (!empty($line['supplier_id'])) {
+                        $makePrimary = empty($item->preferred_supplier_id)
+                            || (int)$item->preferred_supplier_id === (int)$line['supplier_id'];
+                        $ops->saveSupplierItem($locationId, [
+                            'supplier_id' => (int)$line['supplier_id'],
+                            'item_id' => $itemId,
+                            'supplier_sku' => $line['supplier_sku'] ?? null,
+                            'pack_unit' => $unit,
+                            'pack_to_base' => $factor,
+                            'pack_cost' => $unitCost > 0 ? $unitCost : ($effectiveCost * $factor),
+                            'min_order_qty' => 0,
+                            'order_multiple' => 1,
+                            'is_primary' => $makePrimary,
+                        ]);
+                    }
+
                     $barcode = trim((string)($line['barcode'] ?? ''));
                     if ($barcode !== '' && !$ops->resolveIdentifier($locationId, $barcode)) {
                         $ops->saveIdentifier($locationId, $staffId, [
