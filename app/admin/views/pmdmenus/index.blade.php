@@ -221,21 +221,6 @@
         @if(!empty($pmdMenuCanManageInventoryR20))
             <button
                 type="button"
-                class="pmd-dashboard-lab__header-action pmd-workspace-toggle-r23"
-                data-pmd-workspace-toggle-r23
-                data-workspace="{{ $pmdInitialInventoryR23 ? 'inventory' : 'menu' }}"
-                aria-label="{{ $pmdInitialInventoryR23 ? 'Open Menu' : 'Open Inventory' }}"
-                title="{{ $pmdInitialInventoryR23 ? 'Open Menu' : 'Open Inventory' }}"
-            >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M4 5h16v14H4z"></path>
-                    <path d="M8 9h8M8 13h8"></path>
-                </svg>
-                <span data-pmd-workspace-toggle-label>{{ $pmdInitialInventoryR23 ? 'Menu' : 'Inventory' }}</span>
-            </button>
-
-            <button
-                type="button"
                 class="pmd-dashboard-lab__header-action pmd-menu-stock-usage-setup-r22"
                 data-pmd-stock-usage-setup-r22
                 aria-pressed="false"
@@ -400,6 +385,24 @@
                 </svg>
             </button>
         </div>
+
+        @if(!empty($pmdMenuCanManageInventoryR20))
+            {{-- R23: immediate neighbour of Notifications; one button, never a switcher. --}}
+            <button
+                type="button"
+                class="pmd-dashboard-lab__header-action pmd-workspace-toggle-r23"
+                data-pmd-workspace-toggle-r23
+                data-workspace="{{ $pmdInitialInventoryR23 ? 'inventory' : 'menu' }}"
+                aria-label="{{ $pmdInitialInventoryR23 ? 'Open Menu' : 'Open Inventory' }}"
+                title="{{ $pmdInitialInventoryR23 ? 'Open Menu' : 'Open Inventory' }}"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 5h16v14H4z"></path>
+                    <path d="M8 9h8M8 13h8"></path>
+                </svg>
+                <span data-pmd-workspace-toggle-label>{{ $pmdInitialInventoryR23 ? 'Menu' : 'Inventory' }}</span>
+            </button>
+        @endif
 
             <span
                 data-pmd-main-header-notification-gap-r67=""
