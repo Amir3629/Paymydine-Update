@@ -34,7 +34,7 @@ class Pmdmenus extends AdminController
     {
         parent::__construct();
 
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-menu-manager-page pmd-menu-manager-v12 pmd-menu-manager-v129');
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-menu-manager-page pmd-menu-manager-v12 pmd-menu-manager-v129 pmd-menu-inventory-r20-page');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         // PMD_MENU_MANAGER_ASSET_CACHE_BUST_V1
