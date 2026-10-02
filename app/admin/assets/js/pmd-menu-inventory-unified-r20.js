@@ -1,6 +1,7 @@
-/* PMD_MENU_INVENTORY_UNIFIED_R20
+/* PMD_MENU_INVENTORY_UNIFIED_R21
  * Same-page Menu + Inventory workspace, Owner-dashboard KPI interactions and
  * direct food -> restaurant-stock usage selection (no modal).
+ * R21 adds recipe unit conversion (g/kg, ml/l, purchase packs and percentages).
  */
 (function () {
   'use strict';
@@ -387,13 +388,109 @@
     });
   }
 
+  function normalizeUsageUnit(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function usageUnitOptions(item) {
+    item = item || {};
+    var baseUnit = String(item.unit || 'piece').trim() || 'piece';
+    var purchaseUnit = String(item.purchase_unit || baseUnit).trim() || baseUnit;
+    var baseKey = normalizeUsageUnit(baseUnit);
+    var purchaseKey = normalizeUsageUnit(purchaseUnit);
+    var purchaseFactor = Math.max(0.0001, Number(item.purchase_to_base || 1));
+    var options = [];
+
+    function add(value, label, factor, note) {
+      value = String(value || '').trim();
+      factor = Number(factor || 0);
+      if (!value || !(factor > 0)) return;
+      if (options.some(function (row) { return row.value === value; })) return;
+      options.push({
+        value: value,
+        label: String(label || value),
+        factor: factor,
+        note: String(note || '')
+      });
+    }
+
+    add(baseKey, baseUnit, 1, 'Base stock unit');
+
+    if (baseKey === 'g') add('kg', 'kg', 1000, '1 kg = 1000 g');
+    if (baseKey === 'kg') add('g', 'g', 0.001, '1000 g = 1 kg');
+    if (baseKey === 'ml') add('l', 'l', 1000, '1 l = 1000 ml');
+    if (baseKey === 'l') add('ml', 'ml', 0.001, '1000 ml = 1 l');
+
+    if (purchaseKey && purchaseKey !== baseKey) {
+      add('purchase:' + purchaseKey, purchaseUnit, purchaseFactor, 'Purchase unit');
+    }
+
+    var percentReference = purchaseKey && purchaseKey !== baseKey
+      ? purchaseUnit
+      : baseUnit;
+    var percentFactor = (purchaseKey && purchaseKey !== baseKey)
+      ? purchaseFactor / 100
+      : 0.01;
+    add('percent', '% of ' + percentReference, percentFactor, 'Percentage of one ' + percentReference);
+
+    return options;
+  }
+
+  function usageUnitOption(item, value) {
+    var options = usageUnitOptions(item);
+    value = String(value || '');
+    return options.find(function (row) { return row.value === value; }) || options[0] || {
+      value: normalizeUsageUnit(item && item.unit || 'piece'),
+      label: String(item && item.unit || 'piece'),
+      factor: 1,
+      note: ''
+    };
+  }
+
+  function defaultUsageSelection(item) {
+    var base = normalizeUsageUnit(item && item.unit || 'piece');
+    if (base === 'g' || base === 'ml') return {qty: 100, unit: base};
+    if (base === 'kg' || base === 'l') return {qty: 0.1, unit: base};
+    return {qty: 1, unit: base || 'piece'};
+  }
+
+  function usageSelectionFromBase(item, baseQty) {
+    var base = normalizeUsageUnit(item && item.unit || 'piece');
+    var qty = Math.max(0, Number(baseQty || 0));
+
+    if (base === 'g' && qty >= 1000) {
+      return {qty: qty / 1000, unit: 'kg'};
+    }
+    if (base === 'kg' && qty > 0 && qty < 1) {
+      return {qty: qty * 1000, unit: 'g'};
+    }
+    if (base === 'ml' && qty >= 1000) {
+      return {qty: qty / 1000, unit: 'l'};
+    }
+    if (base === 'l' && qty > 0 && qty < 1) {
+      return {qty: qty * 1000, unit: 'ml'};
+    }
+
+    return {qty: qty, unit: base || 'piece'};
+  }
+
+  function selectionBaseQty(item, selection) {
+    selection = selection || defaultUsageSelection(item);
+    var option = usageUnitOption(item, selection.unit);
+    return Math.max(0, Number(selection.qty || 0)) * Math.max(0.0001, Number(option.factor || 1));
+  }
+
   function resetUsageSelection(menuId) {
     usageState.selected = {};
     var recipe = recipeFor(menuId);
     var lines = recipe && Array.isArray(recipe.lines) ? recipe.lines : [];
+    var items = stockItems();
     lines.forEach(function (line) {
       var itemId = Number(line.item_id || 0);
-      if (itemId > 0) usageState.selected[itemId] = Math.max(0, Number(line.qty_per_sale || 0));
+      if (itemId < 1) return;
+      var item = items.find(function (row) { return Number(row.id) === itemId; });
+      if (!item) return;
+      usageState.selected[itemId] = usageSelectionFromBase(item, Number(line.qty_per_sale || 0));
     });
   }
 
@@ -490,16 +587,31 @@
 
     host.innerHTML = rows.map(function (item) {
       var id = Number(item.id);
-      var qty = Number(usageState.selected[id] || 0);
+      var selection = usageState.selected[id] || defaultUsageSelection(item);
+      var qty = Math.max(0, Number(selection.qty || 0));
+      var unit = String(selection.unit || normalizeUsageUnit(item.unit || 'piece'));
+      var options = usageUnitOptions(item);
+      var option = usageUnitOption(item, unit);
+      var baseQty = selectionBaseQty(item, selection);
+
       return '<div class="pmd-stock-usage-r20-selected-row" data-pmd-stock-usage-selected-row="' + id + '">' +
         '<div class="pmd-stock-usage-r20-selected-row__copy">' +
           '<strong>' + esc(item.name || 'Stock item') + '</strong>' +
-          '<small>' + esc('Per sale · base unit ' + (item.unit || 'piece')) + '</small>' +
+          '<small>' + esc('Per sale · ' + number(baseQty, 4) + ' ' + (item.unit || 'piece') + ' from stock') + '</small>' +
         '</div>' +
         '<label class="pmd-stock-usage-r20-selected-row__qty">' +
+          '<span class="sr-only">Quantity per sale</span>' +
           '<input type="number" min="0.0001" step="0.0001" value="' + esc(qty > 0 ? qty : 1) +
           '" data-pmd-stock-usage-qty="' + id + '" aria-label="Quantity per sale for ' + esc(item.name || 'item') + '">' +
-          '<span>' + esc(item.unit || '') + '</span>' +
+        '</label>' +
+        '<label class="pmd-stock-usage-r20-selected-row__unit">' +
+          '<span class="sr-only">Usage unit</span>' +
+          '<select data-pmd-stock-usage-unit="' + id + '" aria-label="Usage unit for ' + esc(item.name || 'item') + '">' +
+            options.map(function (row) {
+              return '<option value="' + esc(row.value) + '"' + (row.value === option.value ? ' selected' : '') + '>' +
+                esc(row.label) + '</option>';
+            }).join('') +
+          '</select>' +
         '</label>' +
         '<button type="button" class="pmd-stock-usage-r20-selected-row__remove" data-pmd-stock-usage-remove="' + id + '" aria-label="Remove">×</button>' +
       '</div>';
@@ -546,13 +658,6 @@
     });
   }
 
-  function defaultUsageQty(item) {
-    var unit = String(item && item.unit || 'piece').toLowerCase();
-    if (unit === 'g' || unit === 'ml') return 100;
-    if (unit === 'kg' || unit === 'l') return 0.1;
-    return 1;
-  }
-
   function toggleUsageItem(itemId) {
     itemId = Number(itemId || 0);
     if (!itemId) return;
@@ -560,7 +665,7 @@
       delete usageState.selected[itemId];
     } else {
       var item = stockItems().find(function (row) { return Number(row.id) === itemId; });
-      usageState.selected[itemId] = defaultUsageQty(item);
+      usageState.selected[itemId] = defaultUsageSelection(item);
     }
     renderUsageGrid();
     renderSelectedUsage();
@@ -580,10 +685,15 @@
     var lines = selectedRows().map(function (item) {
       var id = Number(item.id);
       var input = usagePanel.querySelector('[data-pmd-stock-usage-qty="' + id + '"]');
-      var qty = Number(input ? input.value : usageState.selected[id]);
+      var select = usagePanel.querySelector('[data-pmd-stock-usage-unit="' + id + '"]');
+      var current = usageState.selected[id] || defaultUsageSelection(item);
+      var selection = {
+        qty: Number(input ? input.value : current.qty),
+        unit: String(select ? select.value : current.unit)
+      };
       return {
         item_id: id,
-        qty_per_sale: qty
+        qty_per_sale: selectionBaseQty(item, selection)
       };
     }).filter(function (line) {
       return line.item_id > 0 && line.qty_per_sale > 0;
@@ -759,7 +869,45 @@
     }
     if (event.target.matches('[data-pmd-stock-usage-qty]')) {
       var id = Number(event.target.getAttribute('data-pmd-stock-usage-qty') || 0);
-      if (id > 0) usageState.selected[id] = Math.max(0, Number(event.target.value || 0));
+      if (id > 0 && usageState.selected[id]) {
+        usageState.selected[id].qty = Math.max(0, Number(event.target.value || 0));
+        var item = stockItems().find(function (row) { return Number(row.id) === id; });
+        var row = usagePanel.querySelector('[data-pmd-stock-usage-selected-row="' + id + '"]');
+        var small = row && row.querySelector('.pmd-stock-usage-r20-selected-row__copy small');
+        if (item && small) {
+          small.textContent = 'Per sale · ' + number(selectionBaseQty(item, usageState.selected[id]), 4) +
+            ' ' + (item.unit || 'piece') + ' from stock';
+        }
+      }
+    }
+  });
+
+  usagePanel.addEventListener('change', function (event) {
+    if (!event.target.matches('[data-pmd-stock-usage-unit]')) return;
+
+    var id = Number(event.target.getAttribute('data-pmd-stock-usage-unit') || 0);
+    if (id < 1 || !usageState.selected[id]) return;
+
+    var item = stockItems().find(function (row) { return Number(row.id) === id; });
+    if (!item) return;
+
+    var current = usageState.selected[id];
+    var baseQty = selectionBaseQty(item, current);
+    var nextUnit = String(event.target.value || '');
+    var nextOption = usageUnitOption(item, nextUnit);
+    var nextQty = baseQty / Math.max(0.0001, Number(nextOption.factor || 1));
+
+    current.unit = nextOption.value;
+    current.qty = Math.max(0.0001, Number(nextQty.toFixed(4)));
+
+    var input = usagePanel.querySelector('[data-pmd-stock-usage-qty="' + id + '"]');
+    if (input) input.value = String(current.qty);
+
+    var row = usagePanel.querySelector('[data-pmd-stock-usage-selected-row="' + id + '"]');
+    var small = row && row.querySelector('.pmd-stock-usage-r20-selected-row__copy small');
+    if (small) {
+      small.textContent = 'Per sale · ' + number(selectionBaseQty(item, current), 4) +
+        ' ' + (item.unit || 'piece') + ' from stock';
     }
   });
 
@@ -792,7 +940,7 @@
   else showMenu(false);
 
   window.PMDMenuInventoryUnifiedR20 = {
-    version: '20.0.0',
+    version: '21.0.0',
     showMenu: function () { showMenu(true); },
     showInventory: function () { showInventory(true); },
     openStockUsage: openUsage,
