@@ -1069,11 +1069,8 @@
       }).join('') : '<div class="pmd-inv-r19-empty">No waste has been recorded yet.</div>';
     }
 
-    var today = todayKey();
-    var todayCost = rows.reduce(function (sum,row) {
-      return String(row.occurred_at || '').slice(0,10) === today ? sum + Number(row.cost || 0) : sum;
-    },0);
-    setText('[data-r19-waste-today]','Today · ' + money(todayCost));
+    var summary = snapshot().summary || {};
+    setText('[data-r19-waste-today]','Today · ' + money(summary.waste_cost_today || 0));
   }
 
   function shoppingRows() {
