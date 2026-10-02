@@ -539,13 +539,21 @@
     showMenu(true);
   }
 
+  function defaultUsageQty(item) {
+    var unit = String(item && item.unit || 'piece').toLowerCase();
+    if (unit === 'g' || unit === 'ml') return 100;
+    if (unit === 'kg' || unit === 'l') return 0.1;
+    return 1;
+  }
+
   function toggleUsageItem(itemId) {
     itemId = Number(itemId || 0);
     if (!itemId) return;
     if (Object.prototype.hasOwnProperty.call(usageState.selected, itemId)) {
       delete usageState.selected[itemId];
     } else {
-      usageState.selected[itemId] = 1;
+      var item = stockItems().find(function (row) { return Number(row.id) === itemId; });
+      usageState.selected[itemId] = defaultUsageQty(item);
     }
     renderUsageGrid();
     renderSelectedUsage();
