@@ -30,6 +30,7 @@ class TableDisplayActivity : ComponentActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enterDisplayMode()
 
+        val app = application as PayMyDineApplication
         val store = SecureStore(this)
         deviceShell = DeviceShellController(
             activity = this,
@@ -39,9 +40,7 @@ class TableDisplayActivity : ComponentActivity() {
 
         val initialHost =
             intent.getStringExtra(EXTRA_RESTAURANT_HOST)
-                ?: (application as PayMyDineApplication)
-                    .credentials
-                    .tenantHost()
+                ?: app.credentials.tenantHost()
 
         setContent {
             TableDisplayApp(
@@ -50,6 +49,11 @@ class TableDisplayActivity : ComponentActivity() {
                 paymentBridge = PaymentBridgeRegistry.resolve(this),
                 deviceShell = deviceShell,
                 initialHost = initialHost,
+                onBack = {
+                    app.credentials.setDevicePurpose("staff")
+                    app.credentials.setOnboardingMemberHint(null)
+                    finish()
+                },
             )
         }
     }

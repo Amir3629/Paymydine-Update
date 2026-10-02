@@ -87,6 +87,7 @@ final class PmdTableDisplayService
                 'qr_image_url' => $menuUrl === '' ? '' : 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=18&ecc=H&format=png&data='.urlencode($menuUrl),
             ],
             'restaurant' => $this->restaurantIdentity($locationId),
+            'theme' => $this->customerMenuTheme(),
             'order' => $order,
             'waiter_call' => $waiterCall,
             'event' => $this->resolveEvent($enabled, $order, $waiterCall, $displayEvent),
@@ -599,6 +600,181 @@ final class PmdTableDisplayService
             'name' => $name ?: 'PayMyDine',
             'logo' => $logo,
         ];
+    }
+
+    /**
+     * The customer-facing table screen follows the same ten canonical themes
+     * selected under Settings > Customer Menu. The Android client polls state,
+     * so a saved theme change reaches paired displays without re-pairing.
+     */
+    private function customerMenuTheme(): array
+    {
+        $selected = 'kazen_japanese';
+
+        if (Schema::hasTable('settings')) {
+            foreach ([
+                'pmd_v2_theme_id',
+                'theme_configuration',
+                'frontend_theme',
+            ] as $item) {
+                try {
+                    $value = trim((string)DB::table('settings')
+                        ->where('item', $item)
+                        ->value('value'));
+
+                    if ($value !== '') {
+                        $selected = $value;
+                        break;
+                    }
+                } catch (\Throwable $ignored) {
+                }
+            }
+        }
+
+        $key = preg_replace(
+            '/[\s-]+/',
+            '_',
+            strtolower(trim((string)$selected))
+        );
+
+        $aliases = [
+            'noir_editorial' => 'noir_editorial',
+            'modern_dark' => 'noir_editorial',
+            'black_luxury' => 'noir_editorial',
+
+            'verdant_modern' => 'verdant_modern',
+            'modern_green' => 'verdant_modern',
+            'green' => 'verdant_modern',
+
+            'lumiere_fine_dining' => 'lumiere_fine_dining',
+            'gold_luxury' => 'lumiere_fine_dining',
+            'gold' => 'lumiere_fine_dining',
+            'organic_botanical_paper' => 'lumiere_fine_dining',
+            'organic' => 'lumiere_fine_dining',
+
+            'kazen_japanese' => 'kazen_japanese',
+            'kazen' => 'kazen_japanese',
+            'japanese' => 'kazen_japanese',
+
+            'azzurra_coastal' => 'azzurra_coastal',
+            'coastal' => 'azzurra_coastal',
+            'mediterranean' => 'azzurra_coastal',
+            'seafood' => 'azzurra_coastal',
+
+            'neon_cocktail_bar' => 'neon_cocktail_bar',
+            'vibrant_colors' => 'neon_cocktail_bar',
+            'cyber_futuristic' => 'neon_cocktail_bar',
+            'bar' => 'neon_cocktail_bar',
+
+            'art_deco_speakeasy' => 'art_deco_speakeasy',
+            'art_deco' => 'art_deco_speakeasy',
+            'speakeasy' => 'art_deco_speakeasy',
+            'gatsby' => 'art_deco_speakeasy',
+
+            'shahrazad_persian' => 'shahrazad_persian',
+            'persian' => 'shahrazad_persian',
+            'persian_luxury' => 'shahrazad_persian',
+
+            'anatolia_turkish' => 'anatolia_turkish',
+            'velvet_terracotta' => 'anatolia_turkish',
+            'velvet' => 'anatolia_turkish',
+            'turkish' => 'anatolia_turkish',
+
+            'ember_steakhouse' => 'ember_steakhouse',
+            'steakhouse' => 'ember_steakhouse',
+            'charcoal' => 'ember_steakhouse',
+            'grill_house' => 'ember_steakhouse',
+        ];
+
+        $palettes = [
+            'noir_editorial' => [
+                'background' => '#050505',
+                'text' => '#F4F3EF',
+                'muted' => '#AAA8A0',
+                'accent' => '#F4F3EF',
+                'surface' => '#0C0C0C',
+                'is_dark' => true,
+            ],
+            'verdant_modern' => [
+                'background' => '#03100C',
+                'text' => '#F3FFF9',
+                'muted' => '#9EB9AE',
+                'accent' => '#32D596',
+                'surface' => '#0C1B17',
+                'is_dark' => true,
+            ],
+            'lumiere_fine_dining' => [
+                'background' => '#F4F1EB',
+                'text' => '#3D3932',
+                'muted' => '#81796E',
+                'accent' => '#B99A60',
+                'surface' => '#FFFDF9',
+                'is_dark' => false,
+            ],
+            'kazen_japanese' => [
+                'background' => '#F5F1EB',
+                'text' => '#25231F',
+                'muted' => '#777168',
+                'accent' => '#B5413F',
+                'surface' => '#FBF8F3',
+                'is_dark' => false,
+            ],
+            'azzurra_coastal' => [
+                'background' => '#EEF4F7',
+                'text' => '#173A55',
+                'muted' => '#2C526D',
+                'accent' => '#0F5F91',
+                'surface' => '#FFFDF8',
+                'is_dark' => false,
+            ],
+            'neon_cocktail_bar' => [
+                'background' => '#050508',
+                'text' => '#F7F7FB',
+                'muted' => '#B8B5C2',
+                'accent' => '#FF4F9A',
+                'surface' => '#0D0D14',
+                'is_dark' => true,
+            ],
+            'art_deco_speakeasy' => [
+                'background' => '#050807',
+                'text' => '#F4E9C7',
+                'muted' => '#9F926E',
+                'accent' => '#D1A848',
+                'surface' => '#08100D',
+                'is_dark' => true,
+            ],
+            'shahrazad_persian' => [
+                'background' => '#1B090B',
+                'text' => '#F9E7BD',
+                'muted' => '#C8A983',
+                'accent' => '#D9AD55',
+                'surface' => '#311113',
+                'is_dark' => true,
+            ],
+            'anatolia_turkish' => [
+                'background' => '#F4EAD9',
+                'text' => '#34251F',
+                'muted' => '#725E54',
+                'accent' => '#BD5B3F',
+                'surface' => '#FFF8EE',
+                'is_dark' => false,
+            ],
+            'ember_steakhouse' => [
+                'background' => '#0C0C0B',
+                'text' => '#F5EADB',
+                'muted' => '#C2B4A3',
+                'accent' => '#C36A35',
+                'surface' => '#171614',
+                'is_dark' => true,
+            ],
+        ];
+
+        $id = $aliases[$key] ?? 'kazen_japanese';
+
+        return array_merge(
+            ['id' => $id],
+            $palettes[$id] ?? $palettes['kazen_japanese']
+        );
     }
 
     private function currencyCode(): string

@@ -1190,7 +1190,7 @@ document.documentElement.classList.add(
             <a
                 class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.4.0.apk"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.4.1.apk"
                 target="_blank"
                 rel="noopener noreferrer"
             >
@@ -1205,7 +1205,7 @@ document.documentElement.classList.add(
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
                     <strong>PayMyDine Device App · Android</strong>
-                    <small>Android 8+ · POS · KDS · staff workspaces · Table Display · Device Control</small>
+                    <small>Android 8+ · Staff · Table Display · Device Control</small>
                 </span>
             </a>
 

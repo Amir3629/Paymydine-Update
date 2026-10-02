@@ -372,6 +372,15 @@ final class PmdTableDisplayPairingService
             ],
             'table' => $state['table'] ?? [],
             'restaurant' => $state['restaurant'] ?? [],
+            'theme' => $state['theme'] ?? [
+                'id' => 'kazen_japanese',
+                'background' => '#F5F1EB',
+                'text' => '#25231F',
+                'muted' => '#777168',
+                'accent' => '#B5413F',
+                'surface' => '#FBF8F3',
+                'is_dark' => false,
+            ],
             'event' => $state['event'] ?? [
                 'type' => 'idle',
                 'key' => 'idle',

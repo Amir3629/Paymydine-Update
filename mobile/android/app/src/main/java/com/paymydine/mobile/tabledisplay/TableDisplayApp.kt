@@ -2,6 +2,9 @@ package com.paymydine.mobile.tabledisplay
 
 import com.paymydine.mobile.R
 import android.graphics.BitmapFactory
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -64,7 +68,7 @@ import java.util.Currency
 
 private val PmdGreen = Color(0xFF0D6B4F)
 private val PmdDark = Color(0xFF0B1713)
-private val PmdCream = Color(0xFFF4F1E7)
+private val PmdCream = Color(0xFFF4F8F6)
 private val PmdMuted = Color(0xFF718078)
 private val PmdBlue = Color(0xFF173E64)
 private val PmdAmber = Color(0xFF76511A)
@@ -84,6 +88,7 @@ fun TableDisplayApp(
     paymentBridge: PaymentBridge,
     deviceShell: DeviceShellController,
     initialHost: String? = null,
+    onBack: () -> Unit = {},
 ) {
     MaterialTheme {
         var screen by remember {
@@ -145,7 +150,7 @@ fun TableDisplayApp(
                         next
                     } else if (currentEvent.key != lastPresentedReactionKey) {
                         lastPresentedReactionKey = currentEvent.key
-                        reactionVisibleUntil = nowMs + 2_200L
+                        reactionVisibleUntil = nowMs + 6_500L
                         next
                     } else if (nowMs < reactionVisibleUntil) {
                         next
@@ -233,6 +238,7 @@ fun TableDisplayApp(
                     loading = loading,
                     error = error,
                     initialHost = store.host() ?: initialHost ?: "restaurant.paymydine.com",
+                    onBack = onBack,
                     onPair = { host, code ->
                         scope.launch {
                             loading = true
@@ -361,6 +367,7 @@ private fun SetupScreen(
     loading: Boolean,
     error: String?,
     initialHost: String,
+    onBack: () -> Unit,
     onPair: (String, String) -> Unit,
 ) {
     var host by remember(initialHost) { mutableStateOf(initialHost) }
@@ -370,48 +377,55 @@ private fun SetupScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(PmdCream)
-            .padding(28.dp),
+            .padding(horizontal = 28.dp, vertical = 24.dp),
         contentAlignment = Alignment.Center,
     ) {
+        TextButton(
+            modifier = Modifier.align(Alignment.TopStart),
+            enabled = !loading,
+            onClick = onBack,
+        ) {
+            Text(
+                "Back",
+                color = PmdGreen,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+
         Column(
             modifier = Modifier.widthIn(max = 520.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BrandMark(68.dp)
-            Spacer(Modifier.height(16.dp))
+            BrandMark(76.dp)
             Text(
-                "PayMyDine Table Display",
+                "PayMyDine",
+                modifier = Modifier.padding(top = 10.dp),
                 color = PmdDark,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 28.sp,
+                fontWeight = FontWeight.Black,
+                fontSize = 30.sp,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Pair this display once. No staff password is stored on the device.",
-                color = PmdMuted,
-                fontSize = 14.sp,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(28.dp))
 
             OutlinedTextField(
                 value = host,
                 onValueChange = { host = it.trim() },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Restaurant address") },
-                placeholder = { Text("restaurant.paymydine.com") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 34.dp),
+                label = { Text("Restaurant") },
+                placeholder = { Text("tomo.paymydine.com") },
                 singleLine = true,
                 enabled = !loading,
             )
-            Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = code,
                 onValueChange = {
                     code = it.filter(Char::isDigit).take(6)
                 },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("6-digit setup code") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                label = { Text("Setup code") },
                 placeholder = { Text("123456") },
                 singleLine = true,
                 enabled = !loading,
@@ -425,11 +439,11 @@ private fun SetupScreen(
                 ErrorNotice(error)
             }
 
-            Spacer(Modifier.height(18.dp))
             Button(
                 onClick = { onPair(host, code) },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = 18.dp)
                     .height(52.dp),
                 enabled = !loading && host.isNotBlank() && code.length == 6,
                 colors = ButtonDefaults.buttonColors(
@@ -450,13 +464,6 @@ private fun SetupScreen(
                     )
                 }
             }
-            Spacer(Modifier.height(14.dp))
-            Text(
-                "Create the setup code in PayMyDine Admin → Devices & hardware → Table display.",
-                color = PmdMuted,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center,
-            )
         }
     }
 }
@@ -524,7 +531,7 @@ private fun TableSelectionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF6F9F7))
+            .background(PmdCream)
             .padding(24.dp),
     ) {
         Row(
@@ -659,6 +666,65 @@ private fun TableSelectionScreen(
     }
 }
 
+private data class DisplayPalette(
+    val background: Color,
+    val text: Color,
+    val muted: Color,
+    val accent: Color,
+    val surface: Color,
+)
+
+@Composable
+private fun displayPalette(theme: DisplayTheme): DisplayPalette {
+    val background by animateColorAsState(
+        targetValue = themeColor(theme.background, PmdCream),
+        animationSpec = tween(durationMillis = 900),
+        label = "table-theme-background",
+    )
+    val text by animateColorAsState(
+        targetValue = themeColor(theme.text, PmdDark),
+        animationSpec = tween(durationMillis = 900),
+        label = "table-theme-text",
+    )
+    val muted by animateColorAsState(
+        targetValue = themeColor(theme.muted, PmdMuted),
+        animationSpec = tween(durationMillis = 900),
+        label = "table-theme-muted",
+    )
+    val accent by animateColorAsState(
+        targetValue = themeColor(theme.accent, PmdGreen),
+        animationSpec = tween(durationMillis = 900),
+        label = "table-theme-accent",
+    )
+    val surface by animateColorAsState(
+        targetValue = themeColor(theme.surface, Color.White),
+        animationSpec = tween(durationMillis = 900),
+        label = "table-theme-surface",
+    )
+
+    return DisplayPalette(
+        background = background,
+        text = text,
+        muted = muted,
+        accent = accent,
+        surface = surface,
+    )
+}
+
+private fun themeColor(
+    raw: String,
+    fallback: Color,
+): Color {
+    val hex = raw.trim().removePrefix("#")
+    return runCatching {
+        when (hex.length) {
+            6 -> Color(("FF" + hex).toLong(16))
+            8 -> Color(hex.toLong(16))
+            else -> fallback
+        }
+    }.getOrDefault(fallback)
+}
+
 @Composable
 private fun DisplayScreen(
     state: DisplayState?,
@@ -708,11 +774,12 @@ private fun TableSurface(
     val qr = remember(state.table.menuUrl) {
         generateQrCode(state.table.menuUrl)
     }
+    val palette = displayPalette(state.theme)
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PmdCream)
+            .background(palette.background)
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         Column(
@@ -725,6 +792,8 @@ private fun TableSurface(
                 restaurantName = state.restaurantName,
                 restaurantLogoUrl = state.restaurantLogoUrl,
                 tableNumber = state.table.number,
+                textColor = palette.text,
+                accentColor = palette.accent,
             )
 
             Spacer(Modifier.height(16.dp))
@@ -739,15 +808,22 @@ private fun TableSurface(
 
             Spacer(Modifier.height(12.dp))
 
-            GuestMessageLine(
-                event = state.event,
-            )
+            Crossfade(
+                targetState = state.event,
+                animationSpec = tween(durationMillis = 850),
+                label = "table-display-message",
+            ) { event ->
+                GuestMessageLine(
+                    event = event,
+                    palette = palette,
+                )
+            }
         }
 
         Text(
             "Powered by PayMyDine",
             modifier = Modifier.align(Alignment.BottomCenter),
-            color = Color(0xFF7B8581),
+            color = palette.muted,
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
         )
@@ -755,6 +831,7 @@ private fun TableSurface(
         ConnectionBadge(
             connected = connected,
             modifier = Modifier.align(Alignment.BottomStart),
+            light = state.theme.isDark,
         )
     }
 }
@@ -764,6 +841,8 @@ private fun TableHeader(
     restaurantName: String,
     restaurantLogoUrl: String,
     tableNumber: String,
+    textColor: Color,
+    accentColor: Color,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -781,7 +860,7 @@ private fun TableHeader(
             )
             Text(
                 restaurantName,
-                color = Color(0xFF32453D),
+                color = textColor,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 13.sp,
                 maxLines = 1,
@@ -790,7 +869,7 @@ private fun TableHeader(
 
         Text(
             "TABLE " + tableNumber,
-            color = Color(0xFF486057),
+            color = accentColor,
             fontWeight = FontWeight.ExtraBold,
             fontSize = 14.sp,
             letterSpacing = 0.7.sp,
@@ -802,6 +881,7 @@ private fun TableHeader(
 @Composable
 private fun GuestMessageLine(
     event: DisplayEvent,
+    palette: DisplayPalette,
 ) {
     val type = event.type
     val idle = type == "idle"
@@ -834,12 +914,7 @@ private fun GuestMessageLine(
             else -> ""
         }
 
-    val accent =
-        when (type) {
-            "payment_requested" -> PmdBlue
-            "waiter_call" -> PmdAmber
-            else -> PmdGreen
-        }
+    val accent = palette.accent
 
     Box(
         modifier = Modifier
@@ -850,7 +925,7 @@ private fun GuestMessageLine(
         if (idle) {
             Text(
                 title,
-                color = PmdDark,
+                color = palette.text,
                 fontSize = 27.sp,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
@@ -881,7 +956,7 @@ private fun GuestMessageLine(
                 ) {
                     Text(
                         title,
-                        color = PmdDark,
+                        color = palette.text,
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 18.sp,
                         maxLines = 1,
@@ -890,7 +965,7 @@ private fun GuestMessageLine(
                         Spacer(Modifier.height(2.dp))
                         Text(
                             subtitle,
-                            color = PmdMuted,
+                            color = palette.muted,
                             fontSize = 10.sp,
                             maxLines = 2,
                         )
@@ -919,10 +994,12 @@ private fun UnavailableDisplay(
     state: DisplayState,
     connected: Boolean,
 ) {
+    val palette = displayPalette(state.theme)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(PmdCream)
+            .background(palette.background)
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         Column(
@@ -933,6 +1010,8 @@ private fun UnavailableDisplay(
                 restaurantName = state.restaurantName,
                 restaurantLogoUrl = state.restaurantLogoUrl,
                 tableNumber = state.table.number,
+                textColor = palette.text,
+                accentColor = palette.accent,
             )
 
             Spacer(Modifier.height(76.dp))
@@ -956,7 +1035,7 @@ private fun UnavailableDisplay(
 
             Text(
                 "Table unavailable",
-                color = PmdDark,
+                color = palette.text,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 26.sp,
                 textAlign = TextAlign.Center,
@@ -966,7 +1045,7 @@ private fun UnavailableDisplay(
 
             Text(
                 "Please ask a team member for assistance.",
-                color = PmdMuted,
+                color = palette.muted,
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,
             )
@@ -975,6 +1054,7 @@ private fun UnavailableDisplay(
         ConnectionBadge(
             connected = connected,
             modifier = Modifier.align(Alignment.BottomStart),
+            light = state.theme.isDark,
         )
     }
 }

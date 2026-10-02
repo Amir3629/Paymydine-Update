@@ -80,6 +80,17 @@ class SecureStore(context: Context) {
                 .put("restaurant_name", state.restaurantName)
                 .put("restaurant_logo", state.restaurantLogoUrl)
                 .put(
+                    "theme",
+                    JSONObject()
+                        .put("id", state.theme.id)
+                        .put("background", state.theme.background)
+                        .put("text", state.theme.text)
+                        .put("muted", state.theme.muted)
+                        .put("accent", state.theme.accent)
+                        .put("surface", state.theme.surface)
+                        .put("is_dark", state.theme.isDark),
+                )
+                .put(
                     "table",
                     JSONObject()
                         .put("id", state.table.id)
@@ -112,6 +123,7 @@ class SecureStore(context: Context) {
             val json = JSONObject(raw)
             val table = json.getJSONObject("table")
             val event = json.getJSONObject("event")
+            val theme = json.optJSONObject("theme") ?: JSONObject()
             DisplayState(
                 restaurantName = json.optString("restaurant_name", "PayMyDine"),
                 restaurantLogoUrl = json.optString(
@@ -135,6 +147,33 @@ class SecureStore(context: Context) {
                     currency = event.optString("currency", "EUR"),
                 ),
                 serverTime = json.optString("server_time"),
+                theme = DisplayTheme(
+                    id = theme.optString(
+                        "id",
+                        "kazen_japanese",
+                    ),
+                    background = theme.optString(
+                        "background",
+                        "#F5F1EB",
+                    ),
+                    text = theme.optString(
+                        "text",
+                        "#25231F",
+                    ),
+                    muted = theme.optString(
+                        "muted",
+                        "#777168",
+                    ),
+                    accent = theme.optString(
+                        "accent",
+                        "#B5413F",
+                    ),
+                    surface = theme.optString(
+                        "surface",
+                        "#FBF8F3",
+                    ),
+                    isDark = theme.optBoolean("is_dark", false),
+                ),
             )
         }.getOrNull()
     }
