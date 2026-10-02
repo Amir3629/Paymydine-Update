@@ -203,12 +203,12 @@
     <div class="pmd-owner-header__left">
         <h1 class="pmd-r2-clean-title">{{ $pmdT('title') }}</h1>
 
-        {{-- PMD_MENU_INVENTORY_HEADER_SWITCHER_R21
-             Keep the workspace switcher beside the title, not in the global
-             center slot used by the live clock. --}}
+        {{-- PMD_MENU_INVENTORY_HEADER_R22_SAFE
+             The switcher stays in normal header flow beside the title.
+             No absolute positioning and no center-clock overlap. --}}
         @if(!empty($pmdMenuCanManageInventoryR20))
             <nav
-                class="pmd-product-workspace-r20 pmd-product-workspace-r21--header"
+                class="pmd-product-workspace-r20 pmd-product-workspace-r22--header"
                 aria-label="Menu and inventory workspace"
                 data-pmd-unified-workspace-tabs
             >
@@ -226,8 +226,8 @@
         @if(!empty($pmdMenuCanManageInventoryR20))
             <button
                 type="button"
-                class="pmd-dashboard-lab__header-action pmd-menu-stock-usage-header-r21"
-                data-pmd-stock-usage-setup-r21
+                class="pmd-dashboard-lab__header-action pmd-menu-stock-usage-setup-r22"
+                data-pmd-stock-usage-setup-r22
                 aria-pressed="false"
                 aria-label="Set stock usage"
                 title="Set stock usage"
@@ -911,106 +911,104 @@
 
     <section data-pmd-unified-menu-panel>
 
-    {{-- PMD_MENU_DASHBOARD_KPIS_R21
-         Menu now uses the same card geometry, icon frame, description,
-         info control and KPI chooser language as the role dashboards. --}}
+    {{-- PMD_MENU_KPI_PARITY_R22_SAFE
+         Same card geometry/language as the role dashboards. Runtime updates
+         are owned by the existing unified Menu/Inventory JS only. --}}
     @php
-        $pmdMenuR21KpiCards = [
+        $pmdMenuR22Kpis = [
             'menu_items' => [
                 'key' => 'menu_items',
                 'title' => 'Menu items',
-                'value' => (int)($stats['total'] ?? 0),
-                'description' => 'Foods in this menu',
-                'info' => 'All food items currently available in the Menu manager.',
+                'value' => (string)(int)($stats['total'] ?? 0),
+                'description' => 'Foods + combos',
+                'info' => 'All food and combo cards currently in this menu.',
                 'tone' => 'green',
                 'icon' => '<path d="M4 5h16v14H4z"></path><path d="M8 9h8M8 13h8M8 17h5"></path>',
             ],
             'categories' => [
                 'key' => 'categories',
                 'title' => 'Categories',
-                'value' => (int)$categoryCount,
-                'description' => 'Enabled menu groups',
-                'info' => 'Categories used to organise the restaurant menu.',
-                'tone' => 'blue',
+                'value' => (string)(int)$categoryCount,
+                'description' => 'Enabled categories',
+                'info' => 'Enabled categories used to organise the restaurant menu.',
+                'tone' => 'cyan',
                 'icon' => '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"></path>',
             ],
             'stock_out' => [
                 'key' => 'stock_out',
                 'title' => 'Stock out',
-                'value' => (int)($stats['stock_out'] ?? 0),
+                'value' => (string)(int)($stats['stock_out'] ?? 0),
                 'description' => 'Unavailable foods',
-                'info' => 'Menu foods currently marked unavailable for ordering.',
+                'info' => 'Food items currently marked unavailable for ordering.',
                 'tone' => 'orange',
                 'icon' => '<path d="M5 8h14l-1 12H6L5 8z"></path><path d="M9 8V6a3 3 0 0 1 6 0v2"></path><path d="m9 12 6 6M15 12l-6 6"></path>',
             ],
             'disabled' => [
                 'key' => 'disabled',
                 'title' => 'Disabled',
-                'value' => (int)$disabledCount,
+                'value' => (string)(int)$disabledCount,
                 'description' => 'Hidden menu items',
-                'info' => 'Menu items disabled from the live ordering experience.',
+                'info' => 'Food and combo cards currently disabled from ordering.',
                 'tone' => 'red',
                 'icon' => '<path d="M3 3l18 18"></path><path d="M10.6 10.6A2 2 0 0 0 13.4 13.4"></path><path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5.5 0 9 8 9 8a16.6 16.6 0 0 1-2.1 3.2"></path><path d="M6.6 6.6C4.3 8.2 3 12 3 12s3.5 8 9 8a9.6 9.6 0 0 0 3.4-.6"></path>',
             ],
             'active' => [
                 'key' => 'active',
                 'title' => 'Active',
-                'value' => max(0, (int)($stats['total'] ?? 0) - (int)$disabledCount),
+                'value' => (string)(int)($stats['published'] ?? 0),
                 'description' => 'Visible menu items',
-                'info' => 'Menu items currently enabled for guests and staff.',
+                'info' => 'Food and combo cards currently enabled for ordering.',
                 'tone' => 'purple',
                 'icon' => '<path d="M20 6 9 17l-5-5"></path>',
             ],
             'combos' => [
                 'key' => 'combos',
                 'title' => 'Combos',
-                'value' => is_countable($combos ?? null) ? count($combos) : 0,
+                'value' => (string)(int)($stats['combos'] ?? 0),
                 'description' => 'Combination offers',
-                'info' => 'Configured combo offers in the restaurant menu.',
-                'tone' => 'cyan',
+                'info' => 'Combination offers currently configured in Menu.',
+                'tone' => 'blue',
                 'icon' => '<path d="M4 7l8-4 8 4-8 4-8-4z"></path><path d="m4 12 8 4 8-4"></path><path d="m4 17 8 4 8-4"></path>',
             ],
         ];
-        $pmdMenuR21KpiSelection = ['menu_items', 'categories', 'stock_out', 'disabled'];
+        $pmdMenuR22Selection = ['menu_items', 'categories', 'stock_out', 'disabled'];
     @endphp
 
-    <section
-        class="pmd-r2-kpis-v2401 pmd-dashboard2-kpis-v2 pmd-menu-dashboard-kpis-r21"
-        data-pmd-menu-r21-kpis
-        aria-label="{{ $pmdT('menu_overview') }}"
-    >
-        @foreach($pmdMenuR21KpiSelection as $slot => $key)
+    <section class="pmd-menu-kpis pmd-menu-kpis-r22" data-pmd-menu-r22-kpis aria-label="{{ $pmdT('menu_overview') }}">
+        @foreach($pmdMenuR22Selection as $slot => $key)
+            {{-- R22 deliberately indexes the catalogue directly. Avoid a
+                 temporary Blade variable so compiled-view scope stays stable. --}}
             <article
-                class="pmd-r2-kpi-v2401-card"
-                data-pmd-menu-r21-kpi-slot="{{ $slot }}"
-                data-pmd-menu-r21-kpi-key="{{ $key }}"
+                class="pmd-menu-kpi pmd-r2-kpi-v2401-card"
+                data-pmd-menu-r22-kpi-slot="{{ $slot }}"
+                data-pmd-menu-r22-kpi-key="{{ $key }}"
                 data-pmd-kpi-v2401-key="{{ $key }}"
-                data-pmd-kpi-v2401-tone="{{ $pmdMenuR21KpiCards[$key]['tone'] }}"
+                data-pmd-kpi-v2401-tone="{{ $pmdMenuR22Kpis[$key]['tone'] }}"
             >
-                <div class="pmd-r2-kpi-v2401-icon" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false">{!! $pmdMenuR21KpiCards[$key]['icon'] !!}</svg>
+                <div class="pmd-menu-kpi__icon pmd-r2-kpi-v2401-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false">{!! $pmdMenuR22Kpis[$key]['icon'] !!}</svg>
                 </div>
 
-                <div class="pmd-r2-kpi-v2401-copy">
-                    <span class="pmd-r2-kpi-v2401-title">{{ $pmdMenuR21KpiCards[$key]['title'] }}</span>
-                    <strong class="pmd-r2-kpi-v2401-value" data-pmd-menu-r21-kpi-value>{{ $pmdMenuR21KpiCards[$key]['value'] }}</strong>
-                    <span class="pmd-r2-kpi-v2401-description">{{ $pmdMenuR21KpiCards[$key]['description'] }}</span>
+                <div class="pmd-menu-kpi__copy pmd-r2-kpi-v2401-copy">
+                    <span class="pmd-r2-kpi-v2401-title">{{ $pmdMenuR22Kpis[$key]['title'] }}</span>
+                    <strong class="pmd-r2-kpi-v2401-value" data-pmd-menu-r22-kpi-value>{{ $pmdMenuR22Kpis[$key]['value'] }}</strong>
+                    <small class="pmd-r2-kpi-v2401-description">{{ $pmdMenuR22Kpis[$key]['description'] }}</small>
                 </div>
 
-                <div class="pmd-kpi-info-panel" data-pmd-menu-r21-kpi-info-panel aria-live="polite">
-                    <strong>{{ $pmdMenuR21KpiCards[$key]['title'] }}</strong>
-                    <span>{{ $pmdMenuR21KpiCards[$key]['info'] }}</span>
+                <div class="pmd-kpi-info-panel" data-pmd-menu-r22-kpi-info-panel aria-live="polite">
+                    <strong>{{ $pmdMenuR22Kpis[$key]['title'] }}</strong>
+                    <span>{{ $pmdMenuR22Kpis[$key]['info'] }}</span>
                 </div>
 
                 <button
                     type="button"
                     class="pmd-kpi-info-button"
-                    data-pmd-menu-r21-kpi-info
+                    data-pmd-menu-r22-kpi-info
                     aria-pressed="false"
                     aria-label="About this KPI"
                     title="About this KPI"
                 >
-                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <circle cx="12" cy="12" r="9"></circle>
                         <path d="M12 11v5"></path>
                         <path d="M12 8h.01"></path>
@@ -1020,21 +1018,26 @@
                 <button
                     type="button"
                     class="pmd-r2-kpi-v2401-more"
-                    data-pmd-menu-r21-kpi-menu-button
+                    data-pmd-menu-r22-kpi-menu-button
                     aria-label="Choose KPI"
                     aria-haspopup="menu"
                     aria-expanded="false"
                 ><span></span><span></span><span></span></button>
 
-                <div class="pmd-r2-kpi-v2401-menu pmd-dashboard-lab__kpi-menu" data-pmd-menu-r21-kpi-menu role="menu" hidden>
+                <div
+                    class="pmd-r2-kpi-v2401-menu pmd-dashboard-lab__kpi-menu"
+                    data-pmd-menu-r22-kpi-menu
+                    role="menu"
+                    hidden
+                >
                     <span class="pmd-dashboard-lab__kpi-menu-heading">Choose KPI</span>
-                    @foreach($pmdMenuR21KpiCards as $choiceKey => $choice)
+                    @foreach($pmdMenuR22Kpis as $choiceKey => $choice)
                         <button
                             type="button"
                             class="pmd-r2-kpi-v2401-option{{ $choiceKey === $key ? ' is-selected' : '' }}"
-                            data-pmd-menu-r21-kpi-option="{{ $choiceKey }}"
+                            data-pmd-menu-r22-kpi-option="{{ $choiceKey }}"
                             role="menuitem"
-                            {{ (in_array($choiceKey, $pmdMenuR21KpiSelection, true) && $choiceKey !== $key) ? 'disabled' : '' }}
+                            {{ (in_array($choiceKey, $pmdMenuR22Selection, true) && $choiceKey !== $key) ? 'disabled' : '' }}
                         >
                             <span class="pmd-r2-kpi-v2401-option-copy">
                                 <strong>{{ $choice['title'] }}</strong>
@@ -1048,8 +1051,8 @@
         @endforeach
     </section>
 
-    <script type="application/json" id="pmd-menu-r21-kpi-data">{!! json_encode(
-        $pmdMenuR21KpiCards,
+    <script type="application/json" id="pmd-menu-r22-kpi-data">{!! json_encode(
+        $pmdMenuR22Kpis,
         JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT
     ) !!}</script>
 
@@ -1262,6 +1265,9 @@
 
                         <div class="pmd-menu-card__actions">
                             <button type="button" class="pmd-menu-card__stock-btn" data-pmd-menu-stock data-menu-id="{{ (int)$item['id'] }}">{{ $item['is_stock_out'] ? $pmdT('stock_in') : $pmdT('stock_out') }}</button>
+                            @if(!empty($pmdMenuCanManageInventoryR20))
+                                <button type="button" class="pmd-menu-card__stock-usage-r20" data-pmd-stock-usage-r20="{{ (int)$item['id'] }}">Stock usage</button>
+                            @endif
                             <button type="button" class="pmd-menu-card__edit-btn" data-pmd-menu-edit="{{ (int)$item['id'] }}">{{ $pmdT('edit') }}</button>
                         </div>
                     </div>

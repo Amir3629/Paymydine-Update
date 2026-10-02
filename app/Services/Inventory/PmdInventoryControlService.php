@@ -1283,57 +1283,45 @@ final class PmdInventoryControlService
             $q->whereNotIn('o.status_id', $canceled);
         }
 
-        // PMD_INVENTORY_PAID_SALES_USAGE_R21
-        // Stock consumption follows the financial authority. A recipe is
-        // deducted as soon as its order is fully paid, even if the kitchen
-        // lifecycle is still Received / Preparing / Ready. This also prevents
-        // unpaid preparation orders from reducing theoretical on-hand stock.
-        $hasFinancialPaidSignal =
-            in_array('settlement_status', $orderCols, true)
-            || in_array('settled_at', $orderCols, true)
-            || (
-                in_array('settled_amount', $orderCols, true)
-                && in_array('order_total', $orderCols, true)
-            );
+        // PMD_INVENTORY_PAID_SALES_R22_SAFE
+        // The financial settlement columns are the canonical payment signal.
+        // Once an order is fully paid, its menu quantities consume the recipe
+        // immediately; kitchen status does not have to reach Completed first.
+        $hasSettlementStatus = in_array('settlement_status', $orderCols, true);
+        $hasSettledAt = in_array('settled_at', $orderCols, true);
+        $hasSettledAmount =
+            in_array('settled_amount', $orderCols, true)
+            && in_array('order_total', $orderCols, true);
 
-        if ($hasFinancialPaidSignal) {
-            $q->where(function ($paid) use ($orderCols) {
-                $hasBranch = false;
+        if ($hasSettlementStatus) {
+            $q->where(function ($paid) use ($hasSettledAmount) {
+                $paid->whereIn('o.settlement_status', ['paid', 'settled']);
 
-                if (in_array('settlement_status', $orderCols, true)) {
-                    $paid->whereIn('o.settlement_status', ['paid', 'settled']);
-                    $hasBranch = true;
-                }
-
-                if (in_array('settled_at', $orderCols, true)) {
-                    if ($hasBranch) {
-                        $paid->orWhereNotNull('o.settled_at');
-                    } else {
-                        $paid->whereNotNull('o.settled_at');
-                    }
-                    $hasBranch = true;
-                }
-
-                if (
-                    in_array('settled_amount', $orderCols, true)
-                    && in_array('order_total', $orderCols, true)
-                ) {
-                    $amountScope = function ($amount) {
-                        $amount
+                // Compatibility fallback only when the status itself is
+                // missing/blank. A cancelled/failed/refunded status must never
+                // become consuming merely because an old settled_amount is
+                // still present.
+                if ($hasSettledAmount) {
+                    $paid->orWhere(function ($amountFallback) {
+                        $amountFallback
+                            ->where(function ($missingStatus) {
+                                $missingStatus
+                                    ->whereNull('o.settlement_status')
+                                    ->orWhere('o.settlement_status', '');
+                            })
                             ->where('o.order_total', '>', 0)
                             ->whereColumn('o.settled_amount', '>=', 'o.order_total');
-                    };
-
-                    if ($hasBranch) {
-                        $paid->orWhere($amountScope);
-                    } else {
-                        $paid->where($amountScope);
-                    }
+                    });
                 }
             });
+        } elseif ($hasSettledAmount) {
+            $q->where('o.order_total', '>', 0)
+                ->whereColumn('o.settled_amount', '>=', 'o.order_total');
+        } elseif ($hasSettledAt) {
+            $q->whereNotNull('o.settled_at');
         } elseif (in_array('status_id', $orderCols, true)) {
-            // Legacy tenants without settlement columns keep the historical
-            // operational fallback until their order schema is upgraded.
+            // Compatibility only for legacy databases that do not yet have
+            // settlement columns.
             $consuming = array_values(array_unique(array_merge(
                 $this->settingIds('processing_order_status'),
                 $this->settingIds('completed_order_status')

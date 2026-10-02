@@ -1,7 +1,6 @@
-/* PMD_MENU_INVENTORY_UNIFIED_R21
- * Same-page Menu + Inventory workspace, Owner-dashboard KPI interactions and
- * direct food -> restaurant-stock usage selection (no modal).
- * R21 adds recipe unit conversion (g/kg, ml/l, purchase packs and percentages).
+/* PMD_MENU_INVENTORY_UNIFIED_R22_SAFE
+ * Stable same-page Menu + Inventory workspace.
+ * R22 keeps one runtime owner: no KPI self-observer loops, no second polish JS.
  */
 (function () {
   'use strict';
@@ -13,6 +12,8 @@
   var inventoryPanel = document.querySelector('[data-pmd-unified-inventory-panel]');
   var usagePanel = document.querySelector('[data-pmd-stock-usage-workspace]');
   var inventoryRoot = document.querySelector('[data-pmd-inventory-root]');
+  var menuGrid = document.querySelector('[data-pmd-menu-grid]');
+  var stockUsageSetupButton = document.querySelector('[data-pmd-stock-usage-setup-r22]');
   var api = window.PMDInventoryControlR1 || null;
 
   if (!tabs || !menuPanel || !inventoryPanel || !usagePanel || !inventoryRoot || !api) return;
@@ -34,6 +35,11 @@
   var catalogByName = {};
   var kpiCatalog = {};
   var kpiSelection = ['stock_value', 'stock_health', 'attention', 'waste'];
+
+  var stockUsageSetupActive = false;
+  var menuKpiCatalog = {};
+  var menuKpiSelection = ['menu_items', 'categories', 'stock_out', 'disabled'];
+  var menuKpiRenderFrame = 0;
 
   function esc(value) {
     return String(value == null ? '' : value)
@@ -125,6 +131,24 @@
     if (headerTitle) headerTitle.textContent = String(text || originalHeaderTitle);
   }
 
+  function setStockUsageSetup(active, quiet) {
+    stockUsageSetupActive = Boolean(active);
+    body.classList.toggle('pmd-menu-stock-usage-setup-r22', stockUsageSetupActive);
+
+    if (stockUsageSetupButton) {
+      stockUsageSetupButton.classList.toggle('is-active', stockUsageSetupActive);
+      stockUsageSetupButton.setAttribute('aria-pressed', String(stockUsageSetupActive));
+      stockUsageSetupButton.setAttribute(
+        'title',
+        stockUsageSetupActive ? 'Cancel stock usage setup' : 'Set stock usage'
+      );
+    }
+
+    if (stockUsageSetupActive && !quiet) {
+      toast('Choose Stock usage on the food you want to configure.');
+    }
+  }
+
   function updateUrlWorkspace(workspace) {
     try {
       var url = new URL(window.location.href);
@@ -149,6 +173,7 @@
     menuPanel.hidden = false;
     tabs.hidden = false;
     setTabState('menu');
+    setStockUsageSetup(false, true);
     body.classList.remove('pmd-menu-r20-inventory-active', 'pmd-menu-r20-stock-usage-active');
     setHeaderTitle(originalHeaderTitle || 'Menu');
     if (updateUrl !== false) updateUrlWorkspace('menu');
@@ -161,19 +186,16 @@
     inventoryPanel.hidden = false;
     tabs.hidden = false;
     setTabState('inventory');
+    setStockUsageSetup(false, true);
     body.classList.add('pmd-menu-r20-inventory-active');
     body.classList.remove('pmd-menu-r20-stock-usage-active');
     setHeaderTitle('Inventory');
     if (updateUrl !== false) updateUrlWorkspace('inventory');
 
-    // PMD_INVENTORY_PAID_REFRESH_R21
-    // Entering Inventory always asks the server for the newest theoretical
-    // stock, so a just-paid order is reflected without a full page reload.
+    // R22: refresh once when Inventory is opened so a just-paid order is
+    // reflected without a full page reload. This does not mutate workspace DOM.
     if (api && typeof api.refresh === 'function') {
-      api.refresh().then(function () {
-        renderKpis();
-        updateUsageButtons();
-      }).catch(function () {});
+      api.refresh().catch(function () {});
     }
 
     window.scrollTo({top: 0, behavior: 'auto'});
@@ -183,10 +205,9 @@
     menuPanel.hidden = true;
     inventoryPanel.hidden = true;
     usagePanel.hidden = false;
-    // R21: the Menu / Inventory workspace switcher now lives in the header
-    // and stays visible while recipe stock usage is being edited.
     tabs.hidden = false;
     setTabState('menu');
+    setStockUsageSetup(false, true);
     body.classList.add('pmd-menu-r20-inventory-active', 'pmd-menu-r20-stock-usage-active');
     setHeaderTitle('Stock usage');
     window.scrollTo({top: 0, behavior: 'auto'});
@@ -340,6 +361,199 @@
   }
 
   /* ============================================================
+     Menu KPI component — dashboard geometry, isolated from Menu grid
+     ============================================================ */
+
+  function menuCards() {
+    if (!menuGrid) return [];
+    return Array.prototype.slice.call(
+      menuGrid.querySelectorAll('[data-pmd-menu-card]')
+    );
+  }
+
+  function menuKpiData(key) {
+    var base = menuKpiCatalog[key] || {};
+    var cards = menuCards();
+    var foods = cards.filter(function (card) {
+      return String(card.getAttribute('data-item-type') || 'food') !== 'combo';
+    });
+    var combos = cards.filter(function (card) {
+      return String(card.getAttribute('data-item-type') || '') === 'combo';
+    });
+    var published = cards.filter(function (card) {
+      return String(card.getAttribute('data-published') || '0') === '1';
+    }).length;
+    var stockOut = foods.filter(function (card) {
+      return String(card.getAttribute('data-stock-out') || '0') === '1';
+    }).length;
+    var value = String(base.value == null ? '0' : base.value);
+
+    if (key === 'menu_items') value = String(cards.length);
+    else if (key === 'stock_out') value = String(stockOut);
+    else if (key === 'disabled') value = String(Math.max(0, cards.length - published));
+    else if (key === 'active') value = String(published);
+    else if (key === 'combos') value = String(combos.length);
+
+    return {
+      key: key,
+      title: String(base.title || key),
+      value: value,
+      description: String(base.description || ''),
+      info: String(base.info || base.description || ''),
+      tone: String(base.tone || 'green'),
+      icon: String(base.icon || '')
+    };
+  }
+
+  function saveMenuKpiSelection() {
+    try {
+      localStorage.setItem('pmd.menu.kpis.r22', JSON.stringify(menuKpiSelection));
+    } catch (ignore) {}
+  }
+
+  function loadMenuKpiSelection() {
+    try {
+      var parsed = JSON.parse(localStorage.getItem('pmd.menu.kpis.r22') || 'null');
+      if (!Array.isArray(parsed) || parsed.length !== 4) return;
+      var clean = parsed.filter(function (key, index) {
+        return Boolean(menuKpiCatalog[key]) && parsed.indexOf(key) === index;
+      });
+      if (clean.length === 4) menuKpiSelection = clean;
+    } catch (ignore) {}
+  }
+
+  function closeMenuKpiMenus(except) {
+    document.querySelectorAll('[data-pmd-menu-r22-kpi-menu]').forEach(function (menu) {
+      if (except && menu === except) return;
+      menu.hidden = true;
+      var card = menu.closest('[data-pmd-menu-r22-kpi-slot]');
+      var button = card && card.querySelector('[data-pmd-menu-r22-kpi-menu-button]');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function closeMenuKpiInfo(exceptCard) {
+    document.querySelectorAll('[data-pmd-menu-r22-kpi-slot].is-pmd-kpi-info-open').forEach(function (card) {
+      if (exceptCard && card === exceptCard) return;
+      card.classList.remove('is-pmd-kpi-info-open');
+      var button = card.querySelector('[data-pmd-menu-r22-kpi-info]');
+      if (button) button.setAttribute('aria-pressed', 'false');
+    });
+  }
+
+  function paintMenuKpi(card, key, slot) {
+    var data = menuKpiData(key);
+    if (!card || !data) return;
+
+    card.setAttribute('data-pmd-menu-r22-kpi-key', key);
+    card.setAttribute('data-pmd-kpi-v2401-key', key);
+    card.setAttribute('data-pmd-kpi-v2401-tone', data.tone);
+
+    var icon = card.querySelector('.pmd-r2-kpi-v2401-icon svg');
+    var title = card.querySelector('.pmd-r2-kpi-v2401-title');
+    var value = card.querySelector('[data-pmd-menu-r22-kpi-value]');
+    var description = card.querySelector('.pmd-r2-kpi-v2401-description');
+    var panel = card.querySelector('[data-pmd-menu-r22-kpi-info-panel]');
+
+    if (icon) icon.innerHTML = data.icon;
+    if (title) title.textContent = data.title;
+    if (value) value.textContent = data.value;
+    if (description) description.textContent = data.description;
+
+    if (panel) {
+      var strong = panel.querySelector('strong');
+      var span = panel.querySelector('span');
+      if (strong) strong.textContent = data.title;
+      if (span) span.textContent = data.info;
+    }
+
+    card.querySelectorAll('[data-pmd-menu-r22-kpi-option]').forEach(function (option) {
+      var optionKey = String(option.getAttribute('data-pmd-menu-r22-kpi-option') || '');
+      var selected = optionKey === key;
+      var usedElsewhere = menuKpiSelection.indexOf(optionKey) !== -1 && !selected;
+      option.classList.toggle('is-selected', selected);
+      option.disabled = usedElsewhere;
+
+      var check = option.querySelector('.pmd-r2-kpi-v2401-check');
+      var small = option.querySelector('small');
+      if (check) check.textContent = selected ? '✓' : '';
+      if (small) {
+        small.textContent = selected
+          ? 'Visible in this card'
+          : (usedElsewhere ? 'Already visible' : 'Show in this card');
+      }
+    });
+
+    card.setAttribute('data-pmd-menu-r22-kpi-slot', String(slot));
+  }
+
+  function renderMenuKpis() {
+    var section = document.querySelector('[data-pmd-menu-r22-kpis]');
+    if (!section) return;
+    var cards = Array.prototype.slice.call(section.querySelectorAll('[data-pmd-menu-r22-kpi-slot]'));
+    cards.forEach(function (card, slot) {
+      paintMenuKpi(card, menuKpiSelection[slot] || Object.keys(menuKpiCatalog)[slot], slot);
+    });
+  }
+
+  function scheduleMenuKpiRender() {
+    if (menuKpiRenderFrame) return;
+    menuKpiRenderFrame = window.requestAnimationFrame(function () {
+      menuKpiRenderFrame = 0;
+      renderMenuKpis();
+    });
+  }
+
+  function mountMenuKpis() {
+    menuKpiCatalog = readJson('pmd-menu-r22-kpi-data', {});
+    if (!menuKpiCatalog || typeof menuKpiCatalog !== 'object') menuKpiCatalog = {};
+    loadMenuKpiSelection();
+    renderMenuKpis();
+
+    // Observe ONLY the Menu card grid. KPI DOM is outside this node, so
+    // repainting KPIs cannot retrigger the observer and cannot form a loop.
+    if (menuGrid && typeof MutationObserver !== 'undefined') {
+      var observer = new MutationObserver(function (mutations) {
+        var relevant = mutations.some(function (mutation) {
+          if (
+            mutation.type === 'attributes'
+            && mutation.target
+            && mutation.target.matches
+            && mutation.target.matches('[data-pmd-menu-card]')
+          ) {
+            return true;
+          }
+
+          if (mutation.type === 'childList' && mutation.target === menuGrid) {
+            return Array.prototype.some.call(
+              mutation.addedNodes,
+              function (node) {
+                return node.nodeType === 1 && node.matches && node.matches('[data-pmd-menu-card]');
+              }
+            ) || Array.prototype.some.call(
+              mutation.removedNodes,
+              function (node) {
+                return node.nodeType === 1 && node.matches && node.matches('[data-pmd-menu-card]');
+              }
+            );
+          }
+
+          return false;
+        });
+
+        if (relevant) scheduleMenuKpiRender();
+      });
+
+      observer.observe(menuGrid, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ['data-stock-out', 'data-published']
+      });
+    }
+  }
+
+  /* ============================================================
      Direct stock-usage editor
      ============================================================ */
 
@@ -377,6 +591,76 @@
     return number(baseQty, 2) + ' ' + baseUnit;
   }
 
+  function normalizeUsageUnit(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function usageUnitOptions(item) {
+    item = item || {};
+    var baseUnit = String(item.unit || 'piece').trim() || 'piece';
+    var purchaseUnit = String(item.purchase_unit || baseUnit).trim() || baseUnit;
+    var baseKey = normalizeUsageUnit(baseUnit);
+    var purchaseKey = normalizeUsageUnit(purchaseUnit);
+    var purchaseFactor = Math.max(0.0001, Number(item.purchase_to_base || 1));
+    var options = [];
+
+    function add(value, label, factor) {
+      value = String(value || '').trim();
+      label = String(label || value).trim();
+      factor = Number(factor || 0);
+      if (!value || !(factor > 0)) return;
+      if (options.some(function (row) {
+        return row.value === value
+          || (
+            normalizeUsageUnit(row.label) === normalizeUsageUnit(label)
+            && Math.abs(Number(row.factor || 0) - factor) < 0.000001
+          );
+      })) return;
+      options.push({value: value, label: label, factor: factor});
+    }
+
+    add(baseKey, baseUnit, 1);
+
+    if (baseKey === 'g') add('kg', 'kg', 1000);
+    if (baseKey === 'kg') add('g', 'g', 0.001);
+    if (baseKey === 'ml') add('l', 'l', 1000);
+    if (baseKey === 'l') add('ml', 'ml', 0.001);
+
+    if (purchaseKey && purchaseKey !== baseKey) {
+      add('purchase:' + purchaseKey, purchaseUnit, purchaseFactor);
+    }
+
+    if (purchaseKey && purchaseKey !== baseKey) {
+      add('percent', '% of ' + purchaseUnit, purchaseFactor / 100);
+    } else {
+      add('percent', '% of ' + baseUnit, 0.01);
+    }
+
+    return options;
+  }
+
+  function usageUnitOption(item, value) {
+    var options = usageUnitOptions(item);
+    value = String(value || '');
+    return options.find(function (row) { return row.value === value; })
+      || options[0]
+      || {value: normalizeUsageUnit(item && item.unit || 'piece'), label: String(item && item.unit || 'piece'), factor: 1};
+  }
+
+  function defaultUsageSelection(item) {
+    var base = normalizeUsageUnit(item && item.unit || 'piece');
+    if (base === 'g' || base === 'ml') return {qty: 100, unit: base};
+    if (base === 'kg' || base === 'l') return {qty: 0.1, unit: base};
+    return {qty: 1, unit: base || 'piece'};
+  }
+
+  function selectionBaseQty(item, selection) {
+    selection = selection || defaultUsageSelection(item);
+    var option = usageUnitOption(item, selection.unit);
+    return Math.max(0, Number(selection.qty || 0))
+      * Math.max(0.0001, Number(option.factor || 1));
+  }
+
   function recipeFor(menuId) {
     return recipes().find(function (row) {
       return Number(row.menu_id) === Number(menuId);
@@ -402,116 +686,23 @@
     });
   }
 
-  function normalizeUsageUnit(value) {
-    return String(value || '').trim().toLowerCase();
-  }
-
-  function usageUnitOptions(item) {
-    item = item || {};
-    var baseUnit = String(item.unit || 'piece').trim() || 'piece';
-    var purchaseUnit = String(item.purchase_unit || baseUnit).trim() || baseUnit;
-    var baseKey = normalizeUsageUnit(baseUnit);
-    var purchaseKey = normalizeUsageUnit(purchaseUnit);
-    var purchaseFactor = Math.max(0.0001, Number(item.purchase_to_base || 1));
-    var options = [];
-
-    function add(value, label, factor, note) {
-      value = String(value || '').trim();
-      label = String(label || value).trim();
-      factor = Number(factor || 0);
-      if (!value || !(factor > 0)) return;
-      if (options.some(function (row) {
-        return row.value === value
-          || (
-            normalizeUsageUnit(row.label) === normalizeUsageUnit(label)
-            && Math.abs(Number(row.factor || 0) - factor) < 0.000001
-          );
-      })) return;
-      options.push({
-        value: value,
-        label: label,
-        factor: factor,
-        note: String(note || '')
-      });
-    }
-
-    add(baseKey, baseUnit, 1, 'Base stock unit');
-
-    if (baseKey === 'g') add('kg', 'kg', 1000, '1 kg = 1000 g');
-    if (baseKey === 'kg') add('g', 'g', 0.001, '1000 g = 1 kg');
-    if (baseKey === 'ml') add('l', 'l', 1000, '1 l = 1000 ml');
-    if (baseKey === 'l') add('ml', 'ml', 0.001, '1000 ml = 1 l');
-
-    if (purchaseKey && purchaseKey !== baseKey) {
-      add('purchase:' + purchaseKey, purchaseUnit, purchaseFactor, 'Purchase unit');
-    }
-
-    var percentReference = purchaseKey && purchaseKey !== baseKey
-      ? purchaseUnit
-      : baseUnit;
-    var percentFactor = (purchaseKey && purchaseKey !== baseKey)
-      ? purchaseFactor / 100
-      : 0.01;
-    add('percent', '% of ' + percentReference, percentFactor, 'Percentage of one ' + percentReference);
-
-    return options;
-  }
-
-  function usageUnitOption(item, value) {
-    var options = usageUnitOptions(item);
-    value = String(value || '');
-    return options.find(function (row) { return row.value === value; }) || options[0] || {
-      value: normalizeUsageUnit(item && item.unit || 'piece'),
-      label: String(item && item.unit || 'piece'),
-      factor: 1,
-      note: ''
-    };
-  }
-
-  function defaultUsageSelection(item) {
-    var base = normalizeUsageUnit(item && item.unit || 'piece');
-    if (base === 'g' || base === 'ml') return {qty: 100, unit: base};
-    if (base === 'kg' || base === 'l') return {qty: 0.1, unit: base};
-    return {qty: 1, unit: base || 'piece'};
-  }
-
-  function usageSelectionFromBase(item, baseQty) {
-    var base = normalizeUsageUnit(item && item.unit || 'piece');
-    var qty = Math.max(0, Number(baseQty || 0));
-
-    if (base === 'g' && qty >= 1000) {
-      return {qty: qty / 1000, unit: 'kg'};
-    }
-    if (base === 'kg' && qty > 0 && qty < 1) {
-      return {qty: qty * 1000, unit: 'g'};
-    }
-    if (base === 'ml' && qty >= 1000) {
-      return {qty: qty / 1000, unit: 'l'};
-    }
-    if (base === 'l' && qty > 0 && qty < 1) {
-      return {qty: qty * 1000, unit: 'ml'};
-    }
-
-    return {qty: qty, unit: base || 'piece'};
-  }
-
-  function selectionBaseQty(item, selection) {
-    selection = selection || defaultUsageSelection(item);
-    var option = usageUnitOption(item, selection.unit);
-    return Math.max(0, Number(selection.qty || 0)) * Math.max(0.0001, Number(option.factor || 1));
-  }
-
   function resetUsageSelection(menuId) {
     usageState.selected = {};
     var recipe = recipeFor(menuId);
     var lines = recipe && Array.isArray(recipe.lines) ? recipe.lines : [];
     var items = stockItems();
+
     lines.forEach(function (line) {
       var itemId = Number(line.item_id || 0);
       if (itemId < 1) return;
+
       var item = items.find(function (row) { return Number(row.id) === itemId; });
       if (!item) return;
-      usageState.selected[itemId] = usageSelectionFromBase(item, Number(line.qty_per_sale || 0));
+
+      usageState.selected[itemId] = {
+        qty: Math.max(0, Number(line.qty_per_sale || 0)),
+        unit: normalizeUsageUnit(item.unit || 'piece')
+      };
     });
   }
 
@@ -610,23 +801,22 @@
       var id = Number(item.id);
       var selection = usageState.selected[id] || defaultUsageSelection(item);
       var qty = Math.max(0, Number(selection.qty || 0));
-      var unit = String(selection.unit || normalizeUsageUnit(item.unit || 'piece'));
+      var option = usageUnitOption(item, selection.unit);
       var options = usageUnitOptions(item);
-      var option = usageUnitOption(item, unit);
       var baseQty = selectionBaseQty(item, selection);
 
       return '<div class="pmd-stock-usage-r20-selected-row" data-pmd-stock-usage-selected-row="' + id + '">' +
         '<div class="pmd-stock-usage-r20-selected-row__copy">' +
           '<strong>' + esc(item.name || 'Stock item') + '</strong>' +
-          '<small>' + esc('Per sale · ' + number(baseQty, 4) + ' ' + (item.unit || 'piece') + ' from stock') + '</small>' +
+          '<small data-pmd-stock-usage-base-hint="' + id + '">' +
+            esc('Deducts ' + number(baseQty, 4) + ' ' + (item.unit || 'piece') + ' per sale') +
+          '</small>' +
         '</div>' +
         '<label class="pmd-stock-usage-r20-selected-row__qty">' +
-          '<span class="sr-only">Quantity per sale</span>' +
           '<input type="number" min="0.0001" step="0.0001" value="' + esc(qty > 0 ? qty : 1) +
           '" data-pmd-stock-usage-qty="' + id + '" aria-label="Quantity per sale for ' + esc(item.name || 'item') + '">' +
         '</label>' +
         '<label class="pmd-stock-usage-r20-selected-row__unit">' +
-          '<span class="sr-only">Usage unit</span>' +
           '<select data-pmd-stock-usage-unit="' + id + '" aria-label="Usage unit for ' + esc(item.name || 'item') + '">' +
             options.map(function (row) {
               return '<option value="' + esc(row.value) + '"' + (row.value === option.value ? ' selected' : '') + '>' +
@@ -637,6 +827,20 @@
         '<button type="button" class="pmd-stock-usage-r20-selected-row__remove" data-pmd-stock-usage-remove="' + id + '" aria-label="Remove">×</button>' +
       '</div>';
     }).join('');
+  }
+
+  function updateUsageBaseHint(itemId) {
+    itemId = Number(itemId || 0);
+    if (itemId < 1 || !usageState.selected[itemId]) return;
+
+    var item = stockItems().find(function (row) { return Number(row.id) === itemId; });
+    var hint = usagePanel.querySelector('[data-pmd-stock-usage-base-hint="' + itemId + '"]');
+    if (!item || !hint) return;
+
+    hint.textContent = 'Deducts '
+      + number(selectionBaseQty(item, usageState.selected[itemId]), 4)
+      + ' ' + (item.unit || 'piece')
+      + ' per sale';
   }
 
   function renderUsage() {
@@ -705,13 +909,14 @@
 
     var lines = selectedRows().map(function (item) {
       var id = Number(item.id);
+      var current = usageState.selected[id] || defaultUsageSelection(item);
       var input = usagePanel.querySelector('[data-pmd-stock-usage-qty="' + id + '"]');
       var select = usagePanel.querySelector('[data-pmd-stock-usage-unit="' + id + '"]');
-      var current = usageState.selected[id] || defaultUsageSelection(item);
       var selection = {
         qty: Number(input ? input.value : current.qty),
         unit: String(select ? select.value : current.unit)
       };
+
       return {
         item_id: id,
         qty_per_sale: selectionBaseQty(item, selection)
@@ -777,15 +982,95 @@
     var button = event.target.closest('[data-pmd-unified-workspace-tab]');
     if (!button) return;
     event.preventDefault();
+    setStockUsageSetup(false, true);
     if (button.getAttribute('data-pmd-unified-workspace-tab') === 'inventory') showInventory(true);
     else showMenu(true);
   });
 
+  // R22 one-shot setup: after the header action is enabled, the whole food
+  // card is the target. Capture prevents Edit/Delete/Stock controls from also
+  // firing during this temporary setup mode.
   document.addEventListener('click', function (event) {
+    if (!stockUsageSetupActive) return;
+
+    var foodCard = event.target.closest('[data-pmd-menu-card][data-menu-id]');
+    if (!foodCard || !menuPanel.contains(foodCard)) return;
+
+    var menuId = Number(foodCard.getAttribute('data-menu-id') || 0);
+    if (menuId < 1) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    setStockUsageSetup(false, true);
+    openUsage(menuId);
+  }, true);
+
+  document.addEventListener('click', function (event) {
+    var setupButton = event.target.closest('[data-pmd-stock-usage-setup-r22]');
+    if (setupButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (stockUsageSetupActive) setStockUsageSetup(false, true);
+      else {
+        if (menuPanel.hidden) showMenu(true);
+        setStockUsageSetup(true, false);
+      }
+      return;
+    }
+
+    var menuInfoButton = event.target.closest('[data-pmd-menu-r22-kpi-info]');
+    if (menuInfoButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      var menuInfoCard = menuInfoButton.closest('[data-pmd-menu-r22-kpi-slot]');
+      if (!menuInfoCard) return;
+      var menuInfoOpen = !menuInfoCard.classList.contains('is-pmd-kpi-info-open');
+      closeMenuKpiInfo(menuInfoCard);
+      closeMenuKpiMenus();
+      menuInfoCard.classList.toggle('is-pmd-kpi-info-open', menuInfoOpen);
+      menuInfoButton.setAttribute('aria-pressed', String(menuInfoOpen));
+      return;
+    }
+
+    var menuKpiButton = event.target.closest('[data-pmd-menu-r22-kpi-menu-button]');
+    if (menuKpiButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      var menuKpiCard = menuKpiButton.closest('[data-pmd-menu-r22-kpi-slot]');
+      var menuKpiMenu = menuKpiCard && menuKpiCard.querySelector('[data-pmd-menu-r22-kpi-menu]');
+      if (!menuKpiMenu) return;
+      var menuKpiOpen = menuKpiMenu.hidden;
+      closeMenuKpiInfo();
+      closeMenuKpiMenus(menuKpiMenu);
+      menuKpiMenu.hidden = !menuKpiOpen;
+      menuKpiButton.setAttribute('aria-expanded', String(menuKpiOpen));
+      return;
+    }
+
+    var menuKpiOption = event.target.closest('[data-pmd-menu-r22-kpi-option]');
+    if (menuKpiOption) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (menuKpiOption.disabled) return;
+      var menuOptionCard = menuKpiOption.closest('[data-pmd-menu-r22-kpi-slot]');
+      if (!menuOptionCard) return;
+      var menuSlot = Number(menuOptionCard.getAttribute('data-pmd-menu-r22-kpi-slot') || 0);
+      var menuKey = String(menuKpiOption.getAttribute('data-pmd-menu-r22-kpi-option') || '');
+      if (!menuKpiCatalog[menuKey] || menuKpiSelection.indexOf(menuKey) !== -1) return;
+      menuKpiSelection[menuSlot] = menuKey;
+      saveMenuKpiSelection();
+      renderMenuKpis();
+      closeMenuKpiMenus();
+      return;
+    }
+
     var usageButton = event.target.closest('[data-pmd-stock-usage-r20]');
     if (usageButton) {
       event.preventDefault();
       event.stopPropagation();
+      setStockUsageSetup(false, true);
       openUsage(usageButton.getAttribute('data-pmd-stock-usage-r20'));
       return;
     }
@@ -880,6 +1165,8 @@
 
     if (!event.target.closest('[data-r20-kpi-menu]')) closeKpiMenus();
     if (!event.target.closest('[data-r20-kpi-info]')) closeKpiInfo();
+    if (!event.target.closest('[data-pmd-menu-r22-kpi-menu]')) closeMenuKpiMenus();
+    if (!event.target.closest('[data-pmd-menu-r22-kpi-info]')) closeMenuKpiInfo();
   });
 
   usagePanel.addEventListener('input', function (event) {
@@ -892,13 +1179,7 @@
       var id = Number(event.target.getAttribute('data-pmd-stock-usage-qty') || 0);
       if (id > 0 && usageState.selected[id]) {
         usageState.selected[id].qty = Math.max(0, Number(event.target.value || 0));
-        var item = stockItems().find(function (row) { return Number(row.id) === id; });
-        var row = usagePanel.querySelector('[data-pmd-stock-usage-selected-row="' + id + '"]');
-        var small = row && row.querySelector('.pmd-stock-usage-r20-selected-row__copy small');
-        if (item && small) {
-          small.textContent = 'Per sale · ' + number(selectionBaseQty(item, usageState.selected[id]), 4) +
-            ' ' + (item.unit || 'piece') + ' from stock';
-        }
+        updateUsageBaseHint(id);
       }
     }
   });
@@ -914,21 +1195,19 @@
 
     var current = usageState.selected[id];
     var baseQty = selectionBaseQty(item, current);
-    var nextUnit = String(event.target.value || '');
-    var nextOption = usageUnitOption(item, nextUnit);
-    var nextQty = baseQty / Math.max(0.0001, Number(nextOption.factor || 1));
+    var next = usageUnitOption(item, event.target.value);
 
-    current.unit = nextOption.value;
-    current.qty = Math.max(0.0001, Number(nextQty.toFixed(4)));
+    current.unit = next.value;
+    current.qty = Math.max(0.0001, Number((baseQty / Math.max(0.0001, next.factor)).toFixed(4)));
 
     var input = usagePanel.querySelector('[data-pmd-stock-usage-qty="' + id + '"]');
     if (input) input.value = String(current.qty);
+    updateUsageBaseHint(id);
+  });
 
-    var row = usagePanel.querySelector('[data-pmd-stock-usage-selected-row="' + id + '"]');
-    var small = row && row.querySelector('.pmd-stock-usage-r20-selected-row__copy small');
-    if (small) {
-      small.textContent = 'Per sale · ' + number(selectionBaseQty(item, current), 4) +
-        ' ' + (item.unit || 'piece') + ' from stock';
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && stockUsageSetupActive) {
+      setStockUsageSetup(false, true);
     }
   });
 
@@ -948,6 +1227,7 @@
 
   buildCatalogIndex();
   mountKpis();
+  mountMenuKpis();
   updateUsageButtons();
 
   var initialWorkspace = 'menu';
@@ -961,7 +1241,7 @@
   else showMenu(false);
 
   window.PMDMenuInventoryUnifiedR20 = {
-    version: '21.0.0',
+    version: '22.0.0',
     showMenu: function () { showMenu(true); },
     showInventory: function () { showInventory(true); },
     openStockUsage: openUsage,

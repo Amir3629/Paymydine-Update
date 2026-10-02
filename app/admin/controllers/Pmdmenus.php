@@ -34,7 +34,7 @@ class Pmdmenus extends AdminController
     {
         parent::__construct();
 
-        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-menu-manager-page pmd-menu-manager-v12 pmd-menu-manager-v129 pmd-menu-inventory-r20-page pmd-menu-inventory-r21-page');
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-menu-manager-page pmd-menu-manager-v12 pmd-menu-manager-v129 pmd-menu-inventory-r20-page');
         $this->addCss('css/pmd-owner-settings-v1.css');
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         // PMD_MENU_MANAGER_ASSET_CACHE_BUST_V1
@@ -115,7 +115,6 @@ class Pmdmenus extends AdminController
             'app/admin/assets/css/pmd-inventory-v1.css',
             'app/admin/assets/css/pmd-inventory-workspace-r19.css',
             'app/admin/assets/css/pmd-menu-inventory-unified-r20.css',
-            'app/admin/assets/css/pmd-menu-inventory-polish-r21.css',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addCss(
@@ -127,7 +126,6 @@ class Pmdmenus extends AdminController
             'app/admin/assets/js/pmd-inventory-v1.js',
             'app/admin/assets/js/pmd-inventory-workspace-r19.js',
             'app/admin/assets/js/pmd-menu-inventory-unified-r20.js',
-            'app/admin/assets/js/pmd-menu-inventory-polish-r21.js',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addJs(
