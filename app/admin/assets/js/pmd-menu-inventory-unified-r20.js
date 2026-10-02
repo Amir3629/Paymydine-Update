@@ -7,7 +7,7 @@
 
   if (window.PMDMenuInventoryUnifiedR20) return;
 
-  var tabs = document.querySelector('[data-pmd-unified-workspace-tabs]');
+  var workspaceSwitchButton = document.querySelector('[data-pmd-workspace-toggle-r23]');
   var menuPanel = document.querySelector('[data-pmd-unified-menu-panel]');
   var inventoryPanel = document.querySelector('[data-pmd-unified-inventory-panel]');
   var usagePanel = document.querySelector('[data-pmd-stock-usage-workspace]');
@@ -16,7 +16,7 @@
   var stockUsageSetupButton = document.querySelector('[data-pmd-stock-usage-setup-r22]');
   var api = window.PMDInventoryControlR1 || null;
 
-  if (!tabs || !menuPanel || !inventoryPanel || !usagePanel || !inventoryRoot || !api) return;
+  if (!workspaceSwitchButton || !menuPanel || !inventoryPanel || !usagePanel || !inventoryRoot || !api) return;
 
   var headerTitle = document.querySelector('#pmd-r2-clean-header .pmd-r2-clean-title');
   var originalHeaderTitle = headerTitle ? String(headerTitle.textContent || '').trim() : 'Menu';
@@ -159,20 +159,42 @@
     } catch (ignore) {}
   }
 
-  function setTabState(name) {
-    tabs.querySelectorAll('[data-pmd-unified-workspace-tab]').forEach(function (button) {
-      var active = button.getAttribute('data-pmd-unified-workspace-tab') === name;
-      button.classList.toggle('is-active', active);
-      button.setAttribute('aria-pressed', String(active));
-    });
+  function syncWorkspaceAction(name) {
+    if (!workspaceSwitchButton) return;
+    var inventoryActive = name === 'inventory';
+    var nextLabel = inventoryActive ? 'Menu' : 'Inventory';
+    workspaceSwitchButton.setAttribute('data-workspace', name);
+    workspaceSwitchButton.setAttribute('aria-label', 'Open ' + nextLabel);
+    workspaceSwitchButton.setAttribute('title', 'Open ' + nextLabel);
+    var label = workspaceSwitchButton.querySelector('[data-pmd-workspace-toggle-label]');
+    if (label) label.textContent = nextLabel;
+  }
+
+  function switchWorkspaceAnimated(name) {
+    var target = name === 'inventory' ? 'inventory' : 'menu';
+    if (
+      (target === 'inventory' && !inventoryPanel.hidden)
+      || (target === 'menu' && !menuPanel.hidden)
+    ) {
+      syncWorkspaceAction(target);
+      return;
+    }
+
+    body.classList.add('pmd-workspace-switching-r23');
+    window.setTimeout(function () {
+      if (target === 'inventory') showInventory(true);
+      else showMenu(true);
+      window.requestAnimationFrame(function () {
+        body.classList.remove('pmd-workspace-switching-r23');
+      });
+    }, 90);
   }
 
   function showMenu(updateUrl) {
     usagePanel.hidden = true;
     inventoryPanel.hidden = true;
     menuPanel.hidden = false;
-    tabs.hidden = false;
-    setTabState('menu');
+    syncWorkspaceAction('menu');
     setStockUsageSetup(false, true);
     body.classList.remove('pmd-menu-r20-inventory-active', 'pmd-menu-r20-stock-usage-active');
     setHeaderTitle(originalHeaderTitle || 'Menu');
@@ -184,8 +206,7 @@
     usagePanel.hidden = true;
     menuPanel.hidden = true;
     inventoryPanel.hidden = false;
-    tabs.hidden = false;
-    setTabState('inventory');
+    syncWorkspaceAction('inventory');
     setStockUsageSetup(false, true);
     body.classList.add('pmd-menu-r20-inventory-active');
     body.classList.remove('pmd-menu-r20-stock-usage-active');
@@ -205,8 +226,7 @@
     menuPanel.hidden = true;
     inventoryPanel.hidden = true;
     usagePanel.hidden = false;
-    tabs.hidden = false;
-    setTabState('menu');
+    syncWorkspaceAction('menu');
     setStockUsageSetup(false, true);
     body.classList.add('pmd-menu-r20-inventory-active', 'pmd-menu-r20-stock-usage-active');
     setHeaderTitle('Stock usage');
@@ -284,9 +304,12 @@
       if (except && menu === except) return;
       menu.hidden = true;
       var card = menu.closest('.pmd-r2-kpi-v2401-card');
+      if (card) card.classList.remove('is-pmd-kpi-menu-open');
       var button = card && card.querySelector('[data-r20-kpi-menu-button]');
       if (button) button.setAttribute('aria-expanded', 'false');
     });
+    var section = document.querySelector('[data-r20-inventory-kpis]');
+    if (section && !except) section.classList.remove('is-pmd-kpi-menu-open');
   }
 
   function closeKpiInfo(exceptCard) {
@@ -427,9 +450,12 @@
       if (except && menu === except) return;
       menu.hidden = true;
       var card = menu.closest('[data-pmd-menu-r22-kpi-slot]');
+      if (card) card.classList.remove('is-pmd-kpi-menu-open');
       var button = card && card.querySelector('[data-pmd-menu-r22-kpi-menu-button]');
       if (button) button.setAttribute('aria-expanded', 'false');
     });
+    var section = document.querySelector('[data-pmd-menu-r22-kpis]');
+    if (section && !except) section.classList.remove('is-pmd-kpi-menu-open');
   }
 
   function closeMenuKpiInfo(exceptCard) {
@@ -978,13 +1004,11 @@
      Events
      ============================================================ */
 
-  tabs.addEventListener('click', function (event) {
-    var button = event.target.closest('[data-pmd-unified-workspace-tab]');
-    if (!button) return;
+  workspaceSwitchButton.addEventListener('click', function (event) {
     event.preventDefault();
     setStockUsageSetup(false, true);
-    if (button.getAttribute('data-pmd-unified-workspace-tab') === 'inventory') showInventory(true);
-    else showMenu(true);
+    var current = String(workspaceSwitchButton.getAttribute('data-workspace') || 'menu');
+    switchWorkspaceAnimated(current === 'inventory' ? 'menu' : 'inventory');
   });
 
   // R22 one-shot setup: after the header action is enabled, the whole food
@@ -1045,6 +1069,9 @@
       closeMenuKpiInfo();
       closeMenuKpiMenus(menuKpiMenu);
       menuKpiMenu.hidden = !menuKpiOpen;
+      menuKpiCard.classList.toggle('is-pmd-kpi-menu-open', menuKpiOpen);
+      var menuKpiSection = document.querySelector('[data-pmd-menu-r22-kpis]');
+      if (menuKpiSection) menuKpiSection.classList.toggle('is-pmd-kpi-menu-open', menuKpiOpen);
       menuKpiButton.setAttribute('aria-expanded', String(menuKpiOpen));
       return;
     }
@@ -1142,6 +1169,9 @@
       closeKpiInfo();
       closeKpiMenus(menu);
       menu.hidden = !open;
+      card.classList.toggle('is-pmd-kpi-menu-open', open);
+      var inventoryKpiSection = document.querySelector('[data-r20-inventory-kpis]');
+      if (inventoryKpiSection) inventoryKpiSection.classList.toggle('is-pmd-kpi-menu-open', open);
       menuButton.setAttribute('aria-expanded', String(open));
       return;
     }
@@ -1241,7 +1271,7 @@
   else showMenu(false);
 
   window.PMDMenuInventoryUnifiedR20 = {
-    version: '22.0.0',
+    version: '23.0.0',
     showMenu: function () { showMenu(true); },
     showInventory: function () { showInventory(true); },
     openStockUsage: openUsage,
