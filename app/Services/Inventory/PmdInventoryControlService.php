@@ -121,6 +121,12 @@ final class PmdInventoryControlService
         $rows = [];
         $summary = [
             'estimated_stock_value' => 0.0,
+            'waste_cost_today' => round(abs((float)DB::table('pmd_inventory_movements')
+                ->where('location_id', $locationId)
+                ->where('movement_type', 'WASTE')
+                ->whereDate('occurred_at', $now->toDateString())
+                ->selectRaw('COALESCE(SUM(ABS(qty_delta) * unit_cost), 0) as total')
+                ->value('total')), 2),
             'waste_cost_30d' => $this->movementCost($locationId, 'WASTE', 30),
             'purchases_cost_30d' => $this->movementCost($locationId, 'PURCHASE', 30),
             'unexplained_loss_value' => 0.0,
@@ -436,6 +442,74 @@ final class PmdInventoryControlService
                     1
                 )),
             ] : null,
+        ];
+    }
+
+    /**
+     * PMD_MENU_INVENTORY_BRIDGE_R19
+     *
+     * Lightweight Menu-page data. Do not call the full inventory snapshot from
+     * Menu: it calculates stock baselines, sales usage, shopping metrics and
+     * history that the Menu stock-usage editor does not need.
+     */
+    public function menuStockUsageSnapshot(int $locationId): array
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        $items = DB::table('pmd_inventory_items')
+            ->where('location_id', $locationId)
+            ->where('active', 1)
+            ->orderBy('name')
+            ->get([
+                'id',
+                'name',
+                'base_unit',
+            ])
+            ->map(static fn ($row) => [
+                'id' => (int)$row->id,
+                'name' => (string)$row->name,
+                'unit' => (string)$row->base_unit,
+            ])
+            ->all();
+
+        $recipes = DB::table('pmd_inventory_recipes as r')
+            ->leftJoin('menus as m', 'm.menu_id', '=', 'r.menu_id')
+            ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'r.item_id')
+            ->where('r.location_id', $locationId)
+            ->where('r.active', 1)
+            ->orderBy('m.menu_name')
+            ->orderBy('i.name')
+            ->get([
+                'r.menu_id',
+                'm.menu_name',
+                'r.item_id',
+                'i.name as item_name',
+                'i.base_unit as unit',
+                'r.qty_per_sale',
+            ])
+            ->groupBy('menu_id')
+            ->map(function ($group) {
+                $first = $group->first();
+
+                return [
+                    'menu_id' => (int)$first->menu_id,
+                    'menu_name' => (string)($first->menu_name ?: ('Menu #'.$first->menu_id)),
+                    'lines' => $group->map(static fn ($row) => [
+                        'item_id' => (int)$row->item_id,
+                        'item_name' => (string)$row->item_name,
+                        'unit' => (string)$row->unit,
+                        'qty_per_sale' => round((float)$row->qty_per_sale, 4),
+                    ])->values()->all(),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'ready' => true,
+            'items' => $items,
+            'recipes' => $recipes,
         ];
     }
 
