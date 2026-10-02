@@ -516,6 +516,17 @@ final class PmdInventoryOperationsService
             $id = (int)$duplicate->id;
         }
 
+        if ($id < 1) {
+            $existingId = DB::table('pmd_inventory_supplier_items')
+                ->where('location_id', $locationId)
+                ->where('supplier_id', $supplierId)
+                ->where('item_id', $itemId)
+                ->where('active', 1)
+                ->orderByDesc('is_primary')
+                ->value('id');
+            if ($existingId) $id = (int)$existingId;
+        }
+
         $isPrimary = $this->bool($data['is_primary'] ?? false);
         if ($isPrimary) {
             DB::table('pmd_inventory_item_identifiers')
