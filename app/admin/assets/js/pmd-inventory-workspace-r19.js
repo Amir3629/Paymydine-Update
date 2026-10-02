@@ -1210,7 +1210,12 @@
         category:template ? (template.category || '') : '',
         quantity:qty,
         unit:unit,
-        unit_cost:cost
+        unit_cost:cost,
+        package_to_base:sourceLine ? Number(sourceLine.package_to_base || 0) || null : null,
+        supplier_id:sourceLine ? (Number(sourceLine.supplier_id || 0) || null) : null,
+        supplier_item_id:sourceLine ? (Number(sourceLine.supplier_item_id || 0) || null) : null,
+        identifier_id:sourceLine ? (Number(sourceLine.identifier_id || 0) || null) : null,
+        barcode:sourceLine ? String(sourceLine.barcode || '') : ''
       };
     }).filter(function (line) { return line.item_name && line.quantity > 0; });
     if (!lines.length) return toast('Keep at least one purchase line with a quantity.', true);
@@ -1222,7 +1227,8 @@
       supplier_invoice_number:valueOf(workspace,'[data-r19-purchase-invoice]','').trim(),
       purchased_at:valueOf(workspace,'[data-r19-purchase-date]',todayKey()),
       lines:lines.map(function (line) {
-        line.supplier_id = currentSupplier ? Number(currentSupplier.id) : null;
+        if (!line.supplier_id && currentSupplier) line.supplier_id = Number(currentSupplier.id);
+        if (!line.package_to_base) delete line.package_to_base;
         return line;
       })
     };
