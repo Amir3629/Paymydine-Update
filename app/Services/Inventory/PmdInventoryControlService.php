@@ -429,6 +429,52 @@ final class PmdInventoryControlService
         $operations = [];
         try {
             $operations = app(PmdInventoryOperationsService::class)->snapshot($locationId);
+
+            $operationSettings = (array)($operations['settings'] ?? []);
+            if (!empty($operationSettings['low_stock_notifications'])) {
+                $operations['attention_alerts'] = collect($rows)
+                    ->filter(fn ($row) => in_array((string)($row['status'] ?? ''), ['critical', 'low'], true))
+                    ->sortBy(fn ($row) => ($row['status'] ?? '') === 'critical' ? 0 : 1)
+                    ->take(20)
+                    ->map(fn ($row) => [
+                        'item_id' => (int)$row['id'],
+                        'item_name' => (string)$row['name'],
+                        'status' => (string)$row['status'],
+                        'estimated_on_hand' => (float)$row['estimated_on_hand'],
+                        'unit' => (string)$row['unit'],
+                        'days_left' => $row['days_left'],
+                    ])
+                    ->values()
+                    ->all();
+            } else {
+                $operations['attention_alerts'] = [];
+            }
+
+            $operations['menu_availability_risk'] = [];
+            if (!empty($operationSettings['menu_availability_guard'])) {
+                $itemMap = collect($rows)->keyBy('id');
+                $risk = [];
+                foreach ($recipes as $recipe) {
+                    $blockedBy = [];
+                    foreach ((array)($recipe['lines'] ?? []) as $line) {
+                        $stock = $itemMap->get((int)($line['item_id'] ?? 0));
+                        if ($stock && (float)($stock['estimated_on_hand'] ?? 0) <= 0) {
+                            $blockedBy[] = [
+                                'item_id' => (int)$stock['id'],
+                                'item_name' => (string)$stock['name'],
+                            ];
+                        }
+                    }
+                    if ($blockedBy) {
+                        $risk[] = [
+                            'menu_id' => (int)($recipe['menu_id'] ?? 0),
+                            'menu_name' => (string)($recipe['menu_name'] ?? ''),
+                            'blocked_by' => $blockedBy,
+                        ];
+                    }
+                }
+                $operations['menu_availability_risk'] = $risk;
+            }
         } catch (\Throwable $ignored) {
             $operations = ['ready' => false];
         }
