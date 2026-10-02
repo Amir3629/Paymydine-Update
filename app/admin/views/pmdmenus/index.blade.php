@@ -191,7 +191,7 @@
 
 <div
     id="pmd-menu-manager-main"
-    class="pmd-owner-page pmd-menu-manager"
+    class="pmd-owner-page pmd-menu-manager{{ $pmdInitialInventoryR23 ? ' pmd-menu-inventory-r23-inventory' : '' }}"
     data-pmd-menu-manager
     data-pmd-combo-builder="0"
     data-pmd-can-manage-combos="{{ $canManageCombos ? '1' : '0' }}"
