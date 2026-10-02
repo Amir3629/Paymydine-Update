@@ -499,7 +499,7 @@ class Pmdmenus extends AdminController
         try {
             $inventory = app(PmdInventoryControlService::class);
             if ($inventory->ready()) {
-                $pmdInventorySnapshotR19 = $inventory->snapshot($this->pmdInventoryLocationR19());
+                $pmdInventorySnapshotR19 = $inventory->menuStockUsageSnapshot($this->pmdInventoryLocationR19());
             }
         } catch (\Throwable $error) {
             $pmdInventorySnapshotR19 = null;
@@ -521,7 +521,7 @@ class Pmdmenus extends AdminController
 
             return response()->json([
                 'ok' => true,
-                'snapshot' => $service->snapshot($this->pmdInventoryLocationR19()),
+                'snapshot' => $service->menuStockUsageSnapshot($this->pmdInventoryLocationR19()),
             ]);
         } catch (\Throwable $error) {
             return response()->json([
