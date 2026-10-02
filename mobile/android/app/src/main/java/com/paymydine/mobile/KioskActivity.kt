@@ -234,7 +234,12 @@ private fun KioskApp(
     }
 
     LaunchedEffect(store.isPaired()) {
-        if (store.isPaired()) loadProfile()
+        if (!store.isPaired()) return@LaunchedEffect
+
+        while (true) {
+            loadProfile()
+            delay(15_000L)
+        }
     }
 
     LaunchedEffect(screen, store.isPaired()) {
