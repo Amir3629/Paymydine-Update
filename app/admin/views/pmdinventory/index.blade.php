@@ -275,6 +275,7 @@
                     <button type="button" data-r19-mode="orders">Orders</button>
                     <button type="button" data-r19-mode="suppliers">Suppliers</button>
                     <button type="button" data-r19-mode="storage">Storage</button>
+                    <button type="button" data-r19-mode="prep">Prep</button>
                     <button type="button" data-r19-mode="waste">Waste</button>
                     <button type="button" data-r19-mode="shopping">Shopping</button>
                     <button type="button" data-r19-mode="ledger">Ledger</button>
@@ -569,6 +570,54 @@
                     <section class="pmd-inv-v24-card">
                         <div class="pmd-inv-v24-card-head"><h3>Storage balances</h3><span>Explicit purchase/transfer/waste movements by storage area.</span></div>
                         <div class="pmd-inv-v24-table" data-v24-storage-balances></div>
+                    </section>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-v24-pane" data-r19-pane="prep" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Prep & production</span>
+                            <h2>Turn ingredients into prepared stock</h2>
+                            <p>Create sub-recipes for sauces, doughs, broths and prep batches. Production consumes ingredients, creates output stock and records actual yield.</p>
+                        </div>
+                    </div>
+                    <div class="pmd-inv-v24-two">
+                        <section class="pmd-inv-v24-card">
+                            <h3>Create prep recipe</h3>
+                            <div class="pmd-inv-v24-grid pmd-inv-v24-grid--2">
+                                <label>Recipe name<input type="text" placeholder="Tomato sauce" data-v24-prep-name></label>
+                                <label>Output stock item<select data-v24-prep-output></select></label>
+                                <label>Standard output · base unit<input type="number" min="0.0001" step="0.01" value="1" data-v24-prep-output-qty></label>
+                                <label>Expected yield %<input type="number" min="1" max="1000" step="0.1" value="100" data-v24-prep-yield></label>
+                            </div>
+                            <div class="pmd-inv-v24-prep-lines" data-v24-prep-lines></div>
+                            <div class="pmd-inv-v24-actions">
+                                <button type="button" class="pmd-inv-r19-secondary" data-v24-prep-add-line>Add ingredient</button>
+                                <button type="button" class="pmd-inv-r19-primary" data-v24-prep-save>Save prep recipe</button>
+                            </div>
+                        </section>
+                        <section class="pmd-inv-v24-card">
+                            <h3>Produce batch</h3>
+                            <div class="pmd-inv-v24-grid pmd-inv-v24-grid--2">
+                                <label>Prep recipe<select data-v24-production-recipe></select></label>
+                                <label>Recipe batches<input type="number" min="0.0001" step="0.1" value="1" data-v24-production-multiplier></label>
+                                <label>Actual output · base unit<input type="number" min="0.0001" step="0.01" data-v24-production-output></label>
+                                <label>Source storage<select data-v24-production-source></select></label>
+                                <label>Output storage<select data-v24-production-storage></select></label>
+                                <label>Batch / lot code<input type="text" placeholder="Optional" data-v24-production-batch></label>
+                                <label>Expiry date<input type="date" data-v24-production-expiry></label>
+                                <label>Note<input type="text" placeholder="Optional" data-v24-production-note></label>
+                            </div>
+                            <button type="button" class="pmd-inv-r19-primary" data-v24-production-save>Record production</button>
+                        </section>
+                    </div>
+                    <section class="pmd-in-v24-card pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Prep recipes</h3><span>Ingredient quantities are stored in each item's base unit.</span></div>
+                        <div class="pmd-inv-v24-list" data-v24-prep-list></div>
+                    </section>
+                    <section class="pmd-inv-v24-card">
+                        <div class="pmd-inv-v24-card-head"><h3>Recent production</h3><span>Actual output, yield, cost, batch and expiry.</span></div>
+                        <div class="pmd-inv-v24-table" data-v24-production-history></div>
                     </section>
                 </section>
 
