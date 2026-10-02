@@ -11,6 +11,7 @@ use Admin\Models\Allergens_model;
 use Admin\Models\Categories_model;
 use Admin\Models\Menu_combos_model;
 use Admin\Models\Menus_model;
+use Admin\Services\PmdDefaultStaffRoleService;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
@@ -495,15 +496,23 @@ class Pmdmenus extends AdminController
         // PMD_MENU_INVENTORY_BRIDGE_R19
         // Menu cards can edit their own stock usage directly. Inventory remains
         // the data authority; Menu only receives a snapshot for the editor.
+        $pmdCanManageInventoryR19 = in_array(
+            $pmdMenuManagerRole,
+            ['owner', 'manager'],
+            true
+        );
         $pmdInventorySnapshotR19 = null;
-        try {
-            $inventory = app(PmdInventoryControlService::class);
-            if ($inventory->ready()) {
-                $pmdInventorySnapshotR19 = $inventory->menuStockUsageSnapshot($this->pmdInventoryLocationR19());
+        if ($pmdCanManageInventoryR19) {
+            try {
+                $inventory = app(PmdInventoryControlService::class);
+                if ($inventory->ready()) {
+                    $pmdInventorySnapshotR19 = $inventory->menuStockUsageSnapshot($this->pmdInventoryLocationR19());
+                }
+            } catch (\Throwable $error) {
+                $pmdInventorySnapshotR19 = null;
             }
-        } catch (\Throwable $error) {
-            $pmdInventorySnapshotR19 = null;
         }
+        $this->vars['pmdMenuCanManageInventoryR19'] = $pmdCanManageInventoryR19;
         $this->vars['pmdMenuInventorySnapshotR19'] = $pmdInventorySnapshotR19;
 
         return $this->makeView('pmdmenus/index');
@@ -512,6 +521,18 @@ class Pmdmenus extends AdminController
     public function onSaveStockUsageR19(): JsonResponse
     {
         try {
+            $role = app(PmdDefaultStaffRoleService::class)
+                ->roleCodeForUser(AdminAuth::getUser());
+
+            if (!in_array($role, [
+                PmdDefaultStaffRoleService::OWNER,
+                PmdDefaultStaffRoleService::MANAGER,
+                'owner',
+                'manager',
+            ], true)) {
+                abort(403);
+            }
+
             $service = app(PmdInventoryControlService::class);
             $service->saveRecipe(
                 $this->pmdInventoryLocationR19(),
