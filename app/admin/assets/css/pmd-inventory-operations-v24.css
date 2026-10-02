@@ -178,6 +178,18 @@ body.pmd-inventory-r19-page .pmd-inv-v24-modes button {
   display:grid;
   gap:3px;
 }
+.pmd-inv-v24-po-actions {
+  display:flex !important;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:6px !important;
+}
+.pmd-inv-v24-po-actions button {
+  min-height:36px !important;
+  padding:0 10px !important;
+  white-space:nowrap;
+  font-size:10.5px !important;
+}
 .pmd-inv-v24-po strong,
 .pmd-inv-v24-supplier strong {
   color:#153a32;
