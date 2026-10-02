@@ -1283,57 +1283,10 @@ final class PmdInventoryControlService
             $q->whereNotIn('o.status_id', $canceled);
         }
 
-        // PMD_INVENTORY_PAID_SALES_USAGE_R21
-        // Stock consumption follows the financial authority. A recipe is
-        // deducted as soon as its order is fully paid, even if the kitchen
-        // lifecycle is still Received / Preparing / Ready. This also prevents
-        // unpaid preparation orders from reducing theoretical on-hand stock.
-        $hasFinancialPaidSignal =
-            in_array('settlement_status', $orderCols, true)
-            || in_array('settled_at', $orderCols, true)
-            || (
-                in_array('settled_amount', $orderCols, true)
-                && in_array('order_total', $orderCols, true)
-            );
-
-        if ($hasFinancialPaidSignal) {
-            $q->where(function ($paid) use ($orderCols) {
-                $hasBranch = false;
-
-                if (in_array('settlement_status', $orderCols, true)) {
-                    $paid->whereIn('o.settlement_status', ['paid', 'settled']);
-                    $hasBranch = true;
-                }
-
-                if (in_array('settled_at', $orderCols, true)) {
-                    if ($hasBranch) {
-                        $paid->orWhereNotNull('o.settled_at');
-                    } else {
-                        $paid->whereNotNull('o.settled_at');
-                    }
-                    $hasBranch = true;
-                }
-
-                if (
-                    in_array('settled_amount', $orderCols, true)
-                    && in_array('order_total', $orderCols, true)
-                ) {
-                    $amountScope = function ($amount) {
-                        $amount
-                            ->where('o.order_total', '>', 0)
-                            ->whereColumn('o.settled_amount', '>=', 'o.order_total');
-                    };
-
-                    if ($hasBranch) {
-                        $paid->orWhere($amountScope);
-                    } else {
-                        $paid->where($amountScope);
-                    }
-                }
-            });
-        } elseif (in_array('status_id', $orderCols, true)) {
-            // Legacy tenants without settlement columns keep the historical
-            // operational fallback until their order schema is upgraded.
+        // Mirror the restaurant's existing stock-consumption lifecycle where
+        // possible: preparation/processing and completed orders represent
+        // actual kitchen/bar consumption better than a merely-created order.
+        if (in_array('status_id', $orderCols, true)) {
             $consuming = array_values(array_unique(array_merge(
                 $this->settingIds('processing_order_status'),
                 $this->settingIds('completed_order_status')
