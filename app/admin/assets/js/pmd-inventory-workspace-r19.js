@@ -1749,7 +1749,12 @@
       if (row) {
         var item = items().find(function (entry) { return Number(entry.id) === Number(row.getAttribute('data-r19-shopping-row')); });
         var value = row.lastElementChild;
-        if (item && value) value.textContent = money(Number(event.target.value || 0) * Number(item.purchase_unit_cost || 0));
+        if (item && value) {
+          value.textContent = money(
+            Number(event.target.value || 0) *
+            Number(row.getAttribute('data-unit-cost') || item.purchase_unit_cost || 0)
+          );
+        }
       }
     }
   });
