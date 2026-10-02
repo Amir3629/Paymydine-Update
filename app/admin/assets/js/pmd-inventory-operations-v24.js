@@ -14,6 +14,7 @@
   var state = {
     mode: '',
     poLines: [],
+    prepLines: [],
     scanLines: [],
     cameraStream: null,
     cameraTimer: null,
@@ -124,14 +125,14 @@
       node.innerHTML = supplierOptions(current, entry[1]);
     });
 
-    ['[data-v24-map-item]','[data-v24-code-item]','[data-v24-transfer-item]','[data-v24-return-item]','[data-v24-merge-keep]','[data-v24-merge-remove]'].forEach(function(selector){
+    ['[data-v24-map-item]','[data-v24-code-item]','[data-v24-transfer-item]','[data-v24-return-item]','[data-v24-merge-keep]','[data-v24-merge-remove]','[data-v24-prep-output]'].forEach(function(selector){
       var node = workspace.querySelector(selector);
       if (!node) return;
       var current = node.value;
       node.innerHTML = itemOptions(current);
     });
 
-    ['[data-v24-transfer-from]','[data-v24-transfer-to]','[data-v24-return-storage]','[data-v24-setting-storage]'].forEach(function(selector){
+    ['[data-v24-transfer-from]','[data-v24-transfer-to]','[data-v24-return-storage]','[data-v24-setting-storage]','[data-v24-production-source]','[data-v24-production-storage]'].forEach(function(selector){
       var node = workspace.querySelector(selector);
       if (!node) return;
       var current = node.value || (selector === '[data-v24-setting-storage]' ? settings.default_storage_location_id : '');
@@ -177,6 +178,7 @@
     if (mode === 'orders') renderOrders();
     if (mode === 'suppliers') renderSuppliers();
     if (mode === 'storage') renderStorage();
+    if (mode === 'prep') renderPrep();
     if (mode === 'ledger') renderLedger();
     if (mode === 'settings') renderSettings();
   }
@@ -385,6 +387,75 @@
           return '<div class="pmd-inv-v24-tr"><strong>' + esc(row.storage_name || 'Storage') + '</strong><span>' + esc(row.item_name) +
             '</span><span>' + esc(num(row.qty,2) + ' ' + row.unit) + '</span><span></span></div>';
         }).join('') || '<div class="pmd-inv-r19-empty">Storage-specific balances start building as purchases and transfers are assigned to locations.</div>');
+    }
+  }
+
+  function prepRecipeOptions(selected) {
+    var rows = Array.isArray(ops().prep_recipes) ? ops().prep_recipes : [];
+    return '<option value="">Choose prep recipe</option>' + rows.map(function(row){
+      return '<option value="' + esc(row.id) + '"' + (String(selected || '') === String(row.id) ? ' selected' : '') + '>' +
+        esc(row.name + ' → ' + row.output_item_name) + '</option>';
+    }).join('');
+  }
+
+  function renderPrepLines() {
+    var host = workspace.querySelector('[data-v24-prep-lines]');
+    if (!host) return;
+    if (!state.prepLines.length) {
+      host.innerHTML = '<div class="pmd-inv-r19-empty">Add the ingredients used for one standard prep batch.</div>';
+      return;
+    }
+    host.innerHTML = state.prepLines.map(function(line,index){
+      var item = itemById(line.item_id);
+      return '<div class="pmd-inv-v24-prep-line" data-v24-prep-line="' + index + '">' +
+        '<select data-v24-prep-line-item>' + itemOptions(line.item_id) + '</select>' +
+        '<input type="number" min="0.0001" step="0.0001" value="' + esc(line.qty_base || 1) + '" data-v24-prep-line-qty aria-label="Ingredient base quantity">' +
+        '<span>' + esc(item ? item.unit : 'base unit') + '</span>' +
+        '<button type="button" data-v24-prep-remove="' + index + '" aria-label="Remove">×</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  function updateProductionSuggestedOutput() {
+    var recipeId = Number(val('[data-v24-production-recipe]',0));
+    var recipe = (ops().prep_recipes || []).find(function(row){ return Number(row.id) === recipeId; });
+    var multiplier = Math.max(0.0001, Number(val('[data-v24-production-multiplier]',1) || 1));
+    var output = workspace.querySelector('[data-v24-production-output]');
+    if (recipe && output && !output.matches(':focus')) {
+      output.value = String(Number(recipe.output_qty || 1) * multiplier);
+    }
+  }
+
+  function renderPrep() {
+    var recipeSelect = workspace.querySelector('[data-v24-production-recipe]');
+    if (recipeSelect) {
+      var current = recipeSelect.value;
+      recipeSelect.innerHTML = prepRecipeOptions(current);
+      if (current) recipeSelect.value = current;
+    }
+    renderPrepLines();
+    updateProductionSuggestedOutput();
+
+    var list = workspace.querySelector('[data-v24-prep-list]');
+    if (list) {
+      var recipes = ops().prep_recipes || [];
+      list.innerHTML = recipes.map(function(recipe){
+        return '<article class="pmd-inv-v24-supplier"><div><strong>' + esc(recipe.name) + '</strong><span>' +
+          esc(recipe.lines.length + ' ingredient' + (recipe.lines.length === 1 ? '' : 's') + ' · expected yield ' + num(recipe.expected_yield_pct,1) + '%') +
+          '</span></div><div><strong>' + esc(num(recipe.output_qty,2) + ' ' + recipe.output_unit + ' ' + recipe.output_item_name) +
+          '</strong><span>' + esc(recipe.lines.slice(0,4).map(function(line){ return line.item_name + ' ' + num(line.qty_base,2) + line.unit; }).join(' · ')) + '</span></div></article>';
+      }).join('') || '<div class="pmd-inv-r19-empty">No prep recipes yet.</div>';
+    }
+
+    var history = workspace.querySelector('[data-v24-production-history]');
+    if (history) {
+      var rows = ops().recent_production || [];
+      history.innerHTML = '<div class="pmd-inv-v24-tr pmd-inv-v24-tr--head"><span>Produced</span><span>Recipe / output</span><span>Yield</span><span>Batch / cost</span></div>' +
+        (rows.map(function(row){
+          return '<div class="pmd-inv-v24-tr"><span>' + esc(String(row.produced_at || '').slice(0,16)) + '</span><strong>' +
+            esc(row.recipe_name + ' · ' + num(row.output_qty,2) + ' ' + row.output_unit) + '</strong><span>' +
+            esc(num(row.yield_pct,1) + '%') + '</span><span>' + esc((row.batch_code || 'No batch code') + ' · ' + money(row.input_cost)) + '</span></div>';
+        }).join('') || '<div class="pmd-inv-r19-empty">No production batches recorded yet.</div>');
     }
   }
 
@@ -867,7 +938,7 @@
     var mode = event.target.closest('[data-r19-mode]');
     if (!mode) return;
     var name = String(mode.getAttribute('data-r19-mode') || '');
-    if (['orders','suppliers','storage','ledger','settings'].indexOf(name) === -1) {
+    if (['orders','suppliers','storage','prep','ledger','settings'].indexOf(name) === -1) {
       state.mode = '';
       return;
     }
@@ -892,7 +963,7 @@
     var insight = target.closest('[data-v24-insight-mode]');
     if (insight) {
       var insightMode = String(insight.getAttribute('data-v24-insight-mode') || '');
-      if (['orders','suppliers','storage','ledger','settings'].indexOf(insightMode) !== -1) {
+      if (['orders','suppliers','storage','prep','ledger','settings'].indexOf(insightMode) !== -1) {
         setMode(insightMode);
       } else if (insightMode) {
         var legacyMode = workspace.querySelector('[data-r19-mode="' + insightMode + '"]');
@@ -1031,6 +1102,55 @@
       return;
     }
 
+    if (target.closest('[data-v24-prep-add-line]')) {
+      state.prepLines.push({item_id:0,qty_base:1});
+      renderPrepLines();
+      return;
+    }
+    var prepRemove = target.closest('[data-v24-prep-remove]');
+    if (prepRemove) {
+      state.prepLines.splice(Number(prepRemove.getAttribute('data-v24-prep-remove')),1);
+      renderPrepLines();
+      return;
+    }
+    if (target.closest('[data-v24-prep-save]')) {
+      var prepLines = Array.prototype.slice.call(workspace.querySelectorAll('[data-v24-prep-line]')).map(function(row){
+        return {
+          item_id:Number((row.querySelector('[data-v24-prep-line-item]') || {}).value || 0),
+          qty_base:Number((row.querySelector('[data-v24-prep-line-qty]') || {}).value || 0)
+        };
+      }).filter(function(line){ return line.item_id > 0 && line.qty_base > 0; });
+
+      request('onSavePrepRecipe',{
+        name:val('[data-v24-prep-name]',''),
+        output_item_id:Number(val('[data-v24-prep-output]',0)),
+        output_qty:Number(val('[data-v24-prep-output-qty]',1)),
+        expected_yield_pct:Number(val('[data-v24-prep-yield]',100)),
+        lines:prepLines
+      }).then(function(){
+        state.prepLines = [];
+        renderPrep();
+        toast('Prep recipe saved.');
+      }).catch(function(error){ toast(error.message || 'Could not save prep recipe.', true); });
+      return;
+    }
+    if (target.closest('[data-v24-production-save]')) {
+      request('onProduceBatch',{
+        prep_recipe_id:Number(val('[data-v24-production-recipe]',0)),
+        batch_multiplier:Number(val('[data-v24-production-multiplier]',1)),
+        output_qty:Number(val('[data-v24-production-output]',0)),
+        source_storage_location_id:Number(val('[data-v24-production-source]',0)) || null,
+        storage_location_id:Number(val('[data-v24-production-storage]',0)) || null,
+        batch_code:val('[data-v24-production-batch]',''),
+        expiry_date:val('[data-v24-production-expiry]',''),
+        notes:val('[data-v24-production-note]','')
+      }).then(function(){
+        renderPrep();
+        toast('Production batch recorded. Ingredients consumed and prepared stock added.');
+      }).catch(function(error){ toast(error.message || 'Could not record production.', true); });
+      return;
+    }
+
     if (target.closest('[data-v24-storage-save]')) {
       request('onSaveStorageLocation',{
         name:val('[data-v24-storage-name]',''),
@@ -1094,6 +1214,9 @@
   }, true);
 
   workspace.addEventListener('input', function(event){
+    if (event.target.matches('[data-v24-production-multiplier]')) {
+      updateProductionSuggestedOutput();
+    }
     var scanQty = event.target.closest('[data-v24-scan-qty]');
     if (scanQty) {
       var line = state.scanLines[Number(scanQty.getAttribute('data-v24-scan-qty'))];
@@ -1103,6 +1226,9 @@
   });
 
   workspace.addEventListener('change', function(event){
+    if (event.target.matches('[data-v24-production-recipe]')) {
+      updateProductionSuggestedOutput();
+    }
     if (event.target.matches('[data-r19-purchase-supplier-id]')) {
       var supplier = supplierById(event.target.value);
       var hidden = workspace.querySelector('[data-r19-purchase-supplier]');
