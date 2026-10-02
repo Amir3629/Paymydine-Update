@@ -91,7 +91,7 @@
                 </div>
                 <div class="pmd-owner-card__title">
                     <h2>{{ $pmdSettingsText('PayMyDine Device Control') }}</h2>
-                    <p>{{ $pmdSettingsText('One control plane for Table Companion, Android POS, KDS, customer displays and future kiosks.') }}</p>
+                    <p>{{ $pmdSettingsText('One control plane for Table Display, Android POS, KDS, customer displays and self-service kiosks.') }}</p>
                 </div>
                 <div class="pmd-owner-card__actions">
                     <span class="pmd-owner-status {{ (($devicePlatformStats['offline'] ?? 0) < 1) ? 'is-active' : '' }}">
