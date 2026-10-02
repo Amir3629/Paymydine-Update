@@ -1112,7 +1112,7 @@ final class PmdInventoryControlService
             throw new InvalidArgumentException('Stock item was not found.');
         }
 
-        return $this->movement(
+        $movementId = $this->movement(
             $locationId,
             $itemId,
             'WASTE',
@@ -1125,6 +1125,16 @@ final class PmdInventoryControlService
             null,
             now()->toDateTimeString()
         );
+
+        if (app(PmdInventoryOperationsService::class)->ready()) {
+            DB::table('pmd_inventory_movements')->where('id', $movementId)->update([
+                'storage_location_id' => max(0, (int)($data['storage_location_id'] ?? 0)) ?: null,
+                'lot_id' => max(0, (int)($data['lot_id'] ?? 0)) ?: null,
+                'updated_at' => now(),
+            ]);
+        }
+
+        return $movementId;
     }
 
     public function saveRecipe(int $locationId, ?int $staffId, array $data): void
@@ -1339,7 +1349,18 @@ final class PmdInventoryControlService
         $this->assertReady();
         $locationId = $this->location($locationId);
 
-        return (int)DB::table('pmd_inventory_receipts')->insertGetId([
+        $documentHash = $this->nullableText($fileMeta['document_hash'] ?? null, 64);
+        if ($documentHash !== null && Schema::hasColumn('pmd_inventory_receipts', 'document_hash')) {
+            $duplicate = DB::table('pmd_inventory_receipts')
+                ->where('location_id', $locationId)
+                ->where('document_hash', $documentHash)
+                ->exists();
+            if ($duplicate) {
+                throw new InvalidArgumentException('This supplier bill file was already scanned.');
+            }
+        }
+
+        $payload = [
             'location_id' => $locationId,
             'supplier_name' => $aiPayload['supplier_name'] ?? null,
             'purchased_at' => $aiPayload['purchase_date'] ?? now()->toDateString(),
@@ -1356,7 +1377,19 @@ final class PmdInventoryControlService
             'created_by' => $staffId,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        if (Schema::hasColumn('pmd_inventory_receipts', 'document_hash')) {
+            $payload['document_hash'] = $documentHash;
+        }
+        if (Schema::hasColumn('pmd_inventory_receipts', 'supplier_invoice_number')) {
+            $payload['supplier_invoice_number'] = $this->nullableText(
+                $aiPayload['invoice_number'] ?? $aiPayload['invoice_no'] ?? null,
+                120
+            );
+        }
+
+        return (int)DB::table('pmd_inventory_receipts')->insertGetId($payload);
     }
 
     private function soldUsageByItem(
