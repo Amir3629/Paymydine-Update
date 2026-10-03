@@ -692,7 +692,11 @@
                             <div class="pmd-inv-r24-stack" data-r24-price-changes></div>
                         </div>
                     </div>
-                    <div class="pmd-inv-r24-card">
+                    <div class="pmd-inv-r24-card" style="margin-top:14px">
+                        <div class="pmd-inv-r24-card__head"><div><span>Purchase controls</span><h3>Recent receipts & reversals</h3></div></div>
+                        <div class="pmd-inv-r24-stack" data-r24-receipt-corrections></div>
+                    </div>
+                    <div class="pmd-inv-r24-card" style="margin-top:14px">
                         <div class="pmd-inv-r24-card__head"><div><span>Audit trail</span><h3>Inventory ledger</h3></div></div>
                         <div class="pmd-inv-r24-table-wrap"><table class="pmd-inv-r24-table"><thead><tr><th>Time</th><th>Item</th><th>Movement</th><th>Quantity</th><th>Value</th><th>Storage</th><th>Staff</th></tr></thead><tbody data-r24-ledger></tbody></table></div>
                     </div>
