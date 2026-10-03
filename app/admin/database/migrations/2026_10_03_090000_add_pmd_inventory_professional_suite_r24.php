@@ -305,6 +305,59 @@ return new class extends Migration
             });
         }
 
+        if (!$schema->hasTable('pmd_inventory_preparations')) {
+            $schema->create('pmd_inventory_preparations', function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('location_id')->index();
+                $table->unsignedBigInteger('output_item_id')->index();
+                $table->string('name', 190);
+                $table->decimal('yield_qty', 16, 4)->default(1);
+                $table->boolean('active')->default(true)->index();
+                $table->unsignedBigInteger('updated_by')->nullable();
+                $table->timestamps();
+
+                $table->unique(
+                    ['location_id', 'output_item_id'],
+                    'pmd_inv_prep_output_item_uq'
+                );
+            });
+        }
+
+        if (!$schema->hasTable('pmd_inventory_preparation_lines')) {
+            $schema->create('pmd_inventory_preparation_lines', function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('preparation_id')->index();
+                $table->unsignedBigInteger('item_id')->index();
+                $table->decimal('qty_per_batch', 16, 4);
+                $table->timestamps();
+
+                $table->unique(
+                    ['preparation_id', 'item_id'],
+                    'pmd_inv_prep_line_item_uq'
+                );
+            });
+        }
+
+        if (!$schema->hasTable('pmd_inventory_production_batches')) {
+            $schema->create('pmd_inventory_production_batches', function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('location_id')->index();
+                $table->unsignedBigInteger('preparation_id')->index();
+                $table->unsignedBigInteger('output_item_id')->index();
+                $table->unsignedBigInteger('source_storage_location_id')->nullable()->index();
+                $table->unsignedBigInteger('output_storage_location_id')->nullable()->index();
+                $table->decimal('batch_count', 16, 4)->default(1);
+                $table->decimal('output_qty', 16, 4)->default(0);
+                $table->decimal('unit_cost', 16, 6)->default(0);
+                $table->string('lot_code', 120)->nullable();
+                $table->date('expires_at')->nullable()->index();
+                $table->unsignedBigInteger('staff_id')->nullable()->index();
+                $table->timestamp('produced_at')->index();
+                $table->text('note')->nullable();
+                $table->timestamps();
+            });
+        }
+
         if (!$schema->hasTable('pmd_inventory_price_history')) {
             $schema->create('pmd_inventory_price_history', function (Blueprint $table): void {
                 $table->bigIncrements('id');
