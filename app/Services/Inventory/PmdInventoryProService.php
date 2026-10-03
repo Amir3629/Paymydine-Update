@@ -24,6 +24,9 @@ final class PmdInventoryProService
         'pmd_inventory_lots',
         'pmd_inventory_purchase_orders',
         'pmd_inventory_purchase_order_lines',
+        'pmd_inventory_preparations',
+        'pmd_inventory_preparation_lines',
+        'pmd_inventory_production_batches',
         'pmd_inventory_price_history',
         'pmd_inventory_alert_states',
         'pmd_inventory_settings',
@@ -195,6 +198,80 @@ final class PmdInventoryProService
         }
         unset($order);
 
+        $preparations = DB::table('pmd_inventory_preparations as p')
+            ->leftJoin('pmd_inventory_items as o', 'o.id', '=', 'p.output_item_id')
+            ->where('p.location_id', $locationId)
+            ->where('p.active', 1)
+            ->orderBy('p.name')
+            ->get([
+                'p.*',
+                'o.name as output_item_name',
+                'o.base_unit as output_unit',
+                'o.unit_cost as output_unit_cost',
+            ])
+            ->map(fn ($row) => (array)$row)
+            ->all();
+
+        $preparationIds = array_values(array_filter(array_map(
+            static fn ($row) => (int)($row['id'] ?? 0),
+            $preparations
+        )));
+
+        $preparationLines = $preparationIds
+            ? DB::table('pmd_inventory_preparation_lines as pl')
+                ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'pl.item_id')
+                ->whereIn('pl.preparation_id', $preparationIds)
+                ->orderBy('i.name')
+                ->get([
+                    'pl.*',
+                    'i.name as item_name',
+                    'i.base_unit as unit',
+                    'i.unit_cost as item_unit_cost',
+                ])
+                ->groupBy('preparation_id')
+            : collect();
+
+        foreach ($preparations as &$preparation) {
+            $cost = 0.0;
+            $lines = collect($preparationLines->get((int)$preparation['id'], []))
+                ->map(function ($row) use (&$cost) {
+                    $line = (array)$row;
+                    $lineCost = (float)$row->qty_per_batch * (float)$row->item_unit_cost;
+                    $line['line_cost'] = round($lineCost, 4);
+                    $cost += $lineCost;
+                    return $line;
+                })
+                ->values()
+                ->all();
+
+            $preparation['lines'] = $lines;
+            $preparation['estimated_batch_cost'] = round($cost, 4);
+            $preparation['estimated_output_unit_cost'] = (float)$preparation['yield_qty'] > 0
+                ? round($cost / (float)$preparation['yield_qty'], 6)
+                : 0.0;
+        }
+        unset($preparation);
+
+        $productionBatches = DB::table('pmd_inventory_production_batches as b')
+            ->leftJoin('pmd_inventory_preparations as p', 'p.id', '=', 'b.preparation_id')
+            ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'b.output_item_id')
+            ->leftJoin('pmd_inventory_storage_locations as sl', 'sl.id', '=', 'b.output_storage_location_id')
+            ->leftJoin('staffs as s', 's.staff_id', '=', 'b.staff_id')
+            ->where('b.location_id', $locationId)
+            ->orderByDesc('b.produced_at')
+            ->orderByDesc('b.id')
+            ->limit(40)
+            ->get([
+                'b.*',
+                'p.name as preparation_name',
+                'i.name as output_item_name',
+                'i.base_unit as output_unit',
+                'sl.name as output_storage_name',
+                's.staff_name as staff_name',
+            ])
+            ->map(fn ($row) => (array)$row)
+            ->all();
+
         $purchaseReceipts = DB::table('pmd_inventory_receipts as r')
             ->leftJoin('staffs as s', 's.staff_id', '=', 'r.created_by')
             ->where('r.location_id', $locationId)
@@ -305,6 +382,8 @@ final class PmdInventoryProService
             'unallocated_stock' => $unallocated,
             'lots' => $lots,
             'purchase_orders' => $orders,
+            'preparations' => $preparations,
+            'production_batches' => $productionBatches,
             'purchase_receipts' => $purchaseReceipts,
             'price_history' => $priceHistory,
             'ledger' => $ledger,
