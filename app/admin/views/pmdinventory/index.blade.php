@@ -287,6 +287,7 @@
                     <button type="button" data-r19-mode="storage">Storage</button>
                     <button type="button" data-r19-mode="expiry">Expiry</button>
                     <button type="button" data-r19-mode="ledger">Ledger</button>
+                    <button type="button" data-r19-mode="analytics">Analytics</button>
                     <button type="button" data-r19-mode="settings">Settings</button>
                 </nav>
 
@@ -583,6 +584,30 @@
                     <section class="pmd-inv-r24-editor" data-r24-adjustment-editor hidden></section>
                     <label class="pmd-inv-r19-search pmd-inv-r24-ledger-search"><input type="search" placeholder="Search item, type, reason or staff…" data-r24-ledger-search></label>
                     <div class="pmd-inv-r24-list" data-r24-ledger-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="analytics" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Inventory analytics</span>
+                            <h2>Cost, waste, variance and supplier movement</h2>
+                            <p>Review operational signals from the same stock ledger without changing historical quantities.</p>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-secondary" data-r24-analytics-export>Export inventory snapshot</button>
+                    </div>
+                    <div class="pmd-inv-r24-metrics" data-r24-analytics-metrics></div>
+                    <div class="pmd-inv-r24-analytics-grid">
+                        <section class="pmd-inv-r24-analytics-panel">
+                            <div class="pmd-inv-r24-subsection-head"><div><span>Waste</span><h3>Highest recorded waste value</h3></div></div>
+                            <div class="pmd-inv-r24-list" data-r24-analytics-waste></div>
+                        </section>
+                        <section class="pmd-inv-r24-analytics-panel">
+                            <div class="pmd-inv-r24-subsection-head"><div><span>Count variance</span><h3>Items with the largest latest variance</h3></div></div>
+                            <div class="pmd-inv-r24-list" data-r24-analytics-variance></div>
+                        </section>
+                    </div>
+                    <div class="pmd-inv-r24-subsection-head"><div><span>Supplier pricing</span><h3>Latest package-price changes</h3></div></div>
+                    <div class="pmd-inv-r24-list" data-r24-analytics-prices></div>
                 </section>
 
                 <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="settings" hidden>
