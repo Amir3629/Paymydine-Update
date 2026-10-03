@@ -1097,6 +1097,7 @@
     var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
     var unknownCode = workspace.querySelector('[data-r19-barcode-unknown-code]');
     var type = workspace.querySelector('[data-r24-barcode-code-type]');
+    var typeSelect = workspace.querySelector('[data-r19-barcode-code-type-select]');
     var unit = workspace.querySelector('[data-r19-barcode-package-unit]');
     var base = workspace.querySelector('[data-r19-barcode-base-qty]');
 
@@ -1104,6 +1105,12 @@
     if (type) {
       var typeText = String(resolved && resolved.code_type || 'unknown').toUpperCase();
       type.textContent = typeText + (resolved && resolved.valid_gtin ? ' · valid GTIN check digit' : '') + ' · not linked yet';
+    }
+    if (typeSelect) {
+      var detected = String(resolved && resolved.code_type || 'auto');
+      typeSelect.value = ['gtin8','upca','ean13','gtin14','qr','internal'].indexOf(detected) !== -1
+        ? detected
+        : 'auto';
     }
     if (unknown) unknown.hidden = false;
 
@@ -1189,6 +1196,7 @@
     var item = items().find(function (row) { return Number(row.id) === itemId; });
     if (!code || !item || state.busy) return;
 
+    var codeTypeNode = workspace.querySelector('[data-r19-barcode-code-type-select]');
     var packageUnitNode = workspace.querySelector('[data-r19-barcode-package-unit]');
     var baseQtyNode = workspace.querySelector('[data-r19-barcode-base-qty]');
     var supplierNode = workspace.querySelector('[data-r19-barcode-supplier]');
@@ -1206,7 +1214,7 @@
     api.request('onSaveIdentifier', {
       item_id:Number(item.id),
       code:code,
-      code_type:'auto',
+      code_type:String(codeTypeNode && codeTypeNode.value || 'auto'),
       package_unit:packageUnit,
       package_quantity:1,
       base_quantity:baseQty,
