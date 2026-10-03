@@ -289,6 +289,8 @@ final class PmdInventoryProService
                 'r.purchased_at',
                 'r.source',
                 'r.total_amount',
+                'r.purchase_order_id',
+                'r.reconciliation_json',
                 'r.confirmed_at',
                 'r.reversed_at',
                 'r.reversed_by',
