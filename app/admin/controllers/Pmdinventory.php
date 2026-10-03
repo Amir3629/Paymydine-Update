@@ -144,6 +144,46 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onProSaveSupplierItem(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->saveSupplierItem(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'supplier_item_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProArchiveSupplierItem(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->archiveSupplierItem(
+                $this->locationId(),
+                (int)request()->input('supplier_item_id', 0)
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onProArchiveSupplier(): JsonResponse
     {
         $this->assertOwnerOrManager();
