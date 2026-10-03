@@ -325,6 +325,25 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onProReconcileReceipt(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $result = $service->reconcileReceiptToPurchaseOrder(
+                $this->locationId(),
+                (int)request()->input('receipt_id', 0),
+                (int)request()->input('purchase_order_id', 0)
+            );
+
+            return [
+                'reconciliation' => $result,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onProSavePurchaseOrder(): JsonResponse
     {
         $this->assertOwnerOrManager();
