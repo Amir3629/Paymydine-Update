@@ -6,6 +6,7 @@ use App\Services\RestaurantGroups\Auth;
 use App\Services\RestaurantGroups\Store;
 use App\Services\RestaurantGroups\SupportMfaReset;
 use App\Services\RestaurantGroups\Totp;
+use App\Services\RestaurantGroups\TrustedLogin;
 use Illuminate\Support\ServiceProvider;
 
 final class RestaurantGroupsServiceProvider extends ServiceProvider
@@ -34,6 +35,10 @@ final class RestaurantGroupsServiceProvider extends ServiceProvider
         // Existing Login.php and support flows continue calling the canonical
         // service classes; the group-aware wrappers fall back for legacy owners.
         $this->app->bind(\App\Services\PmdOwnerTotpService::class, Totp::class);
+        $this->app->bind(
+            \App\Services\PmdTrustedLoginDeviceService::class,
+            TrustedLogin::class
+        );
         $this->app->bind(
             \App\Services\PmdSuperAdminOwnerMfaResetService::class,
             SupportMfaReset::class

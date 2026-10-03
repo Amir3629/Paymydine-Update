@@ -153,7 +153,6 @@ final class Totp extends PmdOwnerTotpService
                 'secret_encrypted' => Crypt::encryptString((string)$enrollment['secret']),
                 'last_used_step' => $step,
                 'confirmed_at' => now(),
-                'mfa_reset_at' => null,
                 'updated_at' => now(),
             ]);
 
