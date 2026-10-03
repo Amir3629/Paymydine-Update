@@ -195,6 +195,28 @@ final class PmdInventoryProService
         }
         unset($order);
 
+        $purchaseReceipts = DB::table('pmd_inventory_receipts as r')
+            ->leftJoin('staffs as s', 's.staff_id', '=', 'r.created_by')
+            ->where('r.location_id', $locationId)
+            ->whereNotNull('r.confirmed_at')
+            ->orderByDesc('r.confirmed_at')
+            ->orderByDesc('r.id')
+            ->limit(30)
+            ->get([
+                'r.id',
+                'r.supplier_name',
+                'r.invoice_number',
+                'r.purchased_at',
+                'r.source',
+                'r.total_amount',
+                'r.confirmed_at',
+                'r.reversed_at',
+                'r.reversed_by',
+                's.staff_name as staff_name',
+            ])
+            ->map(fn ($row) => (array)$row)
+            ->all();
+
         $priceHistory = DB::table('pmd_inventory_price_history as ph')
             ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'ph.item_id')
             ->leftJoin('pmd_inventory_suppliers as s', 's.id', '=', 'ph.supplier_id')
@@ -283,6 +305,7 @@ final class PmdInventoryProService
             'unallocated_stock' => $unallocated,
             'lots' => $lots,
             'purchase_orders' => $orders,
+            'purchase_receipts' => $purchaseReceipts,
             'price_history' => $priceHistory,
             'ledger' => $ledger,
             'settings' => $settings,
