@@ -804,6 +804,17 @@ final class PmdInventoryControlService
         $invoiceNumber = $this->nullableText($data['invoice_number'] ?? null, 120);
         $deliveryNote = $this->nullableText($data['delivery_note_number'] ?? null, 120);
 
+        $ops = app(PmdInventoryOperationsService::class);
+        if ($ops->ready()) {
+            $ops->assertInvoiceNumberUnique(
+                $locationId,
+                $supplierId > 0 ? $supplierId : null,
+                $supplier,
+                $invoiceNumber,
+                $receiptId
+            );
+        }
+
         $prePurchase = $this->snapshot($locationId);
         $stockBefore = [];
         foreach ((array)($prePurchase['items'] ?? []) as $before) {
