@@ -1418,6 +1418,7 @@ final class PmdInventoryControlService
                     $payload['blind_count'] = $blind;
                 }
                 DB::table('pmd_inventory_counts')->where('id', (int)$existing->id)->update($payload);
+                $this->seedCountDraft($locationId, (int)$existing->id, $scope);
                 return (int)$existing->id;
             }
 
@@ -1443,7 +1444,92 @@ final class PmdInventoryControlService
             $payload['blind_count'] = $blind;
         }
 
-        return (int)DB::table('pmd_inventory_counts')->insertGetId($payload);
+        $countId = (int)DB::table('pmd_inventory_counts')->insertGetId($payload);
+        $this->seedCountDraft($locationId, $countId, $scope);
+        return $countId;
+    }
+
+    public function countDraft(int $locationId, ?int $staffId, int $countId): array
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        $count = DB::table('pmd_inventory_counts')
+            ->where('location_id', $locationId)
+            ->where('id', $countId)
+            ->where('status', 'in_progress')
+            ->first();
+
+        if (!$count) {
+            return ['count_id' => 0, 'lines' => []];
+        }
+        if ($staffId && (int)($count->staff_id ?? 0) > 0 && (int)$count->staff_id !== (int)$staffId) {
+            throw new InvalidArgumentException('This physical count belongs to another staff member.');
+        }
+
+        $lines = DB::table('pmd_inventory_count_lines')
+            ->where('count_id', $countId)
+            ->orderBy('id')
+            ->get()
+            ->map(static fn ($line) => [
+                'item_id' => (int)$line->item_id,
+                'counted_qty' => round((float)$line->counted_qty, 4),
+                'is_counted' => (bool)($line->is_counted ?? false),
+            ])
+            ->all();
+
+        return [
+            'count_id' => $countId,
+            'blind_count' => (bool)($count->blind_count ?? true),
+            'scope_item_ids' => $this->arrayValue($count->scope_json ?? []),
+            'lines' => $lines,
+        ];
+    }
+
+    public function saveCountProgress(
+        int $locationId,
+        ?int $staffId,
+        int $countId,
+        int $itemId,
+        float $countedQty
+    ): void {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        $count = DB::table('pmd_inventory_counts')
+            ->where('location_id', $locationId)
+            ->where('id', $countId)
+            ->where('status', 'in_progress')
+            ->first();
+
+        if (!$count) {
+            throw new InvalidArgumentException('Physical count session is not active.');
+        }
+        if ($staffId && (int)($count->staff_id ?? 0) > 0 && (int)$count->staff_id !== (int)$staffId) {
+            throw new InvalidArgumentException('This physical count belongs to another staff member.');
+        }
+
+        $exists = DB::table('pmd_inventory_count_lines')
+            ->where('count_id', $countId)
+            ->where('item_id', $itemId)
+            ->exists();
+
+        if (!$exists) {
+            throw new InvalidArgumentException('This stock item is not part of the active count scope.');
+        }
+
+        $payload = [
+            'counted_qty' => max(0, round($countedQty, 4)),
+            'updated_at' => now(),
+        ];
+        if (Schema::hasColumn('pmd_inventory_count_lines', 'is_counted')) {
+            $payload['is_counted'] = 1;
+        }
+
+        DB::table('pmd_inventory_count_lines')
+            ->where('count_id', $countId)
+            ->where('item_id', $itemId)
+            ->update($payload);
     }
 
     public function cancelCount(int $locationId, ?int $staffId, int $countId): void
@@ -1595,7 +1681,7 @@ final class PmdInventoryControlService
                 $counted = max(0, $this->number($line['counted_qty'] ?? 0, 0));
                 $expectedQty = (float)$expected[$itemId];
 
-                DB::table('pmd_inventory_count_lines')->insert([
+                $linePayload = [
                     'count_id' => $countId,
                     'item_id' => $itemId,
                     'expected_qty' => $expectedQty,
@@ -1604,7 +1690,11 @@ final class PmdInventoryControlService
                     'unit_cost_snapshot' => (float)($costs[$itemId] ?? 0),
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
+                if (Schema::hasColumn('pmd_inventory_count_lines', 'is_counted')) {
+                    $linePayload['is_counted'] = 1;
+                }
+                DB::table('pmd_inventory_count_lines')->insert($linePayload);
             }
 
             // Partial counts still need a complete new baseline for the core
@@ -1617,7 +1707,7 @@ final class PmdInventoryControlService
                 }
 
                 $expectedQty = max(0, (float)$expected[$itemId]);
-                DB::table('pmd_inventory_count_lines')->insert([
+                $carryPayload = [
                     'count_id' => $countId,
                     'item_id' => $itemId,
                     'expected_qty' => $expectedQty,
@@ -1626,11 +1716,55 @@ final class PmdInventoryControlService
                     'unit_cost_snapshot' => (float)($costs[$itemId] ?? 0),
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
+                if (Schema::hasColumn('pmd_inventory_count_lines', 'is_counted')) {
+                    $carryPayload['is_counted'] = 0;
+                }
+                DB::table('pmd_inventory_count_lines')->insert($carryPayload);
             }
 
             return $countId;
         });
+    }
+
+    private function seedCountDraft(int $locationId, int $countId, array $scopeIds): void
+    {
+        $snapshot = $this->snapshot($locationId);
+        $scopeIds = array_values(array_unique(array_filter(array_map('intval', $scopeIds))));
+        $rows = collect($snapshot['items'] ?? [])
+            ->filter(static function ($row) use ($scopeIds) {
+                return !$scopeIds || in_array((int)($row['id'] ?? 0), $scopeIds, true);
+            });
+
+        foreach ($rows as $row) {
+            $itemId = (int)($row['id'] ?? 0);
+            if ($itemId < 1) {
+                continue;
+            }
+
+            $exists = DB::table('pmd_inventory_count_lines')
+                ->where('count_id', $countId)
+                ->where('item_id', $itemId)
+                ->exists();
+            if ($exists) {
+                continue;
+            }
+
+            $payload = [
+                'count_id' => $countId,
+                'item_id' => $itemId,
+                'expected_qty' => (float)($row['estimated_on_hand'] ?? 0),
+                'counted_qty' => 0,
+                'variance_qty' => 0,
+                'unit_cost_snapshot' => (float)($row['unit_cost'] ?? 0),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+            if (Schema::hasColumn('pmd_inventory_count_lines', 'is_counted')) {
+                $payload['is_counted'] = 0;
+            }
+            DB::table('pmd_inventory_count_lines')->insert($payload);
+        }
     }
 
     public function createReceiptReview(
