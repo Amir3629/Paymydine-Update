@@ -6,10 +6,12 @@ on:
       - fix/qpos-fast-first-paint-r132
       - fix/qpos-r134-lazy-floor-boot
       - fix/qpos-r135-minimal-boot
+      - fix/qpos-r136-payment-freeze
       - main
     paths:
       - 'app/admin/assets/js/pmd-quick-pos-v1.js'
       - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
+      - 'app/admin/assets/js/pmd-table-display-waiter-payment-v1.js'
       - 'app/admin/views/pmd_quick_pos_v1.blade.php'
       - '.github/workflows/qpos-first-paint-guard.yml'
 
@@ -23,6 +25,7 @@ jobs:
           sparse-checkout: |
             app/admin/assets/js/pmd-quick-pos-v1.js
             app/admin/assets/js/pmd-qpos-web-parity-v112.js
+            app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
             app/admin/views/pmd_quick_pos_v1.blade.php
           sparse-checkout-cone-mode: false
 
@@ -30,6 +33,7 @@ jobs:
         run: |
           node --check app/admin/assets/js/pmd-quick-pos-v1.js
           node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          node --check app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
 
       - name: Guard fast first paint contract
         run: |
@@ -60,3 +64,7 @@ jobs:
 
           grep -Fq 'pmd-quick-pos-v1.js?v=20261003-r135'             app/admin/views/pmd_quick_pos_v1.blade.php
           grep -Fq 'pmd-qpos-web-parity-v112.js?v=20261003-r135'      app/admin/views/pmd_quick_pos_v1.blade.php
+
+          grep -Fq 'PMD_QPOS_PAYMENT_FREEZE_R136' app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+          ! grep -Fq "attributeFilter: ['class', 'hidden']" app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+          grep -Fq 'pmd-table-display-waiter-payment-v1.js?v=20261004-r136' app/admin/views/pmd_quick_pos_v1.blade.php

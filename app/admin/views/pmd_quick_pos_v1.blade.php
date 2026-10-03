@@ -1114,6 +1114,8 @@ window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
     initialCreateBootstrap: null
 });
 </script>
+{{-- PMD_QPOS_PAYMENT_FREEZE_R136
+     Table-device payment runtime is lazy and uses a non-recursive modal observer. --}}
 {{-- PMD_QPOS_MINIMAL_BOOT_R135
      Reservation Composer is loaded only when Reservations is opened. --}}
 
@@ -1216,7 +1218,7 @@ window.PMDQuickPOSConfig = {
     function loadTablePayment() {
         return loadScript(
             'pmd-qpos-table-payment-r135',
-            '/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261001-r2',
+            '/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261004-r136',
             function () { return !!window.PMDTableDisplayWaiterPaymentV1; }
         );
     }
