@@ -581,6 +581,11 @@
                             <p>Operational controls stay auditable: no silent stock edits, and purchase/transfer/production movements remain in the ledger.</p>
                         </div>
                         <div class="pmd-inv-r19-head-actions">
+                            <label class="pmd-inv-r19-secondary pmd-inv-r24-import">
+                                <input type="file" accept=".csv,text/csv" data-r24-import-stock hidden>
+                                <span>Import stock CSV</span>
+                            </label>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-download-template>CSV template</button>
                             <button type="button" class="pmd-inv-r19-secondary" data-r24-export-stock>Export stock CSV</button>
                             <button type="button" class="pmd-inv-r19-secondary" data-r24-export-purchases>Export purchases CSV</button>
                         </div>
