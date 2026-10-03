@@ -796,6 +796,357 @@ final class PmdInventoryProService
         );
     }
 
+    public function savePreparation(int $locationId, ?int $staffId, array $data): int
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $id = max(0, (int)($data['preparation_id'] ?? 0));
+        $outputItemId = max(0, (int)($data['output_item_id'] ?? 0));
+        $outputItem = $this->item($locationId, $outputItemId);
+        $name = trim((string)($data['name'] ?? $outputItem->name));
+        $yieldQty = max(0.0001, $this->number($data['yield_qty'] ?? 1, 1));
+        $lines = array_values(array_filter((array)($data['lines'] ?? []), 'is_array'));
+
+        if ($name === '') {
+            throw new InvalidArgumentException('Preparation name is required.');
+        }
+        if (!$lines) {
+            throw new InvalidArgumentException('Add at least one ingredient to the preparation.');
+        }
+
+        $normalizedLines = [];
+        foreach ($lines as $line) {
+            $itemId = max(0, (int)($line['item_id'] ?? 0));
+            $qty = max(0, $this->number($line['qty_per_batch'] ?? 0));
+            if ($itemId < 1 || $qty <= 0) continue;
+            if ($itemId === $outputItemId) {
+                throw new InvalidArgumentException('A prepared item cannot consume itself.');
+            }
+            $this->item($locationId, $itemId);
+            $normalizedLines[$itemId] = ($normalizedLines[$itemId] ?? 0) + $qty;
+        }
+
+        if (!$normalizedLines) {
+            throw new InvalidArgumentException('Add at least one valid preparation ingredient.');
+        }
+
+        return DB::transaction(function () use (
+            $locationId,
+            $staffId,
+            $id,
+            $outputItemId,
+            $name,
+            $yieldQty,
+            $normalizedLines
+        ) {
+            $row = [
+                'location_id' => $locationId,
+                'output_item_id' => $outputItemId,
+                'name' => mb_substr($name, 0, 190),
+                'yield_qty' => round($yieldQty, 4),
+                'active' => 1,
+                'updated_by' => $staffId,
+                'updated_at' => now(),
+            ];
+
+            if ($id > 0) {
+                $exists = DB::table('pmd_inventory_preparations')
+                    ->where('location_id', $locationId)
+                    ->where('id', $id)
+                    ->exists();
+                if (!$exists) {
+                    throw new InvalidArgumentException('Preparation recipe was not found.');
+                }
+                DB::table('pmd_inventory_preparations')
+                    ->where('location_id', $locationId)
+                    ->where('id', $id)
+                    ->update($row);
+                $preparationId = $id;
+            } else {
+                $existing = DB::table('pmd_inventory_preparations')
+                    ->where('location_id', $locationId)
+                    ->where('output_item_id', $outputItemId)
+                    ->first();
+                if ($existing) {
+                    throw new InvalidArgumentException('This prepared stock item already has a preparation recipe.');
+                }
+
+                $row['created_at'] = now();
+                $preparationId = (int)DB::table('pmd_inventory_preparations')
+                    ->insertGetId($row);
+            }
+
+            DB::table('pmd_inventory_preparation_lines')
+                ->where('preparation_id', $preparationId)
+                ->delete();
+
+            foreach ($normalizedLines as $itemId => $qty) {
+                DB::table('pmd_inventory_preparation_lines')->insert([
+                    'preparation_id' => $preparationId,
+                    'item_id' => (int)$itemId,
+                    'qty_per_batch' => round($qty, 4),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return $preparationId;
+        });
+    }
+
+    public function archivePreparation(int $locationId, int $preparationId): void
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        DB::table('pmd_inventory_preparations')
+            ->where('location_id', $locationId)
+            ->where('id', $preparationId)
+            ->update([
+                'active' => 0,
+                'updated_at' => now(),
+            ]);
+    }
+
+    public function producePreparation(
+        int $locationId,
+        ?int $staffId,
+        array $data
+    ): int {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $preparationId = max(0, (int)($data['preparation_id'] ?? 0));
+        $batchCount = max(0, $this->number($data['batch_count'] ?? 1, 1));
+        if ($batchCount <= 0) {
+            throw new InvalidArgumentException('Batch count must be greater than zero.');
+        }
+
+        $preparation = DB::table('pmd_inventory_preparations')
+            ->where('location_id', $locationId)
+            ->where('id', $preparationId)
+            ->where('active', 1)
+            ->first();
+
+        if (!$preparation) {
+            throw new InvalidArgumentException('Preparation recipe was not found.');
+        }
+
+        $outputItem = $this->item($locationId, (int)$preparation->output_item_id);
+        $lines = DB::table('pmd_inventory_preparation_lines')
+            ->where('preparation_id', $preparationId)
+            ->get();
+
+        if ($lines->isEmpty()) {
+            throw new InvalidArgumentException('Preparation recipe has no ingredients.');
+        }
+
+        $sourceStorageId = max(0, (int)($data['source_storage_location_id'] ?? 0))
+            ?: $this->defaultStorageLocationId($locationId);
+        $outputStorageId = max(0, (int)($data['output_storage_location_id'] ?? 0))
+            ?: $sourceStorageId;
+        $this->storageLocation($locationId, $sourceStorageId);
+        $this->storageLocation($locationId, $outputStorageId);
+
+        $plannedOutput = (float)$preparation->yield_qty * $batchCount;
+        $actualOutput = max(
+            0.0001,
+            $this->number($data['output_qty'] ?? $plannedOutput, $plannedOutput)
+        );
+
+        $settings = (array)DB::table('pmd_inventory_settings')
+            ->where('location_id', $locationId)
+            ->first();
+        $allowNegative = !empty($settings['allow_negative_stock']);
+
+        $ingredientPlan = [];
+        $inputCost = 0.0;
+        foreach ($lines as $line) {
+            $ingredient = $this->item($locationId, (int)$line->item_id);
+            $qty = max(0, (float)$line->qty_per_batch * $batchCount);
+            if ($qty <= 0) continue;
+
+            $available = $this->storageBalance(
+                $locationId,
+                $sourceStorageId,
+                (int)$ingredient->id
+            );
+
+            if (!$allowNegative && $available + 0.00005 < $qty) {
+                throw new InvalidArgumentException(
+                    'Not enough '.$ingredient->name.' is allocated in the selected source storage.'
+                );
+            }
+
+            $cost = max(0, (float)$ingredient->unit_cost);
+            $ingredientPlan[] = [
+                'item' => $ingredient,
+                'qty' => $qty,
+                'unit_cost' => $cost,
+            ];
+            $inputCost += $qty * $cost;
+        }
+
+        if (!$ingredientPlan) {
+            throw new InvalidArgumentException('Preparation has no consumable ingredient quantity.');
+        }
+
+        $outputUnitCost = $actualOutput > 0
+            ? max(0, $inputCost / $actualOutput)
+            : 0.0;
+
+        return DB::transaction(function () use (
+            $locationId,
+            $staffId,
+            $preparation,
+            $preparationId,
+            $outputItem,
+            $batchCount,
+            $actualOutput,
+            $outputUnitCost,
+            $sourceStorageId,
+            $outputStorageId,
+            $ingredientPlan,
+            $settings,
+            $data
+        ) {
+            $batchId = (int)DB::table('pmd_inventory_production_batches')
+                ->insertGetId([
+                    'location_id' => $locationId,
+                    'preparation_id' => $preparationId,
+                    'output_item_id' => (int)$outputItem->id,
+                    'source_storage_location_id' => $sourceStorageId,
+                    'output_storage_location_id' => $outputStorageId,
+                    'batch_count' => round($batchCount, 4),
+                    'output_qty' => round($actualOutput, 4),
+                    'unit_cost' => round($outputUnitCost, 6),
+                    'lot_code' => $this->nullableText($data['lot_code'] ?? null, 120),
+                    'expires_at' => $this->nullableDate($data['expires_at'] ?? null),
+                    'staff_id' => $staffId,
+                    'produced_at' => now(),
+                    'note' => $this->nullableText($data['note'] ?? null, 5000),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            foreach ($ingredientPlan as $entry) {
+                $ingredient = $entry['item'];
+                $qty = (float)$entry['qty'];
+                $cost = (float)$entry['unit_cost'];
+
+                DB::table('pmd_inventory_movements')->insert([
+                    'location_id' => $locationId,
+                    'item_id' => (int)$ingredient->id,
+                    'movement_type' => 'PRODUCTION_INPUT',
+                    'qty_delta' => round(-$qty, 4),
+                    'unit_cost' => round($cost, 6),
+                    'reference_type' => 'production_batch',
+                    'reference_id' => $batchId,
+                    'reason' => 'Prep production',
+                    'note' => (string)$preparation->name,
+                    'staff_id' => $staffId,
+                    'occurred_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                $this->storageMovement(
+                    $locationId,
+                    $sourceStorageId,
+                    (int)$ingredient->id,
+                    -$qty,
+                    'PRODUCTION_INPUT',
+                    $staffId,
+                    'production_batch',
+                    $batchId,
+                    (string)$preparation->name
+                );
+            }
+
+            DB::table('pmd_inventory_movements')->insert([
+                'location_id' => $locationId,
+                'item_id' => (int)$outputItem->id,
+                'movement_type' => 'PRODUCTION_OUTPUT',
+                'qty_delta' => round($actualOutput, 4),
+                'unit_cost' => round($outputUnitCost, 6),
+                'reference_type' => 'production_batch',
+                'reference_id' => $batchId,
+                'reason' => 'Prep production',
+                'note' => (string)$preparation->name,
+                'staff_id' => $staffId,
+                'occurred_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            $this->storageMovement(
+                $locationId,
+                $outputStorageId,
+                (int)$outputItem->id,
+                $actualOutput,
+                'PRODUCTION_OUTPUT',
+                $staffId,
+                'production_batch',
+                $batchId,
+                (string)$preparation->name
+            );
+
+            $storedCost = $outputUnitCost;
+            if (($settings['costing_method'] ?? 'last_purchase') === 'weighted_average') {
+                try {
+                    $core = app(PmdInventoryControlService::class)->snapshot($locationId);
+                    $current = collect((array)($core['items'] ?? []))->first(
+                        fn ($row) => (int)($row['id'] ?? 0) === (int)$outputItem->id
+                    );
+                    if (is_array($current)) {
+                        // Snapshot already includes this production movement, so
+                        // remove the just-produced quantity to recover the prior
+                        // on-hand for weighted-average costing.
+                        $afterQty = max(0, (float)($current['estimated_on_hand'] ?? 0));
+                        $oldQty = max(0, $afterQty - $actualOutput);
+                        if (($oldQty + $actualOutput) > 0.00005) {
+                            $storedCost = (
+                                ($oldQty * max(0, (float)$outputItem->unit_cost))
+                                + ($actualOutput * $outputUnitCost)
+                            ) / ($oldQty + $actualOutput);
+                        }
+                    }
+                } catch (\Throwable $ignored) {
+                    $storedCost = $outputUnitCost;
+                }
+            }
+
+            DB::table('pmd_inventory_items')
+                ->where('location_id', $locationId)
+                ->where('id', (int)$outputItem->id)
+                ->update([
+                    'unit_cost' => round($storedCost, 6),
+                    'updated_at' => now(),
+                ]);
+
+            DB::table('pmd_inventory_lots')->insert([
+                'location_id' => $locationId,
+                'item_id' => (int)$outputItem->id,
+                'supplier_id' => null,
+                'identifier_id' => null,
+                'storage_location_id' => $outputStorageId,
+                'receipt_id' => null,
+                'purchase_order_id' => null,
+                'purchase_order_line_id' => null,
+                'lot_code' => $this->nullableText($data['lot_code'] ?? null, 120),
+                'expires_at' => $this->nullableDate($data['expires_at'] ?? null),
+                'received_at' => now()->toDateString(),
+                'qty_received' => round($actualOutput, 4),
+                'qty_remaining' => round($actualOutput, 4),
+                'unit_cost' => round($outputUnitCost, 6),
+                'active' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return $batchId;
+        });
+    }
+
     public function savePurchaseOrder(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
