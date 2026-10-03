@@ -268,12 +268,15 @@
                     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
                 ) !!}</script>
 
-                <nav class="pmd-inv-r19-modes" aria-label="Inventory workspace">
+                <nav class="pmd-inv-r19-modes pmd-inv-r24-modes" aria-label="Inventory workspace">
                     <button type="button" class="is-active" data-r19-mode="overview">Overview</button>
                     <button type="button" data-r19-mode="stock">Stock</button>
                     <button type="button" data-r19-mode="purchases">Purchases</button>
+                    <button type="button" data-r19-mode="orders">Orders</button>
+                    <button type="button" data-r19-mode="suppliers">Suppliers</button>
                     <button type="button" data-r19-mode="waste">Waste</button>
                     <button type="button" data-r19-mode="shopping">Shopping</button>
+                    <button type="button" data-r19-mode="operations">Operations</button>
                 </nav>
 
                 <section class="pmd-inv-r19-pane is-active" data-r19-pane="overview">
