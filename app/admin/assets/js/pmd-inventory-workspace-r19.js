@@ -1396,7 +1396,7 @@
   }
 
   function setMode(mode) {
-    mode = ['overview','stock','purchases','waste','shopping'].indexOf(mode) !== -1 ? mode : 'overview';
+    mode = ['overview','stock','purchases','orders','suppliers','waste','shopping','operations'].indexOf(mode) !== -1 ? mode : 'overview';
     state.mode = mode;
     workspace.querySelectorAll('[data-r19-mode]').forEach(function (button) {
       button.classList.toggle('is-active', button.getAttribute('data-r19-mode') === mode);
@@ -1411,6 +1411,13 @@
     if (mode === 'purchases') renderPurchaseGrid(true);
     if (mode === 'waste') renderWaste();
     if (mode === 'shopping') renderShopping();
+    if (
+      ['orders','suppliers','operations'].indexOf(mode) !== -1
+      && window.PMDInventoryOperationsR24
+      && typeof window.PMDInventoryOperationsR24.render === 'function'
+    ) {
+      window.PMDInventoryOperationsR24.render();
+    }
 
     if (!embedded) {
       try {
@@ -1428,6 +1435,13 @@
     if (state.mode === 'purchases') renderPurchaseGrid(true);
     if (state.mode === 'waste') renderWaste();
     if (state.mode === 'shopping') renderShopping();
+    if (
+      ['orders','suppliers','operations'].indexOf(state.mode) !== -1
+      && window.PMDInventoryOperationsR24
+      && typeof window.PMDInventoryOperationsR24.render === 'function'
+    ) {
+      window.PMDInventoryOperationsR24.render();
+    }
   }
 
   workspace.addEventListener('click', function (event) {
@@ -1654,7 +1668,7 @@
   setMode(initialMode);
 
   window.PMDInventoryWorkspaceR19 = {
-    version:'23.0.0',
+    version:'24.0.0',
     setMode:setMode,
     refresh:function () {
       return api.refresh().then(function () {
