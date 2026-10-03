@@ -703,3 +703,78 @@ body.pmd-menu-manager-page .pmd-menu-inventory-r20-panel .pmd-inv-r24-card {
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* R24 analytics + extended receipt review */
+.pmd-inv-r24-analytics {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:9px;
+  margin:0 0 12px;
+}
+
+.pmd-inv-r24-analytics-card {
+  display:grid;
+  gap:4px;
+  min-height:92px;
+  padding:12px;
+  border:1px solid #dce7e4;
+  border-radius:14px;
+  background:#fff;
+}
+
+.pmd-inv-r24-analytics-card > span {
+  color:#5f766f;
+  font-size:9.5px;
+  font-weight:850;
+}
+
+.pmd-inv-r24-analytics-card > strong {
+  color:#173e34;
+  font-size:20px;
+  font-weight:900;
+  line-height:1.1;
+}
+
+.pmd-inv-r24-analytics-card > small {
+  color:#7a8c87;
+  font-size:9px;
+  font-weight:700;
+  line-height:1.35;
+}
+
+.pmd-inv-r24-receipt-line {
+  grid-template-columns:minmax(150px,1.5fr) 70px 105px 95px 105px 110px 120px 30px !important;
+  gap:6px !important;
+}
+
+.pmd-inv-r24-receipt-line label {
+  min-width:0;
+}
+
+.pmd-inv-r24-receipt-line input,
+.pmd-inv-r24-receipt-line select {
+  width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+
+@media (max-width:1180px) {
+  .pmd-inv-r24-analytics {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .pmd-inv-r24-receipt-line {
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+}
+
+@media (max-width:620px) {
+  .pmd-inv-r24-analytics {
+    grid-template-columns:1fr;
+  }
+
+  .pmd-inv-r24-receipt-line {
+    grid-template-columns:1fr !important;
+  }
+}
