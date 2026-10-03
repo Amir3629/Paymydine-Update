@@ -10,6 +10,9 @@
   var currentScope = 'all';
 
   function csrf() {
+    if (window.PMD_RESTAURANT_GROUPS_CSRF) {
+      return String(window.PMD_RESTAURANT_GROUPS_CSRF);
+    }
     var meta = document.querySelector('meta[name="csrf-token"]');
     if (meta) return meta.getAttribute('content') || '';
     var input = document.querySelector('input[name="_token"]');

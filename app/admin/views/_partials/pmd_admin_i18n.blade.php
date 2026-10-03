@@ -411,6 +411,9 @@
     rel="stylesheet"
     href="/app/admin/assets/css/pmd-restaurant-groups-v1.css?v={{ $pmdGroupsCssVersion }}"
 >
+<script>
+    window.PMD_RESTAURANT_GROUPS_CSRF = @json(csrf_token());
+</script>
 <script
     src="/app/admin/assets/js/pmd-restaurant-groups-v1.js?v={{ $pmdGroupsJsVersion }}"
     defer
