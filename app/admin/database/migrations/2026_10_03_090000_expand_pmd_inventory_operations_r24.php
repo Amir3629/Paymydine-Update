@@ -134,6 +134,11 @@ return new class extends Migration
 
     private function ensureItemColumns($schema): void
     {
+        if (!$schema->hasColumn('pmd_inventory_items', 'image_url')) {
+            $schema->table('pmd_inventory_items', function (Blueprint $table) {
+                $table->string('image_url', 500)->nullable();
+            });
+        }
         if (!$schema->hasColumn('pmd_inventory_items', 'preferred_supplier_id')) {
             $schema->table('pmd_inventory_items', function (Blueprint $table) {
                 $table->unsignedBigInteger('preferred_supplier_id')->nullable()->index();
