@@ -264,7 +264,13 @@
           }, 0) / targeted.length) + '%'
         : 'Set targets';
     } else if (key === 'attention') {
-      value = String(Number(summary.critical_items || 0) + Number(summary.low_items || 0));
+      var alerts = Array.isArray(snap.alerts) ? snap.alerts : [];
+      value = String(alerts.length || (Number(summary.critical_items || 0) + Number(summary.low_items || 0)));
+      description = [
+        Number(summary.critical_items || 0) + ' critical',
+        Number(summary.expiry_risk_lots || 0) + ' expiring',
+        Number(summary.open_purchase_orders || 0) + ' open PO'
+      ].join(' · ');
     } else if (key === 'waste') {
       value = money(summary.waste_cost_30d || 0);
     } else if (key === 'variance') {
@@ -1276,7 +1282,7 @@
   else showMenu(false);
 
   window.PMDMenuInventoryUnifiedR20 = {
-    version: '23.0.0',
+    version: '24.0.0',
     showMenu: function () { showMenu(true); },
     showInventory: function () { showInventory(true); },
     openStockUsage: openUsage,
