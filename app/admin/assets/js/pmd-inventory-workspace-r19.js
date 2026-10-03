@@ -1329,16 +1329,57 @@
 
   function shoppingRows() {
     var days = Math.max(1, Number(state.shoppingDays || 1));
+    var pro = window.PMDInventoryProR24 && typeof window.PMDInventoryProR24.getSnapshot === 'function'
+      ? (window.PMDInventoryProR24.getSnapshot() || {})
+      : {};
+    var settings = pro.settings || {};
+    var safetyDays = Math.max(0, Number(settings.safety_stock_days || 0));
+    var supplierItems = Array.isArray(pro.supplier_items) ? pro.supplier_items : [];
+
     return items().map(function (item) {
       var onHand = Math.max(0, Number(item.estimated_on_hand || 0));
       var par = Math.max(0, Number(item.par_level || 0));
-      var usageNeed = Math.max(0, Number(item.avg_daily_usage || 0) * days);
+      var dailyUsage = Math.max(0, Number(item.avg_daily_usage || 0));
+
+      // R24 forecasting: cover the requested period plus the restaurant's
+      // safety-stock buffer. Par remains an independent minimum target.
+      var usageNeed = Math.max(0, dailyUsage * (days + safetyDays));
       var desired = Math.max(par, usageNeed);
       if (desired <= 0 && Number(item.reorder_point || 0) > 0 && onHand <= Number(item.reorder_point || 0)) {
         desired = Number(item.reorder_point || 0);
       }
+
       var baseQty = Math.max(0, desired - onHand);
       if (baseQty <= .00005) return null;
+
+      var preferred = supplierItems.find(function (row) {
+        return Number(row.item_id) === Number(item.id) && Number(row.is_preferred || 0) === 1;
+      }) || null;
+
+      if (preferred) {
+        var factor = Math.max(.0001, Number(preferred.base_quantity || item.purchase_to_base || 1));
+        var rawPackages = baseQty / factor;
+        var minimum = Math.max(.0001, Number(preferred.min_order_qty || 1));
+        var multiple = Math.max(.0001, Number(preferred.order_multiple || 1));
+        var packages = Math.max(rawPackages, minimum);
+        packages = Math.ceil((packages / multiple) - 1e-9) * multiple;
+        packages = Number(packages.toFixed(4));
+
+        return {
+          item:item,
+          qty:packages,
+          unit:String(preferred.package_unit || item.purchase_unit || item.unit || 'piece'),
+          factor:factor,
+          estimatedCost:packages * Number(preferred.unit_price || item.purchase_unit_cost || 0),
+          supplier:String(preferred.supplier_name || item.supplier_name || 'Unassigned supplier'),
+          supplier_id:Number(preferred.supplier_id || 0),
+          supplier_item_id:Number(preferred.id || 0),
+          min_order_qty:minimum,
+          order_multiple:multiple,
+          safety_days:safetyDays
+        };
+      }
+
       var owner = ownerQuantity(item, baseQty);
       var cost = owner.qty * Number(item.purchase_unit_cost || 0);
       return {
@@ -1347,7 +1388,12 @@
         unit:owner.unit,
         factor:owner.factor,
         estimatedCost:cost,
-        supplier:String(item.supplier_name || 'Unassigned supplier')
+        supplier:String(item.supplier_name || 'Unassigned supplier'),
+        supplier_id:0,
+        supplier_item_id:0,
+        min_order_qty:0,
+        order_multiple:0,
+        safety_days:safetyDays
       };
     }).filter(Boolean).sort(function (a,b) {
       return a.supplier.localeCompare(b.supplier) || String(a.item.name).localeCompare(String(b.item.name));
@@ -1378,9 +1424,9 @@
         currentSupplier = row.supplier;
         html += '<div class="pmd-inv-r19-shopping-supplier">' + esc(currentSupplier) + '</div>';
       }
-      html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) + '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) + '">' +
-        '<div><strong>' + esc(row.item.name) + '</strong><small>' + esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand') + '</small></div>' +
-        '<span>Need ' + esc(number(row.qty,2) + ' ' + row.unit) + '</span>' +
+      html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) + '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) + '" data-supplier-id="' + esc(row.supplier_id || 0) + '" data-supplier-item-id="' + esc(row.supplier_item_id || 0) + '">' +
+        '<div><strong>' + esc(row.item.name) + '</strong><small>' + esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand' + (row.safety_days > 0 ? ' · ' + number(row.safety_days,2) + ' safety days' : '')) + '</small></div>' +
+        '<span>Need ' + esc(number(row.qty,2) + ' ' + row.unit) + (row.order_multiple > 0 ? ' · order multiple ' + number(row.order_multiple,2) : '') + '</span>' +
         '<input type="number" min="0" step="0.01" value="' + esc(Number(row.qty.toFixed(2))) + '" data-r19-shopping-qty>' +
         '<span>' + esc(money(row.estimatedCost)) + '</span>' +
       '</div>';
