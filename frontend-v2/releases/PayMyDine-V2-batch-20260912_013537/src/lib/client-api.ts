@@ -144,6 +144,65 @@ export function downloadPaidInvoice(input: { orderId: number; token: string }): 
   return `/api/v1/orders/${encodeURIComponent(String(input.orderId))}/paid-invoice?${params.toString()}`
 }
 
+export type KioskOrderSubmitResult = {
+  success: boolean
+  order_id: number
+  message?: string
+  eta_minutes?: number | null
+  estimated_prep_minutes?: number | null
+  show_customer_eta?: boolean
+}
+
+export async function submitKioskOrder(input: {
+  serviceMode: 'kiosk' | 'pickup'
+  kioskSession: string
+  guestSessionId: string
+  locationId: number | null
+  subtotal: number
+  taxAmount: number
+  serviceChargeAmount: number
+  serviceChargeLabel: string
+  totalAmount: number
+  lines: CartLine[]
+}): Promise<KioskOrderSubmitResult> {
+  const payload = {
+    customer_name: 'Kiosk Customer',
+    customer_email: null,
+    customer_phone: null,
+    table_id: null,
+    table_name: input.serviceMode,
+    location_id: input.locationId || 1,
+    service_mode: input.serviceMode,
+    kiosk_session: input.kioskSession || null,
+    guest_session_id: input.guestSessionId,
+    items: input.lines.map((line) => ({
+      menu_id: Number(line.item.id) || line.item.id,
+      name: line.item.name,
+      quantity: line.quantity,
+      price: line.item.price,
+      subtotal: line.subtotal,
+      special_instructions: String(line.note || '').trim().slice(0, 500),
+      options: Object.fromEntries(
+        line.selectedOptions.map((option) => [option.groupName, option.valueId]),
+      ),
+    })),
+    total_amount: Number(input.totalAmount.toFixed(2)),
+    tax_amount: Number(input.taxAmount.toFixed(2)),
+    service_charge_amount: Number(input.serviceChargeAmount.toFixed(2)),
+    service_charge_label: input.serviceChargeLabel || 'Service charge',
+    tip_amount: 0,
+    coupon_code: null,
+    coupon_discount: 0,
+    payment_method: 'card',
+    special_instructions: '',
+  }
+
+  return jsonRequest<KioskOrderSubmitResult>('/api/v1/orders', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function confirmCartItems(input: {
   table: TableContext
   guestSessionId: string
