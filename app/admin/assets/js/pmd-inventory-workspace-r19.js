@@ -1503,7 +1503,7 @@
   function setMode(mode) {
     mode = [
       'overview','stock','purchases','waste','shopping',
-      'orders','suppliers','codes','storage','expiry','ledger','settings'
+      'orders','suppliers','codes','storage','expiry','ledger','analytics','settings'
     ].indexOf(mode) !== -1 ? mode : 'overview';
     state.mode = mode;
     workspace.querySelectorAll('[data-r19-mode]').forEach(function (button) {
