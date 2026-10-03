@@ -733,6 +733,15 @@
                             <div class="pmd-inv-r24-stack" data-r24-price-changes></div>
                         </div>
                     </div>
+                    <div class="pmd-inv-r24-card" style="margin-top:14px">
+                        <div class="pmd-inv-r24-card__head"><div><span>Supplier performance</span><h3>Spend, deliveries & reliability</h3></div></div>
+                        <div class="pmd-inv-r24-table-wrap">
+                            <table class="pmd-inv-r24-table">
+                                <thead><tr><th>Supplier</th><th>Spend · 90d</th><th>Receipts</th><th>PO deliveries</th><th>On time</th><th>Avg delay</th><th>Lead time</th></tr></thead>
+                                <tbody data-r24-supplier-performance></tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="pmd-inv-r24-grid pmd-inv-r24-grid--2">
                         <div class="pmd-inv-r24-card">
                             <div class="pmd-inv-r24-card__head"><div><span>Waste · 30 days</span><h3>Reasons & cost</h3></div></div>
