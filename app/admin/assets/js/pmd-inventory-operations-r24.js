@@ -472,16 +472,52 @@
     var analytics = ops().analytics || {};
     var metrics = workspace.querySelector('[data-r24-report-metrics]');
     if (metrics) {
+      var summary = snapshot().summary || {};
       var rows = [
         ['Purchases · 30d', money(analytics.purchases_30d || 0)],
         ['Waste · 30d', money(analytics.waste_30d || 0)],
+        ['Count variance · 30d', money(analytics.variance_value_30d || 0)],
+        ['Theoretical usage · 14d', money(summary.theoretical_usage_cost_14d || 0)],
+        ['Forecast usage · next 7d', money(summary.forecast_usage_cost_7d || 0)],
         ['Expiring value', money(analytics.expiring_value || 0)],
         ['Open POs', String(analytics.open_purchase_orders || 0)],
-        ['Reversals · 30d', money(analytics.purchase_reversals_30d || 0)]
+        ['Menu items at risk', String(summary.menu_items_at_risk || 0)]
       ];
       metrics.innerHTML = rows.map(function (row) {
         return '<article><span>' + esc(row[0]) + '</span><strong>' + esc(row[1]) + '</strong></article>';
       }).join('');
+    }
+
+    var wasteReasons = Array.isArray(analytics.waste_by_reason) ? analytics.waste_by_reason : [];
+    var wasteHost = workspace.querySelector('[data-r24-waste-reasons]');
+    if (wasteHost) {
+      wasteHost.innerHTML = wasteReasons.length
+        ? wasteReasons.map(function (row) {
+            return '<article class="pmd-inv-r24-list-row"><div><strong>' +
+              esc(row.reason || 'Unspecified') + '</strong><small>Recorded waste value</small></div><b>' +
+              esc(money(row.value || 0)) + '</b></article>';
+          }).join('')
+        : '<div class="pmd-inv-r19-empty">No waste recorded in the last 30 days.</div>';
+    }
+
+    var menuRisk = Array.isArray(snapshot().menu_availability_alerts)
+      ? snapshot().menu_availability_alerts
+      : [];
+    var menuRiskHost = workspace.querySelector('[data-r24-menu-risk]');
+    if (menuRiskHost) {
+      menuRiskHost.innerHTML = menuRisk.length
+        ? menuRisk.map(function (row) {
+            var blocking = Array.isArray(row.blocking_items) ? row.blocking_items : [];
+            var warning = Array.isArray(row.warning_items) ? row.warning_items : [];
+            var detail = blocking.length
+              ? 'Out: ' + blocking.join(', ')
+              : 'Critical: ' + warning.join(', ');
+            return '<article class="pmd-inv-r24-list-row"><div><strong>' +
+              esc(row.menu_name || ('Menu #' + row.menu_id)) + '</strong><small>' +
+              esc(detail) + '</small></div><b>' +
+              esc(row.level === 'out' ? 'Stock out' : 'At risk') + '</b></article>';
+          }).join('')
+        : '<div class="pmd-inv-r19-empty">No recipe-driven menu availability risks.</div>';
     }
 
     var changes = Array.isArray(analytics.price_changes) ? analytics.price_changes : [];
