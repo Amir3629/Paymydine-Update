@@ -114,6 +114,7 @@ class Pmdmenus extends AdminController
         foreach ([
             'app/admin/assets/css/pmd-inventory-v1.css',
             'app/admin/assets/css/pmd-inventory-workspace-r19.css',
+            'app/admin/assets/css/pmd-inventory-operations-r24.css',
             'app/admin/assets/css/pmd-menu-inventory-unified-r20.css',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
@@ -125,6 +126,7 @@ class Pmdmenus extends AdminController
         foreach ([
             'app/admin/assets/js/pmd-inventory-v1.js',
             'app/admin/assets/js/pmd-inventory-workspace-r19.js',
+            'app/admin/assets/js/pmd-inventory-operations-r24.js',
             'app/admin/assets/js/pmd-menu-inventory-unified-r20.js',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
