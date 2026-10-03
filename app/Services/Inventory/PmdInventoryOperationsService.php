@@ -1826,30 +1826,48 @@ final class PmdInventoryOperationsService
                 ->leftJoin('pmd_inventory_suppliers as s', 's.id', '=', 'si.supplier_id')
                 ->where('si.location_id', $locationId)
                 ->where('si.active', 1)
-                ->get(['si.id', 'i.name as item_name', 's.name as supplier_name']);
+                ->get(['si.id', 'i.name as item_name', 's.name as supplier_name'])
+                ->keyBy('id');
 
-            foreach ($supplierItems as $si) {
-                $history = DB::table('pmd_inventory_supplier_price_history')
-                    ->where('location_id', $locationId)
-                    ->where('supplier_item_id', (int)$si->id)
-                    ->orderByDesc('occurred_at')
-                    ->limit(2)
-                    ->pluck('price')
-                    ->map(static fn ($value) => (float)$value)
-                    ->all();
+            $historyRows = DB::table('pmd_inventory_supplier_price_history')
+                ->where('location_id', $locationId)
+                ->where('occurred_at', '>=', now()->subDays(180))
+                ->orderBy('supplier_item_id')
+                ->orderByDesc('occurred_at')
+                ->orderByDesc('id')
+                ->get(['supplier_item_id', 'price', 'occurred_at']);
 
-                if (count($history) === 2 && $history[1] > 0) {
-                    $pct = (($history[0] - $history[1]) / $history[1]) * 100;
-                    if (abs($pct) >= 1) {
-                        $priceChanges[] = [
-                            'item_name' => (string)($si->item_name ?? ''),
-                            'supplier_name' => (string)($si->supplier_name ?? ''),
-                            'current' => round($history[0], 2),
-                            'previous' => round($history[1], 2),
-                            'change_pct' => round($pct, 1),
-                        ];
-                    }
+            $seenPrices = [];
+            foreach ($historyRows as $historyRow) {
+                $supplierItemId = (int)$historyRow->supplier_item_id;
+                if (!isset($supplierItems[$supplierItemId])) {
+                    continue;
                 }
+                if (!isset($seenPrices[$supplierItemId])) {
+                    $seenPrices[$supplierItemId] = [];
+                }
+                if (count($seenPrices[$supplierItemId]) >= 2) {
+                    continue;
+                }
+                $seenPrices[$supplierItemId][] = (float)$historyRow->price;
+            }
+
+            foreach ($seenPrices as $supplierItemId => $history) {
+                if (count($history) !== 2 || $history[1] <= 0) {
+                    continue;
+                }
+                $pct = (($history[0] - $history[1]) / $history[1]) * 100;
+                if (abs($pct) < 1) {
+                    continue;
+                }
+                $si = $supplierItems[$supplierItemId];
+                $priceChanges[] = [
+                    'item_name' => (string)($si->item_name ?? ''),
+                    'supplier_name' => (string)($si->supplier_name ?? ''),
+                    'current' => round($history[0], 2),
+                    'previous' => round($history[1], 2),
+                    'change_pct' => round($pct, 1),
+                ];
             }
         }
 
@@ -1892,6 +1910,78 @@ final class PmdInventoryOperationsService
             }
         }
 
+        $supplierPerformance = [];
+        if (Schema::hasTable('pmd_inventory_suppliers')) {
+            $supplierRows = DB::table('pmd_inventory_suppliers')
+                ->where('location_id', $locationId)
+                ->where('active', 1)
+                ->get(['id', 'name', 'lead_time_days']);
+
+            $receiptAgg = DB::table('pmd_inventory_receipts')
+                ->where('location_id', $locationId)
+                ->whereNotNull('confirmed_at')
+                ->where('confirmed_at', '>=', now()->subDays(90))
+                ->whereNotNull('supplier_id')
+                ->selectRaw('supplier_id, COUNT(*) as receipt_count, COALESCE(SUM(total_amount),0) as spend')
+                ->groupBy('supplier_id')
+                ->get()
+                ->keyBy('supplier_id');
+
+            $poRows = DB::table('pmd_inventory_purchase_orders')
+                ->where('location_id', $locationId)
+                ->whereNotNull('supplier_id')
+                ->whereNotNull('received_at')
+                ->where('received_at', '>=', now()->subDays(180))
+                ->get(['supplier_id', 'expected_at', 'received_at']);
+
+            $poBySupplier = $poRows->groupBy('supplier_id');
+
+            foreach ($supplierRows as $supplier) {
+                $supplierId = (int)$supplier->id;
+                $receipt = $receiptAgg->get($supplierId);
+                $deliveryRows = collect($poBySupplier->get($supplierId, []));
+                $onTime = 0;
+                $withExpected = 0;
+                $delayDays = [];
+
+                foreach ($deliveryRows as $po) {
+                    if (empty($po->expected_at) || empty($po->received_at)) {
+                        continue;
+                    }
+                    $withExpected++;
+                    try {
+                        $expected = \Carbon\Carbon::parse($po->expected_at)->startOfDay();
+                        $received = \Carbon\Carbon::parse($po->received_at)->startOfDay();
+                        $delay = $expected->diffInDays($received, false);
+                        $delayDays[] = max(0, $delay);
+                        if ($received->lte($expected)) {
+                            $onTime++;
+                        }
+                    } catch (\Throwable $ignored) {
+                    }
+                }
+
+                $supplierPerformance[] = [
+                    'supplier_id' => $supplierId,
+                    'supplier_name' => (string)$supplier->name,
+                    'lead_time_days' => (int)($supplier->lead_time_days ?? 0),
+                    'receipts_90d' => (int)($receipt->receipt_count ?? 0),
+                    'spend_90d' => round((float)($receipt->spend ?? 0), 2),
+                    'po_deliveries_180d' => $deliveryRows->count(),
+                    'on_time_pct' => $withExpected > 0
+                        ? round(($onTime / $withExpected) * 100, 1)
+                        : null,
+                    'avg_delay_days' => $delayDays
+                        ? round(array_sum($delayDays) / count($delayDays), 1)
+                        : null,
+                ];
+            }
+
+            usort($supplierPerformance, static function ($a, $b) {
+                return (float)$b['spend_90d'] <=> (float)$a['spend_90d'];
+            });
+        }
+
         return [
             'purchases_30d' => round($purchase30, 2),
             'purchases_90d' => round($purchase90, 2),
@@ -1907,6 +1997,7 @@ final class PmdInventoryOperationsService
                 ->whereIn('status', ['draft', 'sent', 'partially_received'])
                 ->count(),
             'price_changes' => array_slice($priceChanges, 0, 12),
+            'supplier_performance' => array_slice($supplierPerformance, 0, 20),
         ];
     }
 
