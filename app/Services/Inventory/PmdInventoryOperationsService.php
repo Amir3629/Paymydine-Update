@@ -210,6 +210,7 @@ final class PmdInventoryOperationsService
         $expiryRiskLots = 0;
         $expiredLots = 0;
         $alerts = [];
+        $effectiveLotQty = [];
 
         foreach ($lots as $lot) {
             if ($lot['expired']) {
@@ -282,8 +283,22 @@ final class PmdInventoryOperationsService
                 $preferred = $itemOffers[0];
             }
 
-            $itemLots = collect($lotsByItem->get($itemId, []))
-                ->map(function ($row) use ($warningDays) {
+            $onHand = max(0, (float)($item['estimated_on_hand'] ?? 0));
+            $rawItemLots = collect($lotsByItem->get($itemId, []))->values();
+            $rawLotTotal = (float)$rawItemLots->sum('qty_remaining');
+            // Sales are theoretical usage rather than movement rows. Apply
+            // that consumption to the earliest-expiring lots in the snapshot
+            // so FEFO screens do not overstate old batches.
+            $consumeFromLots = max(0, $rawLotTotal - $onHand);
+
+            $itemLots = $rawItemLots
+                ->map(function ($row) use ($warningDays, &$consumeFromLots, &$effectiveLotQty) {
+                    $recorded = max(0, (float)$row->qty_remaining);
+                    $used = min($recorded, $consumeFromLots);
+                    $effective = max(0, $recorded - $used);
+                    $consumeFromLots = max(0, $consumeFromLots - $used);
+                    $effectiveLotQty[(int)$row->id] = $effective;
+
                     $days = null;
                     if (!empty($row->expiry_date)) {
                         try {
@@ -300,18 +315,19 @@ final class PmdInventoryOperationsService
                         'lot_code' => (string)($row->lot_code ?? ''),
                         'expiry_date' => $row->expiry_date ? (string)$row->expiry_date : null,
                         'days_to_expiry' => $days,
-                        'qty_remaining' => round((float)$row->qty_remaining, 4),
+                        'qty_recorded' => round($recorded, 4),
+                        'qty_remaining' => round($effective, 4),
                         'storage_location_id' => (int)($row->storage_location_id ?? 0),
                         'storage_name' => (string)($row->storage_name ?? 'Unassigned'),
-                        'expiry_warning' => $days !== null && $days <= $warningDays,
+                        'expiry_warning' => $effective > 0.00005 && $days !== null && $days <= $warningDays,
                     ];
                 })
+                ->filter(static fn ($row) => (float)$row['qty_remaining'] > 0.00005)
                 ->values()
                 ->all();
 
             $leadDays = max(1, (int)($preferred['lead_time_days'] ?? 1));
             $daily = max(0, (float)($item['avg_daily_usage'] ?? 0));
-            $onHand = max(0, (float)($item['estimated_on_hand'] ?? 0));
             $par = max(0, (float)($item['par_level'] ?? 0));
             $safety = max(0, (float)($item['safety_stock'] ?? 0));
             $desiredBase = max($par, ($daily * $leadDays) + $safety);
@@ -386,6 +402,22 @@ final class PmdInventoryOperationsService
                 ];
             }
         }
+
+        foreach ($lots as &$lot) {
+            if (array_key_exists((int)$lot['id'], $effectiveLotQty)) {
+                $lot['qty_recorded'] = $lot['qty_remaining'];
+                $lot['qty_remaining'] = round((float)$effectiveLotQty[(int)$lot['id']], 4);
+                if ((float)$lot['qty_remaining'] <= 0.00005) {
+                    $lot['expiry_warning'] = false;
+                    $lot['expired'] = false;
+                }
+            }
+        }
+        unset($lot);
+        $lots = array_values(array_filter(
+            $lots,
+            static fn ($lot) => (float)($lot['qty_remaining'] ?? 0) > 0.00005
+        ));
 
         $snapshot['items'] = $itemRows;
         $snapshot['suppliers'] = $suppliers;
