@@ -9,6 +9,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\Inventory\PmdInventoryControlService;
+use App\Services\Inventory\PmdInventoryOperationsService;
 use App\Services\Inventory\PmdInventoryReceiptAiService;
 use App\Services\Inventory\PmdInventoryStockCatalog;
 use Illuminate\Http\JsonResponse;
@@ -160,6 +161,259 @@ class Pmdinventory extends AdminController
             return [
                 'receipt_id' => $id,
                 'snapshot' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onResolveBarcode(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            return app(PmdInventoryOperationsService::class)->resolveCode(
+                $this->locationId(),
+                (string)request()->input('code', '')
+            );
+        });
+    }
+
+    public function onSaveIdentifier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $ops = app(PmdInventoryOperationsService::class);
+            $id = $ops->saveIdentifier(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'identifier_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSaveSupplier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->saveSupplier(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'supplier_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSaveSupplierItem(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->saveSupplierItem(
+                $this->locationId(),
+                request()->all()
+            );
+
+            return [
+                'supplier_item_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSaveStorageLocation(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->saveStorageLocation(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'storage_location_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSaveInventorySettings(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryOperationsService::class)->saveSettings(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onCreatePurchaseOrder(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->createPurchaseOrder(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'purchase_order_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onReceivePurchaseOrder(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->receivePurchaseOrder(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'receipt_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onReversePurchase(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryOperationsService::class)->reverseReceipt(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('receipt_id', 0),
+                (string)request()->input('reason', '')
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onTransferStock(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->transferStock(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'transfer_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onRecordAdjustment(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->recordAdjustment(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'movement_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onItemLedger(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            return [
+                'ledger' => app(PmdInventoryOperationsService::class)->itemLedger(
+                    $this->locationId(),
+                    (int)request()->input('item_id', 0)
+                ),
+            ];
+        });
+    }
+
+    public function onSavePreparation(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->savePreparation(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'preparation_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProduceBatch(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->produceBatch(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'production_batch_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
             ];
         });
     }
