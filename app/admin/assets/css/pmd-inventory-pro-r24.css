@@ -852,3 +852,58 @@ body.pmd-inventory-r19-page .pmd-inv-r24-tools button.is-active {
     flex-direction:column;
   }
 }
+
+
+/* R24 supplier catalogue subsections + expanded receiving review. */
+.pmd-inv-r24-subsection-head {
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:12px;
+  margin:18px 0 8px;
+  padding-top:14px;
+  border-top:1px solid #e2ebe8;
+}
+
+.pmd-inv-r24-subsection-head span {
+  display:block;
+  color:#6f847d;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.pmd-inv-r24-subsection-head h3 {
+  margin:3px 0 0;
+  color:#183c34;
+  font-size:14px;
+  font-weight:950;
+  line-height:1.25;
+}
+
+body.pmd-menu-manager-page .pmd-menu-inventory-r20-panel .pmd-inv-r19-receipt-line,
+body.pmd-inventory-r19-page .pmd-inv-r19-receipt-line {
+  grid-template-columns:minmax(150px,1.6fr) 74px 96px 104px 116px 126px 32px!important;
+  gap:7px!important;
+  align-items:end!important;
+}
+
+body.pmd-menu-manager-page .pmd-menu-inventory-r20-panel .pmd-inv-r19-receipt-line label,
+body.pmd-inventory-r19-page .pmd-inv-r19-receipt-line label {
+  min-width:0!important;
+}
+
+@media (max-width:1180px) {
+  body.pmd-menu-manager-page .pmd-menu-inventory-r20-panel .pmd-inv-r19-receipt-line,
+  body.pmd-inventory-r19-page .pmd-inv-r19-receipt-line {
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+
+@media (max-width:720px) {
+  body.pmd-menu-manager-page .pmd-menu-inventory-r20-panel .pmd-inv-r19-receipt-line,
+  body.pmd-inventory-r19-page .pmd-inv-r19-receipt-line {
+    grid-template-columns:1fr!important;
+  }
+}
