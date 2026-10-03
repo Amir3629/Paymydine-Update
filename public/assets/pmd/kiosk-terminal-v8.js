@@ -1,3 +1,4 @@
+// PMD_KIOSK_BLADE_TERMINAL_V8
 (function () {
   "use strict";
 
@@ -306,7 +307,17 @@
 
   function parseLocales(settings, theme) {
     var raw = first(theme, ["pmd_v2_enabled_languages", "enabled_languages"], first(settings, ["enabled_languages", "pmd_v2_enabled_languages"], ""));
-    var list = Array.isArray(raw) ? raw : String(raw || "").split(",");
+    var list;
+    if (Array.isArray(raw)) {
+      list = raw;
+    } else {
+      var rawText = String(raw || "").trim();
+      if (rawText.charAt(0) === "[") {
+        try { list = JSON.parse(rawText); } catch (error) { list = rawText.split(","); }
+      } else {
+        list = rawText.split(",");
+      }
+    }
     var normalized = list.map(function (entry) { return String(entry || "").trim().toLowerCase().split("-")[0]; }).filter(Boolean);
     var base = String(first(settings, ["default_language", "locale"], "en")).trim().toLowerCase().split("-")[0] || "en";
     if (normalized.indexOf(base) < 0) normalized.unshift(base);
@@ -851,7 +862,7 @@
           menu_id: Number(line.item.id) || line.item.id,
           name: line.item.name,
           quantity: line.quantity,
-          price: line.unitPrice,
+          price: line.item.price,
           subtotal: Math.round(line.unitPrice * line.quantity * 100) / 100,
           special_instructions: line.note || "",
           options: options
