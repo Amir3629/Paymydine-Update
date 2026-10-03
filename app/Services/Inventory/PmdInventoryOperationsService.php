@@ -1596,6 +1596,43 @@ final class PmdInventoryOperationsService
 
         usort($priceChanges, static fn ($a, $b) => abs($b['change_pct']) <=> abs($a['change_pct']));
 
+        $wasteByReason = DB::table('pmd_inventory_movements')
+            ->where('location_id', $locationId)
+            ->where('movement_type', 'WASTE')
+            ->where('occurred_at', '>=', now()->subDays(30))
+            ->selectRaw("COALESCE(NULLIF(reason, ''), 'Unspecified') as reason, COALESCE(SUM(ABS(qty_delta) * unit_cost), 0) as value")
+            ->groupBy('reason')
+            ->orderByDesc('value')
+            ->limit(12)
+            ->get()
+            ->map(static fn ($row) => [
+                'reason' => (string)$row->reason,
+                'value' => round((float)$row->value, 2),
+            ])
+            ->all();
+
+        $variance30 = 0.0;
+        $varianceCount = 0;
+        if (Schema::hasTable('pmd_inventory_count_lines') && Schema::hasTable('pmd_inventory_counts')) {
+            $varianceRows = DB::table('pmd_inventory_count_lines as l')
+                ->join('pmd_inventory_counts as c', 'c.id', '=', 'l.count_id')
+                ->where('c.location_id', $locationId)
+                ->where('c.status', 'completed')
+                ->where('c.counted_at', '>=', now()->subDays(30))
+                ->get([
+                    'l.variance_qty',
+                    'l.unit_cost_snapshot',
+                ]);
+
+            foreach ($varianceRows as $row) {
+                $cost = (float)$row->variance_qty * (float)$row->unit_cost_snapshot;
+                if (abs($cost) > 0.00005) {
+                    $varianceCount++;
+                    $variance30 += abs($cost);
+                }
+            }
+        }
+
         return [
             'purchases_30d' => round($purchase30, 2),
             'purchases_90d' => round($purchase90, 2),
@@ -1603,6 +1640,9 @@ final class PmdInventoryOperationsService
             'purchase_reversals_30d' => round($reversal30, 2),
             'expiring_value' => round($expiryValue, 2),
             'expiring_batches' => count($expiring),
+            'waste_by_reason' => $wasteByReason,
+            'variance_value_30d' => round($variance30, 2),
+            'variance_lines_30d' => $varianceCount,
             'open_purchase_orders' => (int)DB::table('pmd_inventory_purchase_orders')
                 ->where('location_id', $locationId)
                 ->whereIn('status', ['draft', 'sent', 'partially_received'])
