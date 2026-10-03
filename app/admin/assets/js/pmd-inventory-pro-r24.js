@@ -200,7 +200,7 @@
   }
 
   function proMode(mode) {
-    return ['orders','suppliers','codes','storage','expiry','ledger','settings'].indexOf(mode) !== -1;
+    return ['orders','suppliers','codes','storage','expiry','ledger','analytics','settings'].indexOf(mode) !== -1;
   }
 
   function renderUnavailable() {
@@ -235,6 +235,7 @@
     if (state.mode === 'storage') renderStorage();
     if (state.mode === 'expiry') renderExpiry();
     if (state.mode === 'ledger') renderLedger();
+    if (state.mode === 'analytics') renderAnalytics();
     if (state.mode === 'settings') renderSettings();
   }
 
@@ -1075,6 +1076,131 @@
   }
 
   /* ------------------------------------------------------------
+     Analytics / reporting
+     ------------------------------------------------------------ */
+
+  function renderAnalytics() {
+    var snap = api.getSnapshot ? (api.getSnapshot() || {}) : {};
+    var summary = snap.summary || {};
+    var metrics = workspace.querySelector('[data-r24-analytics-metrics]');
+    var wasteHost = workspace.querySelector('[data-r24-analytics-waste]');
+    var varianceHost = workspace.querySelector('[data-r24-analytics-variance]');
+    var priceHost = workspace.querySelector('[data-r24-analytics-prices]');
+
+    if (metrics) {
+      metrics.innerHTML =
+        '<article><span>Stock value</span><strong>' + esc(money(summary.estimated_stock_value || 0)) + '</strong><small>Current theoretical on-hand value</small></article>' +
+        '<article><span>Purchases · 30d</span><strong>' + esc(money(summary.purchases_cost_30d || 0)) + '</strong><small>Recorded incoming stock</small></article>' +
+        '<article><span>Waste · 30d</span><strong>' + esc(money(summary.waste_cost_30d || 0)) + '</strong><small>Recorded waste movements</small></article>' +
+        '<article><span>Latest unexplained variance</span><strong>' + esc(money(summary.unexplained_loss_value || 0)) + '</strong><small>Physical count difference to review</small></article>' +
+        '<article><span>Recipe coverage</span><strong>' + esc(num(summary.recipe_coverage_pct || 0, 1)) + '%</strong><small>Menu items with stock recipes</small></article>' +
+        '<article><span>Open purchase orders</span><strong>' + esc((state.pro.alerts || {}).open_purchase_orders || 0) + '</strong><small>Draft, sent or partially received</small></article>';
+    }
+
+    if (wasteHost) {
+      var wasteByItem = {};
+      (state.pro.ledger || []).forEach(function (row) {
+        if (String(row.movement_type || '').toUpperCase() !== 'WASTE') return;
+        var key = Number(row.item_id || 0);
+        if (!wasteByItem[key]) {
+          wasteByItem[key] = {
+            item_name:String(row.item_name || 'Item'),
+            qty:0,
+            value:0,
+            unit:String(row.unit || '')
+          };
+        }
+        wasteByItem[key].qty += Math.abs(Number(row.qty_delta || 0));
+        wasteByItem[key].value += Math.abs(Number(row.value || 0));
+      });
+      var wasteRows = Object.keys(wasteByItem).map(function (key) {
+        return wasteByItem[key];
+      }).sort(function (a,b) { return b.value - a.value; }).slice(0,12);
+
+      wasteHost.innerHTML = wasteRows.length ? wasteRows.map(function (row) {
+        return '<article class="pmd-inv-r24-row">' +
+          '<div class="pmd-inv-r24-row__main"><span class="pmd-inv-r24-status">Waste</span><strong>' + esc(row.item_name) + '</strong>' +
+          '<small>' + esc(num(row.qty,2) + ' ' + row.unit + ' in loaded ledger history') + '</small></div>' +
+          '<div class="pmd-inv-r24-row__meta"><span>Recorded value</span><strong class="is-negative">' + esc(money(row.value)) + '</strong></div>' +
+        '</article>';
+      }).join('') : '<div class="pmd-inv-r19-empty">No waste movements in the loaded ledger history.</div>';
+    }
+
+    if (varianceHost) {
+      var varianceRows = items().filter(function (row) {
+        return Math.abs(Number(row.last_variance_qty || 0)) > 0.00005;
+      }).sort(function (a,b) {
+        return Math.abs(Number(b.last_variance_cost || 0)) - Math.abs(Number(a.last_variance_cost || 0));
+      }).slice(0,12);
+
+      varianceHost.innerHTML = varianceRows.length ? varianceRows.map(function (row) {
+        var qty = Number(row.last_variance_qty || 0);
+        var cost = Number(row.last_variance_cost || 0);
+        return '<article class="pmd-inv-r24-row">' +
+          '<div class="pmd-inv-r24-row__main"><span class="pmd-inv-r24-status">Count variance</span><strong>' + esc(row.name || 'Item') + '</strong>' +
+          '<small>' + (qty > 0 ? '+' : '') + esc(num(qty,2) + ' ' + (row.unit || '')) + '</small></div>' +
+          '<div class="pmd-inv-r24-row__meta"><span>Latest variance value</span><strong class="' + (cost < 0 ? 'is-negative' : 'is-positive') + '">' + esc(money(cost)) + '</strong></div>' +
+        '</article>';
+      }).join('') : '<div class="pmd-inv-r19-empty">No physical-count variance is currently recorded.</div>';
+    }
+
+    if (priceHost) {
+      var history = (state.pro.price_history || []).slice(0,40);
+      priceHost.innerHTML = history.length ? history.map(function (row, index) {
+        var previous = null;
+        for (var i = index + 1; i < history.length; i += 1) {
+          if (
+            Number(history[i].item_id) === Number(row.item_id)
+            && Number(history[i].supplier_id || 0) === Number(row.supplier_id || 0)
+          ) {
+            previous = history[i];
+            break;
+          }
+        }
+        var change = previous && Number(previous.unit_cost || 0) > 0
+          ? ((Number(row.unit_cost || 0) - Number(previous.unit_cost || 0)) / Number(previous.unit_cost || 0)) * 100
+          : null;
+        return '<article class="pmd-inv-r24-row">' +
+          '<div class="pmd-inv-r24-row__main"><span class="pmd-inv-r24-status">Price</span><strong>' + esc(row.item_name || 'Item') + '</strong>' +
+          '<small>' + esc((row.supplier_name || 'Supplier') + ' · ' + (row.purchase_unit || 'unit') + ' · ' + dateLabel(row.recorded_at)) + '</small></div>' +
+          '<div class="pmd-inv-r24-row__meta"><span>Package cost</span><strong>' + esc(money(row.unit_cost || 0, row.currency)) + '</strong>' +
+          '<small>' + (change === null ? 'No previous comparable price' : esc((change > 0 ? '+' : '') + num(change,1) + '% change')) + '</small></div>' +
+        '</article>';
+      }).join('') : '<div class="pmd-inv-r19-empty">Price analytics appear after purchase history is recorded.</div>';
+    }
+  }
+
+  function exportInventorySnapshotCsv() {
+    var snap = api.getSnapshot ? (api.getSnapshot() || {}) : {};
+    var rows = Array.isArray(snap.items) ? snap.items : [];
+    if (!rows.length) return toast('There is no stock snapshot to export.', true);
+
+    var lines = [[
+      'Item','Category','On hand','Base unit','Purchase unit','Purchase factor',
+      'Unit cost','Stock value','Daily usage','Days left','Reorder point','Par',
+      'Status','Supplier','Latest variance qty','Latest variance value'
+    ].map(csvCell).join(',')];
+
+    rows.forEach(function (row) {
+      lines.push([
+        row.name,row.category,row.estimated_on_hand,row.unit,row.purchase_unit,row.purchase_to_base,
+        row.unit_cost,row.stock_value,row.avg_daily_usage,row.days_left,row.reorder_point,row.par_level,
+        row.status,row.supplier_name,row.last_variance_qty,row.last_variance_cost
+      ].map(csvCell).join(','));
+    });
+
+    var blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'paymydine-inventory-snapshot-' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  /* ------------------------------------------------------------
      Settings / health
      ------------------------------------------------------------ */
 
@@ -1397,6 +1523,7 @@
     var adjustSave = target.closest('[data-r24-adjust-save]');
     if (adjustSave) { saveAdjustment(adjustSave); return; }
     if (target.closest('[data-r24-ledger-export]')) { exportLedgerCsv(); return; }
+    if (target.closest('[data-r24-analytics-export]')) { exportInventorySnapshotCsv(); return; }
 
     var settingsSave = target.closest('[data-r24-settings-save]');
     if (settingsSave) {
