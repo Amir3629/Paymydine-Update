@@ -26,6 +26,7 @@ import {
   getGuestSessionId,
   requestValet as requestValetApi,
   sendTableNote as sendTableNoteApi,
+  submitKioskOrder,
   submitTableOrder as submitTableOrderApi,
 } from '@/src/lib/client-api'
 
@@ -198,6 +199,9 @@ export function MenuRuntimeProvider({
   orderPollingIntervalMs?: number
 }) {
   const isPreview = bootstrap.tenant.id === 'preview'
+  const isKiosk = bootstrap.runtime?.mode === 'kiosk'
+  const kioskSession = String(bootstrap.runtime?.kioskSession || '').trim()
+  const kioskOrderType = bootstrap.runtime?.kioskOrderType === 'pickup' ? 'pickup' : 'kiosk'
   const [locale, setLocaleState] = useState(bootstrap.locales.defaultLocale)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -225,8 +229,11 @@ export function MenuRuntimeProvider({
 
   const labels = useMemo(() => getLabels(locale), [locale])
   const direction = isRtlLocale(locale) ? 'rtl' : 'ltr'
-  const tableKey = bootstrap.table.valid ? (bootstrap.table.id || bootstrap.table.number || bootstrap.table.qr || 'table') : 'browse'
+  const tableKey = isKiosk
+    ? `kiosk:${kioskSession || 'session'}`
+    : (bootstrap.table.valid ? (bootstrap.table.id || bootstrap.table.number || bootstrap.table.qr || 'table') : 'browse')
   const cartStorageKey = `pmd-v2:cart:${bootstrap.tenant.id}:${tableKey}`
+  const kioskOrderStorageKey = `pmd-v2:kiosk-order:${bootstrap.tenant.id}:${kioskSession || 'session'}`
 
   const confirmationStorageKey = `pmd-v2:confirm:${bootstrap.tenant.id}:${tableKey}`
   const selectedOrder = useMemo(
@@ -238,6 +245,23 @@ export function MenuRuntimeProvider({
     [currentDraft, selectedOrder, tableOrders],
   )
   const selectOrder = useCallback((orderId: number | null) => setSelectedOrderId(orderId), [])
+
+  useEffect(() => {
+    if (!isKiosk) return
+    try {
+      const raw = window.sessionStorage.getItem(kioskOrderStorageKey)
+      if (!raw) return
+      const restored = JSON.parse(raw) as TableOrderState
+      if (!restored?.orderId) return
+      setTableOrders([restored])
+      setSelectedOrderId(restored.orderId)
+      const restoredGuest = restored.items.find((item) => item.guestSessionId)?.guestSessionId
+      if (restoredGuest) setGuestSessionId(restoredGuest)
+      setOverlay('checkout')
+    } catch {
+      try { window.sessionStorage.removeItem(kioskOrderStorageKey) } catch {}
+    }
+  }, [isKiosk, kioskOrderStorageKey])
 
   const notify = useCallback((kind: 'success' | 'error' | 'info', message: string) => {
     if (toastTimer.current) window.clearTimeout(toastTimer.current)
@@ -586,7 +610,7 @@ export function MenuRuntimeProvider({
       notify('error', labels.emptyCart)
       return
     }
-    if (!bootstrap.table.id && !bootstrap.table.number) {
+    if (!isKiosk && !bootstrap.table.id && !bootstrap.table.number) {
       notify('error', labels.scanTableQr)
       return
     }
@@ -594,7 +618,9 @@ export function MenuRuntimeProvider({
     setOrderLoading(true)
     let confirmedDraft: TableOrderState | null = null
     try {
-      const session = guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
+      const session = isKiosk
+        ? (kioskSession || guestSessionId || (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `kiosk-${Date.now()}`))
+        : (guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table))
       if (!guestSessionId) setGuestSessionId(session)
 
       const fingerprint = JSON.stringify(cart.map((line) => ({
@@ -622,7 +648,82 @@ export function MenuRuntimeProvider({
       }
 
       let submitted: TableOrderState
-      if (isPreview) {
+      if (isKiosk) {
+        const money = (value: number) => Math.round(Number(value || 0) * 100) / 100
+        const subtotal = money(cartSubtotal)
+        const taxAmount = bootstrap.tax.enabled && !bootstrap.tax.includedInMenuPrice
+          ? money(subtotal * Math.max(0, bootstrap.tax.percentage) / 100)
+          : 0
+        const serviceChargeAmount = bootstrap.serviceCharge.enabled
+          ? money(
+              bootstrap.serviceCharge.type === 'percentage'
+                ? subtotal * Math.max(0, bootstrap.serviceCharge.value) / 100
+                : Math.max(0, bootstrap.serviceCharge.value),
+            )
+          : 0
+        const total = money(subtotal + taxAmount + serviceChargeAmount)
+        const result = await submitKioskOrder({
+          serviceMode: kioskOrderType,
+          kioskSession: kioskSession || session,
+          guestSessionId: session,
+          locationId: bootstrap.table.locationId,
+          subtotal,
+          taxAmount,
+          serviceChargeAmount,
+          serviceChargeLabel: bootstrap.serviceCharge.label,
+          totalAmount: total,
+          lines: cart,
+        })
+        if (!result.order_id) throw new Error('The kiosk order could not be created.')
+
+        const submittedItems = cart.map((line) => ({
+          orderMenuId: null,
+          menuId: line.item.id,
+          name: line.selectedOptions.length
+            ? `${line.item.name} — ${line.selectedOptions.map((option) => option.valueName).join(', ')}`
+            : line.item.name,
+          note: line.note || null,
+          quantity: line.quantity,
+          price: line.unitPrice,
+          subtotal: line.subtotal,
+          guestSessionId: session,
+          paidQuantity: 0,
+          unpaidQuantity: line.quantity,
+        }))
+        const createdAt = new Date().toISOString()
+        submitted = {
+          success: true,
+          status: 'submitted_unpaid',
+          draftId: null,
+          orderId: Number(result.order_id),
+          orderNumber: String(result.order_id),
+          payment: 'qr_pay_later',
+          paymentStatus: 'unpaid',
+          deliveryStatus: null,
+          statusName: 'Received',
+          canShowToNewDevice: true,
+          hasActiveTableOrder: true,
+          items: submittedItems,
+          groups: [{ guestSessionId: session, items: submittedItems, subtotal }],
+          totals: {
+            subtotal,
+            tax: taxAmount,
+            total,
+            orderTotal: total,
+            settledAmount: 0,
+            remainingAmount: total,
+          },
+          prepTimeMinutes: Number(result.estimated_prep_minutes ?? result.eta_minutes ?? 0) || null,
+          estimatedReadyAt: null,
+          createdAt,
+          updatedAt: createdAt,
+          orderOrigin: 'guest_self',
+        } as TableOrderState
+
+        try {
+          window.sessionStorage.setItem(kioskOrderStorageKey, JSON.stringify(submitted))
+        } catch {}
+      } else if (isPreview) {
         confirmedDraft = demoDraft(cart, session, currentDraft)
         submitted = demoSubmitted(confirmedDraft)
       } else {
@@ -669,8 +770,8 @@ export function MenuRuntimeProvider({
       }
 
       setOverlay('checkout')
-      notify('success', labels.submitKitchen)
-      if (!isPreview) void refreshOrder()
+      notify('success', isKiosk ? 'Order created. Choose your payment method.' : labels.submitKitchen)
+      if (!isPreview && !isKiosk) void refreshOrder()
     } catch (error) {
       // If confirm succeeded but submit was interrupted, expose the transient
       // draft as a recovery state and KEEP the cart + confirmation id for retry.
@@ -682,11 +783,18 @@ export function MenuRuntimeProvider({
   }, [
     bootstrap.table,
     bootstrap.tenant.id,
+    bootstrap.tax,
+    bootstrap.serviceCharge,
     cart,
+    cartSubtotal,
     clearCart,
     confirmationStorageKey,
     currentDraft,
     guestSessionId,
+    isKiosk,
+    kioskOrderStorageKey,
+    kioskOrderType,
+    kioskSession,
     isPreview,
     labels.emptyCart,
     labels.error,
@@ -728,15 +836,19 @@ export function MenuRuntimeProvider({
       const paidAmount = Number(amount ?? order.totals.remainingAmount ?? order.totals.orderTotal ?? 0)
       const settledAmount = Math.min(order.totals.orderTotal, order.totals.settledAmount + paidAmount)
       const remainingAmount = Math.max(0, order.totals.orderTotal - settledAmount)
-      return {
+      const next = {
         ...order,
         status: remainingAmount <= 0 ? 'paid' : 'partially_paid',
         paymentStatus: remainingAmount <= 0 ? 'paid' : 'partial',
         totals: { ...order.totals, settledAmount, remainingAmount },
         updatedAt: new Date().toISOString(),
       }
+      if (isKiosk) {
+        try { window.sessionStorage.setItem(kioskOrderStorageKey, JSON.stringify(next)) } catch {}
+      }
+      return next
     }))
-  }, [])
+  }, [isKiosk, kioskOrderStorageKey])
 
   const callWaiter = useCallback(async () => {
     const id = bootstrap.table.id || bootstrap.table.number

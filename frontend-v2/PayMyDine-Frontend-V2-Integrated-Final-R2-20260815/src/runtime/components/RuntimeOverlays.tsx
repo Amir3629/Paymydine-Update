@@ -295,7 +295,11 @@ function CartSheet() {
   const [noteLineKey, setNoteLineKey] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
   const noteCopy = itemNoteCopy(locale)
-  const canConfirm = Boolean(bootstrap.features.tableOrdering && (bootstrap.table.id || bootstrap.table.number))
+  const isKiosk = bootstrap.runtime?.mode === 'kiosk'
+  const canConfirm = Boolean(
+    isKiosk
+    || (bootstrap.features.tableOrdering && (bootstrap.table.id || bootstrap.table.number)),
+  )
 
   return (
     <PanelShell
@@ -304,7 +308,7 @@ function CartSheet() {
       footer={cart.length > 0 && (
         <div className={styles.stack}>
           <div className={styles.summaryRow}><span>{labels.total}</span><strong>{formatCurrency(cartSubtotal)}</strong></div>
-          {!canConfirm && <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.scanTableQr}</div>}
+          {!canConfirm && !isKiosk && <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.scanTableQr}</div>}
           <div className={styles.actionRow}>
             <button className={styles.secondary} type="button" onClick={continueOrdering}>{labels.continueMenu}</button>
             <button className={styles.primary} type="button" onClick={() => void confirmPersonalItems()} disabled={!canConfirm || orderLoading} data-pmd-direct-kitchen-send="r33b">
@@ -820,6 +824,16 @@ function SubmittedOrderCard({ order, selected, onSelect, onPay }: {
   )
 }
 
+function notifyNativeKioskOrderComplete(orderId: number | string) {
+  if (typeof window === 'undefined') return
+  try {
+    const bridge = (window as any).PayMyDineKiosk
+    const secret = String((window as any).__PMD_KIOSK_BRIDGE_SECRET__ || '')
+    if (!secret || !bridge || typeof bridge.orderComplete !== 'function') return
+    bridge.orderComplete(String(orderId), secret)
+  } catch {}
+}
+
 type SplitMode = 'full' | 'mine' | 'equal' | 'items' | 'shares'
 
 // PMD_STRIPE_WALLET_STATE_R35C
@@ -860,6 +874,7 @@ function useRuntimePaymentChoices(payments: PaymentMethod[]): PaymentMethod[] {
 function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState; mode: 'payment' | 'split'; guestSessionId: string }) {
   const { bootstrap, labels, formatCurrency, notify, refreshOrder, isPreview, markOrderPaid, locale } = useMenuRuntime()
   const copy = r27FlowCopy(locale)
+  const isKiosk = bootstrap.runtime?.mode === 'kiosk'
   const mineAvailable = Boolean(guestSessionId && order.items.some((item) => item.guestSessionId === guestSessionId && item.unpaidQuantity > 0))
   const [splitMode, setSplitMode] = useState<SplitMode>(mode === 'payment' ? 'full' : (mineAvailable ? 'mine' : 'equal'))
   const [people, setPeople] = useState(2)
@@ -874,7 +889,11 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [worldlineCardLaunchKey, setWorldlineCardLaunchKey] = useState('')
-  const paymentChoices = useRuntimePaymentChoices(bootstrap.payments)
+  const runtimePaymentChoices = useRuntimePaymentChoices(bootstrap.payments)
+  const paymentChoices = useMemo(
+    () => runtimePaymentChoices,
+    [runtimePaymentChoices],
+  )
 
   useEffect(() => {
     if (!paymentChoices.some((entry) => paymentMethodKey(entry) === methodKey)) {
@@ -982,10 +1001,13 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   }
 
   const completePaymentLocally = async (amount = payableEstimate) => {
-    if (isPreview) markOrderPaid(order.orderId!, amount)
+    if (isPreview || isKiosk) markOrderPaid(order.orderId!, amount)
     else await refreshOrder()
     notify('success', labels.paid)
     setMessage(labels.success)
+    if (isKiosk && order.orderId) {
+      notifyNativeKioskOrderComplete(order.orderId)
+    }
   }
 
   const prepareSplit = async (): Promise<SplitPaymentIntent> => {
@@ -1006,6 +1028,12 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   }
 
   const requestCash = async (amount: number) => {
+    if (isKiosk) {
+      notify('success', 'Order sent. Please pay at the counter.')
+      setMessage(`Order #${order.orderNumber || order.orderId} is ready for cash payment at the counter.`)
+      if (order.orderId) notifyNativeKioskOrderComplete(order.orderId)
+      return
+    }
     await callWaiter(bootstrap.table, `Cash payment requested for order #${order.orderNumber || order.orderId}: ${formatCurrency(amount)}. Please collect and confirm in Staff/Cashier.`)
     notify('success', 'Cash payment requested')
     setMessage('A staff member will come to your table to collect the cash.')

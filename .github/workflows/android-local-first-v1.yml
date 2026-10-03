@@ -2,7 +2,7 @@ name: PayMyDine Device App V5
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
@@ -19,6 +19,9 @@ on:
       - 'frontend/app/kiosk/**'
       - 'frontend/app/kiosk-reset/**'
       - 'frontend/features/kiosk/**'
+      - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/**'
+      - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/**'
+      - 'app/Http/Controllers/Api/OrderController.php'
       - 'routes/admin-app-before.php'
       - 'routes/pmd-kiosk-v1.php'
       - 'routes.php'
@@ -57,6 +60,18 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Install production Frontend V2
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm ci
+
+      - name: Typecheck production Frontend V2
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run typecheck
+
+      - name: Build production Frontend V2
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run build
+
   server-contract:
     runs-on: ubuntu-latest
     timeout-minutes: 12
@@ -72,6 +87,7 @@ jobs:
           php -l app/Services/PmdTableDisplayPairingService.php
           php -l app/Services/PmdKioskPairingService.php
           php -l app/Http/Controllers/PmdKioskPublicController.php
+          php -l app/Http/Controllers/Api/OrderController.php
           php -l app/Http/Controllers/PmdDevicePlatformController.php
           php -l app/admin/controllers/Pmddevices.php
           php -l routes/pmd-kiosk-v1.php
@@ -105,6 +121,12 @@ jobs:
           grep -Fq 'data-pmd-kiosk-menu="v5"' frontend/features/kiosk/KioskMenuPage.tsx
           test -f frontend/app/kiosk/page.tsx
           test -f frontend/app/kiosk-reset/page.tsx
+          test -f frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/kiosk/page.tsx
+          test -f frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/kiosk-reset/page.tsx
+          grep -Fq "mode: 'kiosk'" frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/CustomerMenuRoute.tsx
+          grep -Fq 'submitKioskOrder' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/MenuRuntimeContext.tsx
+          grep -Fq 'isKiosk' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/ThemeBottomToolBar.tsx
+          grep -Fq 'PMD_KIOSK_DIRECT_ORDER_IDEMPOTENCY_V6' app/Http/Controllers/Api/OrderController.php
 
   android:
     runs-on: ubuntu-latest
