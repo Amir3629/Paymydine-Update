@@ -9,6 +9,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\Inventory\PmdInventoryControlService;
+use App\Services\Inventory\PmdInventoryProService;
 use App\Services\Inventory\PmdInventoryReceiptAiService;
 use App\Services\Inventory\PmdInventoryStockCatalog;
 use Illuminate\Http\JsonResponse;
@@ -98,6 +99,202 @@ class Pmdinventory extends AdminController
             return [
                 'snapshot' => app(PmdInventoryControlService::class)
                     ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    // PMD_INVENTORY_PRO_R24
+    // Additive professional operations. R22/R23 remain the stock-ledger authority.
+    public function onProSnapshot(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            return [
+                'pro' => app(PmdInventoryProService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProSaveSupplier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->saveSupplier($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'supplier_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProArchiveSupplier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->archiveSupplier(
+                $this->locationId(),
+                (int)request()->input('supplier_id', 0)
+            );
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProSaveIdentifier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->saveIdentifier($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'identifier_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProArchiveIdentifier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->archiveIdentifier(
+                $this->locationId(),
+                (int)request()->input('identifier_id', 0)
+            );
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProResolveCode(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            return [
+                'identifier' => app(PmdInventoryProService::class)->resolveIdentifier(
+                    $this->locationId(),
+                    (string)request()->input('code', '')
+                ),
+            ];
+        });
+    }
+
+    public function onProSaveStorageLocation(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->saveStorageLocation($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'storage_location_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProSaveSettings(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->saveSettings($this->locationId(), request()->all());
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProSavePurchaseOrder(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->savePurchaseOrder($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'purchase_order_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProSetPurchaseOrderStatus(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->setPurchaseOrderStatus(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('purchase_order_id', 0),
+                (string)request()->input('status', 'draft')
+            );
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProReceivePurchaseOrder(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $result = $service->receivePurchaseOrder(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return $result + [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProTransferStock(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->transferStock($this->locationId(), $this->staffId(), request()->all());
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProRecordAdjustment(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->recordAdjustment($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'movement_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
             ];
         });
     }
