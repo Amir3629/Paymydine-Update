@@ -161,6 +161,8 @@ return new class extends Migration
                 $table->decimal('package_quantity', 16, 4)->default(1);
                 $table->decimal('base_quantity', 16, 4)->default(1);
                 $table->decimal('unit_price', 16, 4)->default(0);
+                $table->decimal('min_order_qty', 16, 4)->default(1);
+                $table->decimal('order_multiple', 16, 4)->default(1);
                 $table->string('currency', 12)->default('EUR');
                 $table->boolean('is_preferred')->default(false)->index();
                 $table->boolean('active')->default(true)->index();
