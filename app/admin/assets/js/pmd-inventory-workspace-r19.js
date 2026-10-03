@@ -1249,6 +1249,7 @@
       base_unit:String(identifier.base_unit || item.unit || 'piece'),
       supplier_id:Number(identifier.supplier_id || 0),
       supplier_name:String(identifier.supplier_name || ''),
+      supplier_item_id:Number(identifier.supplier_item_id || 0),
       estimated_package_cost:Number(item.unit_cost || 0) * Math.max(0.0001,Number(identifier.base_quantity || 1))
     };
   }
