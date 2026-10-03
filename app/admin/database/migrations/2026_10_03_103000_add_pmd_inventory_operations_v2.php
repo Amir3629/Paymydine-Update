@@ -191,6 +191,11 @@ return new class extends Migration
                     $table->unsignedBigInteger('lot_id')->nullable()->index()->after('storage_location_id');
                 });
             }
+            if (!$schema->hasColumn('pmd_inventory_movements', 'purchase_order_line_id')) {
+                $schema->table('pmd_inventory_movements', function (Blueprint $table) {
+                    $table->unsignedBigInteger('purchase_order_line_id')->nullable()->index()->after('lot_id');
+                });
+            }
         }
 
         if (!$schema->hasTable('pmd_inventory_suppliers')) {
