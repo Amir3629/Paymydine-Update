@@ -1152,6 +1152,194 @@ final class PmdInventoryProService
         });
     }
 
+    public function reconcileReceiptToPurchaseOrder(
+        int $locationId,
+        int $receiptId,
+        int $purchaseOrderId
+    ): array {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        $receipt = DB::table('pmd_inventory_receipts')
+            ->where('location_id', $locationId)
+            ->where('id', $receiptId)
+            ->first();
+
+        if (!$receipt) {
+            throw new InvalidArgumentException('Supplier receipt review was not found.');
+        }
+
+        $order = $this->purchaseOrder($locationId, $purchaseOrderId);
+        $supplier = $order->supplier_id
+            ? $this->supplier($locationId, (int)$order->supplier_id)
+            : null;
+
+        $payload = json_decode((string)($receipt->ai_payload_json ?? ''), true);
+        $invoiceLines = is_array($payload['lines'] ?? null)
+            ? array_values(array_filter($payload['lines'], 'is_array'))
+            : [];
+
+        if (!$invoiceLines) {
+            throw new InvalidArgumentException('This supplier document has no AI-extracted lines to compare.');
+        }
+
+        $poLines = DB::table('pmd_inventory_purchase_order_lines as pol')
+            ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'pol.item_id')
+            ->where('pol.purchase_order_id', $purchaseOrderId)
+            ->orderBy('pol.id')
+            ->get([
+                'pol.*',
+                'i.name as item_name',
+            ]);
+
+        $usedInvoiceIndexes = [];
+        $matches = [];
+        $missing = [];
+
+        foreach ($poLines as $poLine) {
+            $poName = $this->normalizeName((string)($poLine->item_name ?? $poLine->description ?? ''));
+            $bestIndex = null;
+            $bestScore = 0;
+
+            foreach ($invoiceLines as $index => $invoiceLine) {
+                if (isset($usedInvoiceIndexes[$index])) continue;
+                $invoiceName = $this->normalizeName((string)($invoiceLine['item_name'] ?? ''));
+                if ($invoiceName === '' || $poName === '') continue;
+
+                $score = 0;
+                if ($invoiceName === $poName) {
+                    $score = 100;
+                } elseif (
+                    mb_strlen($invoiceName) >= 4
+                    && mb_strlen($poName) >= 4
+                    && (str_contains($invoiceName, $poName) || str_contains($poName, $invoiceName))
+                ) {
+                    $score = 80;
+                } else {
+                    similar_text($invoiceName, $poName, $similarity);
+                    $score = (int)round($similarity);
+                }
+
+                if ($score > $bestScore && $score >= 68) {
+                    $bestScore = $score;
+                    $bestIndex = $index;
+                }
+            }
+
+            if ($bestIndex === null) {
+                $missing[] = [
+                    'po_line_id' => (int)$poLine->id,
+                    'item_id' => (int)$poLine->item_id,
+                    'item_name' => (string)($poLine->item_name ?? $poLine->description ?? 'Item'),
+                    'remaining_qty' => round(max(
+                        0,
+                        (float)$poLine->quantity_ordered - (float)$poLine->quantity_received
+                    ), 4),
+                    'package_unit' => (string)$poLine->package_unit,
+                ];
+                continue;
+            }
+
+            $usedInvoiceIndexes[$bestIndex] = true;
+            $invoiceLine = $invoiceLines[$bestIndex];
+            $remaining = max(
+                0,
+                (float)$poLine->quantity_ordered - (float)$poLine->quantity_received
+            );
+            $invoiceQty = is_numeric($invoiceLine['quantity'] ?? null)
+                ? max(0, (float)$invoiceLine['quantity'])
+                : null;
+            $invoiceCost = is_numeric($invoiceLine['unit_cost'] ?? null)
+                ? max(0, (float)$invoiceLine['unit_cost'])
+                : null;
+            $poCost = max(0, (float)$poLine->unit_cost);
+
+            $matches[] = [
+                'po_line_id' => (int)$poLine->id,
+                'item_id' => (int)$poLine->item_id,
+                'item_name' => (string)($poLine->item_name ?? $poLine->description ?? 'Item'),
+                'match_score' => $bestScore,
+                'remaining_qty' => round($remaining, 4),
+                'invoice_qty' => $invoiceQty === null ? null : round($invoiceQty, 4),
+                'qty_variance' => $invoiceQty === null ? null : round($invoiceQty - $remaining, 4),
+                'package_unit' => (string)$poLine->package_unit,
+                'po_unit_cost' => round($poCost, 4),
+                'invoice_unit_cost' => $invoiceCost === null ? null : round($invoiceCost, 4),
+                'price_variance' => $invoiceCost === null ? null : round($invoiceCost - $poCost, 4),
+                'price_variance_pct' => (
+                    $invoiceCost !== null && $poCost > 0
+                ) ? round((($invoiceCost - $poCost) / $poCost) * 100, 2) : null,
+                'invoice_item_name' => (string)($invoiceLine['item_name'] ?? ''),
+            ];
+        }
+
+        $extra = [];
+        foreach ($invoiceLines as $index => $invoiceLine) {
+            if (isset($usedInvoiceIndexes[$index])) continue;
+            $extra[] = [
+                'item_name' => (string)($invoiceLine['item_name'] ?? ''),
+                'quantity' => is_numeric($invoiceLine['quantity'] ?? null)
+                    ? round((float)$invoiceLine['quantity'], 4)
+                    : null,
+                'unit' => (string)($invoiceLine['unit'] ?? ''),
+                'unit_cost' => is_numeric($invoiceLine['unit_cost'] ?? null)
+                    ? round((float)$invoiceLine['unit_cost'], 4)
+                    : null,
+            ];
+        }
+
+        $supplierMismatch = false;
+        if ($supplier && !empty($receipt->supplier_name)) {
+            $supplierMismatch = $this->normalizeName((string)$receipt->supplier_name)
+                !== $this->normalizeName((string)$supplier->name);
+        }
+
+        $qtyIssues = count(array_filter($matches, static fn ($row) =>
+            $row['qty_variance'] !== null && abs((float)$row['qty_variance']) > 0.00005
+        ));
+        $priceIssues = count(array_filter($matches, static fn ($row) =>
+            $row['price_variance'] !== null && abs((float)$row['price_variance']) > 0.00005
+        ));
+
+        $result = [
+            'receipt_id' => $receiptId,
+            'purchase_order_id' => $purchaseOrderId,
+            'order_number' => (string)$order->order_number,
+            'supplier_name' => $supplier ? (string)$supplier->name : null,
+            'invoice_supplier_name' => (string)($receipt->supplier_name ?? ''),
+            'supplier_mismatch' => $supplierMismatch,
+            'matched_lines' => $matches,
+            'missing_po_lines' => $missing,
+            'extra_invoice_lines' => $extra,
+            'summary' => [
+                'matched' => count($matches),
+                'missing' => count($missing),
+                'extra' => count($extra),
+                'quantity_issues' => $qtyIssues,
+                'price_issues' => $priceIssues,
+                'clean_match' => !$supplierMismatch
+                    && count($missing) === 0
+                    && count($extra) === 0
+                    && $qtyIssues === 0
+                    && $priceIssues === 0,
+            ],
+        ];
+
+        DB::table('pmd_inventory_receipts')
+            ->where('location_id', $locationId)
+            ->where('id', $receiptId)
+            ->update([
+                'purchase_order_id' => $purchaseOrderId,
+                'reconciliation_json' => json_encode(
+                    $result,
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
+                'updated_at' => now(),
+            ]);
+
+        return $result;
+    }
+
     public function savePurchaseOrder(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
@@ -2196,6 +2384,13 @@ final class PmdInventoryProService
         }
 
         return ((10 - ($sum % 10)) % 10) === $check;
+    }
+
+    private function normalizeName(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+        $value = preg_replace('/[^\pL\pN]+/u', ' ', $value) ?? $value;
+        return trim(preg_replace('/\s+/u', ' ', $value) ?? $value);
     }
 
     private function normalizeCode($value): string
