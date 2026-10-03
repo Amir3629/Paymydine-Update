@@ -587,6 +587,7 @@
                     </div>
 
                     <div class="pmd-inv-r24-alerts" data-r24-alerts></div>
+                    <section class="pmd-inv-r24-analytics" data-r24-analytics></section>
 
                     <div class="pmd-inv-r24-ops-grid">
                         <section class="pmd-inv-r24-card">
