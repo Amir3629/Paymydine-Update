@@ -674,12 +674,18 @@ final class PmdInventoryProService
             throw new InvalidArgumentException('Choose a supported stock-consumption event.');
         }
 
+        $costingMethod = strtolower(trim((string)($data['costing_method'] ?? 'last_purchase')));
+        if (!in_array($costingMethod, ['last_purchase', 'weighted_average'], true)) {
+            throw new InvalidArgumentException('Choose a supported inventory costing method.');
+        }
+
         DB::table('pmd_inventory_settings')->updateOrInsert(
             ['location_id' => $locationId],
             [
                 'consumption_event' => $event,
                 'expiry_alert_days' => min(90, max(1, (int)($data['expiry_alert_days'] ?? 5))),
                 'safety_stock_days' => round(min(30, max(0, $this->number($data['safety_stock_days'] ?? 1.5, 1.5))), 2),
+                'costing_method' => $costingMethod,
                 'blind_counts' => !empty($data['blind_counts']) ? 1 : 0,
                 'allow_negative_stock' => !empty($data['allow_negative_stock']) ? 1 : 0,
                 'updated_at' => now(),
@@ -1287,6 +1293,7 @@ final class PmdInventoryProService
                 'consumption_event' => 'paid',
                 'expiry_alert_days' => 5,
                 'safety_stock_days' => 1.5,
+                'costing_method' => 'last_purchase',
                 'blind_counts' => 0,
                 'allow_negative_stock' => 0,
                 'created_at' => now(),
