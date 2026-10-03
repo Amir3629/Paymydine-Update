@@ -5,7 +5,7 @@ use App\Http\Controllers\RestaurantGroups\DisplayController;
 use App\Http\Controllers\RestaurantGroups\SuperAdminController;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\SuperAdminCanonicalHost;
-use App\Http\Middleware\TenantDatabaseMiddleware;
+use Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', SuperAdminCanonicalHost::class])
