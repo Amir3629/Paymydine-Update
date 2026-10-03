@@ -993,6 +993,7 @@ final class PmdInventoryProService
                     'storage_location_id' => $storageLocationId,
                     'receipt_id' => $receiptId,
                     'purchase_order_id' => $poId,
+                    'purchase_order_line_id' => (int)$line->id,
                     'lot_code' => $entry['lot_code'],
                     'expires_at' => $entry['expires_at'],
                     'received_at' => now()->toDateString(),
@@ -1075,6 +1076,160 @@ final class PmdInventoryProService
             $note = $this->nullableText($data['note'] ?? 'Internal stock transfer', 5000);
             $this->storageMovement($locationId, $fromId, $itemId, -$qty, 'TRANSFER_OUT', $staffId, 'transfer', null, $note);
             $this->storageMovement($locationId, $toId, $itemId, $qty, 'TRANSFER_IN', $staffId, 'transfer', null, $note);
+        });
+    }
+
+    public function reversePurchaseReceipt(
+        int $locationId,
+        ?int $staffId,
+        int $receiptId,
+        ?string $reason = null
+    ): void {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $receiptId = max(0, $receiptId);
+
+        $receipt = DB::table('pmd_inventory_receipts')
+            ->where('location_id', $locationId)
+            ->where('id', $receiptId)
+            ->whereNotNull('confirmed_at')
+            ->first();
+
+        if (!$receipt) {
+            throw new InvalidArgumentException('Confirmed purchase receipt was not found.');
+        }
+        if (!empty($receipt->reversed_at)) {
+            throw new InvalidArgumentException('This purchase receipt was already reversed.');
+        }
+
+        $movements = DB::table('pmd_inventory_movements')
+            ->where('location_id', $locationId)
+            ->where('movement_type', 'PURCHASE')
+            ->where('reference_type', 'purchase_receipt')
+            ->where('reference_id', $receiptId)
+            ->orderBy('id')
+            ->get();
+
+        if ($movements->isEmpty()) {
+            throw new InvalidArgumentException('This receipt has no purchase movements to reverse.');
+        }
+
+        DB::transaction(function () use (
+            $locationId,
+            $staffId,
+            $receiptId,
+            $receipt,
+            $movements,
+            $reason
+        ): void {
+            $note = $this->nullableText(
+                $reason ?: 'Purchase receipt reversed',
+                5000
+            );
+
+            foreach ($movements as $movement) {
+                DB::table('pmd_inventory_movements')->insert([
+                    'location_id' => $locationId,
+                    'item_id' => (int)$movement->item_id,
+                    'movement_type' => 'PURCHASE_REVERSAL',
+                    'qty_delta' => round(-1 * (float)$movement->qty_delta, 4),
+                    'unit_cost' => round((float)$movement->unit_cost, 6),
+                    'reference_type' => 'purchase_reversal',
+                    'reference_id' => $receiptId,
+                    'reason' => 'Purchase reversal',
+                    'note' => $note,
+                    'staff_id' => $staffId,
+                    'occurred_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $lots = DB::table('pmd_inventory_lots')
+                ->where('location_id', $locationId)
+                ->where('receipt_id', $receiptId)
+                ->get();
+
+            $poIds = [];
+            foreach ($lots as $lot) {
+                $qty = max(0, (float)$lot->qty_received);
+                if ($qty > 0 && !empty($lot->storage_location_id)) {
+                    $this->storageMovement(
+                        $locationId,
+                        (int)$lot->storage_location_id,
+                        (int)$lot->item_id,
+                        -$qty,
+                        'PURCHASE_REVERSAL',
+                        $staffId,
+                        'purchase_reversal',
+                        $receiptId,
+                        $note
+                    );
+                }
+
+                if (!empty($lot->purchase_order_line_id)) {
+                    $poLine = DB::table('pmd_inventory_purchase_order_lines')
+                        ->where('id', (int)$lot->purchase_order_line_id)
+                        ->first();
+
+                    if ($poLine) {
+                        $factor = max(0.0001, (float)$poLine->base_quantity_per_package);
+                        $packages = $qty / $factor;
+                        DB::table('pmd_inventory_purchase_order_lines')
+                            ->where('id', (int)$poLine->id)
+                            ->update([
+                                'quantity_received' => max(
+                                    0,
+                                    round((float)$poLine->quantity_received - $packages, 4)
+                                ),
+                                'updated_at' => now(),
+                            ]);
+                        $poIds[(int)$poLine->purchase_order_id] = true;
+                    }
+                } elseif (!empty($lot->purchase_order_id)) {
+                    $poIds[(int)$lot->purchase_order_id] = true;
+                }
+
+                DB::table('pmd_inventory_lots')
+                    ->where('id', (int)$lot->id)
+                    ->update([
+                        'qty_remaining' => 0,
+                        'active' => 0,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            DB::table('pmd_inventory_receipts')
+                ->where('location_id', $locationId)
+                ->where('id', $receiptId)
+                ->update([
+                    'reversed_at' => now(),
+                    'reversed_by' => $staffId,
+                    'updated_at' => now(),
+                ]);
+
+            foreach (array_keys($poIds) as $poId) {
+                $ordered = (float)DB::table('pmd_inventory_purchase_order_lines')
+                    ->where('purchase_order_id', $poId)
+                    ->sum('quantity_ordered');
+                $received = (float)DB::table('pmd_inventory_purchase_order_lines')
+                    ->where('purchase_order_id', $poId)
+                    ->sum('quantity_received');
+
+                $status = $received <= 0.00005
+                    ? 'sent'
+                    : ($received + 0.00005 >= $ordered ? 'received' : 'partial');
+
+                DB::table('pmd_inventory_purchase_orders')
+                    ->where('location_id', $locationId)
+                    ->where('id', $poId)
+                    ->whereNotIn('status', ['cancelled', 'closed'])
+                    ->update([
+                        'status' => $status,
+                        'received_at' => $status === 'received' ? now() : null,
+                        'updated_at' => now(),
+                    ]);
+            }
         });
     }
 
