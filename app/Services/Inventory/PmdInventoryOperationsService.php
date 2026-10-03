@@ -138,6 +138,40 @@ final class PmdInventoryOperationsService
             ])
             ->all();
 
+        // Attach a matching supplier-package record to identifiers when one
+        // exists, so scanner receiving can update supplier price history.
+        if ($identifiers) {
+            $identifierItemIds = array_values(array_unique(array_map(
+                static fn ($row) => (int)($row['item_id'] ?? 0),
+                $identifiers
+            )));
+            $packageRows = DB::table('pmd_inventory_supplier_items')
+                ->where('location_id', $locationId)
+                ->where('active', 1)
+                ->whereIn('item_id', $identifierItemIds)
+                ->get([
+                    'id',
+                    'item_id',
+                    'supplier_id',
+                    'package_unit',
+                    'base_quantity',
+                ]);
+
+            foreach ($identifiers as &$identifier) {
+                $match = $packageRows->first(static function ($row) use ($identifier) {
+                    $sameSupplier =
+                        (int)($identifier['supplier_id'] ?? 0) === 0
+                        || (int)$row->supplier_id === (int)$identifier['supplier_id'];
+                    return $sameSupplier
+                        && (int)$row->item_id === (int)$identifier['item_id']
+                        && strtolower((string)$row->package_unit) === strtolower((string)$identifier['package_unit'])
+                        && abs((float)$row->base_quantity - (float)$identifier['base_quantity']) < 0.00005;
+                });
+                $identifier['supplier_item_id'] = $match ? (int)$match->id : 0;
+            }
+            unset($identifier);
+        }
+
         $supplierItems = DB::table('pmd_inventory_supplier_items as si')
             ->leftJoin('pmd_inventory_suppliers as s', 's.id', '=', 'si.supplier_id')
             ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'si.item_id')
@@ -268,6 +302,26 @@ final class PmdInventoryOperationsService
                 's.name as supplier_name',
             ]);
 
+        $supplierItemId = 0;
+        if ($row) {
+            $supplierItemId = (int)(DB::table('pmd_inventory_supplier_items')
+                ->where('location_id', $locationId)
+                ->where('item_id', (int)$row->item_id)
+                ->when(
+                    (int)($row->supplier_id ?? 0) > 0,
+                    fn ($query) => $query->where('supplier_id', (int)$row->supplier_id)
+                )
+                ->where('active', 1)
+                ->whereRaw('LOWER(package_unit) = ?', [strtolower((string)$row->package_unit)])
+                ->whereBetween('base_quantity', [
+                    max(0, (float)$row->base_quantity - 0.00005),
+                    (float)$row->base_quantity + 0.00005,
+                ])
+                ->orderByDesc('is_preferred')
+                ->orderBy('id')
+                ->value('id') ?? 0);
+        }
+
         if (!$row) {
             return [
                 'matched' => false,
@@ -293,6 +347,7 @@ final class PmdInventoryOperationsService
             'base_quantity' => round((float)$row->base_quantity, 4),
             'supplier_id' => (int)($row->supplier_id ?? 0),
             'supplier_name' => (string)($row->supplier_name ?? ''),
+            'supplier_item_id' => $supplierItemId,
             'estimated_package_cost' => round(
                 max(0, (float)$row->unit_cost) * max(0.0001, (float)$row->base_quantity),
                 4
