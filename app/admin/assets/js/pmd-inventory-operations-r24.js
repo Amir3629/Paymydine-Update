@@ -298,30 +298,54 @@
 
     list.innerHTML = orders.length
       ? orders.map(function (po) {
-          var open = ['draft','sent','partially_received'].indexOf(String(po.status)) !== -1;
+          var status = String(po.status || 'draft');
+          var open = ['draft','sent','partially_received'].indexOf(status) !== -1;
           var lines = Array.isArray(po.lines) ? po.lines : [];
           var lineHtml = lines.map(function (line) {
             var remaining = Math.max(0, Number(line.quantity_ordered || 0) - Number(line.quantity_received || 0));
-            return '<div class="pmd-inv-r24-po-line">' +
+            var item = items().find(function (row) {
+              return Number(row.id) === Number(line.item_id);
+            });
+            var storageId = Number(item && item.default_storage_location_id || 0);
+
+            return '<div class="pmd-inv-r24-po-line pmd-inv-r24-po-line--receive" data-r24-receive-line="' + esc(line.id) + '">' +
               '<span><strong>' + esc(line.item_name) + '</strong><small>' +
-              esc(num(line.quantity_received,2) + '/' + num(line.quantity_ordered,2) + ' ' + line.package_unit) +
+              esc(num(line.quantity_received,2) + '/' + num(line.quantity_ordered,2) + ' ' + line.package_unit +
+                ' · ' + num(line.base_quantity,4) + ' ' + line.base_unit + ' / ' + line.package_unit) +
               '</small></span>' +
               (open && remaining > 0
-                ? '<input type="number" min="0" max="' + esc(remaining) + '" step="0.01" value="' + esc(remaining) + '" data-r24-receive-qty="' + esc(line.id) + '">'
+                ? '<div class="pmd-inv-r24-receive-line-fields">' +
+                    '<input type="number" min="0" max="' + esc(remaining) + '" step="0.01" value="' + esc(remaining) + '" data-r24-receive-qty aria-label="Quantity to receive">' +
+                    '<select data-r24-receive-storage aria-label="Storage">' + storageOptions(storageId, 'Default storage') + '</select>' +
+                    '<input type="text" placeholder="Lot / batch" data-r24-receive-lot aria-label="Lot or batch">' +
+                    '<input type="date" data-r24-receive-expiry aria-label="Expiry date">' +
+                  '</div>'
                 : '<b>' + esc(money(line.line_total)) + '</b>') +
             '</div>';
           }).join('');
 
+          var lifecycle = '<div class="pmd-inv-r24-po-actions">';
+          if (status === 'draft') {
+            lifecycle += '<button type="button" class="pmd-inv-r19-secondary" data-r24-po-status="sent" data-r24-po-status-id="' + esc(po.id) + '">Mark sent</button>';
+            lifecycle += '<button type="button" class="pmd-inv-r19-secondary" data-r24-po-status="cancelled" data-r24-po-status-id="' + esc(po.id) + '">Cancel PO</button>';
+          } else if (status === 'sent' || status === 'partially_received') {
+            lifecycle += '<button type="button" class="pmd-inv-r19-secondary" data-r24-po-status="cancelled" data-r24-po-status-id="' + esc(po.id) + '">Cancel remaining</button>';
+          } else if (status === 'received') {
+            lifecycle += '<button type="button" class="pmd-inv-r19-secondary" data-r24-po-status="closed" data-r24-po-status-id="' + esc(po.id) + '">Close PO</button>';
+          }
+          lifecycle += '</div>';
+
           return '<article class="pmd-inv-r24-po" data-r24-po="' + esc(po.id) + '">' +
             '<header><div><strong>' + esc(po.po_number) + '</strong><small>' +
             esc((po.supplier_name || 'Supplier not set') + ' · ' + (po.expected_at ? 'Expected ' + dateLabel(po.expected_at) : 'No expected date')) +
-            '</small></div><span class="is-' + esc(po.status) + '">' + esc(String(po.status).replace(/_/g,' ')) + '</span></header>' +
+            '</small></div><span class="is-' + esc(status) + '">' + esc(status.replace(/_/g,' ')) + '</span></header>' +
             '<div class="pmd-inv-r24-po-lines">' + lineHtml + '</div>' +
             (open ? '<div class="pmd-inv-r24-receive-meta">' +
               '<input placeholder="Invoice number" data-r24-receive-invoice>' +
               '<input placeholder="Delivery note" data-r24-receive-delivery>' +
               '<button type="button" class="pmd-inv-r19-primary" data-r24-receive-po="' + esc(po.id) + '">Receive selected</button>' +
             '</div>' : '') +
+            lifecycle +
           '</article>';
         }).join('')
       : '<div class="pmd-inv-r19-empty">No purchase orders yet.</div>';
@@ -466,6 +490,29 @@
               esc(sign + num(row.change_pct,1) + '%') + '</b></article>';
           }).join('')
         : '<div class="pmd-inv-r19-empty">No supplier price changes recorded yet.</div>';
+    }
+
+    var receipts = Array.isArray(snapshot().recent_purchases) ? snapshot().recent_purchases : [];
+    var receiptHost = workspace.querySelector('[data-r24-receipt-corrections]');
+    if (receiptHost) {
+      receiptHost.innerHTML = receipts.length
+        ? receipts.map(function (row) {
+            var reversed = String(row.status || '') === 'reversed' || Boolean(row.reversed_at);
+            var detail = [
+              row.supplier_name || 'Supplier',
+              row.invoice_number ? 'Invoice ' + row.invoice_number : '',
+              row.purchased_at ? dateLabel(row.purchased_at) : '',
+              money(row.total_amount || 0)
+            ].filter(Boolean).join(' · ');
+            return '<article class="pmd-inv-r24-list-row pmd-inv-r24-list-row--receipt">' +
+              '<div><strong>Receipt #' + esc(row.id) + (reversed ? ' · reversed' : '') + '</strong>' +
+              '<small>' + esc(detail) + '</small></div>' +
+              (!reversed
+                ? '<button type="button" class="pmd-inv-r24-danger-action" data-r24-reverse-receipt="' + esc(row.id) + '">Reverse</button>'
+                : '<b>Reversed</b>') +
+            '</article>';
+          }).join('')
+        : '<div class="pmd-inv-r19-empty">No confirmed purchase receipts yet.</div>';
     }
 
     var ledger = Array.isArray(ops().ledger) ? ops().ledger : [];
@@ -682,12 +729,16 @@
       var poId = Number(receive.getAttribute('data-r24-receive-po') || 0);
       var lines = [];
       if (poNode) {
-        poNode.querySelectorAll('[data-r24-receive-qty]').forEach(function (input) {
-          var qty = Number(input.value || 0);
+        poNode.querySelectorAll('[data-r24-receive-line]').forEach(function (lineNode) {
+          var input = lineNode.querySelector('[data-r24-receive-qty]');
+          var qty = Number(input && input.value || 0);
           if (qty > 0) {
             lines.push({
-              line_id:Number(input.getAttribute('data-r24-receive-qty') || 0),
-              quantity:qty
+              line_id:Number(lineNode.getAttribute('data-r24-receive-line') || 0),
+              quantity:qty,
+              storage_location_id:Number((lineNode.querySelector('[data-r24-receive-storage]') || {}).value || 0),
+              lot_code:String((lineNode.querySelector('[data-r24-receive-lot]') || {}).value || ''),
+              expiry_date:String((lineNode.querySelector('[data-r24-receive-expiry]') || {}).value || '')
             });
           }
         });
@@ -702,6 +753,26 @@
         delivery_note_number:poNode ? String((poNode.querySelector('[data-r24-receive-delivery]') || {}).value || '') : '',
         lines:lines
       }, 'Purchase order received into stock.');
+      return;
+    }
+
+    var poStatus = event.target.closest('[data-r24-po-status]');
+    if (poStatus) {
+      var nextStatus = String(poStatus.getAttribute('data-r24-po-status') || '');
+      var poStatusId = Number(poStatus.getAttribute('data-r24-po-status-id') || 0);
+      if (nextStatus === 'cancelled' && !window.confirm('Cancel the remaining quantity on this purchase order? Already received stock stays in the ledger.')) return;
+      action('onUpdatePurchaseOrderStatus', {
+        purchase_order_id:poStatusId,
+        status:nextStatus
+      }, nextStatus === 'sent' ? 'Purchase order marked as sent.' : 'Purchase order updated.');
+      return;
+    }
+
+    var reverseReceipt = event.target.closest('[data-r24-reverse-receipt]');
+    if (reverseReceipt) {
+      var receiptId = Number(reverseReceipt.getAttribute('data-r24-reverse-receipt') || 0);
+      if (!receiptId || !window.confirm('Reverse this confirmed purchase? PayMyDine will create opposite ledger movements; the audit history remains visible.')) return;
+      action('onReversePurchase', {receipt_id:receiptId}, 'Purchase reversed with an audit trail.');
       return;
     }
 
