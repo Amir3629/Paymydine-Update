@@ -1,0 +1,99 @@
+name: Kiosk Chrome Stable Probe
+
+on:
+  push:
+    branches:
+      - diag/kiosk-v8-render-probe
+    paths:
+      - '.github/workflows/kiosk-chrome-stable-probe.yml'
+
+jobs:
+  chrome:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check Chrome stable
+        run: |
+          command -v google-chrome
+          google-chrome --version
+
+      - name: Probe real kiosk in runner Chrome
+        shell: bash
+        run: |
+          mkdir -p /tmp/pmd-chrome-probe
+          cd /tmp/pmd-chrome-probe
+          npm init -y >/dev/null
+          npm install playwright-core@1.55.0 pngjs@7.0.0 >/dev/null
+          node <<'NODE'
+          const { chromium } = require('playwright-core');
+          const { PNG } = require('pngjs');
+
+          (async () => {
+            const browser = await chromium.launch({
+              executablePath: '/usr/bin/google-chrome',
+              headless: true,
+              args: ['--no-sandbox']
+            });
+            console.log('BROWSER_VERSION', await browser.version());
+            const context = await browser.newContext({
+              viewport: { width: 800, height: 1280 },
+              isMobile: true,
+              hasTouch: true,
+              userAgent: 'Mozilla/5.0 (Linux; Android 17; sdk_gphone16k_arm64 Build/CP41.260828.004.A7; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/153.0.8010.36 Mobile Safari/537.36 PayMyDineKiosk/0.4.5-device-app-v5-debug'
+            });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', e => errors.push(String(e)));
+            const response = await page.goto(
+              'https://tomo.paymydine.com/kiosk/?pmd_kiosk=1&kiosk_order_type=pickup&kiosk_session=chrome-stable-probe&kiosk_name=tomo',
+              { waitUntil: 'domcontentloaded', timeout: 60000 }
+            );
+            await page.waitForTimeout(6000);
+            const diag = await page.evaluate(() => {
+              const app = document.getElementById('pmd-kiosk-app');
+              const grid = document.getElementById('pmd-kiosk-menu-grid');
+              const r = app && app.getBoundingClientRect();
+              return {
+                statusMarker: document.body.getAttribute('data-pmd-kiosk-terminal'),
+                app: r ? { width: r.width, height: r.height } : null,
+                gridChildren: grid ? grid.children.length : -1,
+                textLength: (document.body.innerText || '').length,
+                ariaBusy: app ? app.getAttribute('aria-busy') : null,
+                errors
+              };
+            });
+            console.log('HTTP', response && response.status());
+            console.log('DIAG', JSON.stringify(diag));
+
+            const shot = await page.screenshot();
+            const png = PNG.sync.read(shot);
+            let samples = 0, white = 0;
+            const colors = new Set();
+            for (let y = 0; y < png.height; y += 8) {
+              for (let x = 0; x < png.width; x += 8) {
+                const i = (png.width * y + x) << 2;
+                const r = png.data[i], g = png.data[i+1], b = png.data[i+2];
+                samples++;
+                if (r > 245 && g > 245 && b > 245) white++;
+                colors.add(((r>>3)<<10)|((g>>3)<<5)|(b>>3));
+              }
+            }
+            console.log('PIXELS', JSON.stringify({
+              colors: colors.size,
+              whiteRatio: white / samples
+            }));
+            if (!response || response.status() !== 200) throw new Error('HTTP not 200');
+            if (!diag.app || diag.app.width < 300 || diag.app.height < 500) throw new Error('bad app dimensions');
+            if (diag.gridChildren < 1) throw new Error('no menu items');
+            if (errors.length) throw new Error('page errors: ' + errors.join(' | '));
+            if (colors.size < 20 || white / samples > 0.97) throw new Error('blank render');
+            await browser.close();
+          })().catch(e => {
+            console.error(e);
+            process.exit(1);
+          });
+          NODE
