@@ -3283,7 +3283,7 @@
     var box = $('[data-qpos-categories]');
     if (!box) return;
 
-    $('[data-qpos-category]', box).forEach(function (button) {
+    $$('[data-qpos-category]', box).forEach(function (button) {
       button.onclick = function () {
         state.category = button.getAttribute('data-qpos-category') || 'all';
         renderCategories();
@@ -3408,7 +3408,7 @@
     var box = $('[data-qpos-products]');
     if (!box) return;
 
-    $('[data-qpos-product]', box).forEach(function (button) {
+    $$('[data-qpos-product]', box).forEach(function (button) {
       button.onclick = function () {
         if (!canOrderNow()) {
           toast('Select table or Pickup.', true);
