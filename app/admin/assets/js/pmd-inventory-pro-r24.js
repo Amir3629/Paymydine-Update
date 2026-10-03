@@ -977,7 +977,26 @@
 
   function renderLedger() {
     var host = workspace.querySelector('[data-r24-ledger-list]');
+    var receiptHost = workspace.querySelector('[data-r24-receipt-list]');
     if (!host) return;
+
+    if (receiptHost) {
+      var receipts = state.pro.purchase_receipts || [];
+      receiptHost.innerHTML = receipts.length ? receipts.map(function (row) {
+        var reversed = Boolean(row.reversed_at);
+        return '<article class="pmd-inv-r24-row' + (reversed ? ' is-reversed' : '') + '">' +
+          '<div class="pmd-inv-r24-row__main"><span class="pmd-inv-r24-status">' + esc(reversed ? 'Reversed' : (row.source || 'Purchase')) + '</span>' +
+            '<strong>' + esc(row.supplier_name || 'Supplier purchase') + '</strong>' +
+            '<small>' + esc((row.invoice_number ? 'Invoice ' + row.invoice_number + ' · ' : '') + dateLabel(row.purchased_at) + (row.staff_name ? ' · ' + row.staff_name : '')) + '</small></div>' +
+          '<div class="pmd-inv-r24-row__meta"><span>' + esc(reversed ? 'Reversed ' + dateTimeLabel(row.reversed_at) : 'Confirmed ' + dateTimeLabel(row.confirmed_at)) + '</span>' +
+            '<strong>' + esc(money(row.total_amount || 0)) + '</strong></div>' +
+          '<div class="pmd-inv-r24-row__actions">' +
+            (!reversed ? '<button type="button" class="pmd-inv-r19-secondary is-danger" data-r24-receipt-reverse="' + esc(row.id) + '">Reverse</button>' : '') +
+          '</div>' +
+        '</article>';
+      }).join('') : '<div class="pmd-inv-r19-empty">No confirmed purchase receipts yet.</div>';
+    }
+
     var q = String(state.ledgerSearch || '').trim().toLowerCase();
     var rows = (state.pro.ledger || []).filter(function (row) {
       if (!q) return true;
@@ -1523,6 +1542,28 @@
     if (storageSave) { saveStorage(storageSave); return; }
     var transferSave = target.closest('[data-r24-transfer-save]');
     if (transferSave) { saveTransfer(transferSave); return; }
+
+    var reverseReceipt = target.closest('[data-r24-receipt-reverse]');
+    if (reverseReceipt) {
+      var receiptId = Number(reverseReceipt.getAttribute('data-r24-receipt-reverse') || 0);
+      var reason = window.prompt('Reason for reversing this confirmed purchase:', 'Purchase entered incorrectly');
+      if (reason === null) return;
+      if (!String(reason || '').trim()) return toast('A reversal reason is required.', true);
+      reverseReceipt.disabled = true;
+      request('onProReversePurchaseReceipt', {
+        receipt_id:receiptId,
+        reason:String(reason).trim()
+      }).then(function (json) {
+        applyCoreSnapshot(json);
+        applySnapshot(json.pro || {});
+        toast('Purchase receipt reversed with an audit trail.');
+      }).catch(function (error) {
+        toast(error.message || 'Could not reverse this purchase.', true);
+      }).finally(function () {
+        reverseReceipt.disabled = false;
+      });
+      return;
+    }
 
     if (target.closest('[data-r24-adjustment-new]')) { openAdjustmentEditor(); return; }
     var adjustSave = target.closest('[data-r24-adjust-save]');
