@@ -1,4 +1,5 @@
 name: Kiosk Android WebView Probe
+# Gradle root restored for diagnostic build
 
 on:
   push:
