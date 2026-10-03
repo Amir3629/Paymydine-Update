@@ -257,6 +257,7 @@
 
   function itemImage(item) {
     if (!item) return '';
+    if (item.image_url) return String(item.image_url);
     var key = normalize(item.name);
     if (imageByItemKey[key]) return imageByItemKey[key];
     var template = catalogTemplateForItem(item);
@@ -649,6 +650,7 @@
           '<label class="is-wide">Item name<input type="text" value="' + esc(item.name) + '" data-r19-edit-name></label>' +
           '<label>Category<input type="text" value="' + esc(item.category || '') + '" data-r19-edit-category></label>' +
           '<label>Legacy SKU / codes<input type="text" value="' + esc(item.sku || '') + '" data-r19-edit-sku></label>' +
+          '<label class="is-wide">Inventory image URL<input type="url" value="' + esc(item.image_url || '') + '" placeholder="https://…" data-r19-edit-image></label>' +
           '<label>1 purchase unit contains<input type="number" min="0.0001" step="0.0001" value="' + esc(item.purchase_to_base || 1) + '" data-r19-edit-factor></label>' +
           '<label>Preferred supplier<select data-r19-edit-preferred-supplier>' + supplierSelectOptions(item.preferred_supplier_id || '', 'No preferred supplier') + '</select></label>' +
           '<label>Default storage<select data-r19-edit-storage>' + storageSelectOptions(item.default_storage_location_id || '', 'Main / default storage') + '</select></label>' +
@@ -678,6 +680,7 @@
       name: valueOf(host,'[data-r19-edit-name]', item.name),
       category: valueOf(host,'[data-r19-edit-category]', item.category || ''),
       sku: valueOf(host,'[data-r19-edit-sku]', item.sku || ''),
+      image_url: valueOf(host,'[data-r19-edit-image]', item.image_url || ''),
       purchase_unit: valueOf(host,'[data-r19-edit-purchase-unit]', item.purchase_unit || item.unit),
       purchase_to_base: Number(valueOf(host,'[data-r19-edit-factor]', item.purchase_to_base || 1)),
       purchase_cost: Number(valueOf(host,'[data-r19-edit-cost]', item.purchase_unit_cost || 0)),
