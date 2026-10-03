@@ -1733,6 +1733,44 @@ final class PmdInventoryOperationsService
         }
     }
 
+    public function assertInvoiceAvailable(
+        int $locationId,
+        ?string $supplierName,
+        ?string $invoiceNumber,
+        ?int $excludeReceiptId = null
+    ): void {
+        if (!$this->ready() || !Schema::hasColumn('pmd_inventory_receipts', 'invoice_number')) {
+            return;
+        }
+
+        $invoiceNumber = trim((string)$invoiceNumber);
+        if ($invoiceNumber === '') {
+            return;
+        }
+
+        $query = DB::table('pmd_inventory_receipts')
+            ->where('location_id', $this->location($locationId))
+            ->where('invoice_number', $invoiceNumber)
+            ->where(function ($q) {
+                $q->whereNotNull('confirmed_at')
+                    ->orWhereIn('ai_status', ['review', 'manual_review']);
+            });
+
+        $supplierName = trim((string)$supplierName);
+        if ($supplierName !== '') {
+            $query->whereRaw('LOWER(COALESCE(supplier_name, \'\')) = ?', [mb_strtolower($supplierName)]);
+        }
+        if ($excludeReceiptId && $excludeReceiptId > 0) {
+            $query->where('id', '<>', $excludeReceiptId);
+        }
+
+        if ($query->exists()) {
+            throw new InvalidArgumentException(
+                'This supplier invoice number already exists in Inventory.'
+            );
+        }
+    }
+
     public function defaultStorageId(int $locationId): int
     {
         if (!$this->ready()) {
