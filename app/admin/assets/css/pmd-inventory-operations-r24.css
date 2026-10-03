@@ -935,3 +935,82 @@ body.pmd-inventory-r19-page .pmd-inv-r24-danger-action:hover {
     grid-template-columns:1fr;
   }
 }
+
+
+/* R24 bulk import / cleanup tools */
+body.pmd-menu-manager-page .pmd-inv-r24-help,
+body.pmd-inventory-r19-page .pmd-inv-r24-help {
+  margin:0 0 12px;
+  color:#667d76;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.55;
+}
+
+body.pmd-menu-manager-page .pmd-inv-r24-file,
+body.pmd-inventory-r19-page .pmd-inv-r24-file {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:94px;
+  padding:14px;
+  border:1.5px dashed #9bc7bc;
+  border-radius:13px;
+  background:#f6fbf9;
+  color:#205b4c;
+  cursor:pointer;
+  box-sizing:border-box;
+  transition:border-color .14s ease,background .14s ease,transform .14s ease;
+}
+
+body.pmd-menu-manager-page .pmd-inv-r24-file:hover,
+body.pmd-inventory-r19-page .pmd-inv-r24-file:hover {
+  border-color:#08745d;
+  background:#eef8f5;
+  transform:translateY(-1px);
+}
+
+body.pmd-menu-manager-page .pmd-inv-r24-file input,
+body.pmd-inventory-r19-page .pmd-inv-r24-file input {
+  position:absolute;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+  opacity:0;
+  pointer-events:none;
+}
+
+body.pmd-menu-manager-page .pmd-inv-r24-file span,
+body.pmd-inventory-r19-page .pmd-inv-r24-file span {
+  font-size:12px;
+  font-weight:900;
+}
+
+body.pmd-menu-manager-page .pmd-inv-r24-import-status,
+body.pmd-inventory-r19-page .pmd-inv-r24-import-status {
+  min-height:20px;
+  margin-top:9px;
+  color:#08745d;
+  font-size:10.5px;
+  font-weight:800;
+  line-height:1.45;
+}
+
+body.pmd-menu-manager-page .pmd-inv-r24-import-status.is-error,
+body.pmd-inventory-r19-page .pmd-inv-r24-import-status.is-error {
+  color:#a33b4b;
+}
+
+body.pmd-menu-manager-page .pmd-inv-r24-actions button:disabled,
+body.pmd-inventory-r19-page .pmd-inv-r24-actions button:disabled {
+  opacity:.52;
+  cursor:not-allowed;
+  transform:none!important;
+}
+
+@media (prefers-reduced-motion:reduce) {
+  body.pmd-menu-manager-page .pmd-inv-r24-file,
+  body.pmd-inventory-r19-page .pmd-inv-r24-file {
+    transition:none;
+  }
+}
