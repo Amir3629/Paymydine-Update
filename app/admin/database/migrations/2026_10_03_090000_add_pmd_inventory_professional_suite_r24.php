@@ -253,6 +253,7 @@ return new class extends Migration
                 $table->unsignedBigInteger('storage_location_id')->nullable()->index();
                 $table->unsignedBigInteger('receipt_id')->nullable()->index();
                 $table->unsignedBigInteger('purchase_order_id')->nullable()->index();
+                $table->unsignedBigInteger('purchase_order_line_id')->nullable()->index();
                 $table->string('lot_code', 120)->nullable();
                 $table->date('expires_at')->nullable()->index();
                 $table->date('received_at')->nullable()->index();
@@ -345,6 +346,7 @@ return new class extends Migration
                 $table->string('consumption_event', 30)->default('paid');
                 $table->unsignedSmallInteger('expiry_alert_days')->default(5);
                 $table->decimal('safety_stock_days', 8, 2)->default(1.5);
+                $table->string('costing_method', 30)->default('last_purchase');
                 $table->boolean('blind_counts')->default(false);
                 $table->boolean('allow_negative_stock')->default(false);
                 $table->timestamps();
@@ -361,6 +363,13 @@ return new class extends Migration
             if (!$schema->hasColumn('pmd_inventory_receipts', 'invoice_number')) {
                 $schema->table('pmd_inventory_receipts', function (Blueprint $table): void {
                     $table->string('invoice_number', 120)->nullable()->index();
+                });
+            }
+
+            if (!$schema->hasColumn('pmd_inventory_receipts', 'reversed_at')) {
+                $schema->table('pmd_inventory_receipts', function (Blueprint $table): void {
+                    $table->timestamp('reversed_at')->nullable()->index();
+                    $table->unsignedBigInteger('reversed_by')->nullable()->index();
                 });
             }
         }
