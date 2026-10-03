@@ -307,8 +307,9 @@ function CartSheet() {
           {!canConfirm && <div className={`${styles.statusMessage} ${styles.statusError}`}>{labels.scanTableQr}</div>}
           <div className={styles.actionRow}>
             <button className={styles.secondary} type="button" onClick={continueOrdering}>{labels.continueMenu}</button>
-            <button className={styles.primary} type="button" onClick={() => void confirmPersonalItems()} disabled={!canConfirm || orderLoading} data-pmd-direct-kitchen-send="r33b">
-              {orderLoading ? <LoaderCircle aria-hidden="true" /> : <Send aria-hidden="true" />}{orderLoading ? r33DirectOrderCopy(locale).sending : r33DirectOrderCopy(locale).sendOrder}
+            <button className={styles.primary} type="button" onClick={() => void confirmPersonalItems()} disabled={!canConfirm || orderLoading} data-pmd-direct-kitchen-send="r33b" data-pmd-kiosk-checkout={isKiosk ? "v6.1" : undefined}>
+              {orderLoading ? <LoaderCircle aria-hidden="true" /> : <Send aria-hidden="true" />}
+              {orderLoading ? r33DirectOrderCopy(locale).sending : (isKiosk ? labels.checkout : r33DirectOrderCopy(locale).sendOrder)}
             </button>
           </div>
         </div>
