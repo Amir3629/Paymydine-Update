@@ -913,7 +913,29 @@ final class PmdInventoryControlService
                 $purchaseToBase = max(0.0001, (float)($item->purchase_to_base ?? 1));
                 $lineUnit = strtolower($unit);
 
-                if ($lineUnit === $baseUnit) {
+                // PMD_INVENTORY_IDENTIFIER_PACKAGES_R24
+                // A package barcode may represent a bottle, case, crate, keg,
+                // etc. independently from the item's single preferred purchase
+                // unit. Resolve its exact base quantity before the legacy unit
+                // conversion path.
+                $identifierId = max(0, (int)($line['identifier_id'] ?? 0));
+                $identifier = null;
+                if ($identifierId > 0 && Schema::hasTable('pmd_inventory_item_identifiers')) {
+                    $identifier = DB::table('pmd_inventory_item_identifiers')
+                        ->where('location_id', $locationId)
+                        ->where('id', $identifierId)
+                        ->where('item_id', $itemId)
+                        ->where('active', 1)
+                        ->first();
+
+                    if (!$identifier) {
+                        throw new InvalidArgumentException('The scanned package code is no longer linked to this stock item.');
+                    }
+                }
+
+                if ($identifier) {
+                    $factor = max(0.0001, (float)$identifier->base_quantity);
+                } elseif ($lineUnit === $baseUnit) {
                     $factor = 1.0;
                 } elseif ($lineUnit === $purchaseUnit) {
                     $factor = $purchaseToBase;
@@ -929,6 +951,56 @@ final class PmdInventoryControlService
                 $effectiveCost = $unitCost > 0
                     ? ($unitCost / $factor)
                     : max(0, (float)$item->unit_cost);
+
+                // If a new stock item was created directly from an unknown scan,
+                // promote that code into the normalized R24 identifier table so
+                // the next scan resolves the exact package immediately.
+                $scannedCode = trim((string)($line['barcode'] ?? ''));
+                if (
+                    !$identifier
+                    && $scannedCode !== ''
+                    && Schema::hasTable('pmd_inventory_item_identifiers')
+                ) {
+                    $existingIdentifier = DB::table('pmd_inventory_item_identifiers')
+                        ->where('location_id', $locationId)
+                        ->where('code', mb_substr($scannedCode, 0, 190))
+                        ->where('active', 1)
+                        ->first();
+
+                    if ($existingIdentifier && (int)$existingIdentifier->item_id !== $itemId) {
+                        throw new InvalidArgumentException('This scanned code is already linked to another stock item.');
+                    }
+
+                    if ($existingIdentifier) {
+                        $identifierId = (int)$existingIdentifier->id;
+                        $identifier = $existingIdentifier;
+                    } else {
+                        $identifierId = (int)DB::table('pmd_inventory_item_identifiers')->insertGetId([
+                            'location_id' => $locationId,
+                            'item_id' => $itemId,
+                            'supplier_id' => null,
+                            'supplier_item_id' => null,
+                            'code' => mb_substr($scannedCode, 0, 190),
+                            'code_type' => 'INTERNAL',
+                            'package_unit' => $unit,
+                            'package_quantity' => 1,
+                            'base_quantity' => round($factor, 4),
+                            'unit_price' => round($unitCost, 4),
+                            'currency' => null,
+                            'source' => 'scanner',
+                            'is_primary' => 0,
+                            'active' => 1,
+                            'verified_at' => now(),
+                            'created_by' => $staffId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+
+                        $identifier = DB::table('pmd_inventory_item_identifiers')
+                            ->where('id', $identifierId)
+                            ->first();
+                    }
+                }
 
                 DB::table('pmd_inventory_items')
                     ->where('id', $itemId)
@@ -951,6 +1023,101 @@ final class PmdInventoryControlService
                     $receiptId,
                     $purchasedAt.' '.now()->format('H:i:s')
                 );
+
+                // PMD_INVENTORY_PRO_PURCHASE_BRIDGE_R24
+                // Direct/manual/AI/barcode receiving is automatically allocated
+                // to the restaurant's default storage and gets a lot/price
+                // history row. Purchase-order receiving manages those records
+                // itself so it can preserve explicit storage/expiry metadata.
+                if (
+                    empty($data['pro_receiving_managed'])
+                    && Schema::hasTable('pmd_inventory_storage_locations')
+                    && Schema::hasTable('pmd_inventory_storage_movements')
+                ) {
+                    $storageId = (int)DB::table('pmd_inventory_storage_locations')
+                        ->where('location_id', $locationId)
+                        ->where('active', 1)
+                        ->orderByDesc('is_default')
+                        ->orderBy('id')
+                        ->value('id');
+
+                    if ($storageId > 0) {
+                        DB::table('pmd_inventory_storage_movements')->insert([
+                            'location_id' => $locationId,
+                            'storage_location_id' => $storageId,
+                            'item_id' => $itemId,
+                            'qty_delta' => round($baseQty, 4),
+                            'movement_type' => 'RECEIVE',
+                            'reference_type' => 'purchase_receipt',
+                            'reference_id' => $receiptId,
+                            'note' => null,
+                            'staff_id' => $staffId,
+                            'occurred_at' => $purchasedAt.' '.now()->format('H:i:s'),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+
+                        if (Schema::hasTable('pmd_inventory_lots')) {
+                            DB::table('pmd_inventory_lots')->insert([
+                                'location_id' => $locationId,
+                                'item_id' => $itemId,
+                                'supplier_id' => null,
+                                'identifier_id' => $identifierId > 0 ? $identifierId : null,
+                                'storage_location_id' => $storageId,
+                                'receipt_id' => $receiptId,
+                                'purchase_order_id' => null,
+                                'lot_code' => $this->nullableText($line['lot_code'] ?? null, 120),
+                                'expires_at' => $this->dateOrNull($line['expires_at'] ?? null),
+                                'received_at' => $purchasedAt,
+                                'qty_received' => round($baseQty, 4),
+                                'qty_remaining' => round($baseQty, 4),
+                                'unit_cost' => round($effectiveCost, 6),
+                                'active' => 1,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+                }
+
+                if (Schema::hasTable('pmd_inventory_price_history')) {
+                    $supplierIdR24 = null;
+                    if ($supplier !== '' && Schema::hasTable('pmd_inventory_suppliers')) {
+                        $supplierIdR24 = DB::table('pmd_inventory_suppliers')
+                            ->where('location_id', $locationId)
+                            ->whereRaw('LOWER(name) = ?', [mb_strtolower($supplier)])
+                            ->where('active', 1)
+                            ->value('id');
+                    }
+
+                    DB::table('pmd_inventory_price_history')->insert([
+                        'location_id' => $locationId,
+                        'item_id' => $itemId,
+                        'supplier_id' => $supplierIdR24 ?: null,
+                        'identifier_id' => $identifierId > 0 ? $identifierId : null,
+                        'purchase_unit' => $identifier
+                            ? (string)$identifier->package_unit
+                            : $unit,
+                        'base_quantity' => round($factor, 4),
+                        'unit_cost' => round($unitCost > 0 ? $unitCost : ($effectiveCost * $factor), 4),
+                        'currency' => 'EUR',
+                        'source' => $receiptId > 0 ? $source : 'manual',
+                        'recorded_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                if ($identifier && $unitCost > 0) {
+                    DB::table('pmd_inventory_item_identifiers')
+                        ->where('location_id', $locationId)
+                        ->where('id', $identifierId)
+                        ->update([
+                            'unit_price' => round($unitCost, 4),
+                            'verified_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                }
 
                 $total += $qty * ($unitCost > 0 ? $unitCost : ($effectiveCost * $factor));
             }
@@ -1219,7 +1386,7 @@ final class PmdInventoryControlService
         $this->assertReady();
         $locationId = $this->location($locationId);
 
-        return (int)DB::table('pmd_inventory_receipts')->insertGetId([
+        $row = [
             'location_id' => $locationId,
             'supplier_name' => $aiPayload['supplier_name'] ?? null,
             'purchased_at' => $aiPayload['purchase_date'] ?? now()->toDateString(),
@@ -1236,7 +1403,16 @@ final class PmdInventoryControlService
             'created_by' => $staffId,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        if (Schema::hasColumn('pmd_inventory_receipts', 'document_hash')) {
+            $row['document_hash'] = $this->nullableText($fileMeta['document_hash'] ?? null, 64);
+        }
+        if (Schema::hasColumn('pmd_inventory_receipts', 'invoice_number')) {
+            $row['invoice_number'] = $this->nullableText($aiPayload['invoice_number'] ?? null, 120);
+        }
+
+        return (int)DB::table('pmd_inventory_receipts')->insertGetId($row);
     }
 
     private function soldUsageByItem(
@@ -1289,51 +1465,76 @@ final class PmdInventoryControlService
             $q->whereNotIn('o.status_id', $canceled);
         }
 
-        // PMD_INVENTORY_PAID_SALES_R22_SAFE
-        // The financial settlement columns are the canonical payment signal.
-        // Once an order is fully paid, its menu quantities consume the recipe
-        // immediately; kitchen status does not have to reach Completed first.
-        $hasSettlementStatus = in_array('settlement_status', $orderCols, true);
-        $hasSettledAt = in_array('settled_at', $orderCols, true);
-        $hasSettledAmount =
-            in_array('settled_amount', $orderCols, true)
-            && in_array('order_total', $orderCols, true);
+        // PMD_INVENTORY_CONSUMPTION_EVENT_R24
+        // Restaurants can choose when theoretical recipe consumption begins.
+        // "paid" preserves the R22 financial-settlement authority. "accepted"
+        // uses processing+completed order statuses, while "completed" waits for
+        // the completed status. Cancelled orders remain excluded above.
+        $consumptionEvent = 'paid';
+        if (Schema::hasTable('pmd_inventory_settings')) {
+            $configuredEvent = strtolower(trim((string)DB::table('pmd_inventory_settings')
+                ->where('location_id', $locationId)
+                ->value('consumption_event')));
+            if (in_array($configuredEvent, ['paid', 'accepted', 'completed'], true)) {
+                $consumptionEvent = $configuredEvent;
+            }
+        }
 
-        if ($hasSettlementStatus) {
-            $q->where(function ($paid) use ($hasSettledAmount) {
-                $paid->whereIn('o.settlement_status', ['paid', 'settled']);
+        $statusConsumptionApplied = false;
+        if ($consumptionEvent !== 'paid' && in_array('status_id', $orderCols, true)) {
+            $consuming = $consumptionEvent === 'completed'
+                ? $this->settingIds('completed_order_status')
+                : array_values(array_unique(array_merge(
+                    $this->settingIds('processing_order_status'),
+                    $this->settingIds('completed_order_status')
+                )));
 
-                // Compatibility fallback only when the status itself is
-                // missing/blank. A cancelled/failed/refunded status must never
-                // become consuming merely because an old settled_amount is
-                // still present.
-                if ($hasSettledAmount) {
-                    $paid->orWhere(function ($amountFallback) {
-                        $amountFallback
-                            ->where(function ($missingStatus) {
-                                $missingStatus
-                                    ->whereNull('o.settlement_status')
-                                    ->orWhere('o.settlement_status', '');
-                            })
-                            ->where('o.order_total', '>', 0)
-                            ->whereColumn('o.settled_amount', '>=', 'o.order_total');
-                    });
-                }
-            });
-        } elseif ($hasSettledAmount) {
-            $q->where('o.order_total', '>', 0)
-                ->whereColumn('o.settled_amount', '>=', 'o.order_total');
-        } elseif ($hasSettledAt) {
-            $q->whereNotNull('o.settled_at');
-        } elseif (in_array('status_id', $orderCols, true)) {
-            // Compatibility only for legacy databases that do not yet have
-            // settlement columns.
-            $consuming = array_values(array_unique(array_merge(
-                $this->settingIds('processing_order_status'),
-                $this->settingIds('completed_order_status')
-            )));
             if ($consuming) {
                 $q->whereIn('o.status_id', $consuming);
+                $statusConsumptionApplied = true;
+            }
+        }
+
+        if (!$statusConsumptionApplied) {
+            // PMD_INVENTORY_PAID_SALES_R22_SAFE
+            // Financial settlement remains the safe default and compatibility
+            // fallback when the requested kitchen status cannot be resolved.
+            $hasSettlementStatus = in_array('settlement_status', $orderCols, true);
+            $hasSettledAt = in_array('settled_at', $orderCols, true);
+            $hasSettledAmount =
+                in_array('settled_amount', $orderCols, true)
+                && in_array('order_total', $orderCols, true);
+
+            if ($hasSettlementStatus) {
+                $q->where(function ($paid) use ($hasSettledAmount) {
+                    $paid->whereIn('o.settlement_status', ['paid', 'settled']);
+
+                    if ($hasSettledAmount) {
+                        $paid->orWhere(function ($amountFallback) {
+                            $amountFallback
+                                ->where(function ($missingStatus) {
+                                    $missingStatus
+                                        ->whereNull('o.settlement_status')
+                                        ->orWhere('o.settlement_status', '');
+                                })
+                                ->where('o.order_total', '>', 0)
+                                ->whereColumn('o.settled_amount', '>=', 'o.order_total');
+                        });
+                    }
+                });
+            } elseif ($hasSettledAmount) {
+                $q->where('o.order_total', '>', 0)
+                    ->whereColumn('o.settled_amount', '>=', 'o.order_total');
+            } elseif ($hasSettledAt) {
+                $q->whereNotNull('o.settled_at');
+            } elseif (in_array('status_id', $orderCols, true)) {
+                $consuming = array_values(array_unique(array_merge(
+                    $this->settingIds('processing_order_status'),
+                    $this->settingIds('completed_order_status')
+                )));
+                if ($consuming) {
+                    $q->whereIn('o.status_id', $consuming);
+                }
             }
         }
 
@@ -1559,6 +1760,20 @@ final class PmdInventoryControlService
     {
         $value = strtolower(trim((string)$value));
         return mb_substr($value !== '' ? $value : 'piece', 0, 30);
+    }
+
+    private function dateOrNull($value): ?string
+    {
+        $value = trim((string)($value ?? ''));
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($value)->toDateString();
+        } catch (\Throwable $error) {
+            return null;
+        }
     }
 
     private function date(string $value): string

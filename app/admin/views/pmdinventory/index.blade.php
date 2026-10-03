@@ -276,6 +276,20 @@
                     <button type="button" data-r19-mode="shopping">Shopping</button>
                 </nav>
 
+                {{-- PMD_INVENTORY_PRO_R24
+                     Advanced operational pages share the same Inventory shell,
+                     while the R23 daily workflow remains unchanged. --}}
+                <nav class="pmd-inv-r24-tools" aria-label="Inventory management">
+                    <span>Manage</span>
+                    <button type="button" data-r19-mode="orders">Orders</button>
+                    <button type="button" data-r19-mode="suppliers">Suppliers</button>
+                    <button type="button" data-r19-mode="codes">Barcodes</button>
+                    <button type="button" data-r19-mode="storage">Storage</button>
+                    <button type="button" data-r19-mode="expiry">Expiry</button>
+                    <button type="button" data-r19-mode="ledger">Ledger</button>
+                    <button type="button" data-r19-mode="settings">Settings</button>
+                </nav>
+
                 <section class="pmd-inv-r19-pane is-active" data-r19-pane="overview">
                     <div class="pmd-inv-r19-section-head">
                         <div>
@@ -399,7 +413,15 @@
                                 placeholder="Scan now, or type a code and press Enter"
                                 data-r19-barcode-input>
                         </label>
-                        <small class="pmd-inv-r23-barcode__hint">Works with common USB/Bluetooth keyboard-mode scanners. The scanner should send Enter after each code.</small>
+                        <div class="pmd-inv-r24-camera-actions">
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-camera-start>Use camera</button>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-camera-stop hidden>Stop camera</button>
+                        </div>
+                        <div class="pmd-inv-r24-camera" data-r24-camera-wrap hidden>
+                            <video playsinline muted data-r24-camera-video></video>
+                            <span>Point the camera at EAN, UPC, GTIN, Code 128 or QR.</span>
+                        </div>
+                        <small class="pmd-inv-r23-barcode__hint">USB/Bluetooth keyboard scanners and supported device cameras both feed the same package-code workflow.</small>
                         <div class="pmd-inv-r23-barcode__status" data-r19-barcode-status aria-live="polite"></div>
                         <div class="pmd-inv-r23-barcode__unknown" data-r19-barcode-unknown hidden>
                             <div>
@@ -461,8 +483,106 @@
                     <div class="pmd-inv-r19-shopping-actions">
                         <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-copy>Copy list</button>
                         <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-print>Print</button>
+                        <button type="button" class="pmd-inv-r19-secondary" data-r24-shopping-po>Create purchase order</button>
                         <button type="button" class="pmd-inv-r19-primary" data-r19-shopping-purchases>Open Purchases</button>
                     </div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="orders" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Purchase orders</span>
+                            <h2>Order, receive and reconcile supplier stock</h2>
+                            <p>Create supplier POs, send them, receive partial deliveries, and keep ordered versus received quantities visible.</p>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-primary" data-r24-po-new>New purchase order</button>
+                    </div>
+                    <div class="pmd-inv-r24-alert-strip" data-r24-po-summary></div>
+                    <section class="pmd-inv-r24-editor" data-r24-po-editor hidden></section>
+                    <div class="pmd-inv-r24-list" data-r24-po-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="suppliers" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Supplier master</span>
+                            <h2>Suppliers and purchasing terms</h2>
+                            <p>Keep lead time, minimum order value, contact details and supplier codes in one place.</p>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-primary" data-r24-supplier-new>Add supplier</button>
+                    </div>
+                    <section class="pmd-inv-r24-editor" data-r24-supplier-editor hidden></section>
+                    <div class="pmd-inv-r24-card-grid" data-r24-supplier-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="codes" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Product identifiers</span>
+                            <h2>Barcode, GTIN and package mapping</h2>
+                            <p>Each code identifies a specific package. One bottle, one case and one crate can all map to the same stock item with different base quantities.</p>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-primary" data-r24-code-new>Add product code</button>
+                    </div>
+                    <div class="pmd-inv-r24-alert-strip" data-r24-code-summary></div>
+                    <section class="pmd-inv-r24-editor" data-r24-code-editor hidden></section>
+                    <div class="pmd-inv-r24-list" data-r24-code-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="storage" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Storage locations</span>
+                            <h2>Know where the stock physically is</h2>
+                            <p>Allocate stock to main storage, kitchen, bar, fridge, freezer or cellar and record internal transfers without changing restaurant-wide stock.</p>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-secondary" data-r24-storage-new>Add location</button>
+                    </div>
+                    <section class="pmd-inv-r24-editor" data-r24-storage-editor hidden></section>
+                    <section class="pmd-inv-r24-editor" data-r24-transfer-editor></section>
+                    <div class="pmd-inv-r24-alert-strip" data-r24-unallocated></div>
+                    <div class="pmd-inv-r24-list" data-r24-storage-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="expiry" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Lots & expiry</span>
+                            <h2>Use the stock that expires first</h2>
+                            <p>Lots created from receiving are shown with theoretical FEFO remaining quantity so short-dated stock is visible before it becomes waste.</p>
+                        </div>
+                    </div>
+                    <div class="pmd-inv-r24-alert-strip" data-r24-expiry-summary></div>
+                    <div class="pmd-inv-r24-list" data-r24-lot-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="ledger" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Inventory ledger</span>
+                            <h2>Every stock movement in one audit trail</h2>
+                            <p>Purchases, waste, returns, adjustments and historical movement references remain visible instead of silently rewriting stock.</p>
+                        </div>
+                        <div class="pmd-inv-r19-head-actions">
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-ledger-export>Export CSV</button>
+                            <button type="button" class="pmd-inv-r19-primary" data-r24-adjustment-new>Adjustment / return</button>
+                        </div>
+                    </div>
+                    <section class="pmd-inv-r24-editor" data-r24-adjustment-editor hidden></section>
+                    <label class="pmd-inv-r19-search pmd-inv-r24-ledger-search"><input type="search" placeholder="Search item, type, reason or staff…" data-r24-ledger-search></label>
+                    <div class="pmd-inv-r24-list" data-r24-ledger-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="settings" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Inventory policy</span>
+                            <h2>How this restaurant consumes and counts stock</h2>
+                            <p>Choose the operational event for recipe consumption, expiry warning window, safety stock and count behavior.</p>
+                        </div>
+                    </div>
+                    <section class="pmd-inv-r24-settings" data-r24-settings-form></section>
+                    <section class="pmd-inv-r24-health" data-r24-system-health></section>
                 </section>
             </section>
 

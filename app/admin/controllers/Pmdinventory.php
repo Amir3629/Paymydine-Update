@@ -9,10 +9,12 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\Inventory\PmdInventoryControlService;
+use App\Services\Inventory\PmdInventoryProService;
 use App\Services\Inventory\PmdInventoryReceiptAiService;
 use App\Services\Inventory\PmdInventoryStockCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -61,10 +63,21 @@ class Pmdinventory extends AdminController
             asset('app/admin/assets/js/pmd-inventory-v1.js')
             .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r19')
         );
+        $proCssPath = base_path('app/admin/assets/css/pmd-inventory-pro-r24.css');
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-inventory-pro-r24.css')
+            .'?v='.(string)(@filemtime($proCssPath) ?: 'r24')
+        );
+
         $workspaceJsPath = base_path('app/admin/assets/js/pmd-inventory-workspace-r19.js');
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-workspace-r19.js')
             .'?v='.(string)(@filemtime($workspaceJsPath) ?: 'r19')
+        );
+        $proJsPath = base_path('app/admin/assets/js/pmd-inventory-pro-r24.js');
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-inventory-pro-r24.js')
+            .'?v='.(string)(@filemtime($proJsPath) ?: 'r24')
         );
         AdminMenu::setContext('dashboard');
     }
@@ -98,6 +111,242 @@ class Pmdinventory extends AdminController
             return [
                 'snapshot' => app(PmdInventoryControlService::class)
                     ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    // PMD_INVENTORY_PRO_R24
+    // Additive professional operations. R22/R23 remain the stock-ledger authority.
+    public function onProSnapshot(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            return [
+                'pro' => app(PmdInventoryProService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProSaveSupplier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->saveSupplier($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'supplier_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProSaveSupplierItem(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->saveSupplierItem(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'supplier_item_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProArchiveSupplierItem(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->archiveSupplierItem(
+                $this->locationId(),
+                (int)request()->input('supplier_item_id', 0)
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProArchiveSupplier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->archiveSupplier(
+                $this->locationId(),
+                (int)request()->input('supplier_id', 0)
+            );
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProSaveIdentifier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->saveIdentifier($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'identifier_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProArchiveIdentifier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->archiveIdentifier(
+                $this->locationId(),
+                (int)request()->input('identifier_id', 0)
+            );
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProResolveCode(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            return [
+                'identifier' => app(PmdInventoryProService::class)->resolveIdentifier(
+                    $this->locationId(),
+                    (string)request()->input('code', '')
+                ),
+            ];
+        });
+    }
+
+    public function onProSaveStorageLocation(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->saveStorageLocation($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'storage_location_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProSaveSettings(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->saveSettings($this->locationId(), request()->all());
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProSavePurchaseOrder(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->savePurchaseOrder($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'purchase_order_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProSetPurchaseOrderStatus(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->setPurchaseOrderStatus(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('purchase_order_id', 0),
+                (string)request()->input('status', 'draft')
+            );
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProReceivePurchaseOrder(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $result = $service->receivePurchaseOrder(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return $result + [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProTransferStock(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->transferStock($this->locationId(), $this->staffId(), request()->all());
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProRecordAdjustment(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->recordAdjustment($this->locationId(), $this->staffId(), request()->all());
+
+            return [
+                'movement_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
             ];
         });
     }
@@ -251,6 +500,26 @@ class Pmdinventory extends AdminController
                 throw new \InvalidArgumentException('Receipt must be JPG, PNG, WEBP or PDF.');
             }
 
+            // PMD_INVENTORY_DUPLICATE_DOCUMENT_R24
+            // A supplier invoice/receipt must never add stock twice.
+            $documentHash = '';
+            try {
+                $documentHash = (string)hash_file('sha256', (string)$file->getRealPath());
+            } catch (\Throwable $hashError) {
+                $documentHash = '';
+            }
+
+            if (
+                $documentHash !== ''
+                && Schema::hasColumn('pmd_inventory_receipts', 'document_hash')
+                && \Illuminate\Support\Facades\DB::table('pmd_inventory_receipts')
+                    ->where('location_id', $this->locationId())
+                    ->where('document_hash', $documentHash)
+                    ->exists()
+            ) {
+                throw new \InvalidArgumentException('This supplier document was already scanned. Stock was not changed.');
+            }
+
             $relativeDir = 'pmd-inventory-receipts/'.$this->locationId().'/'.now()->format('Y/m');
             $absoluteDir = storage_path('app/'.$relativeDir);
             if (!is_dir($absoluteDir) && !@mkdir($absoluteDir, 0770, true) && !is_dir($absoluteDir)) {
@@ -276,6 +545,28 @@ class Pmdinventory extends AdminController
                 ]);
             }
 
+            if (
+                is_array($aiPayload)
+                && !empty($aiPayload['invoice_number'])
+                && !empty($aiPayload['supplier_name'])
+                && Schema::hasColumn('pmd_inventory_receipts', 'invoice_number')
+            ) {
+                $duplicateInvoice = \Illuminate\Support\Facades\DB::table('pmd_inventory_receipts')
+                    ->where('location_id', $this->locationId())
+                    ->whereRaw('LOWER(COALESCE(supplier_name, \'\')) = ?', [
+                        mb_strtolower(trim((string)$aiPayload['supplier_name']))
+                    ])
+                    ->where('invoice_number', trim((string)$aiPayload['invoice_number']))
+                    ->exists();
+
+                if ($duplicateInvoice) {
+                    @unlink($absolutePath);
+                    throw new \InvalidArgumentException(
+                        'This supplier invoice number was already scanned. Stock was not changed.'
+                    );
+                }
+            }
+
             $receiptId = $inventory->createReceiptReview(
                 $this->locationId(),
                 $this->staffId(),
@@ -283,6 +574,7 @@ class Pmdinventory extends AdminController
                     'path' => $relativePath,
                     'original_name' => mb_substr((string)$file->getClientOriginalName(), 0, 255),
                     'mime_type' => $mime,
+                    'document_hash' => $documentHash,
                 ],
                 $aiPayload,
                 $aiError
