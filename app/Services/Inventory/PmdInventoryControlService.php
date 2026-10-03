@@ -743,6 +743,36 @@ final class PmdInventoryControlService
         $purchasedAt = $this->date((string)($data['purchased_at'] ?? now()->toDateString()));
         $receiptId = max(0, (int)($data['receipt_id'] ?? 0));
 
+        // PMD_INVENTORY_COSTING_R24
+        // Preserve R23 last-purchase costing by default. Restaurants may opt
+        // into weighted-average costing without changing historical movement
+        // prices. Current theoretical stock is captured before this receipt.
+        $costingMethod = 'last_purchase';
+        $onHandBefore = [];
+        if (Schema::hasTable('pmd_inventory_settings')) {
+            $configuredCosting = strtolower(trim((string)DB::table('pmd_inventory_settings')
+                ->where('location_id', $locationId)
+                ->value('costing_method')));
+            if (in_array($configuredCosting, ['last_purchase', 'weighted_average'], true)) {
+                $costingMethod = $configuredCosting;
+            }
+        }
+
+        if ($costingMethod === 'weighted_average') {
+            try {
+                foreach ((array)($this->snapshot($locationId)['items'] ?? []) as $row) {
+                    if (!is_array($row)) continue;
+                    $onHandBefore[(int)($row['id'] ?? 0)] = max(
+                        0,
+                        (float)($row['estimated_on_hand'] ?? 0)
+                    );
+                }
+            } catch (\Throwable $error) {
+                $costingMethod = 'last_purchase';
+                $onHandBefore = [];
+            }
+        }
+
         return DB::transaction(function () use (
             $locationId,
             $staffId,
@@ -750,7 +780,9 @@ final class PmdInventoryControlService
             $lines,
             $supplier,
             $purchasedAt,
-            $receiptId
+            $receiptId,
+            $costingMethod,
+            &$onHandBefore
         ) {
             $source = $receiptId > 0 ? 'ai_receipt' : 'manual';
 
@@ -1002,10 +1034,24 @@ final class PmdInventoryControlService
                     }
                 }
 
+                $storedUnitCost = $effectiveCost;
+                if ($costingMethod === 'weighted_average') {
+                    $oldQty = max(0, (float)($onHandBefore[$itemId] ?? 0));
+                    $oldCost = max(0, (float)$item->unit_cost);
+                    $newQty = max(0, (float)$baseQty);
+                    if (($oldQty + $newQty) > 0.00005) {
+                        $storedUnitCost = (
+                            ($oldQty * $oldCost)
+                            + ($newQty * $effectiveCost)
+                        ) / ($oldQty + $newQty);
+                    }
+                    $onHandBefore[$itemId] = $oldQty + $newQty;
+                }
+
                 DB::table('pmd_inventory_items')
                     ->where('id', $itemId)
                     ->update([
-                        'unit_cost' => round($effectiveCost, 6),
+                        'unit_cost' => round($storedUnitCost, 6),
                         'supplier_name' => $supplier ?: $item->supplier_name,
                         'updated_at' => now(),
                     ]);
