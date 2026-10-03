@@ -1750,6 +1750,84 @@ final class PmdInventoryOperationsService
         ]);
     }
 
+    public function returnToSupplier(int $locationId, ?int $staffId, array $data): int
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $itemId = max(0, (int)($data['item_id'] ?? 0));
+        $qty = max(0, $this->number($data['quantity'] ?? 0, 0));
+        $supplierId = max(0, (int)($data['supplier_id'] ?? 0));
+        $lotId = max(0, (int)($data['lot_id'] ?? 0));
+        $storageId = max(0, (int)($data['storage_location_id'] ?? 0));
+
+        if ($itemId < 1 || $qty <= 0 || !$this->itemExists($locationId, $itemId)) {
+            throw new InvalidArgumentException('Choose a stock item and return quantity.');
+        }
+        if ($supplierId > 0 && !$this->supplierExists($locationId, $supplierId)) {
+            throw new InvalidArgumentException('Supplier was not found.');
+        }
+
+        $item = DB::table('pmd_inventory_items')->where('id', $itemId)->first();
+        $reason = $this->nullableText($data['reason'] ?? 'Return to supplier', 160);
+
+        return DB::transaction(function () use (
+            $locationId,
+            $staffId,
+            $itemId,
+            $qty,
+            $supplierId,
+            $lotId,
+            $storageId,
+            $item,
+            $reason,
+            $data
+        ) {
+            if ($lotId > 0) {
+                $lot = DB::table('pmd_inventory_lots')
+                    ->where('location_id', $locationId)
+                    ->where('id', $lotId)
+                    ->where('item_id', $itemId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$lot) {
+                    throw new InvalidArgumentException('Selected lot was not found.');
+                }
+                if ((float)$lot->qty_remaining + 0.00005 < $qty) {
+                    throw new InvalidArgumentException('Return quantity is larger than the selected lot balance.');
+                }
+
+                $remaining = max(0, (float)$lot->qty_remaining - $qty);
+                DB::table('pmd_inventory_lots')
+                    ->where('id', $lotId)
+                    ->update([
+                        'qty_remaining' => round($remaining, 4),
+                        'status' => $remaining <= 0.00005 ? 'closed' : $lot->status,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            return (int)DB::table('pmd_inventory_movements')->insertGetId([
+                'location_id' => $locationId,
+                'item_id' => $itemId,
+                'storage_location_id' => $storageId > 0 ? $storageId : null,
+                'lot_id' => $lotId > 0 ? $lotId : null,
+                'purchase_order_line_id' => null,
+                'movement_type' => 'SUPPLIER_RETURN',
+                'qty_delta' => -round($qty, 4),
+                'unit_cost' => max(0, (float)$item->unit_cost),
+                'reference_type' => 'supplier_return',
+                'reference_id' => $supplierId > 0 ? $supplierId : null,
+                'reason' => $reason,
+                'note' => $this->nullableText($data['note'] ?? null, 2000),
+                'staff_id' => $staffId,
+                'occurred_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+    }
+
     public function itemLedger(int $locationId, int $itemId): array
     {
         $this->assertReady();
