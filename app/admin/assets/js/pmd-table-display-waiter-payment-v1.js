@@ -486,15 +486,22 @@
     sendRequest();
   }, true);
 
-  observer = new MutationObserver(function () {
-    updateUi();
-  });
-  observer.observe(root, {
-    subtree: true,
-    childList: true,
-    attributes: true,
-    attributeFilter: ['class', 'hidden']
-  });
+  // PMD_QPOS_PAYMENT_FREEZE_R136
+  // The old observer watched every class/hidden mutation under the whole POS.
+  // updateUi() itself changes hidden/class/text state, so opening Payment could
+  // create a self-triggering MutationObserver loop and freeze Safari/Chromium.
+  // Only watch the canonical payment modal's open/close class. The existing
+  // timer remains the fallback for all other state changes.
+  var paymentModalForObserver = root.querySelector('[data-qpos-payment-modal]');
+  if (paymentModalForObserver) {
+    observer = new MutationObserver(function () {
+      updateUi();
+    });
+    observer.observe(paymentModalForObserver, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+  }
 
   timer = window.setInterval(updateUi, 450);
   updateUi();
