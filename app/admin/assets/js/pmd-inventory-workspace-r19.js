@@ -578,7 +578,19 @@
     var factor = purchaseFactor(item);
     var target = Number(item.par_level || 0) / factor;
     var reorder = Number(item.reorder_point || 0) / factor;
+    var safety = Number(item.safety_stock || 0) / factor;
     var purchaseCost = Number(item.purchase_unit_cost || (Number(item.unit_cost || 0) * factor));
+    var storageRows = Array.isArray(snapshot().storage_locations) ? snapshot().storage_locations : [];
+    var storageOptions = '<option value="">Default storage</option>' + storageRows.map(function (row) {
+      return '<option value="' + esc(row.id) + '"' + (Number(item.default_storage_location_id || 0) === Number(row.id) ? ' selected' : '') + '>' + esc(row.name) + '</option>';
+    }).join('');
+    var identifiers = Array.isArray(item.identifiers) ? item.identifiers : [];
+    var identifierHtml = identifiers.length
+      ? identifiers.map(function (identifier) {
+          return '<span class="pmd-inv-r24-code-chip"><b>' + esc(identifier.code) + '</b><small>' +
+            esc(identifier.package_unit + ' = ' + number(identifier.base_quantity, 2) + ' ' + item.unit) + '</small></span>';
+        }).join('')
+      : '<span class="pmd-inv-r24-code-empty">No package barcode mapped yet.</span>';
 
     host.hidden = false;
     host.innerHTML =
@@ -595,12 +607,19 @@
         '<div class="pmd-inv-r19-editor-fields" style="margin-top:10px">' +
           '<label class="is-wide">Item name<input type="text" value="' + esc(item.name) + '" data-r19-edit-name></label>' +
           '<label>Category<input type="text" value="' + esc(item.category || '') + '" data-r19-edit-category></label>' +
-          '<label>SKU / code<input type="text" value="' + esc(item.sku || '') + '" data-r19-edit-sku></label>' +
+          '<label>Legacy SKU / alias<input type="text" value="' + esc(item.sku || '') + '" data-r19-edit-sku></label>' +
           '<label>1 purchase unit contains<input type="number" min="0.0001" step="0.0001" value="' + esc(item.purchase_to_base || 1) + '" data-r19-edit-factor></label>' +
+          '<label>Safety stock<input type="number" min="0" step="0.01" value="' + esc(safety) + '" data-r19-edit-safety></label>' +
+          '<label>Yield %<input type="number" min="1" max="100" step="0.1" value="' + esc(item.yield_percent || 100) + '" data-r19-edit-yield></label>' +
+          '<label>Default storage<select data-r19-edit-storage>' + storageOptions + '</select></label>' +
+          '<label class="pmd-inv-r24-check"><input type="checkbox" data-r19-edit-expiry' + (item.track_expiry ? ' checked' : '') + '><span>Track lot / expiry dates</span></label>' +
           '<label class="is-wide">Supplier<input type="text" value="' + esc(item.supplier_name || '') + '" data-r19-edit-supplier></label>' +
         '</div>' +
+        '<div class="pmd-inv-r24-item-codes"><strong>Barcodes & package codes</strong><div>' + identifierHtml + '</div></div>' +
       '</details>' +
       '<div class="pmd-inv-r19-editor-actions">' +
+        '<button type="button" class="pmd-inv-r19-secondary" data-r24-item-ledger="' + esc(item.id) + '">Ledger</button>' +
+        '<button type="button" class="pmd-inv-r19-secondary" data-r24-item-identifier="' + esc(item.id) + '">Add barcode / package</button>' +
         '<button type="button" class="pmd-inv-r19-secondary" data-r19-archive-item="' + esc(item.id) + '">Archive item</button>' +
         '<button type="button" class="pmd-inv-r19-primary" data-r19-save-stock-item="' + esc(item.id) + '">Save settings</button>' +
       '</div>';
@@ -622,6 +641,10 @@
       purchase_cost: Number(valueOf(host,'[data-r19-edit-cost]', item.purchase_unit_cost || 0)),
       reorder_point: Number(valueOf(host,'[data-r19-edit-reorder]', 0)),
       par_level: Number(valueOf(host,'[data-r19-edit-par]', 0)),
+      safety_stock: Number(valueOf(host,'[data-r19-edit-safety]', Number(item.safety_stock || 0) / purchaseFactor(item))),
+      yield_percent: Number(valueOf(host,'[data-r19-edit-yield]', item.yield_percent || 100)),
+      default_storage_location_id: Number(valueOf(host,'[data-r19-edit-storage]', item.default_storage_location_id || 0)),
+      track_expiry: Boolean((host.querySelector('[data-r19-edit-expiry]') || {}).checked),
       supplier_name: valueOf(host,'[data-r19-edit-supplier]', item.supplier_name || '')
     };
     if (!payload.name.trim()) return toast('Item name is required.', true);
