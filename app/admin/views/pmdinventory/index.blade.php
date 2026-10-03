@@ -421,6 +421,18 @@
                                 <select data-r19-barcode-link-select></select>
                             </label>
                             <label>
+                                <span>Code type</span>
+                                <select data-r19-barcode-code-type-select>
+                                    <option value="auto">Auto detect</option>
+                                    <option value="internal">Supplier / internal code</option>
+                                    <option value="ean13">EAN-13</option>
+                                    <option value="upca">UPC-A</option>
+                                    <option value="gtin14">GTIN-14</option>
+                                    <option value="gtin8">GTIN-8</option>
+                                    <option value="qr">QR / URL</option>
+                                </select>
+                            </label>
+                            <label>
                                 <span>Package unit</span>
                                 <select data-r19-barcode-package-unit>
                                     @foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
