@@ -41,7 +41,11 @@ class OrderController extends Controller
             'coupon_code' => 'nullable|string|max:255',
             'coupon_discount' => 'nullable|numeric|min:0',
             'payment_method' => 'required|string|in:cash,cod,card,paypal',
-            'special_instructions' => 'nullable|string|max:500'
+            'special_instructions' => 'nullable|string|max:500',
+            'service_mode' => 'nullable|string|in:kiosk,pickup',
+            'kiosk_session' => 'nullable|string|max:100',
+            'service_charge_amount' => 'nullable|numeric|min:0',
+            'service_charge_label' => 'nullable|string|max:100'
             ,'existing_order_id' => 'nullable|integer'
             ,'append_to_order' => 'nullable|boolean'
             ,'guest_session_id' => 'nullable|string|max:100'
@@ -65,8 +69,13 @@ class OrderController extends Controller
             $orderNumber = $this->generateOrderNumber();
             $tableId = $request->table_id;
             $guestSessionId = trim((string)($request->guest_session_id ?? ''));
+            $serviceMode = strtolower(trim((string)($request->service_mode ?? '')));
+            $kioskSession = preg_replace('/[^A-Za-z0-9._:-]/', '', trim((string)($request->kiosk_session ?? '')));
+            $isKioskDirect = !$tableId && in_array($serviceMode, ['kiosk', 'pickup'], true);
 
-            if (!$tableId) {
+            if ($isKioskDirect) {
+                $orderType = $serviceMode;
+            } elseif (!$tableId) {
                 $orderType = 'delivery';
             } elseif ($tableId === 'cashier') {
                 $orderType = 'cashier';
@@ -77,7 +86,34 @@ class OrderController extends Controller
             $expectedTotal  = round((float) $request->total_amount, 2);
             $tipAmount      = round((float) ($request->tip_amount ?? 0), 2);
             $couponDiscount = round((float) ($request->coupon_discount ?? 0), 2);
+            $serviceChargeAmount = round((float) ($request->service_charge_amount ?? 0), 2);
+            $serviceChargeLabel = trim((string)($request->service_charge_label ?? 'Service charge')) ?: 'Service charge';
             $etaItems = [];
+
+            // PMD_KIOSK_DIRECT_ORDER_IDEMPOTENCY_V6
+            // One native kiosk session owns exactly one direct order. If the
+            // client loses the response after commit, retrying the same session
+            // returns the existing order instead of sending the kitchen a duplicate.
+            if ($isKioskDirect && $kioskSession !== '') {
+                $existingKioskOrder = DB::table('orders')
+                    ->where('comment', 'like', '%[kiosk_session:'.$kioskSession.']%')
+                    ->orderByDesc('order_id')
+                    ->first();
+
+                if ($existingKioskOrder) {
+                    DB::commit();
+
+                    return response()->json([
+                        'success' => true,
+                        'order_id' => (int)$existingKioskOrder->order_id,
+                        'message' => 'Order already placed for this kiosk session',
+                        'eta_minutes' => isset($existingKioskOrder->estimated_prep_minutes) ? (int)$existingKioskOrder->estimated_prep_minutes : null,
+                        'estimated_prep_minutes' => isset($existingKioskOrder->estimated_prep_minutes) ? (int)$existingKioskOrder->estimated_prep_minutes : null,
+                        'show_customer_eta' => true,
+                        'idempotent_replay' => true,
+                    ]);
+                }
+            }
 
 
             $orderId = null;
@@ -115,11 +151,14 @@ class OrderController extends Controller
                     'table_id' => $tableId,
                     'order_type' => $orderType,
                     'order_total' => $expectedTotal,
+                    'payment' => $isKioskDirect ? 'qr_pay_later' : null,
                     'order_date' => now(),
                     'order_time' => now()->format('H:i:s'),
                     'status_id' => 1,
                     'assignee_id' => null,
-                    'comment' => trim((string)$request->special_instructions).(($guestSessionId !== '') ? ' [guest_session:'.$guestSessionId.']' : ''),
+                    'comment' => trim((string)$request->special_instructions)
+                        .(($guestSessionId !== '') ? ' [guest_session:'.$guestSessionId.']' : '')
+                        .(($isKioskDirect && $kioskSession !== '') ? ' [kiosk_session:'.$kioskSession.']' : ''),
                     'processed' => 1,
                     'created_at' => now(),
                     'updated_at' => now()
@@ -324,6 +363,18 @@ class OrderController extends Controller
                     'title' => $title,
                     'value' => -$couponDiscount,
                     'priority' => 4,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if ($serviceChargeAmount > 0) {
+                $orderTotals[] = [
+                    'order_id' => $orderId,
+                    'code' => 'service_charge',
+                    'title' => $serviceChargeLabel,
+                    'value' => $serviceChargeAmount,
+                    'priority' => 5,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];

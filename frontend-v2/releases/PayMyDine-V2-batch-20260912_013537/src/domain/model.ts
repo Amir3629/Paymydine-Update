@@ -217,9 +217,16 @@ export type TableOrdersState = {
   updatedAt: string | null
 }
 
+export type RuntimeContext = {
+  mode: 'customer' | 'kiosk'
+  kioskOrderType?: 'kiosk' | 'pickup'
+  kioskSession?: string | null
+}
+
 export type CustomerBootstrap = {
   apiVersion: 'pmd-customer-bootstrap-v2'
   tenant: { id: string; slug: string; host: string }
+  runtime?: RuntimeContext
   restaurant: RestaurantBrand
   theme: ThemeConfiguration
   locales: { defaultLocale: LocaleCode; enabledLocales: LocaleCode[] }

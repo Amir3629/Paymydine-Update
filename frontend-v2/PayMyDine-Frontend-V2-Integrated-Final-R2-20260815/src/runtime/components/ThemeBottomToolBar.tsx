@@ -146,6 +146,7 @@ export function ThemeBottomToolBar({ className, primaryClassName = '' }: ThemeBo
 
   useFloatingCategoryNav()
 
+  const isKiosk = bootstrap.runtime?.mode === 'kiosk'
   const hasTable = Boolean(bootstrap.table.valid && (bootstrap.table.id || bootstrap.table.number || bootstrap.table.qr))
   const tableItems = activeOrder?.items.length || activeOrder?.groups.reduce((sum, group) => sum + group.items.length, 0) || 0
   const hasPayableOrder = Boolean(
@@ -172,20 +173,22 @@ export function ThemeBottomToolBar({ className, primaryClassName = '' }: ThemeBo
       data-pmd-mobile-layout="balanced-r36"
       aria-label={labels.service}
     >
-      {bootstrap.features.waiterCall && (
+      {!isKiosk && bootstrap.features.waiterCall && (
         <button type="button" aria-disabled={!hasTable} onClick={() => requireTable(() => openService('waiter'))} aria-label={labels.callWaiter}>
           <Bell aria-hidden="true" /><span>{labels.callWaiter}</span>
         </button>
       )}
-      <button type="button" aria-disabled={!hasTable} onClick={() => requireTable(() => openService('note'))} aria-label={labels.note}>
-        <StickyNote aria-hidden="true" /><span>{labels.note}</span>
-      </button>
-      {bootstrap.features.valet && (
+      {!isKiosk && (
+        <button type="button" aria-disabled={!hasTable} onClick={() => requireTable(() => openService('note'))} aria-label={labels.note}>
+          <StickyNote aria-hidden="true" /><span>{labels.note}</span>
+        </button>
+      )}
+      {!isKiosk && bootstrap.features.valet && (
         <button type="button" aria-disabled={!hasTable} onClick={() => requireTable(() => openService('valet'))} aria-label={labels.valet}>
           <Car aria-hidden="true" /><span>{labels.valet}</span>
         </button>
       )}
-      {bootstrap.features.tableOrdering && (
+      {!isKiosk && bootstrap.features.tableOrdering && (
         <button type="button" aria-disabled={!hasTable} onClick={() => requireTable(() => openCheckout())} aria-label={orderLabel}>
           <ReceiptText aria-hidden="true" /><span>{orderLabel}</span>
           {tableItems > 0 && <b>{tableItems}</b>}
