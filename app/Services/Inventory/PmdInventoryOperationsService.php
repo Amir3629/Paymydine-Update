@@ -1439,6 +1439,33 @@ final class PmdInventoryOperationsService
         $locationId = $this->location($locationId);
         $lotId = null;
 
+        $factor = max(0.0001, $this->number(
+            $line['base_quantity_per_unit'] ?? 1,
+            1
+        ));
+        $purchaseUnitCost = round(max(0, $baseCost) * $factor, 4);
+
+        if ($supplierId && $supplierId > 0) {
+            $offer = DB::table('pmd_inventory_supplier_items')
+                ->where('location_id', $locationId)
+                ->where('supplier_id', $supplierId)
+                ->where('item_id', $itemId)
+                ->where('active', 1)
+                ->where('purchase_unit', $this->unit($line['unit'] ?? 'piece'))
+                ->orderByDesc('preferred')
+                ->first();
+
+            if ($offer) {
+                DB::table('pmd_inventory_supplier_items')
+                    ->where('id', (int)$offer->id)
+                    ->update([
+                        'purchase_to_base' => round($factor, 4),
+                        'unit_cost' => $purchaseUnitCost,
+                        'updated_at' => now(),
+                    ]);
+            }
+        }
+
         if (Schema::hasTable('pmd_inventory_cost_history')) {
             DB::table('pmd_inventory_cost_history')->insert([
                 'location_id' => $locationId,
@@ -1447,10 +1474,7 @@ final class PmdInventoryOperationsService
                 'receipt_id' => $receiptId,
                 'old_unit_cost' => round(max(0, $oldUnitCost), 6),
                 'new_unit_cost' => round(max(0, $newUnitCost), 6),
-                'purchase_unit_cost' => round(max(0, $baseCost) * max(0.0001, $this->number(
-                    $line['base_quantity_per_unit'] ?? 1,
-                    1
-                )), 4),
+                'purchase_unit_cost' => $purchaseUnitCost,
                 'occurred_at' => now(),
                 'created_by' => $staffId,
                 'created_at' => now(),
