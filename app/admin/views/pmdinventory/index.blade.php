@@ -621,6 +621,23 @@
                         </div>
                     </div>
                     <div class="pmd-inv-r24-grid pmd-inv-r24-grid--2">
+                        <form class="pmd-inv-r24-card" data-r24-return-form>
+                            <div class="pmd-inv-r24-card__head"><div><span>Supplier return</span><h3>Return received stock</h3></div></div>
+                            <div class="pmd-inv-r24-fields">
+                                <label>Item<select data-r24-return-item required></select></label>
+                                <label>Supplier<select data-r24-return-supplier></select></label>
+                                <label>Storage<select data-r24-return-storage></select></label>
+                                <label>Quantity · base unit<input type="number" min="0.0001" step="0.0001" data-r24-return-qty required></label>
+                                <label class="is-wide">Reason / note<input data-r24-return-note placeholder="Damaged delivery, wrong product, credit note…"></label>
+                            </div>
+                            <div class="pmd-inv-r24-actions"><button type="submit" class="pmd-inv-r19-primary">Record supplier return</button></div>
+                        </form>
+                        <div class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Expiry exposure</span><h3>FEFO rule</h3></div></div>
+                            <p style="margin:0;color:#647b74;font-size:11px;font-weight:700;line-height:1.55">PayMyDine projects theoretical recipe usage against the oldest-expiring tracked lots first. This keeps the expiry list aligned with expected stock even when individual kitchen withdrawals are not scanned by lot.</p>
+                        </div>
+                    </div>
+                    <div class="pmd-inv-r24-grid pmd-inv-r24-grid--2">
                         <div class="pmd-inv-r24-card">
                             <div class="pmd-inv-r24-card__head"><div><span>FEFO</span><h3>Lots & expiry</h3></div><b data-r24-expiry-count>0</b></div>
                             <div class="pmd-inv-r24-table-wrap"><table class="pmd-inv-r24-table"><thead><tr><th>Item</th><th>Lot</th><th>Expiry</th><th>Remaining</th><th>Storage</th></tr></thead><tbody data-r24-batch-list></tbody></table></div>
