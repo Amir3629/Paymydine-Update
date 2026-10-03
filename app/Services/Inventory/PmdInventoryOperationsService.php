@@ -206,6 +206,13 @@ final class PmdInventoryOperationsService
             ])
             ->all();
 
+        // PMD_INVENTORY_PREFIXED_ALIAS_FIX_R24_1
+        // TastyIgniter prefixes query-builder aliases too (for example b -> ti_b),
+        // while raw SQL is not rewritten. Use the physical prefixed alias here so
+        // FEFO ordering works on prefixed tenant databases.
+        $prefix = (string)DB::connection()->getTablePrefix();
+        $batchAlias = str_replace('`', '``', $prefix.'b');
+
         $batches = DB::table('pmd_inventory_batches as b')
             ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'b.item_id')
             ->leftJoin('pmd_inventory_storage_locations as sl', 'sl.id', '=', 'b.storage_location_id')
@@ -213,7 +220,11 @@ final class PmdInventoryOperationsService
             ->where('b.location_id', $locationId)
             ->where('b.status', 'open')
             ->where('b.qty_remaining', '>', 0)
-            ->orderByRaw('b.expiry_date IS NULL, b.expiry_date ASC')
+            ->orderByRaw(sprintf(
+                '`%s`.`expiry_date` IS NULL, `%s`.`expiry_date` ASC',
+                $batchAlias,
+                $batchAlias
+            ))
             ->orderByDesc('b.received_at')
             ->limit(150)
             ->get([
