@@ -907,3 +907,64 @@ body.pmd-inventory-r19-page .pmd-inv-r19-receipt-line label {
     grid-template-columns:1fr!important;
   }
 }
+
+
+/* R24 analytics */
+.pmd-inv-r24-metrics {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+  gap:9px;
+  margin-bottom:12px;
+}
+
+.pmd-inv-r24-metrics article {
+  display:grid;
+  gap:4px;
+  min-width:0;
+  padding:13px;
+  border:1px solid #dce7e4;
+  border-radius:13px;
+  background:#fff;
+}
+
+.pmd-inv-r24-metrics article > span {
+  color:#748781;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.pmd-inv-r24-metrics article > strong {
+  color:#163b32;
+  font-size:18px;
+  line-height:1.1;
+  font-weight:950;
+}
+
+.pmd-inv-r24-metrics article > small {
+  color:#80918c;
+  font-size:9px;
+  line-height:1.35;
+  font-weight:650;
+}
+
+.pmd-inv-r24-analytics-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.pmd-inv-r24-analytics-panel {
+  min-width:0;
+  padding:0 12px 12px;
+  border:1px solid #e0e9e7;
+  border-radius:14px;
+  background:#fbfcfc;
+}
+
+@media (max-width:900px) {
+  .pmd-inv-r24-analytics-grid {
+    grid-template-columns:1fr;
+  }
+}
