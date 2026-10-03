@@ -2105,11 +2105,11 @@ final class PmdInventoryProService
             [
                 'status' => mb_substr($newStatus, 0, 40),
                 'last_notified_at' => $newStatus === 'clear'
-                    ? ($existing->last_notified_at ?? null)
+                    ? ($existing ? $existing->last_notified_at : null)
                     : now(),
                 'resolved_at' => $newStatus === 'clear' ? now() : null,
                 'updated_at' => now(),
-                'created_at' => $existing->created_at ?? now(),
+                'created_at' => $existing ? $existing->created_at : now(),
             ]
         );
     }
