@@ -1386,6 +1386,145 @@
     return '"' + value.replace(/"/g, '""') + '"';
   }
 
+  function parseCsv(text) {
+    text = String(text == null ? '' : text).replace(/^\uFEFF/, '');
+    var rows = [];
+    var row = [];
+    var cell = '';
+    var quoted = false;
+
+    for (var i = 0; i < text.length; i += 1) {
+      var ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else if (ch === '"') {
+          quoted = false;
+        } else {
+          cell += ch;
+        }
+      } else if (ch === '"') {
+        quoted = true;
+      } else if (ch === ',') {
+        row.push(cell);
+        cell = '';
+      } else if (ch === '\n') {
+        row.push(cell.replace(/\r$/, ''));
+        rows.push(row);
+        row = [];
+        cell = '';
+      } else {
+        cell += ch;
+      }
+    }
+
+    if (cell !== '' || row.length) {
+      row.push(cell.replace(/\r$/, ''));
+      rows.push(row);
+    }
+
+    rows = rows.filter(function (cells) {
+      return cells.some(function (value) { return String(value || '').trim() !== ''; });
+    });
+    if (rows.length < 2) return [];
+
+    var headers = rows.shift().map(function (value) {
+      return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    });
+
+    return rows.map(function (cells) {
+      var out = {};
+      headers.forEach(function (header, index) {
+        if (!header) return;
+        out[header] = String(cells[index] == null ? '' : cells[index]).trim();
+      });
+      return out;
+    });
+  }
+
+  function downloadImportTemplate() {
+    var headers = [
+      'name','category','base_unit','purchase_unit','purchase_to_base','purchase_cost',
+      'opening_qty','reorder_point','par_level','sku','supplier_name','supplier_sku',
+      'gtin','package_unit','package_quantity','base_quantity','unit_price',
+      'min_order_qty','order_multiple','currency','lead_time_days','min_order_value',
+      'is_preferred'
+    ];
+    var example = [
+      'Example Vodka','Spirits','ml','bottle','700','14.90',
+      '0','2','8','','METRO','123456',
+      '4000000000009','bottle','1','700','14.90',
+      '1','1','EUR','1','100','1'
+    ];
+    var csv = headers.map(csvCell).join(',') + '\n' + example.map(csvCell).join(',');
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'paymydine-inventory-import-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function importCsvFile(file) {
+    if (!file) return;
+    var host = workspace.querySelector('[data-r24-import-result]');
+    if (file.size > 3 * 1024 * 1024) {
+      if (host) host.innerHTML = '<strong>File too large.</strong><span>Keep each CSV import below 3 MB / 1000 rows.</span>';
+      return toast('CSV import is too large.', true);
+    }
+
+    var reader = new FileReader();
+    reader.onload = function () {
+      var rows = parseCsv(reader.result || '');
+      if (!rows.length) {
+        if (host) host.innerHTML = '<strong>No import rows found.</strong><span>Use the PayMyDine template and keep the first row as headers.</span>';
+        return;
+      }
+      if (rows.length > 1000) {
+        if (host) host.innerHTML = '<strong>Too many rows.</strong><span>Split the file into imports of at most 1000 rows.</span>';
+        return;
+      }
+
+      if (host) host.innerHTML = '<strong>Importing ' + esc(rows.length) + ' rows…</strong><span>Existing names update; new names create stock items.</span>';
+      request('onProBulkImport', {rows:rows}).then(function (json) {
+        applyCoreSnapshot(json);
+        applySnapshot(json.pro || {});
+        var result = json.import || {};
+        var errors = Array.isArray(result.errors) ? result.errors : [];
+        if (host) {
+          host.innerHTML =
+            '<strong>Import complete</strong>' +
+            '<span>' + esc(
+              (result.created_items || 0) + ' created · ' +
+              (result.updated_items || 0) + ' updated · ' +
+              (result.supplier_products || 0) + ' supplier products · ' +
+              errors.length + ' errors'
+            ) + '</span>' +
+            (errors.length ? '<div class="pmd-inv-r24-import-errors">' + errors.slice(0,25).map(function (error) {
+              return '<div><b>Row ' + esc(error.row || '?') + '</b><span>' + esc(error.name || '') + '</span><small>' + esc(error.message || 'Import error') + '</small></div>';
+            }).join('') + '</div>' : '');
+        }
+        toast(errors.length ? 'Import finished with some rows to review.' : 'Inventory import complete.', Boolean(errors.length));
+      }).catch(function (error) {
+        if (host) host.innerHTML = '<strong>Import failed.</strong><span>' + esc(error.message || 'Could not import this CSV.') + '</span>';
+        toast(error.message || 'Could not import this CSV.', true);
+      });
+    };
+    reader.onerror = function () {
+      if (host) host.innerHTML = '<strong>Could not read CSV.</strong>';
+      toast('Could not read this CSV file.', true);
+    };
+    reader.readAsText(file);
+  }
+
   function exportLedgerCsv() {
     var rows = state.pro.ledger || [];
     if (!rows.length) return toast('There is no ledger data to export.', true);
