@@ -1316,44 +1316,46 @@ final class PmdInventoryControlService
         $locationId = $this->location($locationId);
         $lines = $this->arrayValue($data['lines'] ?? []);
         if (!$lines) {
-            throw new InvalidArgumentException('Enter the physical stock count.');
-        }
-
-        $activeItemIds = DB::table('pmd_inventory_items')
-            ->where('location_id', $locationId)
-            ->where('active', 1)
-            ->pluck('id')
-            ->map(static fn ($id) => (int)$id)
-            ->values()
-            ->all();
-
-        $submittedItemIds = array_values(array_unique(array_filter(array_map(
-            static fn ($line) => is_array($line) ? (int)($line['item_id'] ?? 0) : 0,
-            $lines
-        ))));
-
-        if (
-            count($activeItemIds) !== count($submittedItemIds)
-            || array_diff($activeItemIds, $submittedItemIds)
-        ) {
-            throw new InvalidArgumentException(
-                'Count every active stock item so the new inventory baseline is complete.'
-            );
+            throw new InvalidArgumentException('Enter at least one physical stock count.');
         }
 
         $snapshot = $this->snapshot($locationId);
         $expected = [];
         $costs = [];
-        foreach ((array)$snapshot['items'] as $item) {
-            $expected[(int)$item['id']] = (float)$item['estimated_on_hand'];
-            $costs[(int)$item['id']] = (float)$item['unit_cost'];
+        foreach ((array)($snapshot['items'] ?? []) as $item) {
+            $itemId = (int)($item['id'] ?? 0);
+            if ($itemId < 1) {
+                continue;
+            }
+            $expected[$itemId] = (float)($item['estimated_on_hand'] ?? 0);
+            $costs[$itemId] = (float)($item['unit_cost'] ?? 0);
         }
 
+        $submitted = [];
+        foreach ($lines as $line) {
+            if (!is_array($line)) {
+                continue;
+            }
+            $itemId = max(0, (int)($line['item_id'] ?? 0));
+            if ($itemId < 1 || !array_key_exists($itemId, $expected)) {
+                continue;
+            }
+            $submitted[$itemId] = max(0, $this->number($line['counted_qty'] ?? 0, 0));
+        }
+
+        if (!$submitted) {
+            throw new InvalidArgumentException('No valid stock items were counted.');
+        }
+
+        // PMD_INVENTORY_PARTIAL_COUNT_R24
+        // The historical baseline model expects every item on the latest count.
+        // For a scoped/category count, uncounted items are carried forward at
+        // their current expected quantity so their baseline is not destroyed.
         return DB::transaction(function () use (
             $locationId,
             $staffId,
             $data,
-            $lines,
+            $submitted,
             $expected,
             $costs
         ) {
@@ -1367,27 +1369,18 @@ final class PmdInventoryControlService
                 'updated_at' => now(),
             ]);
 
-            $seen = [];
-            foreach ($lines as $line) {
-                if (!is_array($line)) {
-                    continue;
-                }
-
-                $itemId = max(0, (int)($line['item_id'] ?? 0));
-                if ($itemId < 1 || isset($seen[$itemId]) || !array_key_exists($itemId, $expected)) {
-                    continue;
-                }
-                $seen[$itemId] = true;
-
-                $counted = max(0, $this->number($line['counted_qty'] ?? 0, 0));
-                $expectedQty = (float)$expected[$itemId];
+            foreach ($expected as $itemId => $expectedQty) {
+                $wasCounted = array_key_exists($itemId, $submitted);
+                $counted = $wasCounted
+                    ? (float)$submitted[$itemId]
+                    : max(0, (float)$expectedQty);
 
                 DB::table('pmd_inventory_count_lines')->insert([
                     'count_id' => $countId,
                     'item_id' => $itemId,
-                    'expected_qty' => $expectedQty,
+                    'expected_qty' => (float)$expectedQty,
                     'counted_qty' => $counted,
-                    'variance_qty' => round($counted - $expectedQty, 4),
+                    'variance_qty' => round($counted - (float)$expectedQty, 4),
                     'unit_cost_snapshot' => (float)($costs[$itemId] ?? 0),
                     'created_at' => now(),
                     'updated_at' => now(),
