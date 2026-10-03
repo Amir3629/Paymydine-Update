@@ -767,7 +767,7 @@ private fun KioskWebView(
     }
     val target =
         base +
-            "/kiosk?pmd_kiosk=1" +
+            "/kiosk/?pmd_kiosk=1" +
             "&kiosk_order_type=" +
             Uri.encode(serviceMode) +
             "&kiosk_session=" +
@@ -788,7 +788,7 @@ private fun KioskWebView(
             Uri.encode(profile.theme.surface)
     val resetUrl =
         base +
-            "/kiosk-reset?pmd_kiosk_reset=1" +
+            "/kiosk-reset/?pmd_kiosk_reset=1" +
             "&kiosk_session=" +
             Uri.encode(sessionNonce)
 

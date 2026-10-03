@@ -23,6 +23,7 @@ on:
       - 'kiosk-reset/**'
       - 'resources/views/pmd/kiosk-*.blade.php'
       - 'public/assets/pmd/kiosk-terminal-v8.*'
+      - 'ops/nginx/pmd-kiosk-blade-v8-location.conf'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/**'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/**'
       - 'frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/app/**'
@@ -116,6 +117,9 @@ jobs:
           grep -Fq "Route::get('/kiosk'" routes/pmd-kiosk-v1.php
           grep -Fq 'data-pmd-kiosk-terminal="blade-v8"' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_BLADE_TERMINAL_V8' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_BLADE_V8_NGINX_NO_REDIRECT' ops/nginx/pmd-kiosk-blade-v8-location.conf
+          grep -Fq '"/kiosk/?pmd_kiosk=1"' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq '"/kiosk-reset/?pmd_kiosk_reset=1"' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           php -l app/Http/Controllers/Api/OrderController.php
           php -l app/Http/Controllers/PmdDevicePlatformController.php
           php -l app/admin/controllers/Pmddevices.php
