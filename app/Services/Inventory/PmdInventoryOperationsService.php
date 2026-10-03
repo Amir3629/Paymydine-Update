@@ -1377,6 +1377,13 @@ final class PmdInventoryOperationsService
             ? DB::table('pmd_inventory_suppliers')->where('id', (int)$order->supplier_id)->first()
             : null;
 
+        $invoiceNumber = $this->nullableText($data['invoice_number'] ?? null, 120);
+        $this->assertInvoiceAvailable(
+            $locationId,
+            (string)($supplier->name ?? ''),
+            $invoiceNumber
+        );
+
         $receiptId = app(PmdInventoryControlService::class)->savePurchase(
             $locationId,
             $staffId,
@@ -1386,7 +1393,7 @@ final class PmdInventoryOperationsService
                 'purchased_at' => $this->date((string)($data['purchased_at'] ?? now()->toDateString())),
                 'purchase_order_id' => $orderId,
                 'storage_location_id' => max(0, (int)($data['storage_location_id'] ?? 0)),
-                'invoice_number' => $this->nullableText($data['invoice_number'] ?? null, 120),
+                'invoice_number' => $invoiceNumber,
                 'source' => 'purchase_order',
                 'lines' => $purchaseLines,
             ]
