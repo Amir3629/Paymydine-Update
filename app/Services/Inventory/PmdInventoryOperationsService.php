@@ -527,8 +527,6 @@ final class PmdInventoryOperationsService
                 ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'l.item_id')
                 ->where('l.count_id', $lastCountId)
                 ->where('l.variance_qty', '<>', 0)
-                ->orderByRaw('ABS(l.variance_qty * l.unit_cost_snapshot) DESC')
-                ->limit(15)
                 ->get([
                     'l.item_id',
                     'i.name as item_name',
@@ -536,6 +534,10 @@ final class PmdInventoryOperationsService
                     'l.variance_qty',
                     'l.unit_cost_snapshot',
                 ])
+                ->sortByDesc(static fn ($row) => abs(
+                    (float)$row->variance_qty * (float)$row->unit_cost_snapshot
+                ))
+                ->take(15)
                 ->map(static fn ($row) => [
                     'item_id' => (int)$row->item_id,
                     'item_name' => (string)($row->item_name ?? 'Item'),
