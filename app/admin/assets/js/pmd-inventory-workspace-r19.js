@@ -881,7 +881,10 @@
     if (!(qty > 0)) return toast('Enter the received quantity.', true);
     var existing = row ? existingItemForCatalog(row) : null;
     var payload = {
+      supplier_id:Number(valueOf(workspace,'[data-r19-purchase-supplier-id]',0)),
       supplier_name:valueOf(workspace,'[data-r19-purchase-supplier]','').trim(),
+      invoice_number:valueOf(workspace,'[data-r19-purchase-invoice]','').trim(),
+      storage_location_id:Number(valueOf(workspace,'[data-r19-purchase-storage]',0)),
       purchased_at:valueOf(workspace,'[data-r19-purchase-date]',todayKey()),
       lines:[{
         item_id:existing ? Number(existing.id) : 0,
@@ -1335,7 +1338,10 @@
     if (!lines.length) return toast('Keep at least one purchase line with a quantity.', true);
     var payload = {
       receipt_id:Number(state.bulkReview.receiptId || 0),
+      supplier_id:Number(valueOf(workspace,'[data-r19-purchase-supplier-id]',0)),
       supplier_name:valueOf(workspace,'[data-r19-purchase-supplier]','').trim(),
+      invoice_number:valueOf(workspace,'[data-r19-purchase-invoice]','').trim(),
+      storage_location_id:Number(valueOf(workspace,'[data-r19-purchase-storage]',0)),
       purchased_at:valueOf(workspace,'[data-r19-purchase-date]',todayKey()),
       lines:lines
     };
