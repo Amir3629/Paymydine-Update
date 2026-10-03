@@ -946,7 +946,25 @@ final class PmdInventoryControlService
                         $newFactor = $useCatalogUnits ? ($catalogFactor ?? 1.0) : 1.0;
                         $newBaseCost = $unitCost;
 
-                        if (
+                        // PMD_INVENTORY_PACKAGE_IDENTITY_R24
+                        // A scanner/package mapping is more specific than the
+                        // generic catalogue. Example: one case = 6 bottles or
+                        // one bottle = 700 ml.
+                        $explicitLineFactor = max(
+                            0,
+                            $this->number($line['base_quantity'] ?? 0, 0)
+                        );
+                        $explicitBaseUnit = trim((string)($line['base_unit'] ?? ''));
+                        if ($explicitLineFactor > 0) {
+                            $newBaseUnit = $explicitBaseUnit !== ''
+                                ? $this->unit($explicitBaseUnit)
+                                : $newBaseUnit;
+                            $newPurchaseUnit = $unit;
+                            $newFactor = $explicitLineFactor;
+                            $newBaseCost = $unitCost > 0
+                                ? ($unitCost / $newFactor)
+                                : 0;
+                        } elseif (
                             $useCatalogUnits
                             && strtolower($unit) === strtolower($newPurchaseUnit)
                             && $newFactor > 0
