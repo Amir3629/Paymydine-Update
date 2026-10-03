@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - fix/qpos-fast-first-paint-r132
+      - fix/qpos-r133-collection-bindings
       - main
     paths:
       - 'app/admin/assets/js/pmd-quick-pos-v1.js'
