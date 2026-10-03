@@ -1471,7 +1471,7 @@ final class PmdInventoryOperationsService
             $lotId = (int)DB::table('pmd_inventory_lots')->insertGetId([
                 'location_id' => $locationId,
                 'item_id' => $itemId,
-                'storage_location_id' => $storageId > 0 ? $storageId : null,
+                'storage_location_id' => $movementStorageId > 0 ? $movementStorageId : null,
                 'receipt_id' => $receiptId,
                 'lot_code' => $lotCode !== '' ? mb_substr($lotCode, 0, 120) : null,
                 'expiry_date' => $expiry,
@@ -1805,6 +1805,7 @@ final class PmdInventoryOperationsService
             $reason,
             $data
         ) {
+            $movementStorageId = $storageId;
             if ($lotId > 0) {
                 $lot = DB::table('pmd_inventory_lots')
                     ->where('location_id', $locationId)
@@ -1818,6 +1819,9 @@ final class PmdInventoryOperationsService
                 }
                 if ((float)$lot->qty_remaining + 0.00005 < $qty) {
                     throw new InvalidArgumentException('Return quantity is larger than the selected lot balance.');
+                }
+                if ($movementStorageId < 1) {
+                    $movementStorageId = (int)($lot->storage_location_id ?? 0);
                 }
 
                 $remaining = max(0, (float)$lot->qty_remaining - $qty);
