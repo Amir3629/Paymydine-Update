@@ -358,6 +358,9 @@
     setSelect('[data-r24-transfer-from]', storageOptions('', 'From'), true);
     setSelect('[data-r24-transfer-to]', storageOptions('', 'To'), true);
     setSelect('[data-r24-prod-storage]', storageOptions('', 'Default storage'), true);
+    setSelect('[data-r24-return-item]', itemOptions('', 'Choose item'), true);
+    setSelect('[data-r24-return-supplier]', supplierOptions('', 'Supplier / optional'), true);
+    setSelect('[data-r24-return-storage]', storageOptions('', 'Default storage'), true);
 
     var locations = Array.isArray(ops().storage_locations) ? ops().storage_locations : [];
     var locationHost = workspace.querySelector('[data-r24-storage-list]');
@@ -935,6 +938,21 @@
         var inputHost = form.querySelector('[data-r24-prod-inputs]');
         if (inputHost) inputHost.innerHTML = '';
         addProductionInput({});
+        form.reset();
+        renderAll();
+      });
+      return;
+    }
+
+    if (form.matches('[data-r24-return-form]')) {
+      event.preventDefault();
+      action('onReturnToSupplier', {
+        item_id:Number((form.querySelector('[data-r24-return-item]') || {}).value || 0),
+        supplier_id:Number((form.querySelector('[data-r24-return-supplier]') || {}).value || 0),
+        storage_location_id:Number((form.querySelector('[data-r24-return-storage]') || {}).value || 0),
+        quantity_base:Number((form.querySelector('[data-r24-return-qty]') || {}).value || 0),
+        note:String((form.querySelector('[data-r24-return-note]') || {}).value || '')
+      }, 'Supplier return recorded in the inventory ledger.').then(function () {
         form.reset();
         renderAll();
       });
