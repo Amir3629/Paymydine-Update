@@ -319,6 +319,24 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onSetPurchaseOrderStatus(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryOperationsService::class)->setPurchaseOrderStatus(
+                $this->locationId(),
+                (int)request()->input('purchase_order_id', 0),
+                (string)request()->input('status', '')
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onReceivePurchaseOrder(): JsonResponse
     {
         $this->assertOwnerOrManager();
