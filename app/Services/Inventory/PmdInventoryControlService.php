@@ -591,33 +591,59 @@ final class PmdInventoryControlService
         );
         $baseUnitCost = $purchaseCost / $purchaseToBase;
 
+        $updates = [
+            'name' => mb_substr($name, 0, 190),
+            'sku' => $this->nullableText($data['sku'] ?? null, 120),
+            'category' => $this->nullableText($data['category'] ?? null, 100),
+            'purchase_unit' => $purchaseUnit,
+            'purchase_to_base' => $purchaseToBase,
+            'unit_cost' => round($baseUnitCost, 6),
+            'reorder_point' => round(
+                max(0, $this->number(
+                    $data['reorder_point'] ?? ((float)$item->reorder_point / $purchaseToBase),
+                    (float)$item->reorder_point / $purchaseToBase
+                )) * $purchaseToBase,
+                4
+            ),
+            'par_level' => round(
+                max(0, $this->number(
+                    $data['par_level'] ?? ((float)$item->par_level / $purchaseToBase),
+                    (float)$item->par_level / $purchaseToBase
+                )) * $purchaseToBase,
+                4
+            ),
+            'supplier_name' => $this->nullableText($data['supplier_name'] ?? $item->supplier_name, 190),
+            'updated_at' => now(),
+        ];
+
+        if (Schema::hasColumn('pmd_inventory_items', 'safety_stock')) {
+            $updates['safety_stock'] = round(
+                max(0, $this->number(
+                    $data['safety_stock'] ?? ((float)($item->safety_stock ?? 0) / $purchaseToBase),
+                    (float)($item->safety_stock ?? 0) / $purchaseToBase
+                )) * $purchaseToBase,
+                4
+            );
+        }
+        if (Schema::hasColumn('pmd_inventory_items', 'default_storage_location_id')) {
+            $updates['default_storage_location_id'] = max(0, (int)($data['default_storage_location_id'] ?? ($item->default_storage_location_id ?? 0))) ?: null;
+        }
+        if (Schema::hasColumn('pmd_inventory_items', 'yield_percent')) {
+            $updates['yield_percent'] = round(max(1, min(100, $this->number(
+                $data['yield_percent'] ?? ($item->yield_percent ?? 100),
+                (float)($item->yield_percent ?? 100)
+            ))), 2);
+        }
+        if (Schema::hasColumn('pmd_inventory_items', 'track_expiry')) {
+            $updates['track_expiry'] = array_key_exists('track_expiry', $data)
+                ? (bool)$data['track_expiry']
+                : (bool)($item->track_expiry ?? false);
+        }
+
         DB::table('pmd_inventory_items')
             ->where('id', $itemId)
             ->where('location_id', $locationId)
-            ->update([
-                'name' => mb_substr($name, 0, 190),
-                'sku' => $this->nullableText($data['sku'] ?? null, 120),
-                'category' => $this->nullableText($data['category'] ?? null, 100),
-                'purchase_unit' => $purchaseUnit,
-                'purchase_to_base' => $purchaseToBase,
-                'unit_cost' => round($baseUnitCost, 6),
-                'reorder_point' => round(
-                    max(0, $this->number(
-                        $data['reorder_point'] ?? ((float)$item->reorder_point / $purchaseToBase),
-                        (float)$item->reorder_point / $purchaseToBase
-                    )) * $purchaseToBase,
-                    4
-                ),
-                'par_level' => round(
-                    max(0, $this->number(
-                        $data['par_level'] ?? ((float)$item->par_level / $purchaseToBase),
-                        (float)$item->par_level / $purchaseToBase
-                    )) * $purchaseToBase,
-                    4
-                ),
-                'supplier_name' => $this->nullableText($data['supplier_name'] ?? $item->supplier_name, 190),
-                'updated_at' => now(),
-            ]);
+            ->update($updates);
 
         return $itemId;
     }
