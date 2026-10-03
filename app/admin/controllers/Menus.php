@@ -10,8 +10,11 @@ use Igniter\Flame\Exception\ApplicationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Schema;
 use Admin\Models\Menus_model;
 use Admin\Models\Categories_model;
+use Admin\Models\Allergens_model;
 use Admin\Classes\FoodNameSuggestions;
 
 class Menus extends AdminController
@@ -66,6 +69,306 @@ class Menus extends AdminController
 
         AdminMenu::setContext('menus', 'restaurant');
     }
+
+    /* PMD_MENU_MANAGER_V1_BACKEND_START */
+    public function index()
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmdmenus'));
+        }
+
+        $this->asExtension('ListController')->index();
+        return $this->makeView('menus/index');
+    }
+
+    public function create()
+    {
+        if (request()->isMethod('get') && !request()->ajax()) {
+            return redirect(admin_url('pmdmenus').'?pmd_mode=create');
+        }
+
+        $this->asExtension('FormController')->create();
+        return $this->makeView('menus/create');
+    }
+
+    public function edit($context = null, $recordId = null)
+    {
+        if ($recordId === null && is_numeric($context)) {
+            $recordId = (int)$context;
+            $context = null;
+        }
+
+        if (request()->isMethod('get') && !request()->ajax()) {
+            $id = $recordId ?: (int)basename(request()->path());
+            return redirect(admin_url('pmdmenus').'?pmd_mode=edit&pmd_id='.(int)$id);
+        }
+
+        $this->asExtension('FormController')->edit($context, $recordId);
+        return $this->makeView('menus/edit');
+    }
+    public function onPmdMenuManagerSaveV1(): JsonResponse
+    {
+        $user = AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Menus')) abort(403);
+
+        $input = request()->all();
+        $validator = Validator::make($input, [
+            'menu_id' => ['nullable', 'integer', 'min:1'],
+            'menu_name' => ['required', 'string', 'min:2', 'max:128'],
+            'menu_price' => ['required', 'numeric', 'min:0', 'max:9999999'],
+            'category_id' => ['nullable', 'integer', 'min:1'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'min:1', 'distinct'],
+            'menu_description' => ['nullable', 'string', 'max:1028'],
+            'menu_status' => ['nullable', 'boolean'],
+            'is_halal' => ['nullable', 'boolean'],
+            'is_vegetarian' => ['nullable', 'boolean'],
+            'is_vegan' => ['nullable', 'boolean'],
+            'allergen_ids_present' => ['nullable', 'boolean'],
+            'allergen_ids' => ['nullable', 'array'],
+            'allergen_ids.*' => ['integer', 'min:1', 'distinct'],
+            'calories' => ['nullable', 'integer', 'min:0', 'max:5000'],
+            'serving_size' => ['nullable', 'string', 'max:64'],
+            'protein' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'carbs' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'fat' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'sugar' => ['nullable', 'numeric', 'min:0', 'max:1000'],
+            'prep_time_minutes' => ['nullable', 'integer', 'min:0', 'max:240'],
+            'image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'ok' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()->toArray(),
+            ], 422);
+        }
+
+        $clean = $validator->validated();
+        $menuId = !empty($clean['menu_id']) ? (int)$clean['menu_id'] : null;
+        $categoryIds = array_values(array_unique(array_map('intval', (array)($clean['category_ids'] ?? []))));
+        if (!$categoryIds && !empty($clean['category_id'])) {
+            $categoryIds = [(int)$clean['category_id']];
+        }
+        $allergenIds = array_values(array_unique(array_map('intval', (array)($clean['allergen_ids'] ?? []))));
+        // PMD_MENU_ALLERGEN_PRESERVE_ON_MISSING_V10
+        // Missing field is not permission to erase persisted allergen relations.
+        // The active PMD Menu form sends allergen_ids_present=1 so an intentional
+        // all-unchecked state still clears relations explicitly. Older callers that
+        // actually send allergen_ids remain compatible even without the new marker.
+        $allergenIdsPresent = filter_var(
+            $clean['allergen_ids_present'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        ) || request()->has('allergen_ids');
+
+        if ($categoryIds) {
+            $validCategoryIds = Categories_model::query()
+                ->whereIn('category_id', $categoryIds)
+                ->pluck('category_id')
+                ->map(static fn($id) => (int)$id)
+                ->all();
+            sort($validCategoryIds);
+            $expectedCategoryIds = $categoryIds;
+            sort($expectedCategoryIds);
+            if ($validCategoryIds !== $expectedCategoryIds) {
+                return response()->json(['ok' => false, 'message' => 'One or more categories are invalid.'], 422);
+            }
+        }
+
+        if ($allergenIds) {
+            $allergenQuery = Allergens_model::query()->whereIn('allergen_id', $allergenIds);
+            if (Schema::hasColumn('allergens', 'status')) {
+                $allergenQuery->where('status', 1);
+            }
+            $validAllergenIds = $allergenQuery
+                ->pluck('allergen_id')
+                ->map(static fn($id) => (int)$id)
+                ->all();
+            sort($validAllergenIds);
+            $expectedAllergenIds = $allergenIds;
+            sort($expectedAllergenIds);
+            if ($validAllergenIds !== $expectedAllergenIds) {
+                return response()->json(['ok' => false, 'message' => 'One or more allergens are invalid.'], 422);
+            }
+        }
+
+        $uploadedRelative = null;
+        $uploadedAbsolute = null;
+        $image = request()->file('image');
+        if ($image) {
+            $mime = strtolower((string)$image->getMimeType());
+            $extensions = [
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+            ];
+            if (!isset($extensions[$mime])) {
+                return response()->json(['ok' => false, 'message' => 'Food image must be JPG, PNG or WEBP.'], 422);
+            }
+
+            $directory = base_path('assets/media/uploads');
+            if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+                return response()->json(['ok' => false, 'message' => 'Unable to create the menu image directory.'], 500);
+            }
+
+            $uploadedRelative = 'pmdmenu_'.date('Ymd_His').'_'.bin2hex(random_bytes(6)).'.'.$extensions[$mime];
+            try {
+                $image->move($directory, $uploadedRelative);
+            } catch (\Throwable $e) {
+                \Log::error('PMD_MENU_IMAGE_MOVE_FAILED_V133', [
+                    'database' => DB::connection()->getDatabaseName(),
+                    'mime' => $mime,
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Food image could not be stored.',
+                ], 500);
+            }
+
+            $uploadedAbsolute = $directory.'/'.$uploadedRelative;
+        }
+
+        // PMD_PERF_R3_MENU_SCHEMA_SNAPSHOT
+        // One metadata read replaces repeated information_schema hasColumn calls
+        // throughout the save transaction.
+        $menuTable = (new Menus_model)->getTable();
+        $menuColumns = Schema::getColumnListing($menuTable);
+
+        try {
+            $saved = DB::transaction(function () use ($clean, $menuId, $categoryIds, $allergenIds, $allergenIdsPresent, $uploadedRelative, $menuColumns) {
+                $menu = $menuId ? Menus_model::query()->find($menuId) : new Menus_model;
+                if ($menuId && !$menu) {
+                    throw new \RuntimeException('Menu item not found.');
+                }
+
+                $menu->menu_name = trim((string)$clean['menu_name']);
+                $menu->menu_price = (float)$clean['menu_price'];
+                $menu->menu_description = trim((string)($clean['menu_description'] ?? ''));
+                $menu->menu_status = 1; // PMD V1.2.1: published is product-default, not a user setting
+
+                $optional = [
+                    'is_halal' => !empty($clean['is_halal']) ? 1 : 0,
+                    'is_vegetarian' => !empty($clean['is_vegetarian']) ? 1 : 0,
+                    'is_vegan' => !empty($clean['is_vegan']) ? 1 : 0,
+                    'calories' => ($clean['calories'] ?? '') === '' ? null : (int)$clean['calories'],
+                    'serving_size' => trim((string)($clean['serving_size'] ?? '')) ?: null,
+                    'protein' => ($clean['protein'] ?? '') === '' ? null : (float)$clean['protein'],
+                    'carbs' => ($clean['carbs'] ?? '') === '' ? null : (float)$clean['carbs'],
+                    'fat' => ($clean['fat'] ?? '') === '' ? null : (float)$clean['fat'],
+                    'sugar' => ($clean['sugar'] ?? '') === '' ? null : (float)$clean['sugar'],
+                    'prep_time_minutes' => ($clean['prep_time_minutes'] ?? '') === '' ? 15 : (int)$clean['prep_time_minutes'],
+                ];
+
+                foreach ($optional as $column => $value) {
+                    if (in_array($column, $menuColumns, true)) {
+                        $menu->{$column} = $value;
+                    }
+                }
+
+                if (!$menu->exists) {
+                    $menu->minimum_qty = 1;
+                    $menu->menu_priority = ((int)Menus_model::query()->max('menu_priority')) + 1;
+                    if (in_array('is_stock_out', $menuColumns, true)) {
+                        $menu->is_stock_out = 0;
+                    }
+                }
+
+                $menu->save();
+                $menu->addMenuCategories($categoryIds);
+
+                if ($allergenIdsPresent) {
+                    // Explicit ownership: selected IDs sync; the active form's
+                    // explicit all-unchecked marker intentionally clears all.
+                    $menu->addMenuAllergens($allergenIds);
+                } elseif ($menuId) {
+                    // Legacy/partial callers may omit allergen_ids entirely.
+                    // Preserve persisted relations instead of sync([]).
+                    \Log::warning('PMD_MENU_ALLERGEN_SYNC_SKIPPED_MISSING_MARKER_V10', [
+                        'menu_id' => (int)$menuId,
+                        'path' => request()->path(),
+                        'handler' => (string)request()->header('X-IGNITER-REQUEST-HANDLER', ''),
+                    ]);
+                }
+
+                // PMD_FOOD_UPLOAD_PERSISTENCE_R32
+                if ($uploadedRelative) {
+                    $pmdMenuConnectionR32 = $menu->getConnection();
+                    $pmdMenuSchemaR32 = $pmdMenuConnectionR32->getSchemaBuilder();
+                    if (!$pmdMenuSchemaR32->hasTable('menu_images')) {
+                        throw new \RuntimeException('Menu image storage is unavailable for this restaurant.');
+                    }
+
+                    // PMD_FOOD_UPLOAD_PERSISTENCE_R33
+                    // menu_images differs across older tenant schemas.
+                    // Only use optional columns when they really exist.
+                    if ($pmdMenuSchemaR32->hasColumn('menu_images', 'sort_order')) {
+                        $pmdMenuConnectionR32->table('menu_images')
+                            ->where('menu_id', (int)$menu->menu_id)
+                            ->increment('sort_order', 1);
+                    }
+
+                    $pmdImageRowR33 = [
+                        'menu_id' => (int)$menu->menu_id,
+                        'image_path' => $uploadedRelative,
+                    ];
+
+                    if ($pmdMenuSchemaR32->hasColumn('menu_images', 'sort_order')) {
+                        $pmdImageRowR33['sort_order'] = 1;
+                    }
+
+                    if ($pmdMenuSchemaR32->hasColumn('menu_images', 'created_at')) {
+                        $pmdImageRowR33['created_at'] = now();
+                    }
+
+                    if ($pmdMenuSchemaR32->hasColumn('menu_images', 'updated_at')) {
+                        $pmdImageRowR33['updated_at'] = now();
+                    }
+
+                    $pmdMenuConnectionR32
+                        ->table('menu_images')
+                        ->insert($pmdImageRowR33);
+                }
+
+                // The response only needs menu_id/created state. Reloading three
+                // relations here made the user wait for data the response discards.
+                return $menu;
+            });
+        } catch (\Throwable $e) {
+            if ($uploadedAbsolute && is_file($uploadedAbsolute)) @unlink($uploadedAbsolute);
+
+            $notFound = $e instanceof \RuntimeException
+                && $e->getMessage() === 'Menu item not found.';
+
+            $status = $notFound ? 404 : 500;
+
+            \Log::error('PMD_MENU_SAVE_FAILED_V133', [
+                'menu_id' => $menuId,
+                'has_image' => (bool)$uploadedRelative,
+                'database' => DB::connection()->getDatabaseName(),
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => $notFound
+                    ? $e->getMessage()
+                    : 'Menu item could not be saved.',
+            ], $status);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'menu_id' => (int)$saved->menu_id,
+            'created' => !$menuId,
+            'message' => $menuId ? 'Food updated.' : 'Food created.',
+        ]);
+    }
+    /* PMD_MENU_MANAGER_V1_BACKEND_END */
 
     public function edit_onChooseMenuOption($context, $recordId)
     {
@@ -461,6 +764,366 @@ class Menus extends AdminController
         $menu->save();
 
         return response()->json(['ok' => true, 'is_stock_out' => (int)$menu->is_stock_out]);
+    }
+
+
+    /**
+     * PMD Menu Manager V1.2.9 same-page destructive action.
+     * Uses the canonical Menus_model delete lifecycle so category/allergen/location
+     * relations and delete=true child relations keep their existing cleanup rules.
+     */
+    public function onPmdMenuManagerDeleteV129(): JsonResponse
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Menus')) abort(403);
+
+        $menuId = (int)post('menu_id');
+        if ($menuId < 1) {
+            return response()->json(['ok' => false, 'message' => 'Invalid menu item.'], 422);
+        }
+
+        $menu = Menus_model::query()->find($menuId);
+        if (!$menu) {
+            return response()->json(['ok' => false, 'message' => 'Menu item not found.'], 404);
+        }
+
+        // Never silently corrupt a Combo by deleting one of its component foods.
+        if (Schema::hasTable('menu_combo_items')) {
+            $comboIds = DB::table('menu_combo_items')
+                ->where('menu_id', $menuId)
+                ->pluck('combo_id')
+                ->map(static fn($id) => (int)$id)
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($comboIds->isNotEmpty()) {
+                $names = Schema::hasTable('menu_combos')
+                    ? DB::table('menu_combos')->whereIn('combo_id', $comboIds->all())->pluck('combo_name')->filter()->values()->all()
+                    : [];
+                $isGerman = str_starts_with(strtolower((string)request()->cookie('pmd_admin_locale', '')), 'de');
+                $suffix = count($names) ? ': '.implode(', ', array_slice($names, 0, 4)) : '';
+                $message = $isGerman
+                    ? 'Diese Speise wird noch in '.count($comboIds).' Combo(s) verwendet'.$suffix.'. Entferne sie zuerst aus diesen Combos.'
+                    : 'This food is still used in '.count($comboIds).' combo(s)'.$suffix.'. Remove it from those combos first.';
+
+                return response()->json([
+                    'ok' => false,
+                    'code' => 'food_used_in_combos',
+                    'message' => $message,
+                    'combo_count' => count($comboIds),
+                ], 409);
+            }
+        }
+
+        // PMD Menu Manager uploads are unique files under assets/media/uploads.
+        // Collect only safe basename paths; database/model deletion remains authoritative.
+        $uploadFiles = [];
+        if (Schema::hasTable('menu_images')) {
+            $uploadFiles = DB::table('menu_images')
+                ->where('menu_id', $menuId)
+                ->pluck('image_path')
+                ->map(static fn($path) => trim((string)$path))
+                ->filter(static fn($path) => $path !== '' && basename($path) === $path)
+                ->values()
+                ->all();
+        }
+
+        try {
+            DB::transaction(function () use ($menu) {
+                $menu->delete();
+            });
+        } catch (\Throwable $e) {
+            // PMD_MENU_DELETE_FAILURE_DIAGNOSTIC_V1_6_4
+            //
+            // Keep the browser response safe/generic, but preserve the exact
+            // tenant/database exception server-side so a remaining schema
+            // problem can be diagnosed from one failed request.
+            \Log::error(
+                'PMD_MENU_DELETE_FAILED_V164',
+                [
+                    'menu_id' => $menuId,
+                    'database' => DB::connection()->getDatabaseName(),
+                    'exception' => get_class($e),
+                    'message' => $e->getMessage(),
+                ]
+            );
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Menu item could not be deleted.',
+            ], 500);
+        }
+
+        $uploadRoot = base_path('assets/media/uploads');
+        foreach ($uploadFiles as $file) {
+            $candidate = $uploadRoot.DIRECTORY_SEPARATOR.$file;
+            if (is_file($candidate)) @unlink($candidate);
+        }
+
+        return response()->json(['ok' => true, 'menu_id' => $menuId, 'message' => 'Food deleted.']);
+    }
+
+    public function onPmdMenuManagerCreateCategoryV125(): JsonResponse
+    {
+        $user = \Admin\Facades\AdminAuth::getUser();
+        if (!$user || !$user->hasPermission('Admin.Categories')) {
+            abort(403);
+        }
+
+        $name = trim((string)post('name', ''));
+        if (mb_strlen($name, 'UTF-8') < 2 || mb_strlen($name, 'UTF-8') > 128) {
+            return response()->json(['ok' => false, 'message' => 'Category name must be between 2 and 128 characters.'], 422);
+        }
+
+        if (Categories_model::query()->where('name', $name)->exists()) {
+            return response()->json(['ok' => false, 'message' => 'A category with this name already exists.'], 422);
+        }
+
+        $nextPriority = ((int)Categories_model::query()->max('priority')) + 1;
+        $attributes = [
+            'name' => $name,
+            'priority' => $nextPriority,
+            'status' => 1,
+        ];
+
+        $schema = DB::getSchemaBuilder();
+        if ($schema->hasColumn('categories', 'frontend_visible')) {
+            $attributes['frontend_visible'] = 1;
+        }
+
+        $category = Categories_model::query()->create($attributes);
+
+        return response()->json([
+            'ok' => true,
+            'category_id' => (int)$category->category_id,
+            'name' => (string)$category->name,
+            'priority' => (int)$category->priority,
+        ]);
+    }
+
+    /**
+     * PMD_MENU_CATEGORY_DELETE_WITH_FOODS_V130
+     *
+     * Owner/Manager-only destructive category action.
+     *
+     * Deletes:
+     * - the selected category
+     * - every food assigned to the selected category
+     * - only affected combos that become invalid (< 2 foods)
+     *
+     * Menus_model remains canonical food deletion authority.
+     */
+    public function onPmdMenuManagerDeleteCategoryV130(): JsonResponse
+    {
+        $user = AdminAuth::getUser();
+
+        if (
+            !$user
+            || !$user->hasPermission('Admin.Menus')
+            || !$user->hasPermission('Admin.Categories')
+        ) {
+            abort(403);
+        }
+
+        $role = '';
+
+        try {
+            if (!empty($user->is_super_user)) {
+                $role = 'owner';
+            } elseif (!empty($user->staff_id)) {
+                $roleRow = DB::table('staffs as s')
+                    ->leftJoin(
+                        'staff_roles as r',
+                        'r.staff_role_id',
+                        '=',
+                        's.staff_role_id'
+                    )
+                    ->where(
+                        's.staff_id',
+                        (int)$user->staff_id
+                    )
+                    ->select(
+                        'r.code as role_code',
+                        'r.name as role_name'
+                    )
+                    ->first();
+
+                $roleCode = strtolower(
+                    trim(
+                        (string)(
+                            $roleRow->role_code
+                            ?? ''
+                        )
+                    )
+                );
+
+                $roleName = strtolower(
+                    trim(
+                        (string)(
+                            $roleRow->role_name
+                            ?? ''
+                        )
+                    )
+                );
+
+                if (
+                    $roleCode === 'owner'
+                    || $roleName === 'owner'
+                ) {
+                    $role = 'owner';
+                } elseif (
+                    $roleCode === 'manager'
+                    || $roleName === 'manager'
+                ) {
+                    $role = 'manager';
+                }
+            }
+        } catch (\Throwable $error) {
+            $role = '';
+        }
+
+        if (!in_array($role, ['owner', 'manager'], true)) {
+            abort(403);
+        }
+
+        $categoryId = (int)post('category_id');
+
+        if ($categoryId < 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid category.',
+            ], 422);
+        }
+
+        $category = Categories_model::query()
+            ->find($categoryId);
+
+        if (!$category) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Category not found.',
+            ], 404);
+        }
+
+        $menuIds = DB::table('menu_categories')
+            ->where('category_id', $categoryId)
+            ->pluck('menu_id')
+            ->map(static fn($id) => (int)$id)
+            ->filter(static fn($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        /*
+         * Capture only combos affected by foods we are about
+         * to delete. We never sweep unrelated existing combos.
+         */
+        $affectedComboIds = [];
+
+        if (
+            $menuIds
+            && Schema::hasTable('menu_combo_items')
+        ) {
+            $affectedComboIds = DB::table('menu_combo_items')
+                ->whereIn('menu_id', $menuIds)
+                ->pluck('combo_id')
+                ->map(static fn($id) => (int)$id)
+                ->filter(static fn($id) => $id > 0)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        try {
+            $result = DB::transaction(
+                function () use (
+                    $category,
+                    $menuIds,
+                    $affectedComboIds
+                ) {
+                    $deletedFoods = 0;
+                    $deletedCombos = 0;
+
+                    foreach ($menuIds as $menuId) {
+                        $menu = Menus_model::query()
+                            ->find((int)$menuId);
+
+                        if (!$menu) {
+                            continue;
+                        }
+
+                        /*
+                         * Canonical model delete lifecycle:
+                         * relations / images / child rows continue
+                         * using the existing Menus_model authority.
+                         */
+                        $menu->delete();
+
+                        $deletedFoods++;
+                    }
+
+                    $category->delete();
+
+                    /*
+                     * menu_combo_items rows referencing deleted
+                     * foods are FK-cascaded.
+                     *
+                     * A Combo requires >= 2 foods in this manager.
+                     * Remove only affected Combos that are now
+                     * structurally invalid.
+                     */
+                    if (
+                        Schema::hasTable('menu_combos')
+                        && Schema::hasTable('menu_combo_items')
+                    ) {
+                        foreach ($affectedComboIds as $comboId) {
+                            $remaining = DB::table(
+                                'menu_combo_items'
+                            )
+                                ->where(
+                                    'combo_id',
+                                    (int)$comboId
+                                )
+                                ->count();
+
+                            if ($remaining >= 2) {
+                                continue;
+                            }
+
+                            $combo = \Admin\Models\Menu_combos_model::query()
+                                ->find((int)$comboId);
+
+                            if (!$combo) {
+                                continue;
+                            }
+
+                            $combo->delete();
+
+                            $deletedCombos++;
+                        }
+                    }
+
+                    return [
+                        'deleted_foods' => $deletedFoods,
+                        'deleted_combos' => $deletedCombos,
+                    ];
+                }
+            );
+        } catch (\Throwable $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Category could not be deleted.',
+            ], 500);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'category_id' => $categoryId,
+            'deleted_foods' => (int)$result['deleted_foods'],
+            'deleted_combos' => (int)$result['deleted_combos'],
+            'message' => 'Category and assigned foods deleted.',
+        ]);
     }
 
     public function onSaveCategoryOrder(): JsonResponse

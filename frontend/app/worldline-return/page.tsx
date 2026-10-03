@@ -1,172 +1,159 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { CheckCircle2, Clock3, ShieldCheck, XCircle } from "lucide-react"
 
-type ReturnResult = any
+type SafeStatus = {
+  hosted_checkout_id?: string | null
+  hosted_checkout_status?: string | null
+  payment_id?: string | null
+  payment_status?: string | null
+}
 
 export default function WorldlineReturnPage() {
-  const [result, setResult] = useState<ReturnResult | null>(null)
+  const [status, setStatus] = useState<SafeStatus | null>(null)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
   const [attempt, setAttempt] = useState(0)
 
-  const qs = useMemo(() => {
+  const queryString = useMemo(() => {
     if (typeof window === "undefined") return ""
     return window.location.search || ""
   }, [])
 
   const hostedCheckoutId = useMemo(() => {
     if (typeof window === "undefined") return ""
-    const p = new URLSearchParams(window.location.search)
-    return p.get("hostedCheckoutId") || ""
+    return new URLSearchParams(window.location.search).get("hostedCheckoutId") || ""
   }, [])
 
-  const paymentStatus =
-    result?.status_result?.payment_status ||
-    result?.status_result?.hosted_checkout_status ||
-    null
-
-  const isTerminal =
-    paymentStatus === "PAID" ||
-    paymentStatus === "CAPTURED" ||
-    paymentStatus === "AUTHORISED" ||
-    paymentStatus === "REJECTED" ||
-    paymentStatus === "CANCELLED"
+  const paymentStatus = String(status?.payment_status || status?.hosted_checkout_status || "UNKNOWN").toUpperCase()
+  const isPaid = ["PAID", "CAPTURED", "CAPTURE_REQUESTED"].includes(paymentStatus)
+  const isFailed = ["REJECTED", "CANCELLED", "CANCELED", "REJECTED_CAPTURE"].includes(paymentStatus)
+  const isTerminal = isPaid || isFailed
 
   useEffect(() => {
     let cancelled = false
-    let tries = 0
-    const maxTries = 12
 
-    async function hitReturn() {
-      const res = await fetch(`/api/v1/payments/worldline/return${qs}`)
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Worldline return validation failed")
+    const verifyReturn = async () => {
+      const response = await fetch(`/api/v1/payments/worldline/return${queryString}`, {
+        cache: "no-store",
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.ok || !payload?.return_mac_verified) {
+        throw new Error(payload?.error || "Worldline return authentication failed.")
       }
-
-      return data
+      return payload?.status_result || null
     }
 
-    async function hitStatus() {
+    const fetchStatus = async () => {
       if (!hostedCheckoutId) return null
-
-      const res = await fetch(`/api/v1/payments/worldline/status/${hostedCheckoutId}`)
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Worldline status fetch failed")
+      const response = await fetch(`/api/v1/payments/worldline/status/${encodeURIComponent(hostedCheckoutId)}`, {
+        cache: "no-store",
+      })
+      const payload = await response.json().catch(() => null)
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error || "Worldline status verification failed.")
       }
-
-      return data
+      return payload?.result || null
     }
 
-    async function loop() {
+    const run = async () => {
       try {
         setLoading(true)
         setError("")
 
-        const returnData = await hitReturn()
+        let current = await verifyReturn()
         if (cancelled) return
-        setResult(returnData)
+        setStatus(current)
         setAttempt(1)
 
-        let currentStatus =
-          returnData?.status_result?.payment_status ||
-          returnData?.status_result?.hosted_checkout_status ||
-          null
-
-        while (!cancelled && tries < maxTries) {
-          const terminal =
-            currentStatus === "PAID" ||
-            currentStatus === "CAPTURED" ||
-            currentStatus === "AUTHORISED" ||
-            currentStatus === "REJECTED" ||
-            currentStatus === "CANCELLED"
-
-          if (terminal) break
-
-          await new Promise((r) => setTimeout(r, 3000))
-          tries += 1
-
-          const statusData = await hitStatus()
-          if (cancelled) return
-
-          if (statusData) {
-            setResult((prev: any) => ({
-              ...(prev || {}),
-              polled_status: statusData,
-              status_result: statusData?.result || prev?.status_result || null,
-            }))
-            setAttempt(tries + 1)
-
-            currentStatus =
-              statusData?.result?.payment_status ||
-              statusData?.result?.hosted_checkout_status ||
-              currentStatus
+        for (let index = 0; index < 10 && !cancelled; index += 1) {
+          const normalized = String(current?.payment_status || current?.hosted_checkout_status || "").toUpperCase()
+          if (["PAID", "CAPTURED", "CAPTURE_REQUESTED", "REJECTED", "CANCELLED", "CANCELED", "REJECTED_CAPTURE"].includes(normalized)) {
+            break
           }
+
+          await new Promise((resolve) => setTimeout(resolve, 3000))
+          current = await fetchStatus()
+          if (cancelled) return
+          setStatus(current)
+          setAttempt(index + 2)
         }
-      } catch (e: any) {
-        if (!cancelled) {
-          setError(e?.message || "Worldline return failed")
-        }
+      } catch (caught: any) {
+        if (!cancelled) setError(String(caught?.message || "Worldline payment verification failed."))
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        if (!cancelled) setLoading(false)
       }
     }
 
-    loop()
-
+    void run()
     return () => {
       cancelled = true
     }
-  }, [qs, hostedCheckoutId])
+  }, [hostedCheckoutId, queryString])
 
   return (
-    <main className="min-h-screen bg-black text-white p-6">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <h1 className="text-2xl font-bold">Worldline Return</h1>
-
-        <div className="rounded-2xl border border-white/10 p-4 bg-white/5">
-          <p className="text-sm opacity-80">Hosted Checkout ID</p>
-          <p className="font-mono text-sm break-all">{hostedCheckoutId || "N/A"}</p>
+    <main className="min-h-screen bg-slate-950 px-5 py-10 text-white">
+      <div className="mx-auto max-w-xl space-y-5">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="h-7 w-7 text-emerald-400" aria-hidden="true" />
+          <div>
+            <h1 className="text-2xl font-bold">Worldline payment</h1>
+            <p className="text-sm text-white/60">PayMyDine verifies the result directly with Worldline.</p>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="rounded-2xl border border-white/10 p-4 bg-white/5">
-            <p className="font-semibold">Checking payment status...</p>
-            <p className="text-sm text-white/70 mt-1">Polling attempt: {attempt}</p>
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className="rounded-2xl border border-red-500/30 p-4 bg-red-500/10">
-            <p className="font-semibold mb-2">Error</p>
-            <p className="text-sm">{error}</p>
-          </div>
-        ) : null}
-
-        {!loading && !error ? (
-          <>
-            <div className="rounded-2xl border border-white/10 p-4 bg-white/5">
-              <p className="text-sm opacity-80 mb-2">Resolved status</p>
-              <p className="text-lg font-semibold">{paymentStatus || "UNKNOWN"}</p>
-              <p className="text-xs text-white/60 mt-2">
-                Terminal status: {isTerminal ? "YES" : "NO"}
-              </p>
+        <section className="rounded-2xl border border-white/10 bg-white/5 p-5">
+          {loading ? (
+            <div className="flex items-start gap-3">
+              <Clock3 className="mt-0.5 h-5 w-5 animate-pulse text-amber-300" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Checking payment status…</p>
+                <p className="mt-1 text-sm text-white/60">Verification attempt {Math.max(attempt, 1)}</p>
+              </div>
             </div>
-
-            <div className="rounded-2xl border border-white/10 p-4 bg-white/5">
-              <p className="text-sm opacity-80 mb-2">Full result</p>
-              <pre className="text-xs overflow-auto whitespace-pre-wrap">
-                {JSON.stringify(result, null, 2)}
-              </pre>
+          ) : error ? (
+            <div className="flex items-start gap-3 text-red-200">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Payment could not be verified</p>
+                <p className="mt-1 text-sm text-red-100/80">{error}</p>
+              </div>
             </div>
-          </>
-        ) : null}
+          ) : isPaid ? (
+            <div className="flex items-start gap-3 text-emerald-200">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Payment confirmed</p>
+                <p className="mt-1 text-sm text-emerald-100/80">Worldline status: {paymentStatus}</p>
+              </div>
+            </div>
+          ) : isFailed ? (
+            <div className="flex items-start gap-3 text-red-200">
+              <XCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Payment not completed</p>
+                <p className="mt-1 text-sm text-red-100/80">Worldline status: {paymentStatus}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-3 text-amber-100">
+              <Clock3 className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <div>
+                <p className="font-semibold">Payment is still pending</p>
+                <p className="mt-1 text-sm text-amber-50/70">Worldline status: {paymentStatus}</p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <div className="rounded-xl border border-white/10 px-4 py-3 text-xs text-white/50">
+          Reference: {hostedCheckoutId || "Unavailable"}{isTerminal && status?.payment_id ? ` · Payment ${status.payment_id}` : ""}
+        </div>
+
+        <a href="/menu" className="inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 font-semibold text-slate-950">
+          Return to menu
+        </a>
       </div>
     </main>
   )

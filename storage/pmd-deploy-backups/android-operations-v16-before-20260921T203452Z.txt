@@ -1,0 +1,22 @@
+timestamp_utc=20260921T203452Z
+root=/var/www/paymydine
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=468f9dd4af4d539b9ad80314db1f5630bb880bfd
+base=3178a7d04cff17776504ca0fb66ab7bbf121d644
+target=238be414837664013b5ac6fba2a19e489ef742be
+apk=PayMyDine-POS-Tablet-Preview-0.3.1.apk
+apk_sha256=a9e8a5d63779c1f836b843c09959c81782c99a419372114b6ccd1f12bb365352
+
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/Http/Controllers/PmdMobilePairController.php
+?? app/Http/Controllers/PmdRestaurantSignInApprovalController.php
+?? app/Http/Controllers/PmdSiteAccessHubDataController.php
+?? app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+?? app/Services/PmdMobileSync/PmdMobilePairingService.php
+?? app/Services/PmdSiteAccessService.php
+?? app/admin/assets/js/pmd-ownerboard-workplace-access-v1.js
+?? app/admin/assets/js/pmd-site-access-hub-v13.js
+?? app/admin/controllers/Siteaccess.php
+?? app/admin/views/pmd_quick_pos_v1.blade.php
+?? app/system/database/migrations/2026_09_20_190000_create_pmd_mobile_sync_tables.php
+?? routes/pmd-mobile-sync-v1.php

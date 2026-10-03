@@ -1,0 +1,224 @@
+====================================================
+PMD VPS FINALIZE + HARDEN + CAPACITY V10
+No app build. No DB writes. No FPM tuning. No cache activation.
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 18:56:34 UTC 2026
+====================================================
+
+===== 1. PRODUCTION STATE =====
+V2_ID=4
+cwd=/var/www/paymydine/frontend-v2/releases/PayMyDine-V2-singleflight-20260911_174401
+origin=http://127.0.0.1:8088
+BUILD_ID=Zwip8vDutaQzZB3e3AXlZ
+pm.max_children=5
+nginx          active
+php8.3-fpm     active
+mariadb        active
+V2 health HTTP=200 time=0.019s
+
+===== 2. BOOT PERSISTENCE =====
+Synchronizing state of nginx.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable nginx
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LANGUAGE = (unset),
+	LC_ALL = (unset),
+	LC_CTYPE = "UTF-8",
+	LANG = "C.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to a fallback locale ("C.UTF-8").
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LANGUAGE = (unset),
+	LC_ALL = (unset),
+	LC_CTYPE = "UTF-8",
+	LANG = "C.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to a fallback locale ("C.UTF-8").
+Synchronizing state of php8.3-fpm.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable php8.3-fpm
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LANGUAGE = (unset),
+	LC_ALL = (unset),
+	LC_CTYPE = "UTF-8",
+	LANG = "C.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to a fallback locale ("C.UTF-8").
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LANGUAGE = (unset),
+	LC_ALL = (unset),
+	LC_CTYPE = "UTF-8",
+	LANG = "C.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to a fallback locale ("C.UTF-8").
+Synchronizing state of mariadb.service with SysV service script with /usr/lib/systemd/systemd-sysv-install.
+Executing: /usr/lib/systemd/systemd-sysv-install enable mariadb
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LANGUAGE = (unset),
+	LC_ALL = (unset),
+	LC_CTYPE = "UTF-8",
+	LANG = "C.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to a fallback locale ("C.UTF-8").
+perl: warning: Setting locale failed.
+perl: warning: Please check that your locale settings:
+	LANGUAGE = (unset),
+	LC_ALL = (unset),
+	LC_CTYPE = "UTF-8",
+	LANG = "C.UTF-8"
+    are supported and installed on your system.
+perl: warning: Falling back to a fallback locale ("C.UTF-8").
+Creating PM2 systemd startup service for ubuntu
+[PM2] Init System found: systemd
+Platform systemd
+Template
+[Unit]
+Description=PM2 process manager
+Documentation=https://pm2.keymetrics.io/
+After=network.target
+
+[Service]
+Type=forking
+User=ubuntu
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+Environment=PATH=/usr/bin:/usr/local/bin:/usr/bin:/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PM2_HOME=/home/ubuntu/.pm2
+PIDFile=/home/ubuntu/.pm2/pm2.pid
+Restart=on-failure
+
+ExecStart=/usr/lib/node_modules/pm2/bin/pm2 resurrect
+ExecReload=/usr/lib/node_modules/pm2/bin/pm2 reload all
+ExecStop=/usr/lib/node_modules/pm2/bin/pm2 kill
+
+[Install]
+WantedBy=multi-user.target
+
+Target path
+/etc/systemd/system/pm2-ubuntu.service
+Command list
+[ 'systemctl enable pm2-ubuntu' ]
+[PM2] Writing init configuration in /etc/systemd/system/pm2-ubuntu.service
+[PM2] Making script booting at startup...
+[PM2] [-] Executing: systemctl enable pm2-ubuntu...
+[PM2] [v] Command successfully executed.
++---------------------------------------+
+[PM2] Freeze a process list on reboot via:
+$ pm2 save
+
+[PM2] Remove init script via:
+$ pm2 unstartup systemd
+nginx.service            enabled=enabled
+php8.3-fpm.service       enabled=enabled
+mariadb.service          enabled=enabled
+pm2-ubuntu.service       enabled=enabled
+
+===== 3. FIREWALL + LISTENERS =====
+Status: active
+Logging: on (low)
+Default: deny (incoming), allow (outgoing), disabled (routed)
+New profiles: skip
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW IN    Anywhere                  
+80/tcp                     ALLOW IN    Anywhere                  
+443/tcp                    ALLOW IN    Anywhere                  
+Anywhere                   DENY IN     91.92.241.10              
+22/tcp (v6)                ALLOW IN    Anywhere (v6)             
+80/tcp (v6)                ALLOW IN    Anywhere (v6)             
+443/tcp (v6)               ALLOW IN    Anywhere (v6)             
+
+UFW internal-port exposure check: PASS
+
+Relevant listeners:
+LISTEN 0      511        127.0.0.1:8088      0.0.0.0:*                                                 
+LISTEN 0      511          0.0.0.0:80        0.0.0.0:*                                                 
+LISTEN 0      4096         0.0.0.0:22        0.0.0.0:*                                                 
+LISTEN 0      511          0.0.0.0:443       0.0.0.0:*                                                 
+LISTEN 0      511                *:3000            *:*    users:(("next-server (v1",pid=2413839,fd=18))
+LISTEN 0      511                *:3002            *:*    users:(("next-server (v1",pid=2437460,fd=18))
+LISTEN 0      511             [::]:80           [::]:*                                                 
+LISTEN 0      4096            [::]:22           [::]:*                                                 
+LISTEN 0      511             [::]:443          [::]:*                                                 
+established public-IP self :443=0
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+===== 4. LOG ROTATION =====
+Created /etc/logrotate.d/paymydine-pm2
+PM2 logrotate syntax: PASS
+PM2 log size:
+18M	/home/ubuntu/.pm2/logs
+Nginx log size:
+192M	/var/log/nginx
+
+===== 5. TLS CERTIFICATE =====
+notAfter=Nov 21 16:02:14 2026 GMT
+Certificate will not expire
+TLS certificate valid for more than 14 days: PASS
+certbot.timer enabled=enabled
+certbot.timer active=active
+
+===== 6. DISK / MEMORY / DATABASE BASIC HEALTH =====
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        72G   33G   40G  45% /
+               total        used        free      shared  buff/cache   available
+Mem:           7.6Gi       1.4Gi       949Mi        49Mi       5.6Gi       6.2Gi
+Swap:             0B          0B          0B
+mysqld is alive
+root disk usage=45% PASS
+
+Potential backup timers/jobs (informational):
+Sat 2026-09-12 00:00:00 UTC       5h 3min Fri 2026-09-11 00:00:01 UTC      18h ago dpkg-db-backup.timer           dpkg-db-backup.service
+/etc/cron.daily/dpkg:/usr/libexec/dpkg/dpkg-db-backup
+
+===== 7. RESOURCE MONITOR =====
+
+===== 8. SAFE CAPACITY CEILING =====
+Read-only fresh SSR. Each workload stops at the first unsafe level.
+Safe gate: HTTP errors=0 and p95 <= 7000ms.
+--- MIX ---
+MIX c=16 req=48  bad=0 5xx=0 err=0 p50=2314ms p95=4166ms max=4170ms rps=6.24 SAFE
+MIX c=20 req=60  bad=0 5xx=0 err=0 p50=2559ms p95=4735ms max=4745ms rps=7.06 SAFE
+MIX c=24 req=72  bad=0 5xx=0 err=0 p50=2365ms p95=3988ms max=4987ms rps=8.61 SAFE
+--- QR ---
+QR c=20 req=60  bad=0 5xx=0 err=0 p50=1777ms p95=2149ms max=2262ms rps=10.36 SAFE
+QR c=24 req=72  bad=0 5xx=0 err=0 p50=1878ms p95=2255ms max=2380ms rps=11.99 SAFE
+QR c=32 req=96  bad=0 5xx=0 err=0 p50=2355ms p95=2599ms max=2751ms rps=12.92 SAFE
+CAPACITY CEILING PROBE COMPLETE
+
+===== 9. MONITOR SUMMARY =====
+no monitor samples
+
+===== 10. FINAL HEALTH =====
+test2.paymydine.com          HTTP=200 time=0.648s bytes=29417 PASS
+mimoza.paymydine.com         HTTP=200 time=0.573s bytes=39376 PASS
+loumi.paymydine.com          HTTP=200 time=0.386s bytes=27101 PASS
+moon.paymydine.com           HTTP=200 time=1.462s bytes=41693 PASS
+tomo.paymydine.com           HTTP=200 time=1.685s bytes=64339 PASS
+final established public-IP self :443=0
+
+===== FINAL RESULT =====
+MIX highest SAFE tested concurrency: 24 (p95=3988ms, rps=8.61)
+QR highest SAFE tested concurrency: 32 (p95=2599ms, rps=12.92)
+
+PM2 dump saved:
+-rw-rw-r-- 1 ubuntu ubuntu 16K Sep 11 18:56 /home/ubuntu/.pm2/dump.pm2
+
+Rollback for current V9.3 release remains:
+/var/www/paymydine/storage/pmd-singleflight-production-v9_3-20260911_175149/rollback.sh
+
+NOTE: OS package upgrades/reboot are intentionally NOT performed here.
+Do them later in a maintenance window after a fresh backup/snapshot.
+
+====================================================
+PMD VPS FINALIZATION V10: COMPLETE
+report=/var/www/paymydine/storage/pmd-vps-finalize-v10-20260911_185634/final-report.txt
+capacity=/var/www/paymydine/storage/pmd-vps-finalize-v10-20260911_185634/capacity-ceiling.json
+monitor=/var/www/paymydine/storage/pmd-vps-finalize-v10-20260911_185634/monitor.tsv
+====================================================

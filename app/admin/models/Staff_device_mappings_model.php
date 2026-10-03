@@ -20,6 +20,8 @@ class Staff_device_mappings_model extends Model
         'staff_id',
         'device_id',
         'device_uid',
+        'card_uid',
+        'card_label',
         'enrollment_type',
         'sync_status',
         'enrollment_data',

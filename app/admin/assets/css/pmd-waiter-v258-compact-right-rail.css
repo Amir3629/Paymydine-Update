@@ -1,0 +1,158 @@
+/* PMD Waiter V2.5.8 — compact and balanced right-side operation rail */
+
+body.pmd-waiter-standard-v23-page {
+  --v257-rail-width:104px !important;
+}
+
+/* Preserve an eight-column operational grid on desktop. */
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] {
+  grid-template-columns:repeat(auto-fill,minmax(142px,1fr)) !important;
+  gap:7px !important;
+}
+
+/* Keep enough room for the smaller rail without wasting floor space. */
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+  margin-right:112px !important;
+}
+
+/* Compact rail aligned with the top of the floor controls. */
+.v257-operations-rail {
+  top:102px !important;
+  width:104px !important;
+  padding:10px 6px !important;
+  gap:7px !important;
+  border-left:1px solid var(--pmd-v23-line) !important;
+  background:var(--pmd-v23-page) !important;
+}
+
+/*
+ * Right rail uses the same visual language as the left rail:
+ * white/neutral surface with one strong coloured inner edge.
+ */
+.v257-operation {
+  position:relative !important;
+  min-height:58px !important;
+  padding:9px 13px 9px 9px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  border:1px solid var(--pmd-v23-line) !important;
+  border-left:5px solid var(--v257-color) !important;
+  border-right:1px solid var(--pmd-v23-line) !important;
+  border-radius:3px !important;
+  background:var(--pmd-v23-surface) !important;
+  color:var(--pmd-v23-text) !important;
+  text-align:left !important;
+  overflow:hidden !important;
+}
+
+.v257-operation strong {
+  display:block !important;
+  max-width:72px !important;
+  font-size:9px !important;
+  line-height:1.08 !important;
+  font-weight:1000 !important;
+  letter-spacing:.015em !important;
+  overflow-wrap:normal !important;
+  word-break:normal !important;
+}
+
+/* Dot sits in the upper-right and never competes with the label. */
+.v257-operation > i {
+  position:absolute !important;
+  top:9px !important;
+  right:8px !important;
+  width:11px !important;
+  height:11px !important;
+  border-radius:50% !important;
+}
+
+/* Active/hover state remains meaningful but not visually loud. */
+.v257-operation:hover,
+.v257-operation.is-active {
+  background:color-mix(in srgb,var(--v257-color) 12%,var(--pmd-v23-surface)) !important;
+  border-color:var(--v257-color) !important;
+  color:var(--pmd-v23-text) !important;
+}
+
+.v257-operation:hover > i,
+.v257-operation.is-active > i {
+  background:var(--v257-color) !important;
+}
+
+/* Notification count gets its own stable corner position. */
+.v257-operation[data-v257-action="alerts"] {
+  padding-right:31px !important;
+}
+
+.v257-operation[data-v257-action="alerts"] strong {
+  max-width:62px !important;
+  font-size:8.5px !important;
+}
+
+.v257-alert-count {
+  position:absolute !important;
+  top:7px !important;
+  right:7px !important;
+  min-width:21px !important;
+  height:21px !important;
+  padding:0 5px !important;
+  display:grid !important;
+  place-items:center !important;
+  border-radius:11px !important;
+  background:var(--v257-color) !important;
+  color:#fff !important;
+  font-size:10px !important;
+  line-height:1 !important;
+  font-weight:1000 !important;
+  font-style:normal !important;
+}
+
+.v257-operation:hover .v257-alert-count,
+.v257-operation.is-active .v257-alert-count {
+  background:var(--v257-color) !important;
+  color:#fff !important;
+}
+
+/* Slightly denser cards without reducing touch safety. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card {
+  min-height:164px !important;
+  padding:12px 12px !important;
+}
+
+/* The large table number can shrink just enough to preserve eight columns. */
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card
+.v241-number,
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card
+strong {
+  font-size:44px !important;
+}
+
+/* Responsive fallback for narrower workstations. */
+@media (max-width:1250px) {
+  body.pmd-waiter-standard-v23-page {
+    --v257-rail-width:96px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+  body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+    margin-right:104px !important;
+  }
+
+  .v257-operations-rail {
+    width:96px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page [data-v2-table-grid] {
+    grid-template-columns:repeat(auto-fill,minmax(136px,1fr)) !important;
+  }
+
+  .v257-operation strong {
+    max-width:64px !important;
+    font-size:8.5px !important;
+  }
+}

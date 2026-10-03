@@ -1,65 +1,29 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import WorldlineHostedCheckout from "@/components/payment/worldline-hosted-checkout"
+import { ShieldAlert } from "lucide-react"
 
+/**
+ * Historical public Worldline diagnostics exposed integration metadata and
+ * could create provider sessions without the canonical submitted-order flow.
+ * Keep the route as a harmless tombstone so old bookmarks do not become a
+ * backdoor around payment orchestration.
+ */
 export default function WorldlineTestPage() {
-  const [diag, setDiag] = useState<any>(null)
-  const [diagError, setDiagError] = useState("")
-
-  useEffect(() => {
-    let mounted = true
-
-    fetch("/api/v1/payments/worldline/auth-diagnostic")
-      .then(async (r) => {
-        const j = await r.json().catch(() => null)
-        if (!mounted) return
-        if (!r.ok) throw new Error(j?.error || "Diagnostic failed")
-        setDiag(j)
-      })
-      .catch((e: any) => {
-        if (!mounted) return
-        setDiagError(e?.message || "Diagnostic failed")
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
   return (
-    <main className="min-h-screen bg-black text-white p-6">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <h1 className="text-2xl font-bold">Worldline Test Checkout</h1>
-
-        <div className="rounded-2xl border border-white/10 p-4 bg-white/5">
-          <p className="text-sm opacity-80 mb-2">
-            This page is only for safe browser-side testing of the Worldline hosted checkout flow.
-          </p>
-
-          {diagError ? (
-            <p className="text-sm text-red-400">{diagError}</p>
-          ) : (
-            <pre className="text-xs overflow-auto whitespace-pre-wrap">
-              {JSON.stringify(diag, null, 2)}
-            </pre>
-          )}
+    <main className="min-h-screen bg-slate-950 px-5 py-10 text-white">
+      <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="flex items-start gap-3">
+          <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-amber-300" aria-hidden="true" />
+          <div>
+            <h1 className="text-xl font-bold">Worldline test page retired</h1>
+            <p className="mt-2 text-sm leading-6 text-white/70">
+              Worldline checkout tests now run through PayMyDine's normal submitted-order payment flow. Public credential diagnostics and standalone payment-session creation are disabled.
+            </p>
+          </div>
         </div>
-
-        <div className="rounded-2xl border border-white/10 p-4 bg-white/5 space-y-4">
-          <p className="text-sm opacity-80">
-            Test amount: <strong>1.00 EUR</strong>
-          </p>
-
-          <WorldlineHostedCheckout
-            amount={1}
-            currency="EUR"
-            countryCode="DE"
-            merchantCustomerId="PMD-MIMOZA-TEST"
-            returnUrl={`${typeof window !== "undefined" ? window.location.origin : "https://mimoza.paymydine.com"}/worldline-return`}
-            buttonLabel="Start Worldline Checkout Test"
-          />
-        </div>
+        <a href="/menu" className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-white px-4 py-3 font-semibold text-slate-950">
+          Return to menu
+        </a>
       </div>
     </main>
   )

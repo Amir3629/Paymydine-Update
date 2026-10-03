@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/media/[...path]": {},
+    "/api/v1/[...path]": {},
+    "/api/v2/frontend-theme": {},
+    "/assets/media/[...path]": {},
+    "/pmd-media/[...path]": {},
+    "/settings": {},
+    "/simple-theme": {},
+    "/storage/[...path]": {},
+    "/tip-settings": {},
+    "/uploads/[...path]": {},
+    "/validate-coupon": {},
+    "/vat-settings": {}
+  }
+}

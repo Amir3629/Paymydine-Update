@@ -18,7 +18,7 @@
         // Detect which panel we're in by checking for superadmin-specific elements
         const isSuperadmin = document.querySelector('.nk-sidebar') !== null || 
                             window.location.pathname.includes('/superadmin') ||
-                            document.body.classList.contains('superadmin');
+                            (document.body||document.documentElement).classList.contains('superadmin');
         
         let leftPosition, topPosition, starColor, shadowColor;
         
@@ -64,7 +64,7 @@
             height: auto !important;
         `;
         
-        document.body.appendChild(starElement);
+        (document.body||document.documentElement).appendChild(starElement);
         
         // Hide star icon on window resize to mobile
         window.addEventListener('resize', function() {

@@ -1,0 +1,147 @@
+/* PMD_HEADER_EXPAND_SEARCH_V159
+ * Shared compact header search for Admin Menu + Discounts.
+ * Collapsed = one native 46px header action.
+ * Expanded = input grows LEFT while the right-side action rail stays stable.
+ */
+
+body.pmd-menu-manager-page .pmd-header-expand-search,
+body.pmd-coupon-manager-page .pmd-header-expand-search {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex: 0 0 46px !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: visible !important;
+  z-index: 80 !important;
+  transition:
+    width 220ms cubic-bezier(.2,.8,.2,1) !important,
+    max-width 220ms cubic-bezier(.2,.8,.2,1) !important,
+    flex-basis 220ms cubic-bezier(.2,.8,.2,1) !important,
+    gap 220ms cubic-bezier(.2,.8,.2,1) !important;
+}
+
+body.pmd-menu-manager-page .pmd-header-expand-search.is-open,
+body.pmd-coupon-manager-page .pmd-header-expand-search.is-open {
+  flex-basis: min(320px, 34vw) !important;
+  width: min(320px, 34vw) !important;
+  min-width: min(250px, 34vw) !important;
+  max-width: min(320px, 34vw) !important;
+  gap: 8px !important;
+}
+
+body.pmd-menu-manager-page .pmd-header-expand-search__field,
+body.pmd-coupon-manager-page .pmd-header-expand-search__field {
+  position: relative !important;
+  display: block !important;
+  flex: 1 1 auto !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  transform: translateX(8px) !important;
+  transition:
+    opacity 150ms ease !important,
+    transform 220ms cubic-bezier(.2,.8,.2,1) !important;
+}
+
+body.pmd-menu-manager-page .pmd-header-expand-search.is-open .pmd-header-expand-search__field,
+body.pmd-coupon-manager-page .pmd-header-expand-search.is-open .pmd-header-expand-search__field {
+  width: auto !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+  transform: translateX(0) !important;
+}
+
+body.pmd-menu-manager-page .pmd-header-expand-search__field input,
+body.pmd-coupon-manager-page .pmd-header-expand-search__field input {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 46px !important;
+  margin: 0 !important;
+  padding: 0 14px !important;
+  border: 1px solid #cfe0ec !important;
+  border-radius: 14px !important;
+  outline: 0 !important;
+  background: #fff !important;
+  color: #173752 !important;
+  font: inherit !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+  box-shadow: 0 3px 10px rgba(23,55,82,.05) !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  transition:
+    border-color 160ms ease !important,
+    box-shadow 160ms ease !important;
+}
+
+body.pmd-menu-manager-page .pmd-header-expand-search__field input:focus,
+body.pmd-coupon-manager-page .pmd-header-expand-search__field input:focus {
+  border-color: #8ebcaf !important;
+  box-shadow: 0 0 0 3px rgba(7,95,79,.08), 0 3px 10px rgba(23,55,82,.05) !important;
+}
+
+body.pmd-menu-manager-page .pmd-header-expand-search__toggle,
+body.pmd-coupon-manager-page .pmd-header-expand-search__toggle {
+  flex: 0 0 46px !important;
+}
+
+body.pmd-menu-manager-page .pmd-header-expand-search__toggle svg,
+body.pmd-coupon-manager-page .pmd-header-expand-search__toggle svg {
+  width: 21px !important;
+  height: 21px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* The old content search was removed. Keep the remaining toolbar controls on the right. */
+body.pmd-menu-manager-page .pmd-menu-manager__toolbar,
+body.pmd-coupon-manager-page .pmd-coupon-manager__toolbar {
+  justify-content: flex-end !important;
+}
+
+body.pmd-menu-manager-page #pmd-r2-clean-header .pmd-r2-clean-actions,
+body.pmd-coupon-manager-page #pmd-r2-clean-header .pmd-r2-clean-actions {
+  overflow: visible !important;
+}
+
+/* Search remains usable on narrow layouts without swallowing the whole header. */
+@media (max-width: 820px) {
+  body.pmd-menu-manager-page .pmd-header-expand-search.is-open,
+  body.pmd-coupon-manager-page .pmd-header-expand-search.is-open {
+    flex-basis: min(250px, calc(100vw - 180px)) !important;
+    width: min(250px, calc(100vw - 180px)) !important;
+    min-width: min(190px, calc(100vw - 180px)) !important;
+    max-width: min(250px, calc(100vw - 180px)) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.pmd-menu-manager-page .pmd-header-expand-search,
+  body.pmd-coupon-manager-page .pmd-header-expand-search,
+  body.pmd-menu-manager-page .pmd-header-expand-search__field,
+  body.pmd-coupon-manager-page .pmd-header-expand-search__field {
+    transition-duration: 1ms !important;
+  }
+}
+/* PMD_HEADER_EXPAND_SEARCH_V159_END */

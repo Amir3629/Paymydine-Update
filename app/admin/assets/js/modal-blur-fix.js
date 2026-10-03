@@ -18,7 +18,7 @@
         processedModals.add(modal);
         
         if (modal.parentElement && modal.parentElement.tagName !== 'BODY') {
-            document.body.appendChild(modal);
+            (document.body||document.documentElement).appendChild(modal);
         }
         
         // Remove blur from modal and its content only
@@ -68,7 +68,7 @@
         if (now - lastModalCheck < 100) return; // Throttle to max once per 100ms
         lastModalCheck = now;
         
-        if (document.body.classList.contains('modal-open')) {
+        if ((document.body||document.documentElement).classList.contains('modal-open')) {
             const modals = document.querySelectorAll('.modal.show');
             modals.forEach(modal => {
                 if (!processedModals.has(modal)) {

@@ -1,0 +1,182 @@
+/* ============================================================
+   PMD_OVERLAY_GLASS_AUTHORITY_V1
+
+   One final visual contract for full-screen Admin / Super Admin cards,
+   modals and drawers.
+
+   Contract:
+   - background stays visually clear; no black/dark wash
+   - 8px smooth backdrop blur
+   - card/dialog itself stays sharp
+   - 180ms background/blur entrance
+   - dropdowns, popovers and guided tours are intentionally NOT targeted
+   - presentation only: no modal lifecycle or business behavior ownership
+   ============================================================ */
+
+:root {
+  --pmd-overlay-glass-bg: rgba(255, 255, 255, .04);
+  --pmd-overlay-glass-blur: 8px;
+  --pmd-overlay-glass-duration: 180ms;
+}
+
+@keyframes pmdOverlayGlassInV1 {
+  from {
+    background-color: rgba(255, 255, 255, 0);
+    backdrop-filter: blur(0);
+    -webkit-backdrop-filter: blur(0);
+  }
+  to {
+    background-color: var(--pmd-overlay-glass-bg);
+    backdrop-filter: blur(var(--pmd-overlay-glass-blur));
+    -webkit-backdrop-filter: blur(var(--pmd-overlay-glass-blur));
+  }
+}
+
+/* ------------------------------------------------------------
+   Bootstrap / legacy Admin modals.
+   This deliberately beats custom-fixes.css, which disables backdrop blur.
+   ------------------------------------------------------------ */
+html body .modal-backdrop,
+html body .offcanvas-backdrop {
+  background: var(--pmd-overlay-glass-bg) !important;
+  background-color: var(--pmd-overlay-glass-bg) !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+}
+
+html body .modal-backdrop.show,
+html body .offcanvas-backdrop.show {
+  opacity: 1 !important;
+  animation: pmdOverlayGlassInV1 var(--pmd-overlay-glass-duration) ease both !important;
+}
+
+/* Admin Confirm owns its closing opacity. Do not keep the backdrop visible. */
+html body:has(#adminConfirmModal.modal-closing) .modal-backdrop {
+  opacity: 0 !important;
+  backdrop-filter: blur(0) !important;
+  -webkit-backdrop-filter: blur(0) !important;
+}
+
+/* ------------------------------------------------------------
+   SweetAlert2 confirms.
+   ------------------------------------------------------------ */
+html body .swal2-container.swal2-backdrop-show {
+  background: var(--pmd-overlay-glass-bg) !important;
+  background-color: var(--pmd-overlay-glass-bg) !important;
+  backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  animation: pmdOverlayGlassInV1 var(--pmd-overlay-glass-duration) ease both !important;
+}
+
+/* ------------------------------------------------------------
+   PMD full-screen backdrop elements.
+   The selector is deliberately limited to PMD classes whose name says
+   "backdrop"; guided-tour backdrops remain independent.
+   ------------------------------------------------------------ */
+html body [class*="pmd-"][class*="backdrop"]:not([class*="tour"]) {
+  background: var(--pmd-overlay-glass-bg) !important;
+  background-color: var(--pmd-overlay-glass-bg) !important;
+  filter: none !important;
+  -webkit-filter: none !important;
+  backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  animation: pmdOverlayGlassInV1 var(--pmd-overlay-glass-duration) ease both !important;
+}
+
+/* ------------------------------------------------------------
+   PMD overlays that paint the background on the modal container itself.
+   Waiter POS generic/product/payment cards + Super Admin restaurant cards.
+   ------------------------------------------------------------ */
+html body .pmd-pos-modal.is-show,
+html body .pmd-pos-payment-modal.is-show,
+html body .pmd-modal[data-pmd-create-modal]:not([hidden]),
+html body .pmd-modal[data-pmd-edit-modal]:not([hidden]) {
+  background: var(--pmd-overlay-glass-bg) !important;
+  background-color: var(--pmd-overlay-glass-bg) !important;
+  backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  animation: pmdOverlayGlassInV1 var(--pmd-overlay-glass-duration) ease both !important;
+}
+
+/* Cashier R51 has stronger ID-scoped rules for the embedded Payment Center. */
+html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc .pmd-pos-modal.is-show,
+html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc .pmd-pos-payment-modal.is-show {
+  background: var(--pmd-overlay-glass-bg) !important;
+  background-color: var(--pmd-overlay-glass-bg) !important;
+  backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  animation: pmdOverlayGlassInV1 var(--pmd-overlay-glass-duration) ease both !important;
+}
+
+/* ------------------------------------------------------------
+   Cashier R51 replaces two real backdrop nodes with ::before painters.
+   Own those exact painters here instead of re-enabling retired elements.
+   ------------------------------------------------------------ */
+html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc::before,
+html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc .pmd-coc-product::before {
+  background: var(--pmd-overlay-glass-bg) !important;
+  background-color: var(--pmd-overlay-glass-bg) !important;
+  backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  animation: pmdOverlayGlassInV1 var(--pmd-overlay-glass-duration) ease both !important;
+}
+
+/* ------------------------------------------------------------
+   Mobile Side Menu 2 drawer backdrop, including standalone Super Admin R2.
+   ------------------------------------------------------------ */
+html.pmd-sm2-mobile-open body #pmd-side-menu2-backdrop {
+  opacity: 1 !important;
+  background: var(--pmd-overlay-glass-bg) !important;
+  background-color: var(--pmd-overlay-glass-bg) !important;
+  backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  -webkit-backdrop-filter: blur(var(--pmd-overlay-glass-blur)) !important;
+  animation: pmdOverlayGlassInV1 var(--pmd-overlay-glass-duration) ease both !important;
+}
+
+/* ------------------------------------------------------------
+   Explicit sharp-card contract. Backdrop blur belongs behind the card only.
+   ------------------------------------------------------------ */
+html body .modal-dialog,
+html body .modal-content,
+html body .swal2-popup,
+html body .pmd-modal-card,
+html body .pmd-settings-inline-card,
+html body .pmd-device-v6-card,
+html body .pmd-menu-modal__card,
+html body .pmd-menu-category-manager-r25__card,
+html body .pmd-smart-category-modal__card,
+html body .pmd-coupon-modal__card,
+html body .pmd-provider-modal__dialog,
+html body .pmd-pos-detail-card,
+html body .pmd-pos-modal-card,
+html body .pmd-pos-payment-dialog,
+html body .pmd-cashier-order-center__dialog,
+html body .pmd-cashier-pos-overlay__panel,
+html body .pmd-coc__dialog,
+html body .pmd-coc-product__dialog,
+html body .pmd-floor-registry-manager__card,
+html body .pmd-floor-table-manager__card {
+  filter: none !important;
+  -webkit-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body .modal-backdrop.show,
+  html body .offcanvas-backdrop.show,
+  html body .swal2-container.swal2-backdrop-show,
+  html body [class*="pmd-"][class*="backdrop"]:not([class*="tour"]),
+  html body .pmd-pos-modal.is-show,
+  html body .pmd-pos-payment-modal.is-show,
+  html body .pmd-modal[data-pmd-create-modal]:not([hidden]),
+  html body .pmd-modal[data-pmd-edit-modal]:not([hidden]),
+  html.pmd-sm2-mobile-open body #pmd-side-menu2-backdrop,
+  html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc::before,
+  html body #pmd-cashier-order-composer-v1.pmd-coc.pmd-coc .pmd-coc-product::before {
+    animation: none !important;
+    transition: none !important;
+  }
+}

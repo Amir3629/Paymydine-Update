@@ -1,0 +1,407 @@
+/* ==========================================================
+   PMD Waiter V2.7.5
+   Symmetric rails + restored operational accents
+   ========================================================== */
+
+:root {
+  --pmd-v275-available: #16a34a;
+  --pmd-v275-cleaning: #d97706;
+  --pmd-v275-merge: #2563eb;
+  --pmd-v275-mode: #475569;
+  --pmd-v275-alerts: #ef2929;
+
+  --pmd-v275-light-shell: #e7eef4;
+  --pmd-v275-light-button: #ffffff;
+  --pmd-v275-light-border: #aebdca;
+  --pmd-v275-light-text: #111820;
+
+  --pmd-v275-dark-shell: #09131c;
+  --pmd-v275-dark-button: #17232e;
+  --pmd-v275-dark-border: #44576a;
+  --pmd-v275-dark-text: #f8fafc;
+}
+
+/* ----------------------------------------------------------
+   Exact right-rail shell alignment with left rail
+   ---------------------------------------------------------- */
+
+.v257-operations-rail,
+.pmd-v257-operations-rail {
+  box-sizing: border-box !important;
+  width: 132px !important;
+  min-width: 132px !important;
+  max-width: 132px !important;
+
+  padding: 10px 7px !important;
+  gap: 6px !important;
+
+  border-left: 1px solid var(--pmd-v275-light-border) !important;
+  border-right: 0 !important;
+
+  background: var(--pmd-v275-light-shell) !important;
+  color: var(--pmd-v275-light-text) !important;
+}
+
+/*
+ * Dark right rail must use the same shell family as the left rail,
+ * not the lighter card background introduced by V2.7.1.
+ */
+html[data-pmd-pos-theme="dark"]
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) {
+  background: var(--pmd-v275-dark-shell) !important;
+  border-left-color: var(--pmd-v275-dark-border) !important;
+  color: var(--pmd-v275-dark-text) !important;
+}
+
+/* ----------------------------------------------------------
+   Exact button geometry
+   ---------------------------------------------------------- */
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation {
+  position: relative !important;
+  box-sizing: border-box !important;
+
+  width: 117px !important;
+  min-width: 117px !important;
+  max-width: 117px !important;
+
+  height: 54px !important;
+  min-height: 54px !important;
+  max-height: 54px !important;
+
+  margin: 0 !important;
+  padding: 8px 12px 8px 15px !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  border: 1px solid var(--pmd-v275-light-border) !important;
+  border-radius: 3px !important;
+
+  background: var(--pmd-v275-light-button) !important;
+  color: var(--pmd-v275-light-text) !important;
+
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+  filter: none !important;
+
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Dark button surface matching the left-side dark buttons. */
+html[data-pmd-pos-theme="dark"]
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation {
+  background: var(--pmd-v275-dark-button) !important;
+  border-color: var(--pmd-v275-dark-border) !important;
+  color: var(--pmd-v275-dark-text) !important;
+}
+
+/* ----------------------------------------------------------
+   Restore meaningful edge colours
+   ---------------------------------------------------------- */
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation::before {
+  content: "" !important;
+  position: absolute !important;
+
+  top: -1px !important;
+  bottom: -1px !important;
+  left: -1px !important;
+
+  width: 5px !important;
+  border-radius: 3px 0 0 3px !important;
+
+  background: var(--pmd-v275-mode) !important;
+  pointer-events: none !important;
+}
+
+/* Notification */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="alerts"]::before {
+  background: var(--pmd-v275-alerts) !important;
+}
+
+/* Set Available */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="available"]::before {
+  background: var(--pmd-v275-available) !important;
+}
+
+/* Needs Cleaning */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="cleaning"]::before {
+  background: var(--pmd-v275-cleaning) !important;
+}
+
+/* Merge Tables */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="merge"]::before {
+  background: var(--pmd-v275-merge) !important;
+}
+
+/* Theme / Mode */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="theme"]::before {
+  background: var(--pmd-v275-mode) !important;
+}
+
+/*
+ * Remove old decorative dot elements while preserving the coloured edge.
+ */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation > i {
+  display: none !important;
+}
+
+/* ----------------------------------------------------------
+   Typography
+   ---------------------------------------------------------- */
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation > strong {
+  display: block !important;
+  max-width: 88px !important;
+
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  line-height: .98 !important;
+  letter-spacing: .015em !important;
+  text-align: left !important;
+  white-space: normal !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+/* Bell icon */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="alerts"] {
+  justify-content: center !important;
+  padding: 8px !important;
+}
+
+.pmd-v268-notification-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  color: var(--pmd-v275-alerts) !important;
+}
+
+.pmd-v268-notification-icon svg {
+  display: block !important;
+  width: 27px !important;
+  height: 27px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/* ----------------------------------------------------------
+   Absolutely no hover/focus/press visual mutation
+   ---------------------------------------------------------- */
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  background: var(--pmd-v275-light-button) !important;
+  color: var(--pmd-v275-light-text) !important;
+  border-color: var(--pmd-v275-light-border) !important;
+
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+  filter: none !important;
+
+  transition: none !important;
+  animation: none !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  background: var(--pmd-v275-dark-button) !important;
+  color: var(--pmd-v275-dark-text) !important;
+  border-color: var(--pmd-v275-dark-border) !important;
+}
+
+/*
+ * Preserve the edge colour during every interaction state.
+ */
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="alerts"]:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+)::before {
+  background: var(--pmd-v275-alerts) !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="available"]:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+)::before {
+  background: var(--pmd-v275-available) !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="cleaning"]:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+)::before {
+  background: var(--pmd-v275-cleaning) !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="merge"]:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+)::before {
+  background: var(--pmd-v275-merge) !important;
+}
+
+:is(
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) > .v257-operation[data-v257-action="theme"]:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+)::before {
+  background: var(--pmd-v275-mode) !important;
+}
+
+/* ----------------------------------------------------------
+   Logout button follows the exact left-rail theme
+   ---------------------------------------------------------- */
+
+:is(
+  [data-v265-logout],
+  [data-pmd-waiter-logout],
+  .pmd-v265-logout,
+  .pmd-waiter-logout
+) {
+  background: var(--pmd-v275-light-button) !important;
+  color: var(--pmd-v275-light-text) !important;
+  border-color: var(--pmd-v275-light-border) !important;
+
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+:is(
+  [data-v265-logout],
+  [data-pmd-waiter-logout],
+  .pmd-v265-logout,
+  .pmd-waiter-logout
+) {
+  background: var(--pmd-v275-dark-button) !important;
+  color: var(--pmd-v275-dark-text) !important;
+  border-color: var(--pmd-v275-dark-border) !important;
+}
+
+:is(
+  [data-v265-logout],
+  [data-pmd-waiter-logout],
+  .pmd-v265-logout,
+  .pmd-waiter-logout
+):is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  box-shadow: none !important;
+  outline: none !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+:is(
+  [data-v265-logout],
+  [data-pmd-waiter-logout],
+  .pmd-v265-logout,
+  .pmd-waiter-logout
+):is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  background: var(--pmd-v275-dark-button) !important;
+  color: var(--pmd-v275-dark-text) !important;
+  border-color: var(--pmd-v275-dark-border) !important;
+}

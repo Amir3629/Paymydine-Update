@@ -1,0 +1,12 @@
+
+MIX c=16
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.082135089673102, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.078374672681093, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.032506179995835, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.029603365808725, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.026436300948262, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.025451191700995, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.031998900696635, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.023724663071334, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.027402685955167, "error": "TimeoutError('The read operation timed out')"}
+{"host": "mimoza.paymydine.com", "status": 0, "seconds": 12.02309342008084, "error": "TimeoutError('The read operation timed out')"}

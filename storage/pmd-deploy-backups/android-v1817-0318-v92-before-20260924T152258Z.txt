@@ -1,0 +1,14 @@
+timestamp_utc=20260924T152258Z
+root=/var/www/paymydine
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=ac8220f15ee94f6975569cbf5edbf79610937270
+qpos_base=74cf7fdf0a31b3cf50cf1ecb2f394d9cf1751b4f
+source_commit=87af917412b7d3e674d0cd8b663ecb89fe1bd6b2
+apk_release=PayMyDine-POS-Tablet-Preview-0.3.18.apk
+apk_public=PayMyDine-Android-0.3.18.apk
+apk_sha256=0bec63dac4019be9df902c51faa1e66e0abf716aa6de2f2e5e9c6c95825497f7
+
+AM app/admin/assets/js/pmd-quick-pos-v1.js
+AM app/admin/views/pmd_quick_pos_v1.blade.php
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/admin/assets/css/pmd-quick-pos-v1.css

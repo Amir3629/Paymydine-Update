@@ -9,7 +9,10 @@ use Igniter\Flame\Auth\Manager;
  */
 class User extends Manager
 {
-    protected $sessionKey = 'admin_auth';
+    // PMD_ADMIN_AUTH_KEY_V2
+    // Ignore the legacy cross-subdomain remember cookie named admin_auth.
+    // The new cookie is created host-only by PmdAdminSessionIsolation.
+    protected $sessionKey = 'pmd_admin_auth_v3';
 
     protected $model = 'Admin\Models\Users_model';
 

@@ -1,0 +1,112 @@
+/* PMD_LOCATION_LIVE_CLOCK_R11 */
+/* PMD_GLOBAL_CLOCK_VIEWPORT_CENTER_V152
+ * Cache-proof asset generation: new filename + manifest key.
+ * The clock is centered on the physical viewport, never the content column.
+ */
+
+#pmd-location-live-clock-r10 {
+    position: fixed;
+    top: 12px;
+    /* PMD_GLOBAL_CLOCK_VIEWPORT_CENTER_V151
+     * Always center against the physical browser viewport.
+     * Sidebar width/state must never participate in clock geometry. */
+    left: 50vw !important;
+    right: auto !important;
+    z-index: 100050;
+
+    min-width: 124px;
+    height: 40px;
+    padding: 0 15px;
+
+    border: 1px solid rgba(129, 164, 178, .34);
+    border-radius: 14px;
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255,255,255,.96),
+            rgba(248,252,253,.93)
+        );
+
+    box-shadow:
+        0 8px 26px rgba(15, 48, 61, .09),
+        inset 0 1px 0 rgba(255,255,255,.92);
+
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+
+    transform: translateX(-50%) !important;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+
+    color: #123b3a;
+    font-family: inherit;
+
+    pointer-events: none;
+    user-select: none;
+
+    box-sizing: border-box;
+}
+
+#pmd-location-live-clock-r10,
+#pmd-location-live-clock-r10 * {
+    box-sizing: border-box;
+}
+
+#pmd-location-live-clock-r10 .pmd-location-live-clock-r10__dot {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 999px;
+    background: #159a78;
+    box-shadow:
+        0 0 0 3px rgba(21,154,120,.10),
+        0 0 10px rgba(21,154,120,.22);
+}
+
+#pmd-location-live-clock-r10 .pmd-location-live-clock-r10__time {
+    min-width: 84px;
+    color: #102f39;
+    font-size: 16px;
+    line-height: 1;
+    font-weight: 850;
+    letter-spacing: .065em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* V151: no desktop sidebar-position override by design. */
+
+@media (max-width: 820px) {
+    #pmd-location-live-clock-r10 {
+        top: 9px;
+        min-width: 108px;
+        height: 36px;
+        padding: 0 11px;
+        gap: 7px;
+        border-radius: 12px;
+    }
+
+    #pmd-location-live-clock-r10 .pmd-location-live-clock-r10__time {
+        min-width: 76px;
+        font-size: 14px;
+        letter-spacing: .055em;
+    }
+
+    #pmd-location-live-clock-r10 .pmd-location-live-clock-r10__dot {
+        width: 6px;
+        height: 6px;
+        flex-basis: 6px;
+    }
+}
+
+@media print {
+    #pmd-location-live-clock-r10 {
+        display: none !important;
+    }
+}

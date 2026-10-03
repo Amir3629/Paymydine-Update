@@ -42,6 +42,17 @@ export function NeutralSplitBillPanel(props: any) {
     modalSecondaryBtn,
   } = props
 
+  // PMD_AUDIT_PHASE3_SPLIT_PROGRESS
+  const pmdSplitPaidCount = Array.isArray(activeSplitPeople)
+    ? activeSplitPeople.filter((person: any) => String(person?.status || "").toLowerCase() === "paid").length
+    : 0
+  const pmdSplitTotalCount = Array.isArray(activeSplitPeople) && activeSplitPeople.length > 0
+    ? activeSplitPeople.length
+    : Number(splitGuestCount || 0)
+  const pmdSplitProgressPercent = pmdSplitTotalCount > 0
+    ? Math.min(100, Math.max(0, Math.round((pmdSplitPaidCount / pmdSplitTotalCount) * 100)))
+    : 0
+
   return (
     <>
 
@@ -251,6 +262,22 @@ export function NeutralSplitBillPanel(props: any) {
 
               {checkoutStep === "split-review" && (
                 <div className="space-y-3">
+                  <div
+                    data-pmd-split-progress="1"
+                    className="rounded-3xl border p-3 text-xs shadow-sm"
+                    style={{ borderColor: "var(--theme-border)", background: "var(--theme-surface)", color: "var(--theme-text-primary)" }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold">Split progress</span>
+                      <span className="muted">{pmdSplitPaidCount} of {pmdSplitTotalCount} paid</span>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full" style={{ background: "color-mix(in srgb, var(--theme-border) 55%, transparent)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${pmdSplitProgressPercent}%`, background: "#062F2A" }} />
+                    </div>
+                    {pmdSplitPaidCount > 0 && pmdSplitPaidCount < pmdSplitTotalCount && (
+                      <p className="mt-2 muted">If one guest leaves this payment flow, the remaining balance stays visible on the table order and staff can collect it from the QR checkout.</p>
+                    )}
+                  </div>
                   {activeSplitPeople.map((person: any) => (
                     <div key={person.id} className="rounded-3xl p-3 space-y-2 shadow-sm" style={{ border: `1px solid ${selectedSplitPersonId === person.id ? "#b88940" : "color-mix(in srgb, var(--theme-border) 70%, transparent)"}`, background: "var(--theme-surface)" }}>
                       <div className="flex items-center justify-between gap-2">

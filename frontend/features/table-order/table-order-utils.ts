@@ -1,5 +1,5 @@
 import type { TableOrderDraftResponse } from "@/lib/api-client"
-import { tableOrderTotalByCode, tableOrderVatPercentage } from "@/features/checkout/checkout-utils"
+import { isCancelledOrderItem, tableOrderTotalByCode, tableOrderVatPercentage } from "@/features/checkout/checkout-utils"
 import type { SubmittedTableOrderSnapshot, TableOrderContext, TableOrderLikeInfo } from "./types"
 
 function cleanContextValue(value: unknown): string | null {
@@ -45,7 +45,7 @@ export function isVisibleTableOrderDraft(draft: TableOrderDraftResponse | null |
 }
 
 export function tableOrderItemCount(draft: TableOrderDraftResponse | null | undefined): number {
-  return Number(draft?.items?.reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)
+  return Number(draft?.items?.filter((item: any) => !isCancelledOrderItem(item)).reduce((sum: number, item: any) => sum + Number(item?.quantity || 1), 0) || 0)
 }
 
 function toFiniteNumber(value: unknown, fallback = 0): number {
@@ -68,7 +68,7 @@ export function createSubmittedTableOrderSnapshot(
 ): SubmittedTableOrderSnapshot {
   const totals = draft.totals || { subtotal: 0, tax: 0, total: 0, orderTotal: 0, settledAmount: 0, remainingAmount: 0 }
   const orderId = draft.order_id ?? draft.orderId ?? null
-  const submittedItems = Array.isArray(draft.items) ? draft.items : []
+  const submittedItems = Array.isArray(draft.items) ? draft.items.filter((item: any) => !isCancelledOrderItem(item)) : []
   const itemSubtotal = submittedItems.reduce((sum, item: any) => {
     const quantity = Math.max(1, toFiniteNumber(item?.quantity ?? item?.qty, 1))
     const lineAmount = firstPositiveAmount(item?.subtotal, item?.line_total, item?.total)

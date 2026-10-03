@@ -1,0 +1,12 @@
+timestamp_utc=20260921T115736Z
+root=/var/www/paymydine
+host=tomo.paymydine.com
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+branch=main
+origin_main=385f0438acbd0dbe2374d1e5dd045e58fd735682
+base=0ed06393933ebe5bbac0961c70f493c189cc4c1d
+target=afd6721e6380832befee9f41fec7c9aad5036110
+
+AM app/Http/Middleware/PmdSiteAccessGateMiddleware.php
+?? app/Services/PmdSiteAccessWorkspaceGateService.php
+?? routes/pmd-mobile-sync-v1.php

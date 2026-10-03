@@ -14,6 +14,17 @@ class Logout extends \Admin\Classes\AdminController
             AdminAuth::stopImpersonate();
         }
         else {
+            // PMD_ADMIN_SESSION_PRESENCE_V1
+            // Close only this browser session; another simultaneous session
+            // for the same staff member remains online.
+            try {
+                app(\Admin\Services\PmdAdminPresenceService::class)->logoutCurrentSession();
+            } catch (\Throwable $error) {
+                logger()->warning('PMD admin presence logout registration failed', [
+                    'message' => $error->getMessage(),
+                ]);
+            }
+
             AdminAuth::logout();
 
             session()->invalidate();

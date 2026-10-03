@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+Cache-Control: no-cache, private
+Date: Sat, 12 Sep 2026 19:29:07 GMT
+Vary: Origin
+Set-Cookie: paymydine_session=eyJpdiI6ImNKY2VMK1F5K2VRc05hNUdIZkhNc3c9PSIsInZhbHVlIjoiVlp0NEsyOXV6aHJIQjRTN3g3alpmWldWcG9kRGtKMXJRblhENGViWXhpYTVSK0pMTkdCRkh6ZUNJeVZLK2Y2cmpndnJMRjRaMVdSdEpWMjBsRGphWXdyczQzVXdoVWM2am1wNFhjS2xmN0oxbGNIcDVVVm8rRmNMOHlNdk1neloiLCJtYWMiOiIyNzczN2MyZjZkZGNmY2JmOTExNmEyZjYxMzc3ZGRmYWYyMjVlNGVkOTRmYmNiMmExMjMyMDM4YThjMGIyOTA3IiwidGFnIjoiIn0%3D; expires=Sat, 12-Sep-2026 21:29:07 GMT; Max-Age=7200; path=/; domain=.paymydine.com; secure; httponly; samesite=lax
+X-PMD-R30F-Vhost: tomo.paymydine.com
+X-PMD-R30F-Route: laravel-api-v1
+

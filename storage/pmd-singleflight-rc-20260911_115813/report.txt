@@ -1,0 +1,89 @@
+====================================================
+PMD V8.2 SINGLE-FLIGHT RC
+NO LIVE SOURCE CHANGE / NO LIVE .next BUILD / NO DB WRITES
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 11:58:13 UTC 2026
+====================================================
+
+===== PRODUCTION SAFETY PRECHECK =====
+live V2 id=1
+live origin=http://127.0.0.1:8088
+pm.max_children=5
+nginx=active
+php8.3-fpm=active
+mariadb=active
+load1=0.00
+PHP CPU=1.7%
+MemAvailable=6418MiB
+disk free=41059MiB
+
+===== CLEAN EXACT STALE V8.1 RC, IF PRESENT =====
+removing stale RC from the prior audit-only failure: /home/ubuntu/PayMyDine-V2-RC-singleflight-20260911_115137
+
+===== CREATE ISOLATED RC =====
+RC=/home/ubuntu/PayMyDine-V2-RC-singleflight-20260911_115813
+
+===== PATCH RC ONLY: EPHEMERAL SINGLE-FLIGHT =====
+RC patch: PASS
+single-flight stable paths: 12
+table-info and table-order-draft remain ordinary no-store fetches
+
+===== RC TYPECHECK + SOURCE-AUDIT DELTA + BUILD =====
+
+> paymydine-frontend-v2-revolution@1.1.1-staging.20260815-integrated-r2 typecheck
+> tsc --noEmit
+
+
+===== SOURCE SAFETY AUDIT: LIVE BASELINE VS RC =====
+live audit exit=1
+RC audit exit=1
+
+Live audit findings already present before this RC patch:
+- app/payment/worldline-embedded-return/page.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/FoodGalleryRuntimeEnhancer.tsx: MutationObserver is not allowed
+- src/runtime/components/ThemeFallbackStyleBridge.tsx: MutationObserver is not allowed
+- src/runtime/components/ThemeFallbackStyleBridge.tsx: runtime style.setProperty count 3 exceeds baseline 0
+- src/runtime/components/WorldlineDirectMethodButton.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/WorldlineEmbeddedCheckoutBridge.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/WorldlineSingleActionUX.tsx: MutationObserver is not allowed
+- src/runtime/components/WorldlineSingleActionUX.tsx: runtime style.setProperty count 11 exceeds baseline 0
+SOURCE AUDIT DELTA GATE: PASS (zero new violations from single-flight patch)
+
+> paymydine-frontend-v2-revolution@1.1.1-staging.20260815-integrated-r2 build
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.mjs took 46ms
+
+  Creating an optimized production build ...
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected Turbopack error occurred. A panic log has been written to /tmp/next-panic-a6ca256700d3a05a9321c1efed4277e2.log.
+
+To help make Turbopack better, report this error by clicking here: https://bugs.nextjs.org/search?category=turbopack-error-report&title=Turbopack%20Error%3A%20Symlink%20%5Bproject%5D%2Fnode_modules%20is%20invalid%2C%20it%20points%20out%20of%20the%20filesystem%20root&body=Turbopack%20version%3A%20%603d32eb87%60%0ANext.js%20version%3A%20%600.0.0%60%0A%0AError%20message%3A%0A%60%60%60%0ASymlink%20%5Bproject%5D%2Fnode_modules%20is%20invalid%2C%20it%20points%20out%20of%20the%20filesystem%20root%0A%0ADebug%20info%3A%0A-%20Execution%20of%20get_all_written_entrypoints_with_issues_operation%20failed%0A-%20Execution%20of%20EntrypointsOperation%3A%3Anew%20failed%0A-%20Execution%20of%20all_entrypoints_write_to_disk_operation%20failed%0A-%20Execution%20of%20output_assets_operation%20failed%0A-%20Execution%20of%20Project%3A%3Aget_all_endpoint_groups_with_app_route_filter%20failed%0A-%20Execution%20of%20Project%3A%3Aentrypoints_with_app_route_filter%20failed%0A-%20Execution%20of%20AppProject%3A%3Aroutes_with_filter%20failed%0A-%20Execution%20of%20directory_tree_to_entrypoints_internal%20failed%0A-%20Execution%20of%20directory_tree_to_loader_tree%20failed%0A-%20Execution%20of%20try_get_next_package%20failed%0A-%20Execution%20of%20resolve%20failed%0A-%20Execution%20of%20resolve_internal%20failed%0A-%20Execution%20of%20find_package%20failed%0A-%20Symlink%20%5Bproject%5D%2Fnode_modules%20is%20invalid%2C%20it%20points%20out%20of%20the%20filesystem%20root%0A%60%60%60&labels=Turbopack,Turbopack%20Panic%20Backtrace
+-----
+
+
+> Build error occurred
+Error [TurbopackInternalError]: Symlink [project]/node_modules is invalid, it points out of the filesystem root
+
+Debug info:
+- Execution of get_all_written_entrypoints_with_issues_operation failed
+- Execution of EntrypointsOperation::new failed
+- Execution of all_entrypoints_write_to_disk_operation failed
+- Execution of output_assets_operation failed
+- Execution of Project::get_all_endpoint_groups_with_app_route_filter failed
+- Execution of Project::entrypoints_with_app_route_filter failed
+- Execution of AppProject::routes_with_filter failed
+- Execution of directory_tree_to_entrypoints_internal failed
+- Execution of directory_tree_to_loader_tree failed
+- Execution of try_get_next_package failed
+- Execution of resolve failed
+- Execution of resolve_internal failed
+- Execution of find_package failed
+- Symlink [project]/node_modules is invalid, it points out of the filesystem root
+    at ignore-listed frames {
+  type: 'TurbopackInternalError',
+  location: undefined
+}

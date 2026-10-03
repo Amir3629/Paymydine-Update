@@ -1,0 +1,9 @@
+Cache-Control: no-cache, private
+Date: Sat, 12 Sep 2026 19:28:45 GMT
+Content-Type: application/json
+Vary: Origin
+Set-Cookie: paymydine_session=eyJpdiI6Ik01emdmRjF0ZXJCNzFnZUF1WkZkQnc9PSIsInZhbHVlIjoiSjlHY0hIOGV3T1VIeEhHb2tWM0t3UVduc21EUFB3RWptYW4reHB5VzRzZFg1UVk4NGhIaXhYcC9UVVNHR1haM2dOTEJNWFhQcXJNQjNyTUZRZG45S1dkUG1uQjdQV2F5c2ZrS25ENStNV09BblhkRlUxU200TWNvYXFIdFlSa0oiLCJtYWMiOiIyMDk4ZDU1MDdhMWRiOGY3YTBjOTdmYWMwOWZiZmZkNDliNjk5ZmE1MmM0M2Q4Y2M5MTc1NDUzMzUyYzgzNDBlIiwidGFnIjoiIn0%3D; expires=Sat, 12-Sep-2026 21:28:45 GMT; Max-Age=7200; path=/; domain=.paymydine.com; secure; httponly; samesite=lax
+
+
+
+[{"code":"cod","name":"Cash On Delivery","provider_code":null,"priority":1},{"code":"card","name":"Card \/ Wallet","provider_code":"sumup","priority":10}]

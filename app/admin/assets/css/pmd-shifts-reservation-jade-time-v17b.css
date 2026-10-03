@@ -1,0 +1,224 @@
+/* PMD_SHIFTS_RESERVATION_JADE_TIME_V17B */
+
+/*
+ * Shifts Start/End use the same visual interaction model as the canonical
+ * Reservation Composer Jade wheel: one continuous white wheel, a fixed
+ * center highlight, hidden scrollbars and soft top/bottom fades.
+ */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-jade-field-v17b {
+  position:relative!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-jade-native-time-v17b {
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  min-height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  clip-path:inset(50%)!important;
+  border:0!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221 {
+  position:relative!important;
+  width:100%!important;
+  height:210px!important;
+  display:grid!important;
+  grid-template-columns:minmax(80px,1fr) 26px minmax(80px,1fr) minmax(82px,.9fr)!important;
+  align-items:stretch!important;
+  overflow:hidden!important;
+  border:1px solid #d7e4e0!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:0 8px 24px rgba(7,60,53,.05)!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221::before,
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221::after {
+  content:''!important;
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  z-index:4!important;
+  height:62px!important;
+  pointer-events:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221::before {
+  top:0!important;
+  background:linear-gradient(180deg,#fff 8%,rgba(255,255,255,0))!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221::after {
+  bottom:0!important;
+  background:linear-gradient(0deg,#fff 8%,rgba(255,255,255,0))!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__highlight {
+  position:absolute!important;
+  top:50%!important;
+  left:13px!important;
+  right:13px!important;
+  z-index:1!important;
+  height:48px!important;
+  transform:translateY(-50%)!important;
+  border:1px solid rgba(7,60,53,.10)!important;
+  border-radius:12px!important;
+  background:linear-gradient(90deg,rgba(7,60,53,.045),rgba(7,60,53,.085),rgba(7,60,53,.045))!important;
+  pointer-events:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column {
+  position:relative!important;
+  z-index:2!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding:79px 0!important;
+  scroll-snap-type:y mandatory!important;
+  scrollbar-width:none!important;
+  overscroll-behavior:contain!important;
+  background:transparent!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column::-webkit-scrollbar {
+  display:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column.is-minute,
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__column.is-period {
+  border-left:1px solid rgba(7,60,53,.07)!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__item {
+  width:100%!important;
+  height:48px!important;
+  min-height:48px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0 8px!important;
+  margin:0!important;
+  scroll-snap-align:center!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#87928f!important;
+  font-size:18px!important;
+  font-weight:540!important;
+  opacity:.68!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__item.is-selected {
+  color:#073c35!important;
+  font-size:21px!important;
+  font-weight:780!important;
+  opacity:1!important;
+  transform:scale(1.04)!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221__separator {
+  position:relative!important;
+  z-index:3!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  color:#073c35!important;
+  font-size:22px!important;
+  font-weight:800!important;
+  pointer-events:none!important;
+}
+
+/* Keep the existing V17 German break rule UI, but make it visually quieter. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17b {
+  margin-top:8px!important;
+  padding:12px!important;
+  border:1px solid #dbe7e3!important;
+  border-radius:16px!important;
+  background:#fbfdfc!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17b__meta {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  margin-bottom:9px!important;
+  color:#617873!important;
+  font-size:11px!important;
+  font-weight:700!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17b__minimum {
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:26px!important;
+  padding:0 9px!important;
+  border-radius:999px!important;
+  background:#eaf7f3!important;
+  color:#076e59!important;
+  font-weight:800!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-panel-v17b__buttons {
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:7px!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17b {
+  min-height:36px!important;
+  padding:0 13px!important;
+  border:1px solid #ccdfe7!important;
+  border-radius:999px!important;
+  background:#fff!important;
+  color:#24485a!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17b.is-selected {
+  border-color:#0c8369!important;
+  background:#e9f8f3!important;
+  color:#076c58!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-choice-v17b:disabled {
+  opacity:.38!important;
+  cursor:not-allowed!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17b {
+  margin-top:9px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17b[hidden] {
+  display:none!important;
+}
+
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-break-custom-v17b input {
+  width:110px!important;
+}
+
+/* V17 summary/list-box UI must never survive a stale cached DOM/style mix. */
+body.pmd-shifts-page #pmd-shifts .pmd-shifts-inline-time-v17 {
+  display:none!important;
+}
+
+@media(max-width:900px) {
+  body.pmd-shifts-page #pmd-shifts .pmd-jade-wheel-v221 {
+    height:210px!important;
+    grid-template-columns:minmax(62px,1fr) 18px minmax(62px,1fr) minmax(68px,.85fr)!important;
+  }
+}

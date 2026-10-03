@@ -1,0 +1,254 @@
+/* PayMyDine Waiter Standard POS V2.1 — complete operations layer */
+:root{
+  --v21-ready:#0b7f49;
+  --v21-attention:#c4412e;
+  --v21-kitchen:#b56700;
+  --v21-open:#1769aa;
+  --v21-served:#596773;
+  --v21-free:#16894a;
+  --v21-payment:#a7192a;
+}
+
+/* ---------- Table launcher: service first, payment second ---------- */
+.pmd-v2-table-key.pmd-v21-table-key{
+  min-height:162px;
+  padding:10px;
+  border-top-width:7px;
+}
+.pmd-v2-table-key.pmd-v21-table-key.is-ready{border-top-color:var(--v21-ready)}
+.pmd-v2-table-key.pmd-v21-table-key.is-attention{border-top-color:var(--v21-attention)}
+.pmd-v2-table-key.pmd-v21-table-key.is-kitchen{border-top-color:var(--v21-kitchen)}
+.pmd-v2-table-key.pmd-v21-table-key.is-open{border-top-color:var(--v21-open)}
+.pmd-v2-table-key.pmd-v21-table-key.is-served{border-top-color:var(--v21-served)}
+.pmd-v2-table-key.pmd-v21-table-key.is-free{border-top-color:var(--v21-free)}
+.pmd-v21-table-key.is-ready>.pmd-v2-table-state{color:var(--v21-ready)}
+.pmd-v21-table-key.is-attention>.pmd-v2-table-state{color:var(--v21-attention)}
+.pmd-v21-table-key.is-kitchen>.pmd-v2-table-state{color:var(--v21-kitchen)}
+.pmd-v21-table-key.is-open>.pmd-v2-table-state{color:var(--v21-open)}
+.pmd-v21-table-key.is-served>.pmd-v2-table-state{color:var(--v21-served)}
+.pmd-v21-table-key.is-free>.pmd-v2-table-state{color:var(--v21-free)}
+.pmd-v21-payment-meta{
+  order:8;
+  align-self:flex-start;
+  margin-top:6px;
+  padding:3px 5px;
+  border:1px solid #e4b5bc;
+  border-radius:2px;
+  background:#fff0f2;
+  color:var(--v21-payment);
+  font-size:9px;
+  font-weight:1000;
+  letter-spacing:.035em;
+}
+.pmd-v21-age-meta{
+  position:absolute;
+  right:8px;
+  bottom:8px;
+  max-width:92px;
+  overflow:hidden;
+  color:#5e6974;
+  font-size:8px;
+  font-weight:900;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.pmd-v21-table-key .pmd-v2-table-info{padding-right:84px}
+.pmd-v21-corner{
+  min-width:30px;
+  max-width:54px;
+  height:28px;
+  padding:0 6px;
+  border-radius:2px;
+  font-size:9px;
+  letter-spacing:.02em;
+}
+.pmd-v21-corner.is-ready{background:var(--v21-ready)}
+.pmd-v21-corner.is-attention{background:var(--v21-attention)}
+.pmd-v21-corner.is-kitchen{background:var(--v21-kitchen)}
+.pmd-v21-corner.is-open{background:var(--v21-open)}
+
+/* ---------- Product matrix: calm white keys, category accent ---------- */
+.pmd-v2-pos-host .pmd-pos-product.pmd-v21-product-key,
+.pmd-v2-pos-host .pmd-pos-product.pmd-v21-product-key:nth-child(n){
+  position:relative;
+  min-height:108px;
+  padding:9px;
+  border:1px solid #939da6;
+  border-left:6px solid var(--pmd-v21-product-accent,#596f82);
+  border-radius:3px;
+  background:#fff;
+  color:#101419;
+  transition:background .08s ease,transform .08s ease;
+}
+.pmd-v2-pos-host .pmd-pos-product.pmd-v21-product-key:hover{background:#f6f8f9}
+.pmd-v2-pos-host .pmd-pos-product.pmd-v21-product-key:active{
+  background:#e8edf1;
+  transform:translateY(1px);
+}
+.pmd-v2-pos-host .pmd-v21-product-key .pmd-pos-product-name{
+  font-size:13px;
+  line-height:1.18;
+}
+.pmd-v2-pos-host .pmd-v21-product-key .pmd-pos-price{
+  color:#b65b00;
+  font-size:15px;
+}
+.pmd-v2-pos-host .pmd-v21-product-key .pmd-pos-plus{
+  width:auto;
+  min-width:34px;
+  height:23px;
+  padding:0 6px;
+  border-radius:2px;
+  background:#1c252d;
+  font-size:8px;
+  font-weight:1000;
+  letter-spacing:.04em;
+}
+.pmd-v2-pos-host .pmd-pos-category.pmd-v21-virtual-category{
+  border-color:#5f6b75;
+  background:#dce4e9;
+  color:#20282f;
+}
+.pmd-v2-pos-host .pmd-pos-category.pmd-v21-virtual-category.is-active{
+  background:#11151a;
+  color:#fff;
+}
+
+/* ---------- Guests: actual covers, capacity as helper ---------- */
+.pmd-v2-pos-host .pmd-pos-guest-row{position:relative;padding-bottom:20px}
+.pmd-v2-pos-host .pmd-v21-capacity{
+  position:absolute;
+  left:6px;
+  bottom:4px;
+  color:#727d88;
+  font-size:7px;
+  font-weight:950;
+  letter-spacing:.05em;
+}
+
+/* ---------- Already-sent item status ---------- */
+.pmd-v2-pos-host .pmd-pos-sent-item{
+  position:relative;
+  padding-right:74px;
+}
+.pmd-v21-item-status{
+  position:absolute;
+  top:6px;
+  right:6px;
+  min-width:56px;
+  padding:3px 5px;
+  border-radius:2px;
+  background:#68747f;
+  color:#fff;
+  font-size:7px;
+  font-weight:1000;
+  text-align:center;
+  letter-spacing:.03em;
+}
+.pmd-v21-item-status.is-kitchen{background:var(--v21-kitchen)}
+.pmd-v21-item-status.is-ready{background:var(--v21-ready)}
+.pmd-v21-item-status.is-served{background:var(--v21-served)}
+.pmd-v21-item-status.is-cancelled{background:#aa2535}
+
+/* ---------- Primary actions: Hold, Send, Pay/Split ---------- */
+.pmd-v2-pos-host .pmd-pos-actions{
+  grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);
+}
+.pmd-v2-pos-host .pmd-pos-actions .pmd-v21-pay-primary{
+  grid-column:1/-1;
+  min-height:52px;
+  border:0;
+  border-radius:3px;
+  background:#d99a00;
+  color:#211600;
+  font-size:12px;
+  font-weight:1000;
+}
+.pmd-v2-pos-host .pmd-pos-actions .pmd-v21-pay-primary:disabled{
+  background:#d9dde0;
+  color:#8a939b;
+}
+.pmd-v2-pos-host .pmd-pos-secondary-actions[hidden]{display:none!important}
+
+/* ---------- More menu for non-primary actions ---------- */
+.pmd-v21-more-wrap{
+  position:relative;
+  margin-top:5px;
+}
+.pmd-v21-more-button{
+  width:100%;
+  min-height:38px;
+  border:1px solid #8e99a3;
+  border-radius:3px;
+  background:#edf0f2;
+  color:#28323b;
+  font-size:9px;
+  font-weight:1000;
+}
+.pmd-v21-more-menu{
+  position:absolute;
+  right:0;
+  bottom:44px;
+  z-index:80;
+  width:min(270px,100%);
+  padding:5px;
+  display:grid;
+  gap:4px;
+  border:1px solid #78838d;
+  border-radius:3px;
+  background:#fff;
+  box-shadow:0 10px 28px rgba(16,20,25,.24);
+}
+.pmd-v21-more-menu>button,
+.pmd-v21-more-menu .pmd-pos-view-toggle button{
+  min-height:42px;
+  border:1px solid #9aa5ae;
+  border-radius:2px;
+  background:#f3f5f6;
+  color:#20282f;
+  font-size:9px;
+  font-weight:950;
+}
+.pmd-v21-more-menu .pmd-pos-view-toggle{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:4px;
+}
+.pmd-v21-more-menu .pmd-pos-view-toggle button{width:auto;height:42px}
+
+/* ---------- Connectivity and safer submission ---------- */
+.pmd-v21-connectivity[data-v21-online="0"]{
+  color:#ffbd58!important;
+}
+.pmd-v2-pos-host .pmd-pos-action:disabled,
+.pmd-v2-pos-host .pmd-v21-pay-primary:disabled{
+  cursor:not-allowed;
+  opacity:.58;
+}
+
+/* ---------- Payment workspace: stronger operational hierarchy ---------- */
+.pmd-v2-pos-host .pmd-pos-payment-dialog{border-radius:2px}
+.pmd-v2-pos-host .pmd-pos-split-tabs button,
+.pmd-v2-pos-host .pmd-pos-method,
+.pmd-v2-pos-host .pmd-pos-tip-buttons button{border-radius:2px}
+.pmd-v2-pos-host .pmd-pos-pay-button{border-radius:2px;font-size:14px}
+
+@media(max-width:780px){
+  .pmd-v2-table-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .pmd-v2-table-key.pmd-v21-table-key{min-height:150px}
+  .pmd-v21-table-key .pmd-v2-table-info{padding-right:0;padding-bottom:18px}
+  .pmd-v21-age-meta{left:10px;right:auto;bottom:7px;max-width:110px}
+  .pmd-v2-pos-host .pmd-pos-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .pmd-v2-pos-host .pmd-pos-product.pmd-v21-product-key{min-height:112px}
+  .pmd-v2-pos-host .pmd-pos-categories{scroll-snap-type:x proximity}
+  .pmd-v2-pos-host .pmd-pos-category{scroll-snap-align:start}
+  .pmd-v21-more-menu{position:fixed;left:8px;right:8px;bottom:calc(74px + env(safe-area-inset-bottom));width:auto}
+}
+
+@media(max-width:420px){
+  .pmd-v2-table-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pmd-v2-table-key.pmd-v21-table-key{min-height:143px;padding:8px}
+  .pmd-v21-payment-meta{font-size:8px}
+  .pmd-v2-pos-host .pmd-pos-product.pmd-v21-product-key{min-height:106px;padding:8px}
+  .pmd-v2-pos-host .pmd-v21-product-key .pmd-pos-product-name{font-size:12px}
+}

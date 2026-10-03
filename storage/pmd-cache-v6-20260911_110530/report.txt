@@ -1,0 +1,187 @@
+====================================================
+PMD V6 - SAFE TENANT BOOTSTRAP + PAYMENT DISCOVERY CACHE
+READ-ONLY validation. No order/note/waiter/payment writes.
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 11:05:30 UTC 2026
+====================================================
+
+===== PRECHECK =====
+V2_ID=1
+current origin=http://127.0.0.1:8088
+nginx=active
+php8.3-fpm=active
+mariadb=active
+load1=0.35
+MemAvailable=6486MiB
+public-IP self :443=0
+
+===== INSTALL SHADOW CACHE ON 127.0.0.1:8089 =====
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+8089 listener=READY
+
+===== PARITY GATE: 8088 VS 8089 =====
+/api/v1/settings                                                       8088=200/210ms 8089=200/109ms cache=MISS PASS
+/api/v1/restaurant                                                     8088=200/106ms 8089=200/88ms cache=MISS PASS
+/api/v1/categories                                                     8088=200/111ms 8089=200/101ms cache=MISS PASS
+/api/v1/menu                                                           8088=200/162ms 8089=200/158ms cache=MISS PASS
+/api/v1/menu-content-translations                                      8088=200/134ms 8089=200/103ms cache=MISS PASS
+/api/v1/frontend-theme-v2                                              8088=200/115ms 8089=200/112ms cache=MISS PASS
+/api/v1/payments                                                       8088=200/261ms 8089=200/240ms cache=MISS PASS
+/api/v1/payments/worldline/runtime-methods                             8088=200/107ms 8089=200/112ms cache=MISS PASS
+/api/v1/vat-settings                                                   8088=200/119ms 8089=200/104ms cache=MISS PASS
+/api/v1/tip-settings                                                   8088=404/136ms 8089=404/89ms cache=MISS PASS
+/api/v1/table-info?table_id=1&table_no=1&qr_code=ms1VGx2MT             8088=200/86ms 8089=200/108ms cache=BYPASS PASS
+/api/v1/table-order-draft?table_id=1&table_no=1&qr=ms1VGx2MT           8088=200/94ms 8089=200/113ms cache=BYPASS PASS
+/vat-settings                                                          8088=404 8089=404 PASS
+/simple-theme                                                          8088=404 8089=404 PASS
+PARITY GATE: PASS
+
+===== CACHE POLICY PROOF =====
+settings             first=200/MISS second=200/HIT
+payments             first=200/MISS second=200/HIT
+worldline-methods    first=200/MISS second=200/HIT
+table-info          200/BYPASS
+table-order-draft   200/BYPASS
+CACHE POLICY GATE: PASS
+
+===== SWITCH V2 TO 8089 =====
+[PM2] Applying action restartProcessId on app [paymydine-frontend-v2](ids: [ 1 ])
+[PM2] [paymydine-frontend-v2](1) ✓
+┌────┬──────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                     │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ paymydine-frontend-v2    │ default     │ N/A     │ fork    │ 2423838  │ 0s     │ 7    │ online    │ 0%       │ 19.1mb   │ ubuntu   │ disabled │
+│ 0  │ paymydine-landing        │ default     │ N/A     │ fork    │ 2413766  │ 4h     │ 0    │ online    │ 0%       │ 57.8mb   │ ubuntu   │ disabled │
+└────┴──────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/ubuntu/.pm2/dump.pm2
+V2_ID=1
+new origin=http://127.0.0.1:8089
+
+===== REAL SSR FUNCTIONAL GATE =====
+test2.paymydine.com          HTTP=200 time=0.886s bytes=29417 PASS
+mimoza.paymydine.com         HTTP=200 time=0.699s bytes=39376 PASS
+loumi.paymydine.com          HTTP=200 time=0.512s bytes=27101 PASS
+moon.paymydine.com           HTTP=200 time=2.491s bytes=41693 PASS
+tomo.paymydine.com           HTTP=200 time=2.593s bytes=64339 PASS
+SSR FUNCTIONAL GATE: PASS
+public-IP Node self requests=0
+
+===== START RESOURCE MONITOR =====
+
+===== READ-ONLY CAPACITY VALIDATION =====
+V4 reference: MIX c8=6797ms FAIL; QR c16=7335ms FAIL
+V5.1 partial: MIX c8=5338ms PASS; MIX c12 hit 12s timeout
+V6 additionally micro-caches exact /api/v1/payments and Worldline runtime-methods.
+
+--- MIX c=4 EXPLORE ---
+MIX c=4  req=48  bad=0   4xx=0   5xx=0   err=0  p50=587ms p95=2505ms max=4213ms rps=4.26 PASS
+  loumi.paymydine.com          req=10  bad=0  p95=1409ms max=1409ms
+  mimoza.paymydine.com         req=10  bad=0  p95=2505ms max=2505ms
+  moon.paymydine.com           req=9   bad=0  p95=4213ms max=4213ms
+  test2.paymydine.com          req=10  bad=0  p95=1831ms max=1831ms
+  tomo.paymydine.com           req=9   bad=0  p95=2769ms max=2769ms
+--- MIX c=8 CORE ---
+MIX c=8  req=48  bad=0   4xx=0   5xx=0   err=0  p50=1581ms p95=4474ms max=6677ms rps=4.07 PASS
+  loumi.paymydine.com          req=10  bad=0  p95=2785ms max=2785ms
+  mimoza.paymydine.com         req=10  bad=0  p95=5048ms max=5048ms
+  moon.paymydine.com           req=9   bad=0  p95=3256ms max=3256ms
+  test2.paymydine.com          req=10  bad=0  p95=3271ms max=3271ms
+  tomo.paymydine.com           req=9   bad=0  p95=6677ms max=6677ms
+--- MIX c=12 CORE ---
+MIX c=12 req=48  bad=0   4xx=0   5xx=0   err=0  p50=4872ms p95=10484ms max=11215ms rps=2.17 LIMIT
+  loumi.paymydine.com          req=10  bad=0  p95=6399ms max=6399ms
+  mimoza.paymydine.com         req=10  bad=0  p95=11215ms max=11215ms
+  moon.paymydine.com           req=9   bad=0  p95=8234ms max=8234ms
+  test2.paymydine.com          req=10  bad=0  p95=6826ms max=6826ms
+  tomo.paymydine.com           req=9   bad=0  p95=10484ms max=10484ms
+--- QR c=8 EXPLORE ---
+QR  c=8  req=48  bad=0   4xx=0   5xx=0   err=0  p50=891ms p95=3235ms max=3741ms rps=6.19 PASS
+  test2.paymydine.com          req=48  bad=0  p95=3235ms max=3741ms
+--- QR c=12 CORE ---
+QR  c=12 req=48  bad=0   4xx=0   5xx=0   err=0  p50=1310ms p95=4604ms max=5589ms rps=5.49 PASS
+  test2.paymydine.com          req=48  bad=0  p95=4604ms max=5589ms
+--- QR c=16 CORE ---
+QR  c=16 req=64  bad=0   4xx=0   5xx=0   err=0  p50=2927ms p95=6986ms max=7922ms rps=4.33 LIMIT
+  test2.paymydine.com          req=64  bad=0  p95=6986ms max=7922ms
+--- MIX c=16 EXPLORE ---
+MIX c=16 req=64  bad=11  4xx=0   5xx=0   err=11 p50=8869ms p95=12033ms max=12082ms rps=1.68 LIMIT
+  loumi.paymydine.com          req=13  bad=0  p95=10268ms max=10268ms
+  mimoza.paymydine.com         req=13  bad=11 p95=12082ms max=12082ms
+  moon.paymydine.com           req=13  bad=0  p95=9861ms max=9861ms
+  test2.paymydine.com          req=13  bad=0  p95=9612ms max=9612ms
+  tomo.paymydine.com           req=12  bad=0  p95=10305ms max=10305ms
+  ERROR host=mimoza.paymydine.com after=12.082s TimeoutError('The read operation timed out')
+  ERROR host=mimoza.paymydine.com after=12.078s TimeoutError('The read operation timed out')
+  ERROR host=mimoza.paymydine.com after=12.033s TimeoutError('The read operation timed out')
+MIX: exploration auto-stop at c=16
+--- QR c=20 EXPLORE ---
+QR  c=20 req=80  bad=1   4xx=0   5xx=1   err=0  p50=4480ms p95=8546ms max=8741ms rps=3.92 LIMIT
+  test2.paymydine.com          req=80  bad=1  p95=8546ms max=8741ms
+QR: exploration auto-stop at c=20
+CAPACITY CORE GATES: PASS
+
+===== COOLDOWN =====
+
+===== CACHE EFFECT =====
+cache total=5169
+cache HIT=2620
+cache MISS=60
+cache EXPIRED=1890
+cache BYPASS=0
+cache hit_ratio=50.7%
+
+===== CACHE PATH COUNTS =====
+457 /api/v1/vat-settings
+457 /api/v1/tip-settings
+457 /api/v1/settings
+457 /api/v1/restaurant
+457 /api/v1/payments/worldline/runtime-methods
+457 /api/v1/payments
+457 /api/v1/menu-content-translations
+457 /api/v1/menu
+457 /api/v1/frontend-theme-v2
+457 /api/v1/categories
+284 /api/v1/table-order-draft
+284 /api/v1/table-info
+17 /vat-settings
+14 /simple-theme
+
+===== PUBLIC TENANT-UPSTREAM NODE PATHS =====
+284 /api/v1/table-order-draft
+284 /api/v1/table-info
+219 /api/v1/tip-settings
+198 /api/v1/payments
+196 /api/v1/categories
+195 /api/v1/vat-settings
+194 /api/v1/restaurant
+192 /api/v1/payments/worldline/runtime-methods
+191 /api/v1/frontend-theme-v2
+189 /api/v1/menu
+188 /api/v1/settings
+188 /api/v1/menu-content-translations
+
+public-IP Node self requests=0
+public 5xx=1
+8089 cache-layer 5xx=0
+
+====================================================
+PMD CACHE V6 - SAFE ROLLBACK
+====================================================
+Restoring V2 origin to proven loopback http://127.0.0.1:8088
+[PM2] Applying action restartProcessId on app [paymydine-frontend-v2](ids: [ 1 ])
+[PM2] [paymydine-frontend-v2](1) ✓
+┌────┬──────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                     │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ paymydine-frontend-v2    │ default     │ N/A     │ fork    │ 2426215  │ 0s     │ 8    │ online    │ 0%       │ 19.1mb   │ ubuntu   │ disabled │
+│ 0  │ paymydine-landing        │ default     │ N/A     │ fork    │ 2413766  │ 4h     │ 0    │ online    │ 0%       │ 58.0mb   │ ubuntu   │ disabled │
+└────┴──────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/ubuntu/.pm2/dump.pm2
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+ROLLBACK COMPLETE
+backup=/var/www/paymydine/storage/pmd-cache-v6-20260911_110530
+report=/var/www/paymydine/storage/pmd-cache-v6-20260911_110530/report.txt

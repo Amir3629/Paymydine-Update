@@ -1,0 +1,10 @@
+PMD Frontend V2 media self-loop hotfix
+UTC stamp: 20260910_000843
+Live: /var/www/paymydine/frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+RC: /var/www/paymydine/frontend-v2/PayMyDine-V2-RC-media-loop-fix-20260909_235755
+Service: paymydine-frontend-v2
+Changed source files:
+app/storage/[...path]/route.ts
+app/uploads/[...path]/route.ts
+app/assets/media/[...path]/route.ts
+app/pmd-media/[...path]/route.ts

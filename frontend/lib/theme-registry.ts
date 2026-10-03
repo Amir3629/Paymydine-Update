@@ -1,4 +1,4 @@
-export type ThemeCanonicalId = "gold-luxury" | "organic_botanical_paper" | "modern_green" | "kazen_japanese"
+export type ThemeCanonicalId = "gold-luxury" | "organic_botanical_paper" | "modern_green" | "kazen_japanese" | "velvet_terracotta"
 
 export type ThemeAliasId =
   | ThemeCanonicalId
@@ -6,10 +6,11 @@ export type ThemeAliasId =
   | "gold"
   | "modern-green"
   | "kazen-japanese"
+  | "velvet-terracotta"
 
 export type ThemeValetMode = "standalone-page" | "inline-card" | "hidden"
 export type ThemeMenuEntryMode = "dropdown" | "valet-button" | "none"
-export type ThemeCheckoutLayoutId = "gold-luxury" | "organic-botanical-paper" | "modern-green" | "kazen-japanese"
+export type ThemeCheckoutLayoutId = "gold-luxury" | "organic-botanical-paper" | "modern-green" | "kazen-japanese" | "velvet-terracotta"
 
 export interface ThemeConfig {
   canonicalId: ThemeCanonicalId
@@ -76,6 +77,20 @@ const kazenJapaneseThemeConfig = {
   cssScopeRoot: 'html[data-theme="kazen_japanese"]',
 } as const satisfies ThemeConfig
 
+const velvetTerracottaThemeConfig = {
+  canonicalId: "velvet_terracotta",
+  aliases: ["velvet_terracotta", "velvet-terracotta"],
+  backendAdminIds: ["velvet_terracotta", "velvet-terracotta", "velvet"],
+  displayName: "Velvet Terracotta",
+  valetMode: "inline-card",
+  menuEntryMode: "valet-button",
+  checkoutLayoutId: "velvet-terracotta",
+  usesIframePrototype: true,
+  usesNativeMainFrontendUi: false,
+  cssScopeRoot: 'html[data-theme="velvet_terracotta"]',
+} as const satisfies ThemeConfig
+
+
 export const themeRegistry = {
   gold_luxury: goldLuxuryThemeConfig,
   "gold-luxury": goldLuxuryThemeConfig,
@@ -84,7 +99,9 @@ export const themeRegistry = {
   "modern-green": modernGreenThemeConfig,
   kazen_japanese: kazenJapaneseThemeConfig,
   "kazen-japanese": kazenJapaneseThemeConfig,
-} as const satisfies Record<"gold_luxury" | "gold-luxury" | "organic_botanical_paper" | "modern_green" | "modern-green" | "kazen_japanese" | "kazen-japanese", ThemeConfig>
+  velvet_terracotta: velvetTerracottaThemeConfig,
+  "velvet-terracotta": velvetTerracottaThemeConfig,
+} as const satisfies Record<string, ThemeConfig>
 
 const themeAliasMap = new Map<string, ThemeConfig>()
 
@@ -122,4 +139,8 @@ export function isModernGreenTheme(input: string | null | undefined): boolean {
 
 export function isKazenJapaneseTheme(input: string | null | undefined): boolean {
   return getThemeConfig(input).canonicalId === "kazen_japanese"
+}
+
+export function isVelvetTerracottaTheme(input: string | null | undefined): boolean {
+  return getThemeConfig(input).canonicalId === "velvet_terracotta"
 }

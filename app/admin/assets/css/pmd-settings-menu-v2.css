@@ -1,0 +1,242 @@
+/* ==========================================================
+   PMD MENU & CHECKOUT V4
+   ZERO CREAM SHELL + DIRECT SETTINGS + ZERO CARD ENTRANCE MOTION
+   ========================================================== */
+
+body:has(#pmd-menu-checkout),
+body:has(#pmd-menu-checkout) .page,
+body:has(#pmd-menu-checkout) .page-wrapper,
+body:has(#pmd-menu-checkout) .page-content,
+body:has(#pmd-menu-checkout) .content-wrapper,
+body:has(#pmd-menu-checkout) .main-content,
+body:has(#pmd-menu-checkout) .nk-wrap,
+body:has(#pmd-menu-checkout) .nk-content,
+body:has(#pmd-menu-checkout) .nk-content-inner,
+body:has(#pmd-menu-checkout) .nk-content-body,
+body:has(#pmd-menu-checkout) .nk-content-wrap,
+body:has(#pmd-menu-checkout) .container,
+body:has(#pmd-menu-checkout) .container-fluid,
+body:has(#pmd-menu-checkout) main {
+  background: #f8fbfd !important;
+}
+
+body:has(#pmd-menu-checkout) .page-wrapper,
+body:has(#pmd-menu-checkout) .page-content,
+body:has(#pmd-menu-checkout) .content-wrapper,
+body:has(#pmd-menu-checkout) .main-content,
+body:has(#pmd-menu-checkout) .nk-wrap,
+body:has(#pmd-menu-checkout) .nk-content,
+body:has(#pmd-menu-checkout) .nk-content-inner,
+body:has(#pmd-menu-checkout) .nk-content-body,
+body:has(#pmd-menu-checkout) .nk-content-wrap,
+body:has(#pmd-menu-checkout) .container,
+body:has(#pmd-menu-checkout) .container-fluid {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: none !important;
+}
+
+body:has(#pmd-menu-checkout) .container-fluid > .row,
+body:has(#pmd-menu-checkout) .container > .row,
+body:has(#pmd-menu-checkout) .nk-content-body > .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body:has(#pmd-menu-checkout) .container-fluid > .row > [class*="col-"],
+body:has(#pmd-menu-checkout) .container > .row > [class*="col-"],
+body:has(#pmd-menu-checkout) .nk-content-body > .row > [class*="col-"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+body:has(#pmd-menu-checkout) #pmd-menu-checkout {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  background: #f8fbfd !important;
+}
+
+body:has(#pmd-menu-checkout) #pmd-menu-header,
+body:has(#pmd-menu-checkout) #pmd-menu-checkout-form {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body:has(#pmd-menu-checkout) #pmd-menu-checkout::before,
+body:has(#pmd-menu-checkout) #pmd-menu-checkout::after,
+body:has(#pmd-menu-checkout) .nk-content::before,
+body:has(#pmd-menu-checkout) .nk-content::after,
+body:has(#pmd-menu-checkout) .nk-content-body::before,
+body:has(#pmd-menu-checkout) .nk-content-body::after {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body:has(#pmd-menu-checkout) .pmd-menu-card,
+body:has(#pmd-menu-checkout) .pmd-menu-card__body,
+body:has(#pmd-menu-checkout) .pmd-menu-setting-row,
+body:has(#pmd-menu-checkout) .pmd-menu-setting-panel {
+  background-color: #fff !important;
+}
+
+body:has(#pmd-menu-checkout) .pmd-menu-card__header {
+  background: linear-gradient(90deg, #fff4f6 0, #ffffff 26%, #ffffff 100%) !important;
+}
+
+/* ==========================================================
+   PMD_MENU_CHECKOUT_ZERO_ENTRANCE_MOTION_V4
+
+   Structural content must paint in its final position immediately.
+   This intentionally does NOT disable the Save button animation or
+   switch interaction animation. It only neutralizes entrance/reveal
+   motion on the page/card hierarchy, including animation rules that
+   may come from global admin styles.
+   ========================================================== */
+body:has(#pmd-menu-checkout) #pmd-menu-checkout,
+body:has(#pmd-menu-checkout) #pmd-menu-checkout-form,
+body:has(#pmd-menu-checkout) .pmd-menu-section,
+body:has(#pmd-menu-checkout) .pmd-menu-card,
+body:has(#pmd-menu-checkout) .pmd-menu-card__header,
+body:has(#pmd-menu-checkout) .pmd-menu-card__body,
+body:has(#pmd-menu-checkout) .pmd-menu-settings-grid,
+body:has(#pmd-menu-checkout) .pmd-menu-setting-panel,
+body:has(#pmd-menu-checkout) .pmd-menu-setting-row,
+body:has(#pmd-menu-checkout) .pmd-menu-field-grid,
+body:has(#pmd-menu-checkout) .pmd-menu-field {
+  animation: none !important;
+  animation-name: none !important;
+  animation-delay: 0s !important;
+  animation-duration: 0s !important;
+  transition: none !important;
+  transition-delay: 0s !important;
+  transform: none !important;
+  translate: none !important;
+  scale: 1 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body:has(#pmd-menu-checkout) .pmd-menu-section,
+body:has(#pmd-menu-checkout) .pmd-menu-card,
+body:has(#pmd-menu-checkout) .pmd-menu-setting-panel {
+  will-change: auto !important;
+}
+
+body:has(#pmd-menu-checkout) .pmd-menu-card__body--settings {
+  padding: 6px 16px !important;
+}
+
+body:has(#pmd-menu-checkout) .pmd-menu-setting-row {
+  min-height: 76px !important;
+  padding: 14px 4px !important;
+}
+
+body:has(#pmd-menu-checkout) .pmd-menu-setting-row:last-child {
+  border-bottom: 0 !important;
+}
+
+.pmd-menu-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px !important;
+}
+
+.pmd-menu-setting-panel {
+  min-width: 0;
+  padding: 4px 14px 14px;
+  border: 1px solid #e3ece9;
+  border-radius: 14px;
+}
+
+.pmd-menu-setting-panel__title {
+  margin: 0 -2px;
+  padding: 14px 2px 9px;
+  color: #17231f;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 780;
+}
+
+.pmd-menu-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pmd-menu-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 12px 0 0;
+}
+
+.pmd-menu-field > span {
+  color: #29413b;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 760;
+}
+
+.pmd-menu-field input,
+.pmd-menu-field select {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid #d8e4e8;
+  border-radius: 11px;
+  outline: 0;
+  background: #fff;
+  box-shadow: 0 2px 7px rgba(17, 40, 35, .035);
+  color: #17231f;
+  font: inherit;
+  font-size: 13px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.pmd-menu-field select {
+  cursor: pointer;
+}
+
+.pmd-menu-field input:focus,
+.pmd-menu-field select:focus {
+  border-color: #e78ca1;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, .08);
+}
+
+@media (max-width: 980px) {
+  .pmd-menu-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  body:has(#pmd-menu-checkout) #pmd-menu-checkout {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  body:has(#pmd-menu-checkout) #pmd-menu-checkout {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .pmd-menu-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-menu-setting-panel {
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+}

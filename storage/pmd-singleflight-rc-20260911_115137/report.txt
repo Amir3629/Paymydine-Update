@@ -1,0 +1,45 @@
+====================================================
+PMD V8.1 SINGLE-FLIGHT RC
+NO LIVE SOURCE CHANGE / NO LIVE .next BUILD / NO DB WRITES
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 11:51:37 UTC 2026
+====================================================
+
+===== PRODUCTION SAFETY PRECHECK =====
+live V2 id=1
+live origin=http://127.0.0.1:8088
+pm.max_children=5
+nginx=active
+php8.3-fpm=active
+mariadb=active
+load1=0.19
+PHP CPU=8.3%
+MemAvailable=6446MiB
+disk free=41424MiB
+
+===== CREATE ISOLATED RC =====
+RC=/home/ubuntu/PayMyDine-V2-RC-singleflight-20260911_115137
+
+===== PATCH RC ONLY: EPHEMERAL SINGLE-FLIGHT =====
+RC patch: PASS
+single-flight stable paths: 12
+table-info and table-order-draft remain ordinary no-store fetches
+
+===== RC TYPECHECK + SOURCE AUDIT + BUILD =====
+
+> paymydine-frontend-v2-revolution@1.1.1-staging.20260815-integrated-r2 typecheck
+> tsc --noEmit
+
+
+> paymydine-frontend-v2-revolution@1.1.1-staging.20260815-integrated-r2 source:audit
+> node scripts/source-safety-audit.mjs
+
+PMD V2 SOURCE SAFETY AUDIT: FAILED
+- app/payment/worldline-embedded-return/page.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/FoodGalleryRuntimeEnhancer.tsx: MutationObserver is not allowed
+- src/runtime/components/ThemeFallbackStyleBridge.tsx: MutationObserver is not allowed
+- src/runtime/components/ThemeFallbackStyleBridge.tsx: runtime style.setProperty count 3 exceeds baseline 0
+- src/runtime/components/WorldlineDirectMethodButton.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/WorldlineEmbeddedCheckoutBridge.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/WorldlineSingleActionUX.tsx: MutationObserver is not allowed
+- src/runtime/components/WorldlineSingleActionUX.tsx: runtime style.setProperty count 11 exceeds baseline 0

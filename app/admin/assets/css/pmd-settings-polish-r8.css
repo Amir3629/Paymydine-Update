@@ -1,0 +1,275 @@
+/* PMD_SETTINGS_POLISH_R8
+ * Final visual authority for the Settings landing tile and Restaurant logo.
+ *
+ * - one PayMyDine logo authority only
+ * - black -> deep PayMyDine green luxury surface
+ * - larger Restaurant preview moved inward from the far-right edge
+ */
+
+/* =========================================================
+   PAYMYDINE TILE — ONE LOGO ONLY
+   R3 still owns a ::after favicon. Kill it completely before
+   using the canonical pmd-brand-mark.svg background.
+   ========================================================= */
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__icon::before,
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__icon::after {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  background: none !important;
+  background-image: none !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__icon > * {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card {
+  grid-template-columns: 62px minmax(0, 1fr) !important;
+  gap: 17px !important;
+  min-height: 112px !important;
+  padding: 19px 22px !important;
+  border: 1px solid rgba(106, 219, 158, .16) !important;
+  background:
+    linear-gradient(
+      112deg,
+      #030605 0%,
+      #06100e 28%,
+      #081b17 58%,
+      #0b2f2a 100%
+    ) !important;
+  color: #fff !important;
+  box-shadow:
+    0 18px 46px rgba(2, 13, 11, .28),
+    0 8px 24px rgba(8, 58, 47, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .035) !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card:hover,
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card:focus-visible {
+  background:
+    linear-gradient(
+      112deg,
+      #020403 0%,
+      #07120f 28%,
+      #09231e 60%,
+      #0d3a32 100%
+    ) !important;
+  border-color: rgba(129, 234, 176, .30) !important;
+  box-shadow:
+    0 22px 54px rgba(2, 13, 11, .34),
+    0 10px 30px rgba(8, 72, 56, .16),
+    0 0 24px rgba(68, 214, 130, .07) !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__icon {
+  width: 62px !important;
+  min-width: 62px !important;
+  max-width: 62px !important;
+  height: 62px !important;
+  min-height: 62px !important;
+  max-height: 62px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/app/admin/assets/images/pmd-brand-mark.svg') !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 58px 58px !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__description,
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__arrow,
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__badge {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__title-row strong,
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card__title-row strong::after {
+  color: #fff !important;
+  font-size: 18px !important;
+  line-height: 1.15 !important;
+  font-weight: 780 !important;
+  letter-spacing: -.02em !important;
+}
+
+/* =========================================================
+   RESTAURANT LOGO — LARGE RIGHT PANEL, MOVED LEFT
+   ========================================================= */
+@media (min-width: 901px) {
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-card__body {
+    position: relative !important;
+    min-height: 250px !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-grid--2 {
+    display: block !important;
+    position: static !important;
+    min-height: 218px !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-field--wide {
+    display: block !important;
+    width: calc(100% - 340px) !important;
+    min-width: 0 !important;
+    max-width: calc(100% - 340px) !important;
+    margin: 0 0 20px !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-logo-field-r19,
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-logo-uploader-r19,
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-logo-input-r19 {
+    position: static !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-logo-uploader-r19,
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-logo-input-r19 {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue
+  .pmd-profile-logo-input-r19 input[type="file"] {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-logo-help-r19 {
+    display: block !important;
+    margin: 10px 0 0 !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue
+  .pmd-profile-logo-uploader-r19 > .pmd-profile-logo-preview-r19 {
+    position: absolute !important;
+    top: 0 !important;
+    right: 48px !important;
+    left: auto !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    width: 248px !important;
+    min-width: 248px !important;
+    max-width: 248px !important;
+    height: 180px !important;
+    min-height: 180px !important;
+    max-height: 180px !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue
+  .pmd-profile-logo-input-r19 > .pmd-profile-logo-remove-r20 {
+    position: absolute !important;
+    top: 192px !important;
+    right: 48px !important;
+    left: auto !important;
+    bottom: auto !important;
+    inset-inline-start: auto !important;
+    inset-inline-end: 48px !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    width: 248px !important;
+    min-width: 248px !important;
+    max-width: 248px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+    padding: 0 14px !important;
+    transform: none !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-logo-preview-stack-r3 {
+    position: absolute !important;
+    top: 0 !important;
+    right: 48px !important;
+    left: auto !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 180px 42px !important;
+    gap: 12px !important;
+    width: 248px !important;
+    min-width: 248px !important;
+    max-width: 248px !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue
+  .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-preview-r19 {
+    position: static !important;
+    width: 248px !important;
+    min-width: 248px !important;
+    max-width: 248px !important;
+    height: 180px !important;
+    min-height: 180px !important;
+    max-height: 180px !important;
+    margin: 0 !important;
+    padding: 12px !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue
+  .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20 {
+    position: static !important;
+    width: 248px !important;
+    min-width: 248px !important;
+    max-width: 248px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin: 0 !important;
+  }
+
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-logo-preview-r19 img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+  }
+}
+
+@media (max-width: 900px) {
+  html body #pmd-restaurant-profile
+  .pmd-profile-section--blue .pmd-profile-field--wide {
+    width: 100% !important;
+    max-width: none !important;
+  }
+}

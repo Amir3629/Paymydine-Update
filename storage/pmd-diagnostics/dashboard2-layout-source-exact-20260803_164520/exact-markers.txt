@@ -1,0 +1,84 @@
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:397:  var widgetKeys = ['salesOverTime','salesByHour','topItems','categorySales','paymentMethods','channelSplit','liveOperations','recentTransactions','alerts','reviews','tips','calendarEvents'];
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:421:      widget('salesOverTime','Umsatzverlauf','is-wide') + widget('salesByHour','Umsatz nach Stunde','') + widget('topItems','Top-selling items','') + widget('categorySales','Sales by category','') + widget('paymentMethods','Payment methods','') + widget('channelSplit','Order channels','') + widget('liveOperations','Live orders / active tables','is-wide') + widget('recentTransactions','Recent transactions','is-wide') + widget('alerts','Alerts','') + widget('reviews','Latest reviews','') + widget('tips','Tips summary','') + widget('calendarEvents','Upcoming reservations','') + '</div>';
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:863:    var ch=data.channels; put('channelSplit',ch.available?(ch.empty?empty(ch):svgDonut(ch.channels,'channel','revenue',function(r){return r.orders+' · '+money(r.revenue);})):empty(ch));
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:864:    var live=data.live_operations; put('liveOperations',live.available?'<div class="pmd-dashboard2-live-summary"><b>'+esc(live.live_order_count)+'</b><span>live orders</span><b>'+esc(live.tables.occupied)+' / '+esc(live.tables.total)+'</b><span>active tables</span></div>'+list(live.orders,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.channel)+'</span><b>'+esc(r.status)+'</b>'; }):empty(live));
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:865:    var tx=data.recent_transactions; put('recentTransactions',tx.available?(tx.empty?empty(tx):list(tx.transactions,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.method)+' · '+esc(r.timestamp)+'</span><b>'+esc(money(r.amount))+'</b>'; })):empty(tx));
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:869:    var ev=data.calendar_events; put('calendarEvents',ev.available?list(ev.events,function(r){return '<span>'+esc(r.title)+'</span><b>'+esc(r.date)+'</b>'; }):empty(ev));
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:876:  function currentView(){var page=document.getElementById('pmd-reservations2');return page&&page.classList.contains('pmd-r2-hour-layout-v38-active')?'hour':(page&&page.classList.contains('is-calendar-mode')?'calendar':'floor');}
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:882:  function audit(){var root=document.getElementById(ROOT_ID),keys=window.PMDDashboard2KPIDataFinal&&window.PMDDashboard2KPIDataFinal.audit?window.PMDDashboard2KPIDataFinal.audit():{},widgets={};widgetKeys.forEach(function(k){widgets[k]=Boolean(root&&root.querySelector('[data-pmd-analytics-widget="'+k+'"]'));});var unavailable=[],emptyWidgets=[];if(data)Object.keys(data).forEach(function(k){if(data[k]&&data[k].available===false)unavailable.push(k);if(data[k]&&data[k].available===true&&data[k].empty===true)emptyWidgets.push(k);});var active=Boolean(oneRow&&oneRow.floor.classList.contains('is-strip-mode')),style=oneRow?getComputedStyle(oneRow.scroll):null;return {version:VERSION,route:String(location.pathname).replace(/\/+$/,''),kpis:{totalDefinitions:8,visibleCards:document.querySelectorAll('[data-pmd-dashboard2-kpi]').length,selectedKeys:keys.selectedKeys||[],duplicates:new Set(keys.selectedKeys||[]).size!==(keys.selectedKeys||[]).length,endpointRequestCount:keys.requestCount||0},operationalView:{current:currentView(),floorExists:Boolean(document.getElementById('pmd-r2-shared-floor-canvas-v310')),toolbarExists:Boolean(document.getElementById('pmd-dashboard2-floor-toolbar-proxy-v350')),toolbarButtons:(document.getElementById('pmd-dashboard2-floor-toolbar-proxy-v350')||document).querySelectorAll('[data-proxy-action]').length,reservationCardsPresent:Boolean(document.getElementById('pmd-r2-reservation-cards-v320'))},analytics:{rootCount:document.querySelectorAll('#'+ROOT_ID).length,visible:Boolean(root&&getComputedStyle(root).display!=='none'),currentPeriod:period(),chartMode:salesChartMode,chartLabelsPresent:Boolean(root&&root.querySelector('.pmd-dashboard2-chart-axis-label')),requestCount:requestCount,widgets:widgets,unavailableSources:unavailable,chartCount:root?root.querySelectorAll('svg.pmd-dashboard2-chart,.pmd-dashboard2-donut svg').length:0,availableWidgetCount:data?widgetKeys.filter(function(k){var map={salesOverTime:'sales_over_time',salesByHour:'sales_by_hour',topItems:'top_items',categorySales:'sales_by_category',paymentMethods:'payment_methods',channelSplit:'channels',liveOperations:'live_operations',recentTransactions:'recent_transactions',alerts:'alerts',reviews:'reviews',tips:'tips',calendarEvents:'calendar_events'};return data[map[k]]&&data[map[k]].available===true;}).length:0,emptyWidgetCount:emptyWidgets.length,emptyWidgets:emptyWidgets,unavailableWidgetCount:unavailable.length,sourceModes:data?Object.keys(data).reduce(function(out,k){if(data[k]&&data[k].source_mode)out[k]=data[k].source_mode;return out;},{}):{},outerFrame:(function(){var st=root?getComputedStyle(root):null;return {transparent:Boolean(st&&(st.backgroundColor==='rgba(0, 0, 0, 0)'||st.backgroundColor==='transparent')),borderless:Boolean(st&&parseFloat(st.borderTopWidth)===0),shadowless:Boolean(st&&st.boxShadow==='none')};})()},oneRow:{active:active,overflowX:style?style.overflowX:null,overflowY:style?style.overflowY:null,verticalScrollbar:Boolean(oneRow&&style&&style.overflowY!=='hidden'&&oneRow.scroll.scrollHeight>oneRow.scroll.clientHeight),horizontalOverflow:Boolean(oneRow&&oneRow.scroll.scrollWidth>oneRow.scroll.clientWidth),wheelListeners:active?1:0},protected:{pushNotificationScriptPresent:Boolean(document.querySelector('script[src*="push-notifications.js"]')),notificationPollingActive:Boolean(document.querySelector('script[src*="push-notifications.js"]') && (window.pushNotif && window.pushNotif.pollInterval)),composerPresent:Boolean(document.querySelector('[data-reservation-composer],#pmd-reservation-composer-v1'))}};}
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1144:     * One delayed build avoids eight repeated full-document scans.
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1251:    parent.setAttribute('data-pmd-analytics-layout', 'reflow-v4');
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1260:      ['recentTransactions', 2],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1263:      ['liveOperations', 2],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1270:      ['calendarEvents', 3],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1287:      card.style.gridColumn = 'span ' + span;
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1294:        card.style.gridColumn = 'span 1';
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1384:   * and applied even when another layout script interrupts bubbling.
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1436:      'data-pmd-final-layout',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1445:      'recentTransactions',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1446:      'channelSplit',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1447:      'liveOperations',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1452:      'calendarEvents'
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1534:    ['salesOverTime', 10, 'wide'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1535:    ['categorySales', 11, 'side'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1537:    ['salesByHour', 20, 'wide'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1538:    ['paymentMethods', 21, 'side'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1540:    ['recentTransactions', 30, 'wide'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1541:    ['channelSplit', 31, 'side'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1543:    ['liveOperations', 40, 'wide'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1544:    ['alerts', 41, 'side'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1546:    ['topItems', 50, 'third'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1547:    ['reviews', 51, 'third'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1548:    ['tips', 52, 'third'],
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1550:    ['calendarEvents', 60, 'full']
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1567:      'pmd-v9-wide',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1568:      'pmd-v9-side',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1569:      'pmd-v9-third',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1570:      'pmd-v9-full'
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1884:    var floorBottomInsideParent =
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:1892:      floorBottomInsideParent + 20
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2908:       * Equal-row layout does not own the chart mode, but reapplying
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:2985:     * after a full page refresh.
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3769:              '[data-pmd-analytics-widget="channelSplit"] ' +
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3786:/* PMD_DASHBOARD2_SINGLE_LAYOUT_AUTHORITY_V127 */
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3808:    'recentTransactions',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3810:    'liveOperations',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3811:    'channelSplit',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3817:    'calendarEvents'
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3827:    recentTransactions: 'span 4',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3829:    liveOperations: 'span 3',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3830:    channelSplit: 'span 3',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3836:    calendarEvents: 'span 12'
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:3943:        'grid-column',
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:4014:            gridColumn:
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:4015:              getComputedStyle(element).gridColumn,
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:4026:                'grid-column'
+/var/www/paymydine/app/admin/assets/js/pmd-dashboard2-kpis-v1.js:4030:                'grid-column'
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:28:<!-- PMD_DASHBOARD2_SINGLE_LAYOUT_AUTHORITY_V127 -->
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:29:<style id="pmd-dashboard2-single-layout-authority-v127">
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:58:    grid-column: span 9 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:64:    grid-column: span 3 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:70:    grid-column: span 9 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:76:    grid-column: span 3 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:85:  [data-pmd-analytics-widget="recentTransactions"] {
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:87:    grid-column: span 4 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:93:    grid-column: span 2 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:97:  [data-pmd-analytics-widget="liveOperations"] {
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:99:    grid-column: span 3 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:103:  [data-pmd-analytics-widget="channelSplit"] {
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:105:    grid-column: span 3 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:115:    grid-column: span 4 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:121:    grid-column: span 4 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:127:    grid-column: span 4 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:130:  /* Final full-width row */
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:132:  [data-pmd-analytics-widget="calendarEvents"] {
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:134:    grid-column: span 12 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:141:  [data-pmd-analytics-widget="recentTransactions"]
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:147:  [data-pmd-analytics-widget="recentTransactions"]
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:156:  [data-pmd-analytics-widget="recentTransactions"]
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:164:    [data-pmd-analytics-widget="recentTransactions"],
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:168:    [data-pmd-analytics-widget="liveOperations"],
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:170:    [data-pmd-analytics-widget="channelSplit"] {
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:171:      grid-column: span 6 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:180:      grid-column: span 6 !important;
+/var/www/paymydine/app/admin/views/dashboard2_reservations2_exact.blade.php:187:      grid-column: span 12 !important;

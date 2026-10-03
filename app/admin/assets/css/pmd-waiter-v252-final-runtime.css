@@ -1,0 +1,33 @@
+.v242-card-actions,
+.v241-status-btn { display: none !important; }
+
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] > [data-v2-open-table].v241-card {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  background: var(--pmd-v23-surface) !important;
+  transition: none !important;
+}
+
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v2-table-state,
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v2-table-info,
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v21-payment-meta,
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v21-age-meta,
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v2-table-corner,
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] > [data-v2-open-table].v241-card > .pmd-v2-table-name {
+  display: none !important;
+}
+
+body.pmd-waiter-standard-v23-page .v241-card > .v241-primary { display: block !important; }
+body.pmd-waiter-standard-v23-page .v241-card > .v241-badges { display: flex !important; margin-top: 14px !important; }
+body.pmd-waiter-standard-v23-page .v241-card[data-v241-status="available"] { border-top-color: #16a34a !important; }
+body.pmd-waiter-standard-v23-page .v241-card[data-v241-status="occupied"] { border-top-color: #475569 !important; }
+body.pmd-waiter-standard-v23-page .v241-card[data-v241-status="cleaning"] { border-top-color: #d97706 !important; }
+body.pmd-waiter-standard-v23-page .v241-card[data-v241-status="reserved"] { border-top-color: #2563eb !important; }
+
+.v243-ops-controls { display: flex !important; align-items: center !important; gap: 7px !important; }
+.v243-ops-controls button { min-height: 42px !important; padding: 0 12px !important; white-space: nowrap !important; overflow: visible !important; }
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage:has([data-v2-table-grid] > [data-v2-open-table]) [data-v2-empty] {
+  display: none !important;
+}

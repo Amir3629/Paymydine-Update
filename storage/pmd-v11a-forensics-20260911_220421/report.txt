@@ -1,0 +1,71 @@
+====================================================
+PMD V11A - READ EXISTING CPU DATA + FIX MISSED CANARIES
+NO config change. NO restart. NO load storm.
+UTC=Fri Sep 11 22:04:21 UTC 2026
+====================================================
+
+===== 1. CPU / RAM FROM THE V11 TEST WE ALREADY RAN =====
+samples = 57
+TOTAL CPU: max=93.4%  p95=91.9%
+load1 max=3.09
+RAM available minimum=6280 MiB
+PHP CPU max=209.0%
+Next CPU max=0.0%
+MariaDB CPU max=1.8%
+Nginx CPU max=0.0%
+CPU_CLASS=RED
+
+===== 2. DID PHP HIT ITS 5-WORKER LIMIT? =====
+pm.max_children warnings during V11=0
+
+===== 3. WAITER TEST - ACTIVATE QR VISIT FIRST =====
+activate QR visit HTTP= 200
+cookies received= 2
+waiter-call HTTP= 201
+WAITER_CANARY=PASS
+
+===== 4. GEMINI REAL LATENCY - 3 SMALL CALLS =====
+This uses Gemini, but it is NOT a stress test yet.
+
+
+provider=gemini
+model=gemini-3.1-flash-lite
+Gemini call 1: HTTP=200 time=840ms
+Gemini call 2: HTTP=200 time=555ms
+Gemini call 3: HTTP=200 time=559ms
+
+===== 5. SUMUP TEST CONNECTION + CARD MAPPING =====
+
+
+
+In Connection.php line 712:
+                                                                               
+  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'provider_code' in '  
+  SELECT' (SQL: select `code`, `status`, `provider_code` from `ti_payments` w  
+  here `code` in (card, sumup))                                                
+                                                                               
+
+In Exception.php line 18:
+                                                                               
+  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'provider_code' in '  
+  SELECT'                                                                      
+                                                                               
+
+In PDOConnection.php line 82:
+                                                                               
+  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'provider_code' in '  
+  SELECT'                                                                      
+                                                                               
+
+
+===== 6. CURRENT HEALTH =====
+test2.paymydine.com          HTTP=200 time=0.599s PASS
+mimoza.paymydine.com         HTTP=200 time=0.535s PASS
+loumi.paymydine.com          HTTP=200 time=0.437s PASS
+moon.paymydine.com           HTTP=200 time=2.548s PASS
+tomo.paymydine.com           HTTP=200 time=2.350s PASS
+
+====================================================
+PMD V11A COMPLETE
+report=/var/www/paymydine/storage/pmd-v11a-forensics-20260911_220421/report.txt
+====================================================

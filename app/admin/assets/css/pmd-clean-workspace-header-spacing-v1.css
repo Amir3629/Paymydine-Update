@@ -1,0 +1,29 @@
+/* ==========================================================
+   PMD CLEAN WORKSPACE HEADER SPACING V1
+
+   Standalone Cashier / Reservations / Accountant workspaces share the
+   same clean header. A high-specificity critical rule in the shared view
+   historically forced the left group gap to 0, overriding the intended
+   20px brand-to-title spacing. Keep this authority global but tightly
+   scoped to the standalone clean-workspace shell.
+   ========================================================== */
+
+html.pmd-clean-workspace-standalone-v3
+body.page.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-r2-clean-header.pmd-dashboard-lab__dashboard2-header
+.pmd-owner-header__left {
+  gap: 20px !important;
+  column-gap: 20px !important;
+}
+
+@media (max-width: 700px) {
+  html.pmd-clean-workspace-standalone-v3
+  body.page.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  #pmd-r2-clean-header.pmd-dashboard-lab__dashboard2-header
+  .pmd-owner-header__left {
+    gap: 14px !important;
+    column-gap: 14px !important;
+  }
+}

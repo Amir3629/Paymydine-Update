@@ -4,6 +4,7 @@ namespace Admin\Models;
 
 use Admin\Traits\Locationable;
 use Admin\Traits\Stockable;
+use Admin\Traits\PmdMenuGalleryOptionsV1;
 use Admin\Models\Menu_prices_model;
 use Carbon\Carbon;
 use Igniter\Flame\Database\Attach\HasMedia;
@@ -21,6 +22,7 @@ class Menus_model extends Model
     use Locationable;
     use HasMedia;
     use Stockable;
+    use PmdMenuGalleryOptionsV1;
 
     const LOCATIONABLE_RELATION = 'locations';
 
@@ -60,7 +62,8 @@ class Menus_model extends Model
     public $relation = [
         'hasMany' => [
             'menu_options' => ['Admin\Models\Menu_item_options_model', 'delete' => true],
-            'prices' => ['Admin\Models\Menu_prices_model', 'delete' => true],
+            // PMD_MENU_OPTIONAL_PRICES_DELETE_V1_6_4B
+            'prices' => ['Admin\Models\Menu_prices_model'],
             'menu_images' => ['Admin\Models\Menu_images_model', 'delete' => true],
         ],
         'hasOne' => [
@@ -256,8 +259,14 @@ class Menus_model extends Model
             'bestseller_override_mode',
         ];
 
+        $availableColumns = [];
+        try {
+            $availableColumns = Schema::getColumnListing($this->getTable());
+        } catch (\Throwable $error) {
+        }
+
         foreach ($recommendationColumns as $column) {
-            if (!Schema::hasColumn($this->getTable(), $column)) {
+            if ($availableColumns && !in_array($column, $availableColumns, true)) {
                 unset($this->attributes[$column]);
                 Log::warning('PMD_MENU_RECOMMENDATION_COLUMN_MISSING_ON_SAVE', [
                     'table' => $this->getTable(),
@@ -289,6 +298,9 @@ class Menus_model extends Model
 
         // PMD: sync compact inline additional menu images after normal menu save.
         $this->syncMenuImagesInline();
+
+        // PMD_MENU_GALLERY_OPTIONS_V1
+        $this->syncPmdMenuGalleryOptionsV1();
     }
 
     /**
@@ -425,6 +437,36 @@ class Menus_model extends Model
                 return;
             }
 
+            // PMD_PERF_R3_GALLERY_NOOP
+            // The editor may submit the current gallery even when the user did
+            // not alter it. Avoid delete/recreate + model events in that case.
+            $existingRows = $this->menu_images()
+                ->orderBy('sort_order')
+                ->get(['image_path', 'sort_order'])
+                ->map(static function ($row) {
+                    return [
+                        'image_path' => trim((string)($row->image_path ?? '')),
+                        'sort_order' => (int)($row->sort_order ?? 0),
+                    ];
+                })
+                ->values()
+                ->all();
+
+            $desiredRows = array_values(array_map(
+                static function (array $row, int $index): array {
+                    return [
+                        'image_path' => trim((string)($row['image_path'] ?? '')),
+                        'sort_order' => (int)(($row['sort_order'] ?? 0) ?: ($index + 1)),
+                    ];
+                },
+                $rows,
+                array_keys($rows)
+            ));
+
+            if ($existingRows === $desiredRows) {
+                return;
+            }
+
             $this->menu_images()->delete();
 
             foreach (array_values($rows) as $idx => $row) {
@@ -454,10 +496,55 @@ class Menus_model extends Model
 
     protected function beforeDelete()
     {
-        $this->categories()->detach();
-        $this->mealtimes()->detach();
-        $this->allergens()->detach();
-        $this->locations()->detach();
+        // PMD_MENU_OPTIONAL_PRICES_DELETE_V1_6_4B
+        // Tenant schemas can legitimately omit menu_prices.
+        $priceTable = (new Menu_prices_model)->getTable();
+        $connection = $this->getConnection();
+        $schema = $connection->getSchemaBuilder();
+
+        if ($schema->hasTable($priceTable)) {
+            $connection
+                ->table($priceTable)
+                ->where('menu_id', $this->getKey())
+                ->delete();
+        } else {
+            Log::warning('PMD_MENU_DELETE_OPTIONAL_PRICES_TABLE_MISSING_V164B', [
+                'menu_id' => $this->getKey(),
+                'table' => $priceTable,
+                'database' => $connection->getDatabaseName(),
+            ]);
+        }
+
+        // PMD_MENU_TENANT_SAFE_DELETE_RELATIONS_V1_6_4
+        //
+        // Some older tenant databases can legitimately be missing optional
+        // pivot tables. A missing pivot must not prevent the food itself from
+        // being deleted. When the table exists, preserve the canonical detach
+        // lifecycle exactly.
+        $detachRelations = [
+            'categories' => 'menu_categories',
+            'mealtimes' => 'menu_mealtimes',
+            'allergens' => 'allergenables',
+            'locations' => 'locationables',
+        ];
+
+        foreach ($detachRelations as $relation => $table) {
+            if (!Schema::hasTable($table)) {
+                Log::warning(
+                    'PMD_MENU_DELETE_OPTIONAL_RELATION_TABLE_MISSING_V164',
+                    [
+                        'menu_id' => (int)$this->getKey(),
+                        'relation' => $relation,
+                        'table' => $table,
+                        'database' => $this->getConnection()->getDatabaseName(),
+                    ]
+                );
+
+                continue;
+            }
+
+            $this->{$relation}()->detach();
+        }
     }
 
     //

@@ -1,0 +1,16 @@
+{
+  "rows": [
+    {
+      "workload": "MIX",
+      "concurrency": 12,
+      "requests": 48,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 3724,
+      "p95_ms": 7124,
+      "max_ms": 7679,
+      "rps": 2.62
+    }
+  ]
+}

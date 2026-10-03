@@ -1,0 +1,304 @@
+/* PayMyDine Waiter Final2 V2.1 — sharp operational colours + stable payment surface */
+
+.pmd-final2 {
+  --p2-blue: #006bdc;
+  --p2-blue-dark: #0054ad;
+  --p2-green: #00a651;
+  --p2-green-dark: #007f3e;
+  --p2-red: #e52b3a;
+  --p2-red-dark: #b91f2c;
+  --p2-yellow: #ffc400;
+  --p2-orange: #ff7200;
+  --p2-purple: #7538d3;
+  --p2-cyan: #008fa8;
+}
+
+.pmd-final2[data-theme="dark"] {
+  --p2-blue: #168cff;
+  --p2-blue-dark: #0874dc;
+  --p2-green: #20cf70;
+  --p2-green-dark: #0fa957;
+  --p2-red: #ff4052;
+  --p2-red-dark: #db2638;
+  --p2-yellow: #ffd000;
+  --p2-orange: #ff8500;
+  --p2-purple: #9a68ff;
+  --p2-cyan: #16b9d1;
+}
+
+/* Strong, semantic launcher controls. */
+.pmd-final2 .pmd-final-view-tabs [data-final-filter="mine"].is-active,
+.pmd-final2 .pmd-final-view-tabs [data-final-filter="open"].is-active,
+.pmd-final2 .pmd-final-area-tabs button.is-active {
+  background: var(--p2-blue) !important;
+  border-color: var(--p2-blue) !important;
+  color: #fff !important;
+}
+
+.pmd-final2 .pmd-final-view-tabs [data-final-filter="attention"].is-active {
+  background: var(--p2-yellow) !important;
+  border-color: var(--p2-yellow) !important;
+  color: #111 !important;
+}
+
+.pmd-final2 .pmd-final-view-tabs [data-final-filter="free"].is-active {
+  background: var(--p2-green) !important;
+  border-color: var(--p2-green) !important;
+  color: #fff !important;
+}
+
+.pmd-final2 .pmd-final-view-tabs [data-final-filter="all"].is-active {
+  background: #202a34 !important;
+  border-color: #202a34 !important;
+  color: #fff !important;
+}
+
+.pmd-final2 .pmd-final-operations-link {
+  background: var(--p2-blue) !important;
+  border-color: var(--p2-blue) !important;
+  color: #fff !important;
+}
+
+.pmd-final2 .pmd-final-operations-link:hover {
+  background: var(--p2-blue-dark) !important;
+}
+
+.pmd-final2 .pmd-final-status-strip article:nth-child(1) { border-top: 4px solid var(--p2-blue); }
+.pmd-final2 .pmd-final-status-strip article:nth-child(2) { border-top: 4px solid var(--p2-green); }
+.pmd-final2 .pmd-final-status-strip article:nth-child(3) { border-top: 4px solid var(--p2-red); }
+.pmd-final2 .pmd-final-status-strip article:nth-child(4) { border-top: 4px solid var(--p2-green); }
+.pmd-final2 .pmd-final-status-strip article:nth-child(1) strong { color: var(--p2-blue); }
+.pmd-final2 .pmd-final-status-strip article:nth-child(2) strong { color: var(--p2-green); }
+.pmd-final2 .pmd-final-status-strip article:nth-child(3) strong { color: var(--p2-red); }
+.pmd-final2 .pmd-final-status-strip article:nth-child(4) strong { color: var(--p2-green); }
+
+/* Table state colours remain operational, not decorative. */
+.pmd-final2 .pmd-final-table {
+  border-top-width: 7px !important;
+}
+
+.pmd-final2 .pmd-final-table:not(.is-payment):not(.is-attention):not(.is-ready):not(.is-free) {
+  border-top-color: var(--p2-blue) !important;
+}
+
+.pmd-final2 .pmd-final-table.is-payment { border-top-color: var(--p2-red) !important; }
+.pmd-final2 .pmd-final-table.is-attention { border-top-color: var(--p2-yellow) !important; }
+.pmd-final2 .pmd-final-table.is-ready,
+.pmd-final2 .pmd-final-table.is-free { border-top-color: var(--p2-green) !important; }
+
+.pmd-final2 .pmd-final-table-status {
+  display: inline-flex;
+  align-self: flex-start;
+  min-height: 23px;
+  align-items: center;
+  padding: 0 7px;
+  background: var(--p2-blue);
+  color: #fff !important;
+  border-radius: 2px;
+}
+
+.pmd-final2 .is-payment .pmd-final-table-status { background: var(--p2-red); }
+.pmd-final2 .is-attention .pmd-final-table-status { background: var(--p2-yellow); color: #111 !important; }
+.pmd-final2 .is-ready .pmd-final-table-status,
+.pmd-final2 .is-free .pmd-final-table-status { background: var(--p2-green); }
+
+/* POS category rail: recognisable colour families like a real till. */
+.pmd-final2 .pmd-pos-category:nth-child(6n + 1) { background: #006bdc !important; border-color: #006bdc !important; color: #fff !important; }
+.pmd-final2 .pmd-pos-category:nth-child(6n + 2) { background: #00a651 !important; border-color: #00a651 !important; color: #fff !important; }
+.pmd-final2 .pmd-pos-category:nth-child(6n + 3) { background: #ff7200 !important; border-color: #ff7200 !important; color: #fff !important; }
+.pmd-final2 .pmd-pos-category:nth-child(6n + 4) { background: #e52b3a !important; border-color: #e52b3a !important; color: #fff !important; }
+.pmd-final2 .pmd-pos-category:nth-child(6n + 5) { background: #7538d3 !important; border-color: #7538d3 !important; color: #fff !important; }
+.pmd-final2 .pmd-pos-category:nth-child(6n + 6) { background: #008fa8 !important; border-color: #008fa8 !important; color: #fff !important; }
+
+.pmd-final2 .pmd-pos-category:hover,
+.pmd-final2 .pmd-pos-category.is-active {
+  filter: brightness(.86);
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,.9) !important;
+}
+
+/* Product keys stay clean but gain quick colour recognition. */
+.pmd-final2 .pmd-pos-product:nth-child(6n + 1) { border-left-color: var(--p2-blue) !important; }
+.pmd-final2 .pmd-pos-product:nth-child(6n + 2) { border-left-color: var(--p2-green) !important; }
+.pmd-final2 .pmd-pos-product:nth-child(6n + 3) { border-left-color: var(--p2-orange) !important; }
+.pmd-final2 .pmd-pos-product:nth-child(6n + 4) { border-left-color: var(--p2-red) !important; }
+.pmd-final2 .pmd-pos-product:nth-child(6n + 5) { border-left-color: var(--p2-purple) !important; }
+.pmd-final2 .pmd-pos-product:nth-child(6n + 6) { border-left-color: var(--p2-cyan) !important; }
+
+.pmd-final2 .pmd-pos-product:hover,
+.pmd-final2 .pmd-pos-product:focus-visible {
+  border-color: var(--p2-blue) !important;
+  box-shadow: inset 0 0 0 2px var(--p2-blue) !important;
+}
+
+.pmd-final2 .pmd-pos-price { color: var(--p2-orange) !important; }
+
+/* High-signal action keys. */
+.pmd-final2 .pmd-pos-action.send {
+  background: var(--p2-green) !important;
+  color: #fff !important;
+}
+.pmd-final2 .pmd-pos-action.send:hover { background: var(--p2-green-dark) !important; }
+.pmd-final2 .pmd-pos-action.hold {
+  background: var(--p2-blue) !important;
+  color: #fff !important;
+}
+.pmd-final2 [data-pos-payment] {
+  background: var(--p2-yellow) !important;
+  border-color: #c99700 !important;
+  color: #111 !important;
+}
+.pmd-final2 [data-pos-clear] {
+  background: var(--p2-red) !important;
+  border-color: var(--p2-red) !important;
+  color: #fff !important;
+}
+.pmd-final2 [data-pos-refresh] {
+  background: var(--p2-blue) !important;
+  border-color: var(--p2-blue) !important;
+  color: #fff !important;
+}
+
+/* Payment methods use instantly recognisable colour strips. */
+.pmd-final2 .pmd-pos-method {
+  border-left-width: 6px !important;
+  background: var(--p2-card) !important;
+}
+.pmd-final2 .pmd-pos-method[data-payment-method="cash"] { border-left-color: var(--p2-green) !important; }
+.pmd-final2 .pmd-pos-method[data-payment-method="external_terminal"],
+.pmd-final2 .pmd-pos-method[data-payment-method="direct_terminal"] { border-left-color: var(--p2-blue) !important; }
+.pmd-final2 .pmd-pos-method[data-payment-method^="online:"] { border-left-color: var(--p2-purple) !important; }
+.pmd-final2 .pmd-pos-method.is-active {
+  background: var(--p2-header-2) !important;
+  border-color: var(--p2-orange) !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 2px var(--p2-orange) !important;
+}
+.pmd-final2 .pmd-pos-method.is-active small { color: #c7d2dc !important; }
+.pmd-final2 .pmd-pos-pay-button {
+  background: var(--p2-green) !important;
+  color: #fff !important;
+}
+.pmd-final2 .pmd-pos-payment-close {
+  background: var(--p2-red) !important;
+  border-color: var(--p2-red) !important;
+  color: #fff !important;
+}
+
+/* Final2 payment modal: one modal, no frozen page, independent scroll regions. */
+body.pmd-final2-payment-open {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+.pmd-final2 .pmd-pos-payment-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483600 !important;
+  padding: 12px !important;
+  background: rgba(2, 7, 12, .78) !important;
+  backdrop-filter: none !important;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.pmd-final2 .pmd-pos-payment-modal.is-show {
+  display: flex !important;
+  pointer-events: auto !important;
+}
+
+.pmd-final2 .pmd-pos-payment-dialog {
+  width: min(1440px, calc(100vw - 24px)) !important;
+  height: min(920px, calc(100dvh - 24px)) !important;
+  min-height: 0 !important;
+  display: grid !important;
+  grid-template-rows: auto minmax(0, 1fr) !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+  isolation: isolate;
+}
+
+.pmd-final2 .pmd-pos-payment-head {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+}
+
+.pmd-final2 .pmd-pos-payment-body {
+  min-height: 0 !important;
+  height: auto !important;
+  overflow: hidden !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 340px !important;
+  align-items: stretch !important;
+}
+
+.pmd-final2 .pmd-pos-payment-main,
+.pmd-final2 .pmd-pos-payment-summary {
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
+.pmd-final2 .pmd-pos-payment-main {
+  padding-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+}
+
+.pmd-final2 .pmd-pos-payment-summary {
+  position: static !important;
+}
+
+.pmd-final2 .pmd-pos-payment-modal button,
+.pmd-final2 .pmd-pos-payment-modal input,
+.pmd-final2 .pmd-pos-payment-modal textarea {
+  pointer-events: auto !important;
+  touch-action: manipulation;
+}
+
+@media (max-width: 760px) {
+  .pmd-final2 .pmd-pos-category {
+    filter: none;
+    box-shadow: none !important;
+  }
+  .pmd-final2 .pmd-pos-category.is-active {
+    filter: brightness(.82);
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.9) !important;
+  }
+
+  .pmd-final2 .pmd-pos-payment-modal {
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .pmd-final2 .pmd-pos-payment-dialog {
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+
+  .pmd-final2 .pmd-pos-payment-body {
+    display: block !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 10px !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pmd-final2 .pmd-pos-payment-main,
+  .pmd-final2 .pmd-pos-payment-summary {
+    overflow: visible !important;
+    min-height: auto !important;
+    scrollbar-gutter: auto;
+  }
+
+  .pmd-final2 .pmd-pos-payment-summary {
+    margin-top: 10px !important;
+    margin-bottom: max(18px, env(safe-area-inset-bottom)) !important;
+  }
+}

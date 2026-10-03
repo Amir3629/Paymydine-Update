@@ -1,3 +1,12 @@
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_debug-redirects_START */
+if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 = window.PMD_KDS_SETTINGS_NOISE_GUARD_V54 || [];
+  window.PMD_KDS_SETTINGS_NOISE_GUARD_V54.push("debug-redirects");
+  console.info("[PMD] skipped debug-redirects on KDS settings page", {
+    path: window.location.pathname
+  });
+} else {
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_debug-redirects_BODY_START */
 /**
  * DEBUG REDIRECT ISSUES - Diagnostic Script
  * Add this to your admin panel to track redirect causes
@@ -8,6 +17,23 @@
     
     // Wait for jQuery to be available
     var initDebugRedirects = function() {
+
+        /*
+         * PMD_R2_PERFORMANCE_SURGICAL_V2_DEBUG
+         *
+         * Diagnostic redirect polling is not required during normal
+         * Reservations2 operation.
+         */
+        if (
+            String(window.location.pathname || '')
+                .replace(/\/+$/, '') === '/admin/reservations2'
+        ) {
+            console.info(
+                '[PMD R2 Performance V2] Redirect debugger skipped.'
+            );
+            return;
+        }
+
         // Check if jQuery is available
         var jQueryAvailable = typeof window.jQuery !== 'undefined' || typeof window.$ !== 'undefined';
         
@@ -145,3 +171,6 @@
     }
     
 })();
+
+/* PMD_KDS_SETTINGS_NOISE_GUARD_V54_debug-redirects_END */
+}

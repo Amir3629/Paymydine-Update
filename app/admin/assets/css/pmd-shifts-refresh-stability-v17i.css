@@ -1,0 +1,62 @@
+/* PMD_SHIFTS_REFRESH_STABILITY_V17I
+ * Refresh-only visual stability authority.
+ *
+ * Production no longer loads the old Shifts first-paint file that used to
+ * neutralize generic opacity/transform/transition boot effects. Keep the V17
+ * geometry exactly as-is and only prevent late paint/rasterization motion.
+ */
+
+html body.pmd-shifts-page .page-wrapper,
+html body.pmd-shifts-page .page-content,
+html body.pmd-shifts-page #pmd-shifts,
+html body.pmd-shifts-page [data-pmd-shifts-day-surface],
+html body.pmd-shifts-page [data-pmd-shifts-hour-host],
+html body.pmd-shifts-page .pmd-shifts-final-screen {
+  opacity:1!important;
+  visibility:visible!important;
+  filter:none!important;
+  animation:none!important;
+  animation-name:none!important;
+  animation-delay:0s!important;
+  animation-duration:0s!important;
+  transition:none!important;
+  transition-property:none!important;
+  transform:none!important;
+  translate:none!important;
+  will-change:auto!important;
+}
+
+/* The timeline itself must not acquire a late transition from old/global CSS.
+ * Do NOT alter left/width/top/height/transform geometry of shift bars here. */
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale-row,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-scale > span,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-row,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-person,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-track,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shifts,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift * {
+  animation:none!important;
+  animation-name:none!important;
+  animation-delay:0s!important;
+  animation-duration:0s!important;
+  transition:none!important;
+  transition-property:none!important;
+  will-change:auto!important;
+}
+
+/* In-page day loading must keep the currently rendered plane visually solid.
+ * V17F still owns the actual data fetch/cache and DOM replacement. */
+html body.pmd-shifts-page.is-day-loading .pmd-shifts-final-screen,
+html body.pmd-shifts-page.is-day-loading [data-pmd-shifts-hour-host],
+html body.pmd-shifts-page.is-transitioning .page-content,
+html body.pmd-shifts-page .page-content.is-transitioning {
+  opacity:1!important;
+  visibility:visible!important;
+  filter:none!important;
+  transform:none!important;
+  translate:none!important;
+  transition:none!important;
+  animation:none!important;
+}

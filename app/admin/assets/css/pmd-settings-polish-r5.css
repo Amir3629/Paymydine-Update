@@ -1,0 +1,137 @@
+/* PMD_SETTINGS_POLISH_R5
+ * Final conflict resolver for Settings overview + Restaurant logo control.
+ *
+ * R5 intentionally contains no JavaScript. It wins by selector specificity so
+ * the final geometry is correct from CSS paint and does not depend on timing.
+ */
+
+/* ---------------------------------------------------------
+   SETTINGS OVERVIEW
+   The legacy pmd-settings-center-v1.css hides #pmd-settings-brand with
+   !important. Use a strictly more-specific selector so the sixth PayMyDine
+   slot is visible regardless of stylesheet order.
+   --------------------------------------------------------- */
+html body #pmd-settings-center #pmd-settings-brand {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card[data-pmd-paymydine-ready-r3="1"] {
+  pointer-events: auto !important;
+}
+
+/* Stable, simple dashboard copy from first paint. */
+html body #pmd-settings-center a[href*="/admin/pmdsettings/restaurant"] .pmd-settings-card__description,
+html body #pmd-settings-center a[href*="/admin/pmdsettings/frontend"] .pmd-settings-card__description,
+html body #pmd-settings-center a[href*="/admin/pmdteam"] .pmd-settings-card__description,
+html body #pmd-settings-center a[href*="/admin/pmddevices"] .pmd-settings-card__description,
+html body #pmd-settings-center a[href*="/admin/pmdfinance"] .pmd-settings-card__description {
+  font-size: 0 !important;
+}
+
+html body #pmd-settings-center a[href*="/admin/pmdsettings/restaurant"] .pmd-settings-card__description::after {
+  content: "Manage your restaurant details.";
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+html body #pmd-settings-center a[href*="/admin/pmdsettings/frontend"] .pmd-settings-card__description::after {
+  content: "Choose your digital menu theme.";
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+html body #pmd-settings-center a[href*="/admin/pmdteam"] .pmd-settings-card__description::after {
+  content: "Manage staff and access.";
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+html body #pmd-settings-center a[href*="/admin/pmddevices"] .pmd-settings-card__description::after {
+  content: "Manage your connected devices.";
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+html body #pmd-settings-center a[href*="/admin/pmdfinance"] .pmd-settings-card__description::after {
+  content: "Set payments, tax and invoices.";
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+/* ---------------------------------------------------------
+   RESTAURANT LOGO REMOVE
+   R3 moves the label inside a one-column preview stack. R4's general
+   grid-column:2 rule must not survive inside that stack, otherwise the button
+   is placed in an implicit second column and clips outside the card.
+   --------------------------------------------------------- */
+html body #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-auto-columns: 0 !important;
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  overflow: visible !important;
+}
+
+html body #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-preview-r19 {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  box-sizing: border-box !important;
+}
+
+html body #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20 {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  justify-self: stretch !important;
+  align-self: start !important;
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* If R3 has not moved the button yet, keep the pre-JS geometry identical. */
+html body #pmd-restaurant-profile .pmd-profile-logo-uploader-r19 > .pmd-profile-logo-input-r19 .pmd-profile-logo-remove-r20 {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  justify-self: stretch !important;
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 720px) {
+  html body #pmd-restaurant-profile .pmd-profile-logo-uploader-r19 {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3,
+  html body #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-preview-r19,
+  html body #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20 {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}

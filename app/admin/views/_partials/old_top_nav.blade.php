@@ -1,4 +1,4 @@
-@if(AdminAuth::isLogged())
+@if(AdminAuth::isLogged() && !request()->is('admin/pmddevices/*')) {{-- PMD_DEVICE_V4_1_1_CHILDREN_SKIP_OLD_TOP_NAV --}}
     <nav class="navbar navbar-top navbar-expand navbar-fixed-top" role="navigation">
         <div class="container-fluid">
             <div class="navbar-brand" style="height:63px;">

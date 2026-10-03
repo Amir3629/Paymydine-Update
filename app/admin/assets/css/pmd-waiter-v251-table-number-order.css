@@ -1,0 +1,15 @@
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card
+> .pmd-v2-table-name {
+  display: none !important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card > strong {
+  margin-bottom: 12px !important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v2-table-grid] > [data-v2-open-table].v241-card > .v241-badges {
+  margin-top: 12px !important;
+}

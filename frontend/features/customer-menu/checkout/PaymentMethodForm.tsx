@@ -66,6 +66,22 @@ export function PaymentMethodForm(props: any) {
       }
     } catch {}
 
+    // PMD_AUDIT_PHASE3_PAYMENT_ERROR_DEDUPE
+    const pmdLastPaymentErrorToastRef = React.useRef<{ key: string; at: number } | null>(null)
+    const notifyPaymentError = React.useCallback((title: string, message: string) => {
+      const normalizedMessage = String(message || "Payment failed. Please try again.").trim()
+      const key = `${title}:${normalizedMessage}`
+      const now = Date.now()
+      const previous = pmdLastPaymentErrorToastRef.current
+      if (previous && previous.key === key && now - previous.at < 3500) return
+      pmdLastPaymentErrorToastRef.current = { key, at: now }
+      toast({
+        title,
+        description: normalizedMessage,
+        variant: "destructive",
+      })
+    }, [toast])
+
     if (!selectedMethod) return null
 
     if (checkoutStep === "payment" && hasUnsubmittedPaymentDraft()) {
@@ -149,11 +165,7 @@ export function PaymentMethodForm(props: any) {
                       }
                     }}
                     onPaymentError={(message: string) => {
-                      toast({
-                        title: "Payment Failed",
-                        description: message,
-                        variant: "destructive",
-                      })
+                      notifyPaymentError("Payment Failed", message)
                     }}
                   />
                 </PayPalScriptProvider>
@@ -202,11 +214,7 @@ export function PaymentMethodForm(props: any) {
                     }
                   }}
                   onPaymentError={(message: string) => {
-                    toast({
-                      title: "Worldline Payment Failed",
-                      description: message,
-                      variant: "destructive",
-                    })
+                    notifyPaymentError("Worldline Payment Failed", message)
                   }}
                 />
               </motion.div>
@@ -286,11 +294,7 @@ export function PaymentMethodForm(props: any) {
               paymentData={stripePaymentData}
               onPaymentSuccess={handlePayment}
               onPaymentError={(message: string) => {
-                toast({
-                  title: "Payment Failed",
-                  description: message,
-                  variant: "destructive",
-                })
+                notifyPaymentError("Payment Failed", message)
               }}
             />
           </motion.div>
@@ -503,18 +507,12 @@ case "cod":
                   {formatCurrency(checkoutStep === "payment" ? payableTotal : finalTotal)}
                 </div>
               </div>
-              <Button
-                type="button"
-                disabled={isLoading}
-                onClick={async () => {
-                  setCashCollectionConfirmed(true)
-                  await handlePayment(undefined, { method_code: "cod", provider_code: null })
-                }}
-                className="w-full"
-                style={modalPrimaryBtnStyle}
-              >
-                {isLoading ? "Submitting..." : "Confirm cash payment"}
-              </Button>
+              {/*
+               * PMD_REMOVE_DUPLICATE_CASH_CONFIRM_20260807
+               *
+               * Cash submission is owned by PaymentActionButton.
+               * Do not render a second payment action here.
+               */}
               {cashCollectionConfirmed && (
                 <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "var(--theme-border)", color: "var(--theme-text-primary)", background: "var(--theme-surface)" }}>
                   Please have the exact amount ready when the waiter comes to collect payment.

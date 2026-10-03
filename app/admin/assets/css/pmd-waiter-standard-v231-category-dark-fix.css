@@ -1,0 +1,639 @@
+/*
+ * PMD Waiter POS V2.3.1
+ * Stable full-colour categories and complete dark-mode surfaces.
+ */
+
+body.pmd-waiter-standard-v23-page{
+  --pmd-v231-dark-bg:#0d141b;
+  --pmd-v231-dark-panel:#18222c;
+  --pmd-v231-dark-panel-2:#202c37;
+  --pmd-v231-dark-panel-3:#111a23;
+  --pmd-v231-dark-line:#526170;
+  --pmd-v231-dark-text:#f7fafc;
+  --pmd-v231-dark-muted:#b8c4cf;
+}
+
+/* =====================================================
+   CATEGORY STABILITY
+   ===================================================== */
+
+body.pmd-waiter-standard-v23-page .pmd-pos-categories{
+  align-content:start!important;
+  scrollbar-gutter:stable;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-category.pmd-v231-stable-category,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-category{
+  border:1px solid rgba(0,0,0,.28)!important;
+  border-left:1px solid rgba(0,0,0,.28)!important;
+  border-radius:3px!important;
+
+  background:
+    var(
+      --pmd-v231-category-color,
+      var(--pmd-v23-category-accent,#2563eb)
+    )!important;
+
+  color:#fff!important;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.13)!important;
+
+  text-shadow:
+    0 1px 1px rgba(0,0,0,.22);
+
+  opacity:1!important;
+  visibility:visible;
+  transform:none!important;
+
+  transition:
+    filter .08s ease,
+    box-shadow .08s ease!important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-category:hover{
+  background:
+    var(
+      --pmd-v231-category-color,
+      var(--pmd-v23-category-accent,#2563eb)
+    )!important;
+
+  color:#fff!important;
+  filter:brightness(1.08);
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-category.is-active{
+  background:
+    var(
+      --pmd-v231-category-color,
+      var(--pmd-v23-category-accent,#2563eb)
+    )!important;
+
+  color:#fff!important;
+
+  border-color:#fff!important;
+
+  box-shadow:
+    inset 0 0 0 3px rgba(255,255,255,.94),
+    inset 0 0 0 5px rgba(0,0,0,.20),
+    0 2px 8px rgba(0,0,0,.22)!important;
+
+  filter:none!important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v23-special-category{
+  border-left:1px solid rgba(0,0,0,.28)!important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v23-owner-filter="bestseller"]{
+  --pmd-v231-category-color:#ea580c!important;
+  --pmd-v23-category-accent:#ea580c!important;
+}
+
+body.pmd-waiter-standard-v23-page
+[data-v23-owner-filter="chef"]{
+  --pmd-v231-category-color:#7c3aed!important;
+  --pmd-v23-category-accent:#7c3aed!important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v231-filtered-out{
+  display:none!important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v23-special-empty{
+  color:var(--pmd-v23-muted)!important;
+  background:var(--pmd-v23-surface-2)!important;
+  border-color:var(--pmd-v23-line-strong)!important;
+}
+
+@media(min-width:781px){
+  body.pmd-waiter-standard-v23-page
+  .pmd-pos-categories{
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+  }
+
+  body.pmd-waiter-standard-v23-page
+  .pmd-pos-category{
+    width:100%!important;
+    min-width:0!important;
+    max-width:none!important;
+    flex:none!important;
+    white-space:normal!important;
+  }
+}
+
+/* =====================================================
+   GENERAL POS SURFACES
+   ===================================================== */
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart-head,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-new-section,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart-list,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-checkout,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-section-heading,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-guest-row,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-stepper,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-line-item,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-sent-item,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-sent-qty,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-note-input,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-secondary-actions button,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-modal-card,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-option-group,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-option{
+  border-color:var(--pmd-v23-line)!important;
+}
+
+/* =====================================================
+   COMPLETE DARK MODE
+   ===================================================== */
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-catalog,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart-head,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-new-section,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart-list,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-checkout,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-tools,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-menu-scroll{
+  background:var(--pmd-v231-dark-panel)!important;
+  color:var(--pmd-v231-dark-text)!important;
+  border-color:var(--pmd-v231-dark-line)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-guest-row{
+  margin-top:12px!important;
+  padding:10px 10px 22px!important;
+
+  background:var(--pmd-v231-dark-panel-2)!important;
+  color:var(--pmd-v231-dark-text)!important;
+
+  border:1px solid var(--pmd-v231-dark-line)!important;
+  border-radius:3px!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-stepper{
+  background:var(--pmd-v231-dark-panel-3)!important;
+  border:1px solid var(--pmd-v231-dark-line)!important;
+  border-radius:3px!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-stepper button{
+  background:#f8fafc!important;
+  color:#07111d!important;
+  border:1px solid #d4dce4!important;
+  border-radius:2px!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-stepper span{
+  background:#111923!important;
+  color:#fff!important;
+  border-radius:2px!important;
+  padding:8px 4px!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-section-heading{
+  background:var(--pmd-v231-dark-panel-3)!important;
+  color:var(--pmd-v231-dark-text)!important;
+  border-color:var(--pmd-v231-dark-line)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart-empty{
+  background:var(--pmd-v231-dark-panel)!important;
+  color:var(--pmd-v231-dark-muted)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart-empty b{
+  color:var(--pmd-v231-dark-text)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-order-pill{
+  background:#155e75!important;
+  color:#f0f9ff!important;
+  border-radius:3px!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-order-pill.is-partial{
+  background:#92400e!important;
+  color:#fff7ed!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-order-pill.is-paid{
+  background:#166534!important;
+  color:#f0fdf4!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-line-item,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-sent-item,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-sent-qty,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-more-menu,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v21-more-menu{
+  background:var(--pmd-v231-dark-panel-2)!important;
+  color:var(--pmd-v231-dark-text)!important;
+  border-color:var(--pmd-v231-dark-line)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-line-name,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-line-price,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-sent-name,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-sent-price{
+  color:var(--pmd-v231-dark-text)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-line-options,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-sent-name small,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-guest-row small,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-section-heading small,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-total-row{
+  color:var(--pmd-v231-dark-muted)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-total-row.grand,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart h2,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart strong,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart b,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-cart label{
+  color:var(--pmd-v231-dark-text)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-table-note,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-note-input,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+input,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+textarea{
+  background:var(--pmd-v231-dark-panel)!important;
+  color:var(--pmd-v231-dark-text)!important;
+  border-color:var(--pmd-v231-dark-line)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+input::placeholder,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+textarea::placeholder{
+  color:#9eacb9!important;
+  opacity:1!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-qty button,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-remove,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-secondary-actions button,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v21-more-menu button{
+  background:var(--pmd-v231-dark-panel-2)!important;
+  color:var(--pmd-v231-dark-text)!important;
+  border-color:var(--pmd-v231-dark-line)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-remove{
+  color:#fb7185!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-action:disabled,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v21-pay-primary:disabled{
+  background:#384552!important;
+  color:#aab6c2!important;
+  border-color:#526170!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-action.hold:not(:disabled){
+  background:#ca8a04!important;
+  color:#171100!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-action.send:not(:disabled){
+  background:#16a34a!important;
+  color:#fff!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v21-pay-primary:not(:disabled){
+  background:#2563eb!important;
+  color:#fff!important;
+}
+
+/* =====================================================
+   DARK PAYMENT AND MODALS
+   ===================================================== */
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-modal-card,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-modal-body,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-modal-foot,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-option-group,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-option,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-body,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-main,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-summary,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-block,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-balance-card,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-method,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-split-panel,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-history,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-history-item,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v221-tender-panel,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v221-keypad button,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v221-quick-cash button{
+  background:var(--pmd-v231-dark-panel)!important;
+  color:var(--pmd-v231-dark-text)!important;
+  border-color:var(--pmd-v231-dark-line)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-balance-card.is-remaining{
+  background:#351c22!important;
+  color:#fff!important;
+  border-color:#be4457!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-secondary{
+  background:var(--pmd-v231-dark-panel-2)!important;
+  color:var(--pmd-v231-dark-text)!important;
+  border-color:var(--pmd-v231-dark-line)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-dialog h2,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-dialog h3,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-dialog b,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-dialog strong,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-dialog label{
+  color:var(--pmd-v231-dark-text)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-dialog small,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-dialog
+.pmd-pos-payment-block-title span,
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-payment-safety{
+  color:var(--pmd-v231-dark-muted)!important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-modal-close{
+  background:var(--pmd-v231-dark-panel-2)!important;
+  color:#fff!important;
+  border-color:var(--pmd-v231-dark-line)!important;
+}
+
+/* Light mode receives clean contrast too. */
+
+html[data-pmd-pos-theme="light"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-guest-row,
+
+html[data-pmd-pos-theme="light"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-section-heading,
+
+html[data-pmd-pos-theme="light"]
+body.pmd-waiter-standard-v23-page
+.pmd-pos-checkout{
+  background:var(--pmd-v23-surface)!important;
+  color:var(--pmd-v23-text)!important;
+}
+
+/* Slightly larger category text without creating overflow. */
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-category{
+  font-size:14px!important;
+  font-weight:950!important;
+  line-height:1.08!important;
+  padding:9px 8px!important;
+}
+
+@media(max-width:780px){
+  body.pmd-waiter-standard-v23-page
+  .pmd-pos-category{
+    font-size:13px!important;
+    min-height:56px!important;
+  }
+}

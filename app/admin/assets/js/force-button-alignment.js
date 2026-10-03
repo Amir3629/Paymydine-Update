@@ -1130,7 +1130,7 @@ function moveBulkButtons() {
         // Also observe the body for new bulk actions rows
         const bodyObserver = new MutationObserver(function(mutations) {
             // Skip processing if modal is open (prevents freeze)
-            if (window.SKIP_EXPENSIVE_OBSERVERS || document.body.classList.contains('modal-open')) {
+            if (window.SKIP_EXPENSIVE_OBSERVERS || (document.body||document.documentElement).classList.contains('modal-open')) {
                 return;
             }
             // Skip if mutation is inside a modal

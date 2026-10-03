@@ -1,0 +1,88 @@
+{
+  "runtime_exists": true,
+  "catalog_exists": true,
+  "catalog_bytes": 100217,
+  "runtime_bytes": 8818,
+  "catalog_terms": {
+    "Calendar": {
+      "exact_occurrences": 2,
+      "case_insensitive_occurrences": 2
+    },
+    "Reservations": {
+      "exact_occurrences": 18,
+      "case_insensitive_occurrences": 31
+    },
+    "Reservation": {
+      "exact_occurrences": 50,
+      "case_insensitive_occurrences": 90
+    },
+    "Guests": {
+      "exact_occurrences": 3,
+      "case_insensitive_occurrences": 3
+    },
+    "Guest": {
+      "exact_occurrences": 9,
+      "case_insensitive_occurrences": 13
+    },
+    "Open": {
+      "exact_occurrences": 10,
+      "case_insensitive_occurrences": 17
+    },
+    "Opened": {
+      "exact_occurrences": 0,
+      "case_insensitive_occurrences": 0
+    },
+    "Table": {
+      "exact_occurrences": 25,
+      "case_insensitive_occurrences": 43
+    },
+    "Today": {
+      "exact_occurrences": 5,
+      "case_insensitive_occurrences": 8
+    },
+    "Tomorrow": {
+      "exact_occurrences": 1,
+      "case_insensitive_occurrences": 2
+    },
+    "Floor": {
+      "exact_occurrences": 2,
+      "case_insensitive_occurrences": 3
+    },
+    "Hour": {
+      "exact_occurrences": 7,
+      "case_insensitive_occurrences": 14
+    },
+    "Dashboard": {
+      "exact_occurrences": 6,
+      "case_insensitive_occurrences": 13
+    },
+    "Revenue": {
+      "exact_occurrences": 3,
+      "case_insensitive_occurrences": 3
+    },
+    "Tips": {
+      "exact_occurrences": 0,
+      "case_insensitive_occurrences": 0
+    },
+    "Table Turnover": {
+      "exact_occurrences": 0,
+      "case_insensitive_occurrences": 0
+    },
+    "Dine In / Take Away": {
+      "exact_occurrences": 0,
+      "case_insensitive_occurrences": 0
+    },
+    "Sales over time": {
+      "exact_occurrences": 0,
+      "case_insensitive_occurrences": 0
+    },
+    "Line": {
+      "exact_occurrences": 0,
+      "case_insensitive_occurrences": 4
+    },
+    "Bar": {
+      "exact_occurrences": 6,
+      "case_insensitive_occurrences": 53
+    }
+  }
+}

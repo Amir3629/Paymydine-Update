@@ -1,88 +1,13 @@
-<div class="row-fluid">
-    <div class="container-fluid">
-        <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h3 class="mb-1">
-                    <i class="fa fa-edit text-primary"></i> 
-                    Edit KDS Station
-                </h3>
-                <p class="text-muted mb-0">
-                    Modify settings for this Kitchen Display System station
-                </p>
-            </div>
-            <div class="d-flex gap-2">
-                @if(isset($formModel) && $formModel->slug)
-                <a href="{{ admin_url('kitchendisplay/' . $formModel->slug) }}" class="btn btn-success" target="_blank">
-                    <i class="fa fa-external-link"></i> Open KDS
-                </a>
-                @endif
-                <a href="{{ admin_url('kds_stations') }}" class="btn btn-outline-secondary">
-                    <i class="fa fa-arrow-left"></i> Back to Stations
-                </a>
-            </div>
-        </div>
-
-        <!-- Form Card -->
-        <div class="card">
-            <div class="card-body">
-                {!! $this->renderForm() !!}
-            </div>
-        </div>
-
-        <!-- KDS URL Info -->
-        @if(isset($formModel) && $formModel->slug)
-        <div class="card mt-4 border-primary">
-            <div class="card-header bg-primary text-white">
-                <h6 class="mb-0"><i class="fa fa-link"></i> KDS Access URL</h6>
-            </div>
-            <div class="card-body">
-                <div class="input-group">
-                    <input type="text" class="form-control" id="kds-url" 
-                           value="{{ url('admin/kitchendisplay/' . $formModel->slug) }}" 
-                           readonly>
-                    <button class="btn btn-outline-primary" type="button" onclick="copyKdsUrl()">
-                        <i class="fa fa-copy"></i> Copy
-                    </button>
-                    <a href="{{ admin_url('kitchendisplay/' . $formModel->slug) }}" 
-                       class="btn btn-primary" target="_blank">
-                        <i class="fa fa-external-link"></i> Open
-                    </a>
-                </div>
-                <small class="text-muted mt-2 d-block">
-                    Use this URL on your kitchen display device. Bookmark it for easy access.
-                </small>
-            </div>
-        </div>
-        @endif
-
-        <!-- Delete Button -->
-        @if(isset($formModel) && $formModel->station_id)
-        <div class="card mt-4 border-danger">
-            <div class="card-header bg-danger text-white">
-                <h6 class="mb-0"><i class="fa fa-trash"></i> Danger Zone</h6>
-            </div>
-            <div class="card-body">
-                <p class="mb-3">Deleting this station will remove it from the system. This action cannot be undone.</p>
-                <form action="{{ admin_url('kds_stations/delete/' . $formModel->station_id) }}" method="POST" 
-                      onsubmit="return confirm('Are you sure you want to delete this KDS station?');">
-                    @csrf
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fa fa-trash"></i> Delete Station
-                    </button>
-                </form>
-            </div>
-        </div>
-        @endif
-    </div>
+@include('admin::pmddevices._v2_boot')
+@php $pmdFormWidget = $this->widgets['form'] ?? null; try { if ($pmdFormWidget) $pmdFormWidget->render(['useContainer'=>false]); } catch (\Throwable $e) {} $pmdOpenKds = (isset($formModel) && !empty($formModel->slug)) ? admin_url('kitchendisplay/'.$formModel->slug) : null; @endphp
+<div id="pmd-restaurant-profile" data-pmd-restaurant-profile data-pmd-device-settings-v2="kds-edit">
+    @include('admin::pmddevices._v2_header',['pmdSuiteTitle'=>'Edit KDS station','pmdSuiteBackUrl'=>admin_url('kds_stations'),'pmdSuiteSave'=>true,'pmdSuiteDelete'=>true,'pmdSuiteActionUrl'=>$pmdOpenKds,'pmdSuiteActionTitle'=>'Open KDS','pmdSuiteActionTarget'=>'_blank'])
+    {!! form_open(['id'=>'pmd-restaurant-profile-form','role'=>'form','method'=>'PATCH']) !!}
+    @php $pmdSections = [
+      ['Basic information','Name this kitchen display.','', ['name']],
+      ['Routing','Choose which menu categories reach this KDS.','pmd-profile-section--violet',['category_ids']],
+    ]; @endphp
+    @foreach($pmdSections as $pmdSection)<section class="pmd-profile-section {{ $pmdSection[2] }}"><div class="pmd-profile-card"><div class="pmd-profile-card__header"><div class="pmd-profile-section-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg></div><div><h2>{{ $pmdSection[0] }}</h2><p>{{ $pmdSection[1] }}</p></div></div><div class="pmd-profile-card__body"><div class="pmd-profile-grid pmd-profile-grid--2 pmd-device-native-form">@foreach($pmdSection[3] as $pmdName) @include('admin::pmddevices._v2_field',['pmdFormWidget'=>$pmdFormWidget,'pmdFieldName'=>$pmdName]) @endforeach</div></div></div></section>@endforeach
+    <div class="pmd-profile-bottom-save"><button type="button" class="pmd-profile-bottom-save__button" data-request="onSave" data-request-form="#pmd-restaurant-profile-form" data-request-flash><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg><span>Save changes</span></button></div>
+    {!! form_close() !!}
 </div>
-
-<script>
-function copyKdsUrl() {
-    const urlInput = document.getElementById('kds-url');
-    urlInput.select();
-    document.execCommand('copy');
-    alert('KDS URL copied to clipboard!');
-}
-</script>
-

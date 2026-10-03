@@ -7,6 +7,27 @@ import {
 } from "@/features/checkout/checkout-state-utils"
 import { toPositiveAmount } from "@/features/checkout/checkout-utils"
 
+function notifyNativeKioskOrderComplete(orderId: number | string | null | undefined) {
+  if (typeof window === "undefined" || !orderId) return
+  const bridge = (window as any)?.PayMyDineKiosk
+  const bridgeSecret =
+    (window as any)?.__PMD_KIOSK_BRIDGE_SECRET__
+  if (
+    bridge &&
+    typeof bridge.orderComplete === "function" &&
+    typeof bridgeSecret === "string" &&
+    bridgeSecret.length > 20
+  ) {
+    try {
+      bridge.orderComplete(
+        String(orderId),
+        bridgeSecret,
+      )
+    } catch {}
+  }
+}
+
+
 export async function handlePaymentFlow({
   stripePaymentIntentId,
   forcedPaymentContext,
@@ -82,6 +103,15 @@ export async function handlePaymentFlow({
     setIsLoading(true)
     try {
       const isCashier = tableInfo?.is_codier || false
+      const kioskParams =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search)
+          : null
+      const isKioskMode = kioskParams?.get("pmd_kiosk") === "1"
+      const kioskOrderType =
+        kioskParams?.get("kiosk_order_type") === "pickup"
+          ? "pickup"
+          : "kiosk"
 
       const routeTableId =
         typeof window !== "undefined"
@@ -113,9 +143,13 @@ export async function handlePaymentFlow({
           : null
 
       const resolvedTableName =
-        (tableInfo?.table_name && String(tableInfo.table_name).trim() !== "")
-          ? String(tableInfo.table_name)
-          : (numericResolvedTableId ? `Table ${numericResolvedTableId}` : "Delivery")
+        isKioskMode
+          ? kioskOrderType
+          : (
+              (tableInfo?.table_name && String(tableInfo.table_name).trim() !== "")
+                ? String(tableInfo.table_name)
+                : (numericResolvedTableId ? `Table ${numericResolvedTableId}` : "Delivery")
+            )
 
       const resolvedLocationId = Number(tableInfo?.location_id || 1)
 
@@ -139,16 +173,28 @@ export async function handlePaymentFlow({
         }
       })
 
+      const isSplitPersonPayment = checkoutStep === "payment" && Boolean(selectedSplitPersonId)
+      const safePaymentCouponDiscount = isSplitPersonPayment ? 0 : Number(paymentCouponDiscount || 0)
+      const safePaymentCouponCode = isSplitPersonPayment ? null : (appliedCoupon?.code ? String(appliedCoupon.code) : null)
+
       const orderData = {
-        table_id: isCashier ? "cashier" : (numericResolvedTableId != null ? String(numericResolvedTableId) : null),
-        table_name: String(isCashier ? "Cashier" : resolvedTableName),
+        table_id: isKioskMode
+          ? null
+          : (isCashier ? "cashier" : (numericResolvedTableId != null ? String(numericResolvedTableId) : null)),
+        table_name: String(isKioskMode ? kioskOrderType : (isCashier ? "Cashier" : resolvedTableName)),
         location_id: resolvedLocationId,
         is_codier: Boolean(isCashier),
+        service_mode: isKioskMode ? kioskOrderType : undefined,
+        kiosk_session: isKioskMode ? (kioskParams?.get("kiosk_session") || undefined) : undefined,
         items: normalizedItemsForOrder,
         customer_name: String(
-          isCashier
-            ? "Cashier Customer"
-            : `${resolvedTableName} Customer`
+          isKioskMode
+            ? "Kiosk Customer"
+            : (
+                isCashier
+                  ? "Cashier Customer"
+                  : `${resolvedTableName} Customer`
+              )
         ),
         customer_phone: String(paymentFormData.phone || ""),
         customer_email: String(paymentFormData.email || ""),
@@ -165,8 +211,8 @@ export async function handlePaymentFlow({
         stripe_payment_intent_id: (isStripeMethodForSubmit && stripePaymentIntentId) ? String(stripePaymentIntentId) : undefined,
         total_amount: Number(checkoutStep === "payment" ? payableTotal : finalTotal),
         tip_amount: Number(checkoutStep === "payment" ? paymentTipAmount : tipAmount),
-        coupon_code: (checkoutStep === "payment" && selectedSplitPersonId) ? null : (appliedCoupon?.code ? String(appliedCoupon.code) : null),
-        coupon_discount: Number(checkoutStep === "payment" ? paymentCouponDiscount : couponDiscount),
+        coupon_code: checkoutStep === "payment" ? safePaymentCouponCode : (appliedCoupon?.code ? String(appliedCoupon.code) : null),
+        coupon_discount: Number(checkoutStep === "payment" ? safePaymentCouponDiscount : couponDiscount),
         guest_session_id: ensureGuestSession(),
         special_instructions: "",
       }
@@ -225,11 +271,12 @@ export async function handlePaymentFlow({
           if (selectedSplitPersonId) {
             setPaidSplitPeople((prev: any) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: safePaymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: safePaymentCouponCode })
             resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
           setIsLoading(false)
+          notifyNativeKioskOrderComplete(paymentOrderIdCandidate)
           toast({
             title: t("paymentSuccessful"),
             description: `Order #${paymentOrderIdCandidate} paid successfully!`,
@@ -245,6 +292,24 @@ export async function handlePaymentFlow({
           return
         }
       }
+    // PMD_FIX_EXISTING_ORDER_AMOUNT_REFERENCE_V41
+    // Avoid ReferenceError when old payload amount variable does not exist in this scope.
+    // PMD_PAY_EXISTING_INLINE_PAYABLE_V40
+    // Use payable total after coupon/tip for /pay-existing.
+    const pmdPayExistingPayableAmountV40 = (() => {
+      const candidates = [
+        paymentPayableTotal,
+        payableTotal,
+      ]
+      for (const value of candidates) {
+        const amount = Number(value)
+        if (Number.isFinite(amount) && amount >= 0) {
+          return Math.round(amount * 100) / 100
+        }
+      }
+      return 0
+    })()
+
       if (shouldUsePayExisting && paymentOrderIdCandidate) {
         const paidMethod = orderData.payment_method
         const selectedItemsPayload = selectedSplitPersonId && splitMethod === "items"
@@ -270,7 +335,7 @@ export async function handlePaymentFlow({
 
         console.info("PMD_PAYMENT_AMOUNT_RESOLVED", {
           order_id: paymentOrderIdCandidate,
-          amount: existingOrderAmount,
+          amount: pmdPayExistingPayableAmountV40,
           payableTotal,
           paymentPayableTotal,
           submittedSnapshotTotal: (submittedSnapshot as any)?.total ?? null,
@@ -279,18 +344,135 @@ export async function handlePaymentFlow({
           submittedItemsSubtotal: pmdSubmittedItemsSubtotal(),
         })
 
+        /*
+         * PMD_PAY_EXISTING_TIP_AMOUNT_FIX_V42
+         *
+         * Backend contract:
+         * provider charge = unpaid order amount + tip - coupon.
+         */
+        const pmdRoundMoneyV42 = (
+          value: unknown
+        ): number => {
+          const numeric =
+            Number(value)
+
+          return Number.isFinite(numeric)
+            ? Math.round(numeric * 100) / 100
+            : 0
+        }
+
+        const pmdPayExistingBaseAmountV42 =
+          (() => {
+            /*
+             * PMD_PAY_EXISTING_REAL_ITEM_BASE_V1
+             *
+             * The backend validates payment against the actual selected
+             * order-item principal. A previously persisted total can contain
+             * an older tip and must not become the principal of a new payment.
+             */
+            const submittedItemsSubtotal =
+              pmdRoundMoneyV42(
+                pmdSubmittedItemsSubtotal()
+              )
+
+            const candidates = [
+              submittedItemsSubtotal,
+              pendingSummary?.remainingAmount,
+              (submittedSnapshot as any)
+                ?.remainingAmount,
+              (tableDraft as any)
+                ?.totals?.remainingAmount,
+              existingOrderAmount,
+              (submittedSnapshot as any)
+                ?.total,
+              (tableDraft as any)
+                ?.totals?.total,
+            ]
+
+            for (const candidate of candidates) {
+              const amount =
+                pmdRoundMoneyV42(candidate)
+
+              if (amount > 0) {
+                return amount
+              }
+            }
+
+            return 0
+          })()
+
+        const pmdPayExistingTipAmountV42 =
+          pmdRoundMoneyV42(
+            Math.max(
+              0,
+              Number(paymentTipAmount || 0)
+            )
+          )
+
+        const pmdPayExistingCouponDiscountV42 =
+          pmdRoundMoneyV42(
+            Math.min(
+              Math.max(
+                0,
+                Number(
+                  safePaymentCouponDiscount ||
+                  0
+                )
+              ),
+              pmdPayExistingBaseAmountV42 +
+                pmdPayExistingTipAmountV42
+            )
+          )
+
+        const pmdPayExistingChargeAmountV42 =
+          pmdRoundMoneyV42(
+            Math.max(
+              0,
+              pmdPayExistingBaseAmountV42 +
+                pmdPayExistingTipAmountV42 -
+                pmdPayExistingCouponDiscountV42
+            )
+          )
+
         const payExistingPayload = {
           payment_method: String(paidMethod),
           payment_reference: stripePaymentIntentId ? String(stripePaymentIntentId) : null,
-          amount: existingOrderAmount,
-          tip_amount: checkoutStep === "payment" ? Number(paymentTipAmount.toFixed(2)) : 0,
-          coupon_discount: checkoutStep === "payment" ? Number(paymentCouponDiscount.toFixed(2)) : 0,
-          coupon_code: checkoutStep === "payment" && appliedCoupon?.code ? String(appliedCoupon.code) : null,
+          amount:
+            pmdPayExistingChargeAmountV42 > 0
+              ? pmdPayExistingChargeAmountV42
+              : undefined,
+          tip_amount:
+            pmdPayExistingTipAmountV42,
+          coupon_discount:
+            pmdPayExistingCouponDiscountV42,
+          coupon_code: checkoutStep === "payment" ? safePaymentCouponCode : null,
           selected_items: selectedItemsPayload,
           table_id: tableInfo?.table_id ? String(tableInfo.table_id) : null,
           table_no: tableInfo?.table_no ? String(tableInfo.table_no) : null,
           qr: tableInfo?.qr_code ? String(tableInfo.qr_code) : null,
         }
+        console.info(
+          "PMD_PAY_EXISTING_AMOUNT_V42",
+          {
+            order_id:
+              paymentOrderIdCandidate,
+
+            base_amount:
+              pmdPayExistingBaseAmountV42,
+
+            tip_amount:
+              pmdPayExistingTipAmountV42,
+
+            coupon_discount:
+              pmdPayExistingCouponDiscountV42,
+
+            charge_amount:
+              pmdPayExistingChargeAmountV42,
+
+            old_item_amount:
+              existingOrderAmount,
+          }
+        )
         console.info("PMD_PAY_EXISTING_PAYLOAD", { order_id: paymentOrderIdCandidate, ...payExistingPayload })
         const paidResponse = await apiClient.payExistingQrOrder(paymentOrderIdCandidate, payExistingPayload)
 
@@ -316,10 +498,11 @@ export async function handlePaymentFlow({
           if (selectedSplitPersonId) {
             setPaidSplitPeople((prev: any) => ({ ...prev, [selectedSplitPersonId]: true }))
           } else {
-            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+            markOpenOrderAsPaid(paymentOrderIdCandidate, { tipAmount: paymentTipAmount, couponDiscount: safePaymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: safePaymentCouponCode })
             resetPaymentAdjustmentsAfterSuccess()
           }
           setCheckoutStep(getCheckoutStepAfterPaymentSuccess())
+          notifyNativeKioskOrderComplete(paymentOrderIdCandidate)
           return
         }
       }
@@ -338,6 +521,7 @@ export async function handlePaymentFlow({
         // Save order ID for status tracking
         if (orderId) {
           localStorage.setItem("lastOrderId", orderId)
+          notifyNativeKioskOrderComplete(orderId)
         }
 
         const returnUrl =
@@ -399,7 +583,7 @@ export async function handlePaymentFlow({
         } catch {}
         clearCart()
         if (checkoutStep === "payment") {
-          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: paymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: appliedCoupon?.code || null })
+          markOpenOrderAsPaid(orderId || submittedSnapshot?.orderId || null, { tipAmount: paymentTipAmount, couponDiscount: safePaymentCouponDiscount, paidTotal: paymentPayableTotal, couponCode: safePaymentCouponCode })
           resetPaymentAdjustmentsAfterSuccess()
           setCheckoutStep(getCheckoutStepAfterOrderSubmit(checkoutStep))
         } else {

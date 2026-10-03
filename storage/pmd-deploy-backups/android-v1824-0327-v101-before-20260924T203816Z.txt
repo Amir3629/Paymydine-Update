@@ -1,0 +1,12 @@
+timestamp_utc=20260924T203816Z
+root=/var/www/paymydine
+checkout_head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=4edb058d5f317a2223a6b19a226820967ec6a64b
+php_base=2456d150e632be756a3b268acce3a37895bbf4ec
+php_target=43ea8ba5f65d9d458a4ede0fe1a09c4a8ec78eaa
+android_source=64d355374912e33fd0190318e5039f2124a8a818
+apk=PayMyDine-Android-0.3.27.apk
+apk_sha256=00c75088b3fed0aaa5e173e8ef9e4fce28940850695a6433d9133b96c41bee04
+
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/Services/PmdMobileSync/PmdMobileCommandProcessor.php

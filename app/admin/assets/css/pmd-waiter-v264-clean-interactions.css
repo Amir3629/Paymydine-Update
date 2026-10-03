@@ -1,0 +1,202 @@
+/* PMD Waiter V2.6.4 */
+
+/* -------------------------------------------------------------
+   1. Remove search completely from launcher.
+   The user does not want search in either header or area row.
+------------------------------------------------------------- */
+body.pmd-waiter-standard-v23-page .pmd-v263-area-search,
+body.pmd-waiter-standard-v23-page .pmd-v233-header-search,
+body.pmd-waiter-standard-v23-page .pmd-v2-search {
+  display: none !important;
+}
+
+/* -------------------------------------------------------------
+   2. Right rail: absolutely no hover/focus/press visual movement.
+   Keep only each operation's permanent colour accent.
+------------------------------------------------------------- */
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation {
+  transition: none !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:hover,
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:focus,
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:focus-visible,
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:active {
+  background: var(--pmd-v2-card, #fff) !important;
+  color: inherit !important;
+  border-top-color: var(--pmd-v2-line, #afbbc7) !important;
+  border-right-color: var(--pmd-v2-line, #afbbc7) !important;
+  border-bottom-color: var(--pmd-v2-line, #afbbc7) !important;
+  transform: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Preserve the fixed coloured inner accent only. */
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation::before {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Dark mode permanent background */
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:focus,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:focus-visible,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:active {
+  background: #17212b !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+}
+
+/* -------------------------------------------------------------
+   3. NOTE cards must behave like NEEDS CLEANING cards.
+   A NOTE badge can exist through several generations/classes, so
+   target every known marker plus :has() as a safe visual fallback.
+------------------------------------------------------------- */
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"],
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key.has-note,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key.is-note,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.pmd-v2-table-corner[title*="note" i]),
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.pmd-v21-corner[title*="note" i]),
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.v257-note),
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has([data-v257-note]),
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.note),
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(span:last-child:nth-child(n)[class*="note" i]) {
+  border-top-color: #d97706 !important;
+  border-right-color: #d7a463 !important;
+  border-bottom-color: #d7a463 !important;
+  border-left-color: #d7a463 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
+
+/* Current final cards often expose only a visible NOTE chip. */
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.v257-card-note),
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.pmd-v257-note),
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has([class*="note-badge" i]) {
+  border-top-color: #d97706 !important;
+  border-right-color: #d7a463 !important;
+  border-bottom-color: #d7a463 !important;
+  border-left-color: #d7a463 !important;
+}
+
+/* No ugly hover edge, glow, blue outline, lift or colour swap. */
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"]:hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key.has-note:hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key.is-note:hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.pmd-v2-table-corner[title*="note" i]):hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.pmd-v21-corner[title*="note" i]):hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.v257-note):hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has([data-v257-note]):hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.v257-card-note):hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.pmd-v257-note):hover,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has([class*="note-badge" i]):hover {
+  background: var(--pmd-v2-card, #fff) !important;
+  border-top-color: #d97706 !important;
+  border-right-color: #d7a463 !important;
+  border-bottom-color: #d7a463 !important;
+  border-left-color: #d7a463 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
+
+/* Final rendered lifecycle card classes */
+body.pmd-waiter-standard-v23-page
+.v241-table-card:has(.v241-note),
+body.pmd-waiter-standard-v23-page
+.v257-table-card:has(.v257-note),
+body.pmd-waiter-standard-v23-page
+[data-v241-table-card]:has([data-v241-note]),
+body.pmd-waiter-standard-v23-page
+[data-v257-table-card]:has([data-v257-note]) {
+  border-top: 4px solid #d97706 !important;
+  border-right-color: #d7a463 !important;
+  border-bottom-color: #d7a463 !important;
+  border-left-color: #d7a463 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.v241-table-card:has(.v241-note):hover,
+body.pmd-waiter-standard-v23-page
+.v257-table-card:has(.v257-note):hover,
+body.pmd-waiter-standard-v23-page
+[data-v241-table-card]:has([data-v241-note]):hover,
+body.pmd-waiter-standard-v23-page
+[data-v257-table-card]:has([data-v257-note]):hover {
+  border-top: 4px solid #d97706 !important;
+  border-right-color: #d7a463 !important;
+  border-bottom-color: #d7a463 !important;
+  border-left-color: #d7a463 !important;
+  background: var(--pmd-v2-card, #fff) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
+
+/* Dark-mode NOTE cards retain the same calm cleaning-style edge. */
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key[data-pmd-has-note="1"]:hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key:has(.v257-note):hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key:has(.v257-card-note):hover {
+  background: #17212b !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.v264-has-note,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.v264-has-note:hover,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.v264-has-note:focus,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.v264-has-note:focus-visible {
+  background: var(--pmd-v2-card, #fff) !important;
+  border-top: 4px solid #d97706 !important;
+  border-right-color: #d7a463 !important;
+  border-bottom-color: #d7a463 !important;
+  border-left-color: #d7a463 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
+
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key.v264-has-note,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v2-table-key.v264-has-note:hover {
+  background: #17212b !important;
+}

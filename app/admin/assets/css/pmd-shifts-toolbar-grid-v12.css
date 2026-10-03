@@ -1,0 +1,64 @@
+/* PMD_SHIFTS_TOOLBAR_GRID_ALIGNMENT_V12
+ * Visual-only Shifts refinement.
+ * - Keep date/navigation/member/calendar controls, remove the large toolbar card.
+ * - Pin 2-hour labels to exact timeline boundaries instead of flex spacing.
+ */
+
+body.pmd-shifts-page .pmd-shifts-final-toolbar {
+  width: 100% !important;
+  margin: 0 0 10px !important;
+  padding: 6px 0 8px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+/*
+ * Timeline is 06:00 -> 30:00 = 24 hours.
+ * The server/runtime prints a label every 2 hours (13 labels), so each label
+ * belongs on an exact 1/12 boundary. Absolute placement avoids text width
+ * influencing the spacing, which happened with flex + space-between.
+ */
+body.pmd-shifts-page .pmd-shifts-final-scale {
+  position: relative !important;
+  display: block !important;
+  min-height: 48px !important;
+  height: 100% !important;
+  overflow: visible !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-scale > span {
+  position: absolute !important;
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: max-content !important;
+  margin: 0 !important;
+  transform: translate(-50%, -50%) !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(1)  { left: 0% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(2)  { left: 8.3333333333% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(3)  { left: 16.6666666667% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(4)  { left: 25% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(5)  { left: 33.3333333333% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(6)  { left: 41.6666666667% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(7)  { left: 50% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(8)  { left: 58.3333333333% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(9)  { left: 66.6666666667% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(10) { left: 75% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(11) { left: 83.3333333333% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(12) { left: 91.6666666667% !important; }
+body.pmd-shifts-page .pmd-shifts-final-scale > span:nth-child(13) { left: 100% !important; }
+
+/* Keep controls comfortable on narrow screens without restoring the card. */
+@media (max-width: 820px) {
+  body.pmd-shifts-page .pmd-shifts-final-toolbar {
+    padding: 6px 0 10px !important;
+    gap: 8px !important;
+  }
+}

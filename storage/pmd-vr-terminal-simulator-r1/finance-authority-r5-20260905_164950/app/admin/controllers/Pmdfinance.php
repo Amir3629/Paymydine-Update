@@ -1,0 +1,575 @@
+<?php
+
+namespace Admin\Controllers;
+
+use Admin\Classes\AdminController;
+use Admin\Facades\AdminMenu;
+use Admin\Facades\Template;
+use Admin\Models\Payments_model;
+use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\Platform\LocationPlatformContext;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
+
+class Pmdfinance extends AdminController
+{
+    protected $requiredPermissions = 'Site.Settings';
+
+    protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod', 'cash'];
+    protected const PROVIDER_CODES = ['stripe', 'paypal', 'worldline', 'sumup', 'square', 'vr_payment'];
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-finance-settings-page');
+        $this->addCss('css/pmd-owner-settings-v1.css');
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+        $this->addCss('css/pmd-settings-inline-detail-v1.css');
+        $this->addJs('js/pmd-owner-settings-v1.js');
+        $this->addJs('js/pmd-settings-inline-detail-v1.js');
+        AdminMenu::setContext('settings', 'system');
+    }
+
+    public function index()
+    {
+        Template::setTitle('Payments & finance');
+        Template::setHeading('Payments & finance');
+
+        $payments = collect();
+        try {
+            $payments = Payments_model::query()->orderBy('priority')->get();
+        } catch (\Throwable $error) {
+            logger()->warning('PMD finance payment summary failed', ['message' => $error->getMessage()]);
+        }
+
+        // PMD_FINANCE_MARKET_FIRST_PAINT_R5
+        // Render the correct location-market catalogue in the initial HTML. R4
+        // used JavaScript to hide the legacy/global fallback until market state
+        // arrived; that retained the old list height and caused a large white
+        // refresh flash. LocationPlatformContext is now first-paint authority too.
+        $market = [];
+        $countryCode = '';
+        $methodCodes = self::METHOD_CODES;
+        $providerCodes = self::PROVIDER_CODES;
+        $methodDefinitions = [];
+
+        try {
+            $market = app(LocationPlatformContext::class)->state();
+            if (!empty($market['resolved']) && !empty($market['country_code']) && !empty($market['profile'])) {
+                $countryCode = strtoupper((string)$market['country_code']);
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('PMD finance first-paint market resolution failed', ['message' => $error->getMessage()]);
+        }
+
+        if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
+            $profile = (array)($market['profile'] ?? []);
+            $paymentProfile = (array)($profile['payments'] ?? []);
+            $methodDefinitions = (array)($paymentProfile['methods'] ?? []);
+            $methodCodes = array_values(array_keys($methodDefinitions));
+            $providerCodes = array_values(array_keys((array)($paymentProfile['providers'] ?? [])));
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-om');
+        } elseif ($countryCode === CountryPlatformProfileRegistry::GERMANY) {
+            // PMD_FINANCE_MARKET_SCOPE_R6A
+            // Germany keeps the mature canonical storage/runtime rows, but only
+            // providers declared by the DE market profile are visible/selectable.
+            $profile = (array)($market['profile'] ?? []);
+            $paymentProfile = (array)($profile['payments'] ?? []);
+            $providerCodes = array_values(array_keys((array)($paymentProfile['providers'] ?? [])));
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-de');
+        } elseif ($countryCode === CountryPlatformProfileRegistry::CANADA) {
+            // PMD_CANADA_FINANCE_FIRST_PAINT_R6
+            // Square is the only Canadian provider. Canada reuses the mature
+            // canonical Card/Apple Pay/Google Pay rows, while cash is providerless.
+            $methodCodes = ['card', 'apple_pay', 'google_pay', 'cod', 'cash'];
+            $providerCodes = ['square'];
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-ca');
+        } elseif ($countryCode === CountryPlatformProfileRegistry::TURKEY) {
+            // Türkiye is intentionally payment-empty until a reviewed provider
+            // integration exists. Do not flash the historical global catalogue.
+            $methodCodes = [];
+            $providerCodes = [];
+            $this->bodyClass = trim($this->bodyClass.' pmd-finance-market-tr');
+        }
+
+        $methods = $payments->filter(fn ($row) => in_array((string)$row->code, $methodCodes, true))->values();
+        $providers = $payments->filter(fn ($row) => in_array((string)$row->code, $providerCodes, true))->values();
+        $providerLabels = $providers->mapWithKeys(fn ($row) => [
+            (string)$row->code => (string)($row->name ?: ucfirst(str_replace('_', ' ', (string)$row->code))),
+        ])->all();
+
+        $methodProviders = [];
+        foreach ($methods as $method) {
+            $methodCode = (string)$method->code;
+
+            if ($countryCode === CountryPlatformProfileRegistry::OMAN) {
+                $definition = (array)($methodDefinitions[$methodCode] ?? []);
+                $methodProviders[$methodCode] = collect((array)($definition['provider_candidates'] ?? []))
+                    ->mapWithKeys(fn ($code) => [(string)$code => $providerLabels[(string)$code] ?? ucfirst(str_replace('_', ' ', (string)$code))])
+                    ->all();
+                continue;
+            }
+
+            if ($countryCode === CountryPlatformProfileRegistry::CANADA) {
+                $methodProviders[$methodCode] = in_array($methodCode, ['card', 'apple_pay', 'google_pay'], true)
+                    ? ['square' => ($providerLabels['square'] ?? 'Square')]
+                    : [];
+                continue;
+            }
+
+            $compatible = Payments_model::supportedProvidersForMethod($methodCode);
+            if ($countryCode === CountryPlatformProfileRegistry::GERMANY) {
+                $compatible = array_values(array_intersect($compatible, $providerCodes));
+            }
+            $methodProviders[$methodCode] = collect($compatible)
+                ->mapWithKeys(fn ($code) => [(string)$code => $providerLabels[(string)$code] ?? ucfirst(str_replace('_', ' ', (string)$code))])
+                ->all();
+        }
+
+        $this->vars['pmdFinance'] = [
+            'methods' => $methods,
+            'providers' => $providers,
+            'method_providers' => $methodProviders,
+            'provider_fields' => $this->inlineProviderFields(),
+            'provider_secret_fields' => $this->inlineProviderSecretFields(),
+            'settings' => $this->financeSettings(),
+            'fiskaly' => $this->fiskalyPayload(),
+            'market' => [
+                'country_code' => $countryCode !== '' ? $countryCode : null,
+                'location_id' => $market['location_id'] ?? null,
+                'profile_version' => $market['profile_version'] ?? null,
+            ],
+        ];
+
+        return $this->makeView('pmdfinance/index');
+    }
+
+    public function onSaveFinance()
+    {
+        $input = (array)post('finance', []);
+
+        $validator = Validator::make($input, [
+            'tax_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'tax_menu_price' => ['nullable', 'integer', 'in:1'],
+            'invoice_customer_template' => ['nullable', 'in:classic,modern,minimal'],
+            'invoice_customer_footer_text' => ['nullable', 'string', 'max:500'],
+            'invoice_prefix_preset' => ['nullable', 'string', 'max:40'],
+            'invoice_prefix' => ['nullable', 'string', 'max:80'],
+            'invoice_paper_width' => ['nullable', 'in:58mm,80mm,112mm,a4'],
+            'invoice_font_size_preset' => ['nullable', 'in:small,normal'],
+            'invoice_logo' => ['nullable', 'string', 'max:500'],
+            'invoice_print_hint' => ['nullable', 'string', 'max:1500'],
+            'fiskaly_environment' => ['nullable', 'in:test,live'],
+            'fiskaly_api_key' => ['nullable', 'string', 'max:4096'],
+            'fiskaly_api_secret' => ['nullable', 'string', 'max:4096'],
+            'fiskaly_organization_id' => ['nullable', 'string', 'max:255'],
+            'fiskaly_tss_id' => ['nullable', 'string', 'max:255'],
+            'fiskaly_client_id' => ['nullable', 'string', 'max:255'],
+            'fiskaly_cash_register_id' => ['nullable', 'string', 'max:255'],
+            'fiskaly_admin_pin' => ['nullable', 'string', 'max:255'],
+            'fiskaly_time_admin_pin' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        $clean = $validator->validated();
+
+        $values = [
+            'tax_mode' => !empty($input['tax_mode']) ? 1 : 0,
+            'tax_percentage' => (float)($clean['tax_percentage'] ?? 0),
+            // PMD_FIXED_VAT_ADD_POLICY_R37
+            // Menu prices are always net; VAT is added once to the order total.
+            'tax_menu_price' => 1,
+            'tax_delivery_charge' => !empty($input['tax_delivery_charge']) ? 1 : 0,
+            'invoice_logo' => trim((string)($clean['invoice_logo'] ?? '')),
+            'invoice_customer_template' => (string)($clean['invoice_customer_template'] ?? 'classic'),
+            'invoice_customer_footer_text' => trim((string)($clean['invoice_customer_footer_text'] ?? '')),
+            'invoice_prefix_preset' => (string)($clean['invoice_prefix_preset'] ?? 'custom'),
+            'invoice_prefix' => trim((string)($clean['invoice_prefix'] ?? '')),
+            'invoice_receipt_mode' => !empty($input['invoice_receipt_mode']) ? 1 : 0,
+            'invoice_paper_width' => (string)($clean['invoice_paper_width'] ?? '80mm'),
+            'invoice_compact_mode' => !empty($input['invoice_compact_mode']) ? 1 : 0,
+            'invoice_font_size_preset' => (string)($clean['invoice_font_size_preset'] ?? 'normal'),
+            'invoice_show_logo' => !empty($input['invoice_show_logo']) ? 1 : 0,
+            'invoice_show_qr' => !empty($input['invoice_show_qr']) ? 1 : 0,
+            'invoice_show_fiskaly' => !empty($input['invoice_show_fiskaly']) ? 1 : 0,
+            'invoice_auto_print_dialog' => !empty($input['invoice_auto_print_dialog']) ? 1 : 0,
+            'invoice_auto_print_after_paid' => !empty($input['invoice_auto_print_after_paid']) ? 1 : 0,
+            'invoice_print_hint' => trim((string)($clean['invoice_print_hint'] ?? '')),
+        ];
+
+        DB::transaction(function () use ($values, $input, $clean) {
+            // PMD_FINANCE_SETTINGS_TENANT_AUTHORITY_R37
+            // Keep the framework settings manager populated for compatibility,
+            // but make the current tenant settings table the durable authority.
+            // The owner page and the public VAT API must read the same rows.
+            setting()->set($values);
+            setting()->save();
+            $this->persistFinanceSettingsDirect($values);
+            $this->saveFiskaly($input, $clean);
+        });
+
+        flash()->success('Payments & finance settings saved.');
+
+        return ['#pmd-owner-save-status' => '<span>Saved</span>'];
+    }
+
+    /**
+     * Presentation-only schema for the Finance in-page modal.
+     * Payments.php remains the save/validation/provider authority.
+     */
+    protected function inlineProviderFields(): array
+    {
+        $mode = [
+            'transaction_mode' => ['label' => 'Connection mode', 'type' => 'select', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production'], 'help' => 'Use test credentials first, then switch to live after verification.'],
+        ];
+
+        return [
+            'stripe' => array_merge($mode, [
+                'test_publishable_key' => ['label' => 'Test Publishable Key'],
+                'live_publishable_key' => ['label' => 'Live Publishable Key'],
+                'test_secret_key' => ['label' => 'Test Secret Key', 'secret' => true],
+                'live_secret_key' => ['label' => 'Live Secret Key', 'secret' => true],
+                'currency' => ['label' => 'Currency', 'default' => 'EUR'],
+            ]),
+            'paypal' => array_merge($mode, [
+                'test_client_id' => ['label' => 'Sandbox Client ID'],
+                'test_client_secret' => ['label' => 'Sandbox Client Secret', 'secret' => true],
+                'live_client_id' => ['label' => 'Live Client ID'],
+                'live_client_secret' => ['label' => 'Live Client Secret', 'secret' => true],
+                'brand_name' => ['label' => 'Checkout Brand Name'],
+                'currency' => ['label' => 'Currency', 'default' => 'EUR'],
+            ]),
+            'square' => array_merge($mode, [
+                'test_application_id' => ['label' => 'Sandbox Application ID', 'help' => 'Square Developer Console > Credentials > Sandbox Application ID. Public client identifier.'],
+                'test_access_token' => ['label' => 'Sandbox Access Token', 'secret' => true, 'help' => 'Secret server credential. Leave blank to keep the stored token.'],
+                'test_location_id' => ['label' => 'Sandbox Location ID', 'help' => 'Square Developer Console > Locations. Currency must match the PayMyDine order currency.'],
+                'test_webhook_signature_key' => ['label' => 'Sandbox Webhook Signature Key', 'secret' => true, 'help' => 'From the Square Webhooks subscription details. Leave blank to keep the stored key.'],
+                'test_webhook_notification_url' => ['label' => 'Sandbox Webhook Notification URL', 'help' => 'Use exactly https://YOUR-TENANT/api/v1/payments/square/webhook. Must exactly match Square Developer Console.'],
+                'live_application_id' => ['label' => 'Production Application ID'],
+                'live_access_token' => ['label' => 'Production Access Token', 'secret' => true],
+                'live_location_id' => ['label' => 'Production Location ID'],
+                'live_webhook_signature_key' => ['label' => 'Production Webhook Signature Key', 'secret' => true],
+                'live_webhook_notification_url' => ['label' => 'Production Webhook Notification URL'],
+                'currency' => ['label' => 'Currency', 'default' => 'CAD', 'help' => 'Square is a PayMyDine Canada-only provider. Must match the Canadian Square seller location currency.'],
+            ]),
+            'sumup' => [
+                'auth_mode' => ['label' => 'Auth Mode', 'type' => 'select', 'default' => 'access_token', 'options' => ['access_token' => 'Access Token (current)']],
+                'access_token' => ['label' => 'Access Token', 'secret' => true, 'help' => 'Leave blank to keep the stored token.'],
+                'url' => ['label' => 'API Base URL', 'default' => 'https://api.sumup.com'],
+                'id_application' => ['label' => 'Merchant Code', 'help' => 'Optional; PayMyDine can resolve it from SumUp when the token is valid.'],
+                'connection_status' => ['label' => 'Connection status', 'readonly' => true, 'default' => 'Unknown'],
+                'merchant_email' => ['label' => 'Merchant Email', 'readonly' => true],
+                'last_tested_at' => ['label' => 'Last Test Time', 'readonly' => true],
+            ],
+            'worldline' => [
+                'api_endpoint' => ['label' => 'API Endpoint', 'default' => 'https://api.preprod.connect.worldline-solutions.com'],
+                'merchant_id' => ['label' => 'Merchant ID'],
+                'api_key_id' => ['label' => 'API Key ID'],
+                'secret_api_key' => ['label' => 'Secret API Key', 'secret' => true],
+                'webhook_secret' => ['label' => 'Webhook Secret', 'secret' => true],
+                'google_pay_merchant_id' => ['label' => 'Google Pay Merchant ID', 'help' => 'Required for Google Pay PRODUCTION own-checkout. TEST uses Google Pay test mode.'],
+                'terminal_id' => ['label' => 'Terminal Device ID'],
+                'terminal_environment' => ['label' => 'Terminal Environment', 'type' => 'select', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
+            ],
+            'vr_payment' => [
+                'mode' => ['label' => 'Mode', 'type' => 'select', 'default' => 'test', 'options' => ['test' => 'Test / Sandbox', 'live' => 'Live / Production']],
+                'api_base_url' => ['label' => 'API Base URL'],
+                'space_id' => ['label' => 'Space ID'],
+                'user_id' => ['label' => 'User ID'],
+                'auth_key' => ['label' => 'Auth Key', 'secret' => true],
+                'webhook_signing_key' => ['label' => 'Webhook Signing Key', 'secret' => true],
+                // PMD_VR_LIGHTBOX_ADMIN_TRUTH_R1_4_1
+                'preferred_integration_mode' => [
+                    'label' => 'Default / legacy integration',
+                    'type' => 'select',
+                    'default' => 'lightbox',
+                    'options' => [
+                        'lightbox' => 'Lightbox (embedded overlay)',
+                        'payment_page' => 'Hosted Payment Page',
+                    ],
+                    'help' => 'PayMyDine Frontend V2 requests Lightbox per transaction. Hosted Payment Page remains the safe fallback when VR Payment does not expose a Lightbox configuration for that transaction/method.',
+                ],
+                'api_endpoint' => [
+                    'label' => 'Terminal API Endpoint (legacy / optional)',
+                    'help' => 'Leave blank for the canonical VR Payment Cloud Till flow. PMD uses the same VR Web Service API and Space credentials to discover terminals.',
+                ],
+                'merchant_id' => [
+                    'label' => 'Terminal Merchant ID (legacy / optional)',
+                    'help' => 'Not required by the canonical Space-scoped Cloud Till API. Keep only if VR Payment support gives you a separate merchant identifier for a certified terminal setup.',
+                ],
+                'terminal_id' => [
+                    'label' => 'Terminal ID override (optional)',
+                    'help' => 'First provision/link a terminal under VR Payment Space > Payment > Terminals. If Test saved connection reports terminal_count=0, there is no terminal device available for PMD to test yet.',
+                ],
+            ],
+        ];
+    }
+
+    protected function inlineProviderSecretFields(): array
+    {
+        return [
+            'stripe' => ['test_secret_key', 'live_secret_key'],
+            'paypal' => ['test_client_secret', 'live_client_secret'],
+            'square' => ['test_access_token', 'live_access_token', 'test_webhook_signature_key', 'live_webhook_signature_key'],
+            'sumup' => ['access_token'],
+            'worldline' => ['secret_api_key', 'webhook_secret'],
+            'vr_payment' => ['auth_key', 'webhook_signing_key'],
+        ];
+    }
+
+    protected function financeSettingsConnection(): string
+    {
+        return app()->bound('tenant') ? 'tenant' : DB::getDefaultConnection();
+    }
+
+    /**
+     * PMD_FINANCE_SETTINGS_TENANT_AUTHORITY_R37
+     * Persist the owner-facing finance values into the same tenant settings
+     * rows consumed by /api/v1/vat-settings. This avoids the stale/global
+     * settings-manager path that can look saved until the page is refreshed.
+     */
+    protected function persistFinanceSettingsDirect(array $values): void
+    {
+        // PMD_FINANCE_QUERY_BUILDER_RESET_R37C
+        $connection = $this->financeSettingsConnection();
+
+        if (!Schema::connection($connection)->hasTable('settings')) {
+            throw new \RuntimeException('Tenant settings table not found.');
+        }
+
+        $columns = Schema::connection($connection)->getColumnListing('settings');
+        $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
+        $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
+
+        if (!$keyColumn || !$valueColumn) {
+            throw new \RuntimeException('Tenant settings table columns are not recognized.');
+        }
+
+        $writeValues = $values;
+        $writeValues['tax_enabled'] = (int)($values['tax_mode'] ?? 0);
+        $hasSort = in_array('sort', $columns, true);
+
+        foreach ($writeValues as $key => $value) {
+            $identity = [$keyColumn => $key];
+            if ($hasSort) $identity['sort'] = 'config';
+
+            $payload = [$valueColumn => (string)$value];
+            if (in_array('serialized', $columns, true)) $payload['serialized'] = 0;
+            if (in_array('updated_at', $columns, true)) $payload['updated_at'] = now();
+
+            $exists = DB::connection($connection)
+                ->table('settings')
+                ->where($identity)
+                ->exists();
+
+            if ($exists) {
+                DB::connection($connection)
+                    ->table('settings')
+                    ->where($identity)
+                    ->update($payload);
+                continue;
+            }
+
+            $insert = array_merge($identity, $payload);
+            if (in_array('created_at', $columns, true)) $insert['created_at'] = now();
+            DB::connection($connection)->table('settings')->insert($insert);
+        }
+
+        $expected = [
+            'tax_mode' => (string)($values['tax_mode'] ?? 0),
+            'tax_enabled' => (string)($values['tax_mode'] ?? 0),
+            'tax_percentage' => (string)($values['tax_percentage'] ?? 0),
+            'tax_menu_price' => '1',
+            'tax_delivery_charge' => (string)($values['tax_delivery_charge'] ?? 0),
+        ];
+
+        $verifyQuery = DB::connection($connection)
+            ->table('settings')
+            ->whereIn($keyColumn, array_keys($expected));
+        if ($hasSort) $verifyQuery->where('sort', 'config');
+
+        $stored = $verifyQuery->get([$keyColumn, $valueColumn]);
+        $storedMap = [];
+        foreach ($stored as $row) {
+            $storedMap[(string)$row->{$keyColumn}] = (string)$row->{$valueColumn};
+        }
+
+        foreach ($expected as $key => $expectedValue) {
+            if (!array_key_exists($key, $storedMap)) {
+                throw new \RuntimeException('Tax settings persistence verification failed for '.$key.'.');
+            }
+            if ((string)$storedMap[$key] !== $expectedValue) {
+                throw new \RuntimeException('Tax settings persistence verification mismatch for '.$key.'.');
+            }
+        }
+    }
+
+    protected function financeSettings(): array
+    {
+        $keys = [
+            'tax_mode' => 0,
+            'tax_percentage' => 0,
+            'tax_menu_price' => 1,
+            'tax_delivery_charge' => 0,
+            'invoice_logo' => '',
+            'invoice_customer_template' => 'classic',
+            'invoice_customer_footer_text' => 'Thank you',
+            'invoice_prefix_preset' => 'custom',
+            'invoice_prefix' => '',
+            'invoice_receipt_mode' => 1,
+            'invoice_paper_width' => '80mm',
+            'invoice_compact_mode' => 1,
+            'invoice_font_size_preset' => 'normal',
+            'invoice_show_logo' => 1,
+            'invoice_show_qr' => 1,
+            'invoice_show_fiskaly' => 1,
+            'invoice_auto_print_dialog' => 0,
+            'invoice_auto_print_after_paid' => 0,
+            'invoice_print_hint' => '',
+        ];
+
+        // Read from the current tenant DB first, exactly like the public VAT API.
+        // setting() remains only a compatibility fallback for missing rows.
+        $direct = [];
+        try {
+            $connection = $this->financeSettingsConnection();
+            if (Schema::connection($connection)->hasTable('settings')) {
+                $columns = Schema::connection($connection)->getColumnListing('settings');
+                $keyColumn = in_array('item', $columns, true) ? 'item' : (in_array('key', $columns, true) ? 'key' : null);
+                $valueColumn = in_array('value', $columns, true) ? 'value' : (in_array('data', $columns, true) ? 'data' : null);
+
+                if ($keyColumn && $valueColumn) {
+                    $wanted = array_values(array_unique(array_merge(array_keys($keys), ['tax_enabled'])));
+                    $query = DB::connection($connection)->table('settings');
+                    if (in_array('sort', $columns, true)) $query->where('sort', 'config');
+
+                    $rows = $query
+                        ->whereIn($keyColumn, $wanted)
+                        ->get([$keyColumn, $valueColumn]);
+
+                    foreach ($rows as $row) {
+                        $direct[(string)$row->{$keyColumn}] = $row->{$valueColumn};
+                    }
+                    if (!array_key_exists('tax_mode', $direct) && array_key_exists('tax_enabled', $direct)) {
+                        $direct['tax_mode'] = $direct['tax_enabled'];
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('PMD finance direct settings load failed', ['message' => $error->getMessage()]);
+        }
+
+        foreach ($keys as $key => $fallback) {
+            if (array_key_exists($key, $direct)) {
+                $keys[$key] = $direct[$key];
+                continue;
+            }
+
+            try {
+                $keys[$key] = setting($key, $fallback);
+            } catch (\Throwable $error) {
+                $keys[$key] = $fallback;
+            }
+        }
+
+        // PMD_FIXED_VAT_ADD_POLICY_R37
+        $keys['tax_menu_price'] = 1;
+
+        return $keys;
+    }
+
+    protected function fiskalyPayload(): array
+    {
+        $defaults = [
+            'fiskaly_is_enabled' => 0,
+            'fiskaly_environment' => 'test',
+            'fiskaly_api_key' => '',
+            'fiskaly_api_secret' => '',
+            'fiskaly_organization_id' => '',
+            'fiskaly_tss_id' => '',
+            'fiskaly_client_id' => '',
+            'fiskaly_cash_register_id' => '',
+            'fiskaly_admin_pin' => '',
+            'fiskaly_time_admin_pin' => '',
+        ];
+
+        try {
+            $connection = app()->bound('tenant') ? 'tenant' : DB::getDefaultConnection();
+            if (!Schema::connection($connection)->hasTable('fiskaly_configs')) {
+                return $defaults;
+            }
+
+            $row = DB::connection($connection)->table('fiskaly_configs')->where('location_id', 1)->first();
+            if (!$row) return $defaults;
+
+            $meta = json_decode((string)($row->meta ?? '{}'), true) ?: [];
+
+            return [
+                'fiskaly_is_enabled' => (int)($row->is_enabled ?? 0),
+                'fiskaly_environment' => (string)($row->environment ?? 'test'),
+                'fiskaly_api_key' => (string)($row->api_key ?? ''),
+                'fiskaly_api_secret' => '',
+                'fiskaly_organization_id' => (string)($row->organization_id ?? ''),
+                'fiskaly_tss_id' => (string)($row->tss_id ?? ''),
+                'fiskaly_client_id' => (string)($row->client_id ?? ''),
+                'fiskaly_cash_register_id' => (string)($row->cash_register_id ?? ''),
+                'fiskaly_admin_pin' => '',
+                'fiskaly_time_admin_pin' => '',
+                'has_api_secret' => !empty($row->api_secret),
+                'has_admin_pin' => !empty($meta['admin_pin']),
+                'has_time_admin_pin' => !empty($meta['time_admin_pin']),
+            ];
+        } catch (\Throwable $error) {
+            logger()->warning('PMD finance Fiskaly load failed', ['message' => $error->getMessage()]);
+            return $defaults;
+        }
+    }
+
+    protected function saveFiskaly(array $input, array $clean): void
+    {
+        try {
+            $connection = app()->bound('tenant') ? 'tenant' : DB::getDefaultConnection();
+            if (!Schema::connection($connection)->hasTable('fiskaly_configs')) return;
+
+            $table = DB::connection($connection)->table('fiskaly_configs');
+            $existing = $table->where('location_id', 1)->first();
+            $meta = json_decode((string)($existing->meta ?? '{}'), true) ?: [];
+
+            if (trim((string)($clean['fiskaly_admin_pin'] ?? '')) !== '') {
+                $meta['admin_pin'] = trim((string)$clean['fiskaly_admin_pin']);
+            }
+            if (trim((string)($clean['fiskaly_time_admin_pin'] ?? '')) !== '') {
+                $meta['time_admin_pin'] = trim((string)$clean['fiskaly_time_admin_pin']);
+            }
+
+            $apiSecret = trim((string)($clean['fiskaly_api_secret'] ?? ''));
+            if ($apiSecret === '') $apiSecret = (string)($existing->api_secret ?? '');
+
+            $table->updateOrInsert(
+                ['location_id' => 1],
+                [
+                    'provider' => 'fiskaly',
+                    'environment' => (string)($clean['fiskaly_environment'] ?? 'test'),
+                    'api_key' => trim((string)($clean['fiskaly_api_key'] ?? '')),
+                    'api_secret' => $apiSecret,
+                    'organization_id' => trim((string)($clean['fiskaly_organization_id'] ?? '')),
+                    'tss_id' => trim((string)($clean['fiskaly_tss_id'] ?? '')),
+                    'client_id' => trim((string)($clean['fiskaly_client_id'] ?? '')),
+                    'cash_register_id' => trim((string)($clean['fiskaly_cash_register_id'] ?? '')),
+                    'is_enabled' => !empty($input['fiskaly_is_enabled']) ? 1 : 0,
+                    'meta' => json_encode($meta),
+                    'updated_at' => now(),
+                    'created_at' => $existing->created_at ?? now(),
+                ]
+            );
+        } catch (\Throwable $error) {
+            logger()->error('PMD finance Fiskaly save failed', ['message' => $error->getMessage()]);
+            throw $error;
+        }
+    }
+}

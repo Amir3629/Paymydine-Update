@@ -1,0 +1,239 @@
+<?php
+
+
+if (!function_exists('pmd_table_order_item_subtotal')) {
+    function pmd_table_order_item_subtotal(array $items): float
+    {
+        return round(array_sum(array_map(function ($item) {
+            if (is_object($item)) $item = (array)$item;
+            return (float)($item['subtotal'] ?? (((float)($item['price'] ?? 0)) * ((float)($item['quantity'] ?? 0))));
+        }, $items)), 4);
+    }
+}
+
+if (!function_exists('pmd_table_order_tax_settings')) {
+    function pmd_table_order_tax_settings(): array
+    {
+        $settings = [
+            'tax_mode' => (string)setting('tax_mode', setting('tax_enabled', '0')),
+            'tax_percentage' => (string)setting('tax_percentage', '0'),
+            'tax_menu_price' => (string)setting('tax_menu_price', '1'),
+        ];
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+                $hasSerializedColumn = \Illuminate\Support\Facades\Schema::hasColumn('settings', 'serialized');
+                $columns = $hasSerializedColumn ? ['item', 'value', 'serialized'] : ['item', 'value'];
+                $rows = \Illuminate\Support\Facades\DB::table('settings')
+                    ->whereIn('item', ['tax_mode', 'tax_enabled', 'tax_percentage', 'tax_menu_price'])
+                    ->get($columns);
+
+                $values = [];
+                foreach ($rows as $row) {
+                    $value = $row->value;
+                    if ($hasSerializedColumn && (int)($row->serialized ?? 0) === 1 && is_string($value)) {
+                        $decoded = @unserialize($value);
+                        if ($decoded !== false || $value === 'b:0;') {
+                            $value = $decoded;
+                        }
+                    }
+                    if (is_bool($value)) {
+                        $value = $value ? '1' : '0';
+                    }
+                    $values[(string)$row->item] = $value;
+                }
+
+                $settings['tax_mode'] = (string)($values['tax_mode'] ?? $values['tax_enabled'] ?? $settings['tax_mode']);
+                $settings['tax_percentage'] = (string)($values['tax_percentage'] ?? $settings['tax_percentage']);
+                $settings['tax_menu_price'] = (string)($values['tax_menu_price'] ?? $settings['tax_menu_price']);
+            }
+        } catch (\Throwable $ignored) {}
+
+        return [
+            'enabled' => $settings['tax_mode'] === '1',
+            'percentage' => max(0.0, round((float)$settings['tax_percentage'], 4)),
+            'menu_price' => $settings['tax_menu_price'], // 0=included, 1=add at checkout
+        ];
+    }
+}
+
+// PMD_SPLIT_PAYMENT_SAFETY_R35
+if (!function_exists('pmd_table_order_service_charge_settings')) {
+    function pmd_table_order_service_charge_settings(): array
+    {
+        $enabled = (string)setting('pmd_service_charge_enabled', '0') === '1';
+        $type = strtolower(trim((string)setting('pmd_service_charge_type', 'percentage')));
+        if (!in_array($type, ['percentage', 'fixed'], true)) $type = 'percentage';
+        $value = max(0.0, round((float)setting('pmd_service_charge_value', '0'), 4));
+        $label = trim((string)setting('pmd_service_charge_label', 'Service charge')) ?: 'Service charge';
+        return ['enabled' => $enabled && $value > 0, 'type' => $type, 'value' => $value, 'label' => $label];
+    }
+}
+
+if (!function_exists('pmd_table_order_calculate_totals')) {
+    function pmd_table_order_calculate_totals(array $items): array
+    {
+        $subtotal = pmd_table_order_item_subtotal($items);
+        $serviceCfg = pmd_table_order_service_charge_settings();
+        $serviceCharge = 0.0;
+        if ($serviceCfg['enabled']) {
+            $serviceCharge = $serviceCfg['type'] === 'fixed'
+                ? (float)$serviceCfg['value']
+                : round($subtotal * ((float)$serviceCfg['value'] / 100), 4);
+        }
+        $taxableSubtotal = round($subtotal + $serviceCharge, 4);
+        $tax = pmd_table_order_tax_settings();
+        $taxAmount = 0.0;
+        $total = $taxableSubtotal;
+        $taxTitle = null;
+        $taxSummable = 0;
+
+        if (($tax['enabled'] ?? false) && (float)($tax['percentage'] ?? 0) > 0) {
+            $rate = (float)$tax['percentage'];
+            if ((string)($tax['menu_price'] ?? '1') === '1') {
+                $taxAmount = round($taxableSubtotal * ($rate / 100), 4);
+                $total = round($taxableSubtotal + $taxAmount, 4);
+                $taxTitle = 'VAT ('.$rate.'%)';
+                $taxSummable = 1;
+            } else {
+                $taxAmount = round($taxableSubtotal - ($taxableSubtotal / (1 + ($rate / 100))), 4);
+                $total = round($taxableSubtotal, 4);
+                $taxTitle = 'VAT included ('.$rate.'%)';
+                $taxSummable = 0;
+            }
+        }
+
+        $rows = [
+            ['code' => 'subtotal', 'title' => 'Subtotal', 'value' => round($subtotal, 4), 'priority' => 1, 'is_summable' => 1],
+        ];
+        if ($serviceCharge > 0) {
+            $rows[] = ['code' => 'service_charge', 'title' => $serviceCfg['label'], 'value' => round($serviceCharge, 4), 'priority' => 2, 'is_summable' => 1];
+        }
+        if ($taxTitle !== null) {
+            $rows[] = ['code' => 'tax', 'title' => $taxTitle, 'value' => round($taxAmount, 4), 'priority' => 3, 'is_summable' => $taxSummable];
+        }
+        $rows[] = ['code' => 'total', 'title' => 'Total', 'value' => round($total, 4), 'priority' => 99, 'is_summable' => 0];
+
+        return ['subtotal' => round($subtotal, 4), 'service_charge' => round($serviceCharge, 4), 'tax' => round($taxAmount, 4), 'total' => round($total, 4), 'rows' => $rows];
+    }
+}
+
+if (!function_exists('pmd_table_order_totals_from_order')) {
+    function pmd_table_order_totals_from_order(int $orderId, array $items, float $fallbackOrderTotal): array
+    {
+        $fallbackSubtotal = pmd_table_order_item_subtotal($items);
+        $rows = [];
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('order_totals')) {
+                $rows = \Illuminate\Support\Facades\DB::table('order_totals')
+                    ->where('order_id', $orderId)
+                    ->orderBy('priority')
+                    ->orderBy('order_total_id')
+                    ->get(['code', 'title', 'value', 'priority', 'is_summable'])
+                    ->map(fn($row) => [
+                        'code' => (string)($row->code ?? ''),
+                        'title' => (string)($row->title ?? ''),
+                        'value' => round((float)($row->value ?? 0), 4),
+                        'priority' => (int)($row->priority ?? 0),
+                        'is_summable' => (int)($row->is_summable ?? 0),
+                    ])->values()->all();
+            }
+        } catch (\Throwable $ignored) {}
+
+        $byCode = [];
+        foreach ($rows as $row) {
+            $code = strtolower((string)($row['code'] ?? ''));
+            if ($code !== '' && !isset($byCode[$code])) $byCode[$code] = $row;
+        }
+
+        $subtotal = isset($byCode['subtotal']) ? (float)$byCode['subtotal']['value'] : $fallbackSubtotal;
+        $tax = array_sum(array_map(fn($row) => strtolower((string)($row['code'] ?? '')) === 'tax' ? (float)($row['value'] ?? 0) : 0, $rows));
+        $serviceCharge = isset($byCode['service_charge']) ? (float)$byCode['service_charge']['value'] : 0.0;
+        $total = isset($byCode['total']) ? (float)$byCode['total']['value'] : (float)$fallbackOrderTotal;
+        if ($total <= 0) $total = $fallbackSubtotal;
+
+        return ['subtotal' => round($subtotal, 4), 'service_charge' => round($serviceCharge, 4), 'tax' => round($tax, 4), 'total' => round($total, 4), 'rows' => $rows];
+    }
+}
+
+
+// PMD_MENU_GALLERY_IMAGES_HELPERS_START
+if (!function_exists('pmd_menu_gallery_image_url')) {
+    function pmd_menu_gallery_image_url($path) {
+        // PMD_MENU_GALLERY_TENANT_MEDIA_R1
+        $path = trim((string)$path);
+        if ($path === '') return null;
+        if (preg_match('#^https?://#i', $path)) return $path;
+
+        $path = rawurldecode(str_replace('\', '/', $path));
+        $path = ltrim($path, '/');
+        foreach ([
+            'api/media/',
+            'assets/media/attachments/public/',
+            'assets/media/',
+            'attachments/public/',
+            'uploads/',
+            'storage/',
+        ] as $prefix) {
+            if (strpos($path, $prefix) === 0) {
+                $path = substr($path, strlen($prefix));
+                break;
+            }
+        }
+
+        $path = ltrim($path, '/');
+        return $path !== '' ? '/api/media/'.$path : null;
+    }
+}
+
+if (!function_exists('pmd_menu_gallery_images_for_id')) {
+    function pmd_menu_gallery_images_for_id($menuId) {
+        static $galleryByMenuId = null;
+
+        if ($galleryByMenuId === null) {
+            $galleryByMenuId = [];
+
+            try {
+                if (!\Schema::hasTable('menu_images')) {
+                    return [];
+                }
+
+                $rows = \DB::table('menu_images')
+                    ->select('menu_id', 'image_path')
+                    ->whereNotNull('image_path')
+                    ->orderBy('menu_id')
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->get();
+
+                foreach ($rows as $row) {
+                    $url = pmd_menu_gallery_image_url($row->image_path ?? '');
+
+                    if (!$url) {
+                        continue;
+                    }
+
+                    $id = (int)$row->menu_id;
+
+                    if (!isset($galleryByMenuId[$id])) {
+                        $galleryByMenuId[$id] = [];
+                    }
+
+                    if (!in_array($url, $galleryByMenuId[$id], true)) {
+                        $galleryByMenuId[$id][] = $url;
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error('PMD /api/v1/menu gallery load failed', [
+                    'error' => $e->getMessage(),
+                ]);
+
+                $galleryByMenuId = [];
+            }
+        }
+
+        return $galleryByMenuId[(int)$menuId] ?? [];
+    }
+}
+// PMD_MENU_GALLERY_IMAGES_HELPERS_END
+

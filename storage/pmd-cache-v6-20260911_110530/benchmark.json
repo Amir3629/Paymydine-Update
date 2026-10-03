@@ -1,0 +1,345 @@
+{
+  "rows": [
+    {
+      "workload": "MIX",
+      "concurrency": 4,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 587,
+      "p95_ms": 2505,
+      "max_ms": 4213,
+      "rps": 4.26,
+      "hosts": {
+        "test2.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 1831,
+          "max_ms": 1831
+        },
+        "mimoza.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 2505,
+          "max_ms": 2505
+        },
+        "loumi.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 1409,
+          "max_ms": 1409
+        },
+        "moon.paymydine.com": {
+          "requests": 9,
+          "bad": 0,
+          "p95_ms": 4213,
+          "max_ms": 4213
+        },
+        "tomo.paymydine.com": {
+          "requests": 9,
+          "bad": 0,
+          "p95_ms": 2769,
+          "max_ms": 2769
+        }
+      },
+      "error_rows": [],
+      "core": false
+    },
+    {
+      "workload": "MIX",
+      "concurrency": 8,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1581,
+      "p95_ms": 4474,
+      "max_ms": 6677,
+      "rps": 4.07,
+      "hosts": {
+        "test2.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 3271,
+          "max_ms": 3271
+        },
+        "mimoza.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 5048,
+          "max_ms": 5048
+        },
+        "loumi.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 2785,
+          "max_ms": 2785
+        },
+        "moon.paymydine.com": {
+          "requests": 9,
+          "bad": 0,
+          "p95_ms": 3256,
+          "max_ms": 3256
+        },
+        "tomo.paymydine.com": {
+          "requests": 9,
+          "bad": 0,
+          "p95_ms": 6677,
+          "max_ms": 6677
+        }
+      },
+      "error_rows": [],
+      "core": true
+    },
+    {
+      "workload": "MIX",
+      "concurrency": 12,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 4872,
+      "p95_ms": 10484,
+      "max_ms": 11215,
+      "rps": 2.17,
+      "hosts": {
+        "test2.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 6826,
+          "max_ms": 6826
+        },
+        "mimoza.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 11215,
+          "max_ms": 11215
+        },
+        "loumi.paymydine.com": {
+          "requests": 10,
+          "bad": 0,
+          "p95_ms": 6399,
+          "max_ms": 6399
+        },
+        "moon.paymydine.com": {
+          "requests": 9,
+          "bad": 0,
+          "p95_ms": 8234,
+          "max_ms": 8234
+        },
+        "tomo.paymydine.com": {
+          "requests": 9,
+          "bad": 0,
+          "p95_ms": 10484,
+          "max_ms": 10484
+        }
+      },
+      "error_rows": [],
+      "core": true
+    },
+    {
+      "workload": "QR",
+      "concurrency": 8,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 891,
+      "p95_ms": 3235,
+      "max_ms": 3741,
+      "rps": 6.19,
+      "hosts": {
+        "test2.paymydine.com": {
+          "requests": 48,
+          "bad": 0,
+          "p95_ms": 3235,
+          "max_ms": 3741
+        }
+      },
+      "error_rows": [],
+      "core": false
+    },
+    {
+      "workload": "QR",
+      "concurrency": 12,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1310,
+      "p95_ms": 4604,
+      "max_ms": 5589,
+      "rps": 5.49,
+      "hosts": {
+        "test2.paymydine.com": {
+          "requests": 48,
+          "bad": 0,
+          "p95_ms": 4604,
+          "max_ms": 5589
+        }
+      },
+      "error_rows": [],
+      "core": true
+    },
+    {
+      "workload": "QR",
+      "concurrency": 16,
+      "requests": 64,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 2927,
+      "p95_ms": 6986,
+      "max_ms": 7922,
+      "rps": 4.33,
+      "hosts": {
+        "test2.paymydine.com": {
+          "requests": 64,
+          "bad": 0,
+          "p95_ms": 6986,
+          "max_ms": 7922
+        }
+      },
+      "error_rows": [],
+      "core": true
+    },
+    {
+      "workload": "MIX",
+      "concurrency": 16,
+      "requests": 64,
+      "bad": 11,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 11,
+      "p50_ms": 8869,
+      "p95_ms": 12033,
+      "max_ms": 12082,
+      "rps": 1.68,
+      "hosts": {
+        "test2.paymydine.com": {
+          "requests": 13,
+          "bad": 0,
+          "p95_ms": 9612,
+          "max_ms": 9612
+        },
+        "mimoza.paymydine.com": {
+          "requests": 13,
+          "bad": 11,
+          "p95_ms": 12082,
+          "max_ms": 12082
+        },
+        "loumi.paymydine.com": {
+          "requests": 13,
+          "bad": 0,
+          "p95_ms": 10268,
+          "max_ms": 10268
+        },
+        "moon.paymydine.com": {
+          "requests": 13,
+          "bad": 0,
+          "p95_ms": 9861,
+          "max_ms": 9861
+        },
+        "tomo.paymydine.com": {
+          "requests": 12,
+          "bad": 0,
+          "p95_ms": 10305,
+          "max_ms": 10305
+        }
+      },
+      "error_rows": [
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.082135089673102,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.078374672681093,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.032506179995835,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.029603365808725,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.026436300948262,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.025451191700995,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.031998900696635,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.023724663071334,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.027402685955167,
+          "error": "TimeoutError('The read operation timed out')"
+        },
+        {
+          "host": "mimoza.paymydine.com",
+          "status": 0,
+          "seconds": 12.02309342008084,
+          "error": "TimeoutError('The read operation timed out')"
+        }
+      ],
+      "core": false
+    },
+    {
+      "workload": "QR",
+      "concurrency": 20,
+      "requests": 80,
+      "bad": 1,
+      "4xx": 0,
+      "5xx": 1,
+      "errors": 0,
+      "p50_ms": 4480,
+      "p95_ms": 8546,
+      "max_ms": 8741,
+      "rps": 3.92,
+      "hosts": {
+        "test2.paymydine.com": {
+          "requests": 80,
+          "bad": 1,
+          "p95_ms": 8546,
+          "max_ms": 8741
+        }
+      },
+      "error_rows": [],
+      "core": false
+    }
+  ]
+}

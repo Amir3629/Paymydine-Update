@@ -149,13 +149,23 @@ trait ViewMaker
         $viewPath = $this->getViewPath(strtolower($view));
         $contents = $this->makeFileContent($viewPath);
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'body_view'
+        );
+
         if ($this->suppressLayout || $this->layout === '')
             return $contents;
 
         // Append content to the body template
         Template::setBlock('body', $contents);
 
-        return $this->makeLayout();
+        $layoutContents = $this->makeLayout();
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_render'
+        );
+
+        return $layoutContents;
     }
 
     /**

@@ -1,0 +1,169 @@
+/* PMD KDS Stable Fast v81
+   KDS dashboard should keep normal backend header, hide sidebar, skip heavy dashboard widgets,
+   and mount the real KDS page once in a stable iframe without moving/reloading it. */
+
+html.pmd-kds-stable-fast-v81,
+body.pmd-kds-stable-fast-v81 {
+  overflow-x: hidden !important;
+}
+
+/* Hide only the left admin shell for KDS. Keep top header visible. */
+html.pmd-kds-stable-fast-v81 .sidebar,
+html.pmd-kds-stable-fast-v81 #navSidebar,
+html.pmd-kds-stable-fast-v81 #side-nav-menu,
+html.pmd-kds-stable-fast-v81 .navbar-side,
+html.pmd-kds-stable-fast-v81 .sidebar-left,
+html.pmd-kds-stable-fast-v81 .pmd-sidebar-icons-toggle,
+html.pmd-kds-stable-fast-v81 .pmd-logo-cycle-nav-item-v38,
+html.pmd-kds-stable-fast-v81 .pmd-logo-cycle-btn-v38,
+body.pmd-kds-stable-fast-v81 .sidebar,
+body.pmd-kds-stable-fast-v81 #navSidebar,
+body.pmd-kds-stable-fast-v81 #side-nav-menu,
+body.pmd-kds-stable-fast-v81 .navbar-side,
+body.pmd-kds-stable-fast-v81 .sidebar-left,
+body.pmd-kds-stable-fast-v81 .pmd-sidebar-icons-toggle,
+body.pmd-kds-stable-fast-v81 .pmd-logo-cycle-nav-item-v38,
+body.pmd-kds-stable-fast-v81 .pmd-logo-cycle-btn-v38 {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html.pmd-kds-stable-fast-v81 .page-wrapper,
+html.pmd-kds-stable-fast-v81 #page-wrapper,
+html.pmd-kds-stable-fast-v81 .content-wrapper,
+html.pmd-kds-stable-fast-v81 .main-content,
+html.pmd-kds-stable-fast-v81 .layout-content,
+html.pmd-kds-stable-fast-v81 .page-content,
+body.pmd-kds-stable-fast-v81 .page-wrapper,
+body.pmd-kds-stable-fast-v81 #page-wrapper,
+body.pmd-kds-stable-fast-v81 .content-wrapper,
+body.pmd-kds-stable-fast-v81 .main-content,
+body.pmd-kds-stable-fast-v81 .layout-content,
+body.pmd-kds-stable-fast-v81 .page-content {
+  margin-left: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+html.pmd-kds-stable-fast-v81 .navbar-top,
+body.pmd-kds-stable-fast-v81 .navbar-top {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  z-index: 1200 !important;
+}
+
+/* Stop the normal dashboard cards/widgets from showing or competing with KDS. */
+html.pmd-kds-stable-fast-v81 [data-control="dashboard-container"] .dashboard-toolbar,
+html.pmd-kds-stable-fast-v81 [data-control="dashboard-container"] .dashboard-widgets,
+html.pmd-kds-stable-fast-v81 [data-control="dashboard-container"] .progress-indicator,
+html.pmd-kds-stable-fast-v81 .pmd-role-switcher,
+html.pmd-kds-stable-fast-v81 .pmd-dashboard-modern > :not(.pmd-kds-stable-host-v81),
+body.pmd-kds-stable-fast-v81 [data-control="dashboard-container"] .dashboard-toolbar,
+body.pmd-kds-stable-fast-v81 [data-control="dashboard-container"] .dashboard-widgets,
+body.pmd-kds-stable-fast-v81 [data-control="dashboard-container"] .progress-indicator,
+body.pmd-kds-stable-fast-v81 .pmd-role-switcher,
+body.pmd-kds-stable-fast-v81 .pmd-dashboard-modern > :not(.pmd-kds-stable-host-v81) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Kill old v75/v79 hosts/classes if browser cache still has them. */
+html.pmd-kds-stable-fast-v81 .pmd-kds-dashboard-host-v75,
+html.pmd-kds-stable-fast-v81 .pmd-kds-dashboard-host-v76.pmd-kds-fast-preloading-v79,
+body.pmd-kds-stable-fast-v81 .pmd-kds-dashboard-host-v75,
+body.pmd-kds-stable-fast-v81 .pmd-kds-dashboard-host-v76.pmd-kds-fast-preloading-v79 {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.pmd-kds-stable-host-v81 {
+  position: relative !important;
+  display: block !important;
+  width: calc(100% - 36px) !important;
+  max-width: none !important;
+  height: calc(100vh - 145px) !important;
+  min-height: 720px !important;
+  margin: 18px !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.10) !important;
+  overflow: hidden !important;
+}
+
+.pmd-kds-stable-iframe-v81 {
+  display: block !important;
+  position: relative !important;
+  z-index: 1 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 720px !important;
+  border: 0 !important;
+  background: #ffffff !important;
+}
+
+.pmd-kds-stable-loading-v81 {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 3 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 14px !important;
+  background: linear-gradient(135deg, #fffaf1, #ffffff) !important;
+  color: #064236 !important;
+  font-weight: 900 !important;
+  letter-spacing: .02em !important;
+  text-align: center !important;
+}
+
+.pmd-kds-stable-loading-v81 small {
+  font-weight: 700 !important;
+  color: #6b7280 !important;
+}
+
+.pmd-kds-direct-link-v81 {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-top: 4px !important;
+  padding: 10px 16px !important;
+  border-radius: 999px !important;
+  background: #064236 !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  font-weight: 900 !important;
+}
+
+html.pmd-kds-stable-loaded-v81 .pmd-kds-stable-loading-v81,
+body.pmd-kds-stable-loaded-v81 .pmd-kds-stable-loading-v81 {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .pmd-kds-stable-host-v81 {
+    width: calc(100% - 20px) !important;
+    height: calc(100vh - 105px) !important;
+    min-height: 620px !important;
+    margin: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .pmd-kds-stable-iframe-v81 {
+    min-height: 620px !important;
+  }
+}

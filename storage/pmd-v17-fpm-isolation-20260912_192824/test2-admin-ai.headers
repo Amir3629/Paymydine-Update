@@ -1,0 +1,11 @@
+HTTP/1.1 302 Found
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: text/html; charset=utf-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Cache-Control: no-cache, private
+Date: Sat, 12 Sep 2026 19:28:50 GMT
+Location: https://test2.paymydine.com/admin/login
+Set-Cookie: pmd_admin_session_v3_00ee70bd576758e7=eyJpdiI6IjQzQmgrWDhkNitXb0NQc3RjVE5rZHc9PSIsInZhbHVlIjoiL0ZYR2E1WGwwOTVjaEVRN29LV3g3Z05mdFpDcmpKSCtjbW9nMVlkS3VSOGg1VkNvMjBNMHh4cFVaNC9kbU1nRmFVT0huT3AxdkJENVpqeFFFL25pYWdoZUhOUC90ZGhLZEhMdEJPdTBVSnVxVjh2cDNGb25XSUM4bnI2c3ZKTWIiLCJtYWMiOiJjNjg4NGM4OWZkYjYwMjUwODlhOTU3MjUwNGQ2MTYzNmFkOWU1ZTMyOTkxMDA1OWMzZDBiM2IwZTE4ZTE0MDAzIiwidGFnIjoiIn0%3D; expires=Sat, 12-Sep-2026 21:28:50 GMT; Max-Age=7200; path=/; secure; httponly; samesite=lax
+X-PMD-V17-Canary-Pool: ai
+

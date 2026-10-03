@@ -1,0 +1,9 @@
+
+
+{
+    "database": "Test2",
+    "draft_count": 0,
+    "card_provider": null,
+    "sumup_environment": "test",
+    "card_provider_error": "SQLSTATE[42S22]: Column not found: 1054 Unknown column 'provider_code' in 'SELECT' (SQL: select `provider_code` from `ti_payments` where `code` = card limit 1)"
+}

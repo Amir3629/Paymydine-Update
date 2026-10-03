@@ -1,0 +1,22 @@
+====================================================
+PMD V8 SINGLE-FLIGHT RC
+NO LIVE SOURCE CHANGE / NO LIVE .next BUILD / NO DB WRITES
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 11:47:09 UTC 2026
+====================================================
+
+===== PRODUCTION SAFETY PRECHECK =====
+live V2 id=1
+live origin=http://127.0.0.1:8088
+pm.max_children=5
+nginx=active
+php8.3-fpm=active
+mariadb=active
+load1=0.23
+PHP CPU=1.5%
+MemAvailable=6466MiB
+disk free=41424MiB
+
+===== CREATE ISOLATED RC =====
+RC=/var/www/paymydine/frontend-v2/PayMyDine-V2-RC-singleflight-20260911_114709
+mkdir: cannot create directory '/var/www/paymydine/frontend-v2/PayMyDine-V2-RC-singleflight-20260911_114709': Permission denied

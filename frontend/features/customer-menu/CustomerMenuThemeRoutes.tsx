@@ -2,6 +2,7 @@
 
 import React from "react"
 import { KazenThemeRoute } from "@/features/customer-menu/theme/KazenThemeRoute"
+import { VelvetTerracottaThemeRoute } from "@/features/customer-menu/theme/VelvetTerracottaThemeRoute"
 import { ModernGreenThemeRoute } from "@/features/customer-menu/theme/ModernGreenThemeRoute"
 import { OrganicThemeRoute } from "@/features/customer-menu/theme/OrganicThemeRoute"
 import { GoldThemeRoute } from "@/features/customer-menu/theme/GoldThemeRoute"
@@ -83,7 +84,45 @@ export function CustomerMenuThemeRoutes(props: CustomerMenuThemeRoutesProps) {
     </>
   )
 
+  // PMD_VELVET_TERRACOTTA_ROUTE_CLEAN_V14
+  const pmdVelvetThemeKeyV14 = String((props as any)?.cmsSettings?.theme_configuration || (props as any)?.cmsSettings?.theme_id || (props as any)?.cmsSettings?.frontend_theme || (props as any)?.merchantSettings?.theme_configuration || (props as any)?.merchantSettings?.theme_id || (props as any)?.merchantSettings?.frontend_theme || "").trim().toLowerCase().replace(/[\s-]+/g, "_")
+
+  if ((props as any)?.isVelvetTerracottaTheme || pmdVelvetThemeKeyV14 === "velvet_terracotta") {
+    return renderWithFooterLogo(<VelvetTerracottaThemeRoute {...props} />)
+  }
+
   // PMD_KAZEN_JAPANESE_THEME_RETURN_20260611
+  // PMD_VELVET_DIRECT_ROUTE_V15C
+  const pmdThemeTextV15c = (() => {
+    try {
+      return JSON.stringify(props || {}).toLowerCase()
+    } catch {
+      return ""
+    }
+  })()
+
+  const pmdThemeIdV15c = String(
+    (props as any)?.selectedFrontendTheme ??
+    (props as any)?.frontendTheme ??
+    (props as any)?.themeId ??
+    (props as any)?.theme?.id ??
+    (props as any)?.theme?.canonicalId ??
+    (props as any)?.theme?.theme_id ??
+    (props as any)?.settings?.frontend_theme ??
+    (props as any)?.settings?.theme_configuration ??
+    (props as any)?.settings?.data?.frontend_theme ??
+    (props as any)?.settings?.data?.theme_configuration ??
+    ""
+  ).toLowerCase().replace(/[\s-]+/g, "_")
+
+  if (
+    pmdThemeIdV15c.includes("velvet") ||
+    pmdThemeTextV15c.includes("velvet_terracotta") ||
+    pmdThemeTextV15c.includes("velvet-terracotta")
+  ) {
+    return renderWithFooterLogo(<VelvetTerracottaThemeRoute {...props} />)
+  }
+
   if (isKazenJapaneseTheme) {
     return renderWithFooterLogo(
       <KazenThemeRoute

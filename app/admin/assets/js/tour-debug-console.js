@@ -98,7 +98,7 @@
     const check = () => {
       if (stop) return;
       const show = document.querySelectorAll('.introjs-showElement');
-      const fix = document.body.classList.contains('introjs-fixParent');
+      const fix = (document.body||document.documentElement).classList.contains('introjs-fixParent');
       if (show.length) LOG('introjs-showElement on:', show.length, 'elements', [...show].map((el) => logEl('', el)));
       if (fix) LOG('body has introjs-fixParent');
     };

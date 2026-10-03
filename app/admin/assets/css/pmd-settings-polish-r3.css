@@ -1,0 +1,276 @@
+/* PMD_SETTINGS_POLISH_R3
+ * - removes the redundant outer group-card frames from Settings
+ * - exposes a final PayMyDine landing-page tile using the product mark
+ * - prevents first-paint copy swaps for Restaurant / Customer menu theme
+ * - places the compact Remove logo control directly under the logo preview
+ */
+
+/* ---------------------------------------------------------
+   Settings overview: keep the useful 3/2/1-column layout,
+   but remove the second card/frame wrapped around every tile.
+   --------------------------------------------------------- */
+#pmd-settings-center .pmd-settings-content {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: start !important;
+  gap: 18px !important;
+  width: 100% !important;
+}
+
+#pmd-settings-center .pmd-settings-group {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#pmd-settings-center .pmd-settings-group__head {
+  align-items: center !important;
+  margin: 0 0 10px !important;
+  padding: 0 2px !important;
+}
+
+#pmd-settings-center .pmd-settings-group__head h2 {
+  margin: 0 !important;
+  font-size: 19px !important;
+  line-height: 1.2 !important;
+  font-weight: 760 !important;
+}
+
+#pmd-settings-center .pmd-settings-card-grid {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 10px !important;
+}
+
+#pmd-settings-center .pmd-settings-card {
+  width: 100% !important;
+  min-height: 108px !important;
+  margin: 0 !important;
+}
+
+/* ---------------------------------------------------------
+   First-paint copy authority.
+   The server currently renders older copy and R1 changes it after load.
+   Keep the visible copy stable from the very first CSS paint.
+   --------------------------------------------------------- */
+#pmd-settings-center a[href*="/admin/pmdsettings/restaurant"] .pmd-settings-card__title-row strong,
+#pmd-settings-center a[href*="/admin/pmdsettings/frontend"] .pmd-settings-card__title-row strong,
+#pmd-settings-center a[href*="/admin/pmdsettings/restaurant"] .pmd-settings-card__description,
+#pmd-settings-center a[href*="/admin/pmdsettings/frontend"] .pmd-settings-card__description {
+  font-size: 0 !important;
+}
+
+#pmd-settings-center a[href*="/admin/pmdsettings/restaurant"] .pmd-settings-card__title-row strong::after {
+  content: "Restaurant profile";
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  font-weight: 760 !important;
+}
+
+#pmd-settings-center a[href*="/admin/pmdsettings/restaurant"] .pmd-settings-card__description::after {
+  content: "Name, logo, opening hours, website and social links.";
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+#pmd-settings-center a[href*="/admin/pmdsettings/frontend"] .pmd-settings-card__title-row strong::after {
+  content: "Customer menu theme";
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  font-weight: 760 !important;
+}
+
+#pmd-settings-center a[href*="/admin/pmdsettings/frontend"] .pmd-settings-card__description::after {
+  content: "Choose the active QR menu theme.";
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+/* ---------------------------------------------------------
+   Final PayMyDine tile.
+   Reuse the already server-rendered Branding group as the sixth slot so
+   layout stays 3 x 2 and no new delayed DOM tile is required.
+   JS changes only its destination/semantic copy; visible copy is final here.
+   --------------------------------------------------------- */
+#pmd-settings-center #pmd-settings-brand {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card[data-pmd-paymydine-ready-r3="1"] {
+  pointer-events: auto !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-group__head h2,
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row strong,
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card__description {
+  font-size: 0 !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-group__head h2::after {
+  content: "PayMyDine";
+  font-size: 19px !important;
+  line-height: 1.2 !important;
+  font-weight: 760 !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row strong::after {
+  content: "PayMyDine";
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  font-weight: 760 !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card__description::after {
+  content: "Visit the PayMyDine website.";
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card__icon {
+  position: relative !important;
+  border-color: #cfe2da !important;
+  background: #ffffff !important;
+  color: transparent !important;
+  overflow: hidden !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card__icon svg {
+  display: none !important;
+}
+
+#pmd-settings-center #pmd-settings-brand .pmd-settings-card__icon::after {
+  content: "" !important;
+  display: block !important;
+  width: 30px !important;
+  height: 30px !important;
+  background-image: url('/app/admin/assets/images/pmd-favicon-final-20260822.svg') !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+}
+
+/* ---------------------------------------------------------
+   Restaurant logo: compact Table-Edit-style Remove button directly below
+   the preview frame instead of a wide warning bar beneath the uploader.
+   --------------------------------------------------------- */
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  align-self: stretch !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-preview-r19 {
+  width: 100% !important;
+  min-height: 96px !important;
+  margin: 0 !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20 {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  gap: 0 !important;
+  border: 1px solid #e7a0a0 !important;
+  border-radius: 8px !important;
+  background: #fff !important;
+  color: #a52a2a !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 720 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20::before {
+  content: none !important;
+  display: none !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20:hover,
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20:focus-visible {
+  border-color: #d05b5b !important;
+  background: #fff7f7 !important;
+  color: #8f1f1f !important;
+  outline: none !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20.is-pmd-remove-selected-r2,
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20:has(input:checked) {
+  border-color: #b42323 !important;
+  background: #fff4f4 !important;
+  color: #9f2020 !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20 input[type="checkbox"] {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  clip-path: inset(50%) !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-remove-r20 span {
+  display: inline !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font: inherit !important;
+}
+
+@media (max-width: 1220px) {
+  #pmd-settings-center .pmd-settings-content {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  #pmd-settings-center .pmd-settings-content {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  #pmd-settings-center .pmd-settings-group {
+    padding: 0 !important;
+  }
+
+  #pmd-settings-center .pmd-settings-card {
+    min-height: 92px !important;
+  }
+
+  #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-preview-r19 {
+    min-height: 84px !important;
+  }
+}

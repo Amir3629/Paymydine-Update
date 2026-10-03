@@ -1,0 +1,1996 @@
+timestamp_utc=20260921T075133Z
+root=/var/www/paymydine
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+branch=main
+origin_main=50ff9beb14c5bc48915e19cb3d7b3044e50ffc3f
+android_base=23cc0a8d41d33569f8a56e1feb187b7f95c3eb6e
+android_target=cd73ce8982be3b365f6611836f96c192f5876176
+
+git_status_before:
+ M .gitignore
+ D _codex_theme_sources/pmd-modern-green-standalone/.gitignore
+ D _codex_theme_sources/pmd-modern-green-standalone/app/globals.css
+ D _codex_theme_sources/pmd-modern-green-standalone/app/globals.css.bak.menu_bg.20260610_233130
+ D _codex_theme_sources/pmd-modern-green-standalone/app/layout.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/app/layout.tsx.bak.menu_bg.20260610_233130
+ D _codex_theme_sources/pmd-modern-green-standalone/app/page.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/app/page.tsx.bak.disable_iframe_checkout.20260610_224729
+ D _codex_theme_sources/pmd-modern-green-standalone/app/page.tsx.bak.final_unify.20260610_232154
+ D _codex_theme_sources/pmd-modern-green-standalone/app/page.tsx.bak.menu_bg.20260610_233130
+ D _codex_theme_sources/pmd-modern-green-standalone/components.json
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenCheckoutCards.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenDemo.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenMenuSections.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenMenuShell.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenNoteCards.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenPaymentCards.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenSplitBillCards.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenThemeActions.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenValetCards.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/ModernGreenWaiterCards.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/index.ts
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/primitives.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/sample-data.ts
+ D _codex_theme_sources/pmd-modern-green-standalone/components/themes/modern-green/types.ts
+ D _codex_theme_sources/pmd-modern-green-standalone/components/ui/button.tsx
+ D _codex_theme_sources/pmd-modern-green-standalone/lib/utils.ts
+ D _codex_theme_sources/pmd-modern-green-standalone/menu.png
+ D _codex_theme_sources/pmd-modern-green-standalone/next-env.d.ts
+ D _codex_theme_sources/pmd-modern-green-standalone/next.config.mjs
+ D _codex_theme_sources/pmd-modern-green-standalone/package-lock.json
+ D _codex_theme_sources/pmd-modern-green-standalone/package.json
+ D _codex_theme_sources/pmd-modern-green-standalone/payment.png
+ D _codex_theme_sources/pmd-modern-green-standalone/pnpm-lock.yaml
+ D _codex_theme_sources/pmd-modern-green-standalone/postcss.config.mjs
+ D _codex_theme_sources/pmd-modern-green-standalone/public/apple-icon.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/icon-dark-32x32.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/icon-light-32x32.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/icon.svg
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/dish-burrata.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/dish-cocktail.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/dish-lava-cake.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/dish-salmon.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/dish-steak.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/dish-tartare.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/dish-truffle-pasta.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/hero-dish-dark.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/hero-dish-light.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/images/hero-dish.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/placeholder-logo.png
+ D _codex_theme_sources/pmd-modern-green-standalone/public/placeholder-logo.svg
+ D _codex_theme_sources/pmd-modern-green-standalone/public/placeholder-user.jpg
+ D _codex_theme_sources/pmd-modern-green-standalone/public/placeholder.jpg
+ D _codex_theme_sources/pmd-modern-green-standalone/public/placeholder.svg
+ D _codex_theme_sources/pmd-modern-green-standalone/review.png
+ D _codex_theme_sources/pmd-modern-green-standalone/tsconfig.json
+ D _codex_theme_sources/pmd-v0-botanical-exact/.gitignore
+ D _codex_theme_sources/pmd-v0-botanical-exact/app/OrganicValetInline.tsx.removed_20260609
+ D _codex_theme_sources/pmd-v0-botanical-exact/app/OrganicValetOverride.tsx.disabled.old_20260609
+ D _codex_theme_sources/pmd-v0-botanical-exact/app/globals.css
+ D _codex_theme_sources/pmd-v0-botanical-exact/app/layout.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/app/page.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components.json
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-bottom-dock.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-category-nav.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-hero.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-icons.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-menu-card.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-menu-page.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-menu-section.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-product-modal.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-top-bar.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/botanical-ui.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/index.ts
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/sample-data.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/botanical-paper/types.ts
+ D _codex_theme_sources/pmd-v0-botanical-exact/components/ui/button.tsx
+ D _codex_theme_sources/pmd-v0-botanical-exact/lib/utils.ts
+ D _codex_theme_sources/pmd-v0-botanical-exact/next-env.d.ts
+ D _codex_theme_sources/pmd-v0-botanical-exact/next.config.mjs
+ D _codex_theme_sources/pmd-v0-botanical-exact/package-lock.json
+ D _codex_theme_sources/pmd-v0-botanical-exact/package.json
+ D _codex_theme_sources/pmd-v0-botanical-exact/pnpm-lock.yaml
+ D _codex_theme_sources/pmd-v0-botanical-exact/postcss.config.mjs
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/apple-icon.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/icon-dark-32x32.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/icon-light-32x32.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/icon.svg
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/placeholder-logo.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/placeholder-logo.svg
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/placeholder-user.jpg
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/placeholder.jpg
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/placeholder.svg
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/themes/botanical-paper/BGPMD.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/themes/botanical-paper/grilled-stone-fruit.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/themes/botanical-paper/harvest-grain-bowl.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/themes/botanical-paper/heirloom-tomato-salad.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/themes/botanical-paper/herbal-tea.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/themes/botanical-paper/hero-bg.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/themes/botanical-paper/honey-cake.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/public/themes/botanical-paper/roasted-chicken.png
+ D _codex_theme_sources/pmd-v0-botanical-exact/tsconfig.json
+ D app/Admin/Classes/TerminalDevicesPlatformController.php
+ M app/Helpers/SettingsHelper.php
+ M app/Http/Controllers/Api/CategoryController.php
+ M app/Http/Controllers/Api/MenuController.php
+ M app/Http/Controllers/Api/ReviewController.php
+ M app/Http/Controllers/TenantApiController.php
+ M app/Http/Kernel.php
+AM app/Http/Middleware/PmdSiteAccessGateMiddleware.php
+ M app/Http/Middleware/TenantDatabaseMiddleware.php
+ M app/Services/MenuPopularityService.php
+ M app/Services/OrderEtaService.php
+AM app/Services/Payments/ProviderCapabilityRegistry.php
+AM app/Services/PmdOperationalRosterReconciler.php
+AM app/Services/PmdTrustedLoginDeviceService.php
+ M app/Services/TerminalPayments/TerminalPaymentService.php
+ M app/Services/TerminalPayments/VrPaymentTerminalProvider.php
+ M app/Services/TerminalPayments/WorldlineTerminalProvider.php
+ M app/admin/ServiceProvider.php
+ M app/admin/Services/CashDrawerService/CashDrawerService.php
+ M app/admin/assets/css/pmd-admin-theme-v1.css
+A  app/admin/assets/css/pmd-menu-zero-jump-v5.css
+AM app/admin/assets/css/pmd-settings-center-v1.css
+A  app/admin/assets/css/pmd-settings-menu-v1.css
+A  app/admin/assets/css/pmd-settings-menu-v2.css
+A  app/admin/assets/css/pmd-settings-restaurant-platform-header-v4.css
+A  app/admin/assets/css/pmd-settings-restaurant-spacing-v7.css
+AM app/admin/assets/css/pmd-settings-restaurant-v1.css
+A  app/admin/assets/css/pmd-shifts-final-v18.css
+A  app/admin/assets/css/pmd-team-notification-v1.css
+A  app/admin/assets/css/pmd-team-v1.css
+ D app/admin/assets/css/pmd-waiter-dashboard-clean.css
+ D app/admin/assets/css/smooth-corner-replace-star.css.bak.20260407_221439
+ M app/admin/assets/css/smooth-transitions.css
+ D app/admin/assets/css/superadmin-simple-fade.css.bak.20260407_221439
+ M app/admin/assets/images/favicon.svg
+ M app/admin/assets/js/RICHEDITOR_TOOLBAR_REPORT.js
+ M app/admin/assets/js/RICHEDITOR_TOOLBAR_SPACING_DIAGNOSTIC.js
+ M app/admin/assets/js/admin-tour-enhanced.js
+ M app/admin/assets/js/admin.js
+ D app/admin/assets/js/admin.js.bak_20260515_135247
+ D app/admin/assets/js/admin.js.bak_20260515_153318
+ M app/admin/assets/js/bundle.js
+ M app/admin/assets/js/debug-redirects.js
+ M app/admin/assets/js/dynamic-dropdown-height.js
+ M app/admin/assets/js/fix-form-field-focus-colors.js
+ M app/admin/assets/js/folder-dropdown-card.js
+ D app/admin/assets/js/force-blue-buttons.js.bak.2026-04-08_100811
+ M app/admin/assets/js/force-button-alignment.js
+ M app/admin/assets/js/header-visibility-fix.js
+ M app/admin/assets/js/history-page-diagnostic.js
+ M app/admin/assets/js/history-page-fix.js
+ M app/admin/assets/js/mobile-sidebar-toggle.js
+ M app/admin/assets/js/modal-blur-fix.js
+ M app/admin/assets/js/modal-performance-fix.js
+ M app/admin/assets/js/notifications.js
+ M app/admin/assets/js/page-specific-fixes.js
+ M app/admin/assets/js/pmd-admin-header-actions.js
+ M app/admin/assets/js/pmd-admin-responsive-shell.js
+ M app/admin/assets/js/pmd-admin-toolbar-normalizer.js
+ M app/admin/assets/js/pmd-mediafinder-autofix.js
+AM app/admin/assets/js/pmd-settings-center-v1.js
+A  app/admin/assets/js/pmd-settings-menu-v1.js
+A  app/admin/assets/js/pmd-settings-restaurant-v1.js
+AM app/admin/assets/js/pmd-shifts-final-v18.js
+A  app/admin/assets/js/pmd-team-v1.js
+ D app/admin/assets/js/pmd-waiter-dashboard-clean.js
+ M app/admin/assets/js/push-notifications.js
+ M app/admin/assets/js/sidebar-star-icon.js
+ M app/admin/assets/js/smooth-transitions.js
+ M app/admin/assets/js/superadmin-smooth-fade.js
+ M app/admin/assets/js/superadmin-smooth-navigation.js
+ M app/admin/assets/js/tour-debug-console.js
+ D app/admin/assets/src/js/vendor/moment.min.js
+ D app/admin/assets/vendor/inputmask/jquery.inputmask.min.js
+ M app/admin/assets/vendor/pmd-mediafix/Sortable.min.js
+ D app/admin/assets/vendor/pmd-mediafix/daterangepicker.css
+ D app/admin/assets/vendor/pmd-mediafix/daterangepicker.js
+ D app/admin/assets/vendor/pmd-mediafix/daterangepicker.min.js
+ M app/admin/assets/vendor/pmd-mediafix/dropzone.min.js
+ D app/admin/assets/vendor/pmd-mediafix/force-blue-buttons.js
+ D app/admin/assets/vendor/pmd-mediafix/jquery-3.6.0.min.js
+ M app/admin/assets/vendor/pmd-mediafix/jquery-clockpicker.min.css
+ D app/admin/assets/vendor/pmd-mediafix/jquery-sortable.js
+ D app/admin/assets/vendor/pmd-mediafix/jquery.min.js
+ M app/admin/assets/vendor/pmd-mediafix/moment.min.js
+ D app/admin/assets/vendor/summernote/summernote-bs5.min.css
+ D app/admin/assets/vendor/summernote/summernote-bs5.min.js
+ M app/admin/classes/AdminController.php
+ M app/admin/classes/User.php
+ M app/admin/classes/VRPaymentGatewayService.php
+ M app/admin/classes/WorldlineHostedCheckoutService.php
+ M app/admin/controllers/Api/PosAgentController.php
+ M app/admin/controllers/BiometricDevicesAPI.php
+ M app/admin/controllers/Biometricdevices.php
+ M app/admin/controllers/CashDrawers.php
+ D app/admin/controllers/CashDrawers.php.bak.2026-04-08_112220
+ D app/admin/controllers/CashDrawers.php.bak.final_adminauth.2026-04-08_130551
+ D app/admin/controllers/CashDrawers.php.bak.fix_adminauth.2026-04-08_112638
+ D app/admin/controllers/CashDrawers.php.bak.fix_windows_connector.2026-04-08_134635
+ M app/admin/controllers/Combos.php
+ M app/admin/controllers/Coupons.php
+ M app/admin/controllers/Dashboard.php
+ M app/admin/controllers/History.php
+ M app/admin/controllers/KdsStations.php
+ M app/admin/controllers/KitchenDisplay.php
+ M app/admin/controllers/Locations.php
+ M app/admin/controllers/Login.php
+ M app/admin/controllers/Logout.php
+ M app/admin/controllers/Menus.php
+ M app/admin/controllers/NotificationsApi.php
+ M app/admin/controllers/NotificationsApiController.php
+ M app/admin/controllers/Orders.php
+ M app/admin/controllers/PaymentController.php
+ M app/admin/controllers/Payments.php
+ D app/admin/controllers/Payments.php.bak.20260304_165150
+ D app/admin/controllers/Payments.php.bak.20260304_165257
+ D app/admin/controllers/Payments.php.bak.20260304_170218
+ D app/admin/controllers/Payments.php.bak.20260304_172117
+ D app/admin/controllers/Payments.php.bak.20260304_184100
+ M app/admin/controllers/PmdOwnerDashboardCleanV1.php
+ M app/admin/controllers/PmdWaiterDashboardV149.php
+AM app/admin/controllers/Pmdmenu.php
+AM app/admin/controllers/Pmdsettings.php
+AM app/admin/controllers/Pmdteam.php
+ M app/admin/controllers/PosConfigs.php
+ M app/admin/controllers/PosDevices.php
+ M app/admin/controllers/Reservations.php
+ M app/admin/controllers/Reviews.php
+ M app/admin/controllers/StaffRoles.php
+ M app/admin/controllers/TerminalDevices.php
+ D app/admin/dashboardwidgets/charts/assets/vendor/chartjs/Chart.min.js
+ D app/admin/dashboardwidgets/charts/assets/vendor/chartjs/chartjs-adapter-moment.min.js
+ D app/admin/dashboardwidgets/charts/assets/vendor/daterange/daterangepicker.css
+ D app/admin/dashboardwidgets/charts/assets/vendor/daterange/daterangepicker.js
+ D app/admin/formwidgets/datepicker/assets/vendor/clockpicker/bootstrap-clockpicker.min.css
+ D app/admin/formwidgets/datepicker/assets/vendor/clockpicker/bootstrap-clockpicker.min.js
+ D app/admin/formwidgets/datepicker/assets/vendor/datepicker/bootstrap-datepicker.min.css
+ D app/admin/formwidgets/datepicker/assets/vendor/datepicker/bootstrap-datepicker.min.js
+ D app/admin/formwidgets/datepicker/assets/vendor/datepicker/locales/bootstrap-datepicker.en.min.js
+ D app/admin/formwidgets/datepicker/assets/vendor/datetimepicker/tempusdominus-bootstrap-4.min.css
+ D app/admin/formwidgets/datepicker/assets/vendor/datetimepicker/tempusdominus-bootstrap-4.min.js
+ D app/admin/formwidgets/markdowneditor/assets/vendor/easymde/easymde.min.css
+ D app/admin/formwidgets/markdowneditor/assets/vendor/easymde/easymde.min.js
+ D app/admin/formwidgets/repeater/assets/vendor/sortablejs/Sortable.min.js
+ D app/admin/formwidgets/repeater/assets/vendor/sortablejs/jquery-sortable.js
+ D app/admin/formwidgets/richeditor/assets/vendor/summernote/summernote-bs5.js.map
+ D app/admin/formwidgets/richeditor/assets/vendor/summernote/summernote-bs5.min.css
+ D app/admin/formwidgets/richeditor/assets/vendor/summernote/summernote-bs5.min.js
+ M app/admin/images/favicon.svg
+ M app/admin/middleware/LogUserLastSeen.php
+ M app/admin/models/Kds_stations_model.php
+ M app/admin/models/Menus_model.php
+ M app/admin/models/Orders_model.php
+MM app/admin/models/Payments_model.php
+ M app/admin/models/Reservations_model.php
+ M app/admin/models/Staff_attendance_model.php
+ M app/admin/models/Staff_device_mappings_model.php
+ M app/admin/models/Tables_model.php
+ M app/admin/models/Terminal_devices_model.php
+ M app/admin/models/Users_model.php
+ M app/admin/models/config/cash_drawers_model.php
+ D app/admin/models/config/cash_drawers_model.php.bak.fix_windows_connector.2026-04-08_134635
+ M app/admin/models/config/finger_devices_model.php
+ M app/admin/models/config/history_model.php
+ M app/admin/models/config/kds_stations_model.php
+ D app/admin/models/config/payments_model.php.bak.20260304_160804
+ D app/admin/models/config/payments_model.php.bak.20260304_162057
+ D app/admin/models/config/payments_model.php.bak.20260304_162601
+ D app/admin/models/config/payments_model.php.bak.20260304_162839
+ D app/admin/models/config/payments_model.php.bak.20260304_163055
+ D app/admin/models/config/payments_model.php.probe.bak.20260304_163655
+ M app/admin/models/config/staffs_model.php
+ M app/admin/models/config/terminal_devices_model.php
+ M app/admin/requests/KdsStation.php
+ M app/admin/requests/TerminalDevices.php
+ M app/admin/routes.php
+ D app/admin/routes.php.bak.2026-04-10-194133
+ D app/admin/services/AttendanceTrackingService.php
+ D app/admin/services/BiometricDeviceService/AttendanceTrackingService.php
+ D app/admin/services/BiometricDeviceService/BiometricEncryptionService.php
+ D app/admin/services/BiometricDeviceService/DeviceDetectionService.php
+ D app/admin/services/BiometricDeviceService/DeviceDriverInterface.php
+ D app/admin/services/BiometricDeviceService/DeviceFactory.php
+ D app/admin/services/BiometricDeviceService/DeviceMonitoringService.php
+ D app/admin/services/BiometricDeviceService/DeviceRegistry.php
+ D app/admin/services/BiometricDeviceService/Drivers/GenericFingerprintDriver.php
+ D app/admin/services/BiometricDeviceService/Drivers/HikvisionDriver.php
+ D app/admin/services/BiometricDeviceService/Drivers/RFIDDriver.php
+ D app/admin/services/BiometricDeviceService/Drivers/SupremaDriver.php
+ D app/admin/services/BiometricDeviceService/Drivers/ZKTecoDriver.php
+ D app/admin/services/BiometricDeviceService/EnrollmentService.php
+ D app/admin/services/BiometricDeviceService/GDPRComplianceService.php
+ D app/admin/services/BiometricDeviceService/NotificationService.php
+ D app/admin/services/BiometricDeviceService/RealTimeConnectionMonitor.php
+ D app/admin/services/BiometricEncryptionService.php
+ D app/admin/services/CashDrawerService/CashDrawerDriverFactory.php
+ D app/admin/services/CashDrawerService/CashDrawerDriverFactory.php.bak.2026-04-08_101719
+ D app/admin/services/CashDrawerService/CashDrawerDriverFactory.php.bak.2026-04-08_103237
+ D app/admin/services/CashDrawerService/CashDrawerDriverFactory.php.bak.2026-04-08_103627
+ D app/admin/services/CashDrawerService/CashDrawerDriverInterface.php
+ D app/admin/services/CashDrawerService/CashDrawerService.php
+ D app/admin/services/CashDrawerService/Drivers/NetworkCashDrawerDriver.php
+ D app/admin/services/CashDrawerService/Drivers/RJ11PrinterDriver.php
+ D app/admin/services/CashDrawerService/Drivers/RJ11PrinterDriver.php.bak.2026-04-08_103627
+ D app/admin/services/CashDrawerService/Drivers/SerialCashDrawerDriver.php
+ D app/admin/services/CashDrawerService/Drivers/USBCashDrawerDriver.php
+ D app/admin/services/CashDrawerService/LocalPosHardwareCommandService.php
+ D app/admin/services/DeviceDetectionService.php
+ D app/admin/services/DeviceDriverInterface.php
+ D app/admin/services/DeviceFactory.php
+ D app/admin/services/DeviceMonitoringService.php
+ D app/admin/services/DeviceRegistry.php
+ D app/admin/services/Drivers/GenericFingerprintDriver.php
+ D app/admin/services/Drivers/HikvisionDriver.php
+ D app/admin/services/Drivers/RFIDDriver.php
+ D app/admin/services/Drivers/SupremaDriver.php
+ D app/admin/services/Drivers/ZKTecoDriver.php
+ D app/admin/services/EnrollmentService.php
+ T app/admin/services/Fiskaly/FiskalyApiClient.php
+ T app/admin/services/Fiskaly/FiskalyConfigResolver.php
+ D app/admin/services/Fiskaly/FiskalyLineBuilder.php.disabled_20260321_180311
+ D app/admin/services/Fiskaly/FiskalyProvisionService.php
+ T app/admin/services/Fiskaly/FiskalyReceiptDataBuilder.php
+ D app/admin/services/Fiskaly/FiskalyReceiptPresenter.php
+ T app/admin/services/Fiskaly/FiskalySignDeService.php
+ D app/admin/services/Fiskaly/FiskalySignDeService.php.backup_1773997510
+ D app/admin/services/Fiskaly/FiskalySignDeService.php.bak.1774033243
+ D app/admin/services/Fiskaly/FiskalySignDeService.php.broken_1774010407
+ D app/admin/services/Fiskaly/FiskalySignDeService.php.clean_backup
+ D app/admin/services/GDPRComplianceService.php
+ D app/admin/services/NotificationService.php
+ D app/admin/services/Payments/PaymentOrchestrator.php
+ D app/admin/services/Payments/PaypalDriver.php
+ D app/admin/services/Payments/SquareDriver.php
+ D app/admin/services/Payments/StripeDriver.php
+ D app/admin/services/RealTimeConnectionMonitor.php
+ M app/admin/views/_layouts/default.blade.php
+ M app/admin/views/_meta/assets.json
+ M app/admin/views/_partials/notification_bell.blade.php
+ M app/admin/views/_partials/old_top_nav.blade.php
+ M app/admin/views/_partials/side_nav.blade.php
+ M app/admin/views/_partials/side_nav_items.blade.php
+ M app/admin/views/_partials/top_nav.blade.php
+ M app/admin/views/_partials/top_nav_user_menu.blade.php
+ M app/admin/views/_partials/top_settings_menu.blade.php
+ M app/admin/views/auth/login.blade.php
+ M app/admin/views/auth/login_standalone.blade.php
+ M app/admin/views/biometricdevices/create.blade.php
+ M app/admin/views/biometricdevices/edit.blade.php
+ M app/admin/views/biometricdevices/index.blade.php
+ M app/admin/views/biometricdevices/report_export.blade.php
+ M app/admin/views/cashdrawers/create.blade.php
+ M app/admin/views/cashdrawers/edit.blade.php
+ D app/admin/views/cashdrawers/edit.blade.php.bak.fix_windows_connector.2026-04-08_134635
+ M app/admin/views/cashdrawers/index.blade.php
+ M app/admin/views/dashboard.blade.php
+ M app/admin/views/history/_cell_details.blade.php
+ M app/admin/views/history/index.blade.php
+ M app/admin/views/index.blade.php
+ M app/admin/views/kds_stations/create.blade.php
+ M app/admin/views/kds_stations/edit.blade.php
+ M app/admin/views/kds_stations/index.blade.php
+ M app/admin/views/kitchendisplay/index.blade.php
+ M app/admin/views/layouts/default.blade.php
+ M app/admin/views/location_requests.blade.php
+ M app/admin/views/login.blade.php
+ M app/admin/views/menus/create.blade.php
+ M app/admin/views/menus/edit.blade.php
+ M app/admin/views/menus/form/live_frontend_preview.blade.php
+ M app/admin/views/menus/form/menu_images_inline_gallery.blade.php
+ M app/admin/views/menus/index.blade.php
+ M app/admin/views/new.blade.php
+ M app/admin/views/orders/customer_invoice.blade.php
+ M app/admin/views/orders/form/field_customer.blade.php
+ M app/admin/views/orders/form/form_tabs.blade.php
+ M app/admin/views/orders/form/info.blade.php
+ M app/admin/views/orders/form/order_details.blade.php
+ M app/admin/views/orders/form/order_menus.blade.php
+ M app/admin/views/orders/invoice.blade.php
+ M app/admin/views/orders/invoice_email_body.blade.php
+ M app/admin/views/orders/split_receipt.blade.php
+AM app/admin/views/pmdmenu/index.blade.php
+AM app/admin/views/pmdsettings/index.blade.php
+AM app/admin/views/pmdsettings/restaurant.blade.php
+AM app/admin/views/pmdteam/index.blade.php
+ M app/admin/views/posconfigs/create.blade.php
+ M app/admin/views/posconfigs/edit.blade.php
+ M app/admin/views/posconfigs/index.blade.php
+ M app/admin/views/posdevices/index.blade.php
+ M app/admin/views/reservations/create.blade.php
+ M app/admin/views/reservations/edit.blade.php
+ M app/admin/views/reservations/index.blade.php
+ M app/admin/views/reviews/index.blade.php
+ M app/admin/views/settings.blade.php
+ M app/admin/views/tables/edit.blade.php
+ M app/admin/widgets/Menu.php
+ D app/admin/widgets/calendar/assets/vendor/fullcalendar/locales-all.min.js
+ D app/admin/widgets/calendar/assets/vendor/fullcalendar/main.min.css
+ D app/admin/widgets/calendar/assets/vendor/fullcalendar/main.min.js
+ D app/admin/widgets/form/assets/vendor/inputmask/jquery.inputmask.min.js
+ D app/admin/widgets/form/field_switch.blade.php.bak.20260304_165100
+ M app/admin/widgets/menu/top_menu.blade.php
+ D app/admin/widgets/table/assets/vendor/bootstrap-table/bootstrap-table.min.css
+ D app/admin/widgets/table/assets/vendor/bootstrap-table/bootstrap-table.min.js
+ M app/main/routes.php
+ M app/main/routes/api-health-media.php
+ M app/main/routes/api-v1-guest-actions.php
+ M app/main/routes/api-v1-table-order-support.php
+ M app/main/routes/api-v1-table-order.php
+ M app/main/routes/helpers.php
+ M app/main/routes/main-app-before.php
+ M app/main/routes/main-public-compat.php
+ M app/main/routes/menu-highlight-response.php
+ M app/main/routes/next-proxy.php
+ M app/main/routes/sumup.php
+ M app/main/routes/theme-settings.php
+MM app/main/routes/worldline-public.php
+ M app/main/views/404.blade.php
+ M app/main/views/error.blade.php
+ M app/main/views/maintenance.blade.php
+ M app/main/widgets/MediaManager.php
+ M app/main/widgets/mediamanager/assets/vendor/selectonic/selectonic.min.js
+ M app/main/widgets/mediamanager/assets/vendor/treeview/bootstrap-treeview.min.css
+ M app/system/ServiceProvider.php
+A  app/system/database/migrations/2026_08_31_010000_add_user_id_to_pmd_site_access_devices.php
+ M app/system/libraries/Assets.php
+ M app/system/models/Settings_model.php
+ D app/system/models/config/themes_model.php.bak.kazen_theme_option
+ M app/system/traits/ViewMaker.php
+ M app/system/views/_mail/layouts/default.blade.php
+ M app/system/views/exception.blade.php
+ M app/system/views/no_database.blade.php
+ D database/menu_prices_table.sql
+ D deploy/sql/2026-04-21-sumup-pos-terminal-fields.sql
+ D deploy/sql/2026-04-22-terminal-devices.sql
+AM docs/WORLDLINE_CONNECT_INTEGRATION.md
+ M frontend/app/clientLayout.tsx
+ M frontend/app/globals-clean.css
+ M frontend/app/globals.css
+ M frontend/app/menu/page.tsx
+ M frontend/app/page.tsx
+ M frontend/app/table/[table_id]/menu/page.tsx
+ M frontend/app/table/[table_id]/page.tsx
+ M frontend/app/themes/kazen-japanese/KazenStandalonePage.tsx
+ M frontend/app/themes/kazen-japanese/kazen-standalone.css
+ M frontend/app/themes/kazen-japanese/kazenStandaloneData.ts
+ M frontend/app/valet/page.tsx
+M  frontend/app/worldline-return/page.tsx
+M  frontend/app/worldline-test/page.tsx
+ M frontend/components/payment/secure-payment/CashPaymentForm.tsx
+ M frontend/components/payment/secure-payment/StripeCardForm.tsx
+M  frontend/components/payment/secure-payment/WorldlineInlineCardForm.tsx
+ M frontend/components/payment/sumup-hosted-checkout.tsx
+ D frontend/components/payment/worldline-hosted-checkout.tsx
+ D frontend/components/payment/worldline-inline-grid-button.tsx
+ M frontend/components/themes/kazen-japanese/KazenJapaneseBridgeTheme.tsx
+ M frontend/components/themes/kazen-japanese/KazenJapaneseCheckoutShell.tsx
+ M frontend/components/themes/shared/ThemeActionContract.ts
+ M frontend/components/themes/theme-renderer.tsx
+ M frontend/features/checkout/checkout-state-utils.ts
+ M frontend/features/checkout/checkout-utils.ts
+ M frontend/features/checkout/payment-summary-utils.ts
+ M frontend/features/customer-menu/CustomerMenuPage.tsx
+ M frontend/features/customer-menu/CustomerMenuThemeRoutes.tsx
+ M frontend/features/customer-menu/checkout/CheckoutSkinStyles.tsx
+ M frontend/features/customer-menu/checkout/NeutralOrderStatusPanel.tsx
+ M frontend/features/customer-menu/checkout/NeutralSplitBillPanel.tsx
+ M frontend/features/customer-menu/checkout/PaymentMethodForm.tsx
+ M frontend/features/customer-menu/checkout/PaymentModalCore.tsx
+ M frontend/features/customer-menu/checkout/ThemedCheckoutShellRoutes.tsx
+ M frontend/features/customer-menu/checkout/hooks/useCheckoutModalLifecycleEffects.ts
+ M frontend/features/customer-menu/checkout/hooks/useCheckoutReviewInvoiceActions.ts
+ M frontend/features/customer-menu/checkout/hooks/useCheckoutTableActions.ts
+ M frontend/features/customer-menu/checkout/paymentModalHostedCheckout.ts
+ M frontend/features/customer-menu/checkout/paymentModalMath.ts
+ M frontend/features/customer-menu/checkout/paymentModalPaymentFlow.ts
+ M frontend/features/customer-menu/checkout/usePaymentReturnVerification.ts
+ M frontend/features/customer-menu/hooks/useMenuLoader.ts
+ M frontend/features/customer-menu/theme/KazenThemeRoute.tsx
+ M frontend/features/customer-menu/useCustomerThemeActions.ts
+ M frontend/features/customer-menu/useCustomerThemeSelection.ts
+ M frontend/features/table-order/table-order-utils.ts
+ M frontend/features/table-order/use-table-order-actions.ts
+ M frontend/lib/api-client.ts
+ M frontend/lib/theme-registry.ts
+ M frontend/lib/theme-system.ts
+ M frontend/package-lock.json
+M  frontend/package.json
+ D frontend/public/assets/media/uploads/Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview.png
+ M frontend/scripts/pmd-frontend-smoke.sh
+AM frontend/scripts/pmd-worldline-security-guard.sh
+ M frontend/store/cart-store.ts
+ M frontend/store/cms/coupon-settings.ts
+ M frontend/styles/customer/themes/kazen-menu-compat.css
+ M frontend/tsconfig.json
+ M resources/views/layouts/platform.blade.php
+ M resources/views/layouts/simple.blade.php
+ M resources/views/simple-welcome.blade.php
+ M routes/admin-app-before.php
+ M routes/api.php
+ M routes/helpers.php
+ M routes/pmd-public-compat-handler.php
+ M routes/pos-receipts.php
+ M routes/qr-pay.php
+ M routes/review-social.php
+ M routes/root-app-before.php
+ M routes/terminal-payments.php
+MM routes/worldline-probe.php
+ D scripts/sql/add_food_attributes_columns_ti_menus.sql
+ M themes/frontend-theme/_layouts/default.php
+ M themes/frontend-theme/_meta/fields.php
+ M themes/paymydine/paymydine-theme/_layouts/default.blade.php
+ M themes/tastyigniter-orange/_layouts/account.blade.php
+ M themes/tastyigniter-orange/_layouts/default.blade.php
+ M themes/tastyigniter-orange/_layouts/local.blade.php
+ M themes/tastyigniter-orange/_layouts/static.blade.php
+ D themes/tastyigniter-orange/assets/src/js/vendor/currency.min.js
+ D themes/tastyigniter-orange/assets/src/js/vendor/jquery.bsPhotoGallery.js
+ D themes/tastyigniter-orange/assets/src/js/vendor/jquery.raty.js
+ D themes/tastyigniter-orange/assets/src/js/vendor/select2.min.js
+ D themes/tastyigniter-orange/assets/src/scss/vendor/_+import.vendor.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/_bootstrap-helpers.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/_bootstrap-partials.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/animate.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_accordion.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_alert.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_badge.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_breadcrumb.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_button-group.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_buttons.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_card.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_carousel.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_close.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_containers.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_dropdown.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_forms.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_functions.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_grid.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_helpers.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_images.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_list-group.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_mixins.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_modal.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_nav.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_navbar.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_offcanvas.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_pagination.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_placeholders.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_popover.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_progress.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_reboot.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_root.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_spinners.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_tables.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_toasts.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_tooltip.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_transitions.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_type.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_utilities.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/_variables.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/bootstrap-grid.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/bootstrap-reboot.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/bootstrap-utilities.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/bootstrap.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_floating-labels.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_form-check.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_form-control.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_form-range.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_form-select.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_form-text.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_input-group.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_labels.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/forms/_validation.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_clearfix.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_colored-links.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_position.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_ratio.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_stacks.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_stretched-link.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_text-truncation.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_visually-hidden.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/helpers/_vr.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_alert.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_backdrop.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_border-radius.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_box-shadow.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_breakpoints.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_buttons.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_caret.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_clearfix.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_color-scheme.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_container.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_deprecate.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_forms.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_gradients.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_grid.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_image.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_list-group.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_lists.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_pagination.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_reset-text.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_resize.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_table-variants.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_text-truncate.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_transition.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_utilities.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/mixins/_visually-hidden.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/utilities/_api.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/bootstrap/vendor/_rfs.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/intlTelInput.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/jquery.raty.scss
+ D themes/tastyigniter-orange/assets/src/scss/vendor/sweetalert2.scss
+ D themes/tastyigniter-orange/vendor/autoload.php
+ D themes/tastyigniter-orange/vendor/composer/ClassLoader.php
+ D themes/tastyigniter-orange/vendor/composer/InstalledVersions.php
+ D themes/tastyigniter-orange/vendor/composer/LICENSE
+ D themes/tastyigniter-orange/vendor/composer/autoload_classmap.php
+ D themes/tastyigniter-orange/vendor/composer/autoload_namespaces.php
+ D themes/tastyigniter-orange/vendor/composer/autoload_psr4.php
+ D themes/tastyigniter-orange/vendor/composer/autoload_real.php
+ D themes/tastyigniter-orange/vendor/composer/autoload_static.php
+ D themes/tastyigniter-orange/vendor/composer/installed.json
+ D themes/tastyigniter-orange/vendor/composer/installed.php
+ M themes/tastyigniter-orange1/_layouts/account.blade.php
+ M themes/tastyigniter-orange1/_layouts/default.blade.php
+ M themes/tastyigniter-orange1/_layouts/local.blade.php
+ M themes/tastyigniter-orange1/_layouts/static.blade.php
+ D themes/tastyigniter-orange1/assets/src/js/vendor/currency.min.js
+ D themes/tastyigniter-orange1/assets/src/js/vendor/jquery.bsPhotoGallery.js
+ D themes/tastyigniter-orange1/assets/src/js/vendor/jquery.raty.js
+ D themes/tastyigniter-orange1/assets/src/js/vendor/select2.min.js
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/_+import.vendor.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/_bootstrap-helpers.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/_bootstrap-partials.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/animate.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_accordion.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_alert.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_badge.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_breadcrumb.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_button-group.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_buttons.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_card.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_carousel.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_close.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_containers.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_dropdown.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_forms.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_functions.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_grid.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_helpers.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_images.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_list-group.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_mixins.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_modal.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_nav.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_navbar.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_offcanvas.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_pagination.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_placeholders.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_popover.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_progress.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_reboot.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_root.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_spinners.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_tables.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_toasts.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_tooltip.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_transitions.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_type.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_utilities.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/_variables.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/bootstrap-grid.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/bootstrap-reboot.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/bootstrap-utilities.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/bootstrap.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_floating-labels.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_form-check.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_form-control.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_form-range.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_form-select.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_form-text.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_input-group.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_labels.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/forms/_validation.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_clearfix.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_colored-links.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_position.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_ratio.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_stacks.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_stretched-link.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_text-truncation.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_visually-hidden.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/helpers/_vr.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_alert.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_backdrop.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_border-radius.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_box-shadow.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_breakpoints.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_buttons.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_caret.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_clearfix.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_color-scheme.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_container.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_deprecate.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_forms.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_gradients.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_grid.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_image.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_list-group.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_lists.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_pagination.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_reset-text.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_resize.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_table-variants.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_text-truncate.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_transition.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_utilities.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/mixins/_visually-hidden.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/utilities/_api.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/bootstrap/vendor/_rfs.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/intlTelInput.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/jquery.raty.scss
+ D themes/tastyigniter-orange1/assets/src/scss/vendor/sweetalert2.scss
+ D themes/tastyigniter-orange1/vendor/autoload.php
+ D themes/tastyigniter-orange1/vendor/composer/ClassLoader.php
+ D themes/tastyigniter-orange1/vendor/composer/InstalledVersions.php
+ D themes/tastyigniter-orange1/vendor/composer/LICENSE
+ D themes/tastyigniter-orange1/vendor/composer/autoload_classmap.php
+ D themes/tastyigniter-orange1/vendor/composer/autoload_namespaces.php
+ D themes/tastyigniter-orange1/vendor/composer/autoload_psr4.php
+ D themes/tastyigniter-orange1/vendor/composer/autoload_real.php
+ D themes/tastyigniter-orange1/vendor/composer/autoload_static.php
+ D themes/tastyigniter-orange1/vendor/composer/installed.json
+ D themes/tastyigniter-orange1/vendor/composer/installed.php
+ M themes/tastyigniter-typical/_layouts/account.blade.php
+ M themes/tastyigniter-typical/_layouts/default.blade.php
+ M themes/tastyigniter-typical/_layouts/local.blade.php
+ M themes/tastyigniter-typical/_layouts/static.blade.php
+ D themes/tastyigniter-typical/assets/src/js/vendor/bootstrap.bundle.min.js
+ D themes/tastyigniter-typical/assets/src/js/vendor/currency.min.js
+ D themes/tastyigniter-typical/assets/src/js/vendor/custom_typical.js
+ D themes/tastyigniter-typical/assets/src/js/vendor/jquery.mCustomScrollbar.js
+ D themes/tastyigniter-typical/assets/src/js/vendor/jquery.min.js
+ D themes/tastyigniter-typical/assets/src/js/vendor/jquery.raty.js
+ D themes/tastyigniter-typical/assets/src/js/vendor/select2.min.js
+ D themes/tastyigniter-typical/assets/src/scss/vendor/_+import.helpersbs.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/_+import.vendor.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/_bootstrap-helpers.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/_bootstrap-partials.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/animate.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap-icons.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_accordion.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_alert.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_badge.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_breadcrumb.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_button-group.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_buttons.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_card.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_carousel.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_close.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_containers.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_dropdown.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_forms.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_functions.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_grid.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_helpers.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_images.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_list-group.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_mixins.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_modal.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_nav.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_navbar.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_offcanvas.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_pagination.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_placeholders.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_popover.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_progress.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_reboot.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_root.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_spinners.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_tables.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_toasts.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_tooltip.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_transitions.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_type.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_utilities.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/_variables.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/bootstrap-grid.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/bootstrap-reboot.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/bootstrap-utilities.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/bootstrap.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_floating-labels.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_form-check.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_form-control.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_form-range.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_form-select.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_form-text.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_input-group.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_labels.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/forms/_validation.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_clearfix.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_colored-links.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_position.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_ratio.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_stacks.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_stretched-link.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_text-truncation.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_visually-hidden.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/helpers/_vr.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_alert.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_backdrop.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_border-radius.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_box-shadow.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_breakpoints.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_buttons.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_caret.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_clearfix.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_color-scheme.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_container.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_deprecate.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_forms.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_gradients.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_grid.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_image.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_list-group.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_lists.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_pagination.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_reset-text.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_resize.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_table-variants.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_text-truncate.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_transition.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_utilities.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/mixins/_visually-hidden.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/utilities/_api.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/bootstrap/vendor/_rfs.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/intlTelInput.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/jquery.mCustomScrollbar.scss
+ D themes/tastyigniter-typical/assets/src/scss/vendor/jquery.raty.scss
+ D themes/tastyigniter-typical/vendor/autoload.php
+ D themes/tastyigniter-typical/vendor/composer/ClassLoader.php
+ D themes/tastyigniter-typical/vendor/composer/InstalledVersions.php
+ D themes/tastyigniter-typical/vendor/composer/LICENSE
+ D themes/tastyigniter-typical/vendor/composer/autoload_classmap.php
+ D themes/tastyigniter-typical/vendor/composer/autoload_namespaces.php
+ D themes/tastyigniter-typical/vendor/composer/autoload_psr4.php
+ D themes/tastyigniter-typical/vendor/composer/autoload_real.php
+ D themes/tastyigniter-typical/vendor/composer/autoload_static.php
+ D themes/tastyigniter-typical/vendor/composer/installed.json
+ D themes/tastyigniter-typical/vendor/composer/installed.php
+?? ....
+?? .pmd-hotfix-backups/
+?? AGENTS.md
+?? Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview.png
+?? __pycache__/
+?? app/Database/
+?? app/Http/Controllers/GoogleBusinessIntegrationController.php
+?? app/Http/Controllers/PmdCashierTrustedDeviceResumeController.php
+?? app/Http/Controllers/PmdFirstWorkplaceDeviceController.php
+?? app/Http/Controllers/PmdLoginWorkplaceVerifyController.php
+?? app/Http/Controllers/PmdOwnerEmergencyAccessController.php
+?? app/Http/Controllers/PmdRestaurantSignInApprovalController.php
+?? app/Http/Controllers/PmdShiftAttendanceLiveController.php
+?? app/Http/Controllers/PmdSiteAccessHubDataController.php
+?? app/Http/Controllers/PmdSiteAccessSessionPingController.php
+?? app/Http/Controllers/PmdStaffPortalController.php
+?? app/Http/Controllers/PmdStaffPortalV5Controller.php
+?? app/Http/Controllers/PmdStaffPortalV6Controller.php
+?? app/Http/Middleware/ApplySuperAdminTenantCountryProfile.php
+?? app/Http/Middleware/PmdAdminRetiredPagesR77.php
+?? app/Http/Middleware/PmdAdminSessionIsolation.php
+?? app/Http/Middleware/PmdAdminTenantAuthContext.php
+?? app/Http/Middleware/PmdCanonicalPayExistingPersistence.php
+?? app/Http/Middleware/PmdLivePerformanceProfiler.php
+?? app/Http/Middleware/PmdOptimizeUploadedImages.php
+?? app/Http/Middleware/PmdOwnerSecuritySessionThrottleMiddleware.php
+?? app/Http/Middleware/PmdSiteAccessBindVerificationMiddleware.php
+?? app/Http/Middleware/PmdSiteAccessManageTrustMiddleware.php
+?? app/Http/Middleware/PmdTenantRuntimeGuardR1.php
+?? app/Http/Middleware/SuperAdminCanonicalHost.php
+?? app/Http/Middleware/SuperAdminTenantIdentityBaseline.php
+?? app/Services/AI/
+?? app/Services/GoogleBusiness/
+?? app/Services/Integrations/
+?? app/Services/Payments/MoneyMinorUnitConverter.php
+?? app/Services/Payments/PaymentMarketContext.php
+?? app/Services/Payments/PaymentMarketRegistry.php
+?? app/Services/Payments/PaymobApiClient.php
+?? app/Services/Payments/PaymobOmanConfigSchema.php
+?? app/Services/Payments/PaymobOmanConnectionService.php
+?? app/Services/Payments/PaymobOmanRuntimeService.php
+?? app/Services/Payments/PaymobOmanTenantCatalogService.php
+?? app/Services/Payments/ProviderConnectionService.php
+?? app/Services/Payments/SquareRuntimeService.php
+?? app/Services/Payments/SumupHostedCheckoutService.php
+?? app/Services/Payments/SumupOnlineCheckoutService.php
+?? app/Services/Payments/SumupPaymentRuntimeBridge.php
+?? app/Services/Payments/TenantProviderSchemaService.php
+?? app/Services/Payments/VrPaymentApiClient.php
+?? app/Services/Payments/WorldlineConnectRuntimeService.php
+?? app/Services/Payments/WorldlineNativeAlternativeService.php
+?? app/Services/Payments/WorldlineNativeCardService.php
+?? app/Services/Platform/
+?? app/Services/PmdCashDrawerFoundationR1.php
+?? app/Services/PmdGermanWorkRulesService.php
+?? app/Services/PmdKitchenEtaLifecycleService.php
+?? app/Services/PmdKitchenOperationsSchemaService.php
+?? app/Services/PmdKitchenWorkforceService.php
+?? app/Services/PmdOwnerTotpService.php
+?? app/Services/PmdPortalQrService.php
+?? app/Services/PmdPortalTotpService.php
+?? app/Services/PmdRequestSchemaCache.php
+?? app/Services/PmdRestaurantApprovalPresenceService.php
+?? app/Services/PmdShiftPlannerRuleService.php
+?? app/Services/PmdSiteAccessQrService.php
+?? app/Services/PmdSiteAccessQrTokenService.php
+?? app/Services/PmdSiteAccessService.php
+?? app/Services/PmdSiteAccessSessionBindingService.php
+?? app/Services/PmdSiteAccessWorkspaceGateService.php
+?? app/Services/PmdSuperAdminOwnerMfaResetService.php
+?? app/Services/PmdSuperAdminOwnerPortalMfaResetService.php
+?? app/Services/PmdTenantMenuBaselineR25.php
+?? app/Services/PmdTenantProductBaselineR1.php
+?? app/Services/PmdUploadedImageOptimizer.php
+?? app/Services/PmdWorkSessionPolicyService.php
+?? app/Services/PmdWorkplaceCodeService.php
+?? app/Services/PmdWorkplaceHubBootstrapService.php
+?? app/Services/SuperAdminTenantDomainProvisioner.php
+?? app/Services/SuperAdminTenantIdentityService.php
+?? app/Services/SuperAdminTenantLifecycleService.php
+?? app/Services/TerminalPayments/PaymobOmanTerminalProvider.php
+?? app/Services/TerminalPayments/SquareTerminalProvider.php
+?? app/Services/TerminalPayments/SumupMerchantEnvironmentGuard.php
+?? app/Services/TerminalPayments/SumupTenantConnectionService.php
+?? app/Services/TerminalPayments/SumupTerminalProvider.php
+?? app/Services/TerminalPayments/WorldlineTerminalSettingsService.php
+?? app/Services/Turkey/
+?? app/Services/Workforce/
+?? app/admin/ServiceProvider.php.bridge_backup_20260310_161113
+?? app/admin/ServiceProvider.php.bridge_backup_20260310_161455
+?? app/admin/Services/AttendanceTrackingService.php
+?? app/admin/Services/BiometricDeviceService/
+?? app/admin/Services/BiometricEncryptionService.php
+?? app/admin/Services/CashDrawerService/CashDrawerDriverFactory.php
+?? app/admin/Services/CashDrawerService/CashDrawerDriverInterface.php
+?? app/admin/Services/CashDrawerService/CashDrawerSettlementBridge.php
+?? app/admin/Services/CashDrawerService/Drivers/
+?? app/admin/Services/CashDrawerService/LocalPosHardwareCommandService.php
+?? app/admin/Services/DeviceDetectionService.php
+?? app/admin/Services/DeviceDriverInterface.php
+?? app/admin/Services/DeviceFactory.php
+?? app/admin/Services/DeviceMonitoringService.php
+?? app/admin/Services/DeviceRegistry.php
+?? app/admin/Services/Drivers/
+?? app/admin/Services/EnrollmentService.php
+?? app/admin/Services/Fiskaly/
+?? app/admin/Services/GDPRComplianceService.php
+?? app/admin/Services/NotificationService.php
+?? app/admin/Services/Payments/
+?? app/admin/Services/PmdAiImportTableService.php
+?? app/admin/Services/PmdDefaultStaffRoleService.php
+?? app/admin/Services/PmdNotificationCountV1.php
+?? app/admin/Services/PmdRoleLandingService.php
+?? app/admin/Services/PmdSharedFloorRegistryV1.php
+?? app/admin/Services/PmdStarterMenuImageServiceV1.php
+?? app/admin/Services/PmdStarterMenuImageServiceV2.php
+?? app/admin/Services/PmdStarterMenuImageServiceV3.php
+?? app/admin/Services/PmdStarterMenuImageServiceV4.php
+?? app/admin/Services/PmdStarterMenuImageServiceV5.php
+?? app/admin/Services/PmdStarterMenuImageServiceV6.php
+?? app/admin/Services/PmdStarterMenuLibraryV1.php
+?? app/admin/Services/PmdStarterMenuLibraryV2.php
+?? app/admin/Services/PmdStarterMenuLibraryV3.php
+?? app/admin/Services/PmdStarterMenuLibraryV4.php
+?? app/admin/Services/PmdTenantQuickSetupService.php
+?? app/admin/Services/PmdTenantQuickSetupServiceV2.php
+?? app/admin/Services/RealTimeConnectionMonitor.php
+?? app/admin/assets/css/pmd-admin-final-single-logo-v20.css
+?? app/admin/assets/css/pmd-admin-i18n-residual-r7.css
+?? app/admin/assets/css/pmd-admin-load-hard-clean-v63.css
+?? app/admin/assets/css/pmd-admin-loader-hard-reset-v64.css
+?? app/admin/assets/css/pmd-admin-logo-clean-v26.css
+?? app/admin/assets/css/pmd-admin-logo-layout-v25.css
+?? app/admin/assets/css/pmd-admin-logo-spacing-v27.css
+?? app/admin/assets/css/pmd-admin-logo-switcher-v17.css
+?? app/admin/assets/css/pmd-admin-logo-switcher-v18.css
+?? app/admin/assets/css/pmd-admin-logo-switcher-v19.css
+?? app/admin/assets/css/pmd-admin-mobile-shell-v1.css
+?? app/admin/assets/css/pmd-admin-page-contract-v1.css
+?? app/admin/assets/css/pmd-admin-primary-dark-green-authority-v2.css
+?? app/admin/assets/css/pmd-admin-sidebar-clean-v4.css
+?? app/admin/assets/css/pmd-admin-sidebar-fix-v22.css
+?? app/admin/assets/css/pmd-admin-sidebar-modern-v2.css
+?? app/admin/assets/css/pmd-admin-sidebar-stable-v3.css
+?? app/admin/assets/css/pmd-admin-ui-kit-v1.css
+?? app/admin/assets/css/pmd-admin-universal-client-list-v1.css
+?? app/admin/assets/css/pmd-admin-universal-forms-v1.css
+?? app/admin/assets/css/pmd-admin/README.md
+?? app/admin/assets/css/pmd-admin/components/README.md
+?? app/admin/assets/css/pmd-admin/legacy/
+?? app/admin/assets/css/pmd-admin/pages/README.md
+?? app/admin/assets/css/pmd-cashier-lab-order-center.css
+?? app/admin/assets/css/pmd-cashier-lab-order-center.css.before-r37c-20260817_083208
+?? app/admin/assets/css/pmd-cashier-lab-order-center.css.before-r39-20260817_094924
+?? app/admin/assets/css/pmd-cashier-lab-orders-v1.css
+?? app/admin/assets/css/pmd-cashier-order-clean-v1.css
+?? app/admin/assets/css/pmd-cashier-order-composer-v1.css
+?? app/admin/assets/css/pmd-cashier-payment-clean-v1.css
+?? app/admin/assets/css/pmd-cashier-split-r67i.css
+?? app/admin/assets/css/pmd-cashier-ui-r51.css
+?? app/admin/assets/css/pmd-cashier-waiter-launcher-v21-base.css
+?? app/admin/assets/css/pmd-cashier-waiter-launcher-v21.css
+?? app/admin/assets/css/pmd-category-content-translations-v1.css
+?? app/admin/assets/css/pmd-clean-workspace-header-spacing-v1.css
+?? app/admin/assets/css/pmd-coupon-manager-v1.css
+?? app/admin/assets/css/pmd-coupon-manager-v11.css
+?? app/admin/assets/css/pmd-coupon-manager-v12.css
+?? app/admin/assets/css/pmd-coupon-manager-v13.css
+?? app/admin/assets/css/pmd-coupon-simplify-r23.css
+?? app/admin/assets/css/pmd-coupon-stable-r24.css
+?? app/admin/assets/css/pmd-dashboard-lab-analytics-v1.css
+?? app/admin/assets/css/pmd-dashboard-lab-exact-floor-v1.css
+?? app/admin/assets/css/pmd-dashboard-lab-v1.css
+?? app/admin/assets/css/pmd-dashboard-modern-v1.css.disabled
+?? app/admin/assets/css/pmd-dashboard2-detail-links-v1.css
+?? app/admin/assets/css/pmd-dashboard2-kpis-v1.css
+?? app/admin/assets/css/pmd-device-inline-v6.css
+?? app/admin/assets/css/pmd-device-inline-v7.css
+?? app/admin/assets/css/pmd-device-suite-v1.css
+?? app/admin/assets/css/pmd-device-suite-v2.css
+?? app/admin/assets/css/pmd-devices-settings-prune-r12.css
+?? app/admin/assets/css/pmd-finance-first-paint-r5.css
+?? app/admin/assets/css/pmd-finance-flat-ui-v1.css
+?? app/admin/assets/css/pmd-finance-frontend-cleanup-r13.css
+?? app/admin/assets/css/pmd-finance-market-r4.css
+?? app/admin/assets/css/pmd-floor-qr-template-studio-r3.css
+?? app/admin/assets/css/pmd-floor-v1-native-smart-v20.css
+?? app/admin/assets/css/pmd-floor-v1-stable-v11.css
+?? app/admin/assets/css/pmd-floor-v1.css
+?? app/admin/assets/css/pmd-general-staff-note-r24.css
+?? app/admin/assets/css/pmd-history-flow-r16.css
+?? app/admin/assets/css/pmd-history-modern-r14.css
+?? app/admin/assets/css/pmd-history-shell-r17.css
+?? app/admin/assets/css/pmd-history-stable-r15.css
+?? app/admin/assets/css/pmd-history-stable-r20.css
+?? app/admin/assets/css/pmd-intelligence-v1.css
+?? app/admin/assets/css/pmd-kds-fast-boot-v79.css.disabled-v80-20260622_185619
+?? app/admin/assets/css/pmd-kds-index-v126-fouc-guard.css
+?? app/admin/assets/css/pmd-kds-stable-fast-v81.css.disabled-v82-20260622_191527
+?? app/admin/assets/css/pmd-kitchen-today-team-v1.css
+?? app/admin/assets/css/pmd-kpi-info-v1.css
+?? app/admin/assets/css/pmd-kpi-overlay-order-v1.css
+?? app/admin/assets/css/pmd-kpi-unique-colors-v1.css
+?? app/admin/assets/css/pmd-location-live-clock-r10.css
+?? app/admin/assets/css/pmd-login-fouc-v58.css
+?? app/admin/assets/css/pmd-logo-six-candidates-v36.css
+?? app/admin/assets/css/pmd-logo-switcher-final-v38.css
+?? app/admin/assets/css/pmd-logo-switcher-hard-v37.css
+?? app/admin/assets/css/pmd-manager-icons-sidebar-safe-v33.css
+?? app/admin/assets/css/pmd-manager-icons-sidebar-v31.css
+?? app/admin/assets/css/pmd-manager-online-staff-v1.css
+?? app/admin/assets/css/pmd-menu-ai-import-v1.css
+?? app/admin/assets/css/pmd-menu-all-foods-r27.css
+?? app/admin/assets/css/pmd-menu-all-foods-r28.css
+?? app/admin/assets/css/pmd-menu-category-r25.css
+?? app/admin/assets/css/pmd-menu-content-translations-v1.css
+?? app/admin/assets/css/pmd-menu-gallery-options-v1.css
+?? app/admin/assets/css/pmd-menu-gallery-options-v5.css
+?? app/admin/assets/css/pmd-menu-gallery-options-v6.css
+?? app/admin/assets/css/pmd-menu-image-quality-v1.css
+?? app/admin/assets/css/pmd-menu-image-quality-v2.css
+?? app/admin/assets/css/pmd-menu-image-quality-v4.css
+?? app/admin/assets/css/pmd-menu-manager-v1.css
+?? app/admin/assets/css/pmd-menu-manager-v126.css
+?? app/admin/assets/css/pmd-menu-manager-v127.css
+?? app/admin/assets/css/pmd-menu-manager-v128.css
+?? app/admin/assets/css/pmd-menu-manager-v129.css
+?? app/admin/assets/css/pmd-menu-prep-presets.css
+?? app/admin/assets/css/pmd-menu-smart-categories-v1.css
+?? app/admin/assets/css/pmd-my-work-v1.css
+?? app/admin/assets/css/pmd-new-reservation-floor-v1.css
+?? app/admin/assets/css/pmd-new-tenant-onboarding-r7.css
+?? app/admin/assets/css/pmd-onboarding-welcome-v1.css
+?? app/admin/assets/css/pmd-order-edit-v2.css
+?? app/admin/assets/css/pmd-overlay-glass-authority-v1.css
+?? app/admin/assets/css/pmd-overlay-glass-authority-v2.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v1.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v10.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v11.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v12.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v13.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v14.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v15.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v16.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v17.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v18.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v20.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v21.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v22.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v23.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v4.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v5.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v6.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v7.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v8.css
+?? app/admin/assets/css/pmd-owner-dashboard-clean-v9.css
+?? app/admin/assets/css/pmd-owner-layout-editor-safe-v34.css
+?? app/admin/assets/css/pmd-owner-settings-v1.css
+?? app/admin/assets/css/pmd-ownerboard-v1.css
+?? app/admin/assets/css/pmd-ownerboard-v2.css
+?? app/admin/assets/css/pmd-ownerboard-workplace-access-v1.css
+?? app/admin/assets/css/pmd-payment-provider-catalogue-v1.css
+?? app/admin/assets/css/pmd-payment-simple-r67g.css
+?? app/admin/assets/css/pmd-payment-simple-v1.css
+?? app/admin/assets/css/pmd-people-v1.css
+?? app/admin/assets/css/pmd-platform-card-system-v1.css
+?? app/admin/assets/css/pmd-platform-card-system-v2.css
+?? app/admin/assets/css/pmd-quick-pos-v1.css
+?? app/admin/assets/css/pmd-reports-first-paint-v1.css
+?? app/admin/assets/css/pmd-reports-v1.css
+?? app/admin/assets/css/pmd-reservation-composer-v1.css
+?? app/admin/assets/css/pmd-reservation-floor-v4.css
+?? app/admin/assets/css/pmd-reservation-kds-create-v2.css
+?? app/admin/assets/css/pmd-reservation-layout-v3.css
+?? app/admin/assets/css/pmd-reservation-live-floor-v1.css
+?? app/admin/assets/css/pmd-reservation-workspace-v1.css
+?? app/admin/assets/css/pmd-reservation-workspace-v2.css
+?? app/admin/assets/css/pmd-reservations-lab-schedule-v1.css
+?? app/admin/assets/css/pmd-reservations2-behavior-only-v7.css
+?? app/admin/assets/css/pmd-reservations2-calendar-toggle-v1.css
+?? app/admin/assets/css/pmd-reservations2-content-boundaries-v51.css
+?? app/admin/assets/css/pmd-reservations2-date-popover-v318.css
+?? app/admin/assets/css/pmd-reservations2-exact-floor-v5.css
+?? app/admin/assets/css/pmd-reservations2-floor-canvas-v310.css
+?? app/admin/assets/css/pmd-reservations2-floor-reservation-v312.css
+?? app/admin/assets/css/pmd-reservations2-floor-toolbar-v315.css
+?? app/admin/assets/css/pmd-reservations2-floor-toolbar-v316.css
+?? app/admin/assets/css/pmd-reservations2-header-final-v1.css
+?? app/admin/assets/css/pmd-reservations2-kpis-v307.css
+?? app/admin/assets/css/pmd-reservations2-mobile-final-v2.css
+?? app/admin/assets/css/pmd-reservations2-mobile-hamburger-v301.css
+?? app/admin/assets/css/pmd-reservations2-polish-final-v6.css
+?? app/admin/assets/css/pmd-reservations2-prune-v305.css
+?? app/admin/assets/css/pmd-reservations2-remove-waiter-root-v306.css
+?? app/admin/assets/css/pmd-reservations2-reservation-stable-v3.css
+?? app/admin/assets/css/pmd-reservations2-sidebar-v1.css
+?? app/admin/assets/css/pmd-reservations2-sidebar-v2.css
+?? app/admin/assets/css/pmd-reservations2-stability-v3.css
+?? app/admin/assets/css/pmd-reservations2-v1.css
+?? app/admin/assets/css/pmd-reservations2-waiter-embed-v1.css
+?? app/admin/assets/css/pmd-reservations2-waiter-reservation-v4.css
+?? app/admin/assets/css/pmd-reservations3-base-v1.css
+?? app/admin/assets/css/pmd-reservations3-waiter-style-v1.css
+?? app/admin/assets/css/pmd-reservationsnew-layout-v1.css
+?? app/admin/assets/css/pmd-role-dashboard-v1.css
+?? app/admin/assets/css/pmd-role-workspace-reports-v1.css
+?? app/admin/assets/css/pmd-settings-family-header-v17.css
+?? app/admin/assets/css/pmd-settings-frontend-v2.css
+?? app/admin/assets/css/pmd-settings-inline-detail-v1.css
+?? app/admin/assets/css/pmd-settings-polish-r10.css
+?? app/admin/assets/css/pmd-settings-polish-r11.css
+?? app/admin/assets/css/pmd-settings-polish-r2.css
+?? app/admin/assets/css/pmd-settings-polish-r3.css
+?? app/admin/assets/css/pmd-settings-polish-r4.css
+?? app/admin/assets/css/pmd-settings-polish-r5.css
+?? app/admin/assets/css/pmd-settings-polish-r7.css
+?? app/admin/assets/css/pmd-settings-polish-r8.css
+?? app/admin/assets/css/pmd-settings-polish-r9.css
+?? app/admin/assets/css/pmd-settings-restaurant-identity-r11.css
+?? app/admin/assets/css/pmd-settings-restaurant-logo-authority-r20.css
+?? app/admin/assets/css/pmd-settings-restaurant-unified-r19.css
+?? app/admin/assets/css/pmd-settings-simplify-r1.css
+?? app/admin/assets/css/pmd-settings-suite-first-paint-v1.css
+?? app/admin/assets/css/pmd-settings-suite-first-paint-v2.css
+?? app/admin/assets/css/pmd-shared-floor-multi-floor-v1.css
+?? app/admin/assets/css/pmd-shifts-bar-first-paint-fit-v17l.css
+?? app/admin/assets/css/pmd-shifts-bar-fit-v17m.css
+?? app/admin/assets/css/pmd-shifts-big-calendar-v14.css
+?? app/admin/assets/css/pmd-shifts-canonical-03911c1a6817.css
+?? app/admin/assets/css/pmd-shifts-canonical-5ec3861612fa.css
+?? app/admin/assets/css/pmd-shifts-canonical-92a6ad0051a5.css
+?? app/admin/assets/css/pmd-shifts-canonical-994df35118a2.css
+?? app/admin/assets/css/pmd-shifts-canonical-a9759a051d79.css
+?? app/admin/assets/css/pmd-shifts-canonical-b9d757416ea0.css
+?? app/admin/assets/css/pmd-shifts-canonical-c5743ae9e47e.css
+?? app/admin/assets/css/pmd-shifts-canonical-firstpaint-v17h2.css
+?? app/admin/assets/css/pmd-shifts-clean-frame-v17f.css
+?? app/admin/assets/css/pmd-shifts-dashboard-reservations-v4.css
+?? app/admin/assets/css/pmd-shifts-endpoint-labels-v12b.css
+?? app/admin/assets/css/pmd-shifts-endpoint-labels-v12c.css
+?? app/admin/assets/css/pmd-shifts-first-paint-v12.css
+?? app/admin/assets/css/pmd-shifts-first-paint-v13.css
+?? app/admin/assets/css/pmd-shifts-font-first-paint-v17j.css
+?? app/admin/assets/css/pmd-shifts-modal-v18.css
+?? app/admin/assets/css/pmd-shifts-no-plus-v17e.css
+?? app/admin/assets/css/pmd-shifts-planner-polish-v17d.css
+?? app/admin/assets/css/pmd-shifts-planner-ux-v15-fast.css
+?? app/admin/assets/css/pmd-shifts-planner-ux-v15.css
+?? app/admin/assets/css/pmd-shifts-planner-v17.css
+?? app/admin/assets/css/pmd-shifts-refresh-stability-v17i.css
+?? app/admin/assets/css/pmd-shifts-reservation-jade-time-v17b.css
+?? app/admin/assets/css/pmd-shifts-reservation-jade-time-v17c.css
+?? app/admin/assets/css/pmd-shifts-toolbar-grid-v12.css
+?? app/admin/assets/css/pmd-shifts-v1-6c3f93c60040.css
+?? app/admin/assets/css/pmd-shifts-v1-ca8cea82f8ab.css
+?? app/admin/assets/css/pmd-shifts-v1.css
+?? app/admin/assets/css/pmd-shifts-zero-cell-hover-v17g.css
+?? app/admin/assets/css/pmd-side-menu2-v1.css
+?? app/admin/assets/css/pmd-sidebar-active-state-fix.css
+?? app/admin/assets/css/pmd-sidebar-button-size-v6.css
+?? app/admin/assets/css/pmd-sidebar-child-icons-v10.css
+?? app/admin/assets/css/pmd-sidebar-clean-collapse-v44.css
+?? app/admin/assets/css/pmd-sidebar-closed-icons-lower-v54.css
+?? app/admin/assets/css/pmd-sidebar-closed-logo-mode-v66.css
+?? app/admin/assets/css/pmd-sidebar-closed-logo-tune-v51.css
+?? app/admin/assets/css/pmd-sidebar-closed-raise-v52.css
+?? app/admin/assets/css/pmd-sidebar-collapse-v12.css
+?? app/admin/assets/css/pmd-sidebar-collapse-v13.css
+?? app/admin/assets/css/pmd-sidebar-collapse-v14.css
+?? app/admin/assets/css/pmd-sidebar-collapsed-native-v49.css
+?? app/admin/assets/css/pmd-sidebar-collapsed-rail-v45.css
+?? app/admin/assets/css/pmd-sidebar-column-flow-v8.css
+?? app/admin/assets/css/pmd-sidebar-edge-tab-5logos-v68.css
+?? app/admin/assets/css/pmd-sidebar-emergency-clean-v46.css
+?? app/admin/assets/css/pmd-sidebar-final-stable-v42.css
+?? app/admin/assets/css/pmd-sidebar-hard-reset-v47.css
+?? app/admin/assets/css/pmd-sidebar-icons-only-v15.css
+?? app/admin/assets/css/pmd-sidebar-logo-last-toggle-v55.css
+?? app/admin/assets/css/pmd-sidebar-logo-toggle-v28.css
+?? app/admin/assets/css/pmd-sidebar-menu-lower-v56.css
+?? app/admin/assets/css/pmd-sidebar-native-reset-v48.css
+?? app/admin/assets/css/pmd-sidebar-parent-open-v5.css
+?? app/admin/assets/css/pmd-sidebar-polish-persist-v41.css
+?? app/admin/assets/css/pmd-sidebar-position-edge-v39.css
+?? app/admin/assets/css/pmd-sidebar-profile-edge-v43.css
+?? app/admin/assets/css/pmd-sidebar-raise-all-v53.css
+?? app/admin/assets/css/pmd-sidebar-recover-native-v50.css
+?? app/admin/assets/css/pmd-sidebar-ref-icons.css
+?? app/admin/assets/css/pmd-sidebar-small-toggle-notch-v69.css
+?? app/admin/assets/css/pmd-sidebar-stability-v40.css
+?? app/admin/assets/css/pmd-sidebar-submenu-active-v9.css
+?? app/admin/assets/css/pmd-sidebar-svg-icons.css
+?? app/admin/assets/css/pmd-sidebar-svg-mask-icons.css
+?? app/admin/assets/css/pmd-sidebar-system-lock-v7.css
+?? app/admin/assets/css/pmd-sidebar-toggle-polish-v67.css
+?? app/admin/assets/css/pmd-sidebar-toggle-top-gap-v70.css
+?? app/admin/assets/css/pmd-sidebar-visual-persist-v62.css
+?? app/admin/assets/css/pmd-site-access-v1.css
+?? app/admin/assets/css/pmd-stable-logo-kpi-v65.css
+?? app/admin/assets/css/pmd-staff-portal-v1.css
+?? app/admin/assets/css/pmd-staff-portal-v2.css
+?? app/admin/assets/css/pmd-staff-portal-v3.css
+?? app/admin/assets/css/pmd-staff-time-clock-v1.css
+?? app/admin/assets/css/pmd-sumup-self-service-v1.css
+?? app/admin/assets/css/pmd-tenant-quick-setup-v1.css
+?? app/admin/assets/css/pmd-turkey-settings-r1.css
+?? app/admin/assets/css/pmd-universal-layout-editor-v35.css
+?? app/admin/assets/css/pmd-waiter-dashboard-new-v1.css
+?? app/admin/assets/css/pmd-waiter-final-v1.css
+?? app/admin/assets/css/pmd-waiter-final-v11-fixes.css
+?? app/admin/assets/css/pmd-waiter-final-v12-runtime-fixes.css
+?? app/admin/assets/css/pmd-waiter-final-v2-pos.css
+?? app/admin/assets/css/pmd-waiter-final-v2-responsive.css
+?? app/admin/assets/css/pmd-waiter-final-v2.css
+?? app/admin/assets/css/pmd-waiter-final-v21-payment-colors.css
+?? app/admin/assets/css/pmd-waiter-floor-edit-v160.css
+?? app/admin/assets/css/pmd-waiter-floor-stability-v153.css
+?? app/admin/assets/css/pmd-waiter-launcher-v232-service-rail.css
+?? app/admin/assets/css/pmd-waiter-launcher-v233-unified-ui.css
+?? app/admin/assets/css/pmd-waiter-pos-polish-v26.css
+?? app/admin/assets/css/pmd-waiter-pos-product-details-v3.css
+?? app/admin/assets/css/pmd-waiter-pos-shadow-host-v25.css
+?? app/admin/assets/css/pmd-waiter-pos-simple-v27.css
+?? app/admin/assets/css/pmd-waiter-pos-v1.css
+?? app/admin/assets/css/pmd-waiter-pos-v1.css.before-r40-20260817_100315
+?? app/admin/assets/css/pmd-waiter-pos-v286-dashboard-rebuild.css
+?? app/admin/assets/css/pmd-waiter-pos-v290-final-layout.css
+?? app/admin/assets/css/pmd-waiter-standard-v21.css
+?? app/admin/assets/css/pmd-waiter-standard-v211-payment-guard.css
+?? app/admin/assets/css/pmd-waiter-standard-v22.css
+?? app/admin/assets/css/pmd-waiter-standard-v221-theme.css
+?? app/admin/assets/css/pmd-waiter-standard-v23-operational-polish.css
+?? app/admin/assets/css/pmd-waiter-standard-v231-category-dark-fix.css
+?? app/admin/assets/css/pmd-waiter-table-state-v154.css
+?? app/admin/assets/css/pmd-waiter-v234-pos-consistency.css
+?? app/admin/assets/css/pmd-waiter-v241-table-lifecycle-safe.css
+?? app/admin/assets/css/pmd-waiter-v243-header-operations.css
+?? app/admin/assets/css/pmd-waiter-v245-direct-merge.css
+?? app/admin/assets/css/pmd-waiter-v251-table-number-order.css
+?? app/admin/assets/css/pmd-waiter-v252-final-runtime.css
+?? app/admin/assets/css/pmd-waiter-v253-instant-final.css
+?? app/admin/assets/css/pmd-waiter-v257-operations-rail.css
+?? app/admin/assets/css/pmd-waiter-v258-compact-right-rail.css
+?? app/admin/assets/css/pmd-waiter-v259-balanced-right-rail.css
+?? app/admin/assets/css/pmd-waiter-v260-symmetric-rails.css
+?? app/admin/assets/css/pmd-waiter-v261-pixel-matched-rails.css
+?? app/admin/assets/css/pmd-waiter-v262-exact-rail-clone.css
+?? app/admin/assets/css/pmd-waiter-v263-area-search-calls.css
+?? app/admin/assets/css/pmd-waiter-v264-clean-interactions.css
+?? app/admin/assets/css/pmd-waiter-v265-header-dark-logout.css
+?? app/admin/assets/css/pmd-waiter-v266-theme-rails-nohover.css
+?? app/admin/assets/css/pmd-waiter-v268-first-paint.css
+?? app/admin/assets/css/pmd-waiter-v271-service-inbox.css
+?? app/admin/assets/css/pmd-waiter-v274-single-service-source.css
+?? app/admin/assets/css/pmd-waiter-v275-rail-colors-logout-confirm.css
+?? app/admin/assets/css/pmd-waiter-v280-exact-neutral-right-rail.css
+?? app/admin/assets/css/pmd-waiter-v281-exact-edge-width.css
+?? app/admin/assets/css/pmd-waiter-v283-final-visual-shield.css
+?? app/admin/assets/css/pmd-waiter-v285-live-grid-visual-lock.css
+?? app/admin/assets/css/pmd-waiter-workstation-v3.css
+?? app/admin/assets/css/pmd-waiter-zero-shift-v1.css
+?? app/admin/assets/css/pmd-workplace-access-v2.css
+?? app/admin/assets/css/pmd-year-calendar-v1.css
+?? app/admin/assets/css/pmd-year-calendar-v16-google.css
+?? app/admin/assets/css/pmd-year-calendar-v17-notes.css
+?? app/admin/assets/icons/
+?? app/admin/assets/images/Gemini_Generated_Image_kzcmghkzcmghkzcm-removebg-preview.png
+?? app/admin/assets/images/favicon.svg.backup-20260822-120639
+?? app/admin/assets/images/paymydine-logo.svg
+?? app/admin/assets/images/paymydine-symbol.svg
+?? app/admin/assets/images/pmd-brand-full.svg
+?? app/admin/assets/images/pmd-brand-mark.svg
+?? app/admin/assets/images/pmd-favicon-final-20260822.svg
+?? app/admin/assets/images/pmd-login-logo.svg
+?? app/admin/assets/images/pmd-logo-candidates/
+?? app/admin/assets/images/pmd-logo-final.png
+?? app/admin/assets/images/pmd/logopmd.svg
+?? app/admin/assets/images/theme-previews/
+?? app/admin/assets/js/metisMenu.min.js.map
+?? app/admin/assets/js/mustache.js
+?? app/admin/assets/js/pmd-admin-ar-complete-r10.js
+?? app/admin/assets/js/pmd-admin-canonical-visible-audit-r5.js
+?? app/admin/assets/js/pmd-admin-coverage-r3-v11b.js
+?? app/admin/assets/js/pmd-admin-coverage-r3.js
+?? app/admin/assets/js/pmd-admin-exact-layout-v1.js
+?? app/admin/assets/js/pmd-admin-favicon-final-r21.js
+?? app/admin/assets/js/pmd-admin-final-single-logo-v20.js
+?? app/admin/assets/js/pmd-admin-i18n-catalog-de.js
+?? app/admin/assets/js/pmd-admin-i18n-crawler-r6.js
+?? app/admin/assets/js/pmd-admin-i18n-page-authority-v2.js
+?? app/admin/assets/js/pmd-admin-i18n-residual-r7.js
+?? app/admin/assets/js/pmd-admin-i18n-residual-r8.js
+?? app/admin/assets/js/pmd-admin-i18n-tr-v1.js
+?? app/admin/assets/js/pmd-admin-i18n-v1.js
+?? app/admin/assets/js/pmd-admin-load-hard-clean-v63.js
+?? app/admin/assets/js/pmd-admin-logo-clean-v26.js
+?? app/admin/assets/js/pmd-admin-logo-layout-v25.js
+?? app/admin/assets/js/pmd-admin-logo-spacing-v27.js
+?? app/admin/assets/js/pmd-admin-logo-switcher-v17.js
+?? app/admin/assets/js/pmd-admin-logo-switcher-v18.js
+?? app/admin/assets/js/pmd-admin-logo-switcher-v19.js
+?? app/admin/assets/js/pmd-admin-sidebar-fix-v22.js
+?? app/admin/assets/js/pmd-admin-sidebar-icons-v2.js
+?? app/admin/assets/js/pmd-admin-sidebar-stable-v3.js
+?? app/admin/assets/js/pmd-admin-universal-client-list-v1.js
+?? app/admin/assets/js/pmd-admin-universal-forms-v1.js
+?? app/admin/assets/js/pmd-canonical-admin-urls-r81c.js
+?? app/admin/assets/js/pmd-canonical-admin-urls-r81d.js
+?? app/admin/assets/js/pmd-cashier-lab-order-center.js
+?? app/admin/assets/js/pmd-cashier-lab-order-center.js.before-r37c-20260817_083208
+?? app/admin/assets/js/pmd-cashier-lab-order-center.js.before-r39-20260817_094924
+?? app/admin/assets/js/pmd-cashier-order-composer-r51.js
+?? app/admin/assets/js/pmd-cashier-order-composer-v1.js
+?? app/admin/assets/js/pmd-cashier-r45-actions.js
+?? app/admin/assets/js/pmd-cashier-waiter-launcher-v21.js
+?? app/admin/assets/js/pmd-category-content-translations-v1.js
+?? app/admin/assets/js/pmd-clean-workspace-kpis-v1.js
+?? app/admin/assets/js/pmd-coupon-manager-v1.js
+?? app/admin/assets/js/pmd-coupon-manager-v11.js
+?? app/admin/assets/js/pmd-coupon-manager-v12.js
+?? app/admin/assets/js/pmd-coupon-manager-v13.js
+?? app/admin/assets/js/pmd-coupon-simplify-r23.js
+?? app/admin/assets/js/pmd-coupon-stable-r24.js
+?? app/admin/assets/js/pmd-dashboard-kpi-repair-v1.js
+?? app/admin/assets/js/pmd-dashboard-lab-analytics-v1.js
+?? app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js
+?? app/admin/assets/js/pmd-dashboard-lab-kpis-v1.js
+?? app/admin/assets/js/pmd-dashboard-live-refresh-v1.js
+?? app/admin/assets/js/pmd-dashboard-modern-v1.js.disabled
+?? app/admin/assets/js/pmd-dashboard2-detail-links-v1.js
+?? app/admin/assets/js/pmd-dashboard2-kpis-v1.js
+?? app/admin/assets/js/pmd-desktop-print-bridge-v108.js
+?? app/admin/assets/js/pmd-device-inline-v6.js
+?? app/admin/assets/js/pmd-finance-market-r4.js
+?? app/admin/assets/js/pmd-floor-qr-template-studio-r3.js
+?? app/admin/assets/js/pmd-floor-toolbar-authority-v1.js
+?? app/admin/assets/js/pmd-floor-v1-stable-v11.js
+?? app/admin/assets/js/pmd-floor-v1.js
+?? app/admin/assets/js/pmd-general-staff-note-r24.js
+?? app/admin/assets/js/pmd-header-bulk-delete-v131.js
+?? app/admin/assets/js/pmd-header-bulk-delete-v132.js
+?? app/admin/assets/js/pmd-intelligence-v1.js
+?? app/admin/assets/js/pmd-kds-fast-boot-v79.js.disabled-v80-20260622_185619
+?? app/admin/assets/js/pmd-kds-stable-fast-v81.js.disabled-v82-20260622_191527
+?? app/admin/assets/js/pmd-kpi-info-v1.js
+?? app/admin/assets/js/pmd-location-live-clock-r10.js
+?? app/admin/assets/js/pmd-login-fouc-v58.js
+?? app/admin/assets/js/pmd-logo-six-candidates-v36.js
+?? app/admin/assets/js/pmd-logo-switcher-final-v38.js
+?? app/admin/assets/js/pmd-logo-switcher-hard-v37.js
+?? app/admin/assets/js/pmd-manager-icons-sidebar-safe-v33.js
+?? app/admin/assets/js/pmd-manager-icons-sidebar-v31.js
+?? app/admin/assets/js/pmd-menu-ai-import-header-v2.js
+?? app/admin/assets/js/pmd-menu-ai-import-v1.js
+?? app/admin/assets/js/pmd-menu-all-foods-r27.js
+?? app/admin/assets/js/pmd-menu-all-foods-r28.js
+?? app/admin/assets/js/pmd-menu-category-guard-r26.js
+?? app/admin/assets/js/pmd-menu-category-r25.js
+?? app/admin/assets/js/pmd-menu-content-translations-v1.js
+?? app/admin/assets/js/pmd-menu-content-translations-v2.js
+?? app/admin/assets/js/pmd-menu-gallery-options-v1.js
+?? app/admin/assets/js/pmd-menu-gallery-options-v10.js
+?? app/admin/assets/js/pmd-menu-gallery-options-v5.js
+?? app/admin/assets/js/pmd-menu-gallery-options-v6.js
+?? app/admin/assets/js/pmd-menu-gallery-options-v7.js
+?? app/admin/assets/js/pmd-menu-gallery-options-v8.js
+?? app/admin/assets/js/pmd-menu-gallery-options-v9.js
+?? app/admin/assets/js/pmd-menu-image-quality-v1.js
+?? app/admin/assets/js/pmd-menu-image-quality-v2.js
+?? app/admin/assets/js/pmd-menu-image-quality-v3.js
+?? app/admin/assets/js/pmd-menu-manager-v1.js
+?? app/admin/assets/js/pmd-menu-manager-v126.js
+?? app/admin/assets/js/pmd-menu-manager-v127.js
+?? app/admin/assets/js/pmd-menu-manager-v128.js
+?? app/admin/assets/js/pmd-menu-manager-v129.js
+?? app/admin/assets/js/pmd-menu-manager-v130.js
+?? app/admin/assets/js/pmd-menu-prep-presets.js
+?? app/admin/assets/js/pmd-menu-runtime-stability-v1.js
+?? app/admin/assets/js/pmd-menu-runtime-stability.js
+?? app/admin/assets/js/pmd-menu-scoped-food-remove-v1.js
+?? app/admin/assets/js/pmd-menu-smart-categories-v1.js
+?? app/admin/assets/js/pmd-new-reservation-floor-v1.js
+?? app/admin/assets/js/pmd-new-tenant-onboarding-r7.js
+?? app/admin/assets/js/pmd-onboarding-welcome-v1.js
+?? app/admin/assets/js/pmd-order-edit-polish-v1.js
+?? app/admin/assets/js/pmd-order-edit-v2.js
+?? app/admin/assets/js/pmd-overlay-runtime-authority-v3.js
+?? app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v1.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v10.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v11.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v12.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v13.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v14.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v15.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v16.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v17.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v19.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v20.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v21.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v22.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v23.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v4.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v5.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v6.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v7.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v8.js
+?? app/admin/assets/js/pmd-owner-dashboard-clean-v9.js
+?? app/admin/assets/js/pmd-owner-layout-editor-safe-v34.js
+?? app/admin/assets/js/pmd-owner-settings-v1.js
+?? app/admin/assets/js/pmd-ownerboard-v1.js
+?? app/admin/assets/js/pmd-ownerboard-v2.js
+?? app/admin/assets/js/pmd-ownerboard-workplace-access-v1.js
+?? app/admin/assets/js/pmd-payment-provider-catalogue-v1.js
+?? app/admin/assets/js/pmd-platform-messages.js
+?? app/admin/assets/js/pmd-quick-pos-v1.js
+?? app/admin/assets/js/pmd-reports-excel-v1.js
+?? app/admin/assets/js/pmd-reports-v1.js
+?? app/admin/assets/js/pmd-reservation-composer-v1.js
+?? app/admin/assets/js/pmd-reservation-floor-v4.js
+?? app/admin/assets/js/pmd-reservation-kds-create-v2.js
+?? app/admin/assets/js/pmd-reservation-layout-v3.js
+?? app/admin/assets/js/pmd-reservation-live-floor-v1.js
+?? app/admin/assets/js/pmd-reservation-workspace-v1.js
+?? app/admin/assets/js/pmd-reservation-workspace-v2.js
+?? app/admin/assets/js/pmd-reservations-lab-schedule-v1.js
+?? app/admin/assets/js/pmd-reservations-lab-table-card-filter-v1.js
+?? app/admin/assets/js/pmd-reservations2-behavior-only-v7.js
+?? app/admin/assets/js/pmd-reservations2-calendar-toggle-v1.js
+?? app/admin/assets/js/pmd-reservations2-date-popover-v318.js
+?? app/admin/assets/js/pmd-reservations2-exact-floor-v5.js
+?? app/admin/assets/js/pmd-reservations2-exact-layout-v1.js
+?? app/admin/assets/js/pmd-reservations2-final-floor-ui-v466.js
+?? app/admin/assets/js/pmd-reservations2-floor-reservation-v312.js
+?? app/admin/assets/js/pmd-reservations2-floor-toolbar-v315.js
+?? app/admin/assets/js/pmd-reservations2-floor-toolbar-v316.js
+?? app/admin/assets/js/pmd-reservations2-kpi-table-colors-v467.js
+?? app/admin/assets/js/pmd-reservations2-kpis-v307.js
+?? app/admin/assets/js/pmd-reservations2-mobile-final-v2.js
+?? app/admin/assets/js/pmd-reservations2-mobile-hamburger-v301.js
+?? app/admin/assets/js/pmd-reservations2-polish-final-v6.js
+?? app/admin/assets/js/pmd-reservations2-prune-v305.js
+?? app/admin/assets/js/pmd-reservations2-remove-waiter-root-v306.js
+?? app/admin/assets/js/pmd-reservations2-reservation-stable-v3.js
+?? app/admin/assets/js/pmd-reservations2-sidebar-v1.js
+?? app/admin/assets/js/pmd-reservations2-sidebar-v2.js
+?? app/admin/assets/js/pmd-reservations2-stability-v3.js
+?? app/admin/assets/js/pmd-reservations2-v1.js
+?? app/admin/assets/js/pmd-reservations2-waiter-embed-v1.js
+?? app/admin/assets/js/pmd-reservations2-waiter-reservation-v4.js
+?? app/admin/assets/js/pmd-reservations3-base-v1.js
+?? app/admin/assets/js/pmd-reservations3-workflow-v1.js
+?? app/admin/assets/js/pmd-settings-family-header-v17.js
+?? app/admin/assets/js/pmd-settings-family-header-v18.js
+?? app/admin/assets/js/pmd-settings-frontend-v2.js
+?? app/admin/assets/js/pmd-settings-inline-detail-v1.js
+?? app/admin/assets/js/pmd-settings-polish-r2.js
+?? app/admin/assets/js/pmd-settings-polish-r3.js
+?? app/admin/assets/js/pmd-settings-polish-r4.js
+?? app/admin/assets/js/pmd-settings-polish-r5.js
+?? app/admin/assets/js/pmd-settings-polish-r6.js
+?? app/admin/assets/js/pmd-settings-simplify-r1.js
+?? app/admin/assets/js/pmd-settings-stable-r10.js
+?? app/admin/assets/js/pmd-settings-stable-r6.js
+?? app/admin/assets/js/pmd-settings-stable-r8.js
+?? app/admin/assets/js/pmd-settings-stable-r9.js
+?? app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js
+?? app/admin/assets/js/pmd-shifts-big-calendar-v14.js
+?? app/admin/assets/js/pmd-shifts-canonical-62d9acbd4b22.js
+?? app/admin/assets/js/pmd-shifts-canonical-6ecce11428d3.js
+?? app/admin/assets/js/pmd-shifts-canonical-a4734567d99b.js
+?? app/admin/assets/js/pmd-shifts-canonical-ac743c938889.js
+?? app/admin/assets/js/pmd-shifts-canonical-b4d2e55c5e6d.js
+?? app/admin/assets/js/pmd-shifts-canonical-e2ac98118fe5.js
+?? app/admin/assets/js/pmd-shifts-canonical-locale-v8b.js
+?? app/admin/assets/js/pmd-shifts-inpage-day-nav-v13.js
+?? app/admin/assets/js/pmd-shifts-inpage-day-nav-v17.js
+?? app/admin/assets/js/pmd-shifts-inpage-day-nav-v17f.js
+?? app/admin/assets/js/pmd-shifts-inpage-day-nav-v17m.js
+?? app/admin/assets/js/pmd-shifts-inpage-day-nav-v17n.js
+?? app/admin/assets/js/pmd-shifts-inpage-day-nav-v17o.js
+?? app/admin/assets/js/pmd-shifts-live-attendance-v1.js
+?? app/admin/assets/js/pmd-shifts-live-attendance-v2.js
+?? app/admin/assets/js/pmd-shifts-planner-polish-v17d.js
+?? app/admin/assets/js/pmd-shifts-planner-ux-v15-fast.js
+?? app/admin/assets/js/pmd-shifts-planner-ux-v15.js
+?? app/admin/assets/js/pmd-shifts-planner-v17.js
+?? app/admin/assets/js/pmd-shifts-portal-mfa-reset-v1.js
+?? app/admin/assets/js/pmd-shifts-reservation-jade-time-v17b.js
+?? app/admin/assets/js/pmd-shifts-reservation-jade-time-v17c.js
+?? app/admin/assets/js/pmd-shifts-v1.js
+?? app/admin/assets/js/pmd-side-menu2-v1.js
+?? app/admin/assets/js/pmd-sidebar-clean-collapse-v44.js
+?? app/admin/assets/js/pmd-sidebar-closed-logo-mode-v66.js
+?? app/admin/assets/js/pmd-sidebar-collapse-v12.js
+?? app/admin/assets/js/pmd-sidebar-collapse-v13.js
+?? app/admin/assets/js/pmd-sidebar-collapsed-native-v49.js
+?? app/admin/assets/js/pmd-sidebar-collapsed-rail-v45.js
+?? app/admin/assets/js/pmd-sidebar-edge-tab-5logos-v68.js
+?? app/admin/assets/js/pmd-sidebar-emergency-clean-v46.js
+?? app/admin/assets/js/pmd-sidebar-final-stable-v42.js
+?? app/admin/assets/js/pmd-sidebar-hard-reset-v47.js
+?? app/admin/assets/js/pmd-sidebar-icons-only-v15.js
+?? app/admin/assets/js/pmd-sidebar-logo-last-toggle-v55.js
+?? app/admin/assets/js/pmd-sidebar-logo-toggle-v28.js
+?? app/admin/assets/js/pmd-sidebar-native-reset-v48.js
+?? app/admin/assets/js/pmd-sidebar-polish-persist-v41.js
+?? app/admin/assets/js/pmd-sidebar-position-edge-v39.js
+?? app/admin/assets/js/pmd-sidebar-profile-edge-v43.js
+?? app/admin/assets/js/pmd-sidebar-recover-native-v50.js
+?? app/admin/assets/js/pmd-sidebar-small-toggle-notch-v69.js
+?? app/admin/assets/js/pmd-sidebar-stability-v40.js
+?? app/admin/assets/js/pmd-sidebar-system-lock-v7.js
+?? app/admin/assets/js/pmd-sidebar-toggle-polish-v67.js
+?? app/admin/assets/js/pmd-sidebar-toggle-top-gap-v70.js
+?? app/admin/assets/js/pmd-sidebar-visual-persist-v62.js
+?? app/admin/assets/js/pmd-site-access-hub-v1.js
+?? app/admin/assets/js/pmd-site-access-hub-v10.js
+?? app/admin/assets/js/pmd-site-access-hub-v11.js
+?? app/admin/assets/js/pmd-site-access-hub-v12.js
+?? app/admin/assets/js/pmd-site-access-hub-v13.js
+?? app/admin/assets/js/pmd-site-access-hub-v8.js
+?? app/admin/assets/js/pmd-site-access-hub-v9.js
+?? app/admin/assets/js/pmd-stable-logo-switcher-v65.js
+?? app/admin/assets/js/pmd-staff-time-clock-v1.js
+?? app/admin/assets/js/pmd-sumup-inline-wallet-settings-v1.js
+?? app/admin/assets/js/pmd-sumup-self-service-v1.js
+?? app/admin/assets/js/pmd-sumup-self-service-v2.js
+?? app/admin/assets/js/pmd-tenant-quick-setup-v1.js
+?? app/admin/assets/js/pmd-tenant-quick-setup-v2.js
+?? app/admin/assets/js/pmd-tenant-quick-setup-v3.js
+?? app/admin/assets/js/pmd-turkey-settings-r3.js
+?? app/admin/assets/js/pmd-universal-layout-editor-v35.js
+?? app/admin/assets/js/pmd-waiter-dashboard-new-v1.js
+?? app/admin/assets/js/pmd-waiter-final-v1.js
+?? app/admin/assets/js/pmd-waiter-final-v11-fixes.js
+?? app/admin/assets/js/pmd-waiter-final-v12-runtime-fixes.js
+?? app/admin/assets/js/pmd-waiter-final-v2.js
+?? app/admin/assets/js/pmd-waiter-final-v21-loader-recovery.js
+?? app/admin/assets/js/pmd-waiter-final-v21-payment-stability.js
+?? app/admin/assets/js/pmd-waiter-floor-edit-v160.js
+?? app/admin/assets/js/pmd-waiter-floor-stability-v153.js
+?? app/admin/assets/js/pmd-waiter-launcher-v233-unified-ui.js
+?? app/admin/assets/js/pmd-waiter-pos-dashboard-bridge-v2.js
+?? app/admin/assets/js/pmd-waiter-pos-dashboard-direct-guard-v23.js
+?? app/admin/assets/js/pmd-waiter-pos-dashboard-shadow-bridge-v24.js
+?? app/admin/assets/js/pmd-waiter-pos-payment-policy-r67g.js
+?? app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
+?? app/admin/assets/js/pmd-waiter-pos-payment-v2.js
+?? app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+?? app/admin/assets/js/pmd-waiter-pos-polish-v26.js
+?? app/admin/assets/js/pmd-waiter-pos-product-details-v3.js
+?? app/admin/assets/js/pmd-waiter-pos-simple-v27.js
+?? app/admin/assets/js/pmd-waiter-pos-simple-v27.js.before-r40c-20260817_102206
+?? app/admin/assets/js/pmd-waiter-pos-v1.js
+?? app/admin/assets/js/pmd-waiter-pos-v1.js.before-r40-20260817_100315
+?? app/admin/assets/js/pmd-waiter-pos-v286-dashboard-rebuild.js
+?? app/admin/assets/js/pmd-waiter-pos-v290-final-layout.js
+?? app/admin/assets/js/pmd-waiter-standard-v21.js
+?? app/admin/assets/js/pmd-waiter-standard-v211-payment-guard.js
+?? app/admin/assets/js/pmd-waiter-standard-v22.js
+?? app/admin/assets/js/pmd-waiter-standard-v221-theme.js
+?? app/admin/assets/js/pmd-waiter-standard-v23-operational-polish.js
+?? app/admin/assets/js/pmd-waiter-standard-v23-owner-filters.js
+?? app/admin/assets/js/pmd-waiter-table-state-v154.js
+?? app/admin/assets/js/pmd-waiter-v234-pos-consistency.js
+?? app/admin/assets/js/pmd-waiter-v241-table-lifecycle-safe.js
+?? app/admin/assets/js/pmd-waiter-v243-header-operations.js
+?? app/admin/assets/js/pmd-waiter-v245-direct-merge.js
+?? app/admin/assets/js/pmd-waiter-v251-table-number-order.js
+?? app/admin/assets/js/pmd-waiter-v257-operations-rail.js
+?? app/admin/assets/js/pmd-waiter-v263-area-search-calls.js
+?? app/admin/assets/js/pmd-waiter-v264-clean-interactions.js
+?? app/admin/assets/js/pmd-waiter-v265-header-dark-logout.js
+?? app/admin/assets/js/pmd-waiter-v266-theme-rails-nohover.js
+?? app/admin/assets/js/pmd-waiter-v268-first-paint.js
+?? app/admin/assets/js/pmd-waiter-v271-service-inbox.js
+?? app/admin/assets/js/pmd-waiter-v274-single-service-source.js
+?? app/admin/assets/js/pmd-waiter-v275-rail-colors-logout-confirm.js
+?? app/admin/assets/js/pmd-waiter-v280-exact-neutral-right-rail.js
+?? app/admin/assets/js/pmd-waiter-v281-exact-edge-width.js
+?? app/admin/assets/js/pmd-waiter-v282-boot-blink-audit.js
+?? app/admin/assets/js/pmd-waiter-v283-final-visual-shield.js
+?? app/admin/assets/js/pmd-waiter-v285-live-grid-visual-lock.js
+?? app/admin/assets/js/pmd-waiter-v98-single-source.js
+?? app/admin/assets/js/pmd-waiter-workstation-v3.js
+?? app/admin/assets/js/pmd-waiter-zero-shift-v1.js
+?? app/admin/assets/js/pmd-year-calendar-v1.js
+?? app/admin/assets/js/pmd-year-calendar-v17-notes.js
+?? app/admin/assets/js/typeahead.js
+?? app/admin/classes/PmdCleanWorkspaceControllerV1.php
+?? app/admin/classes/PmdPlatformI18n.php
+?? app/admin/controllers/.Dashboard2.php.Rk98pH
+?? app/admin/controllers/Accountantlab.php
+?? app/admin/controllers/Api/PosAgentR1Controller.php
+?? app/admin/controllers/Calender.php
+?? app/admin/controllers/Cashierlab.php
+?? app/admin/controllers/Cashierlab.php.before-r37a-20260817_080634
+?? app/admin/controllers/Cashierlab.php.before-r37c-20260817_083208
+?? app/admin/controllers/Dashboard2.php
+?? app/admin/controllers/Dashboardlab.php
+?? app/admin/controllers/Kitchensettings.php
+?? app/admin/controllers/Managerlab.php
+?? app/admin/controllers/Mywork.php
+?? app/admin/controllers/Ownerboard.php
+?? app/admin/controllers/PaymentMarketSettings.php
+?? app/admin/controllers/PaymentProviders.php
+?? app/admin/controllers/People.php
+?? app/admin/controllers/PmdDashboardData.php
+?? app/admin/controllers/PmdDashboardDataV2.php
+?? app/admin/controllers/PmdDashboardDataV3.php
+?? app/admin/controllers/PmdDashboardKpiRepairV1.php
+?? app/admin/controllers/PmdFloorPlanCleanV139.php
+?? app/admin/controllers/PmdFloorPlanCleanV141.php
+?? app/admin/controllers/PmdFloorPlanCleanV145.php.disabled-20260624_193646
+?? app/admin/controllers/PmdFloorPlanSaveV1.php
+?? app/admin/controllers/PmdFloorPlanStable.php
+?? app/admin/controllers/PmdFloorV1.php
+?? app/admin/controllers/PmdQuickPosV1.php
+?? app/admin/controllers/PmdWaiterAssignmentV85.php
+?? app/admin/controllers/PmdWaiterDashboardDataV84.php
+?? app/admin/controllers/PmdWaiterDashboardFinalV1.php
+?? app/admin/controllers/PmdWaiterDashboardFinalV2.php
+?? app/admin/controllers/PmdWaiterDashboardNewV1.php
+?? app/admin/controllers/PmdWaiterDashboardV150.php
+?? app/admin/controllers/PmdWaiterDashboardV151.php
+?? app/admin/controllers/PmdWaiterFloorLiveV106.php
+?? app/admin/controllers/PmdWaiterMenuBridgeV105.php
+?? app/admin/controllers/PmdWaiterMobileActionV107.php
+?? app/admin/controllers/PmdWaiterPortalV113.php
+?? app/admin/controllers/PmdWaiterPosV1.php
+?? app/admin/controllers/PmdWaiterRealDataOnlyV104.php
+?? app/admin/controllers/PmdWaiterRealFoodV103.php
+?? app/admin/controllers/PmdWaiterRepairV100.php
+?? app/admin/controllers/PmdWaiterRepairV101.php
+?? app/admin/controllers/PmdWaiterSeedReadyV102.php
+?? app/admin/controllers/PmdWaiterTableStateV154.php
+?? app/admin/controllers/PmdWaiterWorkspaceV92.php
+?? app/admin/controllers/PmdWaiterWorkstationV3.php
+?? app/admin/controllers/Pmdadvanced.php
+?? app/admin/controllers/Pmdallfoods.php
+?? app/admin/controllers/Pmdbrand.php
+?? app/admin/controllers/Pmdcustomer.php
+?? app/admin/controllers/Pmddevices.php
+?? app/admin/controllers/Pmdfinance.php
+?? app/admin/controllers/Pmdgooglebusiness.php
+?? app/admin/controllers/Pmdintelligence.php
+?? app/admin/controllers/Pmdmenuaiimport.php
+?? app/admin/controllers/Pmdmenufoodmembership.php
+?? app/admin/controllers/Pmdmenus.php
+?? app/admin/controllers/Pmdquicksetup.php
+?? app/admin/controllers/Pmdreportchannels.php
+?? app/admin/controllers/Pmdreports.php
+?? app/admin/controllers/Pmdreporttips.php
+?? app/admin/controllers/Pmdsmartcategories.php
+?? app/admin/controllers/Pmdturkey.php
+?? app/admin/controllers/Reservations2.php
+?? app/admin/controllers/Reservations3.php
+?? app/admin/controllers/Reservationslab.php
+?? app/admin/controllers/Reservationsnew.php
+?? app/admin/controllers/Shifts.php
+?? app/admin/controllers/Siteaccess.php
+?? app/admin/controllers/SumupCloudReaderController.php
+?? app/admin/controllers/SumupReaderPairing.php
+?? app/admin/controllers/SumupTerminalSettings.php
+?? app/admin/controllers/SuperAdminR2Controller.php
+?? app/admin/controllers/SuperAdminR2DashboardController.php
+?? app/admin/controllers/WebhooksController.php.broken_before_restore_20260318_185012
+?? app/admin/controllers/concerns/
+?? app/admin/database/migrations/2026_06_24_000001_add_floor_plan_metadata_to_tables.php
+?? app/admin/database/migrations/2026_07_12_000100_extend_waiter_pos_payment_transactions.php
+?? app/admin/database/migrations/2026_07_12_000200_add_waiter_table_operational_status.php
+?? app/admin/database/migrations/2026_08_14_210000_create_pmd_admin_presence_sessions_table.php
+?? app/admin/database/migrations/2026_08_17_000800_create_pmd_reservation_preferences_table.php
+?? app/admin/database/migrations/2026_08_18_000100_add_guest_count_to_orders_table.php
+?? app/admin/database/migrations/2026_08_21_210000_add_pmd_kind_to_categories.php
+?? app/admin/database/migrations/2026_08_22_230000_create_terminal_provider_configs_table.php
+?? app/admin/database/migrations/2026_08_23_101500_ensure_terminal_provider_schema_on_tenants.php
+?? app/admin/database/migrations/2026_08_28_231500_ensure_pmd_kitchen_operations_foundation_on_tenants.php
+?? app/admin/database/migrations/2026_09_07_104500_add_pmd_integration_secret_references_to_tenants.php
+?? app/admin/database/migrations/2026_09_20_000100_create_pmd_google_business_integration.php
+?? app/admin/database/migrations/2026_09_20_000200_ensure_pmd_google_business_integration_on_tenants.php
+?? app/admin/i18n/
+?? app/admin/requests/ReservationComposer.php
+?? app/admin/routes.php.broken_before_restore_20260318_185012
+?? app/admin/services/Fiskaly/FiskalySignDeService.php.broken_before_restore_20260318_185012
+?? app/admin/services/PmdAdminPresenceService.php
+?? app/admin/services/PmdCleanWorkspaceFinanceV1.php
+?? app/admin/services/PmdCleanWorkspaceSharedV1.php
+?? app/admin/services/PmdReservationsLabScheduleV1.php
+?? app/admin/services/PmdRoleDashboardDataV1.php
+?? app/admin/services/ReservationComposerService.php
+?? app/admin/traits/HandlesPortalMfa.php
+?? app/admin/traits/PmdMenuContentTranslationsV1.php
+?? app/admin/traits/PmdMenuGalleryOptionsV1.php
+?? app/admin/traits/PmdMenuImageQualityV1.php
+?? app/admin/views/_meta/assets.json.backup-20260822-120944
+?? app/admin/views/_meta/assets.json.backup-20260822-162105
+?? app/admin/views/_partials/pmd_admin_i18n.blade.php
+?? app/admin/views/_partials/pmd_admin_i18n.blade.php.backup-20260822-120417
+?? app/admin/views/_partials/pmd_admin_i18n.blade.php.backup-20260822-120944
+?? app/admin/views/_partials/pmd_cashier_lab_current_orders_v1.blade.php
+?? app/admin/views/_partials/pmd_clean_workspace_shared_v1.blade.php
+?? app/admin/views/_partials/pmd_dashboard_lab_analytics_v1.blade.php
+?? app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php
+?? app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php.before-r36d-20260817_065921
+?? app/admin/views/_partials/pmd_floor_map_v1.blade.php
+?? app/admin/views/_partials/pmd_kitchen_today_team_v1.blade.php
+?? app/admin/views/_partials/pmd_manager_dashboard_v1.blade.php
+?? app/admin/views/_partials/pmd_operational_date_range_v1.blade.php
+?? app/admin/views/_partials/pmd_platform_messages.blade.php
+?? app/admin/views/_partials/pmd_reservations_lab_cards_v1.blade.php
+?? app/admin/views/_partials/pmd_reservations_lab_schedule_v1.blade.php
+?? app/admin/views/_partials/pmd_role_dashboard_v1.blade.php
+?? app/admin/views/_partials/pmd_role_workspace_reports_v1.blade.php
+?? app/admin/views/_partials/pmd_settings_family_first_paint_v18.blade.php
+?? app/admin/views/_partials/pmd_settings_family_notification_placeholder_v18.blade.php
+?? app/admin/views/_partials/pmd_settings_inline_modal_host_v1.blade.php
+?? app/admin/views/_partials/pmd_side_menu2_global.blade.php
+?? app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php
+?? app/admin/views/_partials/pmd_side_menu2_single_style.blade.php
+?? app/admin/views/accountantlab/
+?? app/admin/views/auth/login_portal_mfa_v1.blade.php
+?? app/admin/views/auth/login_workplace_v3.blade.php
+?? app/admin/views/auth/login_workplace_v4.blade.php
+?? app/admin/views/auth/login_workspace_v2.blade.php
+?? app/admin/views/calender/
+?? app/admin/views/cashierlab/
+?? app/admin/views/dashboard2_reservations2_exact.blade.php
+?? app/admin/views/dashboardlab/
+?? app/admin/views/floor/
+?? app/admin/views/managerlab/
+?? app/admin/views/ownerboard/
+?? app/admin/views/pmd-staff-portal/
+?? app/admin/views/pmd-ui-kit.blade.php
+?? app/admin/views/pmd_quick_pos_v1.blade.php
+?? app/admin/views/pmdadvanced/
+?? app/admin/views/pmdbrand/
+?? app/admin/views/pmdcoupons/
+?? app/admin/views/pmdcustomer/
+?? app/admin/views/pmddevices/
+?? app/admin/views/pmdfinance/
+?? app/admin/views/pmdgooglebusiness/
+?? app/admin/views/pmdintelligence/
+?? app/admin/views/pmdmenuaiimport/
+?? app/admin/views/pmdmenus/
+?? app/admin/views/pmdmywork/
+?? app/admin/views/pmdpeople/
+?? app/admin/views/pmdquicksetup/
+?? app/admin/views/pmdreports/
+?? app/admin/views/pmdsettings/frontend.blade.php
+?? app/admin/views/pmdshifts/
+?? app/admin/views/pmdteam/_inline_role_form_v1.blade.php
+?? app/admin/views/pmdteam/_inline_roster_person_form_v1.blade.php
+?? app/admin/views/pmdteam/_inline_staff_form_v1.blade.php
+?? app/admin/views/pmdteam/_inline_templates_v1.blade.php
+?? app/admin/views/pmdturkey/
+?? app/admin/views/reservations2/
+?? app/admin/views/reservations3/
+?? app/admin/views/reservationslab/
+?? app/admin/views/reservationsnew/
+?? app/admin/views/siteaccess/
+?? app/admin/views/superadmin_r2/
+?? app/admin/views/terminaldevices/
+?? app/admin/views/waiter_dashboard_final.blade.php
+?? app/admin/views/waiter_dashboard_final2.blade.php
+?? app/admin/views/waiter_dashboard_new.blade.php
+?? app/admin/views/waiter_pos.blade.php
+?? app/admin/views/waiter_pos_shell.blade.php
+?? app/admin/views/waiter_workstation_v3.blade.php
+?? app/main/routes/api-v1-google-business.php
+?? app/main/routes/api-v1-guest-ai.php
+?? app/main/routes/api-v1-guest-order-flow-r60t.php
+?? app/main/routes/api-v1-table-order-rounds.php
+?? app/main/routes/pmd-category-content-translations-v1.php
+?? app/main/routes/pmd-frontend-v2-bootstrap-fast.php
+?? app/main/routes/pmd-frontend-v2-media.php
+?? app/main/routes/pmd-frontend-v2-theme.php
+?? app/main/routes/pmd-menu-content-translations-v1.php
+?? app/main/routes/pmd-tenant-media-owner-r3.php
+?? app/main/routes_sumup_self_service.php
+?? app/system/database/migrations/2026_08_28_230000_create_pmd_kitchen_operations_foundation.php
+?? app/system/database/migrations/2026_08_28_235500_create_pmd_staff_requests.php
+?? app/system/database/migrations/2026_08_29_160000_add_break_minutes_to_pmd_operational_shifts.php
+?? app/system/database/migrations/2026_08_29_180000_create_pmd_staff_chat_tables.php
+?? app/system/database/migrations/2026_08_29_191000_add_avatar_path_to_pmd_operational_people.php
+?? app/system/database/migrations/2026_08_30_103000_create_pmd_site_access_tables.php
+?? app/system/database/migrations/2026_08_30_123000_create_pmd_owner_mfa_table.php
+?? app/system/database/migrations/2026_08_31_121500_repair_pmd_staff_portal_storage.php
+?? app/system/database/migrations/2026_08_31_131500_ensure_pmd_trusted_login_user_id.php
+?? app/system/database/migrations/2026_09_01_000000_create_pmd_portal_mfa_table.php
+?? app/system/database/migrations/2026_09_04_120000_create_pmd_admin_ai_conversations.php
+?? app/system/database/migrations/2026_09_05_123000_create_pmd_operational_shift_audit_events.php
+?? app/system/libraries/Assets.php.backup-20260822-120944
+?? assets/css/
+?? assets/js/
+?? assets/media/
+?? bootstrap/cache/
+?? cd
+?? config/cashdrawer.php
+?? config/pmd_ai.php
+?? config/pmd_images.php
+?? database/schema/
+?? docs/MENU_HIGHLIGHT_TENANT_DIAGNOSTICS.md
+?? docs/PAYMYDINE_FRONTEND_CURRENT_STATE.md
+?? docs/PMD_ADMIN_UI_KIT_V1.md
+?? docs/PMD_INTELLIGENCE_SHARED_ROADMAP_2026-09-02.md
+?? docs/PMD_INTELLIGENCE_V1.md
+?? docs/TABLE_MERGE_BILLING_BEHAVIOR.md
+?? docs/TERMINAL_PAYMENT_FLOW.md
+?? docs/TERMINAL_PROVIDER_MATRIX.md
+?? docs/TURKEY_TENANT_READINESS_R1.md
+?? docs/paymob-oman/
+?? docs/platform/
+?? docs/pmd-floor-v1.md
+?? favicon.ico
+?? frontend-v2/
+?? frontend/app/menu/PmdMenuHomePage.tsx
+?? frontend/app/themes/velvet-terracotta/
+?? frontend/components/CanonicalPaymentDisplayFix.tsx
+?? frontend/components/themes/kazen-japanese/KazenJapaneseCheckoutShell.tsx.orig
+?? frontend/components/themes/modern-green/README.md
+?? frontend/components/themes/shared/README_THEME_ISOLATION.md
+?? frontend/docs/PAYMENT_MODAL_PANEL_SPLIT.md
+?? frontend/features/customer-menu/theme/VelvetTerracottaThemeRoute.tsx
+?? frontend/features/valet/valet-config.ts
+?? frontend/playwright-report-pmd-theme-audit-v2/
+?? frontend/playwright-report-pmd-theme-audit-v3/
+?? frontend/playwright.pmd-theme-audit-v2.config.ts
+?? frontend/playwright.pmd-theme-audit-v3.config.ts
+?? frontend/playwright.pmd-theme-audit.config.ts
+?? frontend/scripts/pmd-cms-store-architecture-guard.sh
+?? frontend/scripts/pmd-customer-menu-controller-guard.sh
+?? frontend/scripts/pmd-dom-compat-guard.sh
+?? frontend/scripts/pmd-payment-modal-architecture-guard.sh
+?? frontend/scripts/pmd-playwright-e2e-guard.sh
+?? frontend/scripts/pmd-square-canada-market-guard.sh
+?? frontend/scripts/pmd-square-security-guard.sh
+?? frontend/scripts/pmd_preview_frontend_guard.sh
+?? frontend/tests/
+?? harrington-holdings-cinematic-site@1.0.0
+?? images/
+?? language/
+?? next
+?? order_table_name_lookup_ajax.php
+?? pmd-create-test-users.sh
+?? pmd-pos-agent.php
+?? pmd-qa/
+?? pmd_menu_cleanup.php
+?? pmd_mimoza_delete.php
+?? pmd_mimoza_test_reset.php
+?? pmd_terminal_audit.php
+?? pmd_vr_cashier_visibility_r2.py
+?? pmd_vr_deep_probe.php
+?? pmd_vr_finance_terminal_authority_r5.py
+?? pmd_vr_payment_safety_r6.py
+?? pmd_vr_terminal_presence_fix_r4.py
+?? pmd_vr_terminal_presence_fix_r4b.py
+?? pmd_vr_terminal_simulator_r1.py
+?? pmd_vr_terminal_simulator_r1_v2.py
+?? pmd_vr_terminal_ui_cleanup_r3.py
+?? public/
+?? qa/
+?? r2o_order_table_names_ajax.php
+?? resources/views/admin/quick-mode.blade.php
+?? routes/admin-quick-mode.php
+?? routes/google-business-profile.php
+?? routes/pmd-floor-v1.php
+?? routes/pmd-market-language-switch-r1.php
+?? routes/pmd-site-access-v1.php
+?? routes/pmd-staff-portal-v1.php
+?? routes/pmd-superadmin-r2.php
+?? routes/pmd-tenant-runtime-guard-r1.php
+?? routes/pmd-turkey-integrations-r2.php
+?? routes/pmd-waiter-final-v1.php
+?? routes/pmd-waiter-final-v2.php
+?? routes/pmd-waiter-pos-v22.php
+?? routes/pmd-waiter-workstation-v3.php
+?? routes/pos-receipts.php.before-r37c-20260817_083208
+?? routes/square-runtime.php
+?? routes/worldline-native-alternative.php
+?? routes/worldline-native-card.php
+?? scripts/__pycache__/
+?? scripts/apply-location-market-r4.php
+?? scripts/audit-location-market-r4.php
+?? scripts/check-reservation-composer-v1.sh
+?? scripts/location-platform-r3-selftest.php
+?? scripts/paymob-oman-r2-selftest.php
+?? scripts/pmd-ai-gemini-smoke.php
+?? scripts/pmd-ai-maintenance.php
+?? scripts/pmd-ai-openai-smoke.php
+?? scripts/pmd-ai-production-contract-audit.php
+?? scripts/pmd-ai-provider-smoke.php
+?? scripts/pmd-ai-tomo-challenge-cleanup.php
+?? scripts/pmd-ai-tomo-challenge-fixtures.php
+?? scripts/pmd-ai-tomo-challenge-preflight.php
+?? scripts/pmd-ai-tomo-challenge-run.php
+?? scripts/pmd-audit-admin-ar-r10.php
+?? scripts/pmd-audit-platform-i18n.php
+?? scripts/pmd-build-admin-i18n.php
+?? scripts/pmd-fix-turkish-admin-i18n-r3.php
+?? scripts/pmd-frontend-live-authority-audit.sh
+?? scripts/pmd-guest-ai-canary-smoke.sh
+?? scripts/pmd-legacy-authority-audit.sh
+?? scripts/pmd-patch-market-language-sidebar-r2.php
+?? scripts/pmd-performance-live-format.php
+?? scripts/pmd-performance-live-watch.sh
+?? scripts/pmd-performance-report.php
+?? scripts/pmd-repair-oman-admin-supported-languages-r8.php
+?? scripts/pmd-repair-tenant-eta-schema-r1.php
+?? scripts/pmd-square-canada-finance-r6a.py
+?? scripts/pmd-square-canada-market-r6.py
+?? scripts/pmd-square-canada-terminal-market-r6b.py
+?? scripts/pmd-square-runtime-terminal-r1.py
+?? scripts/pmd-square-runtime-terminal-r2.py
+?? scripts/pmd-square-runtime-terminal-r3.py
+?? scripts/pmd-square-runtime-terminal-r4.py
+?? scripts/pmd-square-ui-runtime-r5.py
+?? scripts/pmd-staff-attendance-canary.php
+?? scripts/pmd-starter-menu-warm-cache.php
+?? scripts/pmd-sync-oman-admin-language-r1.php
+?? scripts/pmd-sync-oman-customer-languages-r1.php
+?? scripts/pmd-vr-cloud-till-capability-probe-r4.php
+?? scripts/pmd-vr-simulator-settlement-audit-r6.php
+?? scripts/pmd-vr-terminal-simulator-r1-seed.php
+?? scripts/pmd-worldline-status-google-r3.py
+?? scripts/pmd-worldline-terminal-devices-r4.py
+?? scripts/pmd-worldline-terminal-devices-r5.py
+?? scripts/turkey-tenant-readiness-r1-selftest.php
+?? storage/
+?? tests/
+?? themes/tastyigniter-orange/README.md
+?? themes/tastyigniter-orange1/README.md
+?? themes/tastyigniter-typical/README.md
+?? tools/

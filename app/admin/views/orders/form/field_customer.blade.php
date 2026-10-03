@@ -8,41 +8,43 @@
         @endif
     </div>
     
+    @if (trim((string)$formModel->email) !== '')
     <div class="customer-info editable-field" style="font-size: 13px; padding-bottom: 6px; color: #526484; position: relative;">
         <div class="editable-display">
-            <i class="fa fa-envelope fa-fw text-muted" style="font-size: 12px;"></i>&nbsp;
+            <span class="pmd-native-inline-icon" aria-hidden="true">✉</span>&nbsp;
             <span class="editable-value" data-field="email">{{ $formModel->email }}</span>
             <button type="button" class="btn-edit-inline" data-field-type="email" onclick="return handleEditField(this);" style="display: inline-block; margin-left: 6px; background: none; border: none; color: #8094ae; font-size: 11px; cursor: pointer; padding: 0 2px; z-index: 10; pointer-events: auto; vertical-align: middle;" title="Edit email">
-                <i class="fa fa-pencil"></i>
+                <span aria-hidden="true">Edit</span>
             </button>
         </div>
         <div class="editable-edit" style="display: none;">
             <input type="email" class="form-control form-control-sm editable-input" value="{{ $formModel->email }}" data-field="email" data-order-id="{{ $formModel->order_id }}" style="font-size: 12px; padding: 2px 5px; height: 24px;">
             <button type="button" class="btn-save-inline" onclick="return handleSaveField(this);" style="background: #364a63; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 4px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Save">
-                <i class="fa fa-check" style="font-size: 8px;"></i>
+                <span aria-hidden="true">✓</span>
             </button>
             <button type="button" class="btn-cancel-inline" onclick="return handleCancelEdit(this);" style="background: #dc3545; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 2px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Cancel">
-                <i class="fa fa-times" style="font-size: 8px;"></i>
+                <span aria-hidden="true">×</span>
             </button>
         </div>
     </div>
+    @endif
     
-    @if ($formModel->telephone || true)
+    @if (trim((string)$formModel->telephone) !== '')
         <div class="customer-info editable-field" style="font-size: 13px; padding-bottom: 6px; color: #526484; position: relative;">
             <div class="editable-display">
-                <i class="fa fa-phone fa-fw text-muted" style="font-size: 12px;"></i>&nbsp;
+                <span class="pmd-native-inline-icon" aria-hidden="true">☎</span>&nbsp;
                 <span class="editable-value" data-field="telephone">{{ $formModel->telephone ?: 'N/A' }}</span>
                 <button type="button" class="btn-edit-inline" data-field-type="telephone" onclick="return handleEditField(this);" style="display: inline-block; margin-left: 6px; background: none; border: none; color: #8094ae; font-size: 11px; cursor: pointer; padding: 0 2px; z-index: 10; pointer-events: auto; vertical-align: middle;" title="Edit phone">
-                    <i class="fa fa-pencil"></i>
+                    <span aria-hidden="true">Edit</span>
                 </button>
             </div>
             <div class="editable-edit" style="display: none;">
                 <input type="text" class="form-control form-control-sm editable-input" value="{{ $formModel->telephone }}" data-field="telephone" data-order-id="{{ $formModel->order_id }}" style="font-size: 12px; padding: 2px 5px; height: 24px;">
                 <button type="button" class="btn-save-inline" onclick="return handleSaveField(this);" style="background: #364a63; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 4px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Save">
-                    <i class="fa fa-check" style="font-size: 8px;"></i>
+                    <span aria-hidden="true">✓</span>
                 </button>
                 <button type="button" class="btn-cancel-inline" onclick="return handleCancelEdit(this);" style="background: #dc3545; color: white; border: none; padding: 1px 4px; font-size: 9px; cursor: pointer; margin-left: 2px; border-radius: 3px; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle;" title="Cancel">
-                    <i class="fa fa-times" style="font-size: 8px;"></i>
+                    <span aria-hidden="true">×</span>
                 </button>
             </div>
         </div>
@@ -59,6 +61,8 @@
 </div>
 
 <style>
+/* PMD_CUSTOMER_CARD_NATIVE_ICONS_V1 */
+.pmd-native-inline-icon { display:inline-flex; min-width:1.1rem; justify-content:center; color:#526484; font-style:normal; }
 /* Customer card - smooth and extended */
 .customer-card-content {
     width: 100%;
@@ -236,7 +240,7 @@
         }
         
         // Show loading
-        $saveBtn.html('<i class="fa fa-spinner fa-spin"></i>').prop('disabled', true);
+        $saveBtn.text('…').prop('disabled', true);
         
         // Use current page URL since we're already on the edit page
         var editUrl = window.location.pathname;
@@ -264,7 +268,7 @@
                 $displayValue.text(displayValue);
                 $field.find('.editable-edit').hide();
                 $field.find('.editable-display').show();
-                $saveBtn.html('<i class="fa fa-check"></i>').prop('disabled', false);
+                $saveBtn.text('✓').prop('disabled', false);
             },
             error: function(xhr, status, error) {
                 var errorMsg = 'Failed to update. Please try again.';
@@ -300,7 +304,7 @@
                 });
                 
                 alert(errorMsg + '\n\nStatus: ' + xhr.status + ' ' + xhr.statusText);
-                $saveBtn.html('<i class="fa fa-check"></i>').prop('disabled', false);
+                $saveBtn.text('✓').prop('disabled', false);
             }
         });
         

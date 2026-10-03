@@ -1,0 +1,807 @@
+(function () {
+  'use strict';
+
+  if (window.PMDCashierOrderCenter) return;
+
+  var state = {
+    shell: null,
+    card: null,
+    trigger: null,
+    orderId: 0,
+    payment: null,
+    operations: null,
+    posHost: null,
+    posApi: null,
+    dirty: false
+  };
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      }[c];
+    });
+  }
+
+  function num(value) {
+    var n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function money(value, symbol) {
+    return String(symbol || '€') + num(value).toFixed(2);
+  }
+
+  async function fetchJson(url, options) {
+    var response = await fetch(url, Object.assign({
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    }, options || {}));
+
+    var json = await response.json().catch(function () {
+      return {};
+    });
+
+    if (!response.ok || json.ok === false) {
+      throw new Error(
+        json.message ||
+        json.error ||
+        ('HTTP ' + response.status)
+      );
+    }
+
+    return json;
+  }
+
+  function cardText(selector) {
+    var el = state.card ? state.card.querySelector(selector) : null;
+    return el ? String(el.textContent || '').trim() : '';
+  }
+
+  function ensureShell() {
+    if (state.shell) return state.shell;
+
+    var shell = document.createElement('div');
+    shell.className = 'pmd-cashier-order-center';
+    shell.hidden = true;
+    shell.setAttribute('aria-hidden', 'true');
+
+    shell.innerHTML = [
+      '<button type="button" class="pmd-cashier-order-center__backdrop" data-pmd-r37-close tabindex="-1" aria-label="Close order details"></button>',
+      '<section class="pmd-cashier-order-center__dialog" role="dialog" aria-modal="true" aria-labelledby="pmd-cashier-r37-title">',
+        '<header class="pmd-cashier-order-center__header">',
+          '<div class="pmd-cashier-order-center__identity">',
+            '<span class="pmd-cashier-order-center__eyebrow">Cashier · Order center</span>',
+            '<h2 id="pmd-cashier-r37-title" data-pmd-r37-title>Order</h2>',
+            '<p data-pmd-r37-subtitle></p>',
+          '</div>',
+          '<button type="button" class="pmd-cashier-order-center__close" data-pmd-r37-close aria-label="Close">×</button>',
+        '</header>',
+        '<div class="pmd-cashier-order-center__body" data-pmd-r37-body></div>',
+        '<footer class="pmd-cashier-order-center__footer" data-pmd-r37-footer></footer>',
+      '</section>'
+    ].join('');
+
+    document.body.appendChild(shell);
+    state.shell = shell;
+
+    shell.addEventListener('click', function (event) {
+      var close = event.target.closest('[data-pmd-r37-close]');
+      if (close) {
+        event.preventDefault();
+        closeCenter();
+        return;
+      }
+
+      var action = event.target.closest('[data-pmd-r37-action]');
+      if (!action) return;
+
+      var type = action.getAttribute('data-pmd-r37-action');
+
+      if (type === 'refresh') {
+        event.preventDefault();
+        loadDetails();
+      }
+
+      if (type === 'items') {
+        event.preventDefault();
+        openPos('items');
+      }
+
+      if (type === 'payment') {
+        event.preventDefault();
+        openPos('payment');
+      }
+    });
+
+    return shell;
+  }
+
+  function openShell() {
+    var shell = ensureShell();
+    shell.hidden = false;
+    shell.setAttribute('aria-hidden', 'false');
+    document.documentElement.classList.add('pmd-cashier-order-center-open');
+    document.body.classList.add('pmd-cashier-order-center-open');
+
+    var close = shell.querySelector('.pmd-cashier-order-center__close');
+    if (close) close.focus();
+  }
+
+  function closeCenter() {
+    if (state.posApi) {
+      state.posApi.close();
+      return;
+    }
+
+    if (!state.shell) return;
+
+    state.shell.hidden = true;
+    state.shell.setAttribute('aria-hidden', 'true');
+    document.documentElement.classList.remove('pmd-cashier-order-center-open');
+    document.body.classList.remove('pmd-cashier-order-center-open');
+
+    if (state.trigger && typeof state.trigger.focus === 'function') {
+      state.trigger.focus();
+    }
+  }
+
+  function renderLoading() {
+    var body = ensureShell().querySelector('[data-pmd-r37-body]');
+    var footer = ensureShell().querySelector('[data-pmd-r37-footer]');
+
+    body.innerHTML =
+      '<div class="pmd-cashier-order-center__loading">' +
+        '<div><strong>Loading order #' + esc(state.orderId) + '…</strong><br><small>Reading live order and payment data</small></div>' +
+      '</div>';
+
+    footer.innerHTML = '';
+  }
+
+  function renderError(error) {
+    var body = ensureShell().querySelector('[data-pmd-r37-body]');
+    var footer = ensureShell().querySelector('[data-pmd-r37-footer]');
+
+    body.innerHTML =
+      '<div class="pmd-cashier-order-center__error">' +
+        '<div><strong>Order details could not be loaded.</strong><br><small>' +
+          esc(error && error.message ? error.message : 'Unknown error') +
+        '</small></div>' +
+      '</div>';
+
+    footer.innerHTML =
+      '<button type="button" class="pmd-cashier-order-center__action" data-pmd-r37-action="refresh">Retry</button>' +
+      '<button type="button" class="pmd-cashier-order-center__action" data-pmd-r37-close>Close</button>';
+  }
+
+  function paymentLabel(status) {
+    status = String(status || 'unpaid').toLowerCase();
+
+    if (status === 'paid') return 'Paid';
+    if (status === 'partial') return 'Part paid';
+    return 'Unpaid';
+  }
+
+  function renderDetails() {
+    var payment = state.payment || {};
+    var operations = state.operations || {};
+
+    var settlement = payment.settlement || {};
+    var currency = payment.currency || {};
+    var symbol = currency.symbol || '€';
+
+    var table = payment.table || operations.table || {};
+    var items = Array.isArray(payment.items)
+      ? payment.items
+      : (Array.isArray(operations.items) ? operations.items : []);
+
+    var transactions = Array.isArray(payment.transactions)
+      ? payment.transactions
+      : [];
+
+    var order = payment.order || operations.order || {};
+
+    var tableLabel =
+      cardText('.pmd-ops-card__title') ||
+      table.name ||
+      (table.number ? ('Table ' + table.number) : 'Table');
+
+    var operationalStatus =
+      cardText('.pmd-ops-card__status') ||
+      'Order';
+
+    var cardMeta = cardText('.pmd-ops-card__meta');
+
+    var settlementStatus = String(
+      settlement.status ||
+      order.settlement_status ||
+      'unpaid'
+    ).toLowerCase();
+
+    var total = num(settlement.order_total);
+    var paid = num(settlement.settled_amount);
+    var due = num(settlement.remaining_amount);
+
+    var title = ensureShell().querySelector('[data-pmd-r37-title]');
+    var subtitle = ensureShell().querySelector('[data-pmd-r37-subtitle]');
+    var body = ensureShell().querySelector('[data-pmd-r37-body]');
+    var footer = ensureShell().querySelector('[data-pmd-r37-footer]');
+
+    title.textContent = tableLabel + ' · Order #' + state.orderId;
+    subtitle.textContent = cardMeta || ('Order #' + state.orderId);
+
+    var itemHtml = items.length
+      ? items.map(function (item) {
+          var qty = num(item.quantity);
+          var paidQty = num(item.paid_quantity);
+          var note = String(item.comment || '').trim();
+
+          var detail = [];
+
+          if (note) {
+            detail.push(note);
+          }
+
+          if (paidQty > 0 && paidQty < qty) {
+            detail.push(
+              paidQty.toFixed(
+                Number.isInteger(paidQty) ? 0 : 2
+              ) + ' already paid'
+            );
+          }
+
+          return [
+            '<div class="pmd-cashier-order-center__item">',
+              '<span class="pmd-cashier-order-center__qty">',
+                esc(
+                  qty.toFixed(
+                    Number.isInteger(qty) ? 0 : 2
+                  )
+                ),
+                '×',
+              '</span>',
+              '<div class="pmd-cashier-order-center__item-name">',
+                esc(item.name || 'Item'),
+                detail.length ? '<small>' + esc(detail.join(' · ')) + '</small>' : '',
+              '</div>',
+              '<span class="pmd-cashier-order-center__item-price">',
+                money(
+                  item.line_subtotal != null
+                    ? item.line_subtotal
+                    : item.subtotal,
+                  symbol
+                ),
+              '</span>',
+            '</div>'
+          ].join('');
+        }).join('')
+      : '<div class="pmd-cashier-order-center__loading" style="min-height:100px">No order items found.</div>';
+
+    var note = String(
+      order.comment ||
+      (operations.order && operations.order.comment) ||
+      ''
+    ).trim();
+
+    var historyHtml = transactions.length
+      ? transactions.map(function (row) {
+          var method = String(row.payment_method || 'Payment')
+            .replace(/_/g, ' ');
+
+          var reference = String(row.payment_reference || '').trim();
+          var payer = String(row.payer_label || '').trim();
+          var paidAt = String(row.paid_at || '').trim();
+
+          var meta = [payer, reference, paidAt]
+            .filter(Boolean)
+            .join(' · ');
+
+          return [
+            '<div class="pmd-cashier-order-center__history-row">',
+              '<div>',
+                '<strong>' + esc(method) + '</strong>',
+                meta ? '<small>' + esc(meta) + '</small>' : '',
+              '</div>',
+              '<b>' + money(row.amount, symbol) + '</b>',
+            '</div>'
+          ].join('');
+        }).join('')
+      : '<p class="pmd-cashier-order-center__note">No split-payment transaction history is available for this order.</p>';
+
+    body.innerHTML = [
+      '<div class="pmd-cashier-order-center__status-row">',
+        '<span class="pmd-cashier-order-center__pill">Order status · ' + esc(operationalStatus) + '</span>',
+        '<span class="pmd-cashier-order-center__pill is-' + esc(settlementStatus) + '">Payment · ' + esc(paymentLabel(settlementStatus)) + '</span>',
+      '</div>',
+
+      '<div class="pmd-cashier-order-center__money">',
+        '<div><span>Total</span><strong>' + money(total, symbol) + '</strong></div>',
+        '<div><span>Paid</span><strong>' + money(paid, symbol) + '</strong></div>',
+        '<div class="is-due"><span>Due</span><strong>' + money(due, symbol) + '</strong></div>',
+      '</div>',
+
+      '<section class="pmd-cashier-order-center__section">',
+        '<div class="pmd-cashier-order-center__section-head">',
+          '<strong>Order items</strong>',
+          '<span>' + esc(items.length) + ' lines</span>',
+        '</div>',
+        '<div class="pmd-cashier-order-center__items">' + itemHtml + '</div>',
+      '</section>',
+
+      '<section class="pmd-cashier-order-center__section">',
+        '<div class="pmd-cashier-order-center__section-head">',
+          '<strong>Order note</strong>',
+        '</div>',
+        '<p class="pmd-cashier-order-center__note">' +
+          esc(note || 'No order note.') +
+        '</p>',
+      '</section>',
+
+      '<section class="pmd-cashier-order-center__section">',
+        '<div class="pmd-cashier-order-center__section-head">',
+          '<strong>Payment history</strong>',
+          '<span>' + esc(transactions.length) + ' transactions</span>',
+        '</div>',
+        '<div class="pmd-cashier-order-center__history">' + historyHtml + '</div>',
+      '</section>'
+    ].join('');
+
+    var tableKey =
+      (table.number != null && String(table.number) !== '')
+        ? String(table.number)
+        : String(table.id || '');
+
+    var canOpenPos = !!tableKey;
+
+    var latestReceipt = transactions.find(function (row) {
+      return row && row.receipt_url;
+    });
+
+    footer.innerHTML = [
+      '<button type="button" class="pmd-cashier-order-center__action" data-pmd-r37-action="refresh">Refresh</button>',
+
+      canOpenPos && settlementStatus !== 'paid'
+        ? '<button type="button" class="pmd-cashier-order-center__action" data-pmd-r37-action="items">Add items</button>'
+        : '',
+
+      canOpenPos && due > 0.0001
+        ? '<button type="button" class="pmd-cashier-order-center__action is-payment" data-pmd-r37-action="payment">Take payment</button>'
+        : '',
+
+      latestReceipt
+        ? '<a class="pmd-cashier-order-center__action" href="' + esc(latestReceipt.receipt_url) + '" target="_blank" rel="noopener">Receipt</a>'
+        : '',
+
+      settlementStatus === 'paid'
+        ? '<a class="pmd-cashier-order-center__action is-primary" href="/admin/orders/invoice/' + encodeURIComponent(state.orderId) + '" target="_blank" rel="noopener">Invoice</a>'
+        : '',
+
+      '<button type="button" class="pmd-cashier-order-center__action" data-pmd-r37-close>Close</button>'
+    ].join('');
+
+    syncCardFinancials(total, paid, due, symbol);
+  }
+
+  function syncCardFinancials(total, paid, due, symbol) {
+    if (!state.card) return;
+
+    var values = state.card.querySelectorAll(
+      '.pmd-ops-card__facts--money dd'
+    );
+
+    if (values.length >= 3) {
+      values[0].textContent = money(total, symbol);
+      values[1].textContent = money(paid, symbol);
+      values[2].textContent = money(due, symbol);
+    }
+  }
+
+  async function loadDetails() {
+    if (!state.orderId) return;
+
+    renderLoading();
+
+    try {
+      var results = await Promise.allSettled([
+        fetchJson(
+          '/admin/pmd-waiter-pos-v1/payment-summary/' +
+          encodeURIComponent(state.orderId) +
+          '?_=' + Date.now()
+        ),
+        fetchJson(
+          '/admin/pmd-waiter-pos-v22/operations/' +
+          encodeURIComponent(state.orderId) +
+          '?_=' + Date.now()
+        )
+      ]);
+
+      state.payment =
+        results[0].status === 'fulfilled'
+          ? results[0].value
+          : null;
+
+      state.operations =
+        results[1].status === 'fulfilled'
+          ? results[1].value
+          : null;
+
+      if (!state.payment && !state.operations) {
+        throw (
+          results[0].reason ||
+          results[1].reason ||
+          new Error('Order details unavailable.')
+        );
+      }
+
+      renderDetails();
+    } catch (error) {
+      renderError(error);
+    }
+  }
+
+  async function injectScript(path) {
+    var current = Array.prototype.slice.call(document.scripts)
+      .find(function (script) {
+        return String(script.src || '').indexOf(path) !== -1;
+      });
+
+    if (current) {
+      return;
+    }
+
+    await new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = path + '?v=27';
+      script.async = false;
+      script.onload = resolve;
+      script.onerror = function () {
+        reject(new Error('Could not load ' + path));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  function injectStyle(path) {
+    var exists = Array.prototype.slice.call(
+      document.querySelectorAll('link[rel="stylesheet"]')
+    ).some(function (link) {
+      return String(link.href || '').indexOf(path) !== -1;
+    });
+
+    if (exists) return;
+
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = path + '?v=27';
+    link.setAttribute('data-pmd-r37-pos-style', '1');
+    document.head.appendChild(link);
+  }
+
+  async function ensurePosAssets() {
+    [
+      '/app/admin/assets/css/pmd-waiter-pos-v1.css',
+      '/app/admin/assets/css/pmd-waiter-pos-product-details-v3.css',
+      '/app/admin/assets/css/pmd-waiter-pos-polish-v26.css',
+      '/app/admin/assets/css/pmd-waiter-pos-simple-v27.css'
+    ].forEach(injectStyle);
+
+    if (!window.PMDWaiterPOSPaymentV2) {
+      await injectScript(
+        '/app/admin/assets/js/pmd-waiter-pos-payment-v2.js'
+      );
+    }
+
+    if (
+      window.PMDWaiterPOSPaymentV2 &&
+      !window.PMDWaiterPOSPaymentV2.__pmdPolicyWrapped
+    ) {
+      await injectScript(
+        '/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js'
+      );
+    }
+
+    if (!window.PMDWaiterPOSApp) {
+      await injectScript(
+        '/app/admin/assets/js/pmd-waiter-pos-v1.js'
+      );
+    }
+
+    if (!window.PMDWaiterPOSProductDetailsV3) {
+      await injectScript(
+        '/app/admin/assets/js/pmd-waiter-pos-product-details-v3.js'
+      );
+    }
+
+    if (!window.PMDWaiterPOSSimpleV27) {
+      await injectScript(
+        '/app/admin/assets/js/pmd-waiter-pos-simple-v27.js'
+      );
+    }
+
+    if (!window.PMDWaiterPOSApp) {
+      throw new Error('Waiter POS engine did not load.');
+    }
+  }
+
+  function destroyPosHost() {
+    if (state.posApi && typeof state.posApi.destroy === 'function') {
+      try {
+        state.posApi.destroy();
+      } catch (error) {
+      }
+    }
+
+    state.posApi = null;
+
+    if (state.posHost) {
+      state.posHost.remove();
+      state.posHost = null;
+    }
+  }
+
+  async function closePos(refresh) {
+    destroyPosHost();
+
+    if (refresh) {
+      await loadDetails();
+    }
+  }
+
+  async function openPos(mode) {
+    var payment = state.payment || {};
+    var operations = state.operations || {};
+    var table = payment.table || operations.table || {};
+
+    var tableKey =
+      (table.number != null && String(table.number) !== '')
+        ? String(table.number)
+        : String(table.id || '');
+
+    if (!tableKey) {
+      renderError(
+        new Error(
+          'This order has no resolvable table reference for the POS overlay.'
+        )
+      );
+      return;
+    }
+
+    try {
+      await ensurePosAssets();
+
+      var overlay = await fetchJson(
+        '/admin/pmd-waiter-pos-v1/overlay/' +
+        encodeURIComponent(tableKey) +
+        '?_=' + Date.now()
+      );
+
+      var boot = overlay.bootstrap || {};
+      var openOrders = Array.isArray(boot.open_orders)
+        ? boot.open_orders
+        : [];
+
+      var selected = openOrders.find(function (order) {
+        return String(order.order_id) === String(state.orderId);
+      });
+
+      if (!selected) {
+        throw new Error(
+          'This order is no longer editable in the active waiter POS. ' +
+          'Paid or closed orders remain available as read-only Cashier details.'
+        );
+      }
+
+      boot.active_order_id = Number(state.orderId);
+
+      var host = document.createElement('div');
+      host.className = 'pmd-cashier-pos-overlay';
+
+      host.innerHTML = [
+        '<button type="button" class="pmd-cashier-pos-overlay__backdrop" data-pmd-r37-pos-close aria-label="Close POS"></button>',
+        '<div class="pmd-cashier-pos-overlay__panel" data-pmd-r37-pos-panel></div>'
+      ].join('');
+
+      document.body.appendChild(host);
+      state.posHost = host;
+
+      var panel = host.querySelector('[data-pmd-r37-pos-panel]');
+      panel.innerHTML = overlay.html || '';
+
+      var root = panel.querySelector('[data-pmd-pos-root]');
+
+      if (!root) {
+        throw new Error('Waiter POS overlay root is missing.');
+      }
+
+      state.posApi = window.PMDWaiterPOSApp.mount(
+        root,
+        boot,
+        {
+          embedded: true,
+          onClose: function () {
+            closePos(true);
+          }
+        }
+      );
+
+      if (window.PMDWaiterPOSProductDetailsV3) {
+        window.PMDWaiterPOSProductDetailsV3.install(
+          root,
+          state.posApi
+        );
+      }
+
+      if (window.PMDWaiterPOSSimpleV27) {
+        window.PMDWaiterPOSSimpleV27.install(
+          root,
+          state.posApi
+        );
+      }
+
+      host.addEventListener('click', function (event) {
+        if (!event.target.closest('[data-pmd-r37-pos-close]')) {
+          return;
+        }
+
+        event.preventDefault();
+
+        if (state.posApi && typeof state.posApi.close === 'function') {
+          state.posApi.close();
+        } else {
+          closePos(true);
+        }
+      });
+
+      if (
+        mode === 'payment' &&
+        state.posApi &&
+        typeof state.posApi.openPayment === 'function'
+      ) {
+        setTimeout(function () {
+          state.posApi.openPayment();
+        }, 0);
+      }
+    } catch (error) {
+      destroyPosHost();
+      renderError(error);
+    }
+  }
+
+  function openOrder(card, trigger) {
+    var id = Number(
+      card.getAttribute('data-pmd-cashier-order') || 0
+    );
+
+    if (!id) return;
+
+    state.card = card;
+    state.trigger = trigger;
+    state.orderId = id;
+    state.payment = null;
+    state.operations = null;
+
+    openShell();
+    loadDetails();
+  }
+
+  document.addEventListener(
+    'click',
+    function (event) {
+      var link = event.target.closest(
+        '#pmd-cashier-current-orders-v2 ' +
+        '[data-pmd-cashier-order] ' +
+        '.pmd-ops-card__footer a[href*="/admin/orders/edit/"]'
+      );
+
+      if (!link) return;
+
+      var card = link.closest('[data-pmd-cashier-order]');
+      if (!card) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      openOrder(card, link);
+    },
+    true
+  );
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+
+    if (state.posApi) {
+      state.posApi.close();
+      return;
+    }
+
+    if (
+      state.shell &&
+      !state.shell.hidden
+    ) {
+      closeCenter();
+    }
+  });
+
+  window.addEventListener(
+    'pmd:waiter-pos-order-updated',
+    function (event) {
+      if (
+        event &&
+        event.detail &&
+        Number(event.detail.order_id) === Number(state.orderId)
+      ) {
+        state.dirty = true;
+      }
+    }
+  );
+
+  function markLinks() {
+    document
+      .querySelectorAll(
+        '#pmd-cashier-current-orders-v2 ' +
+        '[data-pmd-cashier-order] ' +
+        '.pmd-ops-card__footer a[href*="/admin/orders/edit/"]'
+      )
+      .forEach(function (link) {
+        link.setAttribute('data-pmd-r37-order-center', '1');
+        link.setAttribute('aria-haspopup', 'dialog');
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener(
+      'DOMContentLoaded',
+      markLinks,
+      { once: true }
+    );
+  } else {
+    markLinks();
+  }
+
+  window.PMDCashierOrderCenter = {
+    open: function (orderId) {
+      var card = document.querySelector(
+        '[data-pmd-cashier-order="' +
+        String(Number(orderId)) +
+        '"]'
+      );
+
+      if (!card) {
+        throw new Error(
+          'Cashier order card #' + orderId + ' was not found.'
+        );
+      }
+
+      openOrder(card, null);
+    },
+
+    close: closeCenter,
+
+    refresh: loadDetails,
+
+    inspect: function () {
+      return {
+        orderId: state.orderId,
+        open: !!(
+          state.shell &&
+          !state.shell.hidden
+        ),
+        posOpen: !!state.posApi,
+        paymentLoaded: !!state.payment,
+        operationsLoaded: !!state.operations,
+        legacyNavigationIntercepted: true
+      };
+    }
+  };
+
+  console.info(
+    '[PMD] Cashier Order Center R37A ready'
+  );
+})();

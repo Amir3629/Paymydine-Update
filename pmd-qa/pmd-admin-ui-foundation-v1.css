@@ -1,0 +1,36 @@
+.pmd-admin-ui-v1 {
+  --pmd-radius-sm: 8px;
+  --pmd-radius-md: 12px;
+  --pmd-space-1: 4px;
+  --pmd-space-2: 8px;
+  --pmd-space-3: 12px;
+  --pmd-space-4: 16px;
+  --pmd-space-6: 24px;
+  --pmd-color-primary: #2563eb;
+  --pmd-color-danger: #dc2626;
+  --pmd-color-border: #d7dee8;
+  --pmd-color-surface: #ffffff;
+  --pmd-color-muted: #64748b;
+  font-family: inherit;
+}
+.pmd-admin-ui-v1 .pmd-admin-page-shell { display: grid; gap: var(--pmd-space-6); }
+.pmd-admin-ui-v1 .pmd-admin-page-header { display: flex; align-items: center; justify-content: space-between; gap: var(--pmd-space-4); }
+.pmd-admin-ui-v1 .pmd-admin-toolbar { display: flex; flex-wrap: wrap; gap: var(--pmd-space-3); align-items: center; }
+.pmd-admin-ui-v1 .pmd-admin-btn { min-height: 40px; border-radius: var(--pmd-radius-sm); border: 1px solid var(--pmd-color-border); padding: 0 var(--pmd-space-4); background: var(--pmd-color-surface); }
+.pmd-admin-ui-v1 .pmd-admin-btn-primary { color: #fff; background: var(--pmd-color-primary); border-color: var(--pmd-color-primary); }
+.pmd-admin-ui-v1 .pmd-admin-btn-danger { color: #fff; background: var(--pmd-color-danger); border-color: var(--pmd-color-danger); }
+.pmd-admin-ui-v1 .pmd-admin-field { display: grid; gap: var(--pmd-space-2); }
+.pmd-admin-ui-v1 .pmd-admin-input,
+.pmd-admin-ui-v1 .pmd-admin-select,
+.pmd-admin-ui-v1 .pmd-admin-textarea { min-height: 40px; border: 1px solid var(--pmd-color-border); border-radius: var(--pmd-radius-sm); padding: var(--pmd-space-2) var(--pmd-space-3); background: #fff; }
+.pmd-admin-ui-v1 .pmd-admin-card,
+.pmd-admin-ui-v1 .pmd-admin-section { border: 1px solid var(--pmd-color-border); border-radius: var(--pmd-radius-md); background: var(--pmd-color-surface); padding: var(--pmd-space-6); }
+.pmd-admin-ui-v1 .pmd-admin-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.pmd-admin-ui-v1 .pmd-admin-modal { border-radius: var(--pmd-radius-md); background: var(--pmd-color-surface); padding: var(--pmd-space-6); max-width: 720px; }
+.pmd-admin-ui-v1 .pmd-admin-media-preview { border: 1px dashed var(--pmd-color-border); border-radius: var(--pmd-radius-md); padding: var(--pmd-space-4); }
+.pmd-admin-ui-v1 .pmd-admin-advanced-section { border-top: 1px solid var(--pmd-color-border); padding-top: var(--pmd-space-4); }
+@media (max-width: 640px) {
+  .pmd-admin-ui-v1 .pmd-admin-page-header { align-items: stretch; flex-direction: column; }
+  .pmd-admin-ui-v1 .pmd-admin-toolbar { flex-direction: column; align-items: stretch; }
+  .pmd-admin-ui-v1 .pmd-admin-btn { width: 100%; }
+}

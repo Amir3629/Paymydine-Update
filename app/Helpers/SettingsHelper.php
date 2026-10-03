@@ -147,9 +147,48 @@ class SettingsHelper
     public static function areOrderNotificationsEnabledForUser($user = null)
     {
         try {
+            /*
+             * PMD_PERF_R12_NOTIFICATION_PREF_SINGLEFLIGHT
+             * The clean workspace badge and the global top-menu ask for the
+             * same preference during one render. Keep one request-local answer.
+             */
+            $request = request();
+            $userId = 0;
+
+            try {
+                $userId = $user && method_exists($user, 'getKey')
+                    ? (int)$user->getKey()
+                    : 0;
+            } catch (\Throwable $ignored) {
+                $userId = 0;
+            }
+
+            $cacheKey =
+                '_pmd_order_notifications_enabled_r12_'.$userId;
+
+            if (
+                $request
+                && $request->attributes->has($cacheKey)
+            ) {
+                return (bool)$request->attributes->get(
+                    $cacheKey
+                );
+            }
+
             $preferences = User_preferences_model::onUser($user);
-            $enabled = $preferences->get('order_notifications_enabled', true);
-            return (bool) $enabled;
+            $enabled = (bool)$preferences->get(
+                'order_notifications_enabled',
+                true
+            );
+
+            if ($request) {
+                $request->attributes->set(
+                    $cacheKey,
+                    $enabled
+                );
+            }
+
+            return $enabled;
         } catch (\Exception $e) {
             \Log::warning('Failed to get user notification preference', [
                 'error' => $e->getMessage()
@@ -170,7 +209,26 @@ class SettingsHelper
     {
         try {
             $preferences = User_preferences_model::onUser($user);
-            return $preferences->set('order_notifications_enabled', $enabled ? 1 : 0);
+            $result = $preferences->set(
+                'order_notifications_enabled',
+                $enabled ? 1 : 0
+            );
+
+            try {
+                $request = request();
+                $userId = $user && method_exists($user, 'getKey')
+                    ? (int)$user->getKey()
+                    : 0;
+
+                if ($request) {
+                    $request->attributes->remove(
+                        '_pmd_order_notifications_enabled_r12_'.$userId
+                    );
+                }
+            } catch (\Throwable $ignored) {
+            }
+
+            return $result;
         } catch (\Exception $e) {
             \Log::error('Failed to set user notification preference', [
                 'enabled' => $enabled,

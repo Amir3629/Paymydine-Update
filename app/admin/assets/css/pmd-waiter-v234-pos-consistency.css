@@ -1,0 +1,403 @@
+/*
+ * PMD Waiter V2.3.4
+ * Unified launcher + ordering workspace.
+ */
+
+/* =========================================================
+   1. PRODUCT QUANTITY BADGE
+   Square, compact, top-right, never over the price.
+   ========================================================= */
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-product.has-v23-quantity {
+  padding-right: 50px !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-product.has-v23-quantity::after {
+  content: attr(data-v23-quantity) "×" !important;
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  bottom: auto !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 3px !important;
+  background: #60a5fa !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+  box-shadow: 0 2px 7px rgba(0,0,0,.22) !important;
+  z-index: 4 !important;
+}
+
+/* =========================================================
+   2. SERVICE FILTER RAIL
+   Full real colours, same typography as food categories.
+   ========================================================= */
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+  opacity: 1 !important;
+  filter: none !important;
+  min-height: 58px !important;
+  padding: 9px 10px !important;
+  grid-template-columns: minmax(0,1fr) auto !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button:hover {
+  filter: brightness(1.08) !important;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.35) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button.is-active {
+  filter: brightness(1.12) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,.72),
+    0 0 0 2px color-mix(in srgb, var(--pmd-filter-color) 65%, transparent) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button span {
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  line-height: 1.02 !important;
+  letter-spacing: .01em !important;
+  color: #fff !important;
+}
+
+/* Counts are text, not framed mini-buttons. */
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button b {
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  display: inline !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: rgba(255,255,255,.96) !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+}
+
+/* Distinct operational palette. */
+body.pmd-waiter-standard-v23-page [data-v2-filter="mine"] {
+  --pmd-filter-color: #7c3aed !important;
+}
+body.pmd-waiter-standard-v23-page [data-v2-filter="all"] {
+  --pmd-filter-color: #2563eb !important;
+}
+body.pmd-waiter-standard-v23-page [data-v2-filter="open"] {
+  --pmd-filter-color: #ea580c !important;
+}
+body.pmd-waiter-standard-v23-page [data-v2-filter="call"] {
+  --pmd-filter-color: #dc2626 !important;
+}
+body.pmd-waiter-standard-v23-page [data-v2-filter="note"] {
+  --pmd-filter-color: #a16207 !important;
+}
+
+/* =========================================================
+   3. TABLE CARDS
+   Less text, stronger operational state, no duplicated age.
+   ========================================================= */
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key {
+  --pmd-card-accent: #64748b;
+  min-height: 168px !important;
+  padding: 13px 12px 11px !important;
+  border: 1px solid color-mix(in srgb, var(--pmd-card-accent) 42%, var(--pmd-v23-line)) !important;
+  border-top: 7px solid var(--pmd-card-accent) !important;
+  border-left: 1px solid color-mix(in srgb, var(--pmd-card-accent) 42%, var(--pmd-v23-line)) !important;
+  border-radius: 4px !important;
+  background: var(--pmd-v23-surface) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: inset 0 0 0 2px var(--pmd-card-accent) !important;
+}
+
+/* Actual order/service states. */
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-free {
+  --pmd-card-accent: #16a34a;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-open,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-kitchen {
+  --pmd-card-accent: #2563eb;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-ready {
+  --pmd-card-accent: #7c3aed;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-payment {
+  --pmd-card-accent: #ea580c;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-paid {
+  --pmd-card-accent: #0891b2;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key.is-attention,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key[data-pmd-waiter-call="1"] {
+  --pmd-card-accent: #dc2626;
+}
+
+/* Note is secondary gold, never confused with OPEN orange. */
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"] {
+  box-shadow: inset 5px 0 0 #a16207 !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"]:hover {
+  box-shadow:
+    inset 5px 0 0 #a16207,
+    inset 0 0 0 2px var(--pmd-card-accent) !important;
+}
+
+/* Cleaner hierarchy. */
+body.pmd-waiter-standard-v23-page .pmd-v2-table-state {
+  color: var(--pmd-card-accent) !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .07em !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key > strong {
+  margin-top: 7px !important;
+  font-size: 52px !important;
+  line-height: .9 !important;
+  color: var(--pmd-v23-text) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-name {
+  margin-top: 6px !important;
+  padding-bottom: 7px !important;
+  border-bottom: 1px solid var(--pmd-v23-line) !important;
+  font-size: 10px !important;
+  font-weight: 950 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-info {
+  margin-top: 8px !important;
+  display: block !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-info b {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-info small {
+  display: none !important;
+}
+
+/* Keep one age label only. */
+body.pmd-waiter-standard-v23-page .pmd-v21-age-meta {
+  display: none !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v21-payment-meta {
+  position: absolute !important;
+  left: 12px !important;
+  bottom: 10px !important;
+  max-width: calc(100% - 24px) !important;
+  padding: 4px 7px !important;
+  border-radius: 3px !important;
+  background: color-mix(in srgb, #dc2626 10%, var(--pmd-v23-surface)) !important;
+  border: 1px solid color-mix(in srgb, #dc2626 55%, transparent) !important;
+  color: #be123c !important;
+  font-size: 11px !important;
+  font-weight: 1000 !important;
+  white-space: nowrap !important;
+}
+
+/* Corner action is compact and state-specific. */
+body.pmd-waiter-standard-v23-page .pmd-v2-table-corner {
+  top: 12px !important;
+  right: 10px !important;
+  min-width: 31px !important;
+  height: 29px !important;
+  padding: 0 8px !important;
+  border-radius: 3px !important;
+  display: grid !important;
+  place-items: center !important;
+  background: var(--pmd-card-accent) !important;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"]
+.pmd-v2-table-corner[title="Order note"] {
+  background: #a16207 !important;
+}
+
+/* =========================================================
+   4. SEARCH BUTTON — BIG AND PERFECTLY CENTERED
+   ========================================================= */
+
+body.pmd-waiter-standard-v23-page
+.pmd-v2-search.pmd-v233-header-search {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v2-search.pmd-v233-header-search > span {
+  flex: 0 0 46px !important;
+  width: 46px !important;
+  height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  transform: none !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 0 !important;
+  line-height: 1 !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v2-search.pmd-v233-header-search > span::before {
+  content: "⌕" !important;
+  display: block !important;
+  font-size: 28px !important;
+  line-height: 1 !important;
+  color: #fff !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Food-page search moved to header and uses same control. */
+body.pmd-waiter-standard-v23-page .pmd-pos-search.pmd-v234-pos-header-search {
+  width: 48px !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  margin: 0 8px 0 auto !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255,255,255,.25) !important;
+  border-radius: 3px !important;
+  background: #111922 !important;
+  transition: width .16s ease, max-width .16s ease !important;
+  z-index: 5 !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-search.pmd-v234-pos-header-search.is-open,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-search.pmd-v234-pos-header-search:focus-within {
+  width: min(380px, 34vw) !important;
+  max-width: min(380px, 34vw) !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-search.pmd-v234-pos-header-search::before {
+  content: "⌕" !important;
+  flex: 0 0 46px !important;
+  width: 46px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #fff !important;
+  font-size: 28px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-search.pmd-v234-pos-header-search input {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  color: #fff !important;
+  border: 0 !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-pos-search.pmd-v234-pos-header-search.is-open input,
+body.pmd-waiter-standard-v23-page
+.pmd-pos-search.pmd-v234-pos-header-search:focus-within input {
+  width: 100% !important;
+  padding-right: 12px !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* =========================================================
+   5. PAYMENT AS A FULL WORKSPACE, NOT A FLOATING CARD
+   ========================================================= */
+
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: var(--pmd-v23-bg) !important;
+  z-index: 9999 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-dialog {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  max-height: none !important;
+  min-height: 100% !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--pmd-v23-bg) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-head {
+  min-height: 68px !important;
+  border-radius: 0 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-body {
+  height: calc(100dvh - 68px) !important;
+  max-height: none !important;
+  overflow: auto !important;
+}
+
+@media (max-width: 700px) {
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button span {
+    font-size: 11px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page
+  .pmd-pos-search.pmd-v234-pos-header-search.is-open {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}

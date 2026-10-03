@@ -1,0 +1,23 @@
+/* PMD_RESTAURANT_LOGO_AUTHORITY_R20 */
+.pmd-profile-logo-remove-r20 {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    margin-top: .65rem;
+    font-size: .82rem;
+    font-weight: 650;
+    color: #5d6b78;
+    cursor: pointer;
+}
+.pmd-profile-logo-remove-r20 input {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+}
+.pmd-profile-logo-source-r20 {
+    display: block;
+    margin-top: .45rem;
+    font-size: .72rem;
+    color: #7a8793;
+    overflow-wrap: anywhere;
+}

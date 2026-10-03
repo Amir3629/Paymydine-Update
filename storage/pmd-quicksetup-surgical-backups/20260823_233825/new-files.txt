@@ -1,0 +1,10 @@
+app/admin/Services/PmdStarterMenuLibraryV1.php
+app/admin/Services/PmdTenantQuickSetupService.php
+app/admin/assets/css/pmd-onboarding-welcome-v1.css
+app/admin/assets/css/pmd-tenant-quick-setup-v1.css
+app/admin/assets/js/pmd-onboarding-welcome-v1.js
+app/admin/assets/js/pmd-tenant-quick-setup-v1.js
+app/admin/controllers/Pmdquicksetup.php
+app/admin/views/pmdquicksetup/index.blade.php
+frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/TenantSetupWelcome.module.css
+frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/TenantSetupWelcome.tsx

@@ -3,6 +3,7 @@
 namespace App\Admin\Controllers;
 
 use Admin\Facades\AdminAuth;
+use Admin\Services\PmdNotificationCountV1;
 use App\Helpers\SettingsHelper;
 use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
@@ -12,15 +13,15 @@ class NotificationsApiController extends Controller
 {
     public function count()
     {
-        $user = AdminAuth::getUser();
-        
-        // If user has notifications disabled, return 0
-        if ($user && !SettingsHelper::areOrderNotificationsEnabledForUser($user)) {
-            return response()->json(['ok' => true, 'new' => 0]);
-        }
-        
-        $new = DB::table('notifications')->where('status', 'new')->count();
-        return response()->json(['ok' => true, 'new' => $new]);
+        // PMD_NOTIFICATION_COUNT_API_SHARED_AUTHORITY_V1
+        $new = app(
+            PmdNotificationCountV1::class
+        )->currentNewCount();
+
+        return response()->json([
+            'ok' => true,
+            'new' => $new,
+        ]);
     }
 
     public function index(Request $request)

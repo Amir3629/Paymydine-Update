@@ -1,0 +1,323 @@
+/* PMD Sidebar Clean Collapse v44
+   Fixes current screenshots:
+   - collapsed active Dashboard item becomes a clean square icon button, not tall pill
+   - collapsed power/profile box is centered and not clipped
+   - arrow is SVG-centered, not FontAwesome-offset
+   - old v40/v41/v42/v43 proxy buttons are hidden
+   - collapsed state persists across page changes */
+
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v40,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v41,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v42,
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v43,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-safe-slot-v33,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-stable-v31,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-toggle-end-v28 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:not(#pmd-sidebar-edge-toggle-v44) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* One real visible handle */
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v44 {
+  position: fixed !important;
+  top: var(--pmd-sidebar-edge-top-v44, 164px) !important;
+  left: var(--pmd-sidebar-edge-left-v44, 250px) !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(200,155,74,.74) !important;
+  background: #fff4dc !important;
+  color: #063b34 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 10px 22px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.70) !important;
+  z-index: 2147482800 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateZ(0) !important;
+}
+html body.page.pmd-admin-theme-v1 #pmd-sidebar-edge-toggle-v44 svg {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 3 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  transform: translateY(0) !important;
+}
+
+/* Prevent clipping */
+html body.page.pmd-admin-theme-v1 #sidebar,
+html body.page.pmd-admin-theme-v1 .sidebar,
+html body.page.pmd-admin-theme-v1 aside,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-admin-sidebar {
+  overflow: visible !important;
+}
+
+/* Keep expanded logo premium and stable */
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 92px !important;
+  height: 92px !important;
+  padding: 0 8px 2px !important;
+  margin: -24px auto 2px !important;
+  transform: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v38,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v37,
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 86px !important;
+  height: 86px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-height: 82px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="0"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="1"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="3"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="4"],
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="5"] {
+  max-width: 198px !important;
+  max-height: 84px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38[data-logo-index="2"] {
+  max-width: 164px !important;
+  max-height: 68px !important;
+}
+
+/* Expanded menu */
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v38 { margin: 0 13px 9px !important; }
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v38 { min-height: 35px !important; height: 35px !important; }
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu,
+html body.page.pmd-admin-theme-v1 .sidebar-menu,
+html body.page.pmd-admin-theme-v1 .nav-sidebar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Early collapsed state */
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #sidebar,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .pmd-admin-sidebar {
+  max-width: 86px !important;
+  width: 86px !important;
+  min-width: 86px !important;
+}
+
+/* Collapsed logo */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-platform-logo-slot-v38,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38 {
+  min-height: 88px !important;
+  height: 88px !important;
+  padding: 8px 4px 4px !important;
+  margin: 0 auto 24px !important;
+}
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed img.pmd-platform-logo-img-v38,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  max-width: 64px !important;
+  max-height: 64px !important;
+}
+
+/* COLLAPSED NAV FIX: no tall vertical active pill */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .side-nav-menu,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .side-nav-menu,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .side-nav-menu {
+  width: 86px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 22px !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu > li,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu > li,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu > li,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .side-nav-menu > li,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .side-nav-menu > li,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .side-nav-menu > li {
+  width: 86px !important;
+  min-width: 86px !important;
+  max-width: 86px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Hide logo button in collapsed mode to avoid layout distortion */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-nav-item-v38,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-logo-cycle-nav-item-v38,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v38 {
+  display: none !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu > li > a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu > li > a,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu > li > a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .side-nav-menu > li > a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .side-nav-menu > li > a,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .side-nav-menu > li > a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu > li > button,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu > li > button,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu > li > button {
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  border-radius: 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  text-align: center !important;
+  overflow: hidden !important;
+}
+
+/* Active collapsed item = clean square icon card */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu > li.active > a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu > li.active > a,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu > li.active > a,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu > li > a.active,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu > li > a.active,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu > li > a.active {
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  max-height: 58px !important;
+  border-radius: 21px !important;
+  background: #fff4dc !important;
+  box-shadow: inset 0 0 0 1px rgba(200,155,74,.32), 0 12px 24px rgba(0,0,0,.12) !important;
+}
+
+/* Hide text/caret/badges in collapsed nav */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu span,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu span,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu span,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .side-nav-menu span,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .side-nav-menu span,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .side-nav-menu span,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu .badge,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu .badge,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu .badge,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu .caret,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu .caret,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu .caret {
+  display: none !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu i,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed #side-nav-menu i,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 #side-nav-menu i,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .side-nav-menu i,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .side-nav-menu i,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .side-nav-menu i {
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+}
+
+/* Power-only footer */
+html body.page.pmd-admin-theme-v1 .pmd-power-box-v44 {
+  width: 58px !important;
+  min-width: 58px !important;
+  max-width: 58px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  max-height: 58px !important;
+  padding: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-power-box-v44 .pmd-profile-hidden-v44 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-power-box-v44 .pmd-power-control-v44,
+html body.page.pmd-admin-theme-v1 .pmd-power-box-v44 a.pmd-power-control-v44,
+html body.page.pmd-admin-theme-v1 .pmd-power-box-v44 button.pmd-power-control-v44 {
+  position: static !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 999px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transform: none !important;
+}
+
+/* Extra collapsed footer fallback */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .sidebar-footer img,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .sidebar-footer img,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar-footer .media-body,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .sidebar-footer .media-body,
+html.pmd-sidebar-persist-collapsed-v44 body.page.pmd-admin-theme-v1 .sidebar-footer .media-body {
+  display: none !important;
+}
+
+/* Less blinking */
+html body.page.pmd-admin-theme-v1 #sidebar,
+html body.page.pmd-admin-theme-v1 .sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-sidebar,
+html body.page.pmd-admin-theme-v1 .pmd-admin-sidebar,
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu {
+  transition-property: background-color, color, border-color, box-shadow !important;
+  transition-duration: .12s !important;
+}

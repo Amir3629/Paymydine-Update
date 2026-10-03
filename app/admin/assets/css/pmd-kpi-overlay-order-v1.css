@@ -1,0 +1,58 @@
+/* ============================================================
+   PMD_KPI_OVERLAY_ORDER_V1
+
+   The KPI chooser is the active workspace overlay. Dashboard analytics
+   controls and operational date-range controls must remain underneath it.
+   Modal/dialog layers keep their own higher z-index authorities.
+   ============================================================ */
+
+html body
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307.pmd-r2-kpis-v2401 {
+  position: relative !important;
+  z-index: 5000 !important;
+  overflow: visible !important;
+  isolation: isolate !important;
+}
+
+html body
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card {
+  position: relative !important;
+  z-index: 0 !important;
+  overflow: visible !important;
+}
+
+html body
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-card:has(.pmd-r2-kpi-v2401-menu:not([hidden])) {
+  z-index: 2 !important;
+}
+
+html body
+#pmd-dashboard-lab
+#pmd-r2-reservation-kpis-v307
+.pmd-r2-kpi-v2401-menu {
+  z-index: 5001 !important;
+}
+
+/* Analytics L/B/D/W/M and report-link controls are page chrome, not overlays. */
+html body
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Reservations/Cashier operational range control must sit under KPI menus. */
+html body
+#pmd-dashboard-lab
+.pmd-ops-range,
+html body
+#pmd-dashboard-lab
+.pmd-ops-range__trigger {
+  position: relative !important;
+  z-index: 1 !important;
+}

@@ -1,0 +1,162 @@
+/* PMD_STAFF_PORTAL_VISUAL_V5
+ * Month-first personal rota + time report and a real mobile app surface.
+ * Additive override only: V1/V2 remain the rollback base.
+ */
+
+/* Shared V5 helpers */
+.pmd-staff-avatar [data-pmd-avatar-fallback]{display:grid;width:100%;height:100%;place-items:center}
+.pmd-staff-avatar img[hidden],.pmd-staff-avatar [data-pmd-avatar-fallback][hidden]{display:none!important}
+.pmd-staff-mobile-groups{display:none}
+.pmd-staff-mobile-nav button{font-family:inherit}
+
+/* Give the desktop schedule enough room for a real personal rota. */
+@media(min-width:1151px){
+  .pmd-staff-layout{width:min(1480px,calc(100% - 28px));grid-template-columns:255px minmax(420px,1fr) 410px}
+}
+
+/* Month navigation */
+.pmd-staff-month-nav{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;align-items:center;gap:7px;padding:10px 10px 0}
+.pmd-staff-month-nav>a{width:36px;height:36px;display:grid;place-items:center;border:1px solid #d5e2e8;border-radius:10px;background:#fff;color:#536f7c;text-decoration:none}
+.pmd-staff-month-nav>a:hover{border-color:#a9c9be;background:#f1faf6;color:var(--pmd-staff-jade)}
+.pmd-staff-month-nav>a svg{width:17px;height:17px}
+.pmd-staff-month-title{min-width:0;text-align:center}
+.pmd-staff-month-title strong{display:block;color:#173752;font-size:13px;font-weight:900;letter-spacing:-.01em}
+.pmd-staff-month-title small{display:block;margin-top:2px;color:#7a8e98;font-size:9px;font-weight:750}
+.pmd-staff-month-today{display:flex;justify-content:center;padding:7px 10px 0}
+.pmd-staff-month-today a{min-height:28px;display:inline-flex;align-items:center;padding:0 9px;border-radius:999px;background:#edf6f2;color:#075f4f;font-size:9px;font-weight:850;text-decoration:none}
+
+/* Monthly personal report */
+.pmd-staff-month-report{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:10px}
+.pmd-staff-month-stat{min-width:0;padding:9px;border:1px solid #e0e9ed;border-radius:11px;background:#f9fbfc}
+.pmd-staff-month-stat small{display:block;overflow:hidden;color:#7a8e98;font-size:8px;font-weight:850;letter-spacing:.035em;text-overflow:ellipsis;text-transform:uppercase;white-space:nowrap}
+.pmd-staff-month-stat strong{display:block;margin-top:4px;color:#173752;font-size:15px;font-weight:900;letter-spacing:-.02em}
+.pmd-staff-month-stat.is-worked{border-color:#cfe3da;background:#f2faf7}
+.pmd-staff-month-stat.is-worked strong{color:#075f4f}
+.pmd-staff-month-report-note{display:flex;align-items:flex-start;gap:7px;margin:0 10px 9px;padding:8px 9px;border-radius:9px;background:#f4f8fa;color:#6f858f;font-size:9px;line-height:1.4}
+.pmd-staff-month-report-note svg{width:14px;height:14px;flex:0 0 14px;margin-top:1px}
+.pmd-staff-month-report-note.is-live{background:#edf8f4;color:#467066}
+
+/* Month shift list */
+.pmd-staff-month-shifts{display:grid;gap:7px;padding:0 10px 10px}
+.pmd-staff-month-shifts article{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:9px;padding:9px;border:1px solid #dfe8ed;border-radius:12px;background:#fff}
+.pmd-staff-month-shifts time{width:46px;height:46px;display:grid;place-items:center;border:1px solid #d7e5eb;border-radius:11px;background:#f3f8fb;color:#27465a;line-height:1}
+.pmd-staff-month-shifts time strong{font-size:15px;font-weight:900}
+.pmd-staff-month-shifts time small{font-size:8px;font-weight:850;text-transform:uppercase}
+.pmd-staff-month-shifts article>div{display:grid;gap:2px;min-width:0}
+.pmd-staff-month-shifts article>div>strong{overflow:hidden;color:#173752;font-size:11px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}
+.pmd-staff-month-shifts article>div>span{color:#6f858f;font-size:9.5px;line-height:1.35}
+.pmd-staff-month-shifts article>div>small{color:#81949d;font-size:8.8px;line-height:1.35}
+.pmd-staff-month-shifts button{min-height:32px;padding:0 9px;border:1px solid #c7ddd5;border-radius:9px;background:#f6fbf9;color:#075f4f;font-size:9px;font-weight:850;cursor:pointer}
+.pmd-staff-month-shifts button:hover{background:#eaf7f2}
+.pmd-staff-shift-state{display:inline-flex!important;width:max-content;max-width:100%;padding:2px 6px;border-radius:6px;background:#f0f4f6;color:#617985!important;font-size:8px!important;font-weight:850;text-transform:capitalize}
+.pmd-staff-shift-state.is-present,.pmd-staff-shift-state.is-replacement{background:#eaf7f2;color:#075f4f!important}
+.pmd-staff-shift-state.is-absent{background:#fff1ef;color:#a43b31!important}
+
+/* Mobile conversation selector */
+.pmd-staff-mobile-groups{gap:6px;padding:8px 10px;border-bottom:1px solid #e8eff3;background:#fff;overflow-x:auto;scrollbar-width:none}
+.pmd-staff-mobile-groups::-webkit-scrollbar{display:none}
+.pmd-staff-mobile-groups a{flex:0 0 auto;min-height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 10px;border:1px solid #d8e4e9;border-radius:999px;background:#fff;color:#526d78;font-size:9.5px;font-weight:800;text-decoration:none;white-space:nowrap}
+.pmd-staff-mobile-groups a.is-active{border-color:#b9d9ce;background:#edf8f4;color:#075f4f}
+.pmd-staff-mobile-groups b{width:20px;height:20px;display:grid;place-items:center;border-radius:999px;background:#e9f0f3;color:#536e79;font-size:8px}
+.pmd-staff-mobile-groups a.is-active b{background:#fff;color:#075f4f}
+
+/* Better empty states */
+.pmd-staff-empty.is-month{margin:0;padding:20px 12px;background:#fbfdfd}
+.pmd-staff-empty.is-month strong{font-size:12px}
+
+/* V5 mobile app */
+@media(max-width:760px){
+  html,body.pmd-staff-portal-page{min-height:100%;background:#f8fbfd}
+  body.pmd-staff-portal-page{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  .pmd-staff-app{min-height:100dvh;padding:0}
+
+  .pmd-staff-topbar{position:sticky;top:0;z-index:60;height:58px;padding:0 10px;border-bottom:1px solid #e2eaee;background:rgba(255,255,255,.98);box-shadow:none}
+  .pmd-staff-brand{min-width:0;gap:7px}
+  .pmd-staff-brand img{width:108px;height:31px}
+  .pmd-staff-brand>span{display:none}
+  .pmd-staff-topbar__actions{gap:5px}
+  .pmd-staff-person-button{padding:2px;border-radius:999px}
+  .pmd-staff-person__avatar{width:36px;height:36px;flex-basis:36px;border-radius:999px}
+  .pmd-staff-person__copy,.pmd-staff-person__edit{display:none!important}
+  .pmd-staff-workspace-link,.pmd-staff-signout{width:36px;height:36px;padding:0;border:0;border-radius:10px;background:#f5f8fa}
+  .pmd-staff-workspace-link span,.pmd-staff-signout span{display:none}
+  .pmd-staff-flash{width:calc(100% - 20px);margin:8px auto 0;border-radius:11px}
+
+  .pmd-staff-layout{width:100%;height:auto;min-height:0;display:block;margin:0;padding:10px 10px 6px}
+  .pmd-staff-sidebar{display:none!important}
+  .pmd-staff-tools{display:block!important;overflow:visible;padding:0}
+
+  /* Only one application screen at a time. */
+  .pmd-staff-chat,.pmd-staff-tools>.pmd-staff-tool-card{display:none!important}
+  .pmd-staff-app[data-pmd-mobile-active="chat"] .pmd-staff-chat{display:flex!important}
+  .pmd-staff-app[data-pmd-mobile-active="schedule"] .pmd-staff-tools>[data-pmd-mobile-screen="schedule"]{display:block!important}
+  .pmd-staff-app[data-pmd-mobile-active="requests"] .pmd-staff-tools>[data-pmd-mobile-screen="requests"]{display:block!important}
+  .pmd-staff-app[data-pmd-mobile-active="manage"] .pmd-staff-tools>[data-pmd-mobile-screen="manage"]{display:block!important}
+
+  .pmd-staff-chat,.pmd-staff-tool-card{border:0;border-radius:16px;background:#fff;box-shadow:0 8px 28px rgba(27,58,74,.055)}
+  .pmd-staff-chat{min-height:calc(100dvh - 154px);max-height:none;overflow:visible}
+  .pmd-staff-chat__head{min-height:60px;padding:9px 11px;border-bottom:1px solid #edf2f4}
+  .pmd-staff-chat-badge{display:none}
+  .pmd-staff-mobile-groups{display:flex}
+  .pmd-staff-chat__messages{min-height:calc(100dvh - 310px);padding:12px 10px;background:#f8fafb}
+  .pmd-staff-chat__messages article>div{max-width:84%;padding:9px 11px}
+  .pmd-staff-message-avatar{width:28px;height:28px;flex-basis:28px;border-radius:999px}
+  .pmd-staff-composer{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom));z-index:15;grid-template-columns:minmax(0,1fr) 44px;gap:7px;padding:8px;border-top:1px solid #edf2f4;border-radius:0 0 16px 16px;background:rgba(255,255,255,.98)}
+  .pmd-staff-composer textarea{min-height:44px;max-height:110px;border-radius:12px}
+  .pmd-staff-composer button{min-width:44px;width:44px;height:44px;padding:0;border-radius:12px}
+  .pmd-staff-composer button span{display:none}
+
+  .pmd-staff-tool-card{margin:0 0 9px;overflow:hidden}
+  .pmd-staff-panel-head{min-height:62px;padding:10px 11px}
+  .pmd-staff-section-title h2{font-size:15px}
+  .pmd-staff-section-title small{font-size:8.5px}
+
+  .pmd-staff-month-nav{grid-template-columns:42px minmax(0,1fr) 42px;padding:11px 11px 0}
+  .pmd-staff-month-nav>a{width:42px;height:42px;border-radius:12px}
+  .pmd-staff-month-title strong{font-size:14px}
+  .pmd-staff-month-report{grid-template-columns:1fr 1fr;gap:7px;padding:10px 11px}
+  .pmd-staff-month-stat{padding:10px 11px;border-radius:12px}
+  .pmd-staff-month-stat strong{font-size:18px}
+  .pmd-staff-month-report-note{margin:0 11px 10px}
+  .pmd-staff-month-shifts{padding:0 11px 11px}
+  .pmd-staff-month-shifts article{grid-template-columns:46px minmax(0,1fr);padding:10px;border-radius:13px}
+  .pmd-staff-month-shifts article>button{grid-column:1/3;width:100%;min-height:38px;margin-top:2px}
+  .pmd-staff-open-shifts{padding:10px 11px 11px}
+  .pmd-staff-open-shifts article{align-items:flex-start}
+
+  .pmd-staff-request-form{padding:11px}
+  .pmd-staff-request-types{grid-template-columns:repeat(3,minmax(0,1fr));overflow:hidden}
+  .pmd-staff-request-types button{min-width:0;padding:0 5px;font-size:9px}
+  .pmd-staff-dates{grid-template-columns:1fr 1fr}
+  .pmd-staff-request-history{padding:0 11px 11px}
+  .pmd-staff-management-links{padding:10px 11px 0}
+  .pmd-staff-management-list{padding:10px 11px 11px}
+
+  /* Bottom navigation: one simple PMD app bar, not five floating cards. */
+  .pmd-staff-mobile-nav{position:fixed!important;left:0;right:0;bottom:0;top:auto!important;z-index:80;height:auto;display:flex!important;grid-template-columns:none!important;align-items:stretch;gap:0;padding:6px 7px calc(6px + env(safe-area-inset-bottom));border-top:1px solid #dfe8ec;border-bottom:0;background:rgba(255,255,255,.98);box-shadow:0 -8px 26px rgba(22,52,68,.075);backdrop-filter:blur(16px);overflow:visible}
+  .pmd-staff-mobile-nav a,.pmd-staff-mobile-nav button{position:relative;min-width:0;min-height:52px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:3px 2px;border:0!important;border-radius:10px;background:transparent!important;color:#758994;font:inherit;font-size:8.5px;font-weight:800;text-decoration:none;white-space:nowrap;cursor:pointer}
+  .pmd-staff-mobile-nav svg{width:20px;height:20px}
+  .pmd-staff-mobile-nav a.is-active,.pmd-staff-mobile-nav button.is-active{background:#edf8f4!important;color:#075f4f}
+  .pmd-staff-mobile-nav b{position:absolute;right:calc(50% - 19px);top:4px;min-width:15px;height:15px;display:grid;place-items:center;padding:0 3px;border:2px solid #fff;border-radius:999px;background:#075f4f;color:#fff;font-size:7px}
+
+  /* Profile becomes a native-feeling bottom sheet on phones. */
+  .pmd-staff-modal{align-items:end;padding:0}
+  .pmd-staff-modal__backdrop{background:rgba(7,27,35,.48)}
+  .pmd-staff-profile-card{width:100%;max-height:92dvh;border:0;border-radius:22px 22px 0 0;box-shadow:0 -22px 60px rgba(16,42,67,.22)}
+  .pmd-staff-profile-card>header{min-height:62px;padding:10px 12px}
+  .pmd-staff-profile-form{gap:13px;padding:13px 12px calc(15px + env(safe-area-inset-bottom))}
+  .pmd-staff-profile-photo-row{grid-template-columns:62px minmax(0,1fr);gap:11px;padding:10px}
+  .pmd-staff-profile-avatar{width:62px;height:62px;border-radius:17px;font-size:20px}
+  .pmd-staff-profile-readonly{grid-template-columns:1fr 1fr}
+  .pmd-staff-profile-form>footer{position:sticky;bottom:0;margin:0 -12px -15px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #edf2f4;background:rgba(255,255,255,.98)}
+  .pmd-staff-profile-form>footer button{height:44px}
+}
+
+@media(max-width:390px){
+  .pmd-staff-brand img{width:96px}
+  .pmd-staff-topbar__actions{gap:2px}
+  .pmd-staff-month-report{grid-template-columns:1fr 1fr}
+  .pmd-staff-dates{grid-template-columns:1fr}
+  .pmd-staff-profile-readonly{grid-template-columns:1fr}
+  .pmd-staff-mobile-nav a,.pmd-staff-mobile-nav button{font-size:8px}
+}

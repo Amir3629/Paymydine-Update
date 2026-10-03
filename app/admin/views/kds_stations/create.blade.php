@@ -1,50 +1,13 @@
-<div class="row-fluid">
-    <div class="container-fluid">
-        <!-- Page Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h3 class="mb-1">
-                    <i class="fa fa-plus-circle text-primary"></i> 
-                    Create KDS Station
-                </h3>
-                <p class="text-muted mb-0">
-                    Set up a new Kitchen Display System station for your restaurant
-                </p>
-            </div>
-            <div>
-                <a href="{{ admin_url('kds_stations') }}" class="btn btn-outline-secondary">
-                    <i class="fa fa-arrow-left"></i> Back to Stations
-                </a>
-            </div>
-        </div>
-
-        <!-- Form Card -->
-        <div class="card">
-            <div class="card-body">
-                {!! $this->renderForm() !!}
-            </div>
-        </div>
-
-        <!-- Tips Card -->
-        <div class="card mt-4 bg-light border-0">
-            <div class="card-body">
-                <h6><i class="fa fa-lightbulb text-warning"></i> Tips for Setting Up Stations</h6>
-                <div class="row">
-                    <div class="col-md-4">
-                        <strong>Kitchen Station</strong>
-                        <p class="small text-muted mb-0">Assign food categories like Appetizers, Main Courses, Sides</p>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Bar Station</strong>
-                        <p class="small text-muted mb-0">Assign drink categories like Beverages, Cocktails, Wine</p>
-                    </div>
-                    <div class="col-md-4">
-                        <strong>Specialty Stations</strong>
-                        <p class="small text-muted mb-0">Create stations for Grill, Desserts, Sushi, etc.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+@include('admin::pmddevices._v2_boot')
+@php $pmdFormWidget = $this->widgets['form'] ?? null; try { if ($pmdFormWidget) $pmdFormWidget->render(['useContainer'=>false]); } catch (\Throwable $e) {} @endphp
+<div id="pmd-restaurant-profile" data-pmd-restaurant-profile data-pmd-device-settings-v2="kds-create">
+    @include('admin::pmddevices._v2_header',['pmdSuiteTitle'=>'Create KDS station','pmdSuiteBackUrl'=>admin_url('kds_stations'),'pmdSuiteSave'=>true])
+    {!! form_open(['id'=>'pmd-restaurant-profile-form','role'=>'form','method'=>'POST']) !!}
+    @php $pmdSections = [
+      ['Basic information','Name this kitchen display.','', ['name']],
+      ['Routing','Choose which menu categories reach this KDS.','pmd-profile-section--violet',['category_ids']],
+    ]; @endphp
+    @foreach($pmdSections as $pmdSection)<section class="pmd-profile-section {{ $pmdSection[2] }}"><div class="pmd-profile-card"><div class="pmd-profile-card__header"><div class="pmd-profile-section-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg></div><div><h2>{{ $pmdSection[0] }}</h2><p>{{ $pmdSection[1] }}</p></div></div><div class="pmd-profile-card__body"><div class="pmd-profile-grid pmd-profile-grid--2 pmd-device-native-form">@foreach($pmdSection[3] as $pmdName) @include('admin::pmddevices._v2_field',['pmdFormWidget'=>$pmdFormWidget,'pmdFieldName'=>$pmdName]) @endforeach</div></div></div></section>@endforeach
+    <div class="pmd-profile-bottom-save"><button type="button" class="pmd-profile-bottom-save__button" data-request="onSave" data-request-form="#pmd-restaurant-profile-form" data-request-flash><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg><span>Save KDS station</span></button></div>
+    {!! form_close() !!}
 </div>
-

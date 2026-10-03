@@ -1,0 +1,16 @@
+timestamp_utc=20260922T075127Z
+root=/var/www/paymydine
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=cf403fc03f446af63db79abaa7ae7b30799bc022
+base=9da6418d2c2532a3b1d828ebfe9ecec69fb6981f
+target=baa42298c5d3f8e1ed4b0b0fadc71d9b9cbe8b6d
+apk_release=PayMyDine-POS-Tablet-Preview-0.3.3.apk
+apk_public=PayMyDine-Android-0.3.3.apk
+apk_sha256=77c36e65c458a8b26c53f7802cf1c94e3eb08bc19ab088c3e542f993d80fb83a
+
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/Http/Controllers/PmdMobilePosSessionController.php
+?? app/Http/Controllers/PmdMobileWorkspaceAuthController.php
+?? app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+?? app/Services/PmdMobileSync/PmdMobileDeviceAuthService.php
+?? routes/pmd-mobile-sync-v1.php

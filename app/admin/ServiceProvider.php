@@ -50,27 +50,106 @@ class ServiceProvider extends AppServiceProvider
     {
         parent::register('admin');
 
+        /*
+         * PMD_PERF_R6_1_MYSQL_SCHEMA_CACHE
+         *
+         * Laravel 8's Schema facade bypasses an IoC "db.schema" binding and
+         * directly calls DB::connection()->getSchemaBuilder(). Register a
+         * MySQL connection resolver instead, so the tenant connection rebuilt
+         * by TenantDatabaseMiddleware returns one cached schema builder for
+         * the whole request. This catches both Schema::... calls and direct
+         * $connection->getSchemaBuilder() calls.
+         *
+         * The resolver is registered only for Admin requests. The actual tenant
+         * connection is purged/reconnected later by TenantDatabaseMiddleware,
+         * so each request/tenant receives a fresh isolated cache.
+         */
+        if ($this->app->runningInAdmin()) {
+            \Illuminate\Database\Connection::resolverFor(
+                'mysql',
+                static function ($connection, $database, $prefix, $config) {
+                    return new \App\Database\PmdCachedMySqlConnection(
+                        $connection,
+                        $database,
+                        $prefix,
+                        $config
+                    );
+                }
+            );
+        }
+
+        /*
+         * PMD_PERF_R4_REQUEST_SINGLETONS
+         *
+         * These services are resolved repeatedly by the Admin security and
+         * workspace middleware during one HTTP request. R3 added request-local
+         * schema/ready caches inside several of them, but transient container
+         * resolution created a fresh object and discarded those caches.
+         *
+         * PHP-FPM rebuilds the application container for each request, so these
+         * singletons share only within the current request and never leak tenant
+         * state between requests.
+         */
+        foreach ([
+            \App\Services\PmdSiteAccessService::class,
+            \App\Services\PmdTrustedLoginDeviceService::class,
+            \App\Services\PmdSiteAccessWorkspaceGateService::class,
+            \App\Services\PmdSiteAccessSessionBindingService::class,
+            \App\Services\PmdOwnerTotpService::class,
+            \App\Services\PmdWorkSessionPolicyService::class,
+            \Admin\Services\PmdDefaultStaffRoleService::class,
+            // PMD_PERF_R5_WORKSPACE_SINGLETONS
+            // Shared workspace services carry request-local caches and are
+            // resolved repeatedly by Owner/Manager/Cashier/Shifts surfaces.
+            \Admin\Services\PmdSharedFloorRegistryV1::class,
+            \App\Services\PmdKitchenOperationsSchemaService::class,
+            \App\Services\PmdKitchenWorkforceService::class,
+            \App\Services\PmdOperationalRosterReconciler::class,
+        ] as $pmdRequestSingleton) {
+            $this->app->singleton($pmdRequestSingleton);
+        }
+
         $this->registerAssets();
         $this->registerActivityTypes();
         $this->registerMailTemplates();
         $this->registerSchedule();
-        Route::middleware('web')
-        ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class])
-        ->group(function () {
-            Route::get('/superadmin/new', [SuperAdminController::class, 'showNewPage'])->name('superadmin.new');
-            Route::post('/superadmin/sign', [SuperAdminController::class, 'sign']);
-            Route::get('/superadmin/signout', [SuperAdminController::class, 'signOut']);
-            Route::get('/superadmin/settings', [SuperAdminController::class, 'settings'])->name('superadmin.settings');
-            Route::get('/superadmin/index', [SuperAdminController::class, 'showIndex'])->name('superadmin.index');
-            Route::get('/superadmin/location-requests', [SuperAdminController::class, 'locationRequests'])->name('superadmin.location-requests');
 
-            // PMD Super Admin tenant create route: keep in same working web route layer as Super Admin pages.
-            Route::post('/superadmin/new/store', [SuperAdminController::class, 'store'])->name('superadmin.store.scoped');
-            Route::get('/superadmin/new/store', function () {
-                return redirect('/superadmin/new');
-            });
+        // PMD_ADMIN_SESSION_ISOLATION_GLOBAL_KERNEL_V3
+        // The Flame HTTP kernel is the real HTTP authority. Install this as
+        // GLOBAL middleware so it executes before route middleware, including
+        // StartSession. The middleware itself is path-gated to admin surfaces.
+        $this->app[Kernel::class]->prependMiddleware(
+            \App\Http\Middleware\PmdAdminSessionIsolation::class
+        );
 
-        });
+        // PMD_ADMIN_TENANT_AUTH_CONTEXT_REAL_KERNEL_V4
+        // Execute before route middleware so /admin/login and every AdminAuth
+        // check use the restaurant database selected from the central registry.
+        $this->app[Kernel::class]->prependMiddleware(
+            \App\Http\Middleware\PmdAdminTenantAuthContext::class
+        );
+
+        // PMD_ADMIN_PAGE_RETIREMENT_R77
+        //
+        // One global URL-surface authority for retired Admin pages.
+        // H pages: document navigation only, preserving backend/AJAX.
+        // X pages: every GET/HEAD is retired.
+        $this->app[Kernel::class]->prependMiddleware(
+            \App\Http\Middleware\PmdAdminRetiredPagesR77::class
+        );
+        // PMD_SUPERADMIN_RECOVERY_R1_START
+        // RETIRED_BY_PMD_SUPERADMIN_R2
+        //
+        // R1 previously registered legacy SuperAdminController routes here.
+        // That block was registered after app/admin/routes.php and therefore
+        // shadowed the new Super Admin R2 routes, including keeping the old
+        // 423 tenant-creation lock alive.
+        //
+        // R2 is now the single Super Admin URI authority and is loaded from:
+        // routes/pmd-superadmin-r2.php
+        //
+        // PMD_SUPERADMIN_RECOVERY_R1_END
+
         if ($this->app->runningInAdmin()) {
             $this->registerSystemSettings();
             $this->registerFiskalySettingsBridge();
@@ -289,7 +368,13 @@ class ServiceProvider extends AppServiceProvider
                 'settings' => [
                     'type' => 'partial',
                     'path' => 'top_settings_menu',
-                    'badgeCount' => ['System\Models\Settings_model', 'updatesCount'],
+                    // PMD_PERF_R15_RETIRED_UPDATE_BADGE_OFF_CRITICAL_PATH
+                    //
+                    // /admin/updates is a retired document surface in the
+                    // current PayMyDine admin. Keep update checks in the
+                    // system scheduler / update backend, not in every page
+                    // render.
+                    'badgeCount' => 0,
                     'options' => ['System\Models\Settings_model', 'listMenuSettingItems'],
                     'permission' => 'Site.Settings',
                 ],
@@ -382,7 +467,7 @@ class ServiceProvider extends AppServiceProvider
                         'orders' => [
                             'priority' => 10,
                             'class' => 'orders',
-                            'href' => admin_url('orders'),
+                            'href' => admin_url('pos'),
                             'title' => lang('admin::lang.side_menu.order'),
                             'permission' => 'Admin.Orders',
                         ],
@@ -425,8 +510,8 @@ class ServiceProvider extends AppServiceProvider
                         'coupons' => [
                             'priority' => 10,
                             'class' => 'coupons',
-                            'href' => admin_url('coupons'),
-                            'title' => 'Coupons & Gift Cards',
+                            'href' => '/admin/discounts',
+                            'title' => 'Discount',
                             'permission' => 'Admin',
                         ],
                     ],

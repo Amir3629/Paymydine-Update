@@ -5,6 +5,18 @@ export type CouponLike = {
   type?: string | null
   discount?: number
   discount_value?: number
+  value?: number
+  amount?: number
+  discount_amount?: number
+  discountAmount?: number
+  coupon_discount?: number
+  percent?: number
+  percentage?: number
+  discount_percent?: number
+  discountPercentage?: number
+  min_total?: number
+  minimum_total?: number
+  minimumOrderTotal?: number
 }
 
 export type PaymentSummary = {
@@ -36,10 +48,72 @@ export function calculateTipAmount(baseAmount: number, tipPercentage: number, cu
 
 export function calculateCouponDiscount(appliedCoupon: CouponLike | null | undefined, couponBaseAmount: number): number {
   if (!appliedCoupon) return 0
-  if (appliedCoupon.type === "F") {
-    return Math.min(Number(appliedCoupon.discount || 0), couponBaseAmount)
+
+  const base = Math.max(0, Number(couponBaseAmount || 0))
+  if (base <= 0) return 0
+
+  const minTotal = Number(
+    appliedCoupon.min_total ??
+    appliedCoupon.minimum_total ??
+    appliedCoupon.minimumOrderTotal ??
+    0
+  )
+
+  if (Number.isFinite(minTotal) && minTotal > 0 && base < minTotal) return 0
+
+  const normalizeNumber = (...values: any[]) => {
+    for (const value of values) {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed) && parsed > 0) return parsed
+    }
+    return 0
   }
-  return couponBaseAmount * (Number(appliedCoupon.discount_value || 0) / 100)
+
+  const rawType = String(appliedCoupon.type || "").trim().toLowerCase()
+  const backendAmount = normalizeNumber(
+    appliedCoupon.discountAmount,
+    appliedCoupon.discount_amount,
+    appliedCoupon.coupon_discount
+  )
+
+  if (backendAmount > 0) return Math.min(backendAmount, base)
+
+  const fixedValue = normalizeNumber(
+    appliedCoupon.amount,
+    rawType === "f" || rawType.includes("fixed") || rawType.includes("amount") || rawType.includes("flat")
+      ? appliedCoupon.discount
+      : null,
+    rawType === "f" || rawType.includes("fixed") || rawType.includes("amount") || rawType.includes("flat")
+      ? appliedCoupon.value
+      : null
+  )
+
+  if (fixedValue > 0) return Math.min(fixedValue, base)
+
+  const percentValue = normalizeNumber(
+    appliedCoupon.discount_value,
+    appliedCoupon.percent,
+    appliedCoupon.percentage,
+    appliedCoupon.discount_percent,
+    appliedCoupon.discountPercentage,
+    rawType === "p" || rawType.includes("percent")
+      ? appliedCoupon.discount
+      : null,
+    rawType === "p" || rawType.includes("percent")
+      ? appliedCoupon.value
+      : null
+  )
+
+  if (percentValue > 0) {
+    return Math.min(base, base * (percentValue / 100))
+  }
+
+  const fallbackValue = normalizeNumber(appliedCoupon.discount, appliedCoupon.value)
+  if (!fallbackValue) return 0
+
+  return fallbackValue <= 100
+    ? Math.min(base, base * (fallbackValue / 100))
+    : Math.min(fallbackValue, base)
 }
 
 export function calculateFinalTotal(subtotal: number, taxAmount: number, tipAmount: number, couponDiscount: number): number {

@@ -9,6 +9,16 @@ class PmdOwnerDashboardCleanV1 extends \Admin\Classes\AdminController
 {
     protected $requiredPermissions = 'Admin.Dashboard';
 
+    /**
+     * PMD_PERF_R4_OWNER_SCHEMA_CACHE
+     *
+     * The owner dashboard asks the same table/column questions from many
+     * metric builders. Keep one request-local SHOW TABLES result and one column
+     * listing per physical table instead of repeating metadata round-trips.
+     */
+    protected ?array $pmdTableListCache = null;
+    protected array $pmdColumnListCache = [];
+
     public function index()
     {
 try {
@@ -20,6 +30,72 @@ try {
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
+            ], 500);
+        }
+    }
+
+
+    public function floorDatabaseContext()
+    {
+        try {
+            $connection = DB::connection();
+
+            $databaseName = $connection->getDatabaseName();
+            $connectionName = $connection->getName();
+
+            $columns = \Illuminate\Support\Facades\Schema::hasTable('tables')
+                ? \Illuminate\Support\Facades\Schema::getColumnListing('tables')
+                : [];
+
+            $primaryKey = in_array('table_id', $columns, true)
+                ? 'table_id'
+                : (
+                    in_array('id', $columns, true)
+                        ? 'id'
+                        : null
+                );
+
+            $rows = [];
+
+            if ($primaryKey) {
+                $select = array_values(array_intersect([
+                    $primaryKey,
+                    'table_no',
+                    'table_number',
+                    'name',
+                    'table_name',
+                    'location_id',
+                    'floor_x',
+                    'floor_y',
+                ], $columns));
+
+                $rows = DB::table('tables')
+                    ->select($select)
+                    ->orderBy($primaryKey)
+                    ->limit(100)
+                    ->get();
+            }
+
+            return Response::json([
+                'ok' => true,
+                'connection_name' => $connectionName,
+                'database_name' => $databaseName,
+                'default_connection' => config('database.default'),
+                'tables_exists' => \Illuminate\Support\Facades\Schema::hasTable('tables'),
+                'primary_key' => $primaryKey,
+                'columns' => $columns,
+                'rows' => $rows,
+                'session' => [
+                    'location_id' => session('location_id'),
+                    'restaurant_id' => session('restaurant_id'),
+                    'site_id' => session('site_id'),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return Response::json([
+                'ok' => false,
+                'message' => $e->getMessage(),
+                'type' => get_class($e),
             ], 500);
         }
     }
@@ -43,48 +119,491 @@ try {
     public function saveFloorLayout()
     {
         try {
-            if (!\Illuminate\Support\Facades\Schema::hasTable('tables')) {
-                return Response::json(['ok' => false, 'message' => 'tables table not found'], 500);
+            /*
+             * Floor data is read from the tenant database selected from
+             * the current hostname, for example:
+             *
+             * mimoza.paymydine.com => mimoza.ti_tables
+             *
+             * Save must use the same tenant database and physical table.
+             */
+            /* PMD_FLOOR_TENANT_SAVE_RESOLVER_V4B
+             *
+             * Floor reads are tenant-aware, but this legacy writer can be
+             * reached from admin routes where the default DB is still the
+             * central paymydine database. Resolve the restaurant from the
+             * canonical central tenants registry, then use the same dedicated
+             * tenant connection contract as TenantDatabaseMiddleware.
+             *
+             * If registry resolution is unavailable, keep the existing
+             * connection/candidate fallback below rather than guessing.
+             */
+            $db = DB::connection();
+            $pmdRegistryTenantDatabase = null;
+            $pmdRegistryTenantDomain = null;
+
+            try {
+                $pmdHost = strtolower(trim((string)request()->getHost()));
+                $pmdSubdomain = strtolower(
+                    trim(explode('.', $pmdHost)[0] ?? '')
+                );
+
+                $pmdCentral = DB::connection('mysql');
+                $pmdTenantQuery = $pmdCentral
+                    ->table('tenants')
+                    ->where(function ($query) use (
+                        $pmdHost,
+                        $pmdSubdomain
+                    ) {
+                        $query->where('domain', $pmdHost);
+
+                        if ($pmdSubdomain !== '') {
+                            $query
+                                ->orWhere('domain', $pmdSubdomain)
+                                ->orWhere(
+                                    'domain',
+                                    'like',
+                                    $pmdSubdomain.'.%'
+                                );
+                        }
+                    });
+
+                $pmdTenant = $pmdTenantQuery->first();
+
+                if (
+                    $pmdTenant
+                    && !empty($pmdTenant->database)
+                ) {
+                    $pmdTenantStatus = strtolower(
+                        trim((string)($pmdTenant->status ?? 'active'))
+                    );
+
+                    if (
+                        $pmdTenantStatus !== ''
+                        && $pmdTenantStatus !== 'active'
+                    ) {
+                        throw new \RuntimeException(
+                            'Tenant is not active for Floor layout save.'
+                        );
+                    }
+
+                    $pmdRegistryTenantDatabase =
+                        (string)$pmdTenant->database;
+                    $pmdRegistryTenantDomain =
+                        (string)($pmdTenant->domain ?? $pmdHost);
+
+                    \Illuminate\Support\Facades\Config::set(
+                        'database.connections.tenant.database',
+                        $pmdRegistryTenantDatabase
+                    );
+
+                    foreach (
+                        [
+                            'host' => 'db_host',
+                            'port' => 'db_port',
+                            'username' => 'db_user',
+                            'password' => 'db_pass',
+                        ]
+                        as $configKey => $tenantKey
+                    ) {
+                        $value = $pmdTenant->{$tenantKey} ?? null;
+
+                        if ($value !== null && $value !== '') {
+                            \Illuminate\Support\Facades\Config::set(
+                                'database.connections.tenant.'.$configKey,
+                                $value
+                            );
+                        }
+                    }
+
+                    DB::purge('tenant');
+                    DB::reconnect('tenant');
+                    $db = DB::connection('tenant');
+
+                    logger()->info(
+                        'PMD Floor layout save resolved tenant DB',
+                        [
+                            'host' => $pmdHost,
+                            'tenant_domain' => $pmdRegistryTenantDomain,
+                            'tenant_database' =>
+                                $pmdRegistryTenantDatabase,
+                            'connection' => $db->getName(),
+                        ]
+                    );
+                }
+            } catch (\Throwable $pmdTenantError) {
+                logger()->warning(
+                    'PMD Floor tenant registry resolution unavailable; using existing fallback',
+                    [
+                        'host' => request()->getHost(),
+                        'message' => $pmdTenantError->getMessage(),
+                    ]
+                );
             }
-            $colsList = \Illuminate\Support\Facades\Schema::getColumnListing('tables');
-            $cols = array_flip($colsList);
-            $pk = isset($cols['table_id']) ? 'table_id' : (isset($cols['id']) ? 'id' : null);
-            if (!$pk || !isset($cols['floor_x']) || !isset($cols['floor_y'])) {
-                return Response::json(['ok' => false, 'message' => 'Missing table primary key or floor_x/floor_y columns', 'columns' => $colsList], 422);
+
+            $quoteIdentifier = function ($value) {
+                return '`'.str_replace('`', '``', (string)$value).'`';
+            };
+
+            $tableExists = function ($database, $table) use ($db) {
+                $row = $db->selectOne(
+                    'SELECT COUNT(*) AS aggregate
+                     FROM information_schema.TABLES
+                     WHERE TABLE_SCHEMA = ?
+                       AND TABLE_NAME = ?',
+                    [$database, $table]
+                );
+
+                return $row
+                    && (int)($row->aggregate ?? 0) > 0;
+            };
+
+            $getColumns = function ($database, $table) use ($db) {
+                $rows = $db->select(
+                    'SELECT COLUMN_NAME
+                     FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = ?
+                       AND TABLE_NAME = ?
+                     ORDER BY ORDINAL_POSITION',
+                    [$database, $table]
+                );
+
+                return array_values(array_map(
+                    function ($row) {
+                        return (string)$row->COLUMN_NAME;
+                    },
+                    $rows
+                ));
+            };
+
+            $host = request()->getHost();
+            $subdomain = strtolower(
+                trim(explode('.', $host)[0] ?? '')
+            );
+
+            $currentDatabase = $db->getDatabaseName();
+            $environmentTenant = getenv('PMD_TENANT_DB') ?: null;
+
+            $databaseCandidates = [];
+
+            if ($pmdRegistryTenantDatabase) {
+                $databaseCandidates[] = $pmdRegistryTenantDatabase;
             }
-            $payload = json_decode((string)request()->getContent(), true);
-            if (!is_array($payload)) $payload = request()->all();
+
+            if ($environmentTenant) {
+                $databaseCandidates[] = $environmentTenant;
+            }
+
+            if (
+                $subdomain !== ''
+                && !in_array(
+                    $subdomain,
+                    ['www', 'admin', 'app', 'paymydine'],
+                    true
+                )
+            ) {
+                $databaseCandidates[] = $subdomain;
+            }
+
+            if (stripos($host, 'mimoza') !== false) {
+                $databaseCandidates[] = 'mimoza';
+            }
+
+            if ($currentDatabase) {
+                $databaseCandidates[] = $currentDatabase;
+            }
+
+            $databaseCandidates = array_values(
+                array_unique(
+                    array_filter($databaseCandidates)
+                )
+            );
+
+            $tenantDatabase = null;
+            $tablesTable = null;
+
+            foreach ($databaseCandidates as $candidateDatabase) {
+                foreach (['ti_tables', 'tables'] as $candidateTable) {
+                    if ($tableExists($candidateDatabase, $candidateTable)) {
+                        $tenantDatabase = $candidateDatabase;
+                        $tablesTable = $candidateTable;
+                        break 2;
+                    }
+                }
+            }
+
+            if (!$tenantDatabase || !$tablesTable) {
+                return Response::json([
+                    'ok' => false,
+                    'message' => 'Could not resolve tenant tables database',
+                    'host' => $host,
+                    'database_candidates' => $databaseCandidates,
+                    'current_database' => $currentDatabase,
+                ], 500);
+            }
+
+            $columnsList = $getColumns(
+                $tenantDatabase,
+                $tablesTable
+            );
+
+            $columns = array_flip($columnsList);
+
+            $primaryKey = isset($columns['table_id'])
+                ? 'table_id'
+                : (
+                    isset($columns['id'])
+                        ? 'id'
+                        : null
+                );
+
+            if (
+                !$primaryKey
+                || !isset($columns['floor_x'])
+                || !isset($columns['floor_y'])
+            ) {
+                return Response::json([
+                    'ok' => false,
+                    'message' =>
+                        'Tenant table is missing primary key or floor coordinates',
+                    'tenant_database' => $tenantDatabase,
+                    'tables_table' => $tablesTable,
+                    'columns' => $columnsList,
+                ], 422);
+            }
+
+            $payload = json_decode(
+                (string)request()->getContent(),
+                true
+            );
+
+            if (!is_array($payload)) {
+                $payload = request()->all();
+            }
+
             $items = $payload['tables'] ?? [];
-            if (!is_array($items) || !count($items)) {
-                return Response::json(['ok' => false, 'message' => 'No table layout items received'], 422);
+
+            if (!is_array($items) || count($items) < 1) {
+                return Response::json([
+                    'ok' => false,
+                    'message' => 'No table layout items received',
+                ], 422);
             }
+
+            $submittedIds = array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            function ($item) {
+                                if (!is_array($item)) {
+                                    return 0;
+                                }
+
+                                return (int)(
+                                    $item['table_id']
+                                    ?? $item['id']
+                                    ?? 0
+                                );
+                            },
+                            $items
+                        )
+                    )
+                )
+            );
+
+            $qualifiedTable =
+                $quoteIdentifier($tenantDatabase)
+                .'.'
+                .$quoteIdentifier($tablesTable);
+
+            $quotedPrimaryKey =
+                $quoteIdentifier($primaryKey);
+
+            $placeholders = implode(
+                ',',
+                array_fill(0, count($submittedIds), '?')
+            );
+
             $validIds = [];
-            foreach (DB::table('tables')->whereIn($pk, array_map(function($i){ return (int)($i['id'] ?? 0); }, array_filter($items, 'is_array')))->pluck($pk) as $id) {
-                $validIds[(int)$id] = true;
+
+            if (count($submittedIds)) {
+                $rows = $db->select(
+                    "SELECT {$quotedPrimaryKey} AS resolved_id
+                     FROM {$qualifiedTable}
+                     WHERE {$quotedPrimaryKey} IN ({$placeholders})",
+                    $submittedIds
+                );
+
+                foreach ($rows as $row) {
+                    $validIds[
+                        (int)$row->resolved_id
+                    ] = true;
+                }
             }
-            $updated = 0; $skipped = [];
-            DB::beginTransaction();
+
+            if (!count($validIds)) {
+                return Response::json([
+                    'ok' => false,
+                    'message' =>
+                        'No submitted table IDs matched tenant table',
+                    'submitted_ids' => $submittedIds,
+                    'tenant_database' => $tenantDatabase,
+                    'tables_table' => $tablesTable,
+                    'primary_key' => $primaryKey,
+                    'current_database' => $currentDatabase,
+                ], 422);
+            }
+
+            $updated = 0;
+            $matched = 0;
+            $skipped = [];
+
+            $db->beginTransaction();
+
             foreach ($items as $item) {
-                if (!is_array($item)) { $skipped[] = ['reason' => 'invalid item']; continue; }
-                $id = (int)($item['id'] ?? 0);
-                if ($id <= 0 || !isset($validIds[$id])) { $skipped[] = ['id' => $id, 'reason' => 'invalid id']; continue; }
-                $w = isset($item['floor_width']) && is_numeric($item['floor_width']) ? max(72, min(260, (float)$item['floor_width'])) : 150;
-                $h = isset($item['floor_height']) && is_numeric($item['floor_height']) ? max(58, min(180, (float)$item['floor_height'])) : 78;
-                $x = isset($item['floor_x']) && is_numeric($item['floor_x']) ? (float)$item['floor_x'] : 0;
-                $y = isset($item['floor_y']) && is_numeric($item['floor_y']) ? (float)$item['floor_y'] : 0;
-                $update = [];
-                if (isset($cols['floor_width'])) $update['floor_width'] = $w;
-                if (isset($cols['floor_height'])) $update['floor_height'] = $h;
-                $update['floor_x'] = max(0, min(1000 - $w, $x));
-                $update['floor_y'] = max(0, min(560 - $h, $y));
-                if (isset($cols['visible_on_floor_plan'])) $update['visible_on_floor_plan'] = 1;
-                $updated += DB::table('tables')->where($pk, $id)->update($update) >= 0 ? 1 : 0;
+                if (!is_array($item)) {
+                    $skipped[] = [
+                        'reason' => 'invalid item',
+                    ];
+                    continue;
+                }
+
+                $id = (int)(
+                    $item['table_id']
+                    ?? $item['id']
+                    ?? 0
+                );
+
+                if (
+                    $id <= 0
+                    || !isset($validIds[$id])
+                ) {
+                    $skipped[] = [
+                        'id' => $id,
+                        'reason' => 'invalid tenant table id',
+                    ];
+                    continue;
+                }
+
+                $matched++;
+
+                $width =
+                    isset($item['floor_width'])
+                    && is_numeric($item['floor_width'])
+                        ? max(
+                            72,
+                            min(
+                                260,
+                                (float)$item['floor_width']
+                            )
+                        )
+                        : 150;
+
+                $height =
+                    isset($item['floor_height'])
+                    && is_numeric($item['floor_height'])
+                        ? max(
+                            58,
+                            min(
+                                180,
+                                (float)$item['floor_height']
+                            )
+                        )
+                        : 78;
+
+                $x =
+                    isset($item['floor_x'])
+                    && is_numeric($item['floor_x'])
+                        ? (float)$item['floor_x']
+                        : 0;
+
+                $y =
+                    isset($item['floor_y'])
+                    && is_numeric($item['floor_y'])
+                        ? (float)$item['floor_y']
+                        : 0;
+
+                /* PMD_FLOOR_LAYOUT_EXTENDED_COORDINATE_SAVE_V1_4_7
+                 * floor_x/floor_y are canonical TABLE-CENTRE coordinates.
+                 * The old 1000x560 clamp contradicted the zoom-aware dynamic
+                 * Floor canvas: the browser could drag farther, but POST would
+                 * silently truncate those coordinates before writing the DB.
+                 * Keep only a generous corruption-safety ceiling; actual
+                 * visual legality remains owned by the Floor engine's gap and
+                 * edge checks before this request is sent.
+                 */
+                $maxFloorCoordinate = 10000.0;
+                $updates = [
+                    'floor_x' =>
+                        max(0, min($maxFloorCoordinate, $x)),
+                    'floor_y' =>
+                        max(0, min($maxFloorCoordinate, $y)),
+                ];
+
+                if (isset($columns['floor_width'])) {
+                    $updates['floor_width'] = $width;
+                }
+
+                if (isset($columns['floor_height'])) {
+                    $updates['floor_height'] = $height;
+                }
+
+                if (isset($columns['visible_on_floor_plan'])) {
+                    $updates['visible_on_floor_plan'] = 1;
+                }
+
+                $setClauses = [];
+                $bindings = [];
+
+                foreach ($updates as $column => $value) {
+                    $setClauses[] =
+                        $quoteIdentifier($column).' = ?';
+
+                    $bindings[] = $value;
+                }
+
+                $bindings[] = $id;
+
+                $affected = $db->update(
+                    "UPDATE {$qualifiedTable}
+                     SET ".implode(', ', $setClauses)."
+                     WHERE {$quotedPrimaryKey} = ?",
+                    $bindings
+                );
+
+                $updated += (int)$affected;
             }
-            DB::commit();
-            return Response::json(['ok' => true, 'updated' => $updated, 'received' => count($items), 'skipped' => $skipped]);
+
+            /*
+             * A matched request can legitimately affect zero rows when
+             * coordinates are saved without any numerical change.
+             */
+            $db->commit();
+
+            return Response::json([
+                'ok' => true,
+                'message' => $updated > 0
+                    ? 'Floor layout saved'
+                    : 'Floor layout already up to date',
+                'updated' => $updated,
+                'matched' => $matched,
+                'received' => count($items),
+                'skipped' => $skipped,
+                'tenant_database' => $tenantDatabase,
+                'tables_table' => $tablesTable,
+                'primary_key' => $primaryKey,
+            ]);
         } catch (\Throwable $e) {
-            try { DB::rollBack(); } catch (\Throwable $ignore) {}
-            return Response::json(['ok' => false, 'message' => $e->getMessage(), 'type' => get_class($e)], 500);
+            try {
+                DB::connection()->rollBack();
+            } catch (\Throwable $ignore) {
+            }
+
+            return Response::json([
+                'ok' => false,
+                'message' => $e->getMessage(),
+                'type' => get_class($e),
+            ], 500);
         }
     }
 
@@ -1084,35 +1603,132 @@ try {
     protected function floorDueMap($orders, $payments)
     {
         if (!$orders) return [];
-        $tables = $this->find($this->tables(), ['tables', 'restaurant_tables', 'location_tables']);
+
+        $tables = $this->find(
+            $this->tables(),
+            ['tables', 'restaurant_tables', 'location_tables']
+        );
+
         if (!$tables) return [];
+
         $cols = $this->cols($orders);
         $table = $this->pick($cols, ['order_type']);
         $id = $this->pick($cols, ['order_id', 'id']);
-        $total = $this->pick($cols, ['order_total', 'total', 'total_amount', 'grand_total', 'payment_total']);
-        $status = $this->pick($cols, ['status_id', 'order_status_id', 'status', 'status_name', 'order_status', 'state']);
+        $total = $this->pick(
+            $cols,
+            ['order_total', 'total', 'total_amount', 'grand_total', 'payment_total']
+        );
+        $status = $this->pick(
+            $cols,
+            ['status_id', 'order_status_id', 'status', 'status_name', 'order_status', 'state']
+        );
+
         if (!$table) return [];
+
         $tc = $this->cols($tables);
         $tableId = $this->pick($tc, ['table_id', 'id']);
+
         if (!$tableId) return [];
-        $orderTotals = $this->find($this->tables(), ['order_totals']);
-        $normalizedExpr = $this->normalizedOrderTotalExpr('o', $orders, $orderTotals, $id, $total);
-        $open = $status ? $this->currentOpenOrderCondition('o', $status, $cols) : '1=1';
-        $whereCurrent = $this->currentTableWhere('t', $tc, true);
-        $rows = $this->rows(
-            'SELECT CAST(t.'.$this->q($tableId).' AS CHAR) table_ref, COUNT(*) count, COALESCE(SUM('.$normalizedExpr.'),0) amount '.
-            'FROM '.$this->q($tables).' t INNER JOIN '.$this->q($orders).' o '.
-            'ON TRIM(CAST(o.'.$this->q($table).' AS CHAR)) = TRIM(CAST(t.'.$this->q($tableId).' AS CHAR)) '.
-            'WHERE '.$open.' AND '.$whereCurrent.' GROUP BY CAST(t.'.$this->q($tableId).' AS CHAR)'
+
+        /*
+         * PMD_PERF_R16_FLOOR_DUE_AGGREGATE_JOIN
+         *
+         * The previous normalizedOrderTotalExpr() embedded the same correlated
+         * order_totals SUM subquery twice per order row (CASE test + value).
+         * On the hot Floor query that forced MySQL to repeatedly re-scan
+         * order_totals while grouping by table. Pre-aggregate order totals once
+         * and join by order_id instead. Fallback to orders.order_total is
+         * preserved byte-for-byte in meaning.
+         */
+        $orderTotals = $this->find(
+            $this->tables(),
+            ['order_totals']
         );
+
+        $fallbackTotal = $total
+            ? 'CAST(o.'.$this->q($total).' AS DECIMAL(15,2))'
+            : '0';
+
+        $orderTotalJoin = '';
+        $normalizedExpr = $fallbackTotal;
+
+        if ($orderTotals && $id) {
+            $otCols = $this->cols($orderTotals);
+            $otOrder = $this->pick($otCols, ['order_id']);
+            $otValue = $this->pick($otCols, ['value', 'amount', 'total']);
+            $otCode = $this->pick($otCols, ['code']);
+            $otTitle = $this->pick($otCols, ['title', 'name']);
+
+            if ($otOrder && $otValue) {
+                $filter = '';
+
+                if ($otCode) {
+                    $filter =
+                        ' WHERE LOWER(COALESCE('
+                        .$this->q($otCode)
+                        .',"")) IN ("total","order_total","grand_total")';
+                } elseif ($otTitle) {
+                    $filter =
+                        ' WHERE LOWER(COALESCE('
+                        .$this->q($otTitle)
+                        .',"")) LIKE "%total%"';
+                }
+
+                $orderTotalJoin =
+                    ' LEFT JOIN ('
+                    .'SELECT '
+                    .$this->q($otOrder)
+                    .' pmd_order_id, '
+                    .'COALESCE(SUM(CAST('
+                    .$this->q($otValue)
+                    .' AS DECIMAL(15,2))),0) pmd_total '
+                    .'FROM '
+                    .$this->q($orderTotals)
+                    .$filter
+                    .' GROUP BY '
+                    .$this->q($otOrder)
+                    .') pmd_ot ON pmd_ot.pmd_order_id = o.'
+                    .$this->q($id)
+                    .' ';
+
+                $normalizedExpr =
+                    '(CASE WHEN COALESCE(pmd_ot.pmd_total,0) > 0 '
+                    .'THEN pmd_ot.pmd_total ELSE '
+                    .$fallbackTotal
+                    .' END)';
+            }
+        }
+
+        $open = $status
+            ? $this->currentOpenOrderCondition('o', $status, $cols)
+            : '1=1';
+
+        $whereCurrent = $this->currentTableWhere('t', $tc, true);
+
+        $rows = $this->rows(
+            'SELECT CAST(t.'.$this->q($tableId).' AS CHAR) table_ref, '
+            .'COUNT(*) count, COALESCE(SUM('.$normalizedExpr.'),0) amount '
+            .'FROM '.$this->q($tables).' t '
+            .'INNER JOIN '.$this->q($orders).' o '
+            .'ON TRIM(CAST(o.'.$this->q($table).' AS CHAR)) '
+            .'= TRIM(CAST(t.'.$this->q($tableId).' AS CHAR)) '
+            .$orderTotalJoin
+            .'WHERE '.$open.' AND '.$whereCurrent.' '
+            .'GROUP BY CAST(t.'.$this->q($tableId).' AS CHAR)'
+        );
+
         $out = [];
+
         foreach ($rows as $r) {
             $key = strtolower(trim((string)($r['table_ref'] ?? '')));
-            if ($key !== '') $out[$key] = $r;
+
+            if ($key !== '') {
+                $out[$key] = $r;
+            }
         }
+
         return $out;
     }
-
 
     protected function firstMapHit($map, $keys, $default)
     {
@@ -1467,18 +2083,70 @@ try {
 
     protected function connectionMap($map)
     {
+        /*
+         * PMD_PERF_R4_OWNER_CONNECTION_COUNTS
+         *
+         * The developer data-proof panel previously issued one COUNT(*) query
+         * per connected source. Preserve exact counts, but obtain them in one
+         * database round-trip using UNION ALL.
+         */
+        $counts = [];
+        $uniqueTables = [];
+
+        foreach ($map as $table) {
+            $table = trim((string)$table);
+            if ($table !== '') {
+                $uniqueTables[$table] = true;
+            }
+        }
+
+        if ($uniqueTables) {
+            $parts = [];
+            foreach (array_keys($uniqueTables) as $table) {
+                $parts[] =
+                    'SELECT '
+                    .$this->quote($table)
+                    .' pmd_table, COUNT(*) pmd_count FROM '
+                    .$this->q($table);
+            }
+
+            $countRows = $this->rows(implode(' UNION ALL ', $parts));
+
+            foreach ($countRows as $row) {
+                $table = (string)($row['pmd_table'] ?? '');
+                if ($table !== '') {
+                    $counts[$table] = (int)($row['pmd_count'] ?? 0);
+                }
+            }
+
+            /*
+             * A disappearing table or unusual database error can invalidate the
+             * UNION as a whole. Keep the former fault-tolerant behavior as a
+             * fallback without paying this cost on healthy requests.
+             */
+            if (!$countRows) {
+                foreach (array_keys($uniqueTables) as $table) {
+                    $counts[$table] = (int)$this->scalar(
+                        'SELECT COUNT(*) v FROM '.$this->q($table)
+                    );
+                }
+            }
+        }
+
         $out = [];
         foreach ($map as $label => $table) {
-            $count = null;
-            if ($table) $count = (int)$this->scalar('SELECT COUNT(*) v FROM '.$this->q($table));
+            $table = trim((string)$table);
             $out[] = [
                 'key' => $label,
                 'label' => ucwords(str_replace('_', ' ', $label)),
-                'table' => $table ?: null,
-                'connected' => (bool)$table,
-                'count' => $count,
+                'table' => $table !== '' ? $table : null,
+                'connected' => $table !== '',
+                'count' => $table !== ''
+                    ? ($counts[$table] ?? null)
+                    : null,
             ];
         }
+
         return $out;
     }
 
@@ -1493,13 +2161,17 @@ try {
 
     protected function tables()
     {
+        if ($this->pmdTableListCache !== null) {
+            return $this->pmdTableListCache;
+        }
+
         try {
-            return array_values(array_filter(array_map(function ($row) {
+            return $this->pmdTableListCache = array_values(array_filter(array_map(function ($row) {
                 $a = (array)$row;
                 return (string)reset($a);
             }, DB::select('SHOW TABLES'))));
         } catch (\Throwable $e) {
-            return [];
+            return $this->pmdTableListCache = [];
         }
     }
 
@@ -1520,13 +2192,43 @@ try {
 
     protected function cols($table)
     {
-        if (!$table) return [];
+        $table = trim((string)$table);
+
+        if ($table === '') return [];
+
+        if (array_key_exists($table, $this->pmdColumnListCache)) {
+            return $this->pmdColumnListCache[$table];
+        }
+
+        /*
+         * PMD_PERF_R16_SHARED_SCHEMA_CATALOG_BRIDGE
+         *
+         * Reuse the request-wide PmdCachedMySqlBuilder catalogue instead of
+         * issuing another raw SHOW COLUMNS for Owner/Floor data helpers.
+         * Physical prefixed names (ti_orders) are supported by the R16 builder.
+         * Keep the old raw SHOW fallback for compatibility if a non-PMD
+         * connection is ever used.
+         */
         try {
-            return array_map(function ($row) {
-                return $row->Field;
-            }, DB::select('SHOW COLUMNS FROM '.$this->q($table)));
+            $schema = DB::connection()->getSchemaBuilder();
+            $columns = $schema->getColumnListing($table);
+
+            if (is_array($columns) && $columns) {
+                return $this->pmdColumnListCache[$table] =
+                    array_values($columns);
+            }
         } catch (\Throwable $e) {
-            return [];
+        }
+
+        try {
+            return $this->pmdColumnListCache[$table] = array_map(
+                static function ($row) {
+                    return $row->Field;
+                },
+                DB::select('SHOW COLUMNS FROM '.$this->q($table))
+            );
+        } catch (\Throwable $e) {
+            return $this->pmdColumnListCache[$table] = [];
         }
     }
 

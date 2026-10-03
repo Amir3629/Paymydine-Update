@@ -1,0 +1,99 @@
+name: R36 Task 2 validation
+
+on:
+  push:
+    branches:
+      - r36/final-bill-completion
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate-r36-task2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PHP syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            app/Http/Middleware/PmdBillingGroupSync.php
+            app/Http/Middleware/TenantDatabaseMiddleware.php
+            app/Services/Financial/BillingGroupFreeTableService.php
+            app/Services/Financial/BillingGroupInvoiceService.php
+            app/Services/Financial/BillingGroupPaymentService.php
+            app/Services/Financial/BillingGroupService.php
+            app/Services/Financial/DeterministicSplit.php
+            app/Services/Financial/ServiceChargeCalculator.php
+            app/admin/controllers/PmdWaiterPosV1.php
+            app/admin/controllers/concerns/PmdWaiterPosR36PaymentConcern.php
+            app/admin/controllers/concerns/PmdWaiterPosSaveEndpoint.php
+            app/admin/database/migrations/2026_08_21_360000_create_pmd_billing_groups.php
+            app/admin/database/migrations/2026_08_21_361000_upgrade_pmd_billing_groups_task1.php
+            app/admin/database/migrations/2026_08_21_362000_upgrade_pmd_billing_groups_task2.php
+            app/admin/traits/HasInvoice.php
+            app/main/routes/api-health-media.php
+            app/main/routes/api-v1-billing-groups-r36.php
+            routes/pmd-waiter-pos-v22.php
+            tests/Unit/FinancialIntegrityR36Test.php
+          )
+          for file in "${files[@]}"; do php -l "$file"; done
+
+      - name: R36 authority invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          FRONT=frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+          grep -q 'PMD_R36_CHILD_SETTLEMENT_GUARD' app/Http/Middleware/TenantDatabaseMiddleware.php
+          grep -q 'BillingGroupFreeTableService' routes/pmd-waiter-pos-v22.php
+          grep -q 'closeAfterFree' routes/pmd-waiter-pos-v22.php
+          grep -q 'pmdR36UsesFinalBillInvoice' app/admin/traits/HasInvoice.php
+          grep -q 'billing-group-payments/{paymentId}/cancel' app/main/routes/api-v1-billing-groups-r36.php
+          grep -q 'invoiceDownloadUrl' app/Services/Financial/BillingGroupInvoiceService.php
+          grep -q 'reserveExistingOrderGroupPayment' "$FRONT/src/lib/client-api.ts"
+          grep -q 'billingGroupPaymentId' "$FRONT/app/payment/return/PaymentReturnClient.tsx"
+          grep -q 'paymentAllocations' "$FRONT/src/runtime/components/PayPalButton.tsx"
+          grep -q 'paymentAllocations' "$FRONT/src/runtime/components/StripeInlinePayment.tsx"
+          grep -q 'r36ReservationRef.current.payment.paymentId' "$FRONT/src/runtime/components/PayPalButton.tsx"
+          grep -q 'r36ReservationRef.current.payment.paymentId' "$FRONT/src/runtime/components/StripeInlinePayment.tsx"
+          ! grep -q 'if (!isMultiOrder) return null' "$FRONT/src/runtime/components/PayPalButton.tsx"
+          ! grep -q 'if (!isMultiOrder) return null' "$FRONT/src/runtime/components/StripeInlinePayment.tsx"
+          grep -q 'FinalBillInvoiceNotice' "$FRONT/app/page.tsx"
+
+      - name: Deterministic cents smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -r "require 'app/Services/Financial/DeterministicSplit.php'; require 'app/Services/Financial/ServiceChargeCalculator.php'; use App\\Services\\Financial\\DeterministicSplit; use App\\Services\\Financial\\ServiceChargeCalculator; if (DeterministicSplit::equal(100,3)!==[34,33,33]) exit(2); if (array_sum(DeterministicSplit::weighted(101,[40,30,30]))!==101) exit(3); if (ServiceChargeCalculator::calculate(10000,'percentage','10')!==1000) exit(4); echo 'R36 cents smoke OK'.PHP_EOL;"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm ci
+
+      - name: Frontend type and source audits
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: |
+          set -euo pipefail
+          npm run typecheck:offline
+          npm run theme:audit
+          npm run source:audit
+          npm run structure:audit
+
+      - name: Frontend production build
+        working-directory: frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815
+        run: npm run build

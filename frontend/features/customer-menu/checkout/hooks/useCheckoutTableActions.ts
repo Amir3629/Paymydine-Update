@@ -187,7 +187,37 @@ export function useCheckoutTableActions({
       })
 
       setSubmittedSnapshot(submittedTableSnapshot)
-      setCheckoutStep(getCheckoutStepAfterDraftSubmit())
+
+      /*
+       * PMD_TABLE_SUBMIT_MUST_LAND_ON_SUBMITTED_20260807
+       *
+       * A successful table-draft submission creates a real order,
+       * but it MUST first show the order-confirmation/status screen.
+       *
+       * PAYMENT is a separate user action owned only by:
+       *
+       *   Pay in full
+       *
+       * Never jump automatically from:
+       *
+       *   Table order
+       *        ↓
+       *   Payment
+       *
+       * Required:
+       *
+       *   Table order
+       *        ↓
+       *   We received your order
+       *        ↓ user chooses Pay in full
+       *   Payment
+       */
+      setCheckoutStep("submitted")
+
+      console.info("PMD_CHECKOUT_POST_SUBMIT_STEP", {
+        requestedStep: "submitted",
+        order_id: submittedTableSnapshot?.orderId ?? null,
+      })
 
       console.info("PMD_TABLE_DRAFT_SUBMITTED", {
         draft_id: tableDraft?.draft_id ?? null,

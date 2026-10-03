@@ -11,6 +11,7 @@ export function useCustomerThemeSelection(currentFrontendTheme: string | null, f
       isOrganicBotanicalTheme: themeId === "organic_botanical_paper",
       isModernGreenTheme: themeId === "modern_green" || forceModernGreenTheme,
       isKazenJapaneseTheme: themeId === "kazen_japanese",
+      isVelvetTerracottaTheme: themeId === "velvet_terracotta",
     }
   }, [currentFrontendTheme, forceModernGreenTheme])
 }

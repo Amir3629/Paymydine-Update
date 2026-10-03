@@ -50,9 +50,23 @@ class Menu extends BaseWidget
 
     public function render()
     {
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'mainmenu_entry'
+        );
+
         $this->prepareVars();
 
-        return $this->makePartial('menu/top_menu');
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'mainmenu_prepare'
+        );
+
+        $contents = $this->makePartial('menu/top_menu');
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'mainmenu_template'
+        );
+
+        return $contents;
     }
 
     protected function prepareVars()

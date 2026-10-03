@@ -1,0 +1,11 @@
+HTTP/1.1 404 Not Found
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Cache-Control: no-cache, private
+Date: Sat, 12 Sep 2026 19:28:59 GMT
+Vary: Origin
+Set-Cookie: paymydine_session=eyJpdiI6IlBMbHFGTG45Lyt3dVBiMGg0a3RIZlE9PSIsInZhbHVlIjoiaFVwNjhyTDlnWTB6VFJaRUZnK1M4c3JLSllucmYxWlFRK0FEem9rbkNCTEcrb2xrTDI1Z01EdFJJbU95a3Jac2Qxbm56Y2FMcU9GZDNrTHZFYWtvdUlHdktRUWtGYkJGcUl6cjViQ1QrZ3ZZOVA1MTUrclYvNTVzT2dkcFZSWFciLCJtYWMiOiI3ODc4MDMyZDQxZmM4Njc3NzBhMzQyMzFkOTRhOWZmOGZkNzc1YWJiMTNhZjkzNmUxNzVjYTI0NjgzYWE2ZjQ4IiwidGFnIjoiIn0%3D; expires=Sat, 12-Sep-2026 21:28:59 GMT; Max-Age=7200; path=/; domain=.paymydine.com; secure; httponly; samesite=lax
+X-PMD-V17-Canary-Pool: payment
+

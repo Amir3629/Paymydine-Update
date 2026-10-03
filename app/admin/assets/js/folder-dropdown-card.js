@@ -85,7 +85,7 @@
         positionDropdown(dropdown, button);
         
         // Add to DOM
-        document.body.appendChild(dropdown);
+        (document.body||document.documentElement).appendChild(dropdown);
         
         // Show with animation
         requestAnimationFrame(function() {

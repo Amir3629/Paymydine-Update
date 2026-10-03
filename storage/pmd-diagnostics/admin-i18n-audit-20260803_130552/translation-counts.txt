@@ -1,0 +1,3 @@
+
+
+TRANSLATION_TABLE_ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'paymydine.ti_translations' doesn't exist (SQL: select locale, namespace, `group`, COUNT(*) AS total from `ti_translations` where `locale` in (en, de) group by `locale`, `namespace`, `group` order by `locale` asc, `namespace` asc, `group` asc)

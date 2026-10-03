@@ -1,0 +1,301 @@
+/* PMD Admin Logo Switcher + Owner Dashboard Layout Editor v25
+   Scope:
+   - Replaces visible restaurant/tenant logo in admin shell with selectable PayMyDine candidates.
+   - Adds a sidebar LOGO switch button.
+   - Hooks the dashboard Edit Layout button for the new owner dashboard.
+   - Does not mutate tenant DB logo settings, invoices, public storefront, or superadmin pages. */
+
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-img-v25 {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: 160px !important;
+  max-height: 54px !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-sidebar-brand .pmd-platform-logo-img-v25 {
+  max-width: 150px !important;
+  max-height: 58px !important;
+  margin: 0 auto !important;
+}
+
+html body.page.pmd-admin-theme-v1 .navbar-brand .pmd-platform-logo-img-v25 {
+  max-width: 178px !important;
+  max-height: 48px !important;
+}
+
+/* Hide old restaurant logo only after the PMD logo switcher is active. */
+html.pmd-admin-logo-v25-ready body.page.pmd-admin-theme-v1 .pmd-sidebar-brand .logo-svg,
+html.pmd-admin-logo-v25-ready body.page.pmd-admin-theme-v1 .navbar-brand a.logo > .logo-svg,
+html.pmd-admin-logo-v25-ready body.page.pmd-admin-theme-v1 .navbar-brand img.pmd-dashboard-logo-img {
+  display: none !important;
+}
+
+/* Sidebar LOGO switch button */
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-nav-item-v25 {
+  list-style: none !important;
+  margin: 8px 12px 12px !important;
+  padding: 0 !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v25 {
+  width: 100% !important;
+  min-height: 42px !important;
+  border: 1px solid rgba(255, 241, 208, .18) !important;
+  border-radius: 13px !important;
+  background: rgba(255, 248, 226, .08) !important;
+  color: #fff7dd !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 11px !important;
+  padding: 0 13px !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  letter-spacing: .05em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v25:hover {
+  background: rgba(255, 248, 226, .14) !important;
+  border-color: rgba(255, 241, 208, .30) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v25 i {
+  width: 22px !important;
+  min-width: 22px !important;
+  text-align: center !important;
+  color: #c89b4a !important;
+  font-size: 15px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v25 small {
+  margin-left: auto !important;
+  opacity: .82 !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: .02em !important;
+}
+
+/* If sidebar is collapsed/icon-only, keep button clean */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-btn-v25 span,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-logo-cycle-btn-v25 span,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-btn-v25 small,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-logo-cycle-btn-v25 small {
+  display: none !important;
+}
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-btn-v25,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-logo-cycle-btn-v25 {
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+/* Owner dashboard edit mode */
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-trigger-v25 {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 42px !important;
+  padding: 0 15px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
+  background: #fff !important;
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 780 !important;
+  cursor: pointer !important;
+  box-shadow: 0 7px 18px rgba(15,23,42,.08) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-trigger-v25.is-active {
+  background: #061f1c !important;
+  color: #fff !important;
+  border-color: rgba(6,31,28,.92) !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v25 {
+  position: fixed !important;
+  top: 104px !important;
+  right: 24px !important;
+  width: 318px !important;
+  max-width: calc(100vw - 48px) !important;
+  z-index: 99999 !important;
+  display: none !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.98) !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
+  box-shadow: 0 24px 70px rgba(15,23,42,.18) !important;
+  overflow: hidden !important;
+  color: #0f172a !important;
+}
+
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v25 .pmd-owner-layout-panel-v25 {
+  display: block !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v25__head {
+  padding: 17px 18px 14px !important;
+  border-bottom: 1px solid rgba(15,23,42,.08) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v25__head strong {
+  font-size: 14px !important;
+  font-weight: 850 !important;
+  letter-spacing: -.01em !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-panel-v25__body {
+  padding: 16px 18px 18px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-row-v25 {
+  margin: 0 0 16px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-row-v25 label {
+  display: block !important;
+  margin: 0 0 8px !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .035em !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-segment-v25 {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-segment-v25 button,
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-actions-v25 button {
+  height: 36px !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(15,23,42,.10) !important;
+  background: #fff !important;
+  color: #111827 !important;
+  font-size: 12px !important;
+  font-weight: 760 !important;
+  cursor: pointer !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-segment-v25 button.is-selected {
+  background: #062f2a !important;
+  color: #fff !important;
+  border-color: #062f2a !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-actions-v25 {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-owner-layout-actions-v25 button[data-action="close"] {
+  background: #062f2a !important;
+  color: #fff !important;
+  border-color: #062f2a !important;
+}
+
+/* Visual edit outlines only for the grouped editable areas */
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v25 .pmd-dashboard-modern.pmd-owner-match-v13 .pmd-dashboard-cards,
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v25 .pmd-dashboard-modern.pmd-owner-match-v13 .pmd-floor-card,
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v25 .pmd-dashboard-modern.pmd-owner-match-v13 .pmd-owner-match-footer-v13 {
+  outline: 2px dashed rgba(200,155,74,.72) !important;
+  outline-offset: 6px !important;
+  border-radius: 16px !important;
+}
+
+/* Group-level size presets.
+   Safer than per-card dragging: all same-size metric cards resize together. */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v25 .pmd-dashboard-card {
+  height: 262px !important;
+  min-height: 262px !important;
+  max-height: 262px !important;
+  padding: 17px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v25 .pmd-dashboard-card-head {
+  margin-bottom: 13px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v25 .pmd-dashboard-line {
+  height: 30px !important;
+  min-height: 30px !important;
+  line-height: 30px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v25 .pmd-dashboard-link {
+  height: 40px !important;
+  min-height: 40px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v25 .pmd-dashboard-card {
+  height: 332px !important;
+  min-height: 332px !important;
+  max-height: 332px !important;
+  padding: 22px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v25 .pmd-dashboard-line {
+  height: 39px !important;
+  min-height: 39px !important;
+  line-height: 39px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v25 .pmd-dashboard-link {
+  height: 50px !important;
+  min-height: 50px !important;
+}
+
+/* Sales card is special; keep chart inside when size changes */
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-compact-v25 .pmd-sales-chart {
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-cards-large-v25 .pmd-sales-chart {
+  height: 86px !important;
+  min-height: 86px !important;
+  max-height: 86px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-floor-compact-v25 .pmd-floor-card {
+  height: 542px !important;
+  min-height: 542px !important;
+  max-height: 542px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-floor-compact-v25 .pmd-table-tile {
+  height: 62px !important;
+  min-height: 62px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-floor-large-v25 .pmd-floor-card {
+  height: 690px !important;
+  min-height: 690px !important;
+  max-height: 690px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-floor-large-v25 .pmd-table-tile {
+  height: 82px !important;
+  min-height: 82px !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-compact-v25 .pmd-owner-match-footer-v13 {
+  gap: 14px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-large-v25 .pmd-owner-match-footer-v13 {
+  gap: 24px !important;
+}
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-large-v25 .pmd-recent-activity,
+html body.page.pmd-admin-theme-v1 .pmd-dashboard-modern.pmd-owner-match-v13.pmd-owner-footer-large-v25 .pmd-premium-card {
+  min-height: 138px !important;
+}
+
+/* Make native old widget edit artifacts less confusing when our custom dashboard is active */
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v25 [data-control="dashboard-container"].edit-mode .widget-item-action,
+html body.page.pmd-admin-theme-v1.pmd-owner-layout-editing-v25 [data-control="dashboard-container"].edit-mode .handle {
+  display: none !important;
+}

@@ -1,0 +1,9 @@
+PMD V2 SOURCE SAFETY AUDIT: FAILED
+- app/payment/worldline-embedded-return/page.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/FoodGalleryRuntimeEnhancer.tsx: MutationObserver is not allowed
+- src/runtime/components/ThemeFallbackStyleBridge.tsx: MutationObserver is not allowed
+- src/runtime/components/ThemeFallbackStyleBridge.tsx: runtime style.setProperty count 3 exceeds baseline 0
+- src/runtime/components/WorldlineDirectMethodButton.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/WorldlineEmbeddedCheckoutBridge.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/WorldlineSingleActionUX.tsx: MutationObserver is not allowed
+- src/runtime/components/WorldlineSingleActionUX.tsx: runtime style.setProperty count 11 exceeds baseline 0

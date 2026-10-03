@@ -352,6 +352,1028 @@ App::before(function () {
         Route::get('cash_drawers/windows_connector/{id}', [\Admin\Controllers\CashDrawers::class, 'windowsConnector']);
         Route::get('cash_drawers/windows_connector_agent/{id}', [\Admin\Controllers\CashDrawers::class, 'windowsConnectorAgent']);
 
+        // PMD_ADMIN_SERVER_NATIVE_URLS_R81E
+        //
+        // Browser URL is canonical from the FIRST HTTP request.
+        //
+        // Existing controller implementation paths are invoked internally
+        // with a duplicated Request bound temporarily into the container.
+        //
+        // Browser:
+        //   /admin/managerdashboard
+        //
+        // Controller/runtime logical request:
+        //   /admin/managerlab
+        //
+        // No external redirect is performed.
+
+        $__pmdCleanPathR81E =
+            static function (
+                string $path
+            ): string {
+                $adminUri = trim(
+                    (string)config(
+                        'system.adminUri',
+                        'admin'
+                    ),
+                    '/'
+                );
+
+                $path =
+                    rtrim(
+                        $path,
+                        '/'
+                    );
+
+                if ($path === '') {
+                    $path = '/';
+                }
+
+                $prefix =
+                    '/'.$adminUri.'/';
+
+                if (
+                    strpos(
+                        $path,
+                        $prefix
+                    ) !== 0
+                ) {
+                    return $path;
+                }
+
+                $relative = substr(
+                    $path,
+                    strlen($prefix)
+                );
+
+                $exact = [
+                    'dashboardlab' =>
+                        'ownerdashboard',
+
+                    'managerlab' =>
+                        'managerdashboard',
+
+                    'accountantlab' =>
+                        'accountantdashboard',
+
+                    'cashierlab' =>
+                        'orders',
+
+                    'coupons' =>
+                        'discounts',
+
+                    'pmdmenus' =>
+                        'menu',
+
+                    'pmdsettings' =>
+                        'settings',
+
+                    'pmdsettings/restaurant' =>
+                        'settings/restaurant',
+
+                    'pmdsettings/frontend' =>
+                        'settings/customer-menu',
+
+                    'pmdmenu' =>
+                        'settings/menu-checkout',
+
+                    'pmdcustomer' =>
+                        'settings/customers',
+
+                    'pmdteam' =>
+                        'settings/team',
+
+                    'pmddevices' =>
+                        'settings/devices',
+
+                    'pmdfinance' =>
+                        'settings/finance',
+
+                    'pmdbrand' =>
+                        'settings/brand',
+
+                    'pmdadvanced' =>
+                        'settings/advanced',
+
+                    'pmdsmartcategories' =>
+                        'smartcategories',
+
+                    'pmdreports' =>
+                        'reports/sales',
+
+                    'pmdreporttips' =>
+                        'reports/tips',
+
+                    'pmdreportchannels' =>
+                        'reports/channels',
+                ];
+
+                if (
+                    isset(
+                        $exact[$relative]
+                    )
+                ) {
+                    return
+                        $prefix.
+                        $exact[$relative];
+                }
+
+                $prefixMap = [
+                    'coupons/' =>
+                        'discounts/',
+
+                    'pmdmenus/' =>
+                        'menu/',
+
+                    'pmdmenu/' =>
+                        'settings/menu-checkout/',
+
+                    'pmdcustomer/' =>
+                        'settings/customers/',
+
+                    'pmdteam/' =>
+                        'settings/team/',
+
+                    'pmddevices/' =>
+                        'settings/devices/',
+
+                    'pmdfinance/' =>
+                        'settings/finance/',
+
+                    'pmdbrand/' =>
+                        'settings/brand/',
+
+                    'pmdadvanced/' =>
+                        'settings/advanced/',
+
+                    'pmdsmartcategories/' =>
+                        'smartcategories/',
+
+                    'pmdreports/' =>
+                        'reports/',
+                ];
+
+                foreach (
+                    $prefixMap
+                    as $old => $new
+                ) {
+                    if (
+                        strpos(
+                            $relative,
+                            $old
+                        ) === 0
+                    ) {
+                        return
+                            $prefix.
+                            $new.
+                            substr(
+                                $relative,
+                                strlen($old)
+                            );
+                    }
+                }
+
+                if (
+                    strpos(
+                        $relative,
+                        'pmdsettings/restaurant/'
+                    ) === 0
+                ) {
+                    return
+                        $prefix.
+                        'settings/restaurant/'.
+                        substr(
+                            $relative,
+                            strlen(
+                                'pmdsettings/restaurant/'
+                            )
+                        );
+                }
+
+                if (
+                    strpos(
+                        $relative,
+                        'pmdsettings/frontend/'
+                    ) === 0
+                ) {
+                    return
+                        $prefix.
+                        'settings/customer-menu/'.
+                        substr(
+                            $relative,
+                            strlen(
+                                'pmdsettings/frontend/'
+                            )
+                        );
+                }
+
+                return $path;
+            };
+
+        $__pmdRunInternalR81E =
+            static function (
+                Request $outer,
+                string $target,
+                string $mode = 'canonical'
+            ) use (
+                $__pmdCleanPathR81E
+            ) {
+                $adminUri = trim(
+                    (string)config(
+                        'system.adminUri',
+                        'admin'
+                    ),
+                    '/'
+                );
+
+                $target = trim(
+                    $target,
+                    '/'
+                );
+
+                $internalPath =
+                    '/'.$adminUri.'/'.$target;
+
+                $query =
+                    trim(
+                        (string)$outer
+                            ->getQueryString()
+                    );
+
+                $internalUri =
+                    $internalPath;
+
+                if ($query !== '') {
+                    $internalUri .=
+                        '?'.$query;
+                }
+
+                $server =
+                    $outer->server->all();
+
+                $server[
+                    'REQUEST_URI'
+                ] =
+                    $internalUri;
+
+                $server[
+                    'PATH_INFO'
+                ] =
+                    $internalPath;
+
+                $internal =
+                    $outer->duplicate(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        $server
+                    );
+
+                $internal->attributes->set(
+                    'pmd_browser_path_r81e',
+                    trim(
+                        (string)$outer->path(),
+                        '/'
+                    )
+                );
+
+                $internal->attributes->set(
+                    'pmd_internal_path_r81e',
+                    trim(
+                        $internalPath,
+                        '/'
+                    )
+                );
+
+                if (
+                    $outer->hasSession()
+                    && method_exists(
+                        $internal,
+                        'setLaravelSession'
+                    )
+                ) {
+                    $internal->setLaravelSession(
+                        $outer->session()
+                    );
+                }
+
+                if (
+                    method_exists(
+                        $internal,
+                        'setUserResolver'
+                    )
+                    && method_exists(
+                        $outer,
+                        'getUserResolver'
+                    )
+                ) {
+                    $internal->setUserResolver(
+                        $outer->getUserResolver()
+                    );
+                }
+
+                if (
+                    method_exists(
+                        $internal,
+                        'setRouteResolver'
+                    )
+                    && method_exists(
+                        $outer,
+                        'getRouteResolver'
+                    )
+                ) {
+                    $internal->setRouteResolver(
+                        $outer->getRouteResolver()
+                    );
+                }
+
+                $originalRequest =
+                    app('request');
+
+                app()->instance(
+                    'request',
+                    $internal
+                );
+
+                \Illuminate\Support\Facades\Facade
+                    ::clearResolvedInstance(
+                        'request'
+                    );
+
+                try {
+                    $result =
+                        app(
+                            \System\Classes\Controller::class
+                        )->runAdmin(
+                            $target
+                        );
+
+                    if (
+                        !(
+                            $result instanceof
+                            \Symfony\Component\HttpFoundation\Response
+                        )
+                        && $result instanceof
+                            \Illuminate\Contracts\Support\Renderable
+                    ) {
+                        $result =
+                            $result->render();
+                    }
+                } finally {
+                    app()->instance(
+                        'request',
+                        $originalRequest
+                    );
+
+                    \Illuminate\Support\Facades\Facade
+                        ::clearResolvedInstance(
+                            'request'
+                        );
+                }
+
+                if (
+                    $result instanceof
+                    \Symfony\Component\HttpFoundation\Response
+                ) {
+                    $response =
+                        $result;
+                } else {
+                    $response =
+                        response(
+                            $result
+                        );
+                }
+
+                /*
+                 * Controllers may redirect to one of their internal PMD/Lab
+                 * implementation URLs.
+                 *
+                 * Rewrite Location BEFORE it reaches the browser.
+                 */
+                $location =
+                    trim(
+                        (string)$response
+                            ->headers
+                            ->get(
+                                'Location',
+                                ''
+                            )
+                    );
+
+                if ($location !== '') {
+                    $locationHost =
+                        parse_url(
+                            $location,
+                            PHP_URL_HOST
+                        );
+
+                    if (
+                        !is_string(
+                            $locationHost
+                        )
+                        || $locationHost === ''
+                        || strcasecmp(
+                            $locationHost,
+                            $outer->getHost()
+                        ) === 0
+                    ) {
+                        $locationPath =
+                            parse_url(
+                                $location,
+                                PHP_URL_PATH
+                            );
+
+                        if (
+                            is_string(
+                                $locationPath
+                            )
+                        ) {
+                            $cleanPath =
+                                $__pmdCleanPathR81E(
+                                    $locationPath
+                                );
+
+                            if (
+                                $cleanPath !==
+                                $locationPath
+                            ) {
+                                $next =
+                                    $cleanPath;
+
+                                $locationQuery =
+                                    parse_url(
+                                        $location,
+                                        PHP_URL_QUERY
+                                    );
+
+                                if (
+                                    is_string(
+                                        $locationQuery
+                                    )
+                                    && $locationQuery !== ''
+                                ) {
+                                    $next .=
+                                        '?'.
+                                        $locationQuery;
+                                }
+
+                                $locationFragment =
+                                    parse_url(
+                                        $location,
+                                        PHP_URL_FRAGMENT
+                                    );
+
+                                if (
+                                    is_string(
+                                        $locationFragment
+                                    )
+                                    && $locationFragment !== ''
+                                ) {
+                                    $next .=
+                                        '#'.
+                                        $locationFragment;
+                                }
+
+                                if (
+                                    preg_match(
+                                        '#^https?://#i',
+                                        $location
+                                    )
+                                ) {
+                                    $next =
+                                        $outer
+                                            ->getSchemeAndHttpHost()
+                                        .$next;
+                                }
+
+                                $response
+                                    ->headers
+                                    ->set(
+                                        'Location',
+                                        $next
+                                    );
+
+                                $response
+                                    ->headers
+                                    ->set(
+                                        'X-PMD-Canonical-Location-Rewrite',
+                                        'R81E'
+                                    );
+                            }
+                        }
+                    }
+                }
+
+                $response->headers->set(
+                    'X-PMD-Server-Canonical',
+                    $mode === 'canonical'
+                        ? 'R81E'
+                        : 'R81E-LEGACY'
+                );
+
+                return $response;
+            };
+
+        $__pmdIsDocumentR81E =
+            static function (
+                Request $request
+            ): bool {
+                if (
+                    $request->ajax()
+                    || $request->wantsJson()
+                    || $request->expectsJson()
+                ) {
+                    return false;
+                }
+
+                if (
+                    $request->isMethod(
+                        'HEAD'
+                    )
+                ) {
+                    return true;
+                }
+
+                $dest = strtolower(
+                    trim(
+                        (string)$request
+                            ->headers
+                            ->get(
+                                'Sec-Fetch-Dest',
+                                ''
+                            )
+                    )
+                );
+
+                if ($dest !== '') {
+                    return
+                        $dest ===
+                        'document';
+                }
+
+                $accept = strtolower(
+                    (string)$request
+                        ->headers
+                        ->get(
+                            'Accept',
+                            ''
+                        )
+                );
+
+                return
+                    $accept === ''
+                    || strpos(
+                        $accept,
+                        'text/html'
+                    ) !== false
+                    || strpos(
+                        $accept,
+                        'application/xhtml+xml'
+                    ) !== false;
+            };
+
+        $__pmdRefererIsCleanR81E =
+            static function (
+                Request $request,
+                string $clean
+            ): bool {
+                $referer =
+                    trim(
+                        (string)$request
+                            ->headers
+                            ->get(
+                                'Referer',
+                                ''
+                            )
+                    );
+
+                if ($referer === '') {
+                    return false;
+                }
+
+                $refererPath =
+                    parse_url(
+                        $referer,
+                        PHP_URL_PATH
+                    );
+
+                if (
+                    !is_string(
+                        $refererPath
+                    )
+                ) {
+                    return false;
+                }
+
+                $adminUri = trim(
+                    (string)config(
+                        'system.adminUri',
+                        'admin'
+                    ),
+                    '/'
+                );
+
+                return
+                    rtrim(
+                        $refererPath,
+                        '/'
+                    )
+                    ===
+                    '/'.$adminUri.'/'.
+                    trim(
+                        $clean,
+                        '/'
+                    );
+            };
+
+        $__pmdCurrentWorkspaceQueryR81E =
+            static function (
+                Request $request
+            ): bool {
+                foreach (
+                    [
+                        'pmd_live',
+                        '_pmd_live',
+                        'pmd_from',
+                        'pmd_to',
+                        'pmd_cashier_quick',
+                    ]
+                    as $key
+                ) {
+                    if (
+                        $request->has(
+                            $key
+                        )
+                    ) {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+        /*
+         * Role dashboards.
+         */
+        $__pmdDashboardRoutesR81E = [
+            'ownerdashboard' =>
+                'dashboardlab',
+
+            'managerdashboard' =>
+                'managerlab',
+
+            'accountantdashboard' =>
+                'accountantlab',
+        ];
+
+        foreach (
+            $__pmdDashboardRoutesR81E
+            as $clean => $target
+        ) {
+            Route::any(
+                $clean,
+                static function (
+                    Request $request
+                ) use (
+                    $__pmdRunInternalR81E,
+                    $target
+                ) {
+                    return
+                        $__pmdRunInternalR81E(
+                            $request,
+                            $target
+                        );
+                }
+            );
+        }
+
+        /*
+         * PMD_DISCOUNTS_CANONICAL_URL_R1
+         *
+         * Owner-facing browser authority:
+         *     /admin/discounts
+         *
+         * /admin/coupons remains available to POST/AJAX backend authority,
+         * but old browser GET/HEAD requests are canonicalized.
+         */
+        Route::match(
+            ['GET', 'HEAD'],
+            'coupons',
+            static function (Request $request) {
+                $adminUri = trim(
+                    (string)config('system.adminUri', 'admin'),
+                    '/'
+                );
+
+                $next = '/'.$adminUri.'/discounts';
+
+                $query = trim(
+                    (string)$request->getQueryString()
+                );
+
+                if ($query !== '') {
+                    $next .= '?'.$query;
+                }
+
+                return redirect($next, 302);
+            }
+        );
+
+        Route::match(
+            ['GET', 'HEAD'],
+            'coupons/{pmdDiscountLegacyTailR1}',
+            static function (
+                Request $request,
+                string $pmdDiscountLegacyTailR1
+            ) {
+                $adminUri = trim(
+                    (string)config('system.adminUri', 'admin'),
+                    '/'
+                );
+
+                $next =
+                    '/'.$adminUri.'/discounts/'.
+                    trim($pmdDiscountLegacyTailR1, '/');
+
+                $query = trim(
+                    (string)$request->getQueryString()
+                );
+
+                if ($query !== '') {
+                    $next .= '?'.$query;
+                }
+
+                return redirect($next, 302);
+            }
+        )->where(
+            'pmdDiscountLegacyTailR1',
+            '.*'
+        );
+
+        /*
+         * Clean non-collision prefixes.
+         */
+        $__pmdPrefixRoutesR81E = [
+            'discounts' =>
+                'coupons',
+
+            'menu' =>
+                'pmdmenus',
+
+            'settings/restaurant' =>
+                'pmdsettings/restaurant',
+
+            'settings/customer-menu' =>
+                'pmdsettings/frontend',
+
+            'settings/menu-checkout' =>
+                'pmdmenu',
+
+            'settings/customers' =>
+                'pmdcustomer',
+
+            'settings/team' =>
+                'pmdteam',
+
+            'settings/devices' =>
+                'pmddevices',
+
+            'settings/finance' =>
+                'pmdfinance',
+
+            'settings/brand' =>
+                'pmdbrand',
+
+            'settings/advanced' =>
+                'pmdadvanced',
+
+            'smartcategories' =>
+                'pmdsmartcategories',
+        ];
+
+        foreach (
+            $__pmdPrefixRoutesR81E
+            as $clean => $target
+        ) {
+            Route::any(
+                $clean,
+                static function (
+                    Request $request
+                ) use (
+                    $__pmdRunInternalR81E,
+                    $target
+                ) {
+                    return
+                        $__pmdRunInternalR81E(
+                            $request,
+                            $target
+                        );
+                }
+            );
+
+            Route::any(
+                $clean.'/{pmdTailR81E}',
+                static function (
+                    Request $request,
+                    string $pmdTailR81E
+                ) use (
+                    $__pmdRunInternalR81E,
+                    $target
+                ) {
+                    return
+                        $__pmdRunInternalR81E(
+                            $request,
+                            $target.'/'.
+                            trim(
+                                $pmdTailR81E,
+                                '/'
+                            )
+                        );
+                }
+            )->where(
+                'pmdTailR81E',
+                '.*'
+            );
+        }
+
+        /*
+         * Collision routes.
+         *
+         * These three names are also historical native backend authorities:
+         *
+         *   orders
+         *   reservations
+         *   settings
+         *
+         * Browser document = current canonical workspace.
+         * Existing backend AJAX without a clean-workspace referer = legacy.
+         */
+        Route::any(
+            'orders',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E,
+                $__pmdIsDocumentR81E,
+                $__pmdRefererIsCleanR81E,
+                $__pmdCurrentWorkspaceQueryR81E
+            ) {
+                $current =
+                    (
+                        (
+                            $request->isMethod(
+                                'GET'
+                            )
+                            || $request->isMethod(
+                                'HEAD'
+                            )
+                        )
+                        && $__pmdIsDocumentR81E(
+                            $request
+                        )
+                    )
+                    || $__pmdRefererIsCleanR81E(
+                        $request,
+                        'orders'
+                    )
+                    || $__pmdCurrentWorkspaceQueryR81E(
+                        $request
+                    );
+
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        $current
+                            ? 'cashierlab'
+                            : 'orders',
+                        $current
+                            ? 'canonical'
+                            : 'legacy'
+                    );
+            }
+        );
+
+        Route::any(
+            'reservations',
+            static function (Request $request) use ($__pmdRunInternalR81E) {
+                return $__pmdRunInternalR81E($request, 'reservations', 'canonical');
+            }
+        );
+
+        Route::any(
+            'settings',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E,
+                $__pmdIsDocumentR81E,
+                $__pmdRefererIsCleanR81E
+            ) {
+                $current =
+                    (
+                        (
+                            $request->isMethod(
+                                'GET'
+                            )
+                            || $request->isMethod(
+                                'HEAD'
+                            )
+                        )
+                        && $__pmdIsDocumentR81E(
+                            $request
+                        )
+                    )
+                    || $__pmdRefererIsCleanR81E(
+                        $request,
+                        'settings'
+                    );
+
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        $current
+                            ? 'pmdsettings'
+                            : 'settings',
+                        $current
+                            ? 'canonical'
+                            : 'legacy'
+                    );
+            }
+        );
+
+        /*
+         * Reports.
+         *
+         * /reports is canonical Sales instead of the obsolete
+         * Pmdreports::index redirect.
+         */
+        Route::any(
+            'reports',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E
+            ) {
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        'pmdreports/sales'
+                    );
+            }
+        );
+
+        Route::any(
+            'reports/tips',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E
+            ) {
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        'pmdreporttips'
+                    );
+            }
+        );
+
+        Route::any(
+            'reports/channels',
+            static function (
+                Request $request
+            ) use (
+                $__pmdRunInternalR81E
+            ) {
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        'pmdreportchannels'
+                    );
+            }
+        );
+
+        Route::any(
+            'reports/{pmdReportTypeR81E}',
+            static function (
+                Request $request,
+                string $pmdReportTypeR81E
+            ) use (
+                $__pmdRunInternalR81E
+            ) {
+                return
+                    $__pmdRunInternalR81E(
+                        $request,
+                        'pmdreports/'.
+                        $pmdReportTypeR81E
+                    );
+            }
+        )->where(
+            'pmdReportTypeR81E',
+            'sales|hourly|categories|payments|transactions|alerts|liveorders|topitems|reviews|reservations|attendance'
+        );
+
         // Other pages
         Route::any('{slug}', 'System\Classes\Controller@runAdmin')
             ->where('slug', '(.*)?');
@@ -398,6 +1420,7 @@ App::before(function () {
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     Route::post('/superadmin/settings/update', [SuperAdminController::class, 'updateSettings'])->name('superadmin.update')
+    ->middleware('superadmin.auth')
     ->withoutMiddleware([\Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware::class]);
 
     // Backward-compatible alias
@@ -1091,10 +2114,19 @@ Route::group([
         $appleReady = $baseReady && $appleMethodConfigured;
         $googleReady = $baseReady && $googleMethodConfigured;
         $weroReady = $baseReady && $weroMethodConfigured;
-        $persistStripeWeroCapabilityStatus(
-            $weroReady ? 'redirect_checkout' : 'unconfigured',
-            'Stripe Wero is executed as a redirect checkout flow.'
-        );
+
+        // PMD_R69_STRIPE_READINESS_READ_ONLY_FAST_PATH
+        // Public checkout/config calls are read paths. Do not rewrite the Stripe
+        // payment row on every request merely to refresh a capability timestamp.
+        // Persist only when the effective Wero capability actually changes.
+        $desiredWeroStatus = $weroReady ? 'redirect_checkout' : 'unconfigured';
+        $currentWeroStatus = strtolower(trim((string)($data['wero_capability_status'] ?? '')));
+        if ($currentWeroStatus !== $desiredWeroStatus) {
+            $persistStripeWeroCapabilityStatus(
+                $desiredWeroStatus,
+                'Stripe Wero is executed as a redirect checkout flow.'
+            );
+        }
 
         return [
             'provider_enabled' => $providerEnabled,
@@ -1183,7 +2215,61 @@ Route::group([
         ];
     };
 
+    // PMD_PAYMENT_AVAILABILITY_LOCAL_ONLY_R1
+    // Public menu/bootstrap reads must never wait on an external payment provider.
+    // Method/provider rows are the last synced local availability snapshot.
+    // Authoritative provider checks still happen when a payment is actually created,
+    // while the explicit VR diagnostics endpoint keeps the deep connectivity probe.
     $resolveVRPaymentRuntimeReadiness = function () use ($loadProviderRecordsFromPayments): array {
+        $providerRecords = $loadProviderRecordsFromPayments();
+        $providerRow = (array)$providerRecords->get('vr_payment', []);
+        $providerRecordEnabled = (bool)($providerRow['enabled'] ?? false);
+
+        $service = app(\Admin\Classes\VRPaymentGatewayService::class);
+        $config = $service->getConfig();
+
+        $configEnabled = (bool)($config['enabled'] ?? false);
+        $credentialsPresent =
+            trim((string)($config['space_id'] ?? '')) !== ''
+            && trim((string)($config['user_id'] ?? '')) !== ''
+            && trim((string)($config['auth_key'] ?? '')) !== '';
+
+        $locallyReady = $providerRecordEnabled && $configEnabled && $credentialsPresent;
+
+        return [
+            'provider_enabled' => $providerRecordEnabled && $configEnabled,
+            'mode' => (string)($config['mode'] ?? 'test'),
+            'integration_mode_valid' => true,
+            'credentials_present' => $credentialsPresent,
+            'config_presence' => [
+                'api_base_url' => trim((string)($config['api_base_url'] ?? '')) !== '',
+                'space_id' => trim((string)($config['space_id'] ?? '')) !== '',
+                'user_id' => trim((string)($config['user_id'] ?? '')) !== '',
+                'auth_key' => trim((string)($config['auth_key'] ?? '')) !== '',
+            ],
+            'card_ready' => $locallyReady,
+            'apple_pay_ready' => $locallyReady,
+            'google_pay_ready' => $locallyReady,
+            'paypal_ready' => $locallyReady,
+            'wero_ready' => $locallyReady,
+            'card_enabled' => $locallyReady,
+            'apple_pay_enabled' => $locallyReady,
+            'google_pay_enabled' => $locallyReady,
+            'paypal_enabled' => $locallyReady,
+            'wero_enabled' => $locallyReady,
+            'any_ready' => $locallyReady,
+            'terminal_ready' => false,
+            'terminal_count' => 0,
+            'connectivity' => [
+                'ok' => null,
+                'connected' => null,
+                'skipped' => true,
+                'reason' => 'public_runtime_local_snapshot',
+            ],
+        ];
+    };
+
+    $resolveVRPaymentRuntimeDiagnostics = function () use ($loadProviderRecordsFromPayments): array {
         $providerRecords = $loadProviderRecordsFromPayments();
         $providerRow = (array)$providerRecords->get('vr_payment', []);
         $providerEnabled = (bool)($providerRow['enabled'] ?? false);
@@ -1533,7 +2619,7 @@ Route::group([
         ], 200);
     });
 
-    Route::get('/payments/vr-payment/diagnostics', function () use ($resolveRuntimeMethodCollection, $resolveVRPaymentRuntimeReadiness) {
+    Route::get('/payments/vr-payment/diagnostics', function () use ($resolveRuntimeMethodCollection, $resolveVRPaymentRuntimeDiagnostics) {
         $runtime = $resolveRuntimeMethodCollection(true);
         $lastSession = null;
         $lastWebhook = null;
@@ -1543,7 +2629,7 @@ Route::group([
         if (\Illuminate\Support\Facades\Schema::hasTable('vr_payment_webhook_events')) {
             $lastWebhook = \Illuminate\Support\Facades\DB::table('vr_payment_webhook_events')->orderByDesc('processed_at')->first();
         }
-        $readiness = $resolveVRPaymentRuntimeReadiness();
+        $readiness = $resolveVRPaymentRuntimeDiagnostics();
         $methodTrace = collect($runtime['trace'] ?? [])->keyBy('method');
         $methodMappings = collect($runtime['methods'] ?? [])
             ->map(fn ($m) => [
@@ -1815,9 +2901,13 @@ Route::group([
         $publishableKey = $mode === 'live'
             ? ($data['live_publishable_key'] ?? '')
             : ($data['test_publishable_key'] ?? '');
-        // Resolve tenant currency + wallet flags for frontend UI
-        $settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
-        $rawCurrency = $settings['default_currency_code']->value ?? ($settings['default_currency']->value ?? null);
+        // Resolve tenant currency + wallet flags for frontend UI.
+        // Read only the two currency keys needed by checkout.
+        $currencySettings = \Illuminate\Support\Facades\DB::table('settings')
+            ->whereIn('item', ['default_currency_code', 'default_currency'])
+            ->pluck('value', 'item');
+        $rawCurrency = $currencySettings['default_currency_code']
+            ?? ($currencySettings['default_currency'] ?? null);
 
         if (!$rawCurrency) {
             $resolvedCurrency = 'EUR';
@@ -1926,12 +3016,22 @@ Route::group([
             }
 
             if ($providerCode === 'sumup') {
+                // PMD_SUMUP_CANONICAL_RUNTIME_R1: legacy clients may still hit
+                // the generic card route, but SumUp secrets now live encrypted
+                // in terminal_provider_configs. Merge them into the legacy
+                // runtime shape without persisting a second copy.
+                $paymentData = app(\App\Services\Payments\SumupPaymentRuntimeBridge::class)->runtimeData($paymentData);
                 $token = (string)($paymentData['access_token'] ?? '');
                 $baseUrl = rtrim((string)($paymentData['url'] ?? 'https://api.sumup.com'), '/');
-                $merchantCode = trim((string)($paymentData['id_application'] ?? ''));
-                $merchantCodeSource = 'configured';
+                $merchantCode = trim((string)($paymentData['id_application'] ?? $paymentData['merchant_code'] ?? ''));
+                $merchantCodeSource = (string)($paymentData['pmd_secret_source'] ?? 'configured');
                 if ($token === '') {
-                    return response()->json(['success' => false, 'error' => 'SumUp credentials are incomplete'], 503);
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'sumup',
+                        'error' => 'sumup_not_connected',
+                        'message' => 'Connect and activate SumUp in Payments & finance first.',
+                    ], 422);
                 }
                 try {
                     $startedAt = microtime(true);
@@ -2280,17 +3380,81 @@ Route::group([
 
     $registerVRPaymentSessionRoute = function (string $methodCode, string $path) use ($resolveRuntimeMethodCollection, $persistVRPaymentSession) {
         Route::post($path, function (\Illuminate\Http\Request $request) use ($methodCode, $resolveRuntimeMethodCollection, $persistVRPaymentSession) {
-            $payload = $request->validate([
+            // PMD_VR_CREATE_SESSION_VALIDATION_R1_4_2
+            // Frontend V2 owns the checkout URLs. Validate the transport payload
+            // without Laravel's stricter URL rule rejecting otherwise valid encoded
+            // return URLs; then enforce http/https + host explicitly below.
+            $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
                 'amount' => 'required|numeric|min:0.01',
                 'currency' => 'required|string|size:3',
-                'return_url' => 'required|url',
-                'cancel_url' => 'required|url',
+                'return_url' => 'required|string|max:2048',
+                'cancel_url' => 'nullable|string|max:2048',
                 'locale' => 'nullable|string|max:10',
                 'country_code' => 'nullable|string|max:3',
                 'merchant_customer_id' => 'nullable|string|max:120',
                 'merchant_reference' => 'nullable|string|max:191',
                 'items' => 'nullable|array',
+                'integration_preference' => 'nullable|string|in:lightbox,embedded,payment_page',
+                'order_id' => 'nullable|integer|min:1',
+                'guest_session_id' => 'nullable|string|max:191',
+                'payment_intent_token' => 'nullable|string|max:191',
+                'selected_items' => 'nullable|array',
+                'payer_label' => 'nullable|string|max:191',
+                'tip_amount' => 'nullable|numeric|min:0',
+                'coupon_code' => 'nullable|string|max:191',
+                'coupon_discount' => 'nullable|numeric|min:0',
+                'table_id' => 'nullable',
+                'table_no' => 'nullable',
+                'qr' => 'nullable|string|max:191',
+                'provider' => 'nullable|string|max:64',
+                'payment_method' => 'nullable|string|max:64',
             ]);
+            if ($validator->fails()) {
+                $validationErrors = $validator->errors()->toArray();
+                \Illuminate\Support\Facades\Log::warning('VR_PAYMENT_CREATE_SESSION_VALIDATION_FAILED_R1_4_2', [
+                    'host' => request()->getHost(),
+                    'method' => $methodCode,
+                    'errors' => $validationErrors,
+                    'received_keys' => array_values(array_keys($request->all())),
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'provider' => 'vr_payment',
+                    'method' => $methodCode,
+                    'business_error' => true,
+                    'error_code' => 'vr_payment_request_invalid',
+                    'error' => 'VR Payment checkout request is invalid.',
+                    'diagnostic_stage' => 'request_validation',
+                    'validation_errors' => $validationErrors,
+                ], 422);
+            }
+            $payload = $validator->validated();
+            $payload['return_url'] = trim((string)$payload['return_url']);
+            $payload['cancel_url'] = trim((string)($payload['cancel_url'] ?? '')) ?: $payload['return_url'];
+            foreach (['return_url', 'cancel_url'] as $urlField) {
+                $urlValue = (string)$payload[$urlField];
+                $parts = parse_url($urlValue);
+                $scheme = strtolower((string)($parts['scheme'] ?? ''));
+                $host = trim((string)($parts['host'] ?? ''));
+                if (!is_array($parts) || !in_array($scheme, ['http', 'https'], true) || $host === '') {
+                    \Illuminate\Support\Facades\Log::warning('VR_PAYMENT_CREATE_SESSION_VALIDATION_FAILED_R1_4_2', [
+                        'host' => request()->getHost(),
+                        'method' => $methodCode,
+                        'url_field' => $urlField,
+                        'reason' => 'invalid_http_url',
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'provider' => 'vr_payment',
+                        'method' => $methodCode,
+                        'business_error' => true,
+                        'error_code' => 'vr_payment_return_url_invalid',
+                        'error' => 'VR Payment return URL is invalid.',
+                        'diagnostic_stage' => 'request_validation',
+                        'validation_errors' => [$urlField => ['A valid HTTP(S) URL is required.']],
+                    ], 422);
+                }
+            }
 
             $runtimeCollection = $resolveRuntimeMethodCollection(true);
             $runtimeMethods = collect($runtimeCollection['methods'] ?? [])->keyBy('code');
@@ -2318,6 +3482,15 @@ Route::group([
                 ], 422);
             }
 
+            \Illuminate\Support\Facades\Log::info('VR_PAYMENT_CREATE_SESSION_REQUEST_R1_4_2', [
+                'host' => request()->getHost(),
+                'method' => $methodCode,
+                'integration_preference' => (string)($payload['integration_preference'] ?? 'payment_page'),
+                'amount' => (float)$payload['amount'],
+                'currency' => strtoupper((string)$payload['currency']),
+                'return_host' => (string)(parse_url((string)$payload['return_url'], PHP_URL_HOST) ?: ''),
+                'cancel_host' => (string)(parse_url((string)$payload['cancel_url'], PHP_URL_HOST) ?: ''),
+            ]);
             $service = app(\Admin\Classes\VRPaymentGatewayService::class);
             $result = $service->createRedirectSession([
                 'method' => $methodCode,
@@ -2329,6 +3502,8 @@ Route::group([
                 'country_code' => strtoupper((string)($payload['country_code'] ?? 'DE')),
                 'merchant_customer_id' => (string)($payload['merchant_customer_id'] ?? 'PMD-VR-CHECKOUT'),
                 'merchant_reference' => (string)($payload['merchant_reference'] ?? ''),
+                'integration_preference' => (string)($payload['integration_preference'] ?? 'payment_page'), // PMD_VR_LIGHTBOX_ROUTE_FORWARD_R1_4_2
+                'order_id' => isset($payload['order_id']) ? (int)$payload['order_id'] : null,
                 'items' => (array)($payload['items'] ?? []),
             ]);
 
@@ -2343,6 +3518,16 @@ Route::group([
                     'amount' => (float)$payload['amount'],
                     'currency' => strtoupper((string)$payload['currency']),
                     'raw_snapshot' => $result,
+                ]);
+                $result['diagnostic_stage'] = $result['diagnostic_stage'] ?? 'vr_service';
+                \Illuminate\Support\Facades\Log::warning('VR_PAYMENT_CREATE_SESSION_SERVICE_FAILED_R1_4_2', [
+                    'host' => request()->getHost(),
+                    'method' => $methodCode,
+                    'integration_preference' => (string)($payload['integration_preference'] ?? 'payment_page'),
+                    'error_code' => $result['error_code'] ?? null,
+                    'error' => $result['error'] ?? $result['message'] ?? null,
+                    'provider_http_status' => $result['provider_http_status'] ?? null,
+                    'transaction_id' => $result['transaction_id'] ?? null,
                 ]);
                 return response()->json($result, 422);
             }
@@ -2805,11 +3990,19 @@ Route::group([
 
         $payment = \Admin\Models\Payments_model::query()->where('code', 'sumup')->first();
         $data = is_array(optional($payment)->data) ? (array)$payment->data : [];
+        // PMD_SUMUP_CANONICAL_STATUS_RUNTIME_R1: status/verification must use
+        // the same canonical encrypted tenant connection as checkout creation.
+        $data = app(\App\Services\Payments\SumupPaymentRuntimeBridge::class)->runtimeData($data);
         $token = (string)($data['access_token'] ?? '');
         $baseUrl = rtrim((string)($data['url'] ?? 'https://api.sumup.com'), '/');
 
         if ($token === '') {
-            return response()->json(['success' => false, 'provider' => 'sumup', 'error' => 'SumUp credentials are incomplete'], 503);
+            return response()->json([
+                'success' => false,
+                'provider' => 'sumup',
+                'error' => 'sumup_not_connected',
+                'message' => 'Connect and activate SumUp in Payments & finance first.',
+            ], 422);
         }
 
         try {
@@ -4242,6 +5435,8 @@ Route::group([
             'items' => 'nullable|array',
             'customerInfo' => 'nullable|array',
             'tableNumber' => 'nullable',
+            'orderId' => 'nullable|integer|min:1',
+            'paymentAttemptKey' => 'nullable|string|max:191',
         ]);
 
         \Illuminate\Support\Facades\Log::info('[Stripe create-intent] incoming', [
@@ -4271,9 +5466,24 @@ Route::group([
 try {
             \Illuminate\Support\Facades\Log::info("[Stripe create-intent] resolved-keys", ["mode"=>$mode, "has_secret"=>(bool)$secretKey, "has_payment"=>(bool)$payment]);
             \Stripe\Stripe::setApiKey($secretKey);
-            // Decide currency from tenant settings (do NOT trust client)
-$settings = \Illuminate\Support\Facades\DB::table('settings')->get()->keyBy('item');
-$raw = $settings['default_currency_code']->value ?? ($settings['default_currency']->value ?? null);
+
+            // PMD_R69_STRIPE_NETWORK_BOUNDS
+            // stripe-php v7 defaults are very long (30s connect / 80s total).
+            // Checkout must fail fast instead of leaving Apple Pay/Card on an
+            // endless "processing" state. Creation is idempotent below, so a
+            // client retry cannot create a duplicate PaymentIntent.
+            $stripeCurl = new \Stripe\HttpClient\CurlClient();
+            $stripeCurl->setConnectTimeout(5);
+            $stripeCurl->setTimeout(10);
+            \Stripe\ApiRequestor::setHttpClient($stripeCurl);
+
+            // Decide currency from tenant settings (do NOT trust client).
+            // Keep this path small: checkout does not need the entire settings table.
+$currencySettings = \Illuminate\Support\Facades\DB::table('settings')
+    ->whereIn('item', ['default_currency_code', 'default_currency'])
+    ->pluck('value', 'item');
+$raw = $currencySettings['default_currency_code']
+    ?? ($currencySettings['default_currency'] ?? null);
 
 if (!$raw) {
     $currency = strtolower((string)($body['currency'] ?? 'usd'));
@@ -4317,6 +5527,7 @@ if (!$raw) {
                 'metadata' => [
                     'restaurant_id' => (string)($body['restaurantId'] ?? ''),
                     'table_number' => isset($body['tableNumber']) ? (string)$body['tableNumber'] : '',
+                    'order_id' => isset($body['orderId']) ? (string)(int)$body['orderId'] : '',
                     'customer_email' => (string)($body['customerInfo']['email'] ?? ''),
                     'customer_name' => (string)($body['customerInfo']['name'] ?? ''),
                     'item_count' => isset($body['items']) && is_array($body['items']) ? (string)count($body['items']) : '0',
@@ -4329,7 +5540,16 @@ if (!$raw) {
 
             // NOTE: $preferred is currently a UI hint only.
             // If later you want "PayPal-only", we can switch based on $preferred.
-            $intent = \Stripe\PaymentIntent::create($payload);
+            $attemptKey = trim((string)($body['paymentAttemptKey'] ?? ''));
+            $stripeOptions = [];
+            if ($attemptKey !== '') {
+                $stripeOptions['idempotency_key'] = 'pmd_'.substr(
+                    hash('sha256', request()->getHost().'|'.$attemptKey),
+                    0,
+                    48
+                );
+            }
+            $intent = \Stripe\PaymentIntent::create($payload, $stripeOptions);
 return response()->json([
                 'success' => true,
                 'clientSecret' => $intent->client_secret,
@@ -4479,6 +5699,12 @@ return response()->json([
                 'pmd_social_instagram_url' => $settings['pmd_social_instagram_url']->value ?? '',
                 'pmd_social_google_enabled' => $settings['pmd_social_google_enabled']->value ?? '0',
                 'pmd_social_google_url' => $settings['pmd_social_google_url']->value ?? '',
+                'pmd_google_business_connected' => $settings['pmd_google_business_connected']->value ?? '0',
+                'pmd_google_business_location_title' => $settings['pmd_google_business_location_title']->value ?? '',
+                'pmd_google_place_id' => $settings['pmd_google_place_id']->value ?? '',
+                'pmd_google_maps_url' => $settings['pmd_google_maps_url']->value ?? '',
+                'pmd_google_write_review_url' => $settings['pmd_google_write_review_url']->value ?? '',
+                'pmd_google_reviews_url' => $settings['pmd_google_reviews_url']->value ?? '',
                 'pmd_social_website_enabled' => $settings['pmd_social_website_enabled']->value ?? '0',
                 'pmd_social_website_url' => $settings['pmd_social_website_url']->value ?? '',
                 'pmd_social_reviews_enabled' => $settings['pmd_social_reviews_enabled']->value ?? '0',
@@ -4555,6 +5781,7 @@ return response()->json([
             $tableNameNormalized = strtolower(trim((string)($request->table_name ?? '')));
             $isDelivery = $tableNameNormalized === 'delivery';
             $isPickup = in_array($tableNameNormalized, ['pickup', 'collection'], true);
+            $isKiosk = $tableNameNormalized === 'kiosk';
 
             if (!$isCashier && !$isDelivery && !$isPickup && $request->has('table_id')) {
                 $cashierTable = DB::table('tables')->where('table_name', 'Cashier')->first();
@@ -4570,6 +5797,7 @@ return response()->json([
                 'is_cashier' => $isCashier,
                 'is_delivery' => $isDelivery,
                 'is_pickup' => $isPickup,
+                'is_kiosk' => $isKiosk,
             ]);
 
             if (empty($request->table_id) && in_array($tableNameNormalized, ['delivery', 'cashier'], true)) {
@@ -4655,7 +5883,7 @@ return response()->json([
                 'stripe_payment_intent_id' => 'nullable|string|max:255',
             ];
 
-            if (!$isCashier && !$isDelivery && !$isPickup) {
+            if (!$isCashier && !$isDelivery && !$isPickup && !$isKiosk) {
                 $validationRules['table_id'] = 'required|string|max:50';
                 $validationRules['table_name'] = 'required|string|max:100';
             } else {
@@ -4812,6 +6040,8 @@ return response()->json([
                 $comment .= "Delivery Order | ";
             } elseif ($isPickup) {
                 $comment .= "Pickup Order | ";
+            } elseif ($isKiosk) {
+                $comment .= "Self-Service Kiosk · Eat Here | ";
             } else {
                 if ($request->filled('table_id')) {
                     $comment .= "Table ID: " . $request->table_id . " | ";
@@ -4842,7 +6072,7 @@ return response()->json([
                     $isPaidOrSettled = !empty($candidateOrder->settled_at)
                         || in_array(strtolower((string)($candidateOrder->settlement_status ?? '')), ['paid', 'settled'], true)
                         || (float)($candidateOrder->settled_amount ?? 0) >= (float)($candidateOrder->order_total ?? 0);
-                    $sameTableContext = (string)($candidateOrder->order_type ?? '') === (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)));
+                    $sameTableContext = (string)($candidateOrder->order_type ?? '') === (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : ($isKiosk ? 'kiosk' : $request->table_id))));
 
                     $storedGuestSessionId = '';
                     if (preg_match('/\[guest_session:([^\]]+)\]/', (string)($candidateOrder->comment ?? ''), $guestMatches)) {
@@ -4870,7 +6100,7 @@ return response()->json([
                 'email' => $request->customer_email ?? '',
                 'telephone' => $request->customer_phone ?? '',
                 'location_id' => $request->location_id ?? 1,
-                'order_type' => $isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)),
+                'order_type' => $isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : ($isKiosk ? 'kiosk' : $request->table_id))),
                 'order_total' => (float)$request->total_amount,
                 'order_date' => now()->format('Y-m-d'),
                 'order_time' => now()->format('H:i:s'),
@@ -5357,7 +6587,7 @@ return response()->json([
                         if ($paidOrSettled) {
                             $appendRejectReason = 'paid_or_settled';
                         } else {
-                            $expectedContext = (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : $request->table_id)));
+                            $expectedContext = (string)($isCashier ? 'cashier' : ($isDelivery ? 'delivery' : ($isPickup ? 'pickup' : ($isKiosk ? 'kiosk' : $request->table_id))));
                             if ((string)($candidateOrderForLog->order_type ?? '') !== $expectedContext) {
                                 $appendRejectReason = 'context_mismatch';
                             } else {
@@ -6040,3 +7270,18 @@ return response()->json([
 
 
 }); // Close App::before function
+
+// PMD_DASHBOARD_KPI_REPAIR_ROUTE_V1_PROD
+App::before(function () {
+    Route::group([
+        'middleware' => ['web'],
+        'prefix' => config('system.adminUri', 'admin'),
+    ], function () {
+        Route::get(
+            'pmd-dashboard-kpi-repair-v1-data',
+            [\Admin\Controllers\PmdDashboardKpiRepairV1::class, 'data']
+        )->name('pmd.dashboard.kpi.repair.v1.prod');
+    });
+});
+// PMD_DASHBOARD_KPI_REPAIR_ROUTE_V1_PROD_END
+

@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Server: nginx/1.24.0 (Ubuntu)
+Content-Type: application/json
+Transfer-Encoding: chunked
+Connection: keep-alive
+Cache-Control: no-cache, private
+Date: Mon, 03 Aug 2026 12:46:45 GMT
+Vary: Origin
+Set-Cookie: paymydine_session=eyJpdiI6IklodE5zaXNmWFZ0dDBVTWozM3ozUGc9PSIsInZhbHVlIjoiUlpuN21zVkU1STBBdERDY1FkbEM3eFpqbUZCSDNadkhmRjJVRlFyRWVzc2U3SS9LZDRkSE5tbFNmbkNIelM2b0JCZTJaQXloNVAxWlhSa0dJcWVyRCtMQ2p6ZzduMW5RR1V4Z0FvZjNBeTZHM2NkYXdDT1FnUWh6a0FzMk1XcHMiLCJtYWMiOiI2YjYxN2ZlZDM5N2UyM2U4YzEyZGE1MmMyZDdjNjczZTJmNTcxZmQ0ZDFiMzdkYWM1OGI5MDljOTk2MjJkN2IyIiwidGFnIjoiIn0%3D; expires=Mon, 03-Aug-2026 14:46:45 GMT; Max-Age=7200; path=/; domain=.paymydine.com; secure; httponly; samesite=lax
+

@@ -1,0 +1,13 @@
+timestamp_utc=20260921T095835Z
+root=/var/www/paymydine
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+branch=main
+origin_main=722a04ec12fac2ab56345987a815954360172a56
+base=6cff8bfaeb1788838dc83639619d5901bfcf7842
+target=1805cd559829185bed874d710a036560f5a4c179
+
+git_status_before:
+ M app/admin/controllers/Login.php
+?? app/Http/Controllers/PmdMobilePairController.php
+?? app/Services/PmdMobileSync/PmdMobilePairingService.php
+?? app/admin/views/auth/login_workplace_v4.blade.php

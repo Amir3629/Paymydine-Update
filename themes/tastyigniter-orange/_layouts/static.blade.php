@@ -60,5 +60,6 @@ description: Static layout for static pages
     </div>
     @partial('eucookiebanner')
     @partial('scripts')
+<script src="/app/admin/assets/js/pmd-waiter-v98-single-source.js?v=98"></script>
 </body>
 </html>

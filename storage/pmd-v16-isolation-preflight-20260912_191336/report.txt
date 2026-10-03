@@ -1,0 +1,1236 @@
+
+===== 1. CURRENT PRODUCTION =====
+V2_ID=5
+cwd=/var/www/paymydine/frontend-v2/releases/PayMyDine-V2-batch-20260912_013537
+BUILD_ID=q2hs9ZAoBo1EjCoWwWQo_
+origin=http://127.0.0.1:8088
+CPU cores=4
+load1=0.02
+MemAvailable=6254 MiB
+nginx=active
+php8.3-fpm=active
+mariadb=active
+V13 batch route=ACTIVE
+V15.1 payment local-only marker=ACTIVE
+
+===== 2. MAIN PHP-FPM POOL EXACT SETTINGS =====
+user = www-data
+group = www-data
+listen = /run/php/php8.3-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+
+Current PHP-FPM processes:
+2473173 2413542  0.6 48164 php-fpm: pool www
+2472677 2413542  0.1 48016 php-fpm: pool www
+2472244 2413542  0.2 46008 php-fpm: pool www
+
+PHP-FPM worker RSS summary:
+workers=4 total=142.4MiB avg=35.6MiB max=47.0MiB
+
+===== 3. ACTIVE NGINX CONFIG FILES =====
+/etc/letsencrypt/options-ssl-nginx.conf
+/etc/nginx/conf.d/paymydine-upload-size.conf
+/etc/nginx/conf.d/pmd-internal-backend.conf
+/etc/nginx/fastcgi.conf
+/etc/nginx/fastcgi_params
+/etc/nginx/mime.types
+/etc/nginx/nginx.conf
+/etc/nginx/sites-enabled/a.paymydine.com.conf
+/etc/nginx/sites-enabled/aa.paymydine.com.conf
+/etc/nginx/sites-enabled/asd.paymydine.com.conf
+/etc/nginx/sites-enabled/bb.paymydine.com.conf
+/etc/nginx/sites-enabled/canada.paymydine.com.conf
+/etc/nginx/sites-enabled/gisoo.paymydine.com.conf
+/etc/nginx/sites-enabled/gisoocanada.paymydine.com.conf
+/etc/nginx/sites-enabled/gisooturkish.paymydine.com.conf
+/etc/nginx/sites-enabled/h.paymydine.com.conf
+/etc/nginx/sites-enabled/han.paymydine.com.conf
+/etc/nginx/sites-enabled/ilhan.paymydine.com.conf
+/etc/nginx/sites-enabled/jj.paymydine.com.conf
+/etc/nginx/sites-enabled/k.paymydine.com.conf
+/etc/nginx/sites-enabled/khalig.paymydine.com.conf
+/etc/nginx/sites-enabled/kult.paymydine.com.conf
+/etc/nginx/sites-enabled/l.paymydine.com.conf
+/etc/nginx/sites-enabled/loumi.paymydine.com.conf
+/etc/nginx/sites-enabled/luna.paymydine.com.conf
+/etc/nginx/sites-enabled/main.paymydine.com.conf
+/etc/nginx/sites-enabled/me.paymydine.com.conf
+/etc/nginx/sites-enabled/mehdi.paymydine.com.conf
+/etc/nginx/sites-enabled/milano.paymydine.com.conf
+/etc/nginx/sites-enabled/mm.paymydine.com.conf
+/etc/nginx/sites-enabled/monkey.paymydine.com.conf
+/etc/nginx/sites-enabled/moon.paymydine.com.conf
+/etc/nginx/sites-enabled/nima.paymydine.com.conf
+/etc/nginx/sites-enabled/nn.paymydine.com.conf
+/etc/nginx/sites-enabled/nobelhard.paymydine.com.conf
+/etc/nginx/sites-enabled/o.paymydine.com.conf
+/etc/nginx/sites-enabled/oman.paymydine.com.conf
+/etc/nginx/sites-enabled/omantest.paymydine.com.conf
+/etc/nginx/sites-enabled/otp.paymydine.com.conf
+/etc/nginx/sites-enabled/otptest.paymydine.com.conf
+/etc/nginx/sites-enabled/paymenttest.paymydine.com.conf
+/etc/nginx/sites-enabled/paymydine
+/etc/nginx/sites-enabled/persian.paymydine.com.conf
+/etc/nginx/sites-enabled/persian1.paymydine.com.conf
+/etc/nginx/sites-enabled/reza.paymydine.com.conf
+/etc/nginx/sites-enabled/roxy.paymydine.com.conf
+/etc/nginx/sites-enabled/rt.paymydine.com.conf
+/etc/nginx/sites-enabled/saeed.paymydine.com.conf
+/etc/nginx/sites-enabled/sun.paymydine.com.conf
+/etc/nginx/sites-enabled/sunday.paymydine.com.conf
+/etc/nginx/sites-enabled/test.paymydine.com.conf
+/etc/nginx/sites-enabled/test1.paymydine.com.conf
+/etc/nginx/sites-enabled/test2.paymydine.com.conf
+/etc/nginx/sites-enabled/test25.paymydine.com.conf
+/etc/nginx/sites-enabled/testtest.paymydine.com.conf
+/etc/nginx/sites-enabled/texas.paymydine.com.conf
+/etc/nginx/sites-enabled/tipsy.paymydine.com.conf
+/etc/nginx/sites-enabled/tomo.paymydine.com.conf
+/etc/nginx/sites-enabled/turkei.paymydine.com.conf
+/etc/nginx/sites-enabled/turkishpmd.paymydine.com.conf
+/etc/nginx/sites-enabled/x.paymydine.com.conf
+/etc/nginx/snippets/fastcgi-php.conf
+/etc/nginx/snippets/pmd-emergency-self-loop-guard.conf
+
+===== 4. FIND ALL ACTIVE GENERIC /api/v1/ FPM BLOCKS =====
+FILE /etc/nginx/sites-enabled/a.paymydine.com.conf blocks=1
+  block#1 sha=b45a8326ad475c40
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "a.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/aa.paymydine.com.conf blocks=1
+  block#1 sha=2266f4e7b3552200
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "aa.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/asd.paymydine.com.conf blocks=1
+  block#1 sha=277a95ac190e8c77
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "asd.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/bb.paymydine.com.conf blocks=1
+  block#1 sha=b448ad3e30c0601d
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "bb.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/canada.paymydine.com.conf blocks=1
+  block#1 sha=6f9cd16c1947164a
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "canada.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/gisoo.paymydine.com.conf blocks=1
+  block#1 sha=da472f50a25c987d
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "gisoo.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/gisoocanada.paymydine.com.conf blocks=1
+  block#1 sha=6043b6c1fe46e1d8
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "gisoocanada.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/gisooturkish.paymydine.com.conf blocks=1
+  block#1 sha=49ce23c5d555fbd9
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "gisooturkish.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/h.paymydine.com.conf blocks=1
+  block#1 sha=7e818f9a0b7c304b
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "h.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/han.paymydine.com.conf blocks=1
+  block#1 sha=04e0a478292b9219
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "han.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/ilhan.paymydine.com.conf blocks=1
+  block#1 sha=916da7e77e0ba877
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "ilhan.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/jj.paymydine.com.conf blocks=1
+  block#1 sha=18fcadcbf8a9c981
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "jj.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/k.paymydine.com.conf blocks=1
+  block#1 sha=6f39b35e3a3dd919
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "k.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/khalig.paymydine.com.conf blocks=1
+  block#1 sha=94a2f58f821a6315
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "khalig.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/kult.paymydine.com.conf blocks=1
+  block#1 sha=9e5fe68178e53add
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "kult.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/l.paymydine.com.conf blocks=1
+  block#1 sha=a893c7c8cbf981d0
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "l.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/loumi.paymydine.com.conf blocks=1
+  block#1 sha=c30768b6e2c77420
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "loumi.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/luna.paymydine.com.conf blocks=1
+  block#1 sha=1ef90b69d8d47d98
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "luna.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/main.paymydine.com.conf blocks=1
+  block#1 sha=cf568a91e978d30a
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "main.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/me.paymydine.com.conf blocks=1
+  block#1 sha=d624d87df06e832f
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "me.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/mehdi.paymydine.com.conf blocks=1
+  block#1 sha=5b4662f4df6026e4
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "mehdi.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/milano.paymydine.com.conf blocks=1
+  block#1 sha=e376c429d6f7f7d3
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "milano.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/mm.paymydine.com.conf blocks=1
+  block#1 sha=29da1e72862814d2
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "mm.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/monkey.paymydine.com.conf blocks=1
+  block#1 sha=f2477a850478fabb
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "monkey.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/moon.paymydine.com.conf blocks=1
+  block#1 sha=4f319980f8b3292e
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "moon.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/nima.paymydine.com.conf blocks=1
+  block#1 sha=0f739f9a485e8ed6
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "nima.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/nn.paymydine.com.conf blocks=1
+  block#1 sha=7f6dfe83126bfd8f
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "nn.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/nobelhard.paymydine.com.conf blocks=1
+  block#1 sha=481205da22936a44
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "nobelhard.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/o.paymydine.com.conf blocks=1
+  block#1 sha=ef8bf8f3fbc7aa14
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "o.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/oman.paymydine.com.conf blocks=1
+  block#1 sha=edec3f41e0b9a7dc
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "oman.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/omantest.paymydine.com.conf blocks=1
+  block#1 sha=61d45bffdba6828f
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "omantest.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/otp.paymydine.com.conf blocks=1
+  block#1 sha=50a3b1c2eafcdb0c
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "otp.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/otptest.paymydine.com.conf blocks=1
+  block#1 sha=860c99caa3b4a56f
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "otptest.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/paymenttest.paymydine.com.conf blocks=1
+  block#1 sha=e9b9c0c8da3c1534
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "paymenttest.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/paymydine blocks=2
+  block#1 sha=7741095c21ac850e
+    location ^~ /api/v1/ {
+          try_files $uri $uri/ /index.php?$query_string;
+        }
+  block#2 sha=9c632265e4b9d9e8
+    location ^~ /api/v1/ {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+FILE /etc/nginx/sites-enabled/persian.paymydine.com.conf blocks=1
+  block#1 sha=7741095c21ac850e
+    location ^~ /api/v1/ {
+          try_files $uri $uri/ /index.php?$query_string;
+        }
+FILE /etc/nginx/sites-enabled/persian1.paymydine.com.conf blocks=1
+  block#1 sha=4feb57360774b4d4
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "persian1.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/reza.paymydine.com.conf blocks=1
+  block#1 sha=11de33531aef2f7d
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "reza.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/roxy.paymydine.com.conf blocks=1
+  block#1 sha=7cf5df434e6ab05c
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "roxy.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/rt.paymydine.com.conf blocks=1
+  block#1 sha=d57ad17a77729bb4
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "rt.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/saeed.paymydine.com.conf blocks=1
+  block#1 sha=e2f4cff0b1a28087
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "saeed.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/sun.paymydine.com.conf blocks=1
+  block#1 sha=b957d85f0fc43132
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "sun.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/sunday.paymydine.com.conf blocks=1
+  block#1 sha=ed00b6ac52bbaa6f
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "sunday.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/test.paymydine.com.conf blocks=1
+  block#1 sha=237c345245216a2c
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "test.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/test1.paymydine.com.conf blocks=1
+  block#1 sha=3050600b90bbe3ed
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "test1.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/test2.paymydine.com.conf blocks=1
+  block#1 sha=4c6872982e4fe559
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "test2.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/test25.paymydine.com.conf blocks=1
+  block#1 sha=97876827ad438bdc
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "test25.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/testtest.paymydine.com.conf blocks=1
+  block#1 sha=b71e899875597592
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "testtest.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/texas.paymydine.com.conf blocks=1
+  block#1 sha=4e60587dabc1e0b0
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "texas.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/tipsy.paymydine.com.conf blocks=1
+  block#1 sha=06aedd98e9002994
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "tipsy.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/tomo.paymydine.com.conf blocks=1
+  block#1 sha=0be8776ef8745d93
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "tomo.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/turkei.paymydine.com.conf blocks=1
+  block#1 sha=70a7935ae794fd1d
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "turkei.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/turkishpmd.paymydine.com.conf blocks=1
+  block#1 sha=fab039fe8c1463d8
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "turkishpmd.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+FILE /etc/nginx/sites-enabled/x.paymydine.com.conf blocks=1
+  block#1 sha=1343eac5f3fb320a
+    location ^~ /api/v1/ {
+            include fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+            fastcgi_param SCRIPT_NAME /index.php;
+            fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+            fastcgi_param REQUEST_URI $request_uri;
+            fastcgi_param HTTP_HOST $host;
+            fastcgi_param SERVER_NAME $host;
+            fastcgi_param HTTPS on;
+            add_header X-PMD-R30F-Vhost "x.paymydine.com" always;
+            add_header X-PMD-R30F-Route "laravel-api-v1" always;
+        }
+
+TOTAL_GENERIC_API_BLOCKS=55
+UNIQUE_BLOCK_SHAS=04e0a478292b9219,06aedd98e9002994,0be8776ef8745d93,0f739f9a485e8ed6,11de33531aef2f7d,1343eac5f3fb320a,18fcadcbf8a9c981,1ef90b69d8d47d98,2266f4e7b3552200,237c345245216a2c,277a95ac190e8c77,29da1e72862814d2,3050600b90bbe3ed,481205da22936a44,49ce23c5d555fbd9,4c6872982e4fe559,4e60587dabc1e0b0,4f319980f8b3292e,4feb57360774b4d4,50a3b1c2eafcdb0c,5b4662f4df6026e4,6043b6c1fe46e1d8,61d45bffdba6828f,6f39b35e3a3dd919,6f9cd16c1947164a,70a7935ae794fd1d,7741095c21ac850e,7cf5df434e6ab05c,7e818f9a0b7c304b,7f6dfe83126bfd8f,860c99caa3b4a56f,916da7e77e0ba877,94a2f58f821a6315,97876827ad438bdc,9c632265e4b9d9e8,9e5fe68178e53add,a893c7c8cbf981d0,b448ad3e30c0601d,b45a8326ad475c40,b71e899875597592,b957d85f0fc43132,c30768b6e2c77420,cf568a91e978d30a,d57ad17a77729bb4,d624d87df06e832f,da472f50a25c987d,e2f4cff0b1a28087,e376c429d6f7f7d3,e9b9c0c8da3c1534,ed00b6ac52bbaa6f,edec3f41e0b9a7dc,ef8bf8f3fbc7aa14,f2477a850478fabb,fab039fe8c1463d8
+WARNING: generic /api/v1/ blocks are not all identical; activation must patch per variant.
+
+===== 5. NGINX DOCUMENT ROOT / PHP SCRIPT RULES =====
+249:    root /var/www/paymydine;
+253:        root /var/www/paymydine;
+285:    root /var/www/paymydine;
+296:    # V2 customer root must be an exact Next authority.
+297:    # Do NOT use try_files for "/": the Laravel document root exists as a
+298:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+299:    # bypass the intended V2 root route.
+365:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+366:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+379:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+380:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+393:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+394:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+422:        try_files $uri $uri/ /index.php?$query_string;
+427:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+429:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+437:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+444:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+453:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+454:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+483:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+491:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+584:fastcgi_param  SCRIPT_FILENAME    $document_root$fastcgi_script_name;
+617:    root /var/www/paymydine;
+621:        root /var/www/paymydine;
+653:    root /var/www/paymydine;
+664:    # V2 customer root must be an exact Next authority.
+665:    # Do NOT use try_files for "/": the Laravel document root exists as a
+666:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+667:    # bypass the intended V2 root route.
+733:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+734:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+747:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+748:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+761:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+762:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+790:        try_files $uri $uri/ /index.php?$query_string;
+795:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+797:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+805:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+812:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+821:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+822:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+851:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+859:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+873:    root /var/www/paymydine;
+877:        root /var/www/paymydine;
+909:    root /var/www/paymydine;
+920:    # V2 customer root must be an exact Next authority.
+921:    # Do NOT use try_files for "/": the Laravel document root exists as a
+922:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+923:    # bypass the intended V2 root route.
+989:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+990:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1003:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1004:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1017:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1018:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1046:        try_files $uri $uri/ /index.php?$query_string;
+1051:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1053:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+1061:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+1068:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1077:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1078:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+1107:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1115:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1129:    root /var/www/paymydine;
+1133:        root /var/www/paymydine;
+1165:    root /var/www/paymydine;
+1176:    # V2 customer root must be an exact Next authority.
+1177:    # Do NOT use try_files for "/": the Laravel document root exists as a
+1178:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+1179:    # bypass the intended V2 root route.
+1245:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1246:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1259:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1260:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1273:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1274:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1302:        try_files $uri $uri/ /index.php?$query_string;
+1307:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1309:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+1317:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+1324:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1333:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1334:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+1363:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1371:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1385:    root /var/www/paymydine;
+1389:        root /var/www/paymydine;
+1421:    root /var/www/paymydine;
+1432:    # V2 customer root must be an exact Next authority.
+1433:    # Do NOT use try_files for "/": the Laravel document root exists as a
+1434:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+1435:    # bypass the intended V2 root route.
+1501:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1502:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1515:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1516:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1529:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1530:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1558:        try_files $uri $uri/ /index.php?$query_string;
+1563:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1565:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+1573:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+1580:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1589:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1590:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+1619:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1627:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1641:    root /var/www/paymydine;
+1645:        root /var/www/paymydine;
+1677:    root /var/www/paymydine;
+1688:    # V2 customer root must be an exact Next authority.
+1689:    # Do NOT use try_files for "/": the Laravel document root exists as a
+1690:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+1691:    # bypass the intended V2 root route.
+1757:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1758:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1771:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1772:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1785:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1786:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1814:        try_files $uri $uri/ /index.php?$query_string;
+1819:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1821:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+1829:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+1836:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1845:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1846:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+1875:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+1883:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+1897:    root /var/www/paymydine;
+1901:        root /var/www/paymydine;
+1933:    root /var/www/paymydine;
+1944:    # V2 customer root must be an exact Next authority.
+1945:    # Do NOT use try_files for "/": the Laravel document root exists as a
+1946:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+1947:    # bypass the intended V2 root route.
+2013:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2014:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2027:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2028:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2041:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2042:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2070:        try_files $uri $uri/ /index.php?$query_string;
+2075:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2077:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+2085:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+2092:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2101:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2102:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+2131:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2139:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2153:    root /var/www/paymydine;
+2157:        root /var/www/paymydine;
+2189:    root /var/www/paymydine;
+2200:    # V2 customer root must be an exact Next authority.
+2201:    # Do NOT use try_files for "/": the Laravel document root exists as a
+2202:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+2203:    # bypass the intended V2 root route.
+2269:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2270:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2283:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2284:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2297:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2298:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2326:        try_files $uri $uri/ /index.php?$query_string;
+2331:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2333:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+2341:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+2348:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2357:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2358:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+2387:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2395:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2409:    root /var/www/paymydine;
+2413:        root /var/www/paymydine;
+2445:    root /var/www/paymydine;
+2456:    # V2 customer root must be an exact Next authority.
+2457:    # Do NOT use try_files for "/": the Laravel document root exists as a
+2458:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+2459:    # bypass the intended V2 root route.
+2525:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2526:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2539:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2540:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2553:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2554:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2582:        try_files $uri $uri/ /index.php?$query_string;
+2587:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2589:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+2597:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+2604:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2613:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2614:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+2643:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2651:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2665:    root /var/www/paymydine;
+2669:        root /var/www/paymydine;
+2701:    root /var/www/paymydine;
+2712:    # V2 customer root must be an exact Next authority.
+2713:    # Do NOT use try_files for "/": the Laravel document root exists as a
+2714:    # directory, so `try_files $uri $uri/ @next` would select index.php and
+2715:    # bypass the intended V2 root route.
+2781:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2782:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2795:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2796:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2809:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2810:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+2838:        try_files $uri $uri/ /index.php?$query_string;
+2843:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2845:        fastcgi_param SCRIPT_FILENAME $document_root/api-server-multi-tenant.php;
+2853:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/public/r2o_webhook.php;
+2860:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2869:        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+2870:        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+2899:        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+
+===== 6. AI ROUTES THAT CAN WAIT ON GEMINI =====
+/var/www/paymydine/app/main/routes/api-v1-guest-ai.php:305:Route::post('/guest-ai/ask', function (Request $request) {
+/var/www/paymydine/app/admin/controllers/Pmdintelligence.php:62:            'endpoint' => admin_url('pmdintelligence/ask'),
+
+
+AI enabled=true
+provider=gemini
+model=gemini-3.1-flash-lite
+guest_model=gemini-3.1-flash-lite
+timeout=25s
+global_per_minute=120
+guest_per_minute=6
+
+===== 7. PAYMENT ROUTES THAT CAN WAIT ON PROVIDERS =====
+/var/www/paymydine/routes/admin-app-before.php:2895:    Route::post('/payments/card/create-session', function (\Illuminate\Http\Request $request) use ($resolveRuntimeMethodCollection, $persistVRPaymentSession) {
+/var/www/paymydine/app/admin/routes.php.hotfix_bak_20260322_140723:978:    Route::post('/payments/paypal/create-order', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/app/admin/routes.php.broken_before_restore_20260318_185012:980:    Route::post('/payments/paypal/create-order', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/app/admin/routes.php.pre_media_fix_20260321_191937:978:    Route::post('/payments/paypal/create-order', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/routes/admin-app-before.php:5045:    Route::post('/payments/paypal/create-order', function (\Illuminate\Http\Request $request) use ($resolvePaypalRuntimeConfig) {
+/var/www/paymydine/app/admin/routes.php.hotfix_bak_20260322_140723:1194:    Route::post('/payments/paypal/capture-order', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/app/admin/routes.php.broken_before_restore_20260318_185012:1196:    Route::post('/payments/paypal/capture-order', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/app/admin/routes.php.pre_media_fix_20260321_191937:1194:    Route::post('/payments/paypal/capture-order', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/routes/admin-app-before.php:5256:    Route::post('/payments/paypal/capture-order', function (\Illuminate\Http\Request $request) use ($resolvePaypalRuntimeConfig) {
+/var/www/paymydine/app/admin/controllers/PosConfigs.php:350:                        'message' => 'SumUp webhook handling is checkout-status based and verified per checkout event. No separate pre-registration endpoint is configured in this mode.',
+/var/www/paymydine/app/admin/controllers/PosConfigs.php:442:                $html .= 'Supported now: merchant profile, checkouts, transactions, refunds, readers, checkout-status webhook.';
+/var/www/paymydine/app/main/routes_sumup.php:232:            'canonical_route' => '/api/v1/payments/sumup/checkout-status',
+/var/www/paymydine/app/main/routes_sumup.php:240:            ], 404, '/api/v1/payments/sumup/checkout-status');
+/var/www/paymydine/app/main/routes_sumup.php:254:        ], $resp->status(), '/api/v1/payments/sumup/checkout-status');
+/var/www/paymydine/routes/admin-app-before.php:3637:    Route::post('/payments/worldline/checkout-status', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/routes/admin-app-before.php:3666:            \Log::error('Worldline checkout-status failed', [
+/var/www/paymydine/routes/admin-app-before.php:3942:    Route::post('/payments/sumup/checkout-status', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/routes/admin-app-before.php:4145:    Route::post('/payments/square/checkout-status', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/routes/admin-app-before.php:4746:    Route::post('/payments/wero/checkout-status', function (\Illuminate\Http\Request $request) {
+/var/www/paymydine/routes/admin-app-before.php:4781:            \Log::error('Wero checkout-status failed', [
+/var/www/paymydine/routes/admin-app-before.php:2632:            'return_status_endpoint' => '/api/v1/payments/vr-payment/return-status',
+/var/www/paymydine/routes/admin-app-before.php:3513:    Route::match(['GET', 'POST'], '/payments/vr-payment/return-status', function (\Illuminate\Http\Request $request) use ($persistVRPaymentSession, $reconcileVRPaymentState) {
+
+Important VR client timeout-like calls:
+123:        return $this->request('GET', '/api/v2.0/payment/method-configurations/search', [
+131:        return $this->request(
+143:        return $this->request('GET', '/api/v2.0/payment/terminals', [
+151:        return $this->request('GET', '/api/v2.0/payment/terminals/'.$terminalId);
+156:        return $this->request('POST', '/api/v2.0/payment/transactions', [], $payload);
+161:        return $this->request('GET', '/api/v2.0/payment/transactions/'.$transactionId);
+167:        return $this->request('PATCH', '/api/v2.0/payment/transactions/'.$transactionId, [], $payload);
+172:        return $this->request('GET', '/api/v2.0/payment/transactions/'.$transactionId.'/payment-page-url');
+178:        return $this->request('GET', '/api/v2.0/payment/transactions/'.$transactionId.'/iframe-javascript-url');
+183:        return $this->request('GET', '/api/v2.0/payment/transactions/'.$transactionId.'/lightbox-javascript-url');
+186:    public function performTerminalTransaction(int $terminalId, int $transactionId, string $language = 'de-DE'): array
+188:        return $this->request(
+200:    public function performTerminalTransactionByIdentifier(string $identifier, int $transactionId, string $language = 'de-DE'): array
+202:        return $this->request(
+216:        return $this->request(
+225:        return $this->request('POST', '/api/v2.0/payment/terminals/'.$terminalId.'/trigger-final-balance');
+230:        return $this->request(
+374:    private function request(
+
+===== 8. CURRENT FUNCTIONAL CANARIES THROUGH MAIN FPM =====
+/api/v1/guest-ai/status?location_id=1 HTTP= 200
+{
+  "ok": true,
+  "enabled": false,
+  "read_only": true,
+  "scope": "customer_menu_location",
+  "location_id": 1,
+  "surface": "frontend_v2"
+}
+/api/v1/payments HTTP= 200
+[
+  {
+    "code": "cod",
+    "name": "Cash On Delivery",
+    "provider_code": null,
+    "priority": 1
+  },
+  {
+    "code": "card",
+    "name": "Card / Wallet",
+    "provider_code": "sumup",
+    "priority": 10
+  }
+]
+/api/v1/payments/config-public HTTP= 200
+{
+  "success": true,
+  "paypalEnabled": false,
+  "paypalMethodEnabled": true,
+  "paypalCardEnabled": false,
+  "paypalApplePayEnabled": false,
+  "paypalGooglePayEnabled": false,
+  "paypalClientId": "",
+  "paypalMode": "test",
+  "currency": "EUR",
+  "countryCode": "DE"
+}
+
+===== 9. CAN WE DIRECTLY TEST NEW FPM SOCKETS LATER? =====
+cgi-fcgi=YES (/usr/bin/cgi-fcgi)
+socat=YES (/usr/bin/socat)
+
+===== 10. RECENT FPM / 5XX WARNINGS =====
+pm.max_children warnings last 60m=0
+PHP-FPM service errors last 60m=0
+
+===== 11. FINAL PUBLIC HEALTH =====
+test2.paymydine.com HTTP=200
+mimoza.paymydine.com HTTP=200
+loumi.paymydine.com HTTP=200
+moon.paymydine.com HTTP=200
+tomo.paymydine.com HTTP=200
+
+====================================================
+PMD V16 PREFLIGHT COMPLETE
+report=/var/www/paymydine/storage/pmd-v16-isolation-preflight-20260912_191336/report.txt
+====================================================

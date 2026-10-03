@@ -1,0 +1,396 @@
+/* PMD_DEVICE_SETTINGS_SUITE_V2_RESTAURANT_PARITY
+   Supplemental bridge only. The visual shell itself is the canonical
+   Restaurant Profile CSS/JS authority used by /admin/pmdsettings/restaurant. */
+
+#pmd-restaurant-profile[data-pmd-device-settings-v2],
+#pmd-restaurant-profile[data-pmd-device-settings-v2] * {
+  box-sizing: border-box;
+}
+
+/* No legacy page chrome is allowed to paint inside the Settings detail shell. */
+body:has(#pmd-restaurant-profile[data-pmd-device-settings-v2]) .page-title-section,
+body:has(#pmd-restaurant-profile[data-pmd-device-settings-v2]) .content-header,
+body:has(#pmd-restaurant-profile[data-pmd-device-settings-v2]) .breadcrumb,
+body:has(#pmd-restaurant-profile[data-pmd-device-settings-v2]) .breadcrumbs {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Server-first native content. Nothing is moved after paint. */
+.pmd-device-native-list,
+.pmd-device-native-form,
+.pmd-device-native-content {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.pmd-device-native-content *,
+.pmd-device-native-list *,
+.pmd-device-native-form * {
+  animation: none !important;
+}
+
+/* Canonical FormController fields mapped directly into Restaurant Profile cards. */
+.pmd-device-field,
+.pmd-device-native-form .form-group,
+.pmd-device-native-form .field-container,
+.pmd-device-native-form .control-group {
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+.pmd-device-field .control-label,
+.pmd-device-field > label,
+.pmd-device-native-form .control-label,
+.pmd-device-native-form label {
+  display: block !important;
+  margin: 0 0 6px !important;
+  padding: 0 !important;
+  color: #354842 !important;
+  font-size: 10px !important;
+  line-height: 1.35 !important;
+  font-weight: 760 !important;
+  letter-spacing: .015em !important;
+  text-transform: none !important;
+}
+
+.pmd-device-field input[type="text"],
+.pmd-device-field input[type="number"],
+.pmd-device-field input[type="email"],
+.pmd-device-field input[type="password"],
+.pmd-device-field input[type="url"],
+.pmd-device-field input[type="search"],
+.pmd-device-field select,
+.pmd-device-field textarea,
+.pmd-device-field .form-control,
+.pmd-device-field .select2-selection,
+.pmd-device-field .selectize-input,
+.pmd-device-native-form input[type="text"],
+.pmd-device-native-form input[type="number"],
+.pmd-device-native-form input[type="email"],
+.pmd-device-native-form input[type="password"],
+.pmd-device-native-form input[type="url"],
+.pmd-device-native-form input[type="search"],
+.pmd-device-native-form select,
+.pmd-device-native-form textarea,
+.pmd-device-native-form .form-control,
+.pmd-device-native-form .select2-selection,
+.pmd-device-native-form .selectize-input {
+  width: 100% !important;
+  min-height: 42px !important;
+  margin: 0 !important;
+  padding: 9px 12px !important;
+  border: 1px solid #d7e2df !important;
+  border-radius: 10px !important;
+  outline: 0 !important;
+  background: #fff !important;
+  background-image: none !important;
+  color: #17231f !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  font-weight: 600 !important;
+}
+
+.pmd-device-field textarea,
+.pmd-device-native-form textarea {
+  min-height: 96px !important;
+  resize: vertical !important;
+}
+
+.pmd-device-field input:focus,
+.pmd-device-field select:focus,
+.pmd-device-field textarea:focus,
+.pmd-device-native-form input:focus,
+.pmd-device-native-form select:focus,
+.pmd-device-native-form textarea:focus {
+  border-color: #8db8ad !important;
+  box-shadow: 0 0 0 3px rgba(40,125,103,.08) !important;
+}
+
+.pmd-device-field .help-block,
+.pmd-device-field .field-comment,
+.pmd-device-field small,
+.pmd-device-native-form .help-block,
+.pmd-device-native-form .field-comment,
+.pmd-device-native-form small {
+  display: block !important;
+  margin: 6px 0 0 !important;
+  color: #7a8985 !important;
+  font-size: 10px !important;
+  line-height: 1.45 !important;
+}
+
+/* Checkbox/radio collections become stable Settings cards. */
+.pmd-device-field .field-checkboxlist,
+.pmd-device-field .checkboxlist,
+.pmd-device-native-form .field-checkboxlist,
+.pmd-device-native-form .checkboxlist {
+  display: grid !important;
+  grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  gap: 10px !important;
+}
+
+.pmd-device-field .checkbox,
+.pmd-device-field .form-check,
+.pmd-device-native-form .checkbox,
+.pmd-device-native-form .form-check {
+  min-height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  border: 1px solid #e2eae8 !important;
+  border-radius: 12px !important;
+  background: #fcfefe !important;
+}
+
+/* Native list widgets stay server-rendered but lose old admin chrome. */
+.pmd-device-native-list .list-widget,
+.pmd-device-native-list .control-list,
+.pmd-device-native-list .table-responsive,
+.pmd-device-native-list .panel,
+.pmd-device-native-list .card {
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pmd-device-native-list .panel-heading,
+.pmd-device-native-list .card-header,
+.pmd-device-native-list .list-header,
+.pmd-device-native-list .page-header {
+  display: none !important;
+}
+
+.pmd-device-native-list .toolbar,
+.pmd-device-native-list .list-toolbar,
+.pmd-device-native-list [class*="toolbar-"] {
+  min-height: 54px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  margin: 0 !important;
+  padding: 10px 0 14px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #edf2f0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.pmd-device-native-list table {
+  width: 100% !important;
+  margin: 0 !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  background: #fff !important;
+}
+
+.pmd-device-native-list table thead th {
+  padding: 11px 12px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e1eae7 !important;
+  background: #f8fbfa !important;
+  color: #61716d !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+}
+
+.pmd-device-native-list table tbody td {
+  padding: 12px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #edf2f0 !important;
+  background: #fff !important;
+  color: #213832 !important;
+  font-size: 11px !important;
+  vertical-align: middle !important;
+}
+
+.pmd-device-native-list table tbody tr:last-child td { border-bottom: 0 !important; }
+
+/* One button language, matching the Settings family. */
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-action,
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-native-content .btn,
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-native-list .btn,
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-native-form .btn,
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-native-content button,
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-native-list button,
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-native-form button {
+  min-height: 40px !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  margin: 0 !important;
+  padding: 8px 13px !important;
+  border: 1px solid #cfe0dc !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #0c5d4d !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  font-weight: 760 !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  transform: none !important;
+}
+
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-action--primary {
+  border-color: #0d4d42 !important;
+  background: #0d4d42 !important;
+  color: #fff !important;
+}
+
+#pmd-restaurant-profile[data-pmd-device-settings-v2] .pmd-device-action--danger {
+  border-color: #f0c9c9 !important;
+  color: #a92d2d !important;
+}
+
+.pmd-device-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pmd-device-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px;
+}
+
+.pmd-device-status-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2eae8;
+  border-radius: 14px;
+  background: #fcfefe;
+}
+
+.pmd-device-status-card span {
+  display: block;
+  color: #74837f;
+  font-size: 10px;
+  font-weight: 760;
+}
+
+.pmd-device-status-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #17332c;
+  font-size: 13px;
+  font-weight: 760;
+  word-break: break-word;
+}
+
+.pmd-device-result {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #dce8e5;
+  border-radius: 12px;
+  background: #f8fbfa;
+  color: #425b54;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Biometric tab body: no old page-level styling or delayed toolbar surgery. */
+.pmd-device-native-content .tab-heading,
+.pmd-device-native-content .nav-tabs {
+  margin: 0 0 14px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.pmd-device-native-content .nav-tabs {
+  display: flex !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+}
+
+.pmd-device-native-content .nav-tabs .nav-link,
+.pmd-device-native-content .nav-tabs a {
+  min-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 12px !important;
+  border: 1px solid #d7e2df !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: #50645e !important;
+  font-size: 11px !important;
+  font-weight: 760 !important;
+  text-decoration: none !important;
+}
+
+.pmd-device-native-content .nav-tabs .nav-link.active,
+.pmd-device-native-content .nav-tabs li.active > a {
+  border-color: #0d4d42 !important;
+  background: #eef7f4 !important;
+  color: #0d4d42 !important;
+}
+
+.pmd-device-native-content .tab-content {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* R2O result overlay is body-independent, fixed and centered. */
+#pmd-device-r2o-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(8px);
+}
+
+#pmd-device-r2o-overlay.is-open { display: flex; }
+#pmd-device-r2o-modal {
+  width: min(900px,calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid #d8e5e1;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(16,42,67,.14);
+}
+
+@media (max-width: 900px) {
+  .pmd-device-status-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .pmd-device-field .field-checkboxlist,
+  .pmd-device-field .checkboxlist,
+  .pmd-device-native-form .field-checkboxlist,
+  .pmd-device-native-form .checkboxlist { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 560px) {
+  .pmd-device-status-grid { grid-template-columns: 1fr; }
+}

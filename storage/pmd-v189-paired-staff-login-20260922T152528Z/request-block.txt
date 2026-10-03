@@ -1,0 +1,26 @@
+    /** PMD_ANDROID_PAIRED_DEVICE_PASSWORD_REQUEST_V13 */
+    public function request(
+        Request $request,
+        PmdMobileDeviceAuthService $deviceAuth
+    ) {
+        $resolved = $this->resolveCredentials($request, $deviceAuth);
+
+        // PMD_ANDROID_NO_SECOND_APPROVAL_V13
+        // The device already passed one-time restaurant pairing approval.
+        // A workspace switch now proves the human with canonical credentials,
+        // then role/location policy selects the destination. Requiring another
+        // Owner/Manager/Cashier approval here made every non-Owner role depend
+        // on an unrelated second screen and left the Android app stuck/erroring.
+        return $this->authorizedResponse(
+            $resolved['device_identity'],
+            $resolved['user'],
+            $resolved['staff'],
+            $resolved['role_code'],
+            $resolved['route'],
+            $resolved['surface'],
+            $resolved['destination'],
+            $resolved['username']
+        );
+    }
+
+    /** PMD_ANDROID_CANONICAL_LOGIN_STATUS_V12 */

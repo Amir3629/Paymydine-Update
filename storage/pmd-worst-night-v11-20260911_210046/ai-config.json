@@ -1,0 +1,12 @@
+
+
+{
+    "enabled": true,
+    "provider": "gemini",
+    "model": "gemini-3.1-flash-lite",
+    "guest_model": "gemini-3.1-flash-lite",
+    "timeout_seconds": 25,
+    "guest_requests_per_minute": 6,
+    "global_requests_per_minute": 120,
+    "gemini_key_present": true
+}

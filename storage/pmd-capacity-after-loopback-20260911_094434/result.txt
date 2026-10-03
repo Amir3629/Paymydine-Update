@@ -1,0 +1,84 @@
+====================================================
+PMD PRODUCTION CAPACITY TEST V4 - AFTER LOOPBACK FIX
+READ-ONLY: no orders, no notes, no waiter calls, no DB writes
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 09:44:34 UTC 2026
+RUN=20260911_094434
+====================================================
+
+===== PRECHECK =====
+V2_ID=1
+PMD_BACKEND_ORIGIN=http://127.0.0.1:8088
+nginx=active
+php8.3-fpm=active
+mariadb=active
+
+===== BASELINE REAL SSR PROBES =====
+test2.paymydine.com          HTTP=200 time=1.046s bytes=29417
+mimoza.paymydine.com         HTTP=200 time=1.253s bytes=39378
+loumi.paymydine.com          HTTP=200 time=0.926s bytes=27101
+moon.paymydine.com           HTTP=200 time=2.121s bytes=41693
+tomo.paymydine.com           HTTP=200 time=2.109s bytes=64339
+BASELINE SSR: PASS
+
+===== CAPACITY RAMPS =====
+Thresholds: any 5xx/timeout => stop that ramp; p95 > 6.0s => stop that ramp
+Stages: 4 8 12 16 20 24 32 concurrent fresh HTTPS requests
+
+--- MIX RAMP ---
+MIX c=4  req=48  bad=0   4xx=0   5xx=0   err=0  p50=2277ms p95=3471ms max=4722ms rps=1.84 PASS
+MIX c=8  req=48  bad=0   4xx=0   5xx=0   err=0  p50=4277ms p95=6797ms max=7194ms rps=1.73 FAIL
+MIX: AUTO-STOP after c=8
+Cooldown 15s...
+--- QR RAMP ---
+QR  c=4  req=48  bad=0   4xx=0   5xx=0   err=0  p50=1789ms p95=2209ms max=2550ms rps=2.20 PASS
+QR  c=8  req=48  bad=0   4xx=0   5xx=0   err=0  p50=3407ms p95=3769ms max=4107ms rps=2.30 PASS
+QR  c=12 req=48  bad=0   4xx=0   5xx=0   err=0  p50=5070ms p95=5696ms max=5912ms rps=2.30 PASS
+QR  c=16 req=64  bad=0   4xx=0   5xx=0   err=0  p50=6743ms p95=7335ms max=7650ms rps=2.30 FAIL
+QR: AUTO-STOP after c=16
+Cooldown 15s...
+RAMPS COMPLETE
+
+===== COOLDOWN =====
+
+===== NGINX DELTAS =====
+public Node self requests=0
+public 5xx=0
+public 504=0
+internal requests=3496
+internal 5xx=0
+internal 504=0
+
+===== RESOURCE PEAKS =====
+vmstat min_idle=4% max_us=0% max_sy=0% max_wa=0% max_st=0%
+max_load1=4.65
+min_MemAvailable=6428.9_MiB
+max_PHP_CPU=266.3%
+max_Next_CPU=5.5%
+max_PHP_RSS=331.6_MiB
+max_Next_RSS=181.5_MiB
+max_established_443=208
+PM2 restart delta=0
+
+===== FINAL HEALTH =====
+nginx        active
+php8.3-fpm   active
+mariadb      active
+V2 health HTTP=200 time=0.049s
+
+===== RESULT TABLE =====
+MIX c=4  req=48  bad=0   5xx=0   err=0  p95=3471ms rps=1.84 PASS
+MIX c=8  req=48  bad=0   5xx=0   err=0  p95=6797ms rps=1.73 FAIL
+QR  c=4  req=48  bad=0   5xx=0   err=0  p95=2209ms rps=2.20 PASS
+QR  c=8  req=48  bad=0   5xx=0   err=0  p95=3769ms rps=2.30 PASS
+QR  c=12 req=48  bad=0   5xx=0   err=0  p95=5696ms rps=2.30 PASS
+QR  c=16 req=64  bad=0   5xx=0   err=0  p95=7335ms rps=2.30 FAIL
+
+====================================================
+PMD CAPACITY V4 COMPLETE
+NO WRITES WERE PERFORMED
+result=/var/www/paymydine/storage/pmd-capacity-after-loopback-20260911_094434/result.json
+report=/var/www/paymydine/storage/pmd-capacity-after-loopback-20260911_094434/result.txt
+monitor=/var/www/paymydine/storage/pmd-capacity-after-loopback-20260911_094434/process-monitor.tsv
+vmstat=/var/www/paymydine/storage/pmd-capacity-after-loopback-20260911_094434/vmstat.log
+====================================================

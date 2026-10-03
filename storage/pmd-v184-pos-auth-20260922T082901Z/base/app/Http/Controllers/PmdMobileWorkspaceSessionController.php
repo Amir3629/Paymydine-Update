@@ -1,0 +1,112 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Admin\Facades\AdminAuth;
+use Admin\Facades\AdminLocation;
+use Admin\Models\Locations_model;
+use Admin\Services\PmdDefaultStaffRoleService;
+use App\Services\PmdMobileSync\PmdMobileDeviceAuthService;
+use App\Services\PmdSiteAccessService;
+use App\Services\PmdSiteAccessSessionBindingService;
+use App\Services\PmdWorkSessionPolicyService;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
+/**
+ * PMD_MOBILE_ROLE_WORKSPACE_SESSION_V2
+ *
+ * Creates a normal short-lived Admin session from the paired Android identity
+ * and redirects to the canonical default page for that staff role. Android
+ * never needs to hard-code Owner/Manager/Accountant/My Work route policy.
+ *
+ * ?surface=reservations remains supported for the V17 Reservations client.
+ */
+final class PmdMobileWorkspaceSessionController extends Controller
+{
+    public function __invoke(
+        Request $request,
+        PmdMobileDeviceAuthService $deviceAuth
+    ) {
+        $identity = $deviceAuth->authenticate($request);
+        $user = $identity['user'] ?? null;
+        $locationId = (int)($identity['location_id'] ?? 0);
+        $deviceId = (int)($identity['device_id'] ?? 0);
+        $roleCode = (string)($identity['role_code'] ?? '');
+
+        $roles = app(PmdDefaultStaffRoleService::class);
+        $route = $roles->routeForRoleCode($roleCode);
+
+        $legacySurface = strtolower(trim((string)$request->query('surface', '')));
+        if ($legacySurface === 'reservations') {
+            if (!$user || !$user->hasPermission('Admin.Reservations')) {
+                abort(403, 'This paired account cannot use PayMyDine Reservations.');
+            }
+            $route = 'reservations';
+        } elseif ($legacySurface !== '' && $legacySurface !== 'auto') {
+            abort(404, 'This PayMyDine Android workspace is not available.');
+        }
+
+        if (
+            !$user
+            || $locationId < 1
+            || $deviceId < 1
+            || $roleCode === ''
+            || $route === null
+            || trim($route) === ''
+        ) {
+            abort(403, 'This paired account has no PayMyDine workspace.');
+        }
+
+        $location = Locations_model::query()->find($locationId);
+        if (!$location) {
+            abort(403, 'The paired restaurant location is unavailable.');
+        }
+
+        $site = app(PmdSiteAccessService::class);
+        if (!$site->ready() || !$site->policyEnabled($locationId)) {
+            abort(403, 'Restaurant security is not active.');
+        }
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        AdminAuth::login($user, false);
+
+        if (!AdminLocation::hasAccess($location)) {
+            AdminAuth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            abort(403, 'This account no longer has access to the restaurant.');
+        }
+
+        AdminLocation::setCurrent($location);
+        session()->put(PmdSiteAccessService::SESSION_DESTINATION, 'workspace');
+        $site->markWorkspaceVerified(
+            $locationId,
+            'mobile_android_device',
+            $deviceId
+        );
+        app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
+        $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
+
+        $site->audit(
+            'mobile_android_role_workspace_session',
+            true,
+            $identity,
+            $deviceId,
+            null,
+            $request,
+            [
+                'role_code' => $roleCode,
+                'route' => $route,
+                'legacy_surface' => $legacySurface ?: null,
+                'session_until' => $policy['expires_at']->toIso8601String(),
+                'protocol' => 'pmd-sync-v1',
+            ]
+        );
+
+        return redirect(admin_url($route))
+            ->header('Cache-Control', 'no-store, private');
+    }
+}

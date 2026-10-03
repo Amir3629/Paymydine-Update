@@ -1,0 +1,1102 @@
+<?php
+
+namespace App\Services;
+
+use Admin\Facades\AdminAuth;
+use Admin\Models\Pos_devices_model;
+use Admin\Services\PmdDefaultStaffRoleService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+
+/**
+ * PMD_SITE_ACCESS_V2
+ *
+ * One tenant-scoped authority for workplace verification and personal-device
+ * pairing. Raw device tokens and recovery codes never enter the database.
+ */
+class PmdSiteAccessService
+{
+    private ?bool $pmdReadyCache = null;
+    private array $pmdSchemaTableCache = [];
+    private array $pmdSchemaColumnCache = [];
+
+    /**
+     * PMD_PERF_R4_SITE_IDENTITY_CACHE
+     *
+     * Security middleware asks for the same authenticated identity several
+     * times in one request. Cache by authenticated user id so operational
+     * people/location resolution is not repeated.
+     */
+    private array $pmdIdentityCache = [];
+
+    /** Request-local policy existence cache keyed by location id. */
+    private array $pmdPolicyEnabledCache = [];
+
+    public const HUB_COOKIE = 'pmd_site_hub_v1';
+    public const STAFF_DEVICE_COOKIE = 'pmd_staff_device_v1';
+
+    public const PURPOSE_WORKSPACE = 'workspace_login';
+    public const PURPOSE_PAIR_STAFF = 'pair_staff_device';
+    public const PURPOSE_ELEVATE = 'elevate_session';
+
+    public const SESSION_PENDING = 'pmd_site_access_pending_v1';
+    public const SESSION_DESTINATION = 'pmd_login_destination_v1';
+    public const SESSION_VERIFIED_LOCATION = 'pmd_site_verified_location_v1';
+    public const SESSION_VERIFIED_UNTIL = 'pmd_site_verified_until_v1';
+    public const SESSION_VERIFIED_METHOD = 'pmd_site_verified_method_v1';
+    public const SESSION_VERIFIED_DEVICE = 'pmd_site_verified_device_v1';
+    public const SESSION_LAST_PAIRED_DEVICE = 'pmd_site_last_paired_device_v1';
+    public const SESSION_MOBILE_LOCATION = 'pmd_mobile_session_location_v1';
+    public const SESSION_MOBILE_DEVICE = 'pmd_mobile_session_device_v1';
+
+    public function ready(): bool
+    {
+        if ($this->pmdReadyCache !== null) {
+            return $this->pmdReadyCache;
+        }
+
+        try {
+            return $this->pmdReadyCache =
+                $this->pmdSchemaHasTable('pmd_site_access_devices')
+                && $this->pmdSchemaHasTable('pmd_site_access_challenges')
+                && $this->pmdSchemaHasTable('pmd_site_access_events')
+                && $this->pmdSchemaHasTable('pmd_site_access_recovery_codes');
+        } catch (\Throwable $error) {
+            return $this->pmdReadyCache = false;
+        }
+    }
+
+    /** PMD_SITE_ACCESS_IDENTITY_V2 */
+    public function identity($user = null): array
+    {
+        $user = $user ?: AdminAuth::getUser();
+        $userId = (int)($user ? $user->getKey() : 0);
+
+        if ($userId > 0 && array_key_exists($userId, $this->pmdIdentityCache)) {
+            return $this->pmdIdentityCache[$userId];
+        }
+
+        $staff = $user ? $user->staff : null;
+        $staffId = (int)($staff->staff_id ?? 0);
+
+        // PMD_MOBILE_SESSION_LOCATION_AUTHORITY_V6
+        // Once a native Android session has been created, the restaurant
+        // location verified from the bearer-authenticated device is the
+        // authority for this Admin session. A staff member may legitimately
+        // have another primary/operational location while still being assigned
+        // to this restaurant; do not overwrite the mobile device location with
+        // that profile default on the redirect request.
+        $mobileSessionLocation = (int)session()->get(
+            self::SESSION_MOBILE_LOCATION,
+            0
+        );
+
+        if (
+            $mobileSessionLocation < 1
+            && (string)session()->get(self::SESSION_VERIFIED_METHOD, '') ===
+                'mobile_android_device'
+        ) {
+            $mobileSessionLocation = (int)session()->get(
+                self::SESSION_VERIFIED_LOCATION,
+                0
+            );
+        }
+
+        $locationId = $mobileSessionLocation > 0
+            ? $mobileSessionLocation
+            : 0;
+
+        if (
+            $locationId < 1
+            && $staffId > 0
+            && $this->pmdSchemaHasTable('pmd_operational_people')
+        ) {
+            try {
+                $person = DB::table('pmd_operational_people')
+                    ->where('staff_id', $staffId)
+                    ->where('is_active', 1)
+                    ->orderByDesc('id')
+                    ->first(['location_id']);
+                $locationId = (int)($person->location_id ?? 0);
+            } catch (\Throwable $error) {
+            }
+        }
+
+        if ($locationId < 1 && $staff) {
+            $locationId = (int)($staff->staff_location_id ?? 0);
+        }
+
+        if ($locationId < 1 && $staff) {
+            try {
+                /*
+                 * PMD_PERF_R20_REUSE_EAGER_STAFF_LOCATIONS
+                 *
+                 * AdminAuth already eager-loads staff.locations. Prefer that
+                 * in-memory collection instead of issuing another relation
+                 * query while resolving Site Access identity. Fall back to the
+                 * relation query only for callers that did not eager-load it.
+                 */
+                if (
+                    method_exists($staff, 'relationLoaded')
+                    && $staff->relationLoaded('locations')
+                ) {
+                    $location = $staff->locations
+                        ->sortBy('location_id')
+                        ->first();
+                } else {
+                    $location = $staff->locations()
+                        ->orderBy('location_id')
+                        ->first();
+                }
+
+                $locationId = (int)($location->location_id ?? 0);
+            } catch (\Throwable $error) {
+            }
+        }
+
+        // Fresh tenant bootstrap may use the framework Super User before a Staff
+        // row exists. Resolve the current/first enabled tenant location so Owner
+        // MFA cannot be skipped merely because staff_id is still null.
+        if ($locationId < 1 && $user) {
+            try {
+                $current = \Admin\Facades\AdminLocation::getId();
+                if ((int)$current > 0) $locationId = (int)$current;
+            } catch (\Throwable $error) {
+            }
+        }
+
+        if (
+            $locationId < 1
+            && $user
+            && method_exists($user, 'isSuperUser')
+            && $user->isSuperUser()
+        ) {
+            try {
+                if ($this->pmdSchemaHasTable('locations')) {
+                    $query = DB::table('locations');
+                    $columns = $this->pmdSchemaColumns('locations');
+                    if (in_array('location_status', $columns, true)) {
+                        $query->where('location_status', 1);
+                    }
+                    $locationId = (int)$query
+                        ->orderBy('location_id')
+                        ->value('location_id');
+                }
+            } catch (\Throwable $error) {
+            }
+        }
+
+        $identity = [
+            'user' => $user,
+            'user_id' => $userId,
+            'staff' => $staff,
+            'staff_id' => $staffId,
+            'location_id' => $locationId,
+        ];
+
+        if ($userId > 0) {
+            $this->pmdIdentityCache[$userId] = $identity;
+        }
+
+        return $identity;
+    }
+
+    /** Site Access becomes enforcing only after a restaurant activates a hub. */
+    public function policyEnabled(?int $locationId = null): bool
+    {
+        if (!$this->ready()) return false;
+        $locationId = $locationId ?: (int)$this->identity()['location_id'];
+        if ($locationId < 1) return false;
+
+        if (array_key_exists($locationId, $this->pmdPolicyEnabledCache)) {
+            return $this->pmdPolicyEnabledCache[$locationId];
+        }
+
+        return $this->pmdPolicyEnabledCache[$locationId] =
+            DB::table('pmd_site_access_devices')
+                ->where('location_id', $locationId)
+                ->where('device_kind', 'site_hub')
+                ->whereNull('revoked_at')
+                ->exists();
+    }
+
+    public function hasOnlineHub(int $locationId): bool
+    {
+        if (!$this->ready() || $locationId < 1) return false;
+
+        return DB::table('pmd_site_access_devices')
+            ->where('location_id', $locationId)
+            ->where('device_kind', 'site_hub')
+            ->whereNull('revoked_at')
+            ->where('last_seen_at', '>=', now()->subMinutes(2))
+            ->exists();
+    }
+
+    public function currentHub(Request $request, ?int $locationId = null)
+    {
+        if (!$this->ready()) return null;
+        $raw = trim((string)$request->cookie(self::HUB_COOKIE, ''));
+        if ($raw === '') return null;
+
+        $query = DB::table('pmd_site_access_devices')
+            ->where('token_hash', $this->tokenHash($raw))
+            ->where('device_kind', 'site_hub')
+            ->whereNull('revoked_at');
+
+        if ($locationId && $locationId > 0) $query->where('location_id', $locationId);
+        return $query->first();
+    }
+
+    public function currentStaffDevice(Request $request, ?int $staffId = null, ?int $locationId = null)
+    {
+        if (!$this->ready()) return null;
+        $raw = trim((string)$request->cookie(self::STAFF_DEVICE_COOKIE, ''));
+        if ($raw === '') return null;
+
+        $query = DB::table('pmd_site_access_devices')
+            ->where('token_hash', $this->tokenHash($raw))
+            ->where('device_kind', 'staff_personal')
+            ->whereNull('revoked_at');
+
+        if ($staffId && $staffId > 0) $query->where('staff_id', $staffId);
+        if ($locationId && $locationId > 0) $query->where('location_id', $locationId);
+        return $query->first();
+    }
+
+    /**
+     * Native/mobile bearer lookup using the same Site Access token authority as
+     * browser personal devices. Raw tokens never enter the database.
+     */
+    public function trustedDeviceByRawToken(string $rawToken, ?string $deviceKind = null)
+    {
+        if (!$this->ready()) return null;
+
+        $rawToken = trim($rawToken);
+        if ($rawToken === '') return null;
+
+        $query = DB::table('pmd_site_access_devices')
+            ->where('token_hash', $this->tokenHash($rawToken))
+            ->whereNull('revoked_at');
+
+        if ($deviceKind !== null && trim($deviceKind) !== '') {
+            $query->where('device_kind', trim($deviceKind));
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * Rotate a trusted device token and return the new raw value exactly once.
+     * Intended for one-time native pairing exchanges.
+     */
+    public function rotateTrustedDeviceToken(
+        int $deviceId,
+        string $deviceKind = 'staff_personal'
+    ): string {
+        if (!$this->ready() || $deviceId < 1) {
+            throw new \RuntimeException('Site Access device storage is not ready.');
+        }
+
+        return DB::transaction(function () use ($deviceId, $deviceKind) {
+            $device = DB::table('pmd_site_access_devices')
+                ->where('id', $deviceId)
+                ->where('device_kind', $deviceKind)
+                ->whereNull('revoked_at')
+                ->lockForUpdate()
+                ->first();
+
+            if (!$device) {
+                throw new \RuntimeException('The PayMyDine device is not active.');
+            }
+
+            $rawToken = bin2hex(random_bytes(32));
+
+            DB::table('pmd_site_access_devices')
+                ->where('id', $deviceId)
+                ->update([
+                    'token_hash' => $this->tokenHash($rawToken),
+                    'last_seen_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+            return $rawToken;
+        });
+    }
+
+    public function touchDevice(int $deviceId): void
+    {
+        if (!$this->ready() || $deviceId < 1) return;
+
+        /*
+         * PMD_PERF_R3_DEVICE_HEARTBEAT_COALESCE
+         *
+         * Presence is considered online for two minutes. Writing last_seen_at
+         * on every poll/request only creates lock/log/replication churn.
+         * One durable heartbeat per 45 seconds preserves the same semantics.
+         */
+        $database = '';
+        try {
+            $database = (string)DB::connection()->getDatabaseName();
+        } catch (\Throwable $error) {
+        }
+
+        $key = 'pmd:site-access:touch:'.sha1($database.'|'.$deviceId);
+        try {
+            if (!Cache::add($key, 1, now()->addSeconds(45))) {
+                return;
+            }
+        } catch (\Throwable $error) {
+            // Cache failure must never weaken Site Access; fall through to DB.
+        }
+
+        DB::table('pmd_site_access_devices')->where('id', $deviceId)->update([
+            'last_seen_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function activateHub(int $posDeviceId, Request $request): array
+    {
+        if (!$this->ready()) throw new \RuntimeException('Site Access schema is not ready.');
+
+        $identity = $this->identity();
+        if ($identity['staff_id'] < 1 || $identity['location_id'] < 1) {
+            throw new \RuntimeException('A Team identity and restaurant location are required.');
+        }
+
+        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+        if (!in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER], true)) {
+            throw new \RuntimeException('Only an Owner or Manager can activate a Site Access hub.');
+        }
+
+        if (!$this->pmdSchemaHasTable('pos_devices')) throw new \RuntimeException('POS device storage is not available.');
+        $pos = Pos_devices_model::find($posDeviceId);
+        if (!$pos) throw new \RuntimeException('Choose an existing POS device.');
+
+        $rawToken = bin2hex(random_bytes(32));
+        $deviceName = trim((string)($pos->name ?: $pos->code ?: 'Restaurant POS'));
+        $platform = $this->platformInfo($request);
+
+        DB::transaction(function () use ($identity, $posDeviceId, $deviceName, $rawToken, $platform, $pos) {
+            DB::table('pmd_site_access_devices')
+                ->where('location_id', $identity['location_id'])
+                ->where('device_kind', 'site_hub')
+                ->where('pos_device_id', $posDeviceId)
+                ->whereNull('revoked_at')
+                ->update(['revoked_at' => now(), 'updated_at' => now()]);
+
+            DB::table('pmd_site_access_devices')->insert([
+                'location_id' => $identity['location_id'],
+                'device_kind' => 'site_hub',
+                'staff_id' => null,
+                'pos_device_id' => $posDeviceId,
+                'device_name' => $deviceName,
+                'token_hash' => $this->tokenHash($rawToken),
+                'capabilities' => json_encode(['site_auth_hub', 'workspace_approval', 'staff_device_pairing']),
+                'platform_info' => json_encode($platform),
+                'paired_by_staff_id' => $identity['staff_id'],
+                'paired_at' => now(),
+                'last_seen_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            try {
+                $capabilities = is_array($pos->capabilities) ? $pos->capabilities : [];
+                $capabilities = array_values(array_unique(array_merge($capabilities, [
+                    'site_auth_hub', 'workspace_approval', 'staff_device_pairing',
+                ])));
+                $pos->capabilities = $capabilities;
+                $pos->is_local_terminal = true;
+                $pos->device_status = $pos->device_status ?: 'active';
+                $pos->last_seen_at = now();
+                $pos->save();
+            } catch (\Throwable $error) {
+                logger()->warning('PMD Site Access POS capability sync failed', ['message' => $error->getMessage()]);
+            }
+        });
+
+        $device = DB::table('pmd_site_access_devices')
+            ->where('token_hash', $this->tokenHash($rawToken))
+            ->first();
+
+        $this->pmdPolicyEnabledCache[(int)$identity['location_id']] = true;
+
+        $this->audit('hub_activated', true, $identity, (int)($device->id ?? 0), null, $request, [
+            'pos_device_id' => $posDeviceId,
+        ]);
+
+        return [$device, $rawToken];
+    }
+
+    public function revokeDevice(int $deviceId, Request $request): bool
+    {
+        if (!$this->ready()) return false;
+        $identity = $this->identity();
+        if ($identity['location_id'] < 1) return false;
+
+        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+        $device = DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->where('location_id', $identity['location_id'])
+            ->whereNull('revoked_at')
+            ->first();
+        if (!$device) return false;
+
+        $ownPersonal = $device->device_kind === 'staff_personal' && (int)$device->staff_id === $identity['staff_id'];
+        $manage = in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER], true);
+        if (!$ownPersonal && !$manage) return false;
+
+        DB::table('pmd_site_access_devices')->where('id', $deviceId)->update([
+            'revoked_at' => now(), 'updated_at' => now(),
+        ]);
+
+        if ((string)$device->device_kind === 'site_hub') {
+            unset($this->pmdPolicyEnabledCache[(int)$identity['location_id']]);
+        }
+
+        $this->audit('device_revoked', true, $identity, $deviceId, null, $request, ['kind' => $device->device_kind]);
+        return true;
+    }
+
+    public function beginChallenge(string $purpose, string $redirectPath, Request $request)
+    {
+        if (!$this->ready()) return null;
+        $identity = $this->identity();
+        if ($identity['user_id'] < 1 || $identity['staff_id'] < 1 || $identity['location_id'] < 1) return null;
+        if (!$this->policyEnabled($identity['location_id'])) return null;
+
+        if ($purpose === self::PURPOSE_WORKSPACE) {
+            $hub = $this->currentHub($request, $identity['location_id']);
+            if ($hub) {
+                $this->touchDevice((int)$hub->id);
+                $this->markWorkspaceVerified($identity['location_id'], 'trusted_site_hub', (int)$hub->id);
+                $this->audit('workspace_auto_verified', true, $identity, (int)$hub->id, null, $request);
+                return null;
+            }
+        }
+
+        if ($purpose === self::PURPOSE_PAIR_STAFF) {
+            $personal = $this->currentStaffDevice($request, $identity['staff_id'], $identity['location_id']);
+            if ($personal) {
+                $this->touchDevice((int)$personal->id);
+                $this->audit('staff_device_recognized', true, $identity, (int)$personal->id, null, $request);
+                return null;
+            }
+        }
+
+        DB::table('pmd_site_access_challenges')
+            ->where('user_id', $identity['user_id'])
+            ->where('status', 'pending')
+            ->update(['status' => 'expired', 'updated_at' => now()]);
+
+        $publicId = (string)Str::uuid();
+        $code = $this->challengeCode($publicId, $identity['location_id']);
+        $expiresAt = now()->addSeconds(
+            $purpose === self::PURPOSE_PAIR_STAFF ? 300 : 90
+        );
+
+        $id = DB::table('pmd_site_access_challenges')->insertGetId([
+            'public_id' => $publicId,
+            'location_id' => $identity['location_id'],
+            'user_id' => $identity['user_id'],
+            'staff_id' => $identity['staff_id'],
+            'purpose' => $purpose,
+            'status' => 'pending',
+            'code_hash' => $this->codeHash($publicId, $code),
+            'requested_device_name' => $this->deviceName($request),
+            'requested_ip' => substr((string)$request->ip(), 0, 45),
+            'requested_user_agent' => substr((string)$request->userAgent(), 0, 2000),
+            'expires_at' => $expiresAt,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        session()->put(self::SESSION_PENDING, [
+            'public_id' => $publicId,
+            'purpose' => $purpose,
+            'redirect' => $redirectPath,
+        ]);
+
+        $this->audit('challenge_created', true, $identity, null, $id, $request, ['purpose' => $purpose]);
+        return $this->challengeByPublicId($publicId);
+    }
+
+    public function challengeForSession()
+    {
+        if (!$this->ready()) return null;
+        $pending = (array)session()->get(self::SESSION_PENDING, []);
+        $publicId = trim((string)($pending['public_id'] ?? ''));
+        if ($publicId === '') return null;
+        return $this->challengeByPublicId($publicId);
+    }
+
+    public function challengeByPublicId(string $publicId)
+    {
+        if (!$this->ready() || $publicId === '') return null;
+        $challenge = DB::table('pmd_site_access_challenges')->where('public_id', $publicId)->first();
+        if (!$challenge) return null;
+        if ($challenge->status === 'pending' && Carbon::parse($challenge->expires_at)->isPast()) {
+            DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
+                'status' => 'expired', 'updated_at' => now(),
+            ]);
+            $challenge->status = 'expired';
+        }
+        return $challenge;
+    }
+
+    public function challengeCodeForHub($challenge): string
+    {
+        return $challenge ? $this->challengeCode((string)$challenge->public_id, (int)$challenge->location_id) : '';
+    }
+
+    public function signedQrUrl($challenge): string
+    {
+        if (!$challenge) return '';
+        $publicId = (string)$challenge->public_id;
+        $token = hash_hmac('sha256', 'qr|'.$publicId.'|'.$challenge->location_id, $this->appSecret());
+        return admin_url('siteaccess/qr').'?challenge='.rawurlencode($publicId).'&token='.$token;
+    }
+
+    public function verifyQrToken(string $publicId, string $token): bool
+    {
+        $challenge = $this->challengeByPublicId($publicId);
+        if (!$challenge || $challenge->status !== 'pending') return false;
+        $expected = hash_hmac('sha256', 'qr|'.$publicId.'|'.$challenge->location_id, $this->appSecret());
+        return hash_equals($expected, $token);
+    }
+
+    public function verifyChallengeCode(string $code, Request $request): array
+    {
+        $challenge = $this->challengeForSession();
+        $identity = $this->identity();
+        if (!$challenge || (int)$challenge->user_id !== $identity['user_id']) return [false, 'No active verification request.'];
+        if ($challenge->status !== 'pending') return [false, 'This verification request is no longer pending.'];
+        if (Carbon::parse($challenge->expires_at)->isPast()) return [false, 'The code expired. Request a new one.'];
+
+        $attempts = (int)$challenge->attempts + 1;
+        DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
+            'attempts' => $attempts, 'updated_at' => now(),
+        ]);
+        if ($attempts > 8) {
+            DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update(['status' => 'declined']);
+            $this->audit('challenge_code_locked', false, $identity, null, (int)$challenge->id, $request);
+            return [false, 'Too many attempts. Start again.'];
+        }
+
+        $clean = preg_replace('/\D+/', '', $code);
+        $valid = strlen($clean) === 6
+            && hash_equals((string)$challenge->code_hash, $this->codeHash((string)$challenge->public_id, $clean));
+        if (!$valid) {
+            $this->audit('challenge_code_failed', false, $identity, null, (int)$challenge->id, $request);
+            return [false, 'The Site Access code is not correct.'];
+        }
+
+        if (!$this->hasOnlineHub((int)$challenge->location_id)) {
+            return [false, 'The restaurant Site Access device is offline. Open Site Access on the Cashier first.'];
+        }
+
+        DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
+            'status' => 'approved', 'approved_at' => now(), 'updated_at' => now(),
+        ]);
+        $this->audit('challenge_code_verified', true, $identity, null, (int)$challenge->id, $request);
+        return [true, null];
+    }
+
+    public function approveChallenge(int $challengeId, Request $request): bool
+    {
+        $identity = $this->identity();
+        $hub = $this->currentHub($request, $identity['location_id']);
+        if (!$hub) return false;
+        $this->touchDevice((int)$hub->id);
+
+        $challenge = DB::table('pmd_site_access_challenges')
+            ->where('id', $challengeId)
+            ->where('location_id', $identity['location_id'])
+            ->where('status', 'pending')
+            ->where('expires_at', '>', now())
+            ->first();
+        if (!$challenge) return false;
+
+        DB::table('pmd_site_access_challenges')->where('id', $challengeId)->update([
+            'status' => 'approved',
+            'approved_by_device_id' => (int)$hub->id,
+            'approved_by_staff_id' => $identity['staff_id'] ?: null,
+            'approved_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->audit('challenge_approved', true, $identity, (int)$hub->id, $challengeId, $request, ['purpose' => $challenge->purpose]);
+        return true;
+    }
+
+    public function declineChallenge(int $challengeId, Request $request): bool
+    {
+        $identity = $this->identity();
+        $hub = $this->currentHub($request, $identity['location_id']);
+        if (!$hub) return false;
+        $this->touchDevice((int)$hub->id);
+
+        $updated = DB::table('pmd_site_access_challenges')
+            ->where('id', $challengeId)
+            ->where('location_id', $identity['location_id'])
+            ->where('status', 'pending')
+            ->update(['status' => 'declined', 'updated_at' => now()]);
+        $this->audit('challenge_declined', $updated > 0, $identity, (int)$hub->id, $challengeId, $request);
+        return $updated > 0;
+    }
+
+    public function finalizeCurrent(Request $request): array
+    {
+        $identity = $this->identity();
+        $challenge = $this->challengeForSession();
+        $pending = (array)session()->get(self::SESSION_PENDING, []);
+        if (!$challenge || $identity['user_id'] < 1 || (int)$challenge->user_id !== $identity['user_id']) {
+            throw new \RuntimeException('No matching Site Access request.');
+        }
+        if ($challenge->status !== 'approved') throw new \RuntimeException('Restaurant verification is still pending.');
+        if (Carbon::parse($challenge->expires_at)->isPast()) throw new \RuntimeException('This verification request expired.');
+
+        $staffDeviceToken = null;
+        if ($challenge->purpose === self::PURPOSE_PAIR_STAFF) {
+            [$device, $staffDeviceToken] = $this->createPersonalDevice($identity, $request, (int)($challenge->approved_by_device_id ?? 0));
+            session()->put(self::SESSION_LAST_PAIRED_DEVICE, (int)$device->id);
+            $this->audit('staff_device_paired', true, $identity, (int)$device->id, (int)$challenge->id, $request);
+        } else {
+            $this->markWorkspaceVerified((int)$challenge->location_id, 'site_access', (int)($challenge->approved_by_device_id ?? 0));
+            $this->audit('workspace_verified', true, $identity, (int)($challenge->approved_by_device_id ?? 0), (int)$challenge->id, $request);
+        }
+
+        DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
+            'status' => 'used', 'used_at' => now(), 'updated_at' => now(),
+        ]);
+        session()->forget(self::SESSION_PENDING);
+
+        return [
+            'redirect' => (string)($pending['redirect'] ?? admin_url('dashboard')),
+            'staff_device_token' => $staffDeviceToken,
+        ];
+    }
+
+    public function pendingChallengesForHub(Request $request)
+    {
+        $identity = $this->identity();
+        $hub = $this->currentHub($request, $identity['location_id']);
+        if (!$hub) return collect();
+        $this->touchDevice((int)$hub->id);
+
+        return DB::table('pmd_site_access_challenges as challenge')
+            ->leftJoin('staffs as staff', 'staff.staff_id', '=', 'challenge.staff_id')
+            ->where('challenge.location_id', $identity['location_id'])
+            ->where('challenge.status', 'pending')
+            ->where('challenge.expires_at', '>', now())
+            ->select([
+                'challenge.*',
+                'staff.staff_name',
+            ])
+            ->orderBy('challenge.created_at')
+            ->get()
+            ->map(function ($challenge) {
+                $challenge->display_code = $this->challengeCodeForHub($challenge);
+                $challenge->qr_url = $this->signedQrUrl($challenge);
+                return $challenge;
+            });
+    }
+
+    public function activeDevices(int $locationId)
+    {
+        if (!$this->ready() || $locationId < 1) return collect();
+        return DB::table('pmd_site_access_devices as device')
+            ->leftJoin('staffs as staff', 'staff.staff_id', '=', 'device.staff_id')
+            ->leftJoin('pos_devices as pos', 'pos.device_id', '=', 'device.pos_device_id')
+            ->where('device.location_id', $locationId)
+            ->whereNull('device.revoked_at')
+            ->select(['device.*', 'staff.staff_name', 'pos.name as pos_name'])
+            ->orderBy('device.device_kind')
+            ->orderByDesc('device.last_seen_at')
+            ->get();
+    }
+
+    public function isWorkspaceVerified(?int $locationId = null): bool
+    {
+        $locationId = $locationId ?: (int)$this->identity()['location_id'];
+        if ($locationId < 1) return false;
+        if ((int)session()->get(self::SESSION_VERIFIED_LOCATION, 0) !== $locationId) return false;
+        $until = session()->get(self::SESSION_VERIFIED_UNTIL);
+        return $until && Carbon::parse($until)->isFuture();
+    }
+
+    public function markWorkspaceVerified(int $locationId, string $method, int $deviceId = 0): void
+    {
+        $until = $this->restaurantDayBoundary();
+        session()->put(self::SESSION_VERIFIED_LOCATION, $locationId);
+        session()->put(self::SESSION_VERIFIED_UNTIL, $until->toIso8601String());
+        session()->put(self::SESSION_VERIFIED_METHOD, $method);
+        session()->put(self::SESSION_VERIFIED_DEVICE, $deviceId ?: null);
+        session()->forget(self::SESSION_PENDING);
+    }
+
+    public function clearVerification(): void
+    {
+        session()->forget([
+            self::SESSION_PENDING,
+            self::SESSION_DESTINATION,
+            self::SESSION_VERIFIED_LOCATION,
+            self::SESSION_VERIFIED_UNTIL,
+            self::SESSION_VERIFIED_METHOD,
+            self::SESSION_VERIFIED_DEVICE,
+            self::SESSION_LAST_PAIRED_DEVICE,
+            self::SESSION_MOBILE_LOCATION,
+            self::SESSION_MOBILE_DEVICE,
+        ]);
+    }
+
+    public function gateResponse(Request $request)
+    {
+        if (!$this->ready() || !AdminAuth::isLogged()) return null;
+        $pending = (array)session()->get(self::SESSION_PENDING, []);
+        if (empty($pending['public_id'])) return null;
+
+        $path = trim((string)$request->path(), '/');
+        $admin = trim((string)config('system.adminUri', 'admin'), '/');
+        $relative = $path === $admin ? '' : (str_starts_with($path, $admin.'/') ? substr($path, strlen($admin) + 1) : $path);
+
+        foreach (['siteaccess', 'login', '_assets', '_pmd/language-switch'] as $allowed) {
+            if ($relative === $allowed || str_starts_with($relative, $allowed.'/')) return null;
+        }
+
+        return redirect(admin_url('login'));
+    }
+
+    public function generateRecoveryCodes(Request $request): array
+    {
+        if (!$this->ready()) throw new \RuntimeException('Site Access schema is not ready.');
+        $identity = $this->identity();
+        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+        if ($role !== PmdDefaultStaffRoleService::OWNER) throw new \RuntimeException('Only the Owner can generate recovery codes.');
+
+        $codes = [];
+        DB::transaction(function () use (&$codes, $identity) {
+            DB::table('pmd_site_access_recovery_codes')
+                ->where('location_id', $identity['location_id'])
+                ->where('user_id', $identity['user_id'])
+                ->whereNull('used_at')
+                ->delete();
+
+            for ($i = 0; $i < 8; $i++) {
+                $code = strtoupper(substr(bin2hex(random_bytes(4)), 0, 4).'-'.substr(bin2hex(random_bytes(4)), 0, 4));
+                $codes[] = $code;
+                DB::table('pmd_site_access_recovery_codes')->insert([
+                    'location_id' => $identity['location_id'],
+                    'user_id' => $identity['user_id'],
+                    'code_hash' => $this->recoveryHash($identity['user_id'], $code),
+                    'created_at' => now(),
+                ]);
+            }
+        });
+        $this->audit('recovery_codes_generated', true, $identity, null, null, $request, ['count' => count($codes)]);
+        return $codes;
+    }
+
+    public function useRecoveryCode(string $code, Request $request): bool
+    {
+        if (!$this->ready()) return false;
+        $identity = $this->identity();
+        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($identity['user']);
+        if ($role !== PmdDefaultStaffRoleService::OWNER) return false;
+
+        $hash = $this->recoveryHash($identity['user_id'], strtoupper(trim($code)));
+        $record = DB::table('pmd_site_access_recovery_codes')
+            ->where('location_id', $identity['location_id'])
+            ->where('user_id', $identity['user_id'])
+            ->where('code_hash', $hash)
+            ->whereNull('used_at')
+            ->first();
+        if (!$record) {
+            $this->audit('recovery_code_failed', false, $identity, null, null, $request);
+            return false;
+        }
+
+        DB::table('pmd_site_access_recovery_codes')->where('id', $record->id)->update(['used_at' => now()]);
+        $challenge = $this->challengeForSession();
+        if ($challenge && $challenge->purpose === self::PURPOSE_WORKSPACE) {
+            DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([
+                'status' => 'approved', 'approved_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+        $this->markWorkspaceVerified($identity['location_id'], 'owner_recovery', 0);
+        $this->audit('owner_recovery_used', true, $identity, null, $challenge ? (int)$challenge->id : null, $request);
+        return true;
+    }
+
+    public function audit(string $eventType, bool $success, array $identity, ?int $deviceId, ?int $challengeId, Request $request, array $metadata = []): void
+    {
+        if (!$this->ready()) return;
+        try {
+            DB::table('pmd_site_access_events')->insert([
+                'location_id' => $identity['location_id'] ?: null,
+                'user_id' => $identity['user_id'] ?: null,
+                'staff_id' => $identity['staff_id'] ?: null,
+                'device_id' => $deviceId ?: null,
+                'challenge_id' => $challengeId ?: null,
+                'event_type' => $eventType,
+                'success' => $success ? 1 : 0,
+                'ip_address' => substr((string)$request->ip(), 0, 45),
+                'user_agent' => substr((string)$request->userAgent(), 0, 2000),
+                'metadata' => $metadata ? json_encode($metadata) : null,
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Site Access audit failed', ['event' => $eventType, 'message' => $error->getMessage()]);
+        }
+    }
+
+    public function pairCurrentVerifiedPersonalDevice(Request $request)
+    {
+        if (!$this->ready() || !AdminAuth::isLogged()) {
+            throw new \RuntimeException('PayMyDine security verification is required.');
+        }
+
+        $identity = $this->identity();
+        $locationId = (int)($identity['location_id'] ?? 0);
+        if (
+            (int)($identity['user_id'] ?? 0) < 1
+            || (int)($identity['staff_id'] ?? 0) < 1
+            || $locationId < 1
+        ) {
+            throw new \RuntimeException(
+                'This PayMyDine account cannot pair an Android device.'
+            );
+        }
+
+        if (!$this->policyEnabled($locationId)) {
+            throw new \RuntimeException(
+                'Restaurant security must be activated before pairing Android devices.'
+            );
+        }
+
+        if (
+            !$this->isWorkspaceVerified($locationId)
+            || !app(PmdSiteAccessSessionBindingService::class)
+                ->isBoundToCurrentUser()
+        ) {
+            throw new \RuntimeException(
+                'Complete PayMyDine security verification before connecting this device.'
+            );
+        }
+
+        [$device] = $this->createPersonalDevice(
+            $identity,
+            $request,
+            (int)session()->get(self::SESSION_VERIFIED_DEVICE, 0)
+        );
+
+        session()->put(self::SESSION_LAST_PAIRED_DEVICE, (int)$device->id);
+
+        $this->audit(
+            'mobile_device_pair_verified_session',
+            true,
+            $identity,
+            (int)$device->id,
+            null,
+            $request,
+            ['protocol' => 'pmd-sync-v1']
+        );
+
+        return $device;
+    }
+
+    /**
+     * Create the durable staff-personal row for an Android pairing request that
+     * was approved from the restaurant approval surface. The temporary token
+     * created here is never returned; the PKCE exchange rotates it exactly once
+     * before Android receives any bearer credential.
+     */
+    public function createApprovedMobileDevice(
+        array $identity,
+        string $deviceName,
+        int $approvedByDeviceId = 0,
+        ?int $approvedByStaffId = null
+    ) {
+        if (!$this->ready()) {
+            throw new \RuntimeException('PayMyDine Site Access storage is not ready.');
+        }
+
+        $locationId = (int)($identity['location_id'] ?? 0);
+        $userId = (int)($identity['user_id'] ?? 0);
+        $staffId = (int)($identity['staff_id'] ?? 0);
+
+        if ($locationId < 1 || $userId < 1 || $staffId < 1) {
+            throw new \RuntimeException(
+                'The Android pairing request no longer has a valid restaurant identity.'
+            );
+        }
+
+        $safeName = trim($deviceName);
+        if ($safeName === '') $safeName = 'PayMyDine Android';
+        $safeName = mb_substr($safeName, 0, 128);
+
+        $rawPlaceholder = bin2hex(random_bytes(32));
+        $values = [
+            'location_id' => $locationId,
+            'device_kind' => 'staff_personal',
+            'staff_id' => $staffId,
+            'pos_device_id' => null,
+            'device_name' => $safeName,
+            'token_hash' => $this->tokenHash($rawPlaceholder),
+            'capabilities' => json_encode([
+                'staff_portal',
+                'mobile_app',
+                'mobile_sync_v1',
+            ]),
+            'platform_info' => json_encode([
+                'name' => $safeName,
+                'platform' => 'android',
+                'pairing' => 'restaurant_inline_approval',
+            ]),
+            'paired_by_staff_id' => $approvedByStaffId ?: null,
+            'paired_at' => now(),
+            'last_seen_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        if (
+            Schema::hasColumn('pmd_site_access_devices', 'user_id')
+        ) {
+            $values['user_id'] = $userId;
+        }
+
+        $deviceId = DB::table('pmd_site_access_devices')->insertGetId($values);
+        $device = DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->first();
+
+        if (!$device) {
+            throw new \RuntimeException('The approved Android device could not be created.');
+        }
+
+        $this->audit(
+            'mobile_device_pair_approved',
+            true,
+            $identity,
+            (int)$deviceId,
+            null,
+            request(),
+            [
+                'approved_by_device_id' => $approvedByDeviceId ?: null,
+                'approved_by_staff_id' => $approvedByStaffId,
+                'protocol' => 'pmd-sync-v1',
+            ]
+        );
+
+        return $device;
+    }
+
+    private function createPersonalDevice(array $identity, Request $request, int $approvedByDeviceId): array
+    {
+        $rawToken = bin2hex(random_bytes(32));
+        $values = [
+            'location_id' => $identity['location_id'],
+            'device_kind' => 'staff_personal',
+            'staff_id' => $identity['staff_id'],
+            'pos_device_id' => null,
+            'device_name' => $this->deviceName($request),
+            'token_hash' => $this->tokenHash($rawToken),
+            'capabilities' => json_encode(['staff_portal']),
+            'platform_info' => json_encode($this->platformInfo($request)),
+            'paired_by_staff_id' => null,
+            'paired_at' => now(),
+            'last_seen_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        if ($this->pmdSchemaHasTable('pmd_site_access_devices')
+            && in_array('user_id', $this->pmdSchemaColumns('pmd_site_access_devices'), true)) {
+            $values['user_id'] = (int)($identity['user_id'] ?? 0) ?: null;
+        }
+
+        $deviceId = DB::table('pmd_site_access_devices')->insertGetId($values);
+        $device = DB::table('pmd_site_access_devices')->where('id', $deviceId)->first();
+        return [$device, $rawToken];
+    }
+
+    private function restaurantDayBoundary(): Carbon
+    {
+        $now = now();
+        $boundary = $now->copy()->startOfDay()->addHours(6);
+        if ($now->gte($boundary)) $boundary->addDay();
+        return $boundary;
+    }
+
+    private function challengeCode(string $publicId, int $locationId): string
+    {
+        $hex = hash_hmac('sha256', 'code|'.$locationId.'|'.$publicId, $this->appSecret());
+        $number = hexdec(substr($hex, 0, 12)) % 1000000;
+        return str_pad((string)$number, 6, '0', STR_PAD_LEFT);
+    }
+
+    private function codeHash(string $publicId, string $code): string
+    {
+        return hash_hmac('sha256', 'verify|'.$publicId.'|'.$code, $this->appSecret());
+    }
+
+    private function recoveryHash(int $userId, string $code): string
+    {
+        return hash_hmac('sha256', 'recovery|'.$userId.'|'.$code, $this->appSecret());
+    }
+
+    private function pmdSchemaHasTable(string $table): bool
+    {
+        if (!array_key_exists($table, $this->pmdSchemaTableCache)) {
+            $this->pmdSchemaTableCache[$table] = Schema::hasTable($table);
+        }
+
+        return (bool)$this->pmdSchemaTableCache[$table];
+    }
+
+    private function pmdSchemaColumns(string $table): array
+    {
+        if (!array_key_exists($table, $this->pmdSchemaColumnCache)) {
+            $this->pmdSchemaColumnCache[$table] = $this->pmdSchemaHasTable($table)
+                ? Schema::getColumnListing($table)
+                : [];
+        }
+
+        return $this->pmdSchemaColumnCache[$table];
+    }
+
+    private function tokenHash(string $raw): string
+    {
+        return hash_hmac('sha256', 'device|'.$raw, $this->appSecret());
+    }
+
+    private function appSecret(): string
+    {
+        return (string)config('app.key', 'pmd-site-access');
+    }
+
+    private function deviceName(Request $request): string
+    {
+        $ua = strtolower((string)$request->userAgent());
+        if (str_contains($ua, 'iphone')) return 'iPhone';
+        if (str_contains($ua, 'ipad')) return 'iPad';
+        if (str_contains($ua, 'android')) return 'Android device';
+        if (str_contains($ua, 'macintosh')) return 'Mac';
+        if (str_contains($ua, 'windows')) return 'Windows device';
+        return 'Browser device';
+    }
+
+    private function platformInfo(Request $request): array
+    {
+        return [
+            'name' => $this->deviceName($request),
+            'user_agent' => substr((string)$request->userAgent(), 0, 500),
+            'ip' => substr((string)$request->ip(), 0, 45),
+        ];
+    }
+}

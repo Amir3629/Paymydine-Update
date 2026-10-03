@@ -1,0 +1,16 @@
+timestamp_utc=20260924T163441Z
+root=/var/www/paymydine
+checkout_head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=e9a4c30e0556da600e7ca0f87b77ddf75d90fc25
+base_commit=ac8220f15ee94f6975569cbf5edbf79610937270
+web_target=b448c19eefae7a83a91e449b70d6bb7dfb95e8f9
+android_source=53320eda20ce886802c26cbb536c6a808f785ab9
+apk=PayMyDine-Android-0.3.20.apk
+apk_sha256=ec9fed9224ee8206c40c57381f9c56b424f5fd9303acd0a7e739485181176e9b
+
+AM app/admin/assets/js/pmd-quick-pos-v1.js
+AM app/admin/views/pmd_quick_pos_v1.blade.php
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+?? app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+?? app/admin/assets/css/pmd-quick-pos-v1.css

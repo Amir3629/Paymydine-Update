@@ -5,11 +5,24 @@
             $active = params('default_themes.main', config('system.defaultTheme'));
             if ($active === 'frontend-theme') {
                 // stream/proxy Next content
-                $next = env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
+                // PMD_ALL_TENANT_FRONTEND_V2_PROXY_R29F
+                // All public customer tenant hosts use V2. Non-tenant/local tooling
+                // keeps the historical NEXT_PROXY_ORIGIN fallback for rollback.
+                $pmdRequestHost = strtolower((string)request()->getHost());
+                $pmdIsCustomerTenantHost = preg_match('/^[a-z0-9-]+\.paymydine\.com$/', $pmdRequestHost) === 1;
+                $next = $pmdIsCustomerTenantHost
+                    ? 'http://127.0.0.1:3002'
+                    : env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
                 $ch = curl_init($next.'/');
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HEADER, false);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                // PMD_FORWARD_TENANT_HOST_TO_NEXT_R29F
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Host: '.$pmdRequestHost,
+                    'X-Forwarded-Host: '.$pmdRequestHost,
+                    'X-Forwarded-Proto: '.request()->getScheme(),
+                ]);
                 $resp = curl_exec($ch);
                 $ctype = curl_getinfo($ch, CURLINFO_CONTENT_TYPE) ?: 'text/html; charset=UTF-8';
                 curl_close($ch);
@@ -20,8 +33,29 @@
 
         // Catch-all: proxy all paths to Next when frontend-theme is active, otherwise run TI controller
         Route::any('{slug?}', function ($slug = null) {
-            
-            
+            // PMD_PUBLIC_BOOKING_CATCHALL_GUARD_V1
+            // Production can reach this catch-all before the dedicated booking
+            // route file is effective. Keep /book on the PHP/TI reservation
+            // authority instead of proxying it to the digital-menu Next app.
+            $pmdBookingPath = '/' . ltrim((string)request()->path(), '/');
+            $pmdBookingMethod = strtoupper((string)request()->method());
+
+            if ($pmdBookingPath === '/booking' || $pmdBookingPath === '/reserve') {
+                return redirect('/book', 302);
+            }
+
+            if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'GET') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->show(request());
+            }
+
+            if ($pmdBookingPath === '/book/availability' && $pmdBookingMethod === 'GET') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->availability(request());
+            }
+
+            if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'POST') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->store(request());
+            }
+
             // PMD_INJECT_PUBLIC_COMPAT_IN_ACTIVE_CATCHALL_20260606
             require_once base_path('routes/pmd-public-compat-handler.php');
             if (function_exists('pmd_public_compat_response_20260606')) {
@@ -72,6 +106,12 @@
 
                             'pmd_social_google_enabled' => $get('pmd_social_google_enabled', '0'),
                             'pmd_social_google_url' => $get('pmd_social_google_url', ''),
+                            'pmd_google_business_connected' => $get('pmd_google_business_connected', '0'),
+                            'pmd_google_business_location_title' => $get('pmd_google_business_location_title', ''),
+                            'pmd_google_place_id' => $get('pmd_google_place_id', ''),
+                            'pmd_google_maps_url' => $get('pmd_google_maps_url', ''),
+                            'pmd_google_write_review_url' => $get('pmd_google_write_review_url', ''),
+                            'pmd_google_reviews_url' => $get('pmd_google_reviews_url', ''),
 
                             'pmd_social_trustpilot_enabled' => $get('pmd_social_trustpilot_enabled', '0'),
                             'pmd_social_trustpilot_url' => $get('pmd_social_trustpilot_url', ''),
@@ -217,6 +257,7 @@ $active = params('default_themes.main', config('system.defaultTheme'));
                 // Exclusions to keep backend working
                 $exclusions = [
                     '/admin',
+                    '/superadmin',
                     config('system.assetsCombinerUri', '/_assets'),
                     '/api',
                     '/api-server.php',
@@ -231,7 +272,14 @@ $active = params('default_themes.main', config('system.defaultTheme'));
                     }
                 }
 
-                $next = env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
+                // PMD_ALL_TENANT_FRONTEND_V2_PROXY_R29F
+                // All public customer tenant hosts use V2. Non-tenant/local tooling
+                // keeps the historical NEXT_PROXY_ORIGIN fallback for rollback.
+                $pmdRequestHost = strtolower((string)request()->getHost());
+                $pmdIsCustomerTenantHost = preg_match('/^[a-z0-9-]+\.paymydine\.com$/', $pmdRequestHost) === 1;
+                $next = $pmdIsCustomerTenantHost
+                    ? 'http://127.0.0.1:3002'
+                    : env('NEXT_PROXY_ORIGIN', 'http://localhost:3001');
                 // Preserve query string and path
                 $uri = request()->getRequestUri();
                 $target = rtrim($next, '/').'/'.ltrim($uri, '/');
@@ -240,6 +288,12 @@ $active = params('default_themes.main', config('system.defaultTheme'));
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HEADER, false);
                 curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                // PMD_FORWARD_TENANT_HOST_TO_NEXT_R29F
+                curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    'Host: '.$pmdRequestHost,
+                    'X-Forwarded-Host: '.$pmdRequestHost,
+                    'X-Forwarded-Proto: '.request()->getScheme(),
+                ]);
                 // Forward method/body
                 $method = request()->getMethod();
                 if ($method !== 'GET') {

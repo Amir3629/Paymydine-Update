@@ -1,0 +1,30 @@
+====================================================
+PMD V2 LOOPBACK ACTIVATION
+UTC=Fri Sep 11 09:03:26 UTC 2026
+====================================================
+
+===== INTERNAL API MUST WORK FIRST =====
+/api/v1/settings                                 HTTP=200 62ms
+/api/v1/restaurant                               HTTP=200 54ms
+/api/v1/categories                               HTTP=200 64ms
+/api/v1/menu                                     HTTP=200 92ms
+/api/v1/menu-content-translations                HTTP=200 80ms
+/api/v1/frontend-theme-v2                        HTTP=200 456ms
+/api/v1/payments                                 HTTP=200 211ms
+/api/v1/payments/worldline/runtime-methods       HTTP=200 57ms
+/api/v1/vat-settings                             HTTP=200 47ms
+/api/v1/tip-settings                             HTTP=404 73ms
+INTERNAL API CHECK: FAIL
+
+POSTCHECK FAILED - ROLLING V2 BACK TO AUTO
+[PM2] Applying action restartProcessId on app [paymydine-frontend-v2](ids: [ 1 ])
+[PM2] [paymydine-frontend-v2](1) ✓
+┌────┬──────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                     │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ paymydine-frontend-v2    │ default     │ N/A     │ fork    │ 2416854  │ 0s     │ 1    │ online    │ 0%       │ 22.5mb   │ ubuntu   │ disabled │
+│ 0  │ paymydine-landing        │ default     │ N/A     │ fork    │ 2413766  │ 2h     │ 0    │ online    │ 0%       │ 57.5mb   │ ubuntu   │ disabled │
+└────┴──────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/ubuntu/.pm2/dump.pm2
+ROLLBACK FINISHED

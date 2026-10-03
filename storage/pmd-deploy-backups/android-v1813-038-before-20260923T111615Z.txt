@@ -1,0 +1,20 @@
+timestamp_utc=20260923T111615Z
+root=/var/www/paymydine
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=d2a8f716fb29415dd7d10c7e67154d4c819bf4b4
+base=9146c37239fb59538bef8c30b45dc282008f0562
+target=f62c20deffe080746d58152fb7a07eca0e508282
+android_source_commit=f62c20deffe080746d58152fb7a07eca0e508282
+android_ci_run=35795502396
+apk_release=PayMyDine-POS-Tablet-Preview-0.3.8.apk
+apk_public=PayMyDine-Android-0.3.8.apk
+apk_sha256=be9e0550cbc0840d9295f12192e6492ca83938548d939267f480796ed39df925
+
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+?? app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+?? app/Services/PmdMobileSync/PmdMobilePairingService.php
+?? app/admin/controllers/PmdQuickPosV1.php
+?? app/admin/controllers/PmdWaiterPosV1.php
+?? app/admin/controllers/PmdWaiterTableStateV154.php
+?? app/admin/controllers/concerns/PmdWaiterPosBootstrapConcern.php

@@ -1,0 +1,162 @@
+====================================================
+PMD V8.3 SINGLE-FLIGHT RC
+NO LIVE SOURCE CHANGE / NO LIVE .next BUILD / NO DB WRITES
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 15:53:06 UTC 2026
+====================================================
+
+===== PRODUCTION SAFETY PRECHECK =====
+live V2 id=1
+live origin=http://127.0.0.1:8088
+pm.max_children=5
+nginx=active
+php8.3-fpm=active
+mariadb=active
+load1=0.00
+PHP CPU=0.4%
+MemAvailable=6362MiB
+disk free=41432MiB
+
+===== CLEAN EXACT STALE FAILED RCs, IF PRESENT =====
+
+===== CREATE ISOLATED RC =====
+RC=/home/ubuntu/PayMyDine-V2-RC-singleflight-20260911_155306
+
+===== MATERIALIZE RC node_modules FOR TURBOPACK =====
+No symlink: Turbopack 16 rejects project node_modules symlinks outside the RC root.
+RC node_modules: REAL DIRECTORY
+
+===== PATCH RC ONLY: EPHEMERAL SINGLE-FLIGHT =====
+RC patch: PASS
+single-flight stable paths: 12
+table-info and table-order-draft remain ordinary no-store fetches
+
+===== RC TYPECHECK + SOURCE-AUDIT DELTA + BUILD =====
+
+> paymydine-frontend-v2-revolution@1.1.1-staging.20260815-integrated-r2 typecheck
+> tsc --noEmit
+
+
+===== SOURCE SAFETY AUDIT: LIVE BASELINE VS RC =====
+live audit exit=1
+RC audit exit=1
+
+Live audit findings already present before this RC patch:
+- app/payment/worldline-embedded-return/page.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/FoodGalleryRuntimeEnhancer.tsx: MutationObserver is not allowed
+- src/runtime/components/ThemeFallbackStyleBridge.tsx: MutationObserver is not allowed
+- src/runtime/components/ThemeFallbackStyleBridge.tsx: runtime style.setProperty count 3 exceeds baseline 0
+- src/runtime/components/WorldlineDirectMethodButton.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/WorldlineEmbeddedCheckoutBridge.tsx: iframe/postMessage theme bridges are not allowed
+- src/runtime/components/WorldlineSingleActionUX.tsx: MutationObserver is not allowed
+- src/runtime/components/WorldlineSingleActionUX.tsx: runtime style.setProperty count 11 exceeds baseline 0
+SOURCE AUDIT DELTA GATE: PASS (zero new violations from single-flight patch)
+
+> paymydine-frontend-v2-revolution@1.1.1-staging.20260815-integrated-r2 build
+> next build
+
+▲ Next.js 16.3.1 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.mjs took 41ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.9s
+  Running TypeScript ...
+  Finished TypeScript in 11.8s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/7) ...
+  Generating static pages using 3 workers (1/7) 
+  Generating static pages using 3 workers (3/7) 
+  Generating static pages using 3 workers (5/7) 
+✓ Generating static pages using 3 workers (7/7) in 324ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /.well-known/apple-developer-merchantid-domain-association
+├ ƒ /api/bootstrap
+├ ƒ /api/health
+├ ƒ /api/locale
+├ ƒ /api/media/[...path]
+├ ƒ /api/v1/[...path]
+├ ƒ /api/v2/frontend-theme
+├ ƒ /assets/media/[...path]
+├ ƒ /menu
+├ ƒ /payment/return
+├ ƒ /payment/worldline-embedded-return
+├ ƒ /pmd-media/[...path]
+├ ƒ /preview
+├ ƒ /preview/[themeId]
+├ ƒ /settings
+├ ƒ /simple-theme
+├ ƒ /storage/[...path]
+├ ƒ /table/[tableId]
+├ ƒ /tip-settings
+├ ƒ /uploads/[...path]
+├ ƒ /valet
+├ ƒ /validate-coupon
+└ ƒ /vat-settings
+
+
+ƒ  (Dynamic)  server-rendered on demand
+
+RC BUILD: PASS
+
+===== START RC ON 127.0.0.1:3003 =====
+RC_PID=2434048
+RC listener: READY
+
+===== BOOTSTRAP JSON PARITY: LIVE 3002 VS RC 3003 =====
+test2.paymydine.com          live=200/0.709s rc=200/0.686s json_equal=True PASS
+mimoza.paymydine.com         live=200/0.635s rc=200/1.336s json_equal=True PASS
+loumi.paymydine.com          live=200/0.427s rc=200/0.451s json_equal=True PASS
+moon.paymydine.com           live=200/2.624s rc=200/2.507s json_equal=True PASS
+tomo.paymydine.com           live=200/2.619s rc=200/2.337s json_equal=True PASS
+BOOTSTRAP JSON PARITY: PASS
+
+===== RC SSR FUNCTIONAL GATE =====
+test2.paymydine.com          HTTP=200 time=0.700s bytes=29417 PASS
+mimoza.paymydine.com         HTTP=200 time=0.629s bytes=39376 PASS
+loumi.paymydine.com          HTTP=200 time=0.489s bytes=27101 PASS
+moon.paymydine.com           HTTP=200 time=1.960s bytes=41693 PASS
+tomo.paymydine.com           HTTP=200 time=2.914s bytes=64339 PASS
+RC SSR FUNCTIONAL GATE: PASS
+
+===== SINGLE-FLIGHT FAN-OUT PROOF =====
+16 simultaneous Test2 QR opens: live then RC
+LIVE 3002 bad=0 p95=7.045s backend_log_delta=192
+RC   3003 bad=0 p95=1.712s backend_log_delta=42
+backend request reduction=78.1%
+SINGLE-FLIGHT EFFECT GATE: PASS
+
+===== RC READ-ONLY CAPACITY =====
+MIX c=8  req=48  bad=0   5xx=0   err=0  p50=1820ms p95=3757ms max=4663ms rps=3.47
+MIX c=12 req=48  bad=0   5xx=0   err=0  p50=2121ms p95=3614ms max=3754ms rps=4.55
+QR  c=12 req=48  bad=0   5xx=0   err=0  p50=1201ms p95=1317ms max=1393ms rps=9.72
+QR  c=16 req=64  bad=0   5xx=0   err=0  p50=1579ms p95=1777ms max=1837ms rps=10.18
+RC CAPACITY GATES: PASS
+
+===== FINAL LIVE PRODUCTION INVARIANTS =====
+live origin=http://127.0.0.1:8088
+live pm.max_children=5
+nginx        active
+php8.3-fpm   active
+mariadb      active
+live V2 health HTTP=200 time=0.022s
+
+===== RC SERVER LOG TAIL =====
+▲ Next.js 16.3.1
+- Local:         http://127.0.0.1:3003
+- Network:       http://127.0.0.1:3003
+✓ Ready in 320ms
+✓ Running next.config.mjs took 46ms
+
+====================================================
+PMD V8.3 SINGLE-FLIGHT RC: VALIDATED
+LIVE PRODUCTION WAS NOT CHANGED
+RC source=/home/ubuntu/PayMyDine-V2-RC-singleflight-20260911_155306
+report=/var/www/paymydine/storage/pmd-singleflight-rc-20260911_155306/report.txt
+benchmark=/var/www/paymydine/storage/pmd-singleflight-rc-20260911_155306/benchmark.json
+RC process will now be stopped automatically
+====================================================

@@ -1,0 +1,734 @@
+<?php
+
+namespace Admin\Controllers;
+
+use Admin\Classes\AdminController;
+use Admin\Facades\AdminAuth;
+use Admin\Facades\AdminMenu;
+use Admin\Facades\Template;
+use Admin\Models\Cash_drawers_model;
+use Admin\Models\FingerDevices_model;
+use Admin\Models\Kds_stations_model;
+use Admin\Models\Pos_configs_model;
+use Admin\Models\Pos_devices_model;
+use Admin\Models\Terminal_devices_model;
+use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\PmdDevicePlatformService;
+use App\Services\PmdTableDisplayService;
+use App\Services\Platform\LocationPlatformContext;
+use App\Services\Turkey\TurkeyIntegrationConfigurationService;
+use Admin\Services\PmdDefaultStaffRoleService;
+use App\Services\Turkey\TurkeyTenantContext;
+use App\Services\Turkey\TurkeyTenantProvisioningService;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
+
+/**
+ * PMD Devices & Hardware
+ *
+ * V4 clean-room device settings. Every visible /admin/pmddevices/* page is
+ * server-first native PMD markup. Legacy device controllers remain backend
+ * action authorities only and their GET UI routes redirect back here.
+ */
+class Pmddevices extends AdminController
+{
+    // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16_2
+    protected $requiredPermissions = 'Site.Settings';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // PMD_DEVICE_SETTINGS_INLINE_V6
+        // /admin/pmddevices is the only visible Devices UI. Create/Edit is handled
+        // by one smooth in-page modal card; child routes only redirect back here.
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-settings-suite pmd-owner-settings-page pmd-devices-settings-page pmd-device-inline-v6');
+        $this->addCss('css/pmd-owner-settings-v1.css');
+        $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
+        $this->addCss('css/pmd-device-inline-v7.css');
+        $this->addCss('css/pmd-device-platform-v1.css');
+        $this->addJs('js/pmd-owner-settings-v1.js');
+        $this->addJs('js/pmd-device-inline-v6.js');
+        $this->addJs('js/pmd-device-platform-v1.js');
+
+        AdminMenu::setContext('settings', 'system');
+    }
+
+    public function index()
+    {
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Devices & hardware', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Devices & hardware', 'settings.'));
+
+        // PMD_WORKPLACE_ACCESS_DEVICES_ENTRY_V2
+        Template::setButton('Workplace Access', [
+            'class' => 'btn btn-primary',
+            'role' => 'button',
+            'href' => admin_url('siteaccess/hub'),
+        ]);
+
+        $pos = $this->safeCollection(Pos_devices_model::class, 'pos_devices', 'name');
+        // PMD_SQUARE_TERMINAL_CANADA_R7_OVERVIEW
+        $allTerminals = $this->safeCollection(Terminal_devices_model::class, 'terminal_devices', 'terminal_device_id');
+        $terminalProviderOptions = Terminal_devices_model::listProviderOptions();
+        $terminalProviderCodes = array_map(static fn ($code) => strtolower(trim((string)$code)), array_keys($terminalProviderOptions));
+        $terminals = $allTerminals->filter(static function ($terminal) use ($terminalProviderCodes) {
+            return in_array(strtolower(trim((string)($terminal->provider_code ?? ''))), $terminalProviderCodes, true);
+        })->values();
+        $archivedTerminalCount = max(0, $allTerminals->count() - $terminals->count());
+        $drawers = $this->safeCollection(Cash_drawers_model::class, 'cash_drawers', 'name');
+        $biometric = $this->safeCollection(FingerDevices_model::class, 'finger_devices', 'name');
+        $kds = $this->safeCollection(Kds_stations_model::class, 'kds_stations', 'name');
+        $integrations = collect();
+        try {
+            if (Schema::hasTable('pos_configs')) {
+                $integrations = Pos_configs_model::with('devices')->orderBy('config_id', 'desc')->get();
+            }
+        } catch (\Throwable $e) {}
+
+        // PMD_TR_SETTINGS_MERGE_R2
+        // Physical/fiscal YN ÖKC configuration belongs in Devices, not on a
+        // second Türkiye-only settings page. Other markets never see this card.
+        $turkeyFiscal = null;
+        try {
+            $market = app(LocationPlatformContext::class)->state();
+            $country = strtoupper((string)($market['country_code'] ?? ''));
+            if ($country === CountryPlatformProfileRegistry::TURKEY) {
+                $locationId = (int)($market['location_id'] ?? 0);
+                if ($locationId < 1) $locationId = $this->turkeyLocationId();
+                app(TurkeyTenantProvisioningService::class)->ensure($locationId);
+                $service = app(TurkeyIntegrationConfigurationService::class);
+                $turkeyFiscal = [
+                    'location_id' => $locationId,
+                    'config' => $service->configuration('yn_okc', $locationId),
+                    'state' => $service->state('yn_okc', $locationId),
+                ];
+                $this->bodyClass = trim($this->bodyClass.' pmd-devices-market-tr');
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Türkiye fiscal device settings load failed', ['message' => $error->getMessage()]);
+        }
+
+        $this->vars['pmdDevices'] = [
+            'pos' => $pos,
+            'terminals' => $terminals,
+            'terminal_provider_options' => $terminalProviderOptions,
+            'archived_terminal_count' => $archivedTerminalCount,
+            'drawers' => $drawers,
+            'biometric' => $biometric,
+            'kds' => $kds,
+            'integrations' => $integrations,
+            'turkey_fiscal' => $turkeyFiscal,
+            'stats' => [
+                'pos' => $pos->count(),
+                'terminals' => $terminals->count(),
+                'drawers' => $drawers->count(),
+                'kds' => $kds->count(),
+                'biometric' => $biometric->count(),
+            ],
+        ];
+
+        // PMD_DEVICE_PLATFORM_V1
+        try {
+            $devicePlatformLocationId = $this->devicePlatformLocationId();
+            $this->vars['pmdDevicePlatform'] = app(PmdDevicePlatformService::class)
+                ->dashboard($devicePlatformLocationId);
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Device Platform dashboard load failed', [
+                'message' => $error->getMessage(),
+            ]);
+            $this->vars['pmdDevicePlatform'] = [
+                'devices' => [],
+                'stats' => ['total' => 0, 'online' => 0, 'offline' => 0, 'sleeping' => 0],
+                'policy' => [],
+                'desired' => [],
+                'error' => $error->getMessage(),
+            ];
+        }
+
+        // One server-rendered modal catalog. Existing device controllers remain
+        // the POST/AJAX authority; this only supplies values/options to the card.
+        $this->vars['pmdDeviceModalCatalog'] = [
+            'pos' => $this->buildDevicePage('pos', 'list', null),
+            'terminals' => $this->buildDevicePage('terminals', 'list', null),
+            'kds' => $this->buildDevicePage('kds', 'list', null),
+            'drawers' => $this->buildDevicePage('drawers', 'list', null),
+            'biometric' => $this->buildDevicePage('biometric', 'list', null),
+            'integrations' => $this->buildDevicePage('integrations', 'list', null),
+        ];
+
+        return $this->makeView('pmddevices/index');
+    }
+
+    /** PMD_TABLE_DISPLAY_V1 */
+    public function tabledisplay()
+    {
+        Template::setTitle(\Admin\Classes\PmdPlatformI18n::fromEnglish('Table display', 'settings.'));
+        Template::setHeading(\Admin\Classes\PmdPlatformI18n::fromEnglish('Table display', 'settings.'));
+
+        $this->bodyClass = trim(($this->bodyClass ?? '').' pmd-table-display-preview-page');
+
+        // PMD_TABLE_DISPLAY_ASSET_HASH_V3
+        // Always advance the browser cache when this dedicated surface changes.
+        $pmdTableDisplayCss = base_path('app/admin/assets/css/pmd-table-display-v1.css');
+        $pmdTableDisplayJs = base_path('app/admin/assets/js/pmd-table-display-v1.js');
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-table-display-v1.css')
+            .'?v='.(string)(@filemtime($pmdTableDisplayCss) ?: 'v3')
+        );
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-table-display-v1.js')
+            .'?v='.(string)(@filemtime($pmdTableDisplayJs) ?: 'v3')
+        );
+
+        $selectedTableId = (int)request()->query('table', 0);
+        $this->vars['pmdTableDisplay'] = app(PmdTableDisplayService::class)
+            ->previewPayload($selectedTableId > 0 ? $selectedTableId : null);
+
+        return $this->makeView('pmddevices/table_display');
+    }
+
+    /** PMD_TABLE_DISPLAY_V1 */
+    public function tabledisplaystate()
+    {
+        $tableId = (int)request()->query('table', 0);
+        if ($tableId < 1) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Choose a table.',
+            ], 422);
+        }
+
+        return response()->json(
+            app(PmdTableDisplayService::class)->state($tableId)
+        );
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onPmdDevicePlatformCommand()
+    {
+        $this->assertDevicePlatformManager();
+
+        $locationId = $this->devicePlatformLocationId();
+        $service = app(PmdDevicePlatformService::class);
+        $action = strtoupper(trim((string)post('action', '')));
+        $deviceId = (int)post('device_id', 0);
+        $targetKind = trim((string)post('target_kind', ''));
+        $payload = [];
+
+        if ($action === 'OPEN_RESTAURANT') {
+            $service->setManualMode(
+                $locationId,
+                'open',
+                $this->devicePlatformStaffId()
+            );
+            $result = $service->issue(
+                $locationId,
+                'WAKE',
+                null,
+                null,
+                [],
+                $this->devicePlatformStaffId()
+            );
+            flash()->success(
+                'Open Restaurant sent to '.(int)$result['count'].' PayMyDine device(s).'
+            );
+            return;
+        }
+
+        if ($action === 'CLOSE_RESTAURANT') {
+            $service->setManualMode(
+                $locationId,
+                'closed',
+                $this->devicePlatformStaffId()
+            );
+            $result = $service->issue(
+                $locationId,
+                'SLEEP',
+                null,
+                null,
+                [],
+                $this->devicePlatformStaffId()
+            );
+            flash()->success(
+                'Close Restaurant sent to '.(int)$result['count'].' PayMyDine device(s).'
+            );
+            return;
+        }
+
+        if ($action === 'USE_SCHEDULE') {
+            $service->setManualMode(
+                $locationId,
+                'auto',
+                $this->devicePlatformStaffId()
+            );
+            flash()->success('Device schedule is active again.');
+            return;
+        }
+
+        if ($action === 'SET_BRIGHTNESS') {
+            $payload['brightness'] = max(
+                0,
+                min(100, (int)post('brightness', 80))
+            );
+        }
+
+        $result = $service->issue(
+            $locationId,
+            $action,
+            $deviceId > 0 ? $deviceId : null,
+            $targetKind !== '' ? $targetKind : null,
+            $payload,
+            $this->devicePlatformStaffId()
+        );
+
+        flash()->success(
+            $action.' sent to '.(int)$result['count'].' PayMyDine device(s).'
+        );
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onStartPmdTableDeployment()
+    {
+        $this->assertDevicePlatformManager();
+
+        $expectedCount = max(
+            1,
+            min(200, (int)post('expected_count', 20))
+        );
+
+        $deployment = app(PmdDevicePlatformService::class)
+            ->createDeploymentSession(
+                $this->devicePlatformLocationId(),
+                $expectedCount,
+                $this->devicePlatformStaffId()
+            );
+
+        flash()->success(
+            'Table deployment started. Code '.
+            (string)($deployment['code'] ?? '').
+            ' can pair up to '.$expectedCount.' displays for two hours.'
+        );
+    }
+
+    /** PMD_KIOSK_V1 */
+    public function onStartPmdKioskDeployment()
+    {
+        $this->assertDevicePlatformManager();
+
+        $expectedCount = max(
+            1,
+            min(50, (int)post('expected_count', 2))
+        );
+
+        $deployment = app(PmdDevicePlatformService::class)
+            ->createDeploymentSession(
+                $this->devicePlatformLocationId(),
+                $expectedCount,
+                $this->devicePlatformStaffId(),
+                'kiosk'
+            );
+
+        flash()->success(
+            'Kiosk deployment started. Code '.
+            (string)($deployment['code'] ?? '').
+            ' can pair up to '.$expectedCount.' self-service kiosk(s) for two hours.'
+        );
+    }
+
+    /** PMD_KIOSK_V1 */
+    public function onCancelPmdKioskDeployment()
+    {
+        $this->assertDevicePlatformManager();
+
+        app(PmdDevicePlatformService::class)
+            ->cancelDeploymentSession(
+                $this->devicePlatformLocationId(),
+                $this->devicePlatformStaffId(),
+                'kiosk'
+            );
+
+        flash()->success('Kiosk deployment session cancelled.');
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onCancelPmdTableDeployment()
+    {
+        $this->assertDevicePlatformManager();
+
+        app(PmdDevicePlatformService::class)
+            ->cancelDeploymentSession(
+                $this->devicePlatformLocationId(),
+                $this->devicePlatformStaffId()
+            );
+
+        flash()->success('Table display deployment session cancelled.');
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onAssignPmdTableDisplay()
+    {
+        $this->assertDevicePlatformManager();
+
+        $deviceId = max(0, (int)post('device_id', 0));
+        $tableId = max(0, (int)post('table_id', 0));
+        if ($deviceId < 1 || $tableId < 1) {
+            throw new \RuntimeException(
+                'Choose a Table Companion and a restaurant table.'
+            );
+        }
+
+        $result = app(PmdDevicePlatformService::class)
+            ->assignTableDisplay(
+                $this->devicePlatformLocationId(),
+                $deviceId,
+                $tableId,
+                $this->devicePlatformStaffId()
+            );
+
+        flash()->success(
+            'Device #'.$deviceId.' assigned to '.
+            (string)($result['table_name'] ?? ('Table '.$tableId)).'.'
+        );
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onAssignPmdTableDisplayTerminal()
+    {
+        $this->assertDevicePlatformManager();
+
+        $deviceId = max(0, (int)post('device_id', 0));
+        $terminalId = max(0, (int)post('terminal_device_id', 0));
+        if ($deviceId < 1) {
+            throw new \RuntimeException('Choose a Table Companion device.');
+        }
+
+        $result = app(PmdDevicePlatformService::class)
+            ->assignTableDisplayTerminal(
+                $this->devicePlatformLocationId(),
+                $deviceId,
+                $terminalId > 0 ? $terminalId : null,
+                $this->devicePlatformStaffId()
+            );
+
+        if (!empty($result['terminal_device_id'])) {
+            flash()->success(
+                'Contactless terminal linked to device #'.$deviceId.': '.
+                (string)($result['terminal_name'] ?? 'Payment terminal').'.'
+            );
+        } else {
+            flash()->success(
+                'Contactless terminal link removed from device #'.$deviceId.'.'
+            );
+        }
+    }
+
+    /** PMD_DEVICE_PLATFORM_V1 */
+    public function onSavePmdDevicePlatformPolicy()
+    {
+        $this->assertDevicePlatformManager();
+
+        $policy = (array)post('device_policy', []);
+        app(PmdDevicePlatformService::class)->savePolicy(
+            $this->devicePlatformLocationId(),
+            $policy,
+            $this->devicePlatformStaffId()
+        );
+
+        flash()->success('Device schedule saved.');
+    }
+
+    public function onSaveTurkeyFiscalDevice()
+    {
+        $locationId = $this->turkeyLocationId();
+        app(TurkeyTenantProvisioningService::class)->ensure($locationId);
+
+        $input = (array)post('turkey', []);
+        $values = (array)($input['fiscal'] ?? []);
+        $validator = Validator::make($values, [
+            'manufacturer' => ['nullable', 'string', 'max:120'],
+            'device_model' => ['nullable', 'string', 'max:120'],
+            'device_serial' => ['nullable', 'string', 'max:190'],
+            'integration_topology' => ['nullable', 'in:eft_pos_integrated,computer_connected'],
+            'security_agreement_reference' => ['nullable', 'string', 'max:500'],
+            'certification_status' => ['nullable', 'string', 'max:100'],
+        ]);
+        if ($validator->fails()) throw new ValidationException($validator);
+
+        $clean = $validator->validated();
+        foreach ($clean as $key => $value) {
+            if (is_string($value)) $clean[$key] = trim($value);
+        }
+
+        app(TurkeyIntegrationConfigurationService::class)->configure('yn_okc', $clean, $locationId);
+
+        flash()->success('Türkiye YN ÖKC device settings saved. This does not certify or activate a real device.');
+        return ['#pmd-tr-device-save-status' => '<span>Saved</span>'];
+    }
+
+    public function pos($mode = null, $recordId = null)
+    {
+        return $this->redirectToOverview('pos', $mode, $recordId);
+    }
+
+    public function terminals($mode = null, $recordId = null)
+    {
+        return $this->redirectToOverview('terminals', $mode, $recordId);
+    }
+
+    public function kds($mode = null, $recordId = null)
+    {
+        return $this->redirectToOverview('kds', $mode, $recordId);
+    }
+
+    public function drawers($mode = null, $recordId = null)
+    {
+        return $this->redirectToOverview('drawers', $mode, $recordId);
+    }
+
+    public function biometric($mode = null, $recordId = null)
+    {
+        return $this->redirectToOverview('biometric', $mode, $recordId);
+    }
+
+    public function integrations($mode = null, $recordId = null)
+    {
+        return $this->redirectToOverview('integrations', $mode, $recordId);
+    }
+
+    protected function redirectToOverview(string $kind, $mode = null, $recordId = null)
+    {
+        [$mode, $recordId] = $this->normalizeMode($mode, $recordId);
+        $section = [
+            'pos' => 'pos-devices',
+            'terminals' => 'payment-terminals',
+            'kds' => 'kds',
+            'drawers' => 'cash-drawers',
+            'biometric' => 'biometric',
+            'integrations' => 'device-configuration',
+        ][$kind] ?? 'pmd-devices-page';
+
+        if ($mode === 'list' || $kind === 'pos') {
+            return redirect(admin_url('pmddevices').'#'.$section);
+        }
+
+        $query = http_build_query(array_filter([
+            'pmd_device' => $kind,
+            'pmd_mode' => $mode,
+            'pmd_id' => $recordId,
+        ], static fn($value) => $value !== null && $value !== ''));
+
+        return redirect(admin_url('pmddevices').'?'.$query.'#'.$section);
+    }
+
+    protected function normalizeMode($mode, $recordId): array
+    {
+        if ($mode === null || $mode === '') return ['list', null];
+        if (is_numeric($mode) && $recordId === null) return ['edit', (int)$mode];
+        $mode = strtolower(trim((string)$mode));
+        if ($mode === 'create') return ['create', null];
+        if ($mode === 'edit') return ['edit', is_numeric($recordId) ? (int)$recordId : null];
+        return ['list', null];
+    }
+
+    protected function buildDevicePage(string $kind, string $mode, ?int $recordId): ?array
+    {
+        $posOptions = $this->optionPosDevices();
+        $base = [
+            'kind' => $kind,
+            'mode' => $mode,
+            'record' => null,
+            'items' => collect(),
+            'options' => ['pos_devices' => $posOptions],
+        ];
+
+        if ($kind === 'pos') {
+            return array_merge($base, [
+                'title' => 'POS devices',
+                'items' => $this->safeCollection(Pos_devices_model::class, 'pos_devices', 'name'),
+                'list_url' => admin_url('pmddevices/pos'),
+                'create_url' => null,
+            ]);
+        }
+
+        if ($kind === 'kds') {
+            $items = $this->safeCollection(Kds_stations_model::class, 'kds_stations', 'name');
+            $record = $mode === 'edit' && $recordId ? Kds_stations_model::find($recordId) : new Kds_stations_model;
+            if ($mode === 'edit' && !$record) return null;
+            return array_merge($base, [
+                'title' => $mode === 'create' ? 'Create KDS station' : ($mode === 'edit' ? 'Edit KDS station' : 'Kitchen display stations'),
+                'items' => $items,
+                'record' => $record,
+                'record_id' => $recordId,
+                'array_name' => 'Kds_station',
+                'backend_url' => $mode === 'create' ? admin_url('kds_stations/create') : ($mode === 'edit' ? admin_url('kds_stations/edit/'.$recordId) : null),
+                'list_url' => admin_url('pmddevices/kds'),
+                'create_url' => admin_url('pmddevices/kds/create'),
+                'options' => array_merge($base['options'], [
+                    'categories' => Kds_stations_model::pmdKdsCategoryOptionsV46(),
+                ]),
+            ]);
+        }
+
+        if ($kind === 'terminals') {
+            $items = $this->safeCollection(Terminal_devices_model::class, 'terminal_devices', 'terminal_device_id');
+            $record = $mode === 'edit' && $recordId ? Terminal_devices_model::find($recordId) : new Terminal_devices_model;
+            if ($mode === 'edit' && !$record) return null;
+            return array_merge($base, [
+                'title' => $mode === 'create' ? 'Create payment terminal' : ($mode === 'edit' ? 'Edit payment terminal' : 'Payment terminals'),
+                'items' => $items,
+                'record' => $record,
+                'record_id' => $recordId,
+                'array_name' => 'Terminal_device',
+                'backend_url' => $mode === 'create' ? admin_url('terminal_devices/create') : ($mode === 'edit' ? admin_url('terminal_devices/edit/'.$recordId) : null),
+                'list_url' => admin_url('pmddevices/terminals'),
+                'create_url' => admin_url('pmddevices/terminals/create'),
+                'options' => array_merge($base['options'], [
+                    'providers' => Terminal_devices_model::listProviderOptions(),
+                    'pairing' => Terminal_devices_model::listPairingStateOptions(),
+                    'worldline_terminal' => app(\App\Services\TerminalPayments\WorldlineTerminalSettingsService::class)->read(),
+                ]),
+            ]);
+        }
+
+        if ($kind === 'drawers') {
+            $items = $this->safeCollection(Cash_drawers_model::class, 'cash_drawers', 'name');
+            $record = $mode === 'edit' && $recordId ? Cash_drawers_model::find($recordId) : new Cash_drawers_model;
+            if ($mode === 'edit' && !$record) return null;
+            $localPos = [];
+            try {
+                $localPos = Pos_devices_model::query()->where('is_local_terminal', 1)->orderBy('name')->pluck('name', 'device_id')->toArray();
+            } catch (\Throwable $e) {}
+            return array_merge($base, [
+                'title' => $mode === 'create' ? 'Create cash drawer' : ($mode === 'edit' ? 'Edit cash drawer' : 'Cash drawers'),
+                'items' => $items,
+                'record' => $record,
+                'record_id' => $recordId,
+                'array_name' => 'Cash_drawer',
+                'backend_url' => $mode === 'create' ? admin_url('cash_drawers/create') : ($mode === 'edit' ? admin_url('cash_drawers/edit/'.$recordId) : null),
+                'list_url' => admin_url('pmddevices/drawers'),
+                'create_url' => admin_url('pmddevices/drawers/create'),
+                'options' => array_merge($base['options'], [
+                    'local_pos' => $localPos,
+                    'connection_types' => method_exists(Cash_drawers_model::class, 'getConnectionTypeOptions') ? Cash_drawers_model::getConnectionTypeOptions() : [],
+                    'voltages' => method_exists(Cash_drawers_model::class, 'getVoltageOptions') ? Cash_drawers_model::getVoltageOptions() : ['12V'=>'12V','24V'=>'24V'],
+                ]),
+            ]);
+        }
+
+        if ($kind === 'biometric') {
+            $items = $this->safeCollection(FingerDevices_model::class, 'finger_devices', 'name');
+            $record = $mode === 'edit' && $recordId ? FingerDevices_model::find($recordId) : new FingerDevices_model;
+            if ($mode === 'edit' && !$record) return null;
+            return array_merge($base, [
+                'title' => $mode === 'create' ? 'Create biometric device' : ($mode === 'edit' ? 'Edit biometric device' : 'Biometric devices'),
+                'items' => $items,
+                'record' => $record,
+                'record_id' => $recordId,
+                'array_name' => 'FingerDevice',
+                'backend_url' => $mode === 'create' ? admin_url('biometric_devices/create') : ($mode === 'edit' ? admin_url('biometric_devices/edit/'.$recordId) : null),
+                'list_url' => admin_url('pmddevices/biometric'),
+                'create_url' => admin_url('pmddevices/biometric/create'),
+            ]);
+        }
+
+        if ($kind === 'integrations') {
+            $items = collect();
+            try { $items = Pos_configs_model::with('devices')->orderBy('config_id', 'desc')->get(); } catch (\Throwable $e) {}
+            $record = $mode === 'edit' && $recordId ? Pos_configs_model::with('devices')->find($recordId) : new Pos_configs_model;
+            if ($mode === 'edit' && !$record) return null;
+            return array_merge($base, [
+                'title' => $mode === 'create' ? 'Create POS integration' : ($mode === 'edit' ? 'Edit POS integration' : 'POS integrations'),
+                'items' => $items,
+                'record' => $record,
+                'record_id' => $recordId,
+                'array_name' => 'Pos_config',
+                'backend_url' => $mode === 'create' ? admin_url('pos_configs/create') : ($mode === 'edit' ? admin_url('pos_configs/edit/'.$recordId) : null),
+                'list_url' => admin_url('pmddevices/integrations'),
+                'create_url' => admin_url('pmddevices/integrations/create'),
+            ]);
+        }
+
+        return null;
+    }
+
+    protected function optionPosDevices(): array
+    {
+        try {
+            if (!Schema::hasTable('pos_devices')) return [];
+            return Pos_devices_model::query()->orderBy('name')->pluck('name', 'device_id')->toArray();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    protected function safeCollection(string $modelClass, string $table, string $orderBy)
+    {
+        try {
+            if (!Schema::hasTable($table)) return collect();
+            $query = $modelClass::query();
+            if ($orderBy !== '') $query->orderBy($orderBy);
+            return $query->get();
+        } catch (\Throwable $error) {
+            logger()->warning('PMD devices query failed', ['table' => $table, 'message' => $error->getMessage()]);
+            return collect();
+        }
+    }
+
+    protected function devicePlatformLocationId(): int
+    {
+        try {
+            $state = app(LocationPlatformContext::class)->state();
+            $locationId = (int)($state['location_id'] ?? 0);
+            if ($locationId > 0) {
+                return $locationId;
+            }
+        } catch (\Throwable $ignored) {
+        }
+
+        return 1;
+    }
+
+    protected function devicePlatformStaffId(): ?int
+    {
+        try {
+            $user = AdminAuth::getUser();
+            if (!$user) {
+                return null;
+            }
+
+            $staffId = (int)($user->staff->staff_id ?? $user->staff_id ?? 0);
+            return $staffId > 0 ? $staffId : null;
+        } catch (\Throwable $ignored) {
+            return null;
+        }
+    }
+
+    protected function assertDevicePlatformManager(): void
+    {
+        $user = AdminAuth::getUser();
+        if (!$user) {
+            throw new \RuntimeException('Authentication required.');
+        }
+
+        $role = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($user);
+        if (!in_array($role, [
+            PmdDefaultStaffRoleService::OWNER,
+            PmdDefaultStaffRoleService::MANAGER,
+        ], true)) {
+            throw new \RuntimeException(
+                'Only Owner or Manager can control restaurant devices.'
+            );
+        }
+    }
+
+    protected function turkeyLocationId(): int
+    {
+        $state = app(TurkeyTenantContext::class)->requireTurkey();
+        $locationId = (int)($state['location_id'] ?? 0);
+        if ($locationId < 1) {
+            throw new \RuntimeException('Unable to resolve the current Türkiye location.');
+        }
+        return $locationId;
+    }
+}

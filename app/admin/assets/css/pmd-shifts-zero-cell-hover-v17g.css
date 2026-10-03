@@ -1,0 +1,66 @@
+/* PMD_SHIFTS_ZERO_CELL_HOVER_V17G */
+
+/*
+ * Final interaction-paint authority for empty planner slots.
+ * Earlier Shifts CSS still contains hover/focus-visible fills. Safari may keep
+ * focus after pointer interaction, so neutralize every interactive state.
+ * The button stays present, clickable and keyboard-operable.
+ */
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-screen .pmd-shifts-final-track .pmd-shifts-final-slots > button.pmd-shifts-final-slot,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-screen .pmd-shifts-final-track .pmd-shifts-final-slots > button.pmd-shifts-final-slot:hover,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-screen .pmd-shifts-final-track .pmd-shifts-final-slots > button.pmd-shifts-final-slot:focus,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-screen .pmd-shifts-final-track .pmd-shifts-final-slots > button.pmd-shifts-final-slot:focus-visible,
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-screen .pmd-shifts-final-track .pmd-shifts-final-slots > button.pmd-shifts-final-slot:active {
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  -webkit-tap-highlight-color:transparent!important;
+  background:none!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  border:0!important;
+  border-color:transparent!important;
+  border-radius:0!important;
+  outline:0!important;
+  outline-color:transparent!important;
+  box-shadow:none!important;
+  filter:none!important;
+  transform:none!important;
+  text-shadow:none!important;
+  transition:none!important;
+  animation:none!important;
+}
+
+/* Also beat attribute/global button hover rules that target the create action. */
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot[data-pmd-person-slot-create],
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot[data-pmd-person-slot-create]:hover,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot[data-pmd-person-slot-create]:focus,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot[data-pmd-person-slot-create]:focus-visible,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot[data-pmd-person-slot-create]:active {
+  background:none!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  border-color:transparent!important;
+  outline:0!important;
+  box-shadow:none!important;
+  filter:none!important;
+  transform:none!important;
+}
+
+/* No hidden child/pseudo indicator may repaint on any state. */
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot > span,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot::before,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot::after,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot:hover > span,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot:focus > span,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot:focus-visible > span,
+html body.pmd-shifts-page #pmd-shifts button.pmd-shifts-final-slot:active > span {
+  content:none!important;
+  display:none!important;
+  visibility:hidden!important;
+  opacity:0!important;
+  background:transparent!important;
+  border:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+}

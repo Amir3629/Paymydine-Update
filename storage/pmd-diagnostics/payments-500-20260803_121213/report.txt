@@ -1,0 +1,1175 @@
+============================================================
+PMD PAYMENTS 500 READ-ONLY DIAGNOSTIC
+============================================================
+
+============================================================
+1. Relevant production files
+============================================================
+f8fe8dd6e34eabbcacc27a3b799026e57d73cf8b9e65e16b9cbb96f31cf76602  /var/www/paymydine/app/admin/controllers/Payments.php
+226983369ac0fe41085b21804917bc76550fe9f8e4808874f3c5f8d2d7155321  /var/www/paymydine/app/admin/models/Payments_model.php
+276b02da3603c1c953655c9fa94694ad9ee289afc8be21669fdb3ea7e0ff94c4  /var/www/paymydine/app/admin/views/payments/index.blade.php
+No syntax errors detected in /var/www/paymydine/app/admin/controllers/Payments.php
+No syntax errors detected in /var/www/paymydine/app/admin/models/Payments_model.php
+No syntax errors detected in /var/www/paymydine/app/admin/views/payments/index.blade.php
+
+============================================================
+2. Payment route registration
+============================================================
+
+============================================================
+3. Controller mode and synchronization logic
+============================================================
+17-class Payments extends \Admin\Classes\AdminController
+18-{
+19-    /**
+20-     * provider_capability_matrix (research/docs level):
+21-     * - What providers can support in general.
+22-     *
+23-     * implemented_flow_matrix:
+24-     * - What is actually implemented end-to-end in this codebase today.
+25-     * - This must be used for assignable dropdown/validation.
+26-     */
+27:    protected const METHOD_CODES = ['card', 'apple_pay', 'google_pay', 'wero', 'paypal', 'cod'];
+28:    protected const PROVIDER_CODES = ['stripe', 'paypal', 'worldline', 'sumup', 'square', 'vr_payment'];
+29-
+30-    public $implement = [
+31-        'Admin\Actions\ListController',
+32-        'Admin\Actions\FormController',
+33-    ];
+34-
+35-    public $listConfig = [
+36-        'list' => [
+37-            'model' => 'Admin\Models\Payments_model',
+38-            'title' => 'lang:admin::lang.payments.text_title',
+--
+67-
+68-    protected $gateway;
+69-
+70-    public function __construct()
+71-    {
+72-        parent::__construct();
+73-
+74-        AdminMenu::setContext('payments', 'sales');
+75-    }
+76-
+77:    public function index()
+78-    {
+79-        $requestedMode = (string)request()->get('mode', '');
+80-        $sessionMode = (string)session('payments.form_mode', 'methods');
+81-        $mode = in_array($requestedMode, ['methods', 'providers'], true) ? $requestedMode : $sessionMode;
+82-        if (!in_array($mode, ['methods', 'providers'], true)) {
+83-            $mode = 'methods';
+84-        }
+85-
+86-        session(['payments.form_mode' => $mode]);
+87-
+88-        if ($requestedMode === '') {
+89-            return \Redirect::to(admin_url('payments?mode='.$mode));
+90-        }
+91-
+92:        $this->syncMethodRecords();
+93:        $this->syncProviderRecords();
+94-
+95-        $this->asExtension('ListController')->index();
+96-    }
+97-
+98-    public function providers()
+99-    {
+100:        $this->syncProviderRecords();
+101-        session(['payments.form_mode' => 'providers']);
+102-        return \Redirect::to(admin_url('payments?mode=providers'));
+103-    }
+104-
+105-    /**
+106-     * Finds a Model record by its primary identifier, used by edit actions. This logic
+107-     * can be changed by overriding it in the controller.
+108-     *
+109-     * @param string $paymentCode
+110-     *
+--
+150-    {
+151-        // Always apply gateway class to ensure methods are available
+152-        $model->applyGatewayClass();
+153-
+154-        return $model;
+155-    }
+156-
+157-    public function formExtendFields($form)
+158-    {
+159-        $model = $form->model;
+160:        $isMethodRecord = in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode();
+161:        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
+162:            && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
+163-
+164-        if ($isMethodRecord && (string)$model->code !== 'cod') {
+165-            $currentProvider = $this->extractProviderCode($model);
+166-            $compatibleOptions = $this->getCompatibleProviders($model->code);
+167-            $assignmentWarning = null;
+168-            if ($currentProvider && !array_key_exists($currentProvider, $compatibleOptions)) {
+169-                $assignmentWarning = "Current provider '{$currentProvider}' is no longer selectable because this flow is not fully implemented. Please select a supported provider.";
+170-            }
+171-
+172-            $form->addFields([
+--
+234-        if (!strlen($code = post('Payment.payment')))
+235-            throw new ApplicationException(lang('admin::lang.payments.alert_invalid_code'));
+236-
+237-        $paymentGateway = PaymentGateways::instance()->findGateway($code);
+238-
+239-        $model->class_name = $paymentGateway['class'];
+240-    }
+241-
+242-    public function formValidate($model, $form)
+243-    {
+244:        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
+245:            && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
+246-
+247-        $rules = [
+248-            'payment'     => ['sometimes', 'required', 'alpha_dash'],
+249-            'name'        => ['required', 'min:2', 'max:128'],
+250-            'code' => [
+251-                'sometimes',
+252-                'required',
+253-                'alpha_dash',
+254-                Rule::unique($model->getTable(), 'code')->ignore($model->getKey(), $model->getKeyName()),
+255-            ],
+--
+362-            'exists' => (bool)$model->exists,
+363-            'storage_path' => method_exists($model, 'isMethodStorageResolved') && $model->isMethodStorageResolved() ? 'payment_methods' : 'payments',
+364-            'meta_type' => gettype($model->getAttribute('meta')),
+365-            'data_attr_type' => gettype($model->getAttributes()['data'] ?? null),
+366-            'data_accessor_type' => gettype($model->data),
+367-            'incoming_payload' => $this->redactPaymentPayload($incomingPayload),
+368-            'data_before' => $this->redactPaymentPayload(is_array($model->data) ? $model->data : []),
+369-            'provider_code_before' => $model->provider_code ?? null,
+370-        ]);
+371-
+372:        if (in_array((string)$model->code, self::METHOD_CODES, true) && !$this->isProvidersMode()) {
+373-            $providerCode = post('provider_code', post('Payment.provider_code'));
+374-            $providerCode = strlen((string)$providerCode) ? (string)$providerCode : null;
+375-            $this->validateProviderCompatibility((string)$model->code, $providerCode);
+376-
+377-            $data = $model->getConfigData();
+378-            $data['provider_code'] = $providerCode;
+379-            $model->setConfigData($data);
+380-            $model->provider_code = $providerCode;
+381-        }
+382-
+383:        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
+384:            && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
+385-        if ($isProviderRecord) {
+386-            if (!strlen((string)$model->name)) {
+387-                $model->name = (string)($model->getOriginal('name') ?: $model->name);
+388-            }
+389-            $postedProviderData = $this->extractPostedProviderPayload((string)$model->code);
+390-            $normalizedProviderData = $this->filterProviderDataFromPost((string)$model->code, $postedProviderData, $model->getConfigData());
+391-            if ((string)$model->code === 'sumup') {
+392-                $token = trim((string)($normalizedProviderData['access_token'] ?? ''));
+393-                $baseUrl = rtrim((string)($normalizedProviderData['url'] ?? 'https://api.sumup.com'), '/');
+394-                $configuredMerchantCodeBefore = trim((string)($normalizedProviderData['id_application'] ?? ''));
+--
+499-            'meta_type' => gettype($model->getAttribute('meta')),
+500-            'data_attr_type' => gettype($model->getAttributes()['data'] ?? null),
+501-            'data_accessor_type' => gettype($model->data),
+502-            'data_after_prepare' => $this->redactPaymentPayload(is_array($model->data) ? $model->data : []),
+503-            'provider_code_after_prepare' => $model->provider_code ?? null,
+504-            'status' => (int)$model->status,
+505-            'is_default' => (int)$model->is_default,
+506-        ]);
+507-    }
+508-
+509:    public function listExtendQuery($query)
+510-    {
+511-        $mode = (string)request()->get('mode', (string)session('payments.form_mode', 'methods'));
+512-        if (!in_array($mode, ['methods', 'providers'], true)) {
+513-            $mode = 'methods';
+514-        }
+515-
+516-        if ($mode === 'providers' || str_contains(request()->path(), 'payments/providers')) {
+517:            $this->syncProviderRecords();
+518:            $query->whereIn('code', self::PROVIDER_CODES);
+519-            return;
+520-        }
+521-
+522:        $query->whereIn('code', self::METHOD_CODES);
+523-    }
+524-
+525-    public function formAfterSave($model)
+526-    {
+527-        $fresh = Payments_model::query()->where($model->getKeyName(), $model->getKey())->first();
+528-        \Log::info('PMD_PAYMENTS_FORM_AFTER_SAVE', [
+529-            'code' => (string)$model->code,
+530-            'payment_id' => (int)$model->getKey(),
+531-            'table' => $model->getTable(),
+532-            'key_name' => $model->getKeyName(),
+533-            'storage_path' => method_exists($model, 'isMethodStorageResolved') && $model->isMethodStorageResolved() ? 'payment_methods' : 'payments',
+534-            'reloaded_table' => optional($fresh)->getTable(),
+535-            'reloaded_key_name' => optional($fresh)->getKeyName(),
+536-            'reloaded_key' => optional($fresh)->getKey(),
+537-            'saved_data' => $this->redactPaymentPayload(is_array(optional($fresh)->data) ? $fresh->data : []),
+538-            'saved_provider_code' => optional($fresh)->provider_code,
+539-            'saved_status' => (int)optional($fresh)->status,
+540-            'saved_is_default' => (int)optional($fresh)->is_default,
+541-        ]);
+542-
+543:        $isProviderRecord = in_array((string)$model->code, self::PROVIDER_CODES, true)
+544:            && ($this->isProvidersMode() || !in_array((string)$model->code, self::METHOD_CODES, true));
+545-        if (!$isProviderRecord) {
+546-            return;
+547-        }
+548-
+549-        $data = $model->getConfigData();
+550-        if ((string)$model->code === 'worldline') {
+551-            $this->syncProviderIntoPosConfig('worldline', [
+552-                'url' => $data['api_endpoint'] ?? null,
+553-                'username' => $data['api_key_id'] ?? null,
+554-                'access_token' => $data['secret_api_key'] ?? null,
+--
+566-            if (preg_match('/secret|token|password|api_key/i', $k)) {
+567-                $redacted[$k] = is_string($value) && $value !== '' ? '***redacted***' : $value;
+568-                continue;
+569-            }
+570-            $redacted[$k] = $value;
+571-        }
+572-
+573-        return $redacted;
+574-    }
+575-
+576:    protected function syncMethodRecords(): void
+577-    {
+578-        $defaults = [
+579-            'card' => ['name' => 'Card', 'priority' => 1, 'provider_code' => 'stripe'],
+580-            'apple_pay' => ['name' => 'Apple Pay', 'priority' => 2, 'provider_code' => 'stripe'],
+581-            'google_pay' => ['name' => 'Google Pay', 'priority' => 3, 'provider_code' => 'stripe'],
+582-            'wero' => ['name' => 'Wero', 'priority' => 4, 'provider_code' => 'worldline'],
+583-            'paypal' => ['name' => 'PayPal', 'priority' => 5, 'provider_code' => 'paypal'],
+584-            'cod' => ['name' => 'Cash', 'priority' => 6, 'provider_code' => null],
+585-        ];
+586-
+--
+634-        $map = [];
+635-        foreach ($rows as $row) {
+636-            $key = $row->code === 'paypalexpress' ? 'paypal' : $row->code;
+637-            if (!empty($row->class_name) && !isset($map[$key])) {
+638-                $map[$key] = $row->class_name;
+639-            }
+640-        }
+641-        return $map;
+642-    }
+643-
+644:    protected function syncProviderRecords(): void
+645-    {
+646-        Payments_model::syncAll();
+647-
+648-        $providerDefaults = collect($this->providerPriorityDefaults())
+649-            ->mapWithKeys(fn ($priority, $code) => [$code => ['name' => ucfirst($code === 'sumup' ? 'SumUp' : $code), 'priority' => $priority]])
+650-            ->toArray();
+651-        $providerDefaults['paypal']['name'] = 'PayPal';
+652-        $providerDefaults['worldline']['name'] = 'Worldline';
+653-        $providerDefaults['stripe']['name'] = 'Stripe';
+654-        $providerDefaults['square']['name'] = 'Square';
+--
+1000-                'ok' => false,
+1001-                'message' => 'Failed to contact SumUp identity endpoint.',
+1002-            ];
+1003-        }
+1004-    }
+1005-
+1006-    public function onTestProviderConnection()
+1007-    {
+1008-        $code = (string)post('code', post('Payment.code', (string)($this->params[0] ?? '')));
+1009-        $model = Payments_model::query()->where('code', $code)->first();
+1010:        if (!$model || !in_array($code, self::PROVIDER_CODES, true)) {
+1011-            throw new ApplicationException('Provider record not found.');
+1012-        }
+1013-
+1014-        $data = (array)$model->data;
+1015-        $result = ['success' => false, 'message' => 'Connection test not configured for this provider.'];
+1016-
+1017-        if ($code === 'stripe') {
+1018-            $mode = $data['transaction_mode'] ?? 'test';
+1019-            $secretKey = $mode === 'live' ? ($data['live_secret_key'] ?? null) : ($data['test_secret_key'] ?? null);
+1020-            if (!$secretKey) throw new ApplicationException('Missing Stripe secret key for selected mode.');
+
+============================================================
+4. Safe payment database inspection
+============================================================
+
+
+
+----- Database connection -----
+Default connection: mysql
+Database: paymydine
+payment_methods        EXISTS
+ti_payment_methods     missing
+payments               EXISTS
+ti_payments            missing
+
+----- Schema: payment_methods -----
+id, code, name, status, sort_order, provider_code, meta, created_at, updated_at
+[
+    {
+        "id": 1,
+        "name": "Card",
+        "code": "card",
+        "provider_code": "worldline",
+        "status": 1,
+        "sort_order": 10,
+        "created_at": "2026-04-01 15:47:54",
+        "updated_at": "2026-04-01 15:47:54"
+    },
+    {
+        "id": 2,
+        "name": "Apple Pay",
+        "code": "apple_pay",
+        "provider_code": "stripe",
+        "status": 1,
+        "sort_order": 20,
+        "created_at": "2026-04-01 15:47:54",
+        "updated_at": "2026-04-01 15:47:54"
+    },
+    {
+        "id": 4,
+        "name": "Google Pay",
+        "code": "google_pay",
+        "provider_code": "stripe",
+        "status": 1,
+        "sort_order": 30,
+        "created_at": "2026-04-01 15:47:54",
+        "updated_at": "2026-04-01 15:47:54"
+    },
+    {
+        "id": 3,
+        "name": "PayPal",
+        "code": "paypal",
+        "provider_code": "paypal",
+        "status": 1,
+        "sort_order": 40,
+        "created_at": "2026-04-01 15:47:54",
+        "updated_at": "2026-04-01 15:47:54"
+    }
+]
+
+----- Schema: payments -----
+payment_id, name, code, class_name, description, data, status, is_default, priority, created_at, updated_at
+[
+    {
+        "payment_id": 1,
+        "name": "Cash On Delivery",
+        "code": "cod",
+        "class_name": "",
+        "status": 1,
+        "is_default": 1,
+        "priority": 1,
+        "created_at": "2024-12-31 19:17:38",
+        "updated_at": "2026-03-08 16:09:47"
+    },
+    {
+        "payment_id": 4,
+        "name": "Stripe",
+        "code": "stripe",
+        "class_name": "Igniter\\PayRegister\\Payments\\Stripe",
+        "status": 1,
+        "is_default": 0,
+        "priority": 4,
+        "created_at": "2024-12-31 19:17:38",
+        "updated_at": "2026-03-08 16:09:47"
+    },
+    {
+        "payment_id": 6,
+        "name": "Square Payment",
+        "code": "square",
+        "class_name": "Igniter\\PayRegister\\Payments\\Square",
+        "status": 1,
+        "is_default": 0,
+        "priority": 6,
+        "created_at": "2024-12-31 19:17:38",
+        "updated_at": "2026-03-08 16:09:47"
+    },
+    {
+        "payment_id": 7,
+        "name": "Apple Pay",
+        "code": "apple_pay",
+        "class_name": "Igniter\\PayRegister\\Payments\\ApplePay",
+        "status": 1,
+        "is_default": 0,
+        "priority": 7,
+        "created_at": "2026-03-02 14:59:16",
+        "updated_at": "2026-03-08 16:09:47"
+    },
+    {
+        "payment_id": 8,
+        "name": "Google Pay",
+        "code": "google_pay",
+        "class_name": "Igniter\\PayRegister\\Payments\\GooglePay",
+        "status": 1,
+        "is_default": 0,
+        "priority": 8,
+        "created_at": "2026-03-02 14:59:16",
+        "updated_at": "2026-03-08 16:09:47"
+    }
+]
+
+----- Registered gateway classes -----
+[
+    {
+        "code": "apple_pay",
+        "class": "Igniter\\PayRegister\\Payments\\ApplePay",
+        "class_exists": true
+    },
+    {
+        "code": "google_pay",
+        "class": "Igniter\\PayRegister\\Payments\\Stripe",
+        "class_exists": true
+    },
+    {
+        "code": "cod",
+        "class": "Igniter\\PayRegister\\Payments\\Cod",
+        "class_exists": true
+    },
+    {
+        "code": "paypalexpress",
+        "class": "Igniter\\PayRegister\\Payments\\PaypalExpress",
+        "class_exists": true
+    },
+    {
+        "code": "authorizenetaim",
+        "class": "Igniter\\PayRegister\\Payments\\AuthorizeNetAim",
+        "class_exists": true
+    },
+    {
+        "code": "mollie",
+        "class": "Igniter\\PayRegister\\Payments\\Mollie",
+        "class_exists": true
+    },
+    {
+        "code": "square",
+        "class": "Igniter\\PayRegister\\Payments\\Square",
+        "class_exists": true
+    },
+    {
+        "code": "sumup",
+        "class": "Igniter\\PayRegister\\Payments\\SumUp",
+        "class_exists": true
+    }
+]
+
+============================================================
+5. Recent payment-related application errors
+============================================================
+
+----- /var/www/paymydine/storage/logs/pmd_r2o_import_orders_fullscan.log -----
+
+----- /var/www/paymydine/storage/logs/system.log -----
+[2026-08-03 11:28:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:28:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:28:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:28:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:28:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:28:02] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:28:07] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:28:07] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:28:18] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 11:29:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:29:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:29:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:29:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:29:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:29:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:29:09] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 11:30:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:30:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:30:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:30:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:30:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:30:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:30:02] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:11] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:11] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:30:12] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:12] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:30:24] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:24] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:30:24] production.INFO: [TenantDatabaseMiddleware] switched tenant connection {"host":"mimoza.paymydine.com","subdomain":"mimoza","tenant_domain":"mimoza.paymydine.com","tenant_db":"mimoza"} 
+[2026-08-03 12:30:24] production.INFO: PMD_PAY_EXISTING_DEBUG_20260612 incoming {"host":"mimoza.paymydine.com","connection":"tenant","database":"mimoza","payload":{"order_id":1943,"payment_method":"cash","payment_reference":"[object Object]","amount":21.6,"tip_amount":0,"coupon_discount":0,"coupon_code":null,"selected_items":null,"payer_label":null,"table_id":null,"table_no":null,"qr":null}} 
+[2026-08-03 12:30:24] production.INFO: QR_SETTLEMENT_DEBUG pay-existing before {"host":"mimoza.paymydine.com","connection":"tenant","database":"mimoza","order_id":1943,"payload":{"order_id":1943,"payment_method":"cash","payment_reference":"[object Object]","amount":21.6,"selected_items":null,"tip_amount":0,"coupon_discount":0,"coupon_code":null}} 
+[2026-08-03 12:30:24] production.INFO: Order notification created {"notification_id":1631,"order_id":1943,"table_id":"","status":"full_payment"} 
+[2026-08-03 12:30:24] production.INFO: QR_SETTLEMENT_DEBUG pay-existing after {"order_id":1943,"transaction_id":104,"allocation_rows":[{"order_menu_id":4936,"menu_id":167,"name":"kj","quantity_paid":1.0,"unit_price":0.0,"line_total":0.0},{"order_menu_id":4937,"menu_id":136,"name":"Avocado Toast","quantity_paid":1.0,"unit_price":8.9,"line_total":8.9},{"order_menu_id":4938,"menu_id":138,"name":"Fluffy Pancakes","quantity_paid":1.0,"unit_price":8.5,"line_total":8.5},{"order_menu_id":4939,"menu_id":162,"name":"Chai","quantity_paid":1.0,"unit_price":4.2,"line_total":4.2}],"settlement_status":"paid","settled_amount":21.6,"remaining_amount":0} 
+[2026-08-03 12:30:27] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:27] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:30:27] production.INFO: [TenantDatabaseMiddleware] switched tenant connection {"host":"mimoza.paymydine.com","subdomain":"mimoza","tenant_domain":"mimoza.paymydine.com","tenant_db":"mimoza"} 
+[2026-08-03 12:30:29] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:29] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:32] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:44] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:47] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:49] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:49] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:49] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:49] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:49] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'orders.settled_amount' in 'SELECT' (SQL: select COUNT(*) AS samples, COALESCE(SUM(GREATEST(orders.settled_amount - COALESCE(pmd_tips.tip_amount, 0), 0)), 0) AS aggregate from `ti_orders` left join (select order_id, SUM(value) AS tip_amount from `ti_order_totals` where LOWER(code) = 'tip' group by `order_id`) as `ti_pmd_tips` on `ti_orders`.`order_id` = `ti_pmd_tips`.`order_id` where `location_id` = 1 and `settled_at` between 2026-08-03 00:00:00 and 2026-08-03 12:30:49 and `processed` = 1 and `settled_at` is not null and `settled_amount` >= 0 and LOWER(settlement_status) in (paid, settled) and not exists (select 1 from `ti_statuses` as `ti_pmd_status` where `ti_pmd_status`.`status_id` = `ti_orders`.`status_id` and LOWER(pmd_status.status_name) REGEXP 'cancel|refund|failed|void') limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'orders.settled_amount' in 'SELECT' (SQL: select COUNT(*) AS samples, COALESCE(SUM(GREATEST(orders.settled_amount - COALESCE(pmd_tips.tip_amount, 0), 0)), 0) AS aggregate from `ti_orders` left join (select order_id, SUM(value) AS tip_amount from `ti_order_totals` where LOWER(code) = 'tip' group by `order_id`) as `ti_pmd_tips` on `ti_orders`.`order_id` = `ti_pmd_tips`.`order_id` where `location_id` = 1 and `settled_at` between 2026-08-01 00:00:00 and 2026-08-03 12:30:49 and `processed` = 1 and `settled_at` is not null and `settled_amount` >= 0 and LOWER(settlement_status) in (paid, settled) and not exists (select 1 from `ti_statuses` as `ti_pmd_status` where `ti_pmd_status`.`status_id` = `ti_orders`.`status_id` and LOWER(pmd_status.status_name) REGEXP 'cancel|refund|failed|void') limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'opened.id' in 'SELECT' (SQL: select COUNT(*) AS samples, AVG(TIMESTAMPDIFF(SECOND, opened_at, closed_at)) / 60 AS aggregate from (select opened.id, opened.created_at AS opened_at, MIN(closed.created_at) AS closed_at from `ti_pmd_table_status_history` as `ti_opened` inner join `ti_pmd_table_status_history` as `ti_closed` on `ti_closed`.`table_id` = `ti_opened`.`table_id` and `ti_closed`.`created_at` > `ti_opened`.`created_at` and `ti_closed`.`new_status` in (cleaning, available) where `ti_opened`.`new_status` = occupied and `ti_opened`.`table_id` in (326, 327, 328, 329, 330) group by `ti_opened`.`id`, `ti_opened`.`created_at`) as `ti_visits` where `closed_at` between 2026-08-03 00:00:00 and 2026-08-03 12:30:49 and TIMESTAMPDIFF(MINUTE, opened_at, closed_at) BETWEEN 1 AND 720 limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'opened.id' in 'SELECT' (SQL: select COUNT(*) AS samples, AVG(TIMESTAMPDIFF(SECOND, opened_at, closed_at)) / 60 AS aggregate from (select opened.id, opened.created_at AS opened_at, MIN(closed.created_at) AS closed_at from `ti_pmd_table_status_history` as `ti_opened` inner join `ti_pmd_table_status_history` as `ti_closed` on `ti_closed`.`table_id` = `ti_opened`.`table_id` and `ti_closed`.`created_at` > `ti_opened`.`created_at` and `ti_closed`.`new_status` in (cleaning, available) where `ti_opened`.`new_status` = occupied and `ti_opened`.`table_id` in (326, 327, 328, 329, 330) group by `ti_opened`.`id`, `ti_opened`.`created_at`) as `ti_visits` where `closed_at` between 2026-08-01 00:00:00 and 2026-08-03 12:30:49 and TIMESTAMPDIFF(MINUTE, opened_at, closed_at) BETWEEN 1 AND 720 limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'pmd_status.status_name' in 'WHERE' (SQL: select SUM(CASE WHEN LOWER(TRIM(order_type)) NOT IN ('delivery','collection','takeaway','take-away','pickup','cashier') THEN 1 ELSE 0 END) AS dine_in, SUM(CASE WHEN LOWER(TRIM(order_type)) IN ('collection','takeaway','take-away','pickup') THEN 1 ELSE 0 END) AS takeaway from `ti_orders` where `location_id` = 1 and `settled_at` between 2026-08-03 00:00:00 and 2026-08-03 12:30:49 and `processed` = 1 and `settled_at` is not null and `settled_amount` >= 0 and LOWER(settlement_status) in (paid, settled) and not exists (select 1 from `ti_statuses` as `ti_pmd_status` where `ti_pmd_status`.`status_id` = `ti_orders`.`status_id` and LOWER(pmd_status.status_name) REGEXP 'cancel|refund|failed|void') limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'pmd_status.status_name' in 'WHERE' (SQL: select SUM(CASE WHEN LOWER(TRIM(order_type)) NOT IN ('delivery','collection','takeaway','take-away','pickup','cashier') THEN 1 ELSE 0 END) AS dine_in, SUM(CASE WHEN LOWER(TRIM(order_type)) IN ('collection','takeaway','take-away','pickup') THEN 1 ELSE 0 END) AS takeaway from `ti_orders` where `location_id` = 1 and `settled_at` between 2026-08-01 00:00:00 and 2026-08-03 12:30:49 and `processed` = 1 and `settled_at` is not null and `settled_amount` >= 0 and LOWER(settlement_status) in (paid, settled) and not exists (select 1 from `ti_statuses` as `ti_pmd_status` where `ti_pmd_status`.`status_id` = `ti_orders`.`status_id` and LOWER(pmd_status.status_name) REGEXP 'cancel|refund|failed|void') limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'sh.object_id' in 'SELECT' (SQL: select COUNT(*) AS samples, AVG(TIMESTAMPDIFF(SECOND, pmd_kds.kitchen_at, pmd_kds.ready_at)) / 60 AS aggregate from `ti_orders` inner join (select sh.object_id, MIN(CASE WHEN LOWER(s.status_name) REGEXP 'received|preparation' THEN sh.created_at END) AS kitchen_at, MIN(CASE WHEN LOWER(s.status_name) REGEXP 'ready|served|delivery' THEN sh.created_at END) AS ready_at from `ti_status_history` as `ti_sh` inner join `ti_statuses` as `ti_s` on `ti_s`.`status_id` = `ti_sh`.`status_id` where LOWER(s.status_name) REGEXP 'received|preparation|ready|served|delivery' and `ti_s`.`status_for` = order and `ti_sh`.`object_type` = orders group by `ti_sh`.`object_id`) as `ti_pmd_kds` on `ti_orders`.`order_id` = `ti_pmd_kds`.`object_id` where `location_id` = 1 and `ti_pmd_kds`.`kitchen_at` between 2026-08-03 00:00:00 and 2026-08-03 12:30:49 and pmd_kds.ready_at > pmd_kds.kitchen_at and TIMESTAMPDIFF(MINUTE, pmd_kds.kitchen_at, pmd_kds.ready_at) BETWEEN 1 AND 240 limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'sh.object_id' in 'SELECT' (SQL: select COUNT(*) AS samples, AVG(TIMESTAMPDIFF(SECOND, pmd_kds.kitchen_at, pmd_kds.ready_at)) / 60 AS aggregate from `ti_orders` inner join (select sh.object_id, MIN(CASE WHEN LOWER(s.status_name) REGEXP 'received|preparation' THEN sh.created_at END) AS kitchen_at, MIN(CASE WHEN LOWER(s.status_name) REGEXP 'ready|served|delivery' THEN sh.created_at END) AS ready_at from `ti_status_history` as `ti_sh` inner join `ti_statuses` as `ti_s` on `ti_s`.`status_id` = `ti_sh`.`status_id` where LOWER(s.status_name) REGEXP 'received|preparation|ready|served|delivery' and `ti_s`.`status_for` = order and `ti_sh`.`object_type` = orders group by `ti_sh`.`object_id`) as `ti_pmd_kds` on `ti_orders`.`order_id` = `ti_pmd_kds`.`object_id` where `location_id` = 1 and `ti_pmd_kds`.`kitchen_at` between 2026-08-01 00:00:00 and 2026-08-03 12:30:49 and pmd_kds.ready_at > pmd_kds.kitchen_at and TIMESTAMPDIFF(MINUTE, pmd_kds.kitchen_at, pmd_kds.ready_at) BETWEEN 1 AND 240 limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'pmd_tips.tip_amount' in 'SELECT' (SQL: select COUNT(*) AS samples, COALESCE(SUM(pmd_tips.tip_amount), 0) AS aggregate from `ti_orders` inner join (select order_id, SUM(value) AS tip_amount from `ti_order_totals` where LOWER(code) = 'tip' group by `order_id`) as `ti_pmd_tips` on `ti_orders`.`order_id` = `ti_pmd_tips`.`order_id` where `location_id` = 1 and `settled_at` between 2026-08-03 00:00:00 and 2026-08-03 12:30:49 and `processed` = 1 and `settled_at` is not null and `settled_amount` >= 0 and LOWER(settlement_status) in (paid, settled) and not exists (select 1 from `ti_statuses` as `ti_pmd_status` where `ti_pmd_status`.`status_id` = `ti_orders`.`status_id` and LOWER(pmd_status.status_name) REGEXP 'cancel|refund|failed|void') limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:49] production.WARNING: Dashboard2 KPI aggregate failed {"message":"SQLSTATE[42S22]: Column not found: 1054 Unknown column 'pmd_tips.tip_amount' in 'SELECT' (SQL: select COUNT(*) AS samples, COALESCE(SUM(pmd_tips.tip_amount), 0) AS aggregate from `ti_orders` inner join (select order_id, SUM(value) AS tip_amount from `ti_order_totals` where LOWER(code) = 'tip' group by `order_id`) as `ti_pmd_tips` on `ti_orders`.`order_id` = `ti_pmd_tips`.`order_id` where `location_id` = 1 and `settled_at` between 2026-08-01 00:00:00 and 2026-08-03 12:30:49 and `processed` = 1 and `settled_at` is not null and `settled_amount` >= 0 and LOWER(settlement_status) in (paid, settled) and not exists (select 1 from `ti_statuses` as `ti_pmd_status` where `ti_pmd_status`.`status_id` = `ti_orders`.`status_id` and LOWER(pmd_status.status_name) REGEXP 'cancel|refund|failed|void') limit 1)","type":"Illuminate\\Database\\QueryException","location_id":1} 
+[2026-08-03 12:30:50] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 11:31:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:31:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:31:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:31:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:31:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:31:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:31:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:09] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:19] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:19] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:19] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:24] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:24] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:25] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:25] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:26] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:26] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:26] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:26] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:41] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:41] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:44] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:45] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:46] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:46] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:46] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:46] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:46] production.INFO: Reconnection check: PDO is set  
+--
+[2026-08-03 12:31:48] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:48] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:48] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:48] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:48] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:48] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:48] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:49] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:49] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:31:57] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 11:32:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:32:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:32:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:32:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:32:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:32:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:32:27] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:32:57] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 11:33:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:33:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:33:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:33:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:33:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:33:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:33:27] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:33:57] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 11:34:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:34:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:34:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:34:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:34:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:34:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:35:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:35:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:35:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:35:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:35:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:35:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:35:56] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 11:36:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:36:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:36:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:36:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:36:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:36:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:37:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:37:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:37:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:37:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:37:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:37:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:38:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:38:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:38:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:38:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:38:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:38:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:38:13] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 11:39:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:39:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:39:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:39:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:39:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:39:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:40:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:40:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:40:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:40:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:40:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:40:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:41:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:41:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:41:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:41:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:41:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:41:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:42:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:42:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:42:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:42:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:42:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:42:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:43:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:43:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:43:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:43:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:43:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:43:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:44:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:44:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:44:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:44:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:44:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:44:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:45:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:45:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:45:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:45:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:45:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:45:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:46:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:46:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:46:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:46:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:46:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:46:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:47:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:47:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:47:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:47:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:47:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:47:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:48:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:48:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:48:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:48:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:48:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:48:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:49:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:49:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:49:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:49:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:49:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:49:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:50:02] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:50:02] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:50:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:50:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:50:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:50:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:51:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:51:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:51:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:51:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:51:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:51:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:52:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:52:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:52:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:52:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:52:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:52:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:53:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:53:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:53:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:53:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:53:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:53:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:54:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:54:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:54:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:54:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:54:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:54:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:55:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:55:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:55:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:55:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:55:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:55:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:56:02] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:56:02] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:56:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:56:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:56:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:56:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:57:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:57:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:57:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:57:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:57:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:57:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:58:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:58:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:58:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:58:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 11:58:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:58:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:59:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:59:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 11:59:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 11:59:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 11:59:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 11:59:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:00:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:00:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:00:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:00:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:00:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:00:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:01:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:01:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:01:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:01:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:01:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:01:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:02:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:02:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:02:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:02:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:02:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:02:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 13:02:56] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:02:57] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:03:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:03:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:03:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:03:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:03:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:03:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 13:03:03] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 13:03:04] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:04] production.INFO: Switched to tenant database: mimoza for subdomain: mimoza  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:05] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:06] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:07] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:07] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:07] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:07] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:07] production.INFO: Reconnection check: PDO is set  
+--
+[2026-08-03 13:03:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:08] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:41] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:42] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:03:42] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:04:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:04:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:04:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:04:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:04:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:04:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 13:04:12] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:04:56] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 12:05:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:05:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:05:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:05:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:05:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:05:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 13:05:28] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:05:28] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:05:28] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:05:43] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:05:46] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:05:46] production.ERROR: ErrorException: Array to string conversion in /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Support/Str.php:617
+Stack trace:
+#0 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Support/Str.php(617): Illuminate\Foundation\Bootstrap\HandleExceptions->handleError()
+#1 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/QueryException.php(57): Illuminate\Support\Str::replaceArray()
+#2 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/QueryException.php(40): Illuminate\Database\QueryException->formatMessage()
+#3 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(712): Illuminate\Database\QueryException->__construct()
+#4 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(672): Illuminate\Database\Connection->runQueryCallback()
+#5 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(490): Illuminate\Database\Connection->run()
+#6 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(454): Illuminate\Database\Connection->statement()
+#7 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php(32): Illuminate\Database\Connection->insert()
+#8 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3028): Illuminate\Database\Query\Processors\Processor->processInsertGetId()
+#9 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Query/Builder.php(299): Illuminate\Database\Query\Builder->insertGetId()
+#10 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1657): Igniter\Flame\Database\Query\Builder->insertGetId()
+#11 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1188): Illuminate\Database\Eloquent\Builder->__call()
+#12 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1153): Illuminate\Database\Eloquent\Model->insertAndSetId()
+#13 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(994): Illuminate\Database\Eloquent\Model->performInsert()
+#14 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Model.php(495): Illuminate\Database\Eloquent\Model->save()
+#15 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Model.php(523): Igniter\Flame\Database\Model->saveInternal()
+#16 /var/www/paymydine/app/admin/controllers/Payments.php(677): Igniter\Flame\Database\Model->save()
+#17 /var/www/paymydine/app/admin/controllers/Payments.php(93): Admin\Controllers\Payments->syncProviderRecords()
+#18 [internal function]: Admin\Controllers\Payments->index()
+#19 /var/www/paymydine/app/admin/classes/AdminController.php(288): call_user_func_array()
+#20 /var/www/paymydine/app/admin/classes/AdminController.php(228): Admin\Classes\AdminController->execPageAction()
+#21 /var/www/paymydine/app/system/classes/Controller.php(130): Admin\Classes\AdminController->remap()
+#22 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Controller.php(54): System\Classes\Controller->runAdmin()
+#23 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(45): Illuminate\Routing\Controller->callAction()
+#24 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(261): Illuminate\Routing\ControllerDispatcher->dispatch()
+#25 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(205): Illuminate\Routing\Route->runController()
+#26 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(721): Illuminate\Routing\Route->run()
+#27 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(128): Illuminate\Routing\Router->Illuminate\Routing\{closure}()
+#28 /var/www/paymydine/app/admin/middleware/LogUserLastSeen.php(26): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#29 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Admin\Middleware\LogUserLastSeen->handle()
+#30 /var/www/paymydine/vendor/tastyigniter/flame/src/Foundation/Http/Middleware/TenantDatabaseMiddleware.php(102): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#31 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware->handle()
+#32 /var/www/paymydine/vendor/tastyigniter/flame/src/Translation/Middleware/Localization.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#33 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Translation\Middleware\Localization->handle()
+#34 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#35 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Routing\Middleware\SubstituteBindings->handle()
+#36 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(49): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#37 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\View\Middleware\ShareErrorsFromSession->handle()
+#38 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(121): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#39 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(64): Illuminate\Session\Middleware\StartSession->handleStatefulRequest()
+#40 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Session\Middleware\StartSession->handle()
+#41 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(37): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#42 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse->handle()
+#43 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(67): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#44 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Cookie\Middleware\EncryptCookies->handle()
+#45 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(103): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#46 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(719): Illuminate\Pipeline\Pipeline->then()
+#47 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(698): Illuminate\Routing\Router->runRouteWithinStack()
+#48 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(662): Illuminate\Routing\Router->runRoute()
+#49 /var/www/paymydine/vendor/tastyigniter/flame/src/Router/CoreRouter.php(22): Illuminate\Routing\Router->dispatchToRoute()
+#50 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(167): Igniter\Flame\Router\CoreRouter->dispatch()
+#51 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(128): Illuminate\Foundation\Http\Kernel->Illuminate\Foundation\Http\{closure}()
+#52 /var/www/paymydine/vendor/tastyigniter/flame/src/Setting/Middleware/SaveSetting.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#53 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Setting\Middleware\SaveSetting->handle()
+#54 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#55 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(40): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#56 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\TrimStrings->handle()
+#57 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#58 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\ValidatePostSize->handle()
+#59 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(86): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#60 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance->handle()
+#61 /var/www/paymydine/vendor/fruitcake/laravel-cors/src/HandleCors.php(38): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#62 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Fruitcake\Cors\HandleCors->handle()
+#63 /var/www/paymydine/vendor/fideloper/proxy/src/TrustProxies.php(57): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#64 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Fideloper\Proxy\TrustProxies->handle()
+#65 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(103): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#66 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(142): Illuminate\Pipeline\Pipeline->then()
+#67 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(111): Illuminate\Foundation\Http\Kernel->sendRequestThroughRouter()
+#68 /var/www/paymydine/index.php(52): Illuminate\Foundation\Http\Kernel->handle()
+#69 {main}  
+[2026-08-03 12:06:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:06:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:06:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:06:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:06:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:06:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 13:06:20] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:06:20] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:06:20] production.ERROR: ErrorException: Array to string conversion in /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Support/Str.php:617
+Stack trace:
+#0 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Support/Str.php(617): Illuminate\Foundation\Bootstrap\HandleExceptions->handleError()
+#1 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/QueryException.php(57): Illuminate\Support\Str::replaceArray()
+#2 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/QueryException.php(40): Illuminate\Database\QueryException->formatMessage()
+#3 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(712): Illuminate\Database\QueryException->__construct()
+#4 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(672): Illuminate\Database\Connection->runQueryCallback()
+#5 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(490): Illuminate\Database\Connection->run()
+#6 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(454): Illuminate\Database\Connection->statement()
+#7 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php(32): Illuminate\Database\Connection->insert()
+#8 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3028): Illuminate\Database\Query\Processors\Processor->processInsertGetId()
+#9 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Query/Builder.php(299): Illuminate\Database\Query\Builder->insertGetId()
+#10 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1657): Igniter\Flame\Database\Query\Builder->insertGetId()
+#11 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1188): Illuminate\Database\Eloquent\Builder->__call()
+#12 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1153): Illuminate\Database\Eloquent\Model->insertAndSetId()
+#13 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(994): Illuminate\Database\Eloquent\Model->performInsert()
+#14 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Model.php(495): Illuminate\Database\Eloquent\Model->save()
+#15 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Model.php(523): Igniter\Flame\Database\Model->saveInternal()
+#16 /var/www/paymydine/app/admin/controllers/Payments.php(677): Igniter\Flame\Database\Model->save()
+#17 /var/www/paymydine/app/admin/controllers/Payments.php(93): Admin\Controllers\Payments->syncProviderRecords()
+#18 [internal function]: Admin\Controllers\Payments->index()
+#19 /var/www/paymydine/app/admin/classes/AdminController.php(288): call_user_func_array()
+#20 /var/www/paymydine/app/admin/classes/AdminController.php(228): Admin\Classes\AdminController->execPageAction()
+#21 /var/www/paymydine/app/system/classes/Controller.php(130): Admin\Classes\AdminController->remap()
+#22 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Controller.php(54): System\Classes\Controller->runAdmin()
+#23 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(45): Illuminate\Routing\Controller->callAction()
+#24 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(261): Illuminate\Routing\ControllerDispatcher->dispatch()
+#25 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(205): Illuminate\Routing\Route->runController()
+#26 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(721): Illuminate\Routing\Route->run()
+#27 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(128): Illuminate\Routing\Router->Illuminate\Routing\{closure}()
+#28 /var/www/paymydine/app/admin/middleware/LogUserLastSeen.php(26): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#29 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Admin\Middleware\LogUserLastSeen->handle()
+#30 /var/www/paymydine/vendor/tastyigniter/flame/src/Foundation/Http/Middleware/TenantDatabaseMiddleware.php(102): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#31 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware->handle()
+#32 /var/www/paymydine/vendor/tastyigniter/flame/src/Translation/Middleware/Localization.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#33 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Translation\Middleware\Localization->handle()
+#34 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#35 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Routing\Middleware\SubstituteBindings->handle()
+#36 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(49): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#37 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\View\Middleware\ShareErrorsFromSession->handle()
+#38 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(121): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#39 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(64): Illuminate\Session\Middleware\StartSession->handleStatefulRequest()
+#40 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Session\Middleware\StartSession->handle()
+#41 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(37): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#42 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse->handle()
+#43 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(67): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#44 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Cookie\Middleware\EncryptCookies->handle()
+#45 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(103): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#46 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(719): Illuminate\Pipeline\Pipeline->then()
+#47 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(698): Illuminate\Routing\Router->runRouteWithinStack()
+#48 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(662): Illuminate\Routing\Router->runRoute()
+#49 /var/www/paymydine/vendor/tastyigniter/flame/src/Router/CoreRouter.php(22): Illuminate\Routing\Router->dispatchToRoute()
+#50 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(167): Igniter\Flame\Router\CoreRouter->dispatch()
+#51 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(128): Illuminate\Foundation\Http\Kernel->Illuminate\Foundation\Http\{closure}()
+#52 /var/www/paymydine/vendor/tastyigniter/flame/src/Setting/Middleware/SaveSetting.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#53 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Setting\Middleware\SaveSetting->handle()
+#54 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#55 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(40): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#56 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\TrimStrings->handle()
+#57 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#58 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\ValidatePostSize->handle()
+#59 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(86): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#60 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance->handle()
+#61 /var/www/paymydine/vendor/fruitcake/laravel-cors/src/HandleCors.php(38): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#62 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Fruitcake\Cors\HandleCors->handle()
+#63 /var/www/paymydine/vendor/fideloper/proxy/src/TrustProxies.php(57): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#64 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Fideloper\Proxy\TrustProxies->handle()
+#65 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(103): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#66 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(142): Illuminate\Pipeline\Pipeline->then()
+#67 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(111): Illuminate\Foundation\Http\Kernel->sendRequestThroughRouter()
+#68 /var/www/paymydine/index.php(52): Illuminate\Foundation\Http\Kernel->handle()
+#69 {main}  
+[2026-08-03 13:06:35] production.INFO: Reconnection check: PDO is set  
+[2026-08-03 13:06:35] production.ERROR: ErrorException: Array to string conversion in /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Support/Str.php:617
+Stack trace:
+#0 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Support/Str.php(617): Illuminate\Foundation\Bootstrap\HandleExceptions->handleError()
+#1 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/QueryException.php(57): Illuminate\Support\Str::replaceArray()
+#2 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/QueryException.php(40): Illuminate\Database\QueryException->formatMessage()
+#3 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(712): Illuminate\Database\QueryException->__construct()
+#4 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(672): Illuminate\Database\Connection->runQueryCallback()
+#5 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(490): Illuminate\Database\Connection->run()
+#6 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Connection.php(454): Illuminate\Database\Connection->statement()
+#7 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Query/Processors/Processor.php(32): Illuminate\Database\Connection->insert()
+#8 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3028): Illuminate\Database\Query\Processors\Processor->processInsertGetId()
+#9 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Query/Builder.php(299): Illuminate\Database\Query\Builder->insertGetId()
+#10 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(1657): Igniter\Flame\Database\Query\Builder->insertGetId()
+#11 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1188): Illuminate\Database\Eloquent\Builder->__call()
+#12 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(1153): Illuminate\Database\Eloquent\Model->insertAndSetId()
+#13 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Model.php(994): Illuminate\Database\Eloquent\Model->performInsert()
+#14 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Model.php(495): Illuminate\Database\Eloquent\Model->save()
+#15 /var/www/paymydine/vendor/tastyigniter/flame/src/Database/Model.php(523): Igniter\Flame\Database\Model->saveInternal()
+#16 /var/www/paymydine/app/admin/controllers/Payments.php(677): Igniter\Flame\Database\Model->save()
+#17 /var/www/paymydine/app/admin/controllers/Payments.php(93): Admin\Controllers\Payments->syncProviderRecords()
+#18 [internal function]: Admin\Controllers\Payments->index()
+#19 /var/www/paymydine/app/admin/classes/AdminController.php(288): call_user_func_array()
+#20 /var/www/paymydine/app/admin/classes/AdminController.php(228): Admin\Classes\AdminController->execPageAction()
+#21 /var/www/paymydine/app/system/classes/Controller.php(130): Admin\Classes\AdminController->remap()
+#22 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Controller.php(54): System\Classes\Controller->runAdmin()
+#23 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(45): Illuminate\Routing\Controller->callAction()
+#24 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(261): Illuminate\Routing\ControllerDispatcher->dispatch()
+#25 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(205): Illuminate\Routing\Route->runController()
+#26 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(721): Illuminate\Routing\Route->run()
+#27 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(128): Illuminate\Routing\Router->Illuminate\Routing\{closure}()
+#28 /var/www/paymydine/app/admin/middleware/LogUserLastSeen.php(26): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#29 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Admin\Middleware\LogUserLastSeen->handle()
+#30 /var/www/paymydine/vendor/tastyigniter/flame/src/Foundation/Http/Middleware/TenantDatabaseMiddleware.php(102): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#31 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware->handle()
+#32 /var/www/paymydine/vendor/tastyigniter/flame/src/Translation/Middleware/Localization.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#33 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Translation\Middleware\Localization->handle()
+#34 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(50): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#35 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Routing\Middleware\SubstituteBindings->handle()
+#36 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(49): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#37 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\View\Middleware\ShareErrorsFromSession->handle()
+#38 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(121): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#39 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(64): Illuminate\Session\Middleware\StartSession->handleStatefulRequest()
+#40 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Session\Middleware\StartSession->handle()
+#41 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(37): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#42 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse->handle()
+#43 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(67): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#44 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Cookie\Middleware\EncryptCookies->handle()
+#45 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(103): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#46 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(719): Illuminate\Pipeline\Pipeline->then()
+#47 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(698): Illuminate\Routing\Router->runRouteWithinStack()
+#48 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(662): Illuminate\Routing\Router->runRoute()
+#49 /var/www/paymydine/vendor/tastyigniter/flame/src/Router/CoreRouter.php(22): Illuminate\Routing\Router->dispatchToRoute()
+#50 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(167): Igniter\Flame\Router\CoreRouter->dispatch()
+#51 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(128): Illuminate\Foundation\Http\Kernel->Illuminate\Foundation\Http\{closure}()
+#52 /var/www/paymydine/vendor/tastyigniter/flame/src/Setting/Middleware/SaveSetting.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#53 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Igniter\Flame\Setting\Middleware\SaveSetting->handle()
+#54 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#55 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(40): Illuminate\Foundation\Http\Middleware\TransformsRequest->handle()
+#56 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\TrimStrings->handle()
+#57 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#58 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\ValidatePostSize->handle()
+#59 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(86): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#60 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance->handle()
+#61 /var/www/paymydine/vendor/fruitcake/laravel-cors/src/HandleCors.php(38): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#62 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Fruitcake\Cors\HandleCors->handle()
+#63 /var/www/paymydine/vendor/fideloper/proxy/src/TrustProxies.php(57): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#64 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(167): Fideloper\Proxy\TrustProxies->handle()
+#65 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(103): Illuminate\Pipeline\Pipeline->Illuminate\Pipeline\{closure}()
+#66 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(142): Illuminate\Pipeline\Pipeline->then()
+#67 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(111): Illuminate\Foundation\Http\Kernel->sendRequestThroughRouter()
+#68 /var/www/paymydine/index.php(52): Illuminate\Foundation\Http\Kernel->handle()
+#69 {main}  
+[2026-08-03 12:07:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:07:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:07:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:07:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:07:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:07:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:08:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:08:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:08:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:08:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:08:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:08:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:09:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:09:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:09:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:09:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:09:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:09:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:10:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:10:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:10:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:10:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:10:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:10:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:11:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:11:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:11:02] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:11:02] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:11:02] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:11:02] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 12:12:01] PMD_R2O_FULLSCAN start {"base":"https://api.ready2order.com/v1","mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:12:01] PMD_R2O_STATEFUL start {"mode":"invoice","date_from":"2026-08-03","date_to":"2026-08-03"}
+[2026-08-03 12:12:01] PMD_R2O_FULLSCAN page_fetch {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","body_len":112,"row_count":0,"offset":0}
+[2026-08-03 12:12:01] PMD_R2O_FULLSCAN finish {"rows_total":0,"groups_total":0,"latest_created_at":null,"latest_source_key":null,"imported":0,"skipped_existing":0,"failed":0,"details":[]}
+[2026-08-03 12:12:01] PMD_R2O_STATEFUL fetch_page {"url":"https://api.ready2order.com/v1/document/invoice?dateFrom=2026-08-03&dateTo=2026-08-03&items=true&payments=true&limit=200&offset=0","http_code":200,"curl_error":"","count":0,"offset":0,"body_len":112}
+[2026-08-03 12:12:01] PMD_R2O_STATEFUL finish {"groups_count":0,"latest_source_key":null}
+[2026-08-03 13:12:14] production.ERROR: ReflectionException: Class "PmdWaiterPortalV113" does not exist in /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Container.php:877
+Stack trace:
+#0 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Container.php(877): ReflectionClass->__construct()
+#1 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Container.php(758): Illuminate\Container\Container->build()
+#2 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(853): Illuminate\Container\Container->resolve()
+#3 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Container.php(694): Illuminate\Foundation\Application->resolve()
+#4 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(838): Illuminate\Container\Container->make()
+#5 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(276): Illuminate\Foundation\Application->make()
+#6 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(1080): Illuminate\Routing\Route->getController()
+#7 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(1023): Illuminate\Routing\Route->controllerMiddleware()
+#8 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(734): Illuminate\Routing\Route->gatherMiddleware()
+#9 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Console/RouteListCommand.php(175): Illuminate\Routing\Router->gatherRouteMiddleware()
+#10 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Console/RouteListCommand.php(119): Illuminate\Foundation\Console\RouteListCommand->getMiddleware()
+#11 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Console/RouteListCommand.php(91): Illuminate\Foundation\Console\RouteListCommand->getRouteInformation()
+#12 [internal function]: Illuminate\Foundation\Console\RouteListCommand->Illuminate\Foundation\Console\{closure}()
+#13 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Collections/Collection.php(695): array_map()
+#14 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Console/RouteListCommand.php(90): Illuminate\Support\Collection->map()
+#15 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Console/RouteListCommand.php(76): Illuminate\Foundation\Console\RouteListCommand->getRoutes()
+#16 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\Foundation\Console\RouteListCommand->handle()
+#17 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Util.php(40): Illuminate\Container\BoundMethod::Illuminate\Container\{closure}()
+#18 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(93): Illuminate\Container\Util::unwrapIfClosure()
+#19 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\Container\BoundMethod::callBoundMethod()
+#20 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Container.php(653): Illuminate\Container\BoundMethod::call()
+#21 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Console/Command.php(136): Illuminate\Container\Container->call()
+#22 /var/www/paymydine/vendor/symfony/console/Command/Command.php(298): Illuminate\Console\Command->execute()
+#23 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Console/Command.php(120): Symfony\Component\Console\Command\Command->run()
+#24 /var/www/paymydine/vendor/symfony/console/Application.php(1040): Illuminate\Console\Command->run()
+#25 /var/www/paymydine/vendor/symfony/console/Application.php(301): Symfony\Component\Console\Application->doRunCommand()
+#26 /var/www/paymydine/vendor/symfony/console/Application.php(171): Symfony\Component\Console\Application->doRun()
+#27 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Console/Application.php(94): Symfony\Component\Console\Application->run()
+#28 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(129): Illuminate\Console\Application->run()
+#29 /var/www/paymydine/artisan(33): Illuminate\Foundation\Console\Kernel->handle()
+#30 {main}
+
+Next Illuminate\Contracts\Container\BindingResolutionException: Target class [PmdWaiterPortalV113] does not exist. in /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Container.php:879
+Stack trace:
+#0 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Container.php(758): Illuminate\Container\Container->build()
+#1 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(853): Illuminate\Container\Container->resolve()
+#2 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Container/Container.php(694): Illuminate\Foundation\Application->resolve()
+#3 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(838): Illuminate\Container\Container->make()
+#4 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(276): Illuminate\Foundation\Application->make()
+#5 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(1080): Illuminate\Routing\Route->getController()
+#6 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Route.php(1023): Illuminate\Routing\Route->controllerMiddleware()
+#7 /var/www/paymydine/vendor/laravel/framework/src/Illuminate/Routing/Router.php(734): Illuminate\Routing\Route->gatherMiddleware()
+
+============================================================
+6. Recent PHP-FPM errors
+============================================================
+
+============================================================
+PAYMENTS_500_DIAGNOSTIC_COMPLETE
+============================================================
+Report:
+/var/www/paymydine/storage/pmd-diagnostics/payments-500-20260803_121213/report.txt
+
+No database rows or production files were modified.

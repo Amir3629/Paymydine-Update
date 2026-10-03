@@ -8,8 +8,70 @@ import { pmdBuildKazenParentCategories } from "@/features/customer-menu/data/men
 import type { MenuItem } from "@/lib/data"
 import type { KazenThemeRouteProps } from "@/features/customer-menu/theme/themeRouteTypes"
 import { createOpenOrderUpdateHandler } from "@/features/customer-menu/theme/themeRouteShared"
+import { isValetFeatureEnabled } from "@/features/valet/valet-config"
 type KazenValetValues = { name?: string; licensePlate?: string; license_plate?: string; carModel?: string; car_make?: string }
 const getKazenErrorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback
+
+type KazenMenuLayoutMode = "accordion" | "tabs"
+
+function normalizeKazenMenuLayoutMode(value: unknown): KazenMenuLayoutMode {
+  const raw = String(value || "").trim().toLowerCase().replace(/[_\s-]+/g, "-")
+
+  if ([
+    "tabs",
+    "tab",
+    "tabbed",
+    "classic",
+    "normal",
+    "list",
+    "flat",
+    "category-tabs",
+    "categories-top",
+    "top-categories",
+    "category-tabs-full-item-list",
+  ].includes(raw)) {
+    return "tabs"
+  }
+
+  return "accordion"
+}
+
+function readKazenMenuLayoutMode(...sources: any[]): KazenMenuLayoutMode {
+  const keys = [
+    "kazen_menu_layout",
+    "kazenMenuLayout",
+    "menu_layout",
+    "menuLayout",
+    "food_display_style",
+    "foodDisplayStyle",
+    "category_display",
+    "categoryDisplay",
+  ]
+
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue
+
+    for (const key of keys) {
+      const direct = source?.[key]
+      if (direct !== undefined && direct !== null && String(direct).trim()) {
+        return normalizeKazenMenuLayoutMode(direct)
+      }
+
+      const data = source?.data?.[key]
+      if (data !== undefined && data !== null && String(data).trim()) {
+        return normalizeKazenMenuLayoutMode(data)
+      }
+
+      const settings = source?.settings?.[key]
+      if (settings !== undefined && settings !== null && String(settings).trim()) {
+        return normalizeKazenMenuLayoutMode(settings)
+      }
+    }
+  }
+
+  return "accordion"
+}
+
 
 export function KazenThemeRoute(props: KazenThemeRouteProps) {
   const {
@@ -108,6 +170,15 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
     kazenLogoCandidates.find((value: unknown) => String(value || "").trim()) || ""
   )
 
+  const kazenMenuLayout = readKazenMenuLayoutMode(
+    cmsSettings,
+    merchantSettings,
+    typeof window !== "undefined" ? (window as any).__PMD_THEME_SETTINGS : null,
+    typeof window !== "undefined" ? (window as any).__PMD_ADMIN_THEME_SETTINGS : null
+  )
+  const showValet = isValetFeatureEnabled(cmsSettings, merchantSettings, tableInfo)
+
+
   const handleKazenAdd = (item: MenuItem, quantity = 1) => {
     let itemToAdd: MenuItem = { ...item }
 
@@ -167,9 +238,19 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
   }
 
   const handleKazenValet = async (values: KazenValetValues = {}) => {
+    // PMD_AUDIT_PHASE2_VALET_CLIENT_GUARD
     const name = String(values?.name || "Guest").trim() || "Guest"
-    const licensePlate = String(values?.licensePlate || values?.license_plate || "Not provided").trim() || "Not provided"
+    const licensePlate = String(values?.licensePlate || values?.license_plate || "").trim()
     const carModel = String(values?.carModel || values?.car_make || "Not provided").trim() || "Not provided"
+
+    if (!licensePlate) {
+      toast({
+        title: "Valet ticket required",
+        description: "Please enter your valet ticket number or license plate before requesting your car.",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
       await apiClient.createValetRequest({
@@ -204,6 +285,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
         restaurantName={restaurantDisplayName}
         logoUrl={kazenLogoUrl}
         tableNumber={kazenTableNumber}
+        menuLayout={kazenMenuLayout} showValet={showValet}
         onAddItem={handleKazenAdd}
         onOpenItem={(item: MenuItem) => handleItemSelect(item)}
         onCheckout={handleCartClick}
@@ -232,6 +314,7 @@ export function KazenThemeRoute(props: KazenThemeRouteProps) {
             Parent dock is hidden to avoid duplicate/blocked action bars. */}
         {false && <KazenBottomDock {...themeMenuActions} />}
 
+        {/* PMD_AUDIT_PHASE4_V3_MODAL_SYNC_PROPS */}
         <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => {

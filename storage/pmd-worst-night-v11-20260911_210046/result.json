@@ -1,0 +1,49 @@
+{
+  "marker": "PMD_V11_20260911_210046",
+  "baseline_ssr": {
+    "count": 30,
+    "bad": 0,
+    "statuses": {
+      "200": 30
+    },
+    "p50_ms": 3897,
+    "p95_ms": 6913,
+    "max_ms": 7451,
+    "sample_errors": []
+  },
+  "full_storm": {
+    "ssr": {
+      "count": 24,
+      "bad": 0,
+      "statuses": {
+        "200": 24
+      },
+      "p50_ms": 3940,
+      "p95_ms": 10124,
+      "max_ms": 10160,
+      "sample_errors": []
+    },
+    "order": {
+      "count": 4,
+      "bad": 0,
+      "statuses": {
+        "200": 4
+      },
+      "p50_ms": 420,
+      "p95_ms": 600,
+      "max_ms": 600,
+      "sample_errors": []
+    }
+  },
+  "storm_wall_seconds": 10.796,
+  "core_survived": false,
+  "actions_ok": true,
+  "ai_enabled": false,
+  "ai_ok": null,
+  "payment_sandbox_used": false,
+  "payment_ok": null,
+  "waiter_tested": false,
+  "order_write_tested": true,
+  "ssr_p95_slowdown_vs_baseline": 1.46,
+  "payment_canary": null
+}

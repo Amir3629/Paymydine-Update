@@ -1,0 +1,225 @@
+<?php
+
+namespace App\Services\Turkey;
+
+use App\Services\Integrations\SecretReferenceService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * Controls per-location Turkey partner configuration.
+ *
+ * Raw credentials are rejected by the PMD-wide SecretReferenceService. Config
+ * stores env:/config: references only; runtime clients resolve them server-side.
+ */
+final class TurkeyIntegrationConfigurationService
+{
+    public function __construct(
+        private ?TurkeyTenantContext $context = null,
+        private ?TurkeyIntegrationRegistry $registry = null,
+        private ?SecretReferenceService $secrets = null
+    ) {
+        $this->context = $context ?: new TurkeyTenantContext();
+        $this->registry = $registry ?: new TurkeyIntegrationRegistry();
+        $this->secrets = $secrets ?: new SecretReferenceService();
+    }
+
+    public function configure(string $code, array $config, ?int $locationId = null): array
+    {
+        $state = $this->context->requireTurkey($locationId);
+        $definition = $this->registry->definition($code);
+        if (!$definition) {
+            throw new \InvalidArgumentException('Unknown Türkiye integration: '.$code);
+        }
+        if (!Schema::hasTable('pmd_tr_integrations')) {
+            throw new \RuntimeException('Türkiye integration foundation is not provisioned.');
+        }
+
+        $locationId = (int)($state['location_id'] ?? 0);
+        $safe = $this->secrets->sanitizeConfig($config);
+        $missing = $this->missingRequired($definition, $safe);
+        $status = $missing ? 'configuration_incomplete' : 'configured_not_verified';
+        $credentialReference = $safe['credential_reference']
+            ?? $safe['client_secret_reference']
+            ?? $safe['uat_client_secret_reference']
+            ?? $safe['api_password_reference']
+            ?? $safe['password_reference']
+            ?? null;
+
+        DB::table('pmd_tr_integrations')->updateOrInsert(
+            ['location_id' => $locationId ?: null, 'code' => strtolower($code)],
+            [
+                'provider' => isset($safe['provider']) ? (string)$safe['provider'] : null,
+                'kind' => (string)$definition['kind'],
+                'status' => $status,
+                'enabled' => 0,
+                'production_ready' => 0,
+                'config_json' => json_encode($safe, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'credential_reference' => $credentialReference,
+                'contract_reference' => $safe['contract_reference'] ?? $safe['partner_contract_reference'] ?? null,
+                'certification_reference' => $safe['certification_reference'] ?? null,
+                'last_error' => $missing ? 'Missing: '.implode(', ', $missing) : null,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        return $this->state($code, $locationId);
+    }
+
+    /**
+     * Record a network/UAT/sandbox test without pretending that commercial or
+     * regulatory production approval exists.
+     */
+    public function recordTestResult(string $code, bool $ok, ?string $error = null, ?int $locationId = null): array
+    {
+        $state = $this->context->requireTurkey($locationId);
+        $locationId = (int)($state['location_id'] ?? 0);
+        $row = DB::table('pmd_tr_integrations')
+            ->where('location_id', $locationId ?: null)
+            ->where('code', strtolower($code))
+            ->first();
+        if (!$row) throw new \RuntimeException('Integration must be configured before it can be tested.');
+
+        $config = json_decode((string)($row->config_json ?? ''), true) ?: [];
+        $environment = strtolower(trim((string)($config['environment'] ?? '')));
+        if (!$ok) {
+            $status = 'connection_test_failed';
+        } elseif ($environment === 'production') {
+            $status = 'connection_test_passed_not_approved';
+        } elseif ($environment === 'uat') {
+            $status = 'uat_test_passed';
+        } else {
+            $status = 'sandbox_test_passed';
+        }
+
+        DB::table('pmd_tr_integrations')
+            ->where('id', $row->id)
+            ->update([
+                'status' => $status,
+                'enabled' => 0,
+                'production_ready' => 0,
+                'last_verified_at' => $ok ? now() : ($row->last_verified_at ?? null),
+                'last_error' => $ok ? null : mb_substr((string)$error, 0, 1500),
+                'updated_at' => now(),
+            ]);
+
+        return $this->state($code, $locationId);
+    }
+
+    /**
+     * Production activation is explicit and fail-closed. Calling configure()
+     * or passing a non-production connection test never makes a regulated/
+     * private integration live.
+     */
+    public function markVerified(string $code, array $evidence, ?int $locationId = null): array
+    {
+        $state = $this->context->requireTurkey($locationId);
+        $definition = $this->registry->definition($code);
+        if (!$definition) throw new \InvalidArgumentException('Unknown Türkiye integration: '.$code);
+
+        $locationId = (int)($state['location_id'] ?? 0);
+        $row = DB::table('pmd_tr_integrations')
+            ->where('location_id', $locationId ?: null)
+            ->where('code', strtolower($code))
+            ->first();
+        if (!$row) throw new \RuntimeException('Integration must be configured before verification.');
+
+        $config = json_decode((string)($row->config_json ?? ''), true) ?: [];
+        $missing = $this->missingRequired($definition, $config);
+        if ($missing) {
+            throw new \RuntimeException('Cannot verify integration; missing configuration: '.implode(', ', $missing));
+        }
+
+        $verificationRef = trim((string)($evidence['verification_reference'] ?? ''));
+        if ($verificationRef === '') {
+            throw new \InvalidArgumentException('verification_reference is required.');
+        }
+
+        if ((bool)$definition['regulated']) {
+            $approval = strtolower(trim((string)($evidence['external_approval_status'] ?? '')));
+            if (!in_array($approval, ['approved', 'active', 'certified'], true)) {
+                throw new \RuntimeException('Regulated integration requires approved/active/certified external evidence.');
+            }
+        }
+
+        DB::table('pmd_tr_integrations')
+            ->where('location_id', $locationId ?: null)
+            ->where('code', strtolower($code))
+            ->update([
+                'status' => 'verified',
+                'enabled' => 1,
+                'production_ready' => 1,
+                'certification_reference' => $evidence['certification_reference'] ?? $verificationRef,
+                'contract_reference' => $evidence['contract_reference'] ?? ($row->contract_reference ?? null),
+                'last_verified_at' => now(),
+                'last_error' => null,
+                'updated_at' => now(),
+            ]);
+
+        return $this->state($code, $locationId);
+    }
+
+    public function disable(string $code, ?int $locationId = null, ?string $reason = null): array
+    {
+        $state = $this->context->requireTurkey($locationId);
+        $locationId = (int)($state['location_id'] ?? 0);
+        DB::table('pmd_tr_integrations')
+            ->where('location_id', $locationId ?: null)
+            ->where('code', strtolower($code))
+            ->update([
+                'status' => 'disabled',
+                'enabled' => 0,
+                'production_ready' => 0,
+                'last_error' => $reason,
+                'updated_at' => now(),
+            ]);
+        return $this->state($code, $locationId);
+    }
+
+    public function configuration(string $code, ?int $locationId = null): array
+    {
+        $tenant = $this->context->requireTurkey($locationId);
+        $locationId = (int)($tenant['location_id'] ?? 0);
+        if (!Schema::hasTable('pmd_tr_integrations')) return [];
+
+        $row = DB::table('pmd_tr_integrations')
+            ->where('location_id', $locationId ?: null)
+            ->where('code', strtolower($code))
+            ->first();
+        if (!$row) return [];
+
+        $config = json_decode((string)($row->config_json ?? ''), true);
+        return is_array($config) ? $config : [];
+    }
+
+    public function state(string $code, ?int $locationId = null): array
+    {
+        $tenant = $this->context->requireTurkey($locationId);
+        $locationId = (int)($tenant['location_id'] ?? 0);
+        $definition = $this->registry->definition($code);
+        $row = Schema::hasTable('pmd_tr_integrations')
+            ? DB::table('pmd_tr_integrations')->where('location_id', $locationId ?: null)->where('code', strtolower($code))->first()
+            : null;
+
+        return [
+            'code' => strtolower($code),
+            'location_id' => $locationId ?: null,
+            'definition' => $definition,
+            'status' => $row->status ?? ($definition['default_status'] ?? 'not_catalogued'),
+            'enabled' => (bool)($row->enabled ?? false),
+            'production_ready' => (bool)($row->production_ready ?? false),
+            'last_verified_at' => $row->last_verified_at ?? null,
+            'last_error' => $row->last_error ?? null,
+        ];
+    }
+
+    private function missingRequired(array $definition, array $config): array
+    {
+        $missing = [];
+        foreach ((array)($definition['required_config'] ?? []) as $key) {
+            if (!array_key_exists($key, $config) || trim((string)$config[$key]) === '') $missing[] = $key;
+        }
+        return $missing;
+    }
+}

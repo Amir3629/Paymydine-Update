@@ -1,0 +1,480 @@
+/* PMD_COUPON_MANAGER_V1 - one canonical Coupons workspace authority */
+:root {
+  --pmd-coupon-page: #f8fbfd;
+  --pmd-coupon-card: #ffffff;
+  --pmd-coupon-ink: #10201f;
+  --pmd-coupon-muted: #6b7b7a;
+  --pmd-coupon-line: #d7e8ee;
+  --pmd-coupon-green: #075f4f;
+  --pmd-coupon-green-strong: #064b40;
+  --pmd-coupon-green-soft: #edf8f4;
+  --pmd-coupon-amber: #b7791f;
+  --pmd-coupon-amber-soft: #fff8e9;
+  --pmd-coupon-red: #b42318;
+  --pmd-coupon-red-soft: #fff1ef;
+  --pmd-coupon-blue: #285f91;
+  --pmd-coupon-blue-soft: #eef6ff;
+}
+
+html,
+body.pmd-coupon-manager-page,
+body.pmd-coupon-manager-page .page,
+body.pmd-coupon-manager-page .page-wrapper,
+body.pmd-coupon-manager-page .page-content,
+body.pmd-coupon-manager-page .main-content,
+body.pmd-coupon-manager-page .content-wrapper,
+body.pmd-coupon-manager-page .container-fluid {
+  background: var(--pmd-coupon-page) !important;
+}
+
+body.pmd-coupon-manager-page { color: var(--pmd-coupon-ink); }
+body.pmd-coupon-modal-open { overflow: hidden !important; }
+
+/* No reveal/fade/geometry repair on first paint. */
+body.pmd-coupon-manager-page .pmd-coupon-manager,
+body.pmd-coupon-manager-page .pmd-coupon-manager__topbar,
+body.pmd-coupon-manager-page .pmd-coupon-kpis,
+body.pmd-coupon-manager-page .pmd-coupon-kpi,
+body.pmd-coupon-manager-page .pmd-coupon-manager__panel,
+body.pmd-coupon-manager-page .pmd-coupon-manager__toolbar,
+body.pmd-coupon-manager-page .pmd-coupon-manager__types,
+body.pmd-coupon-manager-page .pmd-coupon-manager__grid,
+body.pmd-coupon-manager-page .pmd-coupon-card {
+  animation: none !important;
+  transition: none !important;
+  transform: none;
+}
+
+.pmd-coupon-manager,
+.pmd-coupon-manager *,
+.pmd-coupon-modal,
+.pmd-coupon-modal * { box-sizing: border-box; }
+
+.pmd-coupon-manager.pmd-owner-page {
+  max-width: none;
+  margin: 0;
+  padding: 0 16px 88px;
+}
+
+.pmd-coupon-manager__topbar { z-index: 40; margin: 0 0 14px; }
+.pmd-coupon-manager__topbar .pmd-owner-header__left,
+.pmd-coupon-manager__topbar .pmd-owner-header__actions { min-width: 0; }
+
+.pmd-coupon-manager svg,
+.pmd-coupon-modal svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-coupon-manager__header-action {
+  display: grid !important;
+  width: 46px !important;
+  min-width: 46px !important;
+  height: 46px !important;
+  padding: 0 !important;
+  place-items: center;
+}
+.pmd-coupon-manager__header-action svg { width: 21px; height: 21px; }
+
+.pmd-coupon-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 0 14px;
+}
+
+.pmd-coupon-kpi {
+  display: flex;
+  min-width: 0;
+  min-height: 108px;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 18px;
+  border: 1px solid var(--pmd-coupon-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(28, 63, 72, .035);
+}
+
+.pmd-coupon-kpi__icon,
+.pmd-coupon-form__section-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  place-items: center;
+  border: 1px solid #d8ebe5;
+  border-radius: 13px;
+  background: var(--pmd-coupon-green-soft);
+  color: var(--pmd-coupon-green);
+}
+.pmd-coupon-kpi__icon.is-warm,
+.pmd-coupon-form__section-icon.is-warm { border-color: #f0dfbd; background: var(--pmd-coupon-amber-soft); color: var(--pmd-coupon-amber); }
+.pmd-coupon-kpi__icon.is-money,
+.pmd-coupon-form__section-icon.is-money { border-color: #d8e5f4; background: var(--pmd-coupon-blue-soft); color: var(--pmd-coupon-blue); }
+.pmd-coupon-kpi__icon svg,
+.pmd-coupon-form__section-icon svg { width: 21px; height: 21px; }
+
+.pmd-coupon-kpi__copy {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  column-gap: 10px;
+}
+.pmd-coupon-kpi__copy > span { color: #5f7376; font-size: 12px; font-weight: 800; }
+.pmd-coupon-kpi__copy > strong {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  color: #0d2d2a;
+  font-size: clamp(25px, 2.1vw, 34px);
+  font-weight: 900;
+  letter-spacing: -.045em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.pmd-coupon-kpi__copy > small { grid-column: 1; margin-top: 5px; color: #91a0a2; font-size: 10.5px; font-weight: 650; white-space: nowrap; }
+
+.pmd-coupon-manager__panel {
+  overflow: hidden;
+  border: 1px solid var(--pmd-coupon-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 32px rgba(28, 63, 72, .035);
+}
+
+.pmd-coupon-manager__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5eff2;
+}
+
+.pmd-coupon-manager__search {
+  position: relative;
+  display: block;
+  width: min(470px, 100%);
+  margin: 0;
+}
+.pmd-coupon-manager__search svg {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 18px;
+  height: 18px;
+  color: #7f9194;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.pmd-coupon-manager__search input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px 0 42px;
+  border: 1px solid #d9e6ea;
+  border-radius: 13px;
+  outline: none;
+  background: #fbfdfe;
+  color: var(--pmd-coupon-ink);
+  font: inherit;
+  font-size: 13px;
+  box-shadow: none;
+}
+.pmd-coupon-manager__search input:focus { border-color: #8ebcaf; box-shadow: 0 0 0 3px rgba(7, 95, 79, .07); }
+
+.pmd-coupon-manager__status-filters {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid #dbe8e5;
+  border-radius: 13px;
+  background: #f7faf9;
+}
+.pmd-coupon-manager__status-filters button,
+.pmd-coupon-manager__types button {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.pmd-coupon-manager__status-filters button {
+  min-height: 38px;
+  padding: 0 15px;
+  border-radius: 10px;
+  background: transparent;
+  color: #526763;
+  font-size: 12px;
+  font-weight: 800;
+}
+.pmd-coupon-manager__status-filters button.is-active { background: #fff; color: var(--pmd-coupon-green); box-shadow: 0 1px 5px rgba(18, 49, 44, .08); }
+
+.pmd-coupon-manager__types {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5eff2;
+  scrollbar-width: none;
+}
+.pmd-coupon-manager__types::-webkit-scrollbar { display: none; }
+.pmd-coupon-manager__types button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #536967;
+  font-size: 12px;
+  font-weight: 800;
+}
+.pmd-coupon-manager__types button.is-active { border-color: #b8dfd4; background: var(--pmd-coupon-green-soft); color: var(--pmd-coupon-green); }
+
+.pmd-coupon-manager__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 16px;
+}
+
+.pmd-coupon-card {
+  display: flex;
+  min-width: 0;
+  min-height: 330px;
+  flex-direction: column;
+  padding: 16px;
+  border: 1px solid #d8e7e5;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(28, 63, 72, .03);
+}
+.pmd-coupon-card.is-inactive { background: #fcfdfd; }
+.pmd-coupon-card.is-expired { border-color: #efd7d2; }
+
+.pmd-coupon-card__head { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; gap: 11px; align-items: center; }
+.pmd-coupon-card__type-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid #d8ebe5;
+  border-radius: 12px;
+  background: var(--pmd-coupon-green-soft);
+  color: var(--pmd-coupon-green);
+}
+.pmd-coupon-card__type-icon[data-card-type="gift_card"] { border-color: #d9e5f4; background: var(--pmd-coupon-blue-soft); color: var(--pmd-coupon-blue); }
+.pmd-coupon-card__type-icon[data-card-type="voucher"] { border-color: #eadcf7; background: #f7f1fd; color: #7a43a7; }
+.pmd-coupon-card__type-icon[data-card-type="credit"] { border-color: #f0dfbd; background: var(--pmd-coupon-amber-soft); color: var(--pmd-coupon-amber); }
+.pmd-coupon-card__type-icon[data-card-type="comp"] { border-color: #e2e2ea; background: #f5f5f8; color: #5d6074; }
+.pmd-coupon-card__type-icon svg { width: 20px; height: 20px; }
+.pmd-coupon-card__head-copy { min-width: 0; }
+.pmd-coupon-card__type { display: block; margin-bottom: 2px; color: #6b7b7a; font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
+.pmd-coupon-card__head-copy h2 { overflow: hidden; margin: 0; color: #10201f; font-size: 18px; font-weight: 900; letter-spacing: -.025em; line-height: 1.15; text-overflow: ellipsis; white-space: nowrap; }
+.pmd-coupon-card__state { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 9px; border: 1px solid #dce8e6; border-radius: 999px; color: #5e716f; font-size: 10px; font-weight: 850; white-space: nowrap; }
+.pmd-coupon-card__state i { width: 7px; height: 7px; border-radius: 50%; background: #a9b6b4; }
+.pmd-coupon-card__state.is-active { border-color: #cfe6dd; background: #f3faf7; color: var(--pmd-coupon-green); }
+.pmd-coupon-card__state.is-active i { background: #1eae86; }
+.pmd-coupon-card__state.is-off { border-color: #efdbd7; background: #fff7f5; color: var(--pmd-coupon-red); }
+.pmd-coupon-card__state.is-off i { background: #da4a3c; }
+
+.pmd-coupon-card__code-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 15px; padding: 10px 11px; border: 1px dashed #c7dcda; border-radius: 12px; background: #f9fcfb; }
+.pmd-coupon-card__code-row code { overflow: hidden; color: #234b46; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.pmd-coupon-card__code-row button { display: grid; width: 30px; height: 30px; flex: 0 0 30px; place-items: center; border: 1px solid #d9e8e5; border-radius: 9px; background: #fff; color: #45635f; cursor: pointer; }
+.pmd-coupon-card__code-row button svg { width: 15px; height: 15px; }
+
+.pmd-coupon-card__value { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.pmd-coupon-card__value span { color: #7a8b89; font-size: 11px; font-weight: 750; }
+.pmd-coupon-card__value strong { color: var(--pmd-coupon-green); font-size: 24px; font-weight: 900; letter-spacing: -.035em; }
+.pmd-coupon-card__description { display: -webkit-box; min-height: 38px; margin: 8px 0 0; overflow: hidden; color: #697c7a; font-size: 12px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.pmd-coupon-card__description.is-empty { color: #a0acab; font-style: italic; }
+
+.pmd-coupon-card__meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 13px; }
+.pmd-coupon-card__meta span { min-width: 0; padding: 8px 9px; border: 1px solid #e3ecee; border-radius: 10px; background: #fbfdfe; }
+.pmd-coupon-card__meta small,
+.pmd-coupon-card__meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pmd-coupon-card__meta small { color: #8b9a99; font-size: 9px; font-weight: 750; }
+.pmd-coupon-card__meta b { margin-top: 3px; color: #34524f; font-size: 10.5px; font-weight: 850; }
+
+.pmd-coupon-card__actions { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: auto; padding-top: 15px; }
+.pmd-coupon-card__actions button { min-height: 42px; padding: 0 14px; border-radius: 12px; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
+.pmd-coupon-card__status-btn { border: 1px solid #b9ded3; background: var(--pmd-coupon-green-soft); color: var(--pmd-coupon-green); }
+.pmd-coupon-card__status-btn:disabled { border-color: #e0e6e6; background: #f4f6f6; color: #9ca7a6; cursor: not-allowed; }
+.pmd-coupon-card__edit-btn { border: 1px solid #d4e3e6; background: #fff; color: #284744; }
+
+.pmd-coupon-manager__empty,
+.pmd-coupon-manager__no-results { grid-column: 1 / -1; min-height: 240px; display: grid; place-items: center; align-content: center; text-align: center; color: #7b8b89; }
+.pmd-coupon-manager__empty svg { width: 44px; height: 44px; margin-bottom: 10px; color: #8eaaa5; }
+.pmd-coupon-manager__empty h2 { margin: 0; color: #26413e; font-size: 18px; font-weight: 900; }
+.pmd-coupon-manager__empty p { margin: 6px 0 0; font-size: 12px; }
+.pmd-coupon-manager__no-results { font-size: 13px; font-weight: 750; }
+
+/* Modal */
+.pmd-coupon-modal[hidden] { display: none !important; }
+.pmd-coupon-modal { position: fixed; inset: 0; z-index: 10080; display: grid; place-items: center; padding: 24px; }
+.pmd-coupon-modal__backdrop { position: absolute; inset: 0; background: rgba(14, 35, 34, .24); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.pmd-coupon-modal__card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: min(980px, calc(100vw - 48px));
+  max-height: min(880px, calc(100dvh - 48px));
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid #cfe0e5;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(21, 49, 49, .22);
+  animation: pmdCouponModalIn 180ms ease-out both;
+}
+@keyframes pmdCouponModalIn { from { opacity: 0; scale: .985; } to { opacity: 1; scale: 1; } }
+.pmd-coupon-modal__header,
+.pmd-coupon-modal__footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 17px 20px; background: #fff; }
+.pmd-coupon-modal__header { border-bottom: 1px solid #dce9ed; }
+.pmd-coupon-modal__header h2 { margin: 2px 0 0; color: #10201f; font-size: 19px; font-weight: 900; letter-spacing: -.025em; }
+.pmd-coupon-modal__eyebrow { color: var(--pmd-coupon-green); font-size: 9.5px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.pmd-coupon-modal__close { display: grid; width: 44px; height: 44px; flex: 0 0 44px; place-items: center; border: 1px solid #d5e5e9; border-radius: 13px; background: #fff; color: #1b403c; cursor: pointer; }
+.pmd-coupon-modal__close svg { width: 20px; height: 20px; }
+.pmd-coupon-modal__scroll { overflow: auto; padding: 16px; background: #f9fcfd; overscroll-behavior: contain; }
+.pmd-coupon-form { display: grid; gap: 14px; }
+
+.pmd-coupon-form__section { padding: 16px; border: 1px solid #d5e7ec; border-radius: 16px; background: #fff; }
+.pmd-coupon-form__section[hidden] { display: none !important; }
+.pmd-coupon-form__section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+.pmd-coupon-form__section-head h3 { margin: 0; color: #122825; font-size: 16px; font-weight: 900; letter-spacing: -.02em; }
+.pmd-coupon-form__section-head p { margin: 3px 0 0; color: #7d8d8c; font-size: 11px; line-height: 1.45; }
+.pmd-coupon-form__section-icon { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
+.pmd-coupon-form__section-icon svg { width: 19px; height: 19px; }
+.pmd-coupon-form__label { margin: 0 0 8px; color: #29423f; font-size: 11px; font-weight: 850; }
+
+.pmd-coupon-form__type-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 15px; }
+.pmd-coupon-form__type-grid button,
+.pmd-coupon-form__feature-grid button {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 1px solid #d5e5e9;
+  border-radius: 13px;
+  background: #fff;
+  color: #34534f;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.pmd-coupon-form__type-grid button svg,
+.pmd-coupon-form__feature-grid button svg { width: 19px; height: 19px; flex: 0 0 19px; }
+.pmd-coupon-form__type-grid button.is-selected,
+.pmd-coupon-form__feature-grid button.is-selected { border-color: #78bfaa; background: var(--pmd-coupon-green-soft); color: var(--pmd-coupon-green); box-shadow: 0 0 0 2px rgba(7, 95, 79, .05); }
+
+.pmd-coupon-form__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.pmd-coupon-form__grid--rules { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pmd-coupon-form__grid--gift-price { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: 12px; }
+.pmd-coupon-field { display: grid; min-width: 0; gap: 6px; margin: 0; }
+.pmd-coupon-field--full { grid-column: 1 / -1; }
+.pmd-coupon-field > span { color: #29423f; font-size: 11px; font-weight: 850; }
+.pmd-coupon-field > small { color: #889795; font-size: 10px; font-weight: 650; }
+.pmd-coupon-field input,
+.pmd-coupon-field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid #d9e5ea;
+  border-radius: 12px;
+  outline: none;
+  background: #fff;
+  color: #152825;
+  font: inherit;
+  font-size: 13px;
+  box-shadow: none;
+}
+.pmd-coupon-field textarea { min-height: 96px; padding-top: 12px; padding-bottom: 12px; resize: vertical; line-height: 1.45; }
+.pmd-coupon-field input:focus,
+.pmd-coupon-field textarea:focus { border-color: #8fbcb0; box-shadow: 0 0 0 3px rgba(7, 95, 79, .07); }
+.pmd-coupon-field input[readonly] { background: #f6f9fa; color: #6e807e; }
+.pmd-coupon-field__with-action { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+.pmd-coupon-field__with-action button { min-height: 46px; padding: 0 13px; border: 1px solid #cadfe3; border-radius: 12px; background: #f8fbfb; color: var(--pmd-coupon-green); font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
+
+.pmd-coupon-form__discount-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, .65fr); gap: 12px; align-items: end; }
+.pmd-coupon-form__segmented { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 4px; border: 1px solid #dbe8e5; border-radius: 13px; background: #f7faf9; }
+.pmd-coupon-form__segmented button { min-height: 38px; border: 0; border-radius: 10px; background: transparent; color: #536764; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
+.pmd-coupon-form__segmented button.is-selected { background: #fff; color: var(--pmd-coupon-green); box-shadow: 0 1px 5px rgba(18, 49, 44, .08); }
+
+.pmd-coupon-form__feature-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pmd-coupon-form__switch-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 15px; padding-top: 14px; border-top: 1px solid #e5edef; cursor: pointer; }
+.pmd-coupon-form__switch-row > div { display: grid; gap: 3px; }
+.pmd-coupon-form__switch-row strong { color: #29423f; font-size: 11px; font-weight: 850; }
+.pmd-coupon-form__switch-row small { color: #7f8f8d; font-size: 10.5px; }
+.pmd-coupon-form__switch-row input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
+.pmd-coupon-switch { position: relative; width: 42px; height: 24px; flex: 0 0 42px; border-radius: 999px; background: #becbca; transition: background 160ms ease; }
+.pmd-coupon-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.18); transition: translate 160ms ease; }
+.pmd-coupon-form__switch-row input[type="checkbox"]:checked + .pmd-coupon-switch { background: var(--pmd-coupon-green); }
+.pmd-coupon-form__switch-row input[type="checkbox"]:checked + .pmd-coupon-switch::after { translate: 18px 0; }
+
+.pmd-coupon-modal__footer { border-top: 1px solid #dce9ed; }
+.pmd-coupon-modal__footer-left { display: flex; min-width: 0; align-items: center; gap: 12px; }
+.pmd-coupon-modal__status { overflow: hidden; color: #667a78; font-size: 11px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.pmd-coupon-modal__status.is-error { color: var(--pmd-coupon-red); }
+.pmd-coupon-modal__status.is-ok { color: var(--pmd-coupon-green); }
+.pmd-coupon-modal__buttons { display: flex; align-items: center; gap: 8px; }
+.pmd-coupon-modal__cancel,
+.pmd-coupon-modal__save,
+.pmd-coupon-modal__delete { min-height: 44px; padding: 0 16px; border-radius: 12px; font: inherit; font-size: 11px; font-weight: 850; cursor: pointer; }
+.pmd-coupon-modal__cancel { border: 1px solid #d5e4e8; background: #fff; color: #294744; }
+.pmd-coupon-modal__save { border: 1px solid var(--pmd-coupon-green); background: var(--pmd-coupon-green); color: #fff; }
+.pmd-coupon-modal__delete { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #efc9c3; background: var(--pmd-coupon-red-soft); color: var(--pmd-coupon-red); }
+.pmd-coupon-modal__delete svg { width: 16px; height: 16px; }
+.pmd-coupon-modal__delete.is-armed { border-color: var(--pmd-coupon-red); background: var(--pmd-coupon-red); color: #fff; }
+.pmd-coupon-modal button:disabled { opacity: .58; cursor: not-allowed; }
+
+@media (max-width: 1240px) {
+  .pmd-coupon-manager__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pmd-coupon-form__type-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 980px) {
+  .pmd-coupon-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pmd-coupon-manager__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pmd-coupon-form__grid--rules { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .pmd-coupon-manager.pmd-owner-page { padding: 0 10px 72px; }
+  .pmd-coupon-kpis { gap: 10px; margin-bottom: 10px; }
+  .pmd-coupon-kpi { min-height: 94px; padding: 14px; }
+  .pmd-coupon-manager__toolbar { align-items: stretch; flex-direction: column; padding: 12px; }
+  .pmd-coupon-manager__search { width: 100%; }
+  .pmd-coupon-manager__status-filters { width: 100%; }
+  .pmd-coupon-manager__status-filters button { flex: 1; }
+  .pmd-coupon-manager__grid { grid-template-columns: 1fr; gap: 10px; padding: 12px; }
+  .pmd-coupon-modal { padding: 10px; }
+  .pmd-coupon-modal__card { width: 100%; max-height: calc(100dvh - 20px); border-radius: 18px; }
+  .pmd-coupon-modal__scroll { padding: 10px; }
+  .pmd-coupon-form__type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pmd-coupon-form__grid,
+  .pmd-coupon-form__grid--rules,
+  .pmd-coupon-form__grid--gift-price,
+  .pmd-coupon-form__discount-row,
+  .pmd-coupon-form__feature-grid { grid-template-columns: 1fr; }
+  .pmd-coupon-modal__footer { align-items: stretch; flex-direction: column; }
+  .pmd-coupon-modal__footer-left { justify-content: space-between; }
+  .pmd-coupon-modal__buttons { width: 100%; }
+  .pmd-coupon-modal__buttons button { flex: 1; }
+}
+
+@media (max-width: 520px) {
+  .pmd-coupon-kpis { grid-template-columns: 1fr; }
+  .pmd-coupon-kpi { min-height: 84px; }
+  .pmd-coupon-card__head { grid-template-columns: 42px minmax(0, 1fr); }
+  .pmd-coupon-card__state { grid-column: 1 / -1; justify-self: start; }
+  .pmd-coupon-card__meta { grid-template-columns: 1fr; }
+}

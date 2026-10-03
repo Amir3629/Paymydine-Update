@@ -159,26 +159,78 @@ class AdminController extends BaseController
         // Set an instance of the admin user
         $this->setUser(AdminAuth::user());
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_auth_user'
+        );
+
+        // PMD_ADMIN_SERVER_NATIVE_URLS_R81E
+        // Browser URL is canonical at routing time; no History correction
+        // asset is registered here.
+
         $this->fireSystemEvent('admin.controller.beforeInit');
 
         // @deprecated This event will be deprecated soon, use controller.beforeInit
         $this->fireEvent('controller.beforeConstructor', [$this]);
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_init_events'
+        );
+
         // Toolbar widget is available on all admin pages
         $toolbar = new Toolbar($this, ['context' => $this->action]);
         $toolbar->bindToController();
 
-        // Media Manager widget is available on all admin pages
-        if ($this->currentUser && $this->currentUser->hasPermission('Admin.MediaManager')) {
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_toolbar_bind'
+        );
+
+        // PMD_PERF_R19_SKIP_UNUSED_GLOBAL_MEDIAMANAGER
+        //
+        // Clean operational workspaces do not render MediaFinder/Dropzone. The
+        // widget's own loadAssets() has already treated these pages as no-media
+        // surfaces for a long time, but initialize() still paid for the global
+        // permission check + widget construction on every request.
+        //
+        // Keep legacy Orders edit/create routes untouched; only the clean
+        // /admin/orders surface is skipped.
+        $pmdSkipMediaManagerR19 =
+            Request::is('admin/pmdsettings/restaurant')
+            || Request::is('admin/managerlab*')
+            || Request::is('admin/accountantlab*')
+            || Request::is('admin/cashierlab*')
+            || Request::is('admin/pos*')
+            || Request::is('admin/reservations*')
+            || Request::is('admin/pmdreports*')
+            || Request::is('admin/pmdreportchannels*')
+            || Request::is('admin/pmdreporttips*')
+            || Request::is('admin/orders');
+
+        if (
+            !$pmdSkipMediaManagerR19
+            && $this->currentUser
+            && $this->currentUser->hasPermission('Admin.MediaManager')
+        ) {
             $manager = new MediaManager($this, ['alias' => 'mediamanager']);
             $manager->bindToController();
         }
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_media_guard'
+        );
+
         // Top menu widget is available on all admin pages
         $this->makeMainMenuWidget();
 
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_mainmenu_bind'
+        );
+
         // @deprecated This event will be deprecated soon, use controller.beforeRemap
         $this->fireEvent('controller.afterConstructor', [$this]);
+
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'admin_after_constructor'
+        );
 
         return $this;
     }

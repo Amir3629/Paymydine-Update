@@ -74,7 +74,7 @@
                 pointer-events: none !important;
                 display: block !important;
             `;
-            document.body.appendChild(backupLayer);
+            (document.body||document.documentElement).appendChild(backupLayer);
         } else {
             // Update backup layer position
             backupLayer.style.top = '0px';

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Closure;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class LogUserLastSeen
 {
@@ -21,8 +22,107 @@ class LogUserLastSeen
                     });
                 }
             }
+
+            /*
+             * PMD_ADMIN_SESSION_PRESENCE_V1
+             *
+             * The legacy two-minute cache above remains untouched because other
+             * platform code may still use it as a "recent activity" marker.
+             * Manager online presence is different: it follows the real admin
+             * session until explicit logout or normal session expiry.
+             */
+            \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+                'admin_last_seen_legacy'
+            );
+
+            try {
+                if (resolve('admin.auth')->check()) {
+                    app(\Admin\Services\PmdAdminPresenceService::class)->touchCurrentSession();
+                }
+            } catch (\Throwable $error) {
+                logger()->warning('PMD admin presence touch failed', [
+                    'message' => $error->getMessage(),
+                ]);
+            }
+
+            \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+                'admin_presence_touch'
+            );
+
+            /*
+             * PMD_PERF_R20_WRITE_ONLY_SHIFT_AUDIT_CONTEXT
+             *
+             * The actor variables are consumed only by DB audit triggers on
+             * mutating operations. GET/HEAD/OPTIONS never write Shift rows, so
+             * spending two MySQL SET statements on every read-only page adds
+             * latency without adding audit coverage. Every mutating Admin
+             * request still resets and binds the actor before controller work.
+             */
+            if (!in_array(
+                strtoupper((string)$request->method()),
+                ['GET', 'HEAD', 'OPTIONS'],
+                true
+            )) {
+                $this->bindPmdShiftAuditActor($request);
+            }
+
+            \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+                'shift_audit_actor'
+            );
         }
 
         return $next($request);
+    }
+
+    private function bindPmdShiftAuditActor($request): void
+    {
+        try {
+            $connection = DB::connection();
+            if ($connection->getDriverName() !== 'mysql') return;
+
+            $connection->statement(
+                'SET @pmd_actor_admin_user_id = NULL, @pmd_actor_staff_id = NULL, @pmd_actor_name = NULL, @pmd_actor_role = NULL, @pmd_audit_source = NULL'
+            );
+
+            $auth = resolve('admin.auth');
+            if (!$auth->check()) return;
+
+            $user = $auth->user();
+            $staff = null;
+            try {
+                $staff = $user ? $user->staff : null;
+            } catch (\Throwable $error) {
+                $staff = null;
+            }
+
+            $userId = $user ? (int)$user->getKey() : 0;
+            $staffId = $staff ? (int)($staff->staff_id ?? $staff->getKey()) : 0;
+            $name = trim((string)($staff->staff_name ?? $user->username ?? ''));
+            $roleName = '';
+            try {
+                $role = $staff ? $staff->role : null;
+                $roleName = trim((string)($role->name ?? $role->code ?? ''));
+            } catch (\Throwable $error) {
+                $roleName = '';
+            }
+
+            $source = strtoupper((string)$request->method()).' /'.trim((string)$request->path(), '/');
+
+            $connection->statement(
+                'SET @pmd_actor_admin_user_id = ?, @pmd_actor_staff_id = ?, @pmd_actor_name = ?, @pmd_actor_role = ?, @pmd_audit_source = ?',
+                [
+                    $userId > 0 ? $userId : null,
+                    $staffId > 0 ? $staffId : null,
+                    $name !== '' ? mb_substr($name, 0, 128) : null,
+                    $roleName !== '' ? mb_substr($roleName, 0, 64) : null,
+                    mb_substr($source, 0, 191),
+                ]
+            );
+        } catch (\Throwable $error) {
+            // Audit context is additive and must never block normal Admin work.
+            logger()->warning('PMD shift audit actor context failed', [
+                'type' => get_class($error),
+            ]);
+        }
     }
 }

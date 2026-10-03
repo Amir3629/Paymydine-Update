@@ -1,0 +1,60 @@
+10:  var ORDER = ['revenue', 'guests', 'turnover', 'channels', 'kitchen', 'occupancy', 'menu', 'tips'];
+11:  var PERIOD_KEYS = ['revenue', 'guests', 'turnover', 'channels', 'kitchen', 'tips'];
+288:        occupancy: periods.occupancy, menuAvailability: periods.menu, tips: periods.tips
+397:  var widgetKeys = ['salesOverTime','salesByHour','topItems','categorySales','paymentMethods','channelSplit','liveOperations','recentTransactions','alerts','reviews','tips','calendarEvents'];
+417:  function widget(id, title, span) { var toggle=id==='salesOverTime'?'<div class="pmd-dashboard2-chart-toggle" role="group" aria-label="Chart type"><button type="button" data-pmd-chart-mode="line" class="'+(salesChartMode==='line'?'is-active':'')+'" aria-pressed="'+(salesChartMode==='line'?'true':'false')+'">Linie</button><button type="button" data-pmd-chart-mode="bar" class="'+(salesChartMode==='bar'?'is-active':'')+'" aria-pressed="'+(salesChartMode==='bar'?'true':'false')+'">Balken</button></div>':''; return '<article class="pmd-dashboard2-analytics-card ' + (span||'') + '" data-pmd-analytics-widget="' + id + '"><header><h3>' + esc(title) + '</h3>'+toggle+'</header><div class="pmd-dashboard2-widget-body" data-pmd-widget-body></div></article>'; }
+421:      widget('salesOverTime','Umsatzverlauf','is-wide') + widget('salesByHour','Umsatz nach Stunde','') + widget('topItems','Top-selling items','') + widget('categorySales','Sales by category','') + widget('paymentMethods','Payment methods','') + widget('channelSplit','Order channels','') + widget('liveOperations','Live orders / active tables','is-wide') + widget('recentTransactions','Recent transactions','is-wide') + widget('alerts','Alerts','') + widget('reviews','Latest reviews','') + widget('tips','Tips summary','') + widget('calendarEvents','Upcoming events','') + '</div>';
+858:    var s=data.sales_over_time; put('salesOverTime',s.available?(salesChartMode==='line'?svgLine(s.buckets):svgBars(s.buckets,'Sales over time bar chart')):empty(s));
+859:    var h=data.sales_by_hour; put('salesByHour',h.available?svgBars(h.hours,'Sales by hour bar chart'):empty(h));
+860:    var t=data.top_items; put('topItems',t.available?(t.empty?empty(t):list(t.items,function(r){return '<span>'+esc(r.name)+'</span><b>'+esc(r.quantity)+' · '+esc(money(r.revenue))+'</b>'; })):empty(t));
+861:    var c=data.sales_by_category; put('categorySales',c.available?(c.empty?empty(c):svgDonut(c.categories,'category','revenue',function(r){return money(r.revenue);})) :empty(c));
+862:    var p=data.payment_methods; put('paymentMethods',p.available?(p.empty?empty(p):svgDonut(p.methods,'method','total',function(r){return money(r.total)+' · '+r.transactions;})):empty(p));
+863:    var ch=data.channels; put('channelSplit',ch.available?(ch.empty?empty(ch):svgDonut(ch.channels,'channel','revenue',function(r){return r.orders+' · '+money(r.revenue);})):empty(ch));
+864:    var live=data.live_operations; put('liveOperations',live.available?'<div class="pmd-dashboard2-live-summary"><b>'+esc(live.live_order_count)+'</b><span>live orders</span><b>'+esc(live.tables.occupied)+' / '+esc(live.tables.total)+'</b><span>active tables</span></div>'+list(live.orders,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.channel)+'</span><b>'+esc(r.status)+'</b>'; }):empty(live));
+865:    var tx=data.recent_transactions; put('recentTransactions',tx.available?(tx.empty?empty(tx):list(tx.transactions,function(r){return '<span>#'+esc(r.order_id)+' · '+esc(r.method)+' · '+esc(r.timestamp)+'</span><b>'+esc(money(r.amount))+'</b>'; })):empty(tx));
+866:    var a=data.alerts; put('alerts',a.available?list(Object.keys(a.types).map(function(k){return {name:k.replace(/_/g,' '),value:a.types[k]};}),function(r){return '<span>'+esc(r.name)+'</span><b>'+(r.value===null?'Source unavailable':esc(r.value))+'</b>'; }):empty(a));
+867:    var rv=data.reviews; put('reviews',rv.available?'<div class="pmd-dashboard2-review-score"><b>'+(rv.average===null?'—':esc(rv.average))+'</b><span>'+esc(rv.count)+' reviews</span></div>'+list(rv.latest,function(r){return '<span>'+esc(r.rating)+' ★ · '+esc(r.comment)+'</span><b>'+esc(r.date)+'</b>'; }):empty(rv));
+868:    var tips=data.tips; put('tips',tips.available?'<dl class="pmd-dashboard2-stats"><div><dt>Today</dt><dd>'+esc(money(tips.today))+'</dd></div><div><dt>This month</dt><dd>'+esc(money(tips.month))+'</dd></div><div><dt>Average</dt><dd>'+esc(money(tips.average_tip))+'</dd></div><div><dt>Tipped orders</dt><dd>'+esc(tips.tipped_orders)+'</dd></div></dl>':empty(tips));
+869:    var ev=data.calendar_events; put('calendarEvents',ev.available?list(ev.events,function(r){return '<span>'+esc(r.title)+'</span><b>'+esc(r.date)+'</b>'; }):empty(ev));
+882:  function audit(){var root=document.getElementById(ROOT_ID),keys=window.PMDDashboard2KPIDataFinal&&window.PMDDashboard2KPIDataFinal.audit?window.PMDDashboard2KPIDataFinal.audit():{},widgets={};widgetKeys.forEach(function(k){widgets[k]=Boolean(root&&root.querySelector('[data-pmd-analytics-widget="'+k+'"]'));});var unavailable=[],emptyWidgets=[];if(data)Object.keys(data).forEach(function(k){if(data[k]&&data[k].available===false)unavailable.push(k);if(data[k]&&data[k].available===true&&data[k].empty===true)emptyWidgets.push(k);});var active=Boolean(oneRow&&oneRow.floor.classList.contains('is-strip-mode')),style=oneRow?getComputedStyle(oneRow.scroll):null;return {version:VERSION,route:String(location.pathname).replace(/\/+$/,''),kpis:{totalDefinitions:8,visibleCards:document.querySelectorAll('[data-pmd-dashboard2-kpi]').length,selectedKeys:keys.selectedKeys||[],duplicates:new Set(keys.selectedKeys||[]).size!==(keys.selectedKeys||[]).length,endpointRequestCount:keys.requestCount||0},operationalView:{current:currentView(),floorExists:Boolean(document.getElementById('pmd-r2-shared-floor-canvas-v310')),toolbarExists:Boolean(document.getElementById('pmd-dashboard2-floor-toolbar-proxy-v350')),toolbarButtons:(document.getElementById('pmd-dashboard2-floor-toolbar-proxy-v350')||document).querySelectorAll('[data-proxy-action]').length,reservationCardsPresent:Boolean(document.getElementById('pmd-r2-reservation-cards-v320'))},analytics:{rootCount:document.querySelectorAll('#'+ROOT_ID).length,visible:Boolean(root&&getComputedStyle(root).display!=='none'),currentPeriod:period(),chartMode:salesChartMode,chartLabelsPresent:Boolean(root&&root.querySelector('.pmd-dashboard2-chart-axis-label')),requestCount:requestCount,widgets:widgets,unavailableSources:unavailable,chartCount:root?root.querySelectorAll('svg.pmd-dashboard2-chart,.pmd-dashboard2-donut svg').length:0,availableWidgetCount:data?widgetKeys.filter(function(k){var map={salesOverTime:'sales_over_time',salesByHour:'sales_by_hour',topItems:'top_items',categorySales:'sales_by_category',paymentMethods:'payment_methods',channelSplit:'channels',liveOperations:'live_operations',recentTransactions:'recent_transactions',alerts:'alerts',reviews:'reviews',tips:'tips',calendarEvents:'calendar_events'};return data[map[k]]&&data[map[k]].available===true;}).length:0,emptyWidgetCount:emptyWidgets.length,emptyWidgets:emptyWidgets,unavailableWidgetCount:unavailable.length,sourceModes:data?Object.keys(data).reduce(function(out,k){if(data[k]&&data[k].source_mode)out[k]=data[k].source_mode;return out;},{}):{},outerFrame:(function(){var st=root?getComputedStyle(root):null;return {transparent:Boolean(st&&(st.backgroundColor==='rgba(0, 0, 0, 0)'||st.backgroundColor==='transparent')),borderless:Boolean(st&&parseFloat(st.borderTopWidth)===0),shadowless:Boolean(st&&st.boxShadow==='none')};})()},oneRow:{active:active,overflowX:style?style.overflowX:null,overflowY:style?style.overflowY:null,verticalScrollbar:Boolean(oneRow&&style&&style.overflowY!=='hidden'&&oneRow.scroll.scrollHeight>oneRow.scroll.clientHeight),horizontalOverflow:Boolean(oneRow&&oneRow.scroll.scrollWidth>oneRow.scroll.clientWidth),wheelListeners:active?1:0},protected:{pushNotificationScriptPresent:Boolean(document.querySelector('script[src*="push-notifications.js"]')),notificationPollingActive:Boolean(document.querySelector('script[src*="push-notifications.js"]') && (window.pushNotif && window.pushNotif.pollInterval)),composerPresent:Boolean(document.querySelector('[data-reservation-composer],#pmd-reservation-composer-v1'))}};}
+1189:      '[data-pmd-analytics-widget="salesOverTime"] svg'
+1199:      '[data-pmd-analytics-widget="salesByHour"] svg'
+1237:    moveChartGuideAbove(root, 'salesOverTime');
+1238:    moveChartGuideAbove(root, 'salesByHour');
+1254:      ['salesOverTime', 2],
+1255:      ['categorySales', 1],
+1257:      ['salesByHour', 2],
+1258:      ['paymentMethods', 1],
+1260:      ['recentTransactions', 2],
+1263:      ['liveOperations', 2],
+1264:      ['alerts', 1],
+1266:      ['topItems', 1],
+1267:      ['reviews', 1],
+1268:      ['tips', 1],
+1270:      ['calendarEvents', 3],
+1441:      'salesOverTime',
+1442:      'categorySales',
+1443:      'salesByHour',
+1444:      'paymentMethods',
+1445:      'recentTransactions',
+1446:      'channelSplit',
+1447:      'liveOperations',
+1448:      'alerts',
+1449:      'topItems',
+1450:      'reviews',
+1451:      'tips',
+1452:      'calendarEvents'
+1534:    ['salesOverTime', 10, 'wide'],
+1535:    ['categorySales', 11, 'side'],
+1537:    ['salesByHour', 20, 'wide'],
+1538:    ['paymentMethods', 21, 'side'],
+1540:    ['recentTransactions', 30, 'wide'],
+1541:    ['channelSplit', 31, 'side'],
+1543:    ['liveOperations', 40, 'wide'],
+1544:    ['alerts', 41, 'side'],
+1546:    ['topItems', 50, 'third'],
+1547:    ['reviews', 51, 'third'],
+1548:    ['tips', 52, 'third'],
+1550:    ['calendarEvents', 60, 'full']
+3478:        '[data-pmd-analytics-widget="salesOverTime"] svg'
+3555:        '[data-pmd-analytics-widget="salesOverTime"] svg'

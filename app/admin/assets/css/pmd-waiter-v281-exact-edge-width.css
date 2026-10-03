@@ -1,0 +1,18 @@
+/* ==========================================================
+   PMD Waiter V2.8.1
+   Right operation edge thickness correction
+   ========================================================== */
+
+html body .pmd-v280-right-rail .pmd-v280-operation {
+  /*
+   * Prevent older styles from creating a second inset stripe.
+   */
+  box-shadow: none !important;
+  background-clip: padding-box !important;
+}
+
+html body .pmd-v280-right-rail .pmd-v280-operation::before,
+html body .pmd-v280-right-rail .pmd-v280-operation::after {
+  display: none !important;
+  content: none !important;
+}

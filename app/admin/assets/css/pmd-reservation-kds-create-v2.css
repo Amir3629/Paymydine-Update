@@ -1,0 +1,929 @@
+/* PMD Reservation KDS Create UI v2
+ * Frontend-only visual layer. No backend/form-name/action changes.
+ */
+
+html.pmd-res-kds-v2,
+body.pmd-res-kds-v2 {
+  --pmd-res-bg: #fbfaf5;
+  --pmd-res-card: #fff;
+  --pmd-res-ink: #092f2b;
+  --pmd-res-text: #10283d;
+  --pmd-res-muted: #607994;
+  --pmd-res-green: #087762;
+  --pmd-res-mint: #f0fff8;
+  --pmd-res-blue: #60bee8;
+  --pmd-res-line: rgba(96,190,232,.46);
+  --pmd-res-line-soft: rgba(96,190,232,.25);
+  --pmd-res-shadow: 0 18px 44px rgba(12,39,58,.045);
+  --pmd-res-control: 50px;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(96,190,232,.11), transparent 30%),
+    radial-gradient(circle at 88% 10%, rgba(8,119,98,.07), transparent 30%),
+    var(--pmd-res-bg) !important;
+}
+
+/* hide old universal huge/awkward hero if it exists */
+body.pmd-res-kds-v2 .pmd-admin-form-v1-hero {
+  display: none !important;
+}
+
+.pmd-res-kds-hero-v2,
+.pmd-res-kds-flow-v2,
+body.pmd-res-kds-v2 form#edit-form {
+  max-width: 1420px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.pmd-res-kds-hero-v2 {
+  margin-top: 28px !important;
+  margin-bottom: 18px !important;
+  border: 1px solid var(--pmd-res-line);
+  border-radius: 24px;
+  background: rgba(255,255,255,.985);
+  box-shadow: var(--pmd-res-shadow);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.pmd-res-kds-hero-left-v2 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pmd-res-kds-hero-icon-v2,
+.pmd-res-kds-field-icon-v2 {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  border: 1px solid rgba(8,119,98,.18);
+  background: linear-gradient(180deg, var(--pmd-res-mint), #fff);
+  color: var(--pmd-res-green);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  box-shadow: 0 10px 24px rgba(8,119,98,.055);
+}
+
+.pmd-res-kds-hero-v2 small,
+.pmd-res-kds-field-eyebrow-v2 {
+  display: block;
+  color: var(--pmd-res-muted);
+  font-size: 11px;
+  letter-spacing: .20em;
+  text-transform: uppercase;
+  font-weight: 950;
+}
+
+.pmd-res-kds-hero-v2 h1 {
+  margin: 3px 0 0;
+  color: var(--pmd-res-ink);
+  font-size: clamp(25px, 2vw, 32px);
+  line-height: 1.06;
+  font-weight: 950;
+  letter-spacing: -.04em;
+}
+
+.pmd-res-kds-hero-v2 p {
+  margin: 6px 0 0;
+  color: var(--pmd-res-muted);
+  font-weight: 750;
+  font-size: 13px;
+}
+
+.pmd-res-kds-hero-actions-v2 {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pmd-res-kds-btn-v2 {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(8,119,98,.18);
+  background: #fff;
+  color: var(--pmd-res-green);
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 950;
+  box-shadow: 0 10px 24px rgba(12,39,58,.045);
+}
+
+.pmd-res-kds-btn-v2.is-primary {
+  background: var(--pmd-res-green);
+  border-color: var(--pmd-res-green);
+  color: #fff;
+}
+
+.pmd-res-kds-flow-v2 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.pmd-res-kds-flow-card-v2 {
+  min-height: 92px;
+  border: 1px solid var(--pmd-res-line);
+  border-radius: 20px;
+  background: rgba(255,255,255,.985);
+  box-shadow: 0 10px 24px rgba(12,39,58,.028);
+  padding: 15px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.pmd-res-kds-flow-card-v2 b {
+  display: block;
+  color: var(--pmd-res-ink);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.pmd-res-kds-flow-card-v2 span {
+  display: block;
+  margin-top: 4px;
+  color: var(--pmd-res-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 750;
+}
+
+/* form panel */
+body.pmd-res-kds-v2 form#edit-form {
+  border: 1px solid var(--pmd-res-line) !important;
+  border-radius: 24px !important;
+  background: rgba(255,255,255,.985) !important;
+  box-shadow: var(--pmd-res-shadow) !important;
+  padding: 22px !important;
+  margin-bottom: 44px !important;
+  overflow: hidden !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form .nav-tabs {
+  border-bottom: 1px solid var(--pmd-res-line) !important;
+  margin-bottom: 24px !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form .nav-tabs a,
+body.pmd-res-kds-v2 form#edit-form .nav-tabs .nav-link {
+  min-height: 52px !important;
+  padding: 0 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  border-radius: 16px 16px 0 0 !important;
+  color: var(--pmd-res-muted) !important;
+  font-weight: 950 !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form .nav-tabs li.active > a,
+body.pmd-res-kds-v2 form#edit-form .nav-tabs a.active,
+body.pmd-res-kds-v2 form#edit-form .nav-tabs .nav-link.active {
+  color: var(--pmd-res-green) !important;
+  background: #fff !important;
+  border-color: var(--pmd-res-line) !important;
+  border-bottom-color: #fff !important;
+}
+
+/* field grid: make the old form readable without changing names/actions */
+body.pmd-res-kds-v2 .pmd-res-kds-grid-v2 {
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0,1fr)) !important;
+  gap: 20px 18px !important;
+  align-items: start !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form .form-group,
+body.pmd-res-kds-v2 form#edit-form [class*="field-"] {
+  margin-bottom: 0 !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="table"],
+body.pmd-res-kds-v2 [data-pmd-res-field="comment"] { grid-column: span 12 !important; }
+
+body.pmd-res-kds-v2 [data-pmd-res-field="guest"],
+body.pmd-res-kds-v2 [data-pmd-res-field="duration"],
+body.pmd-res-kds-v2 [data-pmd-res-field="date"] { grid-column: span 4 !important; }
+
+body.pmd-res-kds-v2 [data-pmd-res-field="time"] { grid-column: span 3 !important; }
+body.pmd-res-kds-v2 [data-pmd-res-field="first"] { grid-column: span 5 !important; }
+body.pmd-res-kds-v2 [data-pmd-res-field="last"] { grid-column: span 6 !important; }
+body.pmd-res-kds-v2 [data-pmd-res-field="email"] { grid-column: span 6 !important; }
+body.pmd-res-kds-v2 [data-pmd-res-field="phone"] { grid-column: span 6 !important; }
+body.pmd-res-kds-v2 [data-pmd-res-field="restaurant"] { grid-column: span 6 !important; }
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] { grid-column: span 4 !important; }
+
+/* labels + icons */
+body.pmd-res-kds-v2 form#edit-form .control-label,
+body.pmd-res-kds-v2 form#edit-form label:not(.custom-control-label):not(.form-check-label) {
+  display: block !important;
+  margin-bottom: 8px !important;
+  color: var(--pmd-res-muted) !important;
+  font-size: 11.5px !important;
+  letter-spacing: .20em !important;
+  text-transform: uppercase !important;
+  font-weight: 950 !important;
+}
+
+body.pmd-res-kds-v2 .pmd-res-kds-label-line-v2 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+body.pmd-res-kds-v2 .pmd-res-kds-mini-icon-v2 {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(8,119,98,.15);
+  background: var(--pmd-res-mint);
+  color: var(--pmd-res-green);
+  display: inline-grid;
+  place-items: center;
+  font-size: 14px;
+}
+
+/* controls */
+body.pmd-res-kds-v2 form#edit-form input[type="text"],
+body.pmd-res-kds-v2 form#edit-form input[type="email"],
+body.pmd-res-kds-v2 form#edit-form input[type="number"],
+body.pmd-res-kds-v2 form#edit-form input[type="tel"],
+body.pmd-res-kds-v2 form#edit-form select,
+body.pmd-res-kds-v2 form#edit-form textarea,
+body.pmd-res-kds-v2 form#edit-form .form-control,
+body.pmd-res-kds-v2 form#edit-form .select2-container .select2-selection,
+body.pmd-res-kds-v2 form#edit-form .selectize-control .selectize-input,
+body.pmd-res-kds-v2 form#edit-form .chosen-container .chosen-single {
+  min-height: var(--pmd-res-control) !important;
+  height: auto !important;
+  border-radius: 15px !important;
+  border: 1px solid var(--pmd-res-line) !important;
+  background: #fff !important;
+  color: var(--pmd-res-text) !important;
+  font-size: 14px !important;
+  font-weight: 750 !important;
+  box-shadow: 0 8px 18px rgba(12,39,58,.018) !important;
+  outline: none !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form select {
+  height: var(--pmd-res-control) !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  padding: 0 46px 0 14px !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #10283d 50%),
+    linear-gradient(135deg, #10283d 50%, transparent 50%) !important;
+  background-position:
+    calc(100% - 20px) calc(50% - 3px),
+    calc(100% - 14px) calc(50% - 3px) !important;
+  background-size: 6px 6px, 6px 6px !important;
+  background-repeat: no-repeat !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form textarea,
+body.pmd-res-kds-v2 form#edit-form textarea.form-control {
+  min-height: 112px !important;
+  resize: vertical !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form input:focus,
+body.pmd-res-kds-v2 form#edit-form select:focus,
+body.pmd-res-kds-v2 form#edit-form textarea:focus,
+body.pmd-res-kds-v2 form#edit-form .form-control:focus {
+  border-color: rgba(8,119,98,.52) !important;
+  box-shadow: 0 0 0 4px rgba(8,119,98,.08), 0 12px 26px rgba(12,39,58,.04) !important;
+}
+
+/* date/time addon */
+body.pmd-res-kds-v2 form#edit-form .input-group {
+  display: flex !important;
+  align-items: stretch !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form .input-group .form-control {
+  border-radius: 15px 0 0 15px !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form .input-group .btn,
+body.pmd-res-kds-v2 form#edit-form .input-group-addon,
+body.pmd-res-kds-v2 form#edit-form .input-group-text {
+  min-width: 50px !important;
+  min-height: var(--pmd-res-control) !important;
+  border-radius: 0 15px 15px 0 !important;
+  border: 1px solid var(--pmd-res-line) !important;
+  border-left: 0 !important;
+  background: #fff !important;
+  color: var(--pmd-res-green) !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+/* switch / enabled */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .btn,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] label {
+  min-height: 50px !important;
+  border-radius: 15px !important;
+  border-color: rgba(8,119,98,.22) !important;
+  background: linear-gradient(180deg, var(--pmd-res-mint), #fff) !important;
+  color: var(--pmd-res-green) !important;
+  font-weight: 950 !important;
+}
+
+/* helper cards */
+.pmd-res-kds-guide-v2 {
+  grid-column: span 12 !important;
+  border: 1px solid rgba(8,119,98,.16);
+  border-radius: 20px;
+  background: linear-gradient(180deg, var(--pmd-res-mint), #fff);
+  padding: 16px;
+  color: var(--pmd-res-green);
+}
+
+.pmd-res-kds-guide-v2 strong {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 950;
+}
+
+.pmd-res-kds-guide-v2 ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.pmd-res-kds-guide-v2 li {
+  margin: 5px 0;
+  color: #0c6f5d;
+  font-size: 12.5px;
+  font-weight: 800;
+}
+
+body.pmd-res-kds-v2 form#edit-form .help-block,
+body.pmd-res-kds-v2 form#edit-form .form-text,
+body.pmd-res-kds-v2 form#edit-form .text-muted,
+body.pmd-res-kds-v2 form#edit-form small {
+  color: #5b728d !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  line-height: 1.45 !important;
+}
+
+@media (max-width: 1100px) {
+  .pmd-res-kds-flow-v2 { grid-template-columns: 1fr !important; padding: 0 14px; }
+  .pmd-res-kds-hero-v2 { margin-left: 14px !important; margin-right: 14px !important; flex-direction: column; align-items: flex-start; }
+  body.pmd-res-kds-v2 .pmd-res-kds-grid-v2 { grid-template-columns: 1fr !important; }
+  body.pmd-res-kds-v2 [data-pmd-res-field] { grid-column: span 1 !important; }
+}
+
+/* PMD Reservation KDS Create UI v3 — layout cleanup */
+
+/* Kill old Bootstrap float/span widths only inside reservation KDS form */
+body.pmd-res-kds-v2 form#edit-form .pmd-res-kds-grid-v2 > [data-pmd-res-field],
+body.pmd-res-kds-v2 form#edit-form .pmd-res-kds-grid-v2 > .pmd-res-kds-guide-v2 {
+  float: none !important;
+  clear: none !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  position: relative !important;
+}
+
+/* Better, tighter, more KDS-like form grid */
+body.pmd-res-kds-v2 .pmd-res-kds-grid-v2 {
+  width: 100% !important;
+  max-width: 1260px !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 18px 18px !important;
+  align-items: start !important;
+}
+
+/* Field placements */
+body.pmd-res-kds-v2 [data-pmd-res-field="table"] { grid-column: 1 / -1 !important; }
+
+body.pmd-res-kds-v2 [data-pmd-res-field="guest"],
+body.pmd-res-kds-v2 [data-pmd-res-field="duration"],
+body.pmd-res-kds-v2 [data-pmd-res-field="date"] {
+  grid-column: span 4 !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="time"] { grid-column: span 4 !important; }
+body.pmd-res-kds-v2 [data-pmd-res-field="first"] { grid-column: span 4 !important; }
+body.pmd-res-kds-v2 [data-pmd-res-field="last"] { grid-column: span 4 !important; }
+
+body.pmd-res-kds-v2 [data-pmd-res-field="email"],
+body.pmd-res-kds-v2 [data-pmd-res-field="phone"],
+body.pmd-res-kds-v2 [data-pmd-res-field="restaurant"] {
+  grid-column: span 4 !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] {
+  grid-column: span 4 !important;
+  align-self: end !important;
+}
+
+body.pmd-res-kds-v2 .pmd-res-kds-guide-v2 {
+  grid-column: span 8 !important;
+  align-self: end !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="comment"] {
+  grid-column: 1 / -1 !important;
+}
+
+/* Make every control fill its own grid cell */
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] input,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] select,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] textarea,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] .form-control,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] .select2-container,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] .selectize-control,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] .chosen-container {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Input groups must not shrink */
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] .input-group {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field] .input-group .form-control {
+  flex: 1 1 auto !important;
+  width: 1% !important;
+  min-width: 0 !important;
+}
+
+/* Number fields were too tiny */
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field="guest"] input,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field="duration"] input {
+  min-width: 100% !important;
+}
+
+/* Select/relation field border was beige; make it PMD/KDS blue */
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field="table"] .form-control,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field="restaurant"] .form-control,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field="table"] .select2-container .select2-selection,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field="restaurant"] .select2-container .select2-selection,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field="table"] .selectize-input,
+body.pmd-res-kds-v2 form#edit-form [data-pmd-res-field="restaurant"] .selectize-input {
+  border-color: rgba(96,190,232,.46) !important;
+}
+
+/* Notification switch/button should not overlap the guide */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] {
+  z-index: 2 !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .field-switch,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .btn-group,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .custom-switch,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .form-check {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+}
+
+/* Reduce giant white ocean feeling */
+body.pmd-res-kds-v2 form#edit-form {
+  max-width: 1320px !important;
+  padding: 24px !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form .tab-content,
+body.pmd-res-kds-v2 form#edit-form .form-fields,
+body.pmd-res-kds-v2 form#edit-form .field-section {
+  max-width: 100% !important;
+}
+
+/* Fix top comment spacing if anything remains */
+body.pmd-res-kds-v2 form#edit-form + br,
+body.pmd-res-kds-v2 .pmd-res-kds-hero-v2 + br {
+  display: none !important;
+}
+
+@media (max-width: 1100px) {
+  body.pmd-res-kds-v2 .pmd-res-kds-grid-v2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.pmd-res-kds-v2 [data-pmd-res-field],
+  body.pmd-res-kds-v2 .pmd-res-kds-guide-v2 {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* PMD Reservation KDS Create UI v4 — polish START */
+
+/* Put the form in a calmer, approved UI-kit rhythm */
+body.pmd-res-kds-v2 .pmd-res-kds-grid-v2 {
+  max-width: 1200px !important;
+  gap: 18px 18px !important;
+}
+
+/* Better field sizing: less tiny fields, less random empty ocean */
+body.pmd-res-kds-v2 [data-pmd-res-field="guest"],
+body.pmd-res-kds-v2 [data-pmd-res-field="duration"],
+body.pmd-res-kds-v2 [data-pmd-res-field="date"],
+body.pmd-res-kds-v2 [data-pmd-res-field="time"],
+body.pmd-res-kds-v2 [data-pmd-res-field="first"],
+body.pmd-res-kds-v2 [data-pmd-res-field="last"],
+body.pmd-res-kds-v2 [data-pmd-res-field="email"],
+body.pmd-res-kds-v2 [data-pmd-res-field="phone"],
+body.pmd-res-kds-v2 [data-pmd-res-field="restaurant"] {
+  grid-column: span 4 !important;
+}
+
+/* Confirmation gets its own clean card-like cell */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] {
+  grid-column: span 4 !important;
+  min-height: 118px !important;
+  border: 1px solid rgba(8,119,98,.12) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(180deg, rgba(240,255,248,.78), #fff) !important;
+  padding: 14px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  overflow: hidden !important;
+}
+
+/* Stop old switch/radio from escaping left */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] input[type="radio"],
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] input[type="checkbox"] {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  pointer-events: none !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .btn-group,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .field-switch,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .custom-switch,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .form-check {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .btn,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] label.btn,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] label {
+  width: fit-content !important;
+  min-width: 116px !important;
+  max-width: 180px !important;
+  min-height: 48px !important;
+  border-radius: 15px !important;
+  padding: 0 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(180deg, #f0fff8, #fff) !important;
+  color: #087762 !important;
+  border: 1px solid rgba(8,119,98,.24) !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  box-shadow: 0 10px 24px rgba(8,119,98,.07) !important;
+}
+
+/* Guide is a full-width operational note, not squeezed beside the switch */
+body.pmd-res-kds-v2 .pmd-res-kds-guide-v2 {
+  grid-column: 1 / -1 !important;
+  margin-top: 0 !important;
+  padding: 16px 18px !important;
+}
+
+/* Comment field must always be clearly below guide */
+body.pmd-res-kds-v2 [data-pmd-res-field="comment"] {
+  grid-column: 1 / -1 !important;
+  margin-top: 0 !important;
+}
+
+/* Make textarea feel like UI kit */
+body.pmd-res-kds-v2 [data-pmd-res-field="comment"] textarea,
+body.pmd-res-kds-v2 [data-pmd-res-field="comment"] .form-control {
+  min-height: 118px !important;
+}
+
+/* Improve label/icon alignment */
+body.pmd-res-kds-v2 .pmd-res-kds-label-line-v2 {
+  min-height: 30px !important;
+  align-items: center !important;
+}
+
+body.pmd-res-kds-v2 .pmd-res-kds-mini-icon-v2 {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  border-radius: 9px !important;
+  font-size: 13px !important;
+}
+
+/* Tighter top cards if sticky header cuts the top while scrolling */
+.pmd-res-kds-flow-v2 {
+  max-width: 1420px !important;
+}
+
+/* Remove any leftover visual comments/text node spacing */
+body.pmd-res-kds-v2 .content > :first-child:not(.pmd-res-kds-hero-v2),
+body.pmd-res-kds-v2 .page-content > :first-child:not(.pmd-res-kds-hero-v2) {
+  margin-top: 0 !important;
+}
+
+@media (max-width: 1100px) {
+  body.pmd-res-kds-v2 [data-pmd-res-field="guest"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="duration"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="date"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="time"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="first"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="last"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="email"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="phone"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="restaurant"],
+  body.pmd-res-kds-v2 [data-pmd-res-field="notify"],
+  body.pmd-res-kds-v2 .pmd-res-kds-guide-v2,
+  body.pmd-res-kds-v2 [data-pmd-res-field="comment"] {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* PMD Reservation KDS Create UI v4 — polish END */
+
+/* PMD Reservation KDS Create UI v5 — confirmation row START */
+
+/* Make confirmation a clean UI-kit row, not a broken tall card */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] {
+  grid-column: 1 / -1 !important;
+  min-height: 74px !important;
+  padding: 13px 16px !important;
+  border: 1px solid rgba(8,119,98,.16) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(180deg, rgba(240,255,248,.82), #fff) !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  overflow: visible !important;
+}
+
+/* Label side */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] > label,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] > .control-label {
+  margin: 0 !important;
+  min-width: 260px !important;
+  flex: 1 1 auto !important;
+}
+
+/* Control side */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .field-switch,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .btn-group,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .custom-switch,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .form-check,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] > div:not(.pmd-res-kds-label-line-v2) {
+  margin-left: auto !important;
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+}
+
+/* The Enabled button */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .btn,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] label.btn {
+  min-width: 118px !important;
+  width: 118px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  padding: 0 14px !important;
+  margin: 0 !important;
+  border-radius: 15px !important;
+  background: #087762 !important;
+  border: 1px solid #087762 !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 12px 26px rgba(8,119,98,.16) !important;
+}
+
+/* Hide weird native radio dot/checkbox completely */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] input[type="radio"],
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] input[type="checkbox"] {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+  appearance: none !important;
+}
+
+/* Guide should sit after confirmation, clean full width */
+body.pmd-res-kds-v2 .pmd-res-kds-guide-v2 {
+  grid-column: 1 / -1 !important;
+  margin-top: -2px !important;
+}
+
+/* PMD Reservation KDS Create UI v5 — confirmation row END */
+
+/* PMD Reservation KDS Create UI v6 — form only START */
+
+/* Remove extra marketing/guide top sections. Page header already says Reservation Create. */
+body.pmd-res-kds-v2 .pmd-res-kds-hero-v2,
+body.pmd-res-kds-v2 .pmd-res-kds-flow-v2 {
+  display: none !important;
+}
+
+/* Remove the useless single Reservation tab */
+body.pmd-res-kds-v2 form#edit-form .tab-heading,
+body.pmd-res-kds-v2 form#edit-form .form-nav.nav-tabs,
+body.pmd-res-kds-v2 form#edit-form .nav-tabs,
+body.pmd-res-kds-v2 form#edit-form .primary-tabs > .tab-heading {
+  display: none !important;
+}
+
+body.pmd-res-kds-v2 form#edit-form .tab-content,
+body.pmd-res-kds-v2 form#edit-form .tab-pane {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  padding-top: 0 !important;
+}
+
+/* Main form card: bigger and aligned like KDS/admin frame */
+body.pmd-res-kds-v2 form#edit-form {
+  max-width: 1500px !important;
+  width: calc(100% - 48px) !important;
+  margin: 28px auto 48px !important;
+  padding: 28px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(96,190,232,.46) !important;
+  background: rgba(255,255,255,.985) !important;
+  box-shadow: 0 20px 48px rgba(12,39,58,.055) !important;
+}
+
+/* Inner form panel should not create another fake page title */
+body.pmd-res-kds-v2 form#edit-form .form-widget,
+body.pmd-res-kds-v2 form#edit-form .primary-tabs,
+body.pmd-res-kds-v2 form#edit-form .tab-content,
+body.pmd-res-kds-v2 form#edit-form .tab-pane {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  margin: 0 !important;
+}
+
+/* Grid uses more width, same rhythm as UI Kit */
+body.pmd-res-kds-v2 .pmd-res-kds-grid-v2 {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+  gap: 20px 20px !important;
+}
+
+/* Cleaner field order/sizes */
+body.pmd-res-kds-v2 [data-pmd-res-field="table"] {
+  grid-column: 1 / -1 !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="guest"],
+body.pmd-res-kds-v2 [data-pmd-res-field="duration"],
+body.pmd-res-kds-v2 [data-pmd-res-field="date"],
+body.pmd-res-kds-v2 [data-pmd-res-field="time"],
+body.pmd-res-kds-v2 [data-pmd-res-field="first"],
+body.pmd-res-kds-v2 [data-pmd-res-field="last"],
+body.pmd-res-kds-v2 [data-pmd-res-field="email"],
+body.pmd-res-kds-v2 [data-pmd-res-field="phone"],
+body.pmd-res-kds-v2 [data-pmd-res-field="restaurant"] {
+  grid-column: span 4 !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"],
+body.pmd-res-kds-v2 .pmd-res-kds-guide-v2,
+body.pmd-res-kds-v2 [data-pmd-res-field="comment"] {
+  grid-column: 1 / -1 !important;
+}
+
+/* Confirmation row: clean single row */
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] {
+  min-height: 70px !important;
+  padding: 12px 16px !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(8,119,98,.16) !important;
+  background: linear-gradient(180deg, rgba(240,255,248,.82), #fff) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] > label,
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] > .control-label {
+  margin: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .field-custom-container {
+  flex: 0 0 auto !important;
+  margin-left: auto !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .form-check {
+  position: relative !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 46px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .form-check-input {
+  position: absolute !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+body.pmd-res-kds-v2 [data-pmd-res-field="notify"] .form-check-label {
+  min-width: 118px !important;
+  height: 46px !important;
+  border-radius: 15px !important;
+  background: #087762 !important;
+  border: 1px solid #087762 !important;
+  color: #fff !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 18px !important;
+  margin: 0 !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  box-shadow: 0 12px 26px rgba(8,119,98,.16) !important;
+}
+
+/* Counter note: keep but compact */
+body.pmd-res-kds-v2 .pmd-res-kds-guide-v2 {
+  margin-top: -2px !important;
+  padding: 14px 16px !important;
+  border-radius: 18px !important;
+}
+
+/* Comment box clean */
+body.pmd-res-kds-v2 [data-pmd-res-field="comment"] textarea,
+body.pmd-res-kds-v2 [data-pmd-res-field="comment"] .form-control {
+  min-height: 128px !important;
+}
+
+/* Remove top whitespace that came from deleted hero/flow */
+body.pmd-res-kds-v2 form#edit-form:first-of-type {
+  margin-top: 26px !important;
+}
+
+@media (max-width: 1100px) {
+  body.pmd-res-kds-v2 form#edit-form {
+    width: calc(100% - 24px) !important;
+    padding: 18px !important;
+  }
+
+  body.pmd-res-kds-v2 .pmd-res-kds-grid-v2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.pmd-res-kds-v2 [data-pmd-res-field],
+  body.pmd-res-kds-v2 .pmd-res-kds-guide-v2 {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* PMD Reservation KDS Create UI v6 — form only END */
+

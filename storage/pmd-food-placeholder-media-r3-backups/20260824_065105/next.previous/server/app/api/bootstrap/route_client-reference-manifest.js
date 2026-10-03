@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/bootstrap/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/tmp/pmd_sumup_method_ux_r1_20260824_061001/frontend-build/app/api/bootstrap/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

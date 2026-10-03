@@ -5,6 +5,16 @@ use Illuminate\Support\Facades\Schema;
 
 class PmdWaiterDashboardV149
 {
+    /*
+     * PMD_PERF_R3_SCHEMA_CACHE
+     *
+     * These dashboard/cashier payload builders repeatedly ask MySQL's
+     * information_schema for the same table metadata. Cache it for the lifetime
+     * of this request/controller instance.
+     */
+    protected array $pmdSchemaTableCache = [];
+    protected array $pmdSchemaColumnCache = [];
+
     public function data()
     {
         return $this->json($this->payload(false));
@@ -18,8 +28,8 @@ class PmdWaiterDashboardV149
     public function updateLayout()
     {
         try {
-            if (!Schema::hasTable('tables')) return $this->json(['ok' => false, 'message' => 'tables table missing'], 404);
-            $cols = Schema::getColumnListing('tables');
+            if (!$this->pmdSchemaHasTable('tables')) return $this->json(['ok' => false, 'message' => 'tables table missing'], 404);
+            $cols = $this->pmdSchemaColumns('tables');
             $pk = $this->firstCol($cols, ['table_id', 'id']);
             if (!$pk) return $this->json(['ok' => false, 'message' => 'table primary key not found'], 500);
 
@@ -83,14 +93,14 @@ class PmdWaiterDashboardV149
         return $this->json(['ok' => false, 'version' => 'v149', 'message' => 'addItem backend bridge not available; use /admin/orders/create'], 501);
     }
 
-    protected function payload($audit = false)
+    protected function payload($audit = false, bool $includeMenu = true)
     {
         try {
             $user = $this->userInfo();
             $tables = $this->loadTables($user);
             $metrics = $this->loadTableMetrics($tables);
             $reservations = $this->loadReservations($tables);
-            $menus = $this->loadMenus();
+            $menus = $includeMenu ? $this->loadMenus() : [];
             $orders = $this->loadOrderCards($tables);
 
             $rows = [];
@@ -180,11 +190,11 @@ class PmdWaiterDashboardV149
 
             if ($audit) {
                 $payload['audit'] = [
-                    'tables_schema' => Schema::hasTable('tables') ? Schema::getColumnListing('tables') : [],
-                    'orders_schema' => Schema::hasTable('orders') ? Schema::getColumnListing('orders') : [],
-                    'reservations_schema' => Schema::hasTable('reservations') ? Schema::getColumnListing('reservations') : [],
-                    'assignment_table_exists' => Schema::hasTable('pmd_waiter_table_assignments'),
-                    'merge_table_exists' => Schema::hasTable('pmd_table_merges'),
+                    'tables_schema' => $this->pmdSchemaHasTable('tables') ? $this->pmdSchemaColumns('tables') : [],
+                    'orders_schema' => $this->pmdSchemaHasTable('orders') ? $this->pmdSchemaColumns('orders') : [],
+                    'reservations_schema' => $this->pmdSchemaHasTable('reservations') ? $this->pmdSchemaColumns('reservations') : [],
+                    'assignment_table_exists' => $this->pmdSchemaHasTable('pmd_waiter_table_assignments'),
+                    'merge_table_exists' => $this->pmdSchemaHasTable('pmd_table_merges'),
                     'returned_tables' => count($rows),
                     'returned_my_tables' => count($mine),
                     'returned_orders' => count($orders),
@@ -200,14 +210,16 @@ class PmdWaiterDashboardV149
 
     protected function loadTables($user)
     {
-        if (!Schema::hasTable('tables')) return [];
-        $cols = Schema::getColumnListing('tables');
+        if (!$this->pmdSchemaHasTable('tables')) return [];
+        $cols = $this->pmdSchemaColumns('tables');
         $pk = $this->firstCol($cols, ['table_id', 'id']);
         if (!$pk) return [];
 
         $q = DB::table('tables');
         if (in_array('deleted_at', $cols, true)) $q->whereNull('deleted_at');
-        if (in_array('table_status', $cols, true)) $q->where('table_status', 1);
+        // PMD_TABLE_ENABLE_DISABLE_R39
+        // Disabled physical tables remain in staff/Floor payloads so every role
+        // can see the same table layout. UI layers decide whether interaction is allowed.
         if (in_array('visible_on_floor_plan', $cols, true)) {
             $q->where(function($qq) { $qq->whereNull('visible_on_floor_plan')->orWhere('visible_on_floor_plan', '<>', 0); });
         }
@@ -241,6 +253,8 @@ class PmdWaiterDashboardV149
             $pos = $this->autoPosition($i);
             $floor = $this->cleanName($a['floor_name'] ?? $a['floor'] ?? $a['table_section'] ?? 'Main') ?: 'Main';
             $assigned = !$user['is_waiter'] ? true : ($hasAssignments ? in_array($id, $assignedIds, true) : true);
+            $enabled = !array_key_exists('table_status', $a) || (bool)$a['table_status'];
+            $floorNote = trim((string)($a['floor_notes'] ?? ''));
 
             $features = $this->decodeFeatures($a['table_features'] ?? null);
             foreach (['near_window','near_heater','quiet_area','outdoor','vip','accessible'] as $flag) {
@@ -261,13 +275,21 @@ class PmdWaiterDashboardV149
                 'floor_sort' => (int)($a['floor_sort'] ?? 0),
                 'x' => (float)($a['floor_x'] ?? $pos['x']),
                 'y' => (float)($a['floor_y'] ?? $pos['y']),
+                'floor_x' => (float)($a['floor_x'] ?? $pos['x']),
+                'floor_y' => (float)($a['floor_y'] ?? $pos['y']),
                 'w' => $w,
                 'h' => $h,
                 'shape' => (string)($a['floor_shape'] ?? ($cap >= 6 ? 'rectangle' : 'roundrect')),
                 'section' => $this->cleanName($a['table_section'] ?? $a['table_zone'] ?? 'main') ?: 'main',
                 'zone' => $this->cleanName($a['table_zone'] ?? ''),
                 'features' => array_values(array_unique(array_filter($features))),
-                'notes' => (string)($a['floor_notes'] ?? ''),
+                'table_status' => $enabled,
+                'enabled' => $enabled,
+                // Same persistent internal Floor note under every naming shape
+                // currently consumed by Floor/POS generations.
+                'note' => $floorNote,
+                'notes' => $floorNote,
+                'floor_notes' => $floorNote,
                 'reservable' => array_key_exists('reservable', $a) ? (bool)$a['reservable'] : true,
                 'assigned' => $assigned,
                 'assignment_source' => $hasAssignments ? 'pmd_waiter_table_assignments' : 'fallback_all_tables',
@@ -278,9 +300,9 @@ class PmdWaiterDashboardV149
 
     protected function loadMenus()
     {
-        $table = Schema::hasTable('menus') ? 'menus' : (Schema::hasTable('menu_items') ? 'menu_items' : null);
+        $table = $this->pmdSchemaHasTable('menus') ? 'menus' : ($this->pmdSchemaHasTable('menu_items') ? 'menu_items' : null);
         if (!$table) return [];
-        $cols = Schema::getColumnListing($table);
+        $cols = $this->pmdSchemaColumns($table);
         $pk = $this->firstCol($cols, ['menu_id', 'id']);
         $nameCol = $this->firstCol($cols, ['menu_name', 'name', 'title']);
         $priceCol = $this->firstCol($cols, ['menu_price', 'price', 'cost']);
@@ -297,9 +319,9 @@ class PmdWaiterDashboardV149
     {
         $metrics = [];
         foreach ($tables as $t) $metrics[(int)$t['id']] = ['open_orders' => 0, 'ready' => 0, 'kitchen' => 0, 'due' => 0, 'paid_partial' => 0, 'latest_status' => ''];
-        if (!Schema::hasTable('orders') || !$tables) return $metrics;
+        if (!$this->pmdSchemaHasTable('orders') || !$tables) return $metrics;
 
-        $cols = Schema::getColumnListing('orders');
+        $cols = $this->pmdSchemaColumns('orders');
         $pk = $this->firstCol($cols, ['order_id', 'id']);
         $tableCol = $this->firstCol($cols, ['table_id', 'dining_table_id', 'location_table_id', 'table_no', 'table_name']);
         if (!$tableCol) return $metrics;
@@ -346,8 +368,8 @@ class PmdWaiterDashboardV149
     {
         $out = [];
         foreach ($tables as $t) $out[(int)$t['id']] = ['today' => 0, 'upcoming' => 0];
-        if (!Schema::hasTable('reservations')) return $out;
-        $cols = Schema::getColumnListing('reservations');
+        if (!$this->pmdSchemaHasTable('reservations')) return $out;
+        $cols = $this->pmdSchemaColumns('reservations');
         $tableCol = $this->firstCol($cols, ['table_id', 'dining_table_id', 'location_table_id']);
         if (!$tableCol) return $out;
         $dateCol = $this->firstCol($cols, ['reserve_date', 'reservation_date', 'date', 'created_at']);
@@ -366,8 +388,8 @@ class PmdWaiterDashboardV149
 
     protected function loadOrderCards($tables)
     {
-        if (!Schema::hasTable('orders') || !$tables) return [];
-        $cols = Schema::getColumnListing('orders');
+        if (!$this->pmdSchemaHasTable('orders') || !$tables) return [];
+        $cols = $this->pmdSchemaColumns('orders');
         $pk = $this->firstCol($cols, ['order_id', 'id']);
         $tableCol = $this->firstCol($cols, ['table_id', 'dining_table_id', 'location_table_id', 'table_no', 'table_name']);
         if (!$pk || !$tableCol) return [];
@@ -407,6 +429,15 @@ class PmdWaiterDashboardV149
 
     protected function statusFor($t, $m, $r, $user)
     {
+        // PMD_TABLE_ENABLE_DISABLE_R39
+        // Product-disabled is stronger than operational Busy/Clean/Reserved.
+        if (
+            (array_key_exists('table_status', $t) && !$t['table_status'])
+            || (array_key_exists('enabled', $t) && !$t['enabled'])
+        ) {
+            return ['key' => 'disabled', 'label' => 'Disabled', 'color' => '#9ca3af'];
+        }
+
         if ($user['is_waiter'] && empty($t['assigned'])) return ['key' => 'unassigned', 'label' => 'Not my table', 'color' => '#cbd5e1'];
         if ((int)$m['ready'] > 0) return ['key' => 'ready', 'label' => 'Ready', 'color' => '#7c3aed'];
         if ((int)$m['kitchen'] > 0) return ['key' => 'kitchen', 'label' => 'Sent to kitchen', 'color' => '#f59e0b'];
@@ -418,7 +449,7 @@ class PmdWaiterDashboardV149
 
     protected function assignedTableIds($user)
     {
-        if (!Schema::hasTable('pmd_waiter_table_assignments')) return [];
+        if (!$this->pmdSchemaHasTable('pmd_waiter_table_assignments')) return [];
         $staff = (int)($user['staff_id'] ?? 0);
         if (!$staff) return [];
         try {
@@ -498,6 +529,26 @@ class PmdWaiterDashboardV149
         $s = trim((string)$v);
         if ($s === '' || $s === '[object Object]') return '';
         return $s;
+    }
+
+    protected function pmdSchemaHasTable(string $table): bool
+    {
+        if (!array_key_exists($table, $this->pmdSchemaTableCache)) {
+            $this->pmdSchemaTableCache[$table] = Schema::hasTable($table);
+        }
+
+        return (bool)$this->pmdSchemaTableCache[$table];
+    }
+
+    protected function pmdSchemaColumns(string $table): array
+    {
+        if (!array_key_exists($table, $this->pmdSchemaColumnCache)) {
+            $this->pmdSchemaColumnCache[$table] = $this->pmdSchemaHasTable($table)
+                ? Schema::getColumnListing($table)
+                : [];
+        }
+
+        return $this->pmdSchemaColumnCache[$table];
     }
 
     protected function firstCol($cols, $names)

@@ -1,0 +1,275 @@
+/*
+ * PMD Waiter Launcher V2.3.3
+ * Unified visual language with the food-item POS category rail.
+ */
+
+/* Remove duplicated live identity/status UI. */
+body.pmd-waiter-standard-v23-page .pmd-v23-online-user,
+body.pmd-waiter-standard-v23-page .pmd-v2-live,
+body.pmd-waiter-standard-v23-page .pmd-v2-footer {
+  display: none !important;
+}
+
+/* Header remains compact after removing duplicate labels. */
+body.pmd-waiter-standard-v23-page .pmd-v2-top-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+/* The command row is no longer needed after search moves into the header. */
+body.pmd-waiter-standard-v23-page .pmd-v2-command {
+  display: none !important;
+}
+
+/*
+ * Same category rail proportions as the ordering screen.
+ * The ordering screen category rail is visually about 112px wide.
+ */
+body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+  grid-template-columns: 128px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto minmax(0, 1fr) !important;
+  grid-template-areas:
+    "top top"
+    "rail areas"
+    "rail tables" !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys {
+  grid-area: rail !important;
+  width: 128px !important;
+  min-width: 128px !important;
+  padding: 10px 7px !important;
+  gap: 6px !important;
+  background: var(--pmd-v23-surface) !important;
+  border-right: 1px solid var(--pmd-v23-line) !important;
+  overflow-y: auto !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys {
+  grid-area: areas !important;
+  padding: 10px 14px !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+  grid-area: tables !important;
+  padding-top: 8px !important;
+}
+
+/* Full-colour keys at all times, matching POS category buttons. */
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+  width: 100% !important;
+  min-height: 56px !important;
+  padding: 8px 7px !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border: 1px solid var(--pmd-filter-color) !important;
+  border-left: 0 !important;
+  border-radius: 3px !important;
+  background: var(--pmd-filter-color) !important;
+  color: #fff !important;
+  text-align: left !important;
+  box-shadow: none !important;
+  opacity: .78 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button:hover,
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button.is-active {
+  opacity: 1 !important;
+  color: #fff !important;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.42) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button span {
+  color: #fff !important;
+  font-size: 10px !important;
+  font-weight: 1000 !important;
+  line-height: 1.05 !important;
+  letter-spacing: .025em !important;
+  overflow-wrap: anywhere !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button b {
+  min-width: 27px !important;
+  height: 27px !important;
+  padding: 0 5px !important;
+  display: grid !important;
+  place-items: center !important;
+  border-radius: 3px !important;
+  background: rgba(255,255,255,.17) !important;
+  border: 1px solid rgba(255,255,255,.35) !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 1000 !important;
+}
+
+/* Search becomes a compact header control. */
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search {
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  border: 1px solid rgba(255,255,255,.24) !important;
+  border-radius: 3px !important;
+  background: #111922 !important;
+  overflow: hidden !important;
+  transition: width .16s ease, max-width .16s ease !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search.is-open,
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search:focus-within {
+  width: min(360px, 34vw) !important;
+  max-width: min(360px, 34vw) !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search > span {
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  height: 40px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #fff !important;
+  font-size: 18px !important;
+  cursor: pointer !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search input {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #fff !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity .12s ease !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search.is-open input,
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search:focus-within input {
+  width: 100% !important;
+  padding: 0 10px 0 0 !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search input::placeholder {
+  color: #aebdca !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search [data-v2-clear-search] {
+  margin-right: 5px !important;
+  color: #fff !important;
+}
+
+/* Dark alert drawer: every surface must use dark operational colours. */
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer > section {
+  background: #0f1720 !important;
+  color: #f8fafc !important;
+  border-left: 1px solid #465566 !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer header {
+  background: #0a1017 !important;
+  color: #fff !important;
+  border-bottom: 1px solid #465566 !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer header small,
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer header h2 {
+  color: #fff !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer [data-v2-alert-list] {
+  background: #111a24 !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer [data-v2-alert-list] > button {
+  background: #18232e !important;
+  color: #f8fafc !important;
+  border: 1px solid #526171 !important;
+  border-left: 5px solid #d97706 !important;
+  box-shadow: none !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer [data-v2-alert-list] > button b,
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer [data-v2-alert-list] > button strong {
+  color: #fff !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer [data-v2-alert-list] > button small {
+  color: #aebdca !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-empty {
+  background: #18232e !important;
+  color: #d5dee7 !important;
+}
+
+/* Light drawer remains readable and consistent. */
+html:not([data-pmd-pos-theme="dark"])
+body.pmd-waiter-standard-v23-page .pmd-v2-alert-drawer > section {
+  background: #edf2f6 !important;
+}
+
+/* Tablet/mobile adaptations. */
+@media (max-width: 900px) and (min-width: 701px) {
+  body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys {
+    width: 112px !important;
+    min-width: 112px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button span {
+    font-size: 9px !important;
+  }
+}
+
+@media (max-width: 700px) {
+  body.pmd-waiter-standard-v23-page .pmd-v2-launcher {
+    display: flex !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys {
+    width: 100% !important;
+    min-width: 100% !important;
+    flex-direction: row !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button {
+    flex: 0 0 116px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search.is-open,
+  body.pmd-waiter-standard-v23-page .pmd-v2-search.pmd-v233-header-search:focus-within {
+    position: absolute !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: 8px !important;
+    width: auto !important;
+    max-width: none !important;
+    z-index: 20 !important;
+  }
+}

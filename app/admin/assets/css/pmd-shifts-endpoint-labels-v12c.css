@@ -1,0 +1,22 @@
+/* PMD_SHIFTS_ENDPOINT_LABEL_INWARD_V12C
+ * Keep the endpoint time ticks on the exact opening/closing timeline
+ * boundaries, but render their text inward so sticky TEAM never covers it.
+ * Internal labels remain centered exactly on their boundaries.
+ */
+body.pmd-shifts-page .pmd-shifts-final-screen .pmd-shifts-final-scale > span:first-child {
+  left: 0% !important;
+  transform: translate(0, -50%) !important;
+  z-index: 9 !important;
+  width: max-content !important;
+  white-space: nowrap !important;
+  text-align: left !important;
+}
+
+body.pmd-shifts-page .pmd-shifts-final-screen .pmd-shifts-final-scale > span:last-child {
+  left: 100% !important;
+  transform: translate(-100%, -50%) !important;
+  z-index: 9 !important;
+  width: max-content !important;
+  white-space: nowrap !important;
+  text-align: right !important;
+}

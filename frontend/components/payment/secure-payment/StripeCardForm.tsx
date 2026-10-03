@@ -30,10 +30,12 @@ export function StripeCardForm({
     phone: "",
   })
   const isSubmittingRef = useRef(false)
+  const pmdKazenStripeFormRef = useRef<HTMLFormElement | null>(null)
   const cardMountedRef = useRef(false)
   const [cardMounted, setCardMounted] = useState(false)
   const [cardReady, setCardReady] = useState(false)
   const [cardComplete, setCardComplete] = useState(false)
+  const [useKazenStripeSkin, setUseKazenStripeSkin] = useState(false)
 
   const fieldTheme = useMemo(() => {
     if (typeof window === "undefined") {
@@ -100,10 +102,54 @@ export function StripeCardForm({
   )
 
   useEffect(() => {
+    try {
+      const checkoutTheme = document
+        .querySelector('[data-pmd-checkout-theme-root="1"]')
+        ?.getAttribute("data-pmd-checkout-theme")
+
+      const isKazenTheme =
+        checkoutTheme === "kazen_japanese" ||
+        checkoutTheme === "kazen-japanese" ||
+        Boolean(document.querySelector('.kzco-overlay[data-kzco-root="1"]')) ||
+        Boolean(document.querySelector('[data-pmd-checkout-kazen-skin="1"]'))
+
+      setUseKazenStripeSkin(isKazenTheme)
+    } catch {
+      setUseKazenStripeSkin(false)
+    }
+
     return () => {
       cardMountedRef.current = false
     }
   }, [])
+
+
+  // PMD_KAZEN_STRIPE_BILLING_SHARP_FIELDS_V2_START
+  // Kazen checkout uses strict square fields. Some shared payment styles force
+  // rounded-xl/9999px on ThemedInput after CSS loads, so set the final computed
+  // radius directly for the three Stripe billing fields inside Kazen only.
+  useEffect(() => {
+    const form = pmdKazenStripeFormRef.current
+    if (!form || typeof document === "undefined") return
+
+    const kazenRoot = form.closest(
+      '[data-pmd-checkout-theme="kazen_japanese"], [data-pmd-checkout-theme="kazen-japanese"], .kzco-overlay',
+    )
+    if (!kazenRoot) return
+
+    const fields = form.querySelectorAll<HTMLInputElement>("#cardholderName, #email, #phone")
+    fields.forEach((field) => {
+      field.setAttribute("data-pmd-kazen-billing-field", "1")
+      field.style.setProperty("border-radius", "0px", "important")
+      field.style.setProperty("-webkit-border-radius", "0px", "important")
+      field.style.setProperty("background", "rgba(255, 251, 243, .78)", "important")
+      field.style.setProperty("background-color", "rgba(255, 251, 243, .78)", "important")
+      field.style.setProperty("border", "1px solid rgba(36, 35, 32, .24)", "important")
+      field.style.setProperty("box-shadow", "none", "important")
+      field.style.setProperty("outline", "none", "important")
+    })
+  })
+  // PMD_KAZEN_STRIPE_BILLING_SHARP_FIELDS_V2_END
 
   const handleCardChange = (event: any) => {
     setCardComplete(Boolean(event?.complete))
@@ -213,7 +259,157 @@ export function StripeCardForm({
 
 
   return (
-    <form data-pmd-stripe-form="1" onSubmit={handleSubmit} className={cn("space-y-4 bg-transparent w-full", className)}>
+    <form
+      data-pmd-stripe-form="1"
+      data-pmd-stripe-kazen-form={useKazenStripeSkin ? "1" : undefined}
+      onSubmit={handleSubmit}
+      className={cn("space-y-4 bg-transparent w-full", className)}
+    >
+      <style
+        data-pmd-kazen-stripe-native-form-style="1"
+        dangerouslySetInnerHTML={{
+          __html: `
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] {
+              --pmd-kazen-card-red: #b85d59;
+              --pmd-kazen-card-red-border: rgba(143, 55, 51, .68);
+              --pmd-kazen-card-ink: #242320;
+              --pmd-kazen-card-muted: rgba(36, 35, 32, .56);
+              --pmd-kazen-card-field-bg: rgba(255, 251, 243, .72);
+              --pmd-kazen-card-field-border: rgba(36, 35, 32, .22);
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] label,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] .pmd-themed-label {
+              color: var(--pmd-kazen-card-ink) !important;
+              -webkit-text-fill-color: var(--pmd-kazen-card-ink) !important;
+              font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+              font-size: .86rem !important;
+              font-weight: 800 !important;
+              letter-spacing: -.02em !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] input.pmd-themed-input,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] input[data-pmd-themed-input],
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] .pmd-stripe-card-frame {
+              height: 52px !important;
+              min-height: 52px !important;
+              width: 100% !important;
+              border-radius: 0 !important;
+              background: var(--pmd-kazen-card-field-bg) !important;
+              background-color: var(--pmd-kazen-card-field-bg) !important;
+              border: 1px solid var(--pmd-kazen-card-field-border) !important;
+              box-shadow: none !important;
+              outline: none !important;
+              color: var(--pmd-kazen-card-ink) !important;
+              -webkit-text-fill-color: var(--pmd-kazen-card-ink) !important;
+              font-size: 1rem !important;
+              font-weight: 700 !important;
+              letter-spacing: -.015em !important;
+              transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] input.pmd-themed-input,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] input[data-pmd-themed-input] {
+              padding: 0 16px !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] .pmd-stripe-card-frame {
+              display: flex !important;
+              align-items: center !important;
+              padding: 0 14px !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] .pmd-stripe-card-frame .StripeElement,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] .pmd-stripe-card-frame .__PrivateStripeElement {
+              width: 100% !important;
+              min-height: 22px !important;
+              border: 0 !important;
+              border-radius: 0 !important;
+              background: transparent !important;
+              box-shadow: none !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] input.pmd-themed-input::placeholder,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] input[data-pmd-themed-input]::placeholder {
+              color: var(--pmd-kazen-card-muted) !important;
+              -webkit-text-fill-color: var(--pmd-kazen-card-muted) !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] input.pmd-themed-input:focus,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] input[data-pmd-themed-input]:focus,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] .pmd-stripe-card-frame:focus-within {
+              border-color: rgba(184, 93, 89, .72) !important;
+              background: rgba(255, 250, 242, .92) !important;
+              box-shadow: inset 0 -2px 0 rgba(184, 93, 89, .72) !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button[data-pmd-stripe-native-button="1"],
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button.pmd-themed-button[data-pmd-themed-button="primary"],
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button[type="submit"] {
+              width: 100% !important;
+              height: 52px !important;
+              min-height: 52px !important;
+              border-radius: 0 !important;
+              background: var(--pmd-kazen-card-red) !important;
+              background-color: var(--pmd-kazen-card-red) !important;
+              background-image: none !important;
+              border: 1px solid var(--pmd-kazen-card-red-border) !important;
+              color: #fffaf3 !important;
+              -webkit-text-fill-color: #fffaf3 !important;
+              box-shadow: none !important;
+              filter: none !important;
+              opacity: 1 !important;
+              font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+              font-size: .82rem !important;
+              font-weight: 850 !important;
+              letter-spacing: .14em !important;
+              line-height: 1 !important;
+              text-transform: uppercase !important;
+              padding: .86rem 1rem !important;
+              transition: background-color .16s ease, border-color .16s ease, transform .16s ease !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button[data-pmd-stripe-native-button="1"] *,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button.pmd-themed-button[data-pmd-themed-button="primary"] *,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button[type="submit"] * {
+              color: #fffaf3 !important;
+              -webkit-text-fill-color: #fffaf3 !important;
+              stroke: currentColor !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button[data-pmd-stripe-native-button="1"]:not(:disabled):hover,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button.pmd-themed-button[data-pmd-themed-button="primary"]:not(:disabled):hover,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button[type="submit"]:not(:disabled):hover {
+              background: #c86460 !important;
+              background-color: #c86460 !important;
+              transform: translateY(-1px) !important;
+            }
+
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button[data-pmd-stripe-native-button="1"]:disabled,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button.pmd-themed-button[data-pmd-themed-button="primary"]:disabled,
+            html body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] button[type="submit"]:disabled {
+              background: var(--pmd-kazen-card-red) !important;
+              background-color: var(--pmd-kazen-card-red) !important;
+              background-image: none !important;
+              border-color: var(--pmd-kazen-card-red-border) !important;
+              color: #fffaf3 !important;
+              -webkit-text-fill-color: #fffaf3 !important;
+              opacity: .58 !important;
+              cursor: not-allowed !important;
+              transform: none !important;
+            }
+
+            html body .kzco-overlay[data-kzco-root="1"][data-kzco-mode="dark"] form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"],
+            html[data-pmd-kazen-mode="dark"] body form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"],
+            body[data-pmd-kazen-mode="dark"] form[data-pmd-stripe-form="1"][data-pmd-stripe-kazen-form="1"] {
+              --pmd-kazen-card-ink: #f4e7c8;
+              --pmd-kazen-card-muted: rgba(244, 231, 200, .60);
+              --pmd-kazen-card-field-bg: rgba(246, 232, 200, .055);
+              --pmd-kazen-card-field-border: rgba(198, 164, 93, .36);
+            }
+          `,
+        }}
+      />
       <div className="space-y-3">
         <div>
           <Label htmlFor="cardholderName" className="pmd-themed-label text-sm font-medium">
@@ -225,8 +421,9 @@ export function StripeCardForm({
             placeholder="John Doe"
             value={formData.cardholderName}
             onChange={(e) => setFormData(prev => ({ ...prev, cardholderName: e.target.value }))}
-            className="mt-1"
-          />
+            className="mt-1 pmd-kazen-stripe-billing-input"
+          
+            data-pmd-kazen-billing-field="1"/>
         </div>
 
         <div>
@@ -239,8 +436,9 @@ export function StripeCardForm({
             placeholder="john@example.com"
             value={formData.email}
             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-            className="mt-1"
-          />
+            className="mt-1 pmd-kazen-stripe-billing-input"
+          
+            data-pmd-kazen-billing-field="1"/>
         </div>
 
         <div>
@@ -253,8 +451,9 @@ export function StripeCardForm({
             placeholder="+1 (555) 123-4567"
             value={formData.phone}
             onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-            className="mt-1"
-          />
+            className="mt-1 pmd-kazen-stripe-billing-input"
+          
+            data-pmd-kazen-billing-field="1"/>
         </div>
 
         <div>

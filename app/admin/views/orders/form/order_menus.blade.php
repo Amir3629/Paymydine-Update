@@ -148,7 +148,8 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
 @endphp
 
 <div class="order-bill-container">
-    <table class="order-bill-table">
+    {{-- PMD_ORDER_MENU_NATIVE_CONTROL_ICONS_V1 --}}
+<table class="order-bill-table">
         <thead>
             <tr>
                 <th width="60%">ITEM / OPTIONS</th>
@@ -247,7 +248,9 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                                 @endforeach
                             </div>
                         @endif
-                        @php($pmdMenuComment = pmdCleanGuestSessionComment($menuItem->comment ?? ''))
+                        @php
+                            $pmdMenuComment = pmdCleanGuestSessionComment($menuItem->comment ?? '');
+                        @endphp
                         @if($pmdMenuComment !== '')
                             <div class="order-bill-item-comment">{{ $pmdMenuComment }}</div>
                         @endif
@@ -255,11 +258,11 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
                     <td class="order-bill-quantity text-center">
                         <div class="quantity-controls" data-order-menu-id="{{ $menuItem->order_menu_id }}" data-menu-id="{{ $menuItem->menu_id }}" data-price="{{ $menuItem->price }}">
                             <button type="button" class="qty-btn qty-minus" onclick="event.preventDefault(); event.stopPropagation(); updateOrderItemQuantity({{ $menuItem->order_menu_id }}, -1);" title="Decrease quantity">
-                                <i class="fa fa-minus"></i>
+                                <span aria-hidden="true">−</span>
                             </button>
                             <span class="qty-display" id="qty-{{ $menuItem->order_menu_id }}">{{ $menuItem->quantity }}</span>
                             <button type="button" class="qty-btn qty-plus" onclick="event.preventDefault(); event.stopPropagation(); updateOrderItemQuantity({{ $menuItem->order_menu_id }}, 1);" title="Increase quantity">
-                                <i class="fa fa-plus"></i>
+                                <span aria-hidden="true">+</span>
                             </button>
                         </div>
                     </td>
@@ -348,7 +351,7 @@ if (!function_exists('pmdR2oShownUnitPrice')) {
     <!-- Add Item Button -->
     <div class="order-bill-actions" style="margin-top: 20px; padding-top: 15px;">
         <button type="button" class="btn btn-primary btn-add-item" id="btn-add-item" onclick="event.preventDefault(); event.stopPropagation(); addItemToOrder({{ $model->order_id }});">
-            <i class="fa fa-plus"></i> Add Item
+            <span aria-hidden="true">+</span> Add Item
         </button>
     </div>
 </div>
@@ -1027,3 +1030,6 @@ function showNotification(message, type) {
 </style>
 
 
+
+
+<!-- PMD_FIX_ORDER_MENUS_INLINE_PHP_V2 -->

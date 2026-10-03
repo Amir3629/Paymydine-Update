@@ -1,0 +1,384 @@
+/*
+ * PMD_QPOS_ANDROID_TABLET_DESKTOP_PARITY_V110
+ *
+ * Android Cashier TABLET only.
+ *
+ * Intent:
+ * - Landscape follows the established Desktop operator geometry:
+ *     Check | Menu | Tables
+ * - Portrait follows DOM flow without inventing a new tablet composition:
+ *     Tables -> Menu -> Check
+ * - Table cards / Check cards keep Desktop proportions and typography.
+ * - Phone/mobile rules are untouched.
+ */
+
+@media (orientation: landscape) {
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-main,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-main {
+    display: grid !important;
+    grid-template-columns: 300px minmax(360px,1fr) 220px !important;
+    gap: 10px !important;
+    padding: 10px !important;
+  }
+
+  /* Preserve the existing Desktop operator order: Check | Menu | Tables. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    border: 1px solid var(--q-line) !important;
+    border-radius: var(--q-radius) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-catalog,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-catalog {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-left,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-left {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+  }
+
+  /* Desktop table-card proportions. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-grid,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+    gap: 8px !important;
+    padding: 4px 10px 12px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table {
+    min-height: 74px !important;
+    padding: 10px !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table strong {
+    font-size: 17px !important;
+    line-height: 1.15 !important;
+    padding-right: 12px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table small {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin-top: 4px !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--q-muted) !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small[hidden],
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table small[hidden] {
+    display: none !important;
+  }
+
+  /* Desktop Check card proportions. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-open-checks {
+    gap: 6px !important;
+    padding: 8px 10px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks button,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-open-checks button {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    padding: 0 9px !important;
+    font-size: 14px !important;
+    font-weight: 850 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-head strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-head strong {
+    font-size: 20px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-line strong {
+    font-size: 15px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line small,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-line small {
+    font-size: 12px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-close,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-mobile-cart,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-close,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-mobile-cart {
+    display: none !important;
+  }
+}
+
+@media (orientation: portrait) {
+  html.pmd-qpos-android-pos-v105 body.pmd-qpos-body,
+  html.pmd-qpos-android-pos-v107 body.pmd-qpos-body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Use the existing DOM order exactly: Tables -> Menu -> Check. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-main,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-main {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+    padding: 8px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-left,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-left {
+    position: relative !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 0 8px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--q-line) !important;
+    border-radius: var(--q-radius) !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-catalog,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-catalog {
+    position: relative !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 0 8px !important;
+    overflow: visible !important;
+    border: 1px solid var(--q-line) !important;
+    border-radius: var(--q-radius) !important;
+  }
+
+  /* Check/Checkout is the final normal card, not a side panel and not a sheet. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart {
+    position: relative !important;
+    z-index: auto !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 520px !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding-bottom: 0 !important;
+    border: 1px solid var(--q-line) !important;
+    border-radius: var(--q-radius) !important;
+    transform: none !important;
+    transition: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart.is-mobile-open,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart.is-mobile-open {
+    transform: none !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-close,
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-mobile-cart,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-close,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-mobile-cart {
+    display: none !important;
+  }
+
+  /* Desktop-like table cards; no V109 capacity pill. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-tables,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-tables {
+    min-height: 260px !important;
+    max-height: 340px !important;
+    overflow: auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table-grid,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table-grid {
+    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    gap: 8px !important;
+    padding: 4px 10px 12px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table {
+    min-height: 74px !important;
+    padding: 10px !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table strong {
+    font-size: 17px !important;
+    line-height: 1.15 !important;
+    padding-right: 12px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table small {
+    position: static !important;
+    display: block !important;
+    width: auto !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+    margin-top: 4px !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--q-muted) !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table small[hidden],
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table small[hidden] {
+    display: none !important;
+  }
+
+  /* Keep the Menu recognizably Desktop, just fit portrait width. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-grid,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-grid {
+    grid-template-columns: repeat(3,minmax(0,1fr)) !important;
+    gap: 9px !important;
+    padding: 10px 12px 18px !important;
+    overflow: visible !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product {
+    min-height: 142px !important;
+    aspect-ratio: auto !important;
+    padding: 10px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-name,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-name {
+    font-size: 20px !important;
+    line-height: 1.18 !important;
+    font-weight: 900 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-number,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product-body .pmd-qpos-product-number {
+    font-size: 17px !important;
+  }
+
+  /* Desktop-like Check cards. */
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-open-checks {
+    display: flex !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+    overflow-x: auto !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-open-checks button,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-open-checks button {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    min-height: 48px !important;
+    padding: 0 9px !important;
+    font-size: 14px !important;
+    font-weight: 850 !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-head strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-head strong {
+    font-size: 20px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line strong,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-line strong {
+    font-size: 15px !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-cart-line small,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-cart-line small {
+    font-size: 12px !important;
+  }
+}
+
+
+/* ============================================================
+   PMD_QPOS_ANDROID_TABLET_SQUARE_GEOMETRY_V111
+
+   Android Cashier tablet only.
+   Preserve V110 Desktop-parity composition while making the two
+   primary touch targets geometrically consistent:
+     - Table tiles = 1:1 square
+     - Food/product cards = 1:1 square
+
+   Phone/mobile styles are not targeted by this stylesheet.
+   ============================================================ */
+
+@media (orientation: landscape), (orientation: portrait) {
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-table,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-table {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1 !important;
+    align-self: start !important;
+    overflow: hidden !important;
+  }
+
+  html.pmd-qpos-android-pos-v105 .pmd-qpos .pmd-qpos-product,
+  html.pmd-qpos-android-pos-v107 .pmd-qpos .pmd-qpos-product {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1 !important;
+    align-self: start !important;
+    overflow: hidden !important;
+  }
+}

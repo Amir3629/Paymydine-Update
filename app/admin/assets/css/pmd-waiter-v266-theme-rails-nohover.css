@@ -1,0 +1,329 @@
+/* PMD Waiter V2.6.6 */
+
+/* Never animate the two side rails or their buttons. */
+body.pmd-waiter-standard-v23-page
+:is(
+  [data-v2-filters],
+  .pmd-v2-filter-rail,
+  .pmd-v2-sidebar,
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+),
+body.pmd-waiter-standard-v23-page
+:is(
+  [data-v2-filters],
+  .pmd-v2-filter-rail,
+  .pmd-v2-sidebar,
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+) * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* No hover/focus/press visual changes on LEFT rail buttons. */
+body.pmd-waiter-standard-v23-page
+:is([data-v2-filters], .pmd-v2-filter-rail, .pmd-v2-sidebar)
+:is(:hover, :focus, :focus-visible, :active),
+body.pmd-waiter-standard-v23-page
+:is([data-v2-filters], .pmd-v2-filter-rail, .pmd-v2-sidebar)
+button:is(:hover, :focus, :focus-visible, :active),
+body.pmd-waiter-standard-v23-page
+:is([data-v2-filters], .pmd-v2-filter-rail, .pmd-v2-sidebar)
+[data-v2-filter]:is(:hover, :focus, :focus-visible, :active) {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+/* No hover/focus/press visual changes on RIGHT rail buttons. */
+body.pmd-waiter-standard-v23-page
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:is(:hover, :focus, :focus-visible, :active),
+body.pmd-waiter-standard-v23-page
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+button:is(:hover, :focus, :focus-visible, :active) {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+/* Dark mode is controlled by the stable V2.6.6 class, independent of old theme scripts. */
+html.pmd-v266-dark,
+html.pmd-v266-dark body,
+body.pmd-v266-dark {
+  color-scheme: dark;
+}
+
+html.pmd-v266-dark body.pmd-waiter-standard-v23-page,
+body.pmd-waiter-standard-v23-page.pmd-v266-dark {
+  background: #0b131b !important;
+  color: #f8fafc !important;
+}
+
+/* Right rail dark mode. */
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+:is(.v257-operations-rail, .pmd-v257-operations-rail),
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+:is(.v257-operations-rail, .pmd-v257-operations-rail) {
+  background: #e8eef4 !important;
+  border-left-color: #465566 !important;
+}
+
+/*
+ * The rail outer gutter stays page-grey like the left side, while every
+ * operation button becomes genuinely dark.
+ */
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation,
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+  box-shadow: none !important;
+}
+
+/* Same exact appearance on every interaction state. */
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:is(:hover, :focus, :focus-visible, :active),
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:is(:hover, :focus, :focus-visible, :active) {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+}
+
+/* Logout follows the active theme and never changes on hover. */
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+.pmd-v265-logout,
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+.pmd-v265-logout {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+  border-left-color: #ef4444 !important;
+}
+
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+.pmd-v265-logout:is(:hover, :focus, :focus-visible, :active),
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+.pmd-v265-logout:is(:hover, :focus, :focus-visible, :active) {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+/* Note cards never become white while dark mode is active. */
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"],
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key.v264-has-note,
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key:has(.v257-card-note),
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+.pmd-v2-table-key[data-pmd-has-note="1"],
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+.pmd-v2-table-key.v264-has-note,
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+.pmd-v2-table-key:has(.v257-card-note) {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top: 4px solid #d97706 !important;
+  border-right-color: #b66a0b !important;
+  border-bottom-color: #b66a0b !important;
+  border-left-color: #b66a0b !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"]:is(:hover, :focus, :focus-visible, :active),
+html.pmd-v266-dark
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key.v264-has-note:is(:hover, :focus, :focus-visible, :active),
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+.pmd-v2-table-key[data-pmd-has-note="1"]:is(:hover, :focus, :focus-visible, :active),
+body.pmd-waiter-standard-v23-page.pmd-v266-dark
+.pmd-v2-table-key.v264-has-note:is(:hover, :focus, :focus-visible, :active) {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+/* ==========================================================
+   PMD V2.6.7 — use the REAL global theme attribute
+   ========================================================== */
+
+/* Right rail outer background in true dark mode */
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+:is(.v257-operations-rail, .pmd-v257-operations-rail) {
+  background: #0b131b !important;
+  border-left-color: #465566 !important;
+}
+
+/* Right rail buttons in true dark mode */
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Exactly the same appearance during interaction */
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+:is(.v257-operations-rail, .pmd-v257-operations-rail)
+.v257-operation:is(:hover, :focus, :focus-visible, :active) {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+/* Logout uses the real global dark mode */
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v265-logout {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top-color: #536171 !important;
+  border-right-color: #536171 !important;
+  border-bottom-color: #536171 !important;
+  border-left-color: #ef4444 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* Logout never becomes white or moves */
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v265-logout:is(:hover, :focus, :focus-visible, :active) {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+/* Remove interaction effects from both rails in both themes */
+body.pmd-waiter-standard-v23-page
+:is(
+  [data-v2-filters],
+  .pmd-v2-filter-rail,
+  .pmd-v2-sidebar,
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)
+:is(button, [role="button"]):is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+),
+body.pmd-waiter-standard-v23-page
+:is(
+  [data-v2-filters],
+  .pmd-v2-filter-rail,
+  .pmd-v2-sidebar,
+  .v257-operations-rail,
+  .pmd-v257-operations-rail
+)
+button:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  transform: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Note cards remain dark in real dark mode */
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"],
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key.v264-has-note {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  border-top: 4px solid #d97706 !important;
+  border-right-color: #b66a0b !important;
+  border-bottom-color: #b66a0b !important;
+  border-left-color: #b66a0b !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key[data-pmd-has-note="1"]:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+),
+html[data-pmd-pos-theme="dark"]
+body.pmd-waiter-standard-v23-page
+.pmd-v2-table-key.v264-has-note:is(
+  :hover,
+  :focus,
+  :focus-visible,
+  :active
+) {
+  background: #17212b !important;
+  color: #f8fafc !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  outline: none !important;
+}

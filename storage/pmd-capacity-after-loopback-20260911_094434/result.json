@@ -1,0 +1,101 @@
+{
+  "run": "20260911_094434",
+  "thresholds": {
+    "p95_fail_seconds": 6.0,
+    "any_5xx_fail": true,
+    "any_transport_error_fail": true,
+    "bad_rate_fail_over": 0.02
+  },
+  "ramps": [
+    {
+      "workload": "MIX",
+      "concurrency": 4,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 2277,
+      "p95_ms": 3471,
+      "max_ms": 4722,
+      "wall_s": 26.037,
+      "rps": 1.84,
+      "pass": true
+    },
+    {
+      "workload": "MIX",
+      "concurrency": 8,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 4277,
+      "p95_ms": 6797,
+      "max_ms": 7194,
+      "wall_s": 27.773,
+      "rps": 1.73,
+      "pass": false
+    },
+    {
+      "workload": "QR",
+      "concurrency": 4,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1789,
+      "p95_ms": 2209,
+      "max_ms": 2550,
+      "wall_s": 21.771,
+      "rps": 2.2,
+      "pass": true
+    },
+    {
+      "workload": "QR",
+      "concurrency": 8,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 3407,
+      "p95_ms": 3769,
+      "max_ms": 4107,
+      "wall_s": 20.842,
+      "rps": 2.3,
+      "pass": true
+    },
+    {
+      "workload": "QR",
+      "concurrency": 12,
+      "requests": 48,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 5070,
+      "p95_ms": 5696,
+      "max_ms": 5912,
+      "wall_s": 20.854,
+      "rps": 2.3,
+      "pass": true
+    },
+    {
+      "workload": "QR",
+      "concurrency": 16,
+      "requests": 64,
+      "bad": 0,
+      "4xx": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 6743,
+      "p95_ms": 7335,
+      "max_ms": 7650,
+      "wall_s": 27.803,
+      "rps": 2.3,
+      "pass": false
+    }
+  ]
+}

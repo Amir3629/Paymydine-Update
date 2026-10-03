@@ -1,0 +1,20 @@
+/* PMD Sidebar Closed Icons Lower v54
+   Tiny CSS-only patch.
+   Logo stays exactly where v53 made it look good.
+   Only moves the closed-sidebar icon buttons and arrow lower, so Dashboard is not too close to the logo.
+   Open sidebar is not touched. */
+
+/* CLOSED ONLY: keep logo untouched; move the nav icon rail down */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu {
+  margin-top: 18px !important;
+}
+
+/* Keep icon spacing clean after moving down */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only #side-nav-menu > .nav-item {
+  margin-bottom: 8px !important;
+}
+
+/* Move the round open/close arrow down with the buttons */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle {
+  top: 110px !important;
+}

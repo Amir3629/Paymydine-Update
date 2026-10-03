@@ -1,0 +1,28 @@
+====================================================
+PMD SAFE STABLE-BOOTSTRAP MICRO-CACHE V5
+No DB writes. No order/waiter/note/payment writes.
+Only loopback Nginx + V2 env switch after parity gates.
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 10:31:16 UTC 2026
+====================================================
+
+===== PRECHECK =====
+V2_ID=1
+current origin=http://127.0.0.1:8088
+nginx=active
+php8.3-fpm=active
+mariadb=active
+load1=0.03
+public-IP self :443=0
+
+===== INSTALL SHADOW CACHED LOOPBACK 8089 =====
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+====================================================
+PMD CACHE V5 FAILED - SAFE ROLLBACK
+====================================================
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+ROLLBACK COMPLETE
+backup=/var/www/paymydine/storage/pmd-cache-v5-20260911_103116

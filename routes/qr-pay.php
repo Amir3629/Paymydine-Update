@@ -342,7 +342,7 @@ Route::group([
         $draftId = (int)$request->input('draft_id', 0);
         $orderId = null;
         $draft = null;
-        \Illuminate\Support\Facades\DB::transaction(function () use (&$draft, &$orderId, $draftId, $context, $request) {
+        \Illuminate\Support\Facades\DB::transaction(function () use (&$draft, &$orderId, $draftId, $context, $request, $findActiveSubmittedTableOrder) {
             $query = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('status', 'draft');
             if ($draftId > 0) $query->where('id', $draftId); else $query->where(function ($q) use ($context) {
                 if (($context['table_id'] ?? '') !== '') $q->orWhere('table_id', $context['table_id']);
@@ -362,6 +362,91 @@ Route::group([
             $itemsSubtotal = (float)$resolvedTotals['subtotal'];
             $taxAmount = (float)$resolvedTotals['tax'];
             $total = (float)$resolvedTotals['total'];
+
+            // PMD_AUDIT_PHASE5_MERGE_OPEN_TABLE_ORDER
+            // If this table already has an unpaid qr_pay_later order, append the new
+            // submitted draft items to that same order instead of creating another
+            // open order. This fixes cross-device checkout polling because all guests
+            // now observe one active table order that grows over time.
+            $existingOpenOrder = $findActiveSubmittedTableOrder($context);
+            if ($existingOpenOrder && (int)($existingOpenOrder->order_id ?? 0) > 0) {
+                $orderId = (int)$existingOpenOrder->order_id;
+
+                foreach ($items as $item) {
+                    \Illuminate\Support\Facades\DB::table('order_menus')->insert([
+                        'order_id' => $orderId,
+                        'menu_id' => (int)($item['menu_id'] ?? 0),
+                        'name' => (string)($item['name'] ?? 'Item'),
+                        'quantity' => max(1, (int)($item['quantity'] ?? 1)),
+                        'price' => (float)($item['price'] ?? 0),
+                        'subtotal' => (float)($item['subtotal'] ?? 0),
+                        'comment' => '[guest_session:'.(string)($item['guest_session_id'] ?? '').']',
+                        'option_values' => !empty($item['options']) ? json_encode($item['options'], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES) : null,
+                    ]);
+                }
+
+                $allItems = \Illuminate\Support\Facades\DB::table('order_menus')
+                    ->where('order_id', $orderId)
+                    ->get(['price', 'quantity', 'subtotal'])
+                    ->map(fn($row) => [
+                        'price' => (float)($row->price ?? 0),
+                        'quantity' => (float)($row->quantity ?? 0),
+                        'subtotal' => (float)($row->subtotal ?? 0),
+                    ])
+                    ->values()
+                    ->all();
+
+                $mergedTotals = pmd_table_order_calculate_totals($allItems);
+                $mergedRows = array_map(function ($row) use ($orderId) {
+                    return array_merge(['order_id' => $orderId], $row);
+                }, $mergedTotals['rows']);
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('order_totals')) {
+                    \Illuminate\Support\Facades\DB::table('order_totals')->where('order_id', $orderId)->delete();
+                    \Illuminate\Support\Facades\DB::table('order_totals')->insert($mergedRows);
+                }
+
+                $update = [
+                    'order_total' => round((float)$mergedTotals['total'], 4),
+                    'total_items' => (int)round((float)\Illuminate\Support\Facades\DB::table('order_menus')->where('order_id', $orderId)->sum('quantity')),
+                    'updated_at' => now(),
+                ];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')) {
+                    $update['settlement_status'] = 'unpaid';
+                }
+                if (\Illuminate\Support\Facades\Schema::hasColumn('orders', 'settled_amount')) {
+                    $update['settled_amount'] = (float)($existingOpenOrder->settled_amount ?? 0);
+                }
+
+                \Illuminate\Support\Facades\DB::table('orders')->where('order_id', $orderId)->update($update);
+                \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')->where('id', $draft->id)->update([
+                    'status' => 'submitted',
+                    'order_id' => $orderId,
+                    'updated_at' => now(),
+                ]);
+
+                try {
+                    \Illuminate\Support\Facades\DB::table('notifications')->insert([
+                        'type' => 'order',
+                        'title' => 'Updated table order #'.$orderId,
+                        'table_id' => (int)($context['table_id'] ?: 0),
+                        'table_name' => (string)(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')),
+                        'payload' => json_encode(['order_id' => $orderId, 'draft_id' => (int)$draft->id, 'merged' => true]),
+                        'status' => 'new',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } catch (\Throwable $ignored) {}
+
+                \Log::info('PMD_TABLE_DRAFT_MERGED_INTO_OPEN_ORDER', [
+                    'draft_id' => (int)$draft->id,
+                    'order_id' => $orderId,
+                    'item_count' => count($items),
+                    'merged_total' => round((float)$mergedTotals['total'], 4),
+                ]);
+
+                return;
+            }
             $orderNumber = (int)\Illuminate\Support\Facades\DB::table('orders')->max('order_id') + 1;
             $comment = trim('Table Draft Basket | Table ID: '.($context['table_id'] ?? '').' | Table: '.(($context['table_name'] ?? '') ?: ($context['table_no'] ?? '')).' | [table_draft_id:'.$draft->id.']'.($request->input('guest_session_id') ? ' | [submitted_by:'.$request->input('guest_session_id').']' : ''), ' |');
             $insert = [
@@ -664,7 +749,232 @@ Route::group([
         ]);
     });
 
-    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) {
+    // PMD_SPLIT_PAYMENT_SAFETY_R35
+    $pmdEnsureSplitIntentR35 = function () {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('pmd_guest_payment_intents')) {
+            \Illuminate\Support\Facades\Schema::create('pmd_guest_payment_intents', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->increments('id');
+                $table->string('token', 64)->unique();
+                $table->unsignedInteger('order_id')->index();
+                $table->string('guest_session_id', 191)->nullable()->index();
+                $table->string('split_mode', 24)->index();
+                $table->unsignedInteger('split_people')->nullable();
+                $table->decimal('share_percent', 8, 3)->nullable();
+                $table->unsignedInteger('part_index')->nullable();
+                $table->decimal('plan_base_amount', 15, 4)->default(0);
+                $table->decimal('principal_amount', 15, 4)->default(0);
+                $table->decimal('tip_amount', 15, 4)->default(0);
+                $table->decimal('payable_amount', 15, 4)->default(0);
+                $table->longText('selected_items')->nullable();
+                $table->string('payment_method', 50)->nullable();
+                $table->string('provider', 80)->nullable();
+                $table->string('status', 24)->default('pending')->index();
+                $table->unsignedBigInteger('transaction_id')->nullable()->index();
+                $table->string('payment_reference', 255)->nullable();
+                $table->timestamp('expires_at')->nullable()->index();
+                $table->timestamps();
+            });
+        }
+    };
+
+    $pmdR35TableMatches = function ($order, \Illuminate\Http\Request $request): bool {
+        $values = array_values(array_unique(array_filter([
+            trim((string)$request->input('table_id', '')),
+            trim((string)$request->input('table_no', '')),
+            trim((string)$request->input('table', '')),
+        ], fn($v) => $v !== '')));
+        $qr = trim((string)$request->input('qr', ''));
+        if ($qr !== '') {
+            $table = \Illuminate\Support\Facades\DB::table('tables')->where('qr_code', $qr)->first();
+            if ($table) $values = array_values(array_unique(array_filter(array_merge($values, [(string)$table->table_id, (string)($table->table_no ?? ''), (string)($table->table_name ?? '')]))));
+        }
+        if (!$values) return true;
+        $orderType = (string)($order->order_type ?? '');
+        $comment = (string)($order->comment ?? '');
+        foreach ($values as $candidate) {
+            if ($orderType === $candidate || str_contains($comment, 'Table ID: '.$candidate) || str_contains($comment, 'Table: '.$candidate)) return true;
+        }
+        return false;
+    };
+
+    Route::post('/orders/split-intent', function (\Illuminate\Http\Request $request) use ($pmdEnsureSplitIntentR35, $pmdR35TableMatches) {
+        $pmdEnsureSplitIntentR35();
+        $request->validate([
+            'order_id' => 'required|integer|min:1',
+            'guest_session_id' => 'nullable|string|max:191',
+            'split_mode' => 'required|string|in:mine,equal,items,shares',
+            'split_people' => 'nullable|integer|min:2|max:20',
+            'share_percent' => 'nullable|numeric|min:1|max:100',
+            'selected_items' => 'nullable|array',
+            'selected_items.*.order_menu_id' => 'required_with:selected_items|integer|min:1',
+            'selected_items.*.quantity' => 'required_with:selected_items|numeric|min:0.001',
+            'tip_percent' => 'nullable|numeric|min:0|max:100',
+            'payment_method' => 'required|string|max:50',
+            'provider' => 'nullable|string|max:80',
+            'table_id' => 'nullable|string|max:50', 'table_no' => 'nullable|string|max:50', 'qr' => 'nullable|string|max:191',
+        ]);
+
+        $order = \Admin\Models\Orders_model::query()->where('order_id', (int)$request->order_id)->first();
+        if (!$order) return response()->json(['success' => false, 'error' => 'Order not found'], 404);
+        if (strtolower((string)$order->payment) !== 'qr_pay_later') return response()->json(['success' => false, 'error' => 'Only qr_pay_later orders support split payment'], 422);
+        if (!$pmdR35TableMatches($order, $request)) return response()->json(['success' => false, 'error' => 'Order does not belong to scanned table'], 409);
+
+        try {
+            $data = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order) {
+                \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')
+                    ->where('status', 'pending')->whereNotNull('expires_at')->where('expires_at', '<', now())
+                    ->update(['status' => 'expired', 'updated_at' => now()]);
+
+                $locked = \Admin\Models\Orders_model::query()->where('order_id', $order->order_id)->lockForUpdate()->firstOrFail();
+                $orderTotal = (float)(\Illuminate\Support\Facades\DB::table('order_totals')->where('order_id', $locked->order_id)->where('code', 'total')->value('value') ?? $locked->order_total ?? 0);
+                $settled = max(0.0, (float)($locked->settled_amount ?? 0));
+                $remaining = max(0.0, round($orderTotal - $settled, 4));
+                if ($remaining <= 0.0001) throw new \InvalidArgumentException('Order is already paid');
+
+                $mode = strtolower((string)$request->split_mode);
+                $guest = trim((string)$request->input('guest_session_id', ''));
+                $tipPercent = max(0.0, min(100.0, (float)$request->input('tip_percent', 0)));
+                $pendingRows = \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')
+                    ->where('order_id', $locked->order_id)->where('status', 'pending')->where('expires_at', '>', now())->get();
+                $conflictingPending = $pendingRows->first(fn($row) => strtolower((string)$row->split_mode) !== $mode);
+                if ($conflictingPending) throw new \InvalidArgumentException('Another split method is already being paid for this order. Refresh after it finishes or expires.');
+                $reservedPrincipal = (float)$pendingRows->sum('principal_amount');
+                $available = max(0.0, round($remaining - $reservedPrincipal, 4));
+                if ($available <= 0.0001) throw new \InvalidArgumentException('Another guest is currently paying the remaining balance. Please refresh shortly.');
+
+                $orderMenus = \Illuminate\Support\Facades\DB::table('order_menus')->where('order_id', $locked->order_id)
+                    ->get(['order_menu_id','menu_id','name','quantity','price','subtotal','comment']);
+                $itemSubtotalTotal = max(0.0, (float)$orderMenus->sum(fn($r) => (float)($r->subtotal ?? ((float)$r->price * (float)$r->quantity))));
+                $grossRatio = $itemSubtotalTotal > 0 ? max(0.0, round($orderTotal / $itemSubtotalTotal, 8)) : 1.0;
+                $principal = 0.0; $selected = null; $providerItems = []; $parts = null; $share = null; $partIndex = null; $planBase = $orderTotal;
+
+                $amountPlanSettled = \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')
+                    ->where('order_id', $locked->order_id)->where('status', 'settled')->whereIn('split_mode', ['equal','shares'])->exists();
+
+                if (in_array($mode, ['items','mine'], true)) {
+                    if ($amountPlanSettled) throw new \InvalidArgumentException('This order already uses an amount split plan. Pay the remaining balance or continue that plan.');
+                    $requested = collect($request->input('selected_items', []));
+                    if ($requested->isEmpty()) throw new \InvalidArgumentException('Select at least one unpaid item.');
+
+                    $allocation = pmdResolveSplitAllocationColumn();
+                    $paidByOrderMenu = []; $paidByMenu = [];
+                    if (\Illuminate\Support\Facades\Schema::hasTable('order_payment_transactions') && \Illuminate\Support\Facades\Schema::hasTable('order_payment_transaction_items')) {
+                        $txIds = \Illuminate\Support\Facades\DB::table('order_payment_transactions')->where('order_id', $locked->order_id)
+                            ->whereNotIn('settlement_status', ['failed','cancelled','canceled'])->pluck('id')->all();
+                        if ($txIds) {
+                            $rows = \Illuminate\Support\Facades\DB::table('order_payment_transaction_items')->whereIn('transaction_id', $txIds)->get([$allocation['column'], 'quantity_paid']);
+                            foreach ($rows as $row) {
+                                $key = (int)$row->{$allocation['column']};
+                                if ($allocation['mode'] === 'menu_id_legacy') $paidByMenu[$key] = ($paidByMenu[$key] ?? 0) + (float)$row->quantity_paid;
+                                else $paidByOrderMenu[$key] = ($paidByOrderMenu[$key] ?? 0) + (float)$row->quantity_paid;
+                            }
+                        }
+                    }
+                    $reservedQty = [];
+                    foreach ($pendingRows as $pending) {
+                        foreach ((array)(json_decode((string)$pending->selected_items, true) ?: []) as $it) {
+                            $id = (int)($it['order_menu_id'] ?? 0); if ($id > 0) $reservedQty[$id] = ($reservedQty[$id] ?? 0) + (float)($it['quantity'] ?? 0);
+                        }
+                    }
+                    $menuMap = []; $legacyConsumed = [];
+                    foreach ($orderMenus as $row) {
+                        $ordered = (float)$row->quantity;
+                        if ($allocation['mode'] === 'menu_id_legacy') {
+                            $mid=(int)$row->menu_id; $used=(float)($legacyConsumed[$mid] ?? 0); $paid=max(0,min($ordered,(float)($paidByMenu[$mid] ?? 0)-$used)); $legacyConsumed[$mid]=$used+$paid;
+                        } else $paid=min($ordered,(float)($paidByOrderMenu[(int)$row->order_menu_id] ?? 0));
+                        $menuMap[(int)$row->order_menu_id] = ['row'=>$row,'unpaid'=>max(0,$ordered-$paid)];
+                    }
+                    $selected = [];
+                    foreach ($requested as $it) {
+                        $id=(int)($it['order_menu_id'] ?? 0); $qty=round((float)($it['quantity'] ?? 0),3);
+                        if ($id < 1 || $qty <= 0 || !isset($menuMap[$id])) throw new \InvalidArgumentException('Invalid selected item.');
+                        $row=$menuMap[$id]['row'];
+                        if ($mode === 'mine' && ($guest === '' || !str_contains((string)($row->comment ?? ''), '[guest_session:'.$guest.']'))) throw new \InvalidArgumentException('One selected item does not belong to this guest.');
+                        $availableQty=max(0,(float)$menuMap[$id]['unpaid']-(float)($reservedQty[$id] ?? 0));
+                        if ($qty > $availableQty + 0.0001) throw new \InvalidArgumentException('Selected quantity is already paid or being paid by another guest.');
+                        $orderedQty=max(0.001,(float)$row->quantity); $unit=((float)$row->subtotal)/$orderedQty;
+                        $grossLine=round($unit*$qty*$grossRatio,4); $principal += $grossLine;
+                        $selected[]=['order_menu_id'=>$id,'quantity'=>$qty];
+                        $providerItems[]=['id'=>(string)$id,'name'=>(string)$row->name,'quantity'=>$qty,'price'=>round($grossLine/$qty,2)];
+                    }
+                } elseif ($mode === 'equal') {
+                    $parts=max(2,min(20,(int)$request->input('split_people',2)));
+                    $history=\Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')->where('order_id',$locked->order_id)->where('split_mode','equal')->whereIn('status',['pending','settled'])->orderBy('id')->get();
+                    if ($history->isEmpty() && $settled > 0.0001) throw new \InvalidArgumentException('Equal split must start before a different partial-payment method is used.');
+                    if ($history->isNotEmpty()) {
+                        $first=$history->first(); if ((int)$first->split_people !== $parts) throw new \InvalidArgumentException('An equal split plan already exists with '.(int)$first->split_people.' people.');
+                        $planBase=(float)$first->plan_base_amount;
+                    }
+                    $active=$history->filter(fn($r)=>$r->status==='settled' || ($r->status==='pending' && $r->expires_at && \Illuminate\Support\Carbon::parse($r->expires_at)->gt(now())))->values();
+                    $partIndex=$active->count(); if ($partIndex >= $parts) throw new \InvalidArgumentException('All equal split parts are already paid or reserved.');
+                    $cents=max(1,(int)round($planBase*100)); $base=intdiv($cents,$parts); $extra=$cents%$parts;
+                    $principal=($base+($partIndex<$extra?1:0))/100;
+                    $providerItems[]=['id'=>'equal-'.($partIndex+1),'name'=>'Equal split '.($partIndex+1).'/'.$parts,'quantity'=>1,'price'=>round($principal,2)];
+                } else {
+                    $share=max(1.0,min(100.0,(float)$request->input('share_percent',50)));
+                    $history=\Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')->where('order_id',$locked->order_id)->where('split_mode','shares')->whereIn('status',['pending','settled'])->orderBy('id')->get();
+                    if ($history->isEmpty() && $settled > 0.0001) throw new \InvalidArgumentException('Percentage split must start before a different partial-payment method is used.');
+                    if ($history->isNotEmpty()) $planBase=(float)$history->first()->plan_base_amount;
+                    $active=$history->filter(fn($r)=>$r->status==='settled' || ($r->status==='pending' && $r->expires_at && \Illuminate\Support\Carbon::parse($r->expires_at)->gt(now())));
+                    $used=(float)$active->sum('share_percent'); if ($used+$share > 100.0001) throw new \InvalidArgumentException('Selected percentages would exceed 100% of this split plan.');
+                    $principal=round($planBase*($share/100),2);
+                    if ($used+$share >= 99.999) $principal=$available;
+                    $providerItems[]=['id'=>'share-'.str_replace('.','_',number_format($share,2,'.','')),'name'=>'Bill share '.number_format($share,2).'%','quantity'=>1,'price'=>round($principal,2)];
+                }
+
+                $principal=round($principal,4);
+                if ($principal <= 0.0001) throw new \InvalidArgumentException('Payment amount must be greater than zero.');
+                if ($principal > $available + 0.02) throw new \InvalidArgumentException('Another payment changed the remaining balance. Refresh and try again.');
+                $tip=round($principal*($tipPercent/100),4); $payable=round($principal+$tip,4);
+                if ($tip > 0) $providerItems[]=['id'=>'tip','name'=>'Tip','quantity'=>1,'price'=>round($tip,2)];
+                $token='r35_'.bin2hex(random_bytes(20)); $expires=now()->addMinutes(15);
+                \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')->insert([
+                    'token'=>$token,'order_id'=>(int)$locked->order_id,'guest_session_id'=>$guest?:null,'split_mode'=>$mode,
+                    'split_people'=>$parts,'share_percent'=>$share,'part_index'=>$partIndex,'plan_base_amount'=>round($planBase,4),
+                    'principal_amount'=>$principal,'tip_amount'=>$tip,'payable_amount'=>$payable,
+                    'selected_items'=>$selected?json_encode($selected,JSON_UNESCAPED_SLASHES):null,
+                    'payment_method'=>strtolower((string)$request->payment_method),'provider'=>trim((string)$request->input('provider',''))?:null,
+                    'status'=>'pending','expires_at'=>$expires,'created_at'=>now(),'updated_at'=>now(),
+                ]);
+                $label='PMD R35 '.$mode.($mode==='equal'?':'.$parts.':'.number_format($planBase,2,'.',''):($mode==='shares'?':'.number_format($share,2,'.','').':'.number_format($planBase,2,'.',''):''));
+                return compact('token','principal','tip','payable','selected','providerItems','parts','share','expires','label','mode');
+            });
+            return response()->json(['success'=>true,'intent_token'=>$data['token'],'order_id'=>(int)$request->order_id,'split_mode'=>$data['mode'],
+                'principal_amount'=>round($data['principal'],2),'tip_amount'=>round($data['tip'],2),'payable_amount'=>round($data['payable'],2),
+                'selected_items'=>$data['selected'],'provider_items'=>$data['providerItems'],'payer_label'=>$data['label'],
+                'split_people'=>$data['parts'],'share_percent'=>$data['share'],'expires_at'=>$data['expires']->toIso8601String()]);
+        } catch (\InvalidArgumentException $e) { return response()->json(['success'=>false,'error'=>$e->getMessage()],422); }
+        catch (\Throwable $e) { \Log::error('PMD R35 split intent failed',['order_id'=>$request->order_id,'message'=>$e->getMessage()]); return response()->json(['success'=>false,'error'=>'Could not reserve this split payment. Please refresh and try again.'],500); }
+    })->withoutMiddleware([\Igniter\Cart\Middleware\Currency::class]);
+
+    // PMD_STRIPE_INLINE_PAYMENT_R35B: release an abandoned split reservation
+    // before another guest tries to pay the same principal/items.
+    Route::post('/orders/split-intent/cancel', function (\Illuminate\Http\Request $request) use ($pmdEnsureSplitIntentR35) {
+        $pmdEnsureSplitIntentR35();
+        $payload = $request->validate([
+            'intent_token' => 'required|string|max:64',
+            'guest_session_id' => 'nullable|string|max:191',
+        ]);
+        $intent = \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')
+            ->where('token', (string)$payload['intent_token'])->first();
+        if (!$intent) return response()->json(['success' => true, 'released' => false, 'status' => 'missing']);
+
+        $requestedGuest = trim((string)($payload['guest_session_id'] ?? ''));
+        $intentGuest = trim((string)($intent->guest_session_id ?? ''));
+        if ($requestedGuest !== '' && $intentGuest !== '' && !hash_equals($intentGuest, $requestedGuest)) {
+            return response()->json(['success' => false, 'error' => 'Split payment reservation does not belong to this guest.'], 409);
+        }
+
+        $released = false;
+        if ((string)$intent->status === 'pending') {
+            $released = \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')
+                ->where('id', (int)$intent->id)->where('status', 'pending')
+                ->update(['status' => 'cancelled', 'updated_at' => now()]) > 0;
+        }
+        return response()->json(['success' => true, 'released' => $released, 'status' => $released ? 'cancelled' : (string)$intent->status]);
+    })->withoutMiddleware([\Igniter\Cart\Middleware\Currency::class]);
+
+    Route::post('/orders/pay-existing', function (\Illuminate\Http\Request $request) use ($pmdEnsureSplitIntentR35) {
         \Log::info('PMD_PAY_EXISTING_DEBUG_20260612 incoming', [
             'host' => $request->getHost(),
             'connection' => \Illuminate\Support\Facades\DB::getDefaultConnection(),
@@ -687,6 +997,12 @@ Route::group([
             'tip_amount' => 'nullable|numeric|min:0',
             'coupon_discount' => 'nullable|numeric|min:0',
             'coupon_code' => 'nullable|string|max:191',
+            'payment_intent_token' => 'nullable|string|max:64',
+            'idempotency_key' => 'nullable|string|max:64',
+            'split_mode' => 'nullable|string|in:mine,equal,items,shares',
+            'split_people' => 'nullable|integer|min:2|max:20',
+            'share_percent' => 'nullable|numeric|min:1|max:100',
+            'guest_session_id' => 'nullable|string|max:191',
         ]);
 
         $order = \Admin\Models\Orders_model::query()->where('order_id', $request->order_id)->first();
@@ -695,6 +1011,39 @@ Route::group([
         }
         if (strtolower((string)$order->payment) !== 'qr_pay_later') {
             return response()->json(['success' => false, 'error' => 'Only qr_pay_later orders can be paid through this endpoint'], 422);
+        }
+
+        $r35IntentId = null;
+        $r35Intent = null;
+        $r35SplitMode = strtolower(trim((string)$request->input('split_mode', '')));
+        $r35Token = trim((string)$request->input('payment_intent_token', ''));
+        if ($r35SplitMode !== '' || $r35Token !== '') {
+            $pmdEnsureSplitIntentR35();
+            if ($r35Token === '') return response()->json(['success'=>false,'error'=>'A split payment reservation is required.'],422);
+            $r35Intent = \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')->where('token',$r35Token)->first();
+            if (!$r35Intent || (int)$r35Intent->order_id !== (int)$order->order_id) return response()->json(['success'=>false,'error'=>'Split payment reservation was not found.'],409);
+            if ((string)$r35Intent->status === 'settled') {
+                $fresh=\Admin\Models\Orders_model::query()->where('order_id',$order->order_id)->first();
+                $total=(float)(\Illuminate\Support\Facades\DB::table('order_totals')->where('order_id',$order->order_id)->where('code','total')->value('value') ?? $fresh->order_total ?? 0);
+                $settled=(float)($fresh->settled_amount ?? 0);
+                return response()->json(['success'=>true,'order_id'=>(int)$order->order_id,'transaction_id'=>$r35Intent->transaction_id ? (int)$r35Intent->transaction_id : null,
+                    'message'=>'Payment already recorded','settlement_status'=>max(0,$total-$settled)<=0.0001?'paid':'partial','settled_amount'=>$settled,
+                    'remaining_amount'=>max(0,$total-$settled),'paid_amount'=>(float)$r35Intent->payable_amount,'allocations'=>[],
+                    'already_paid'=>false,'idempotent_replay'=>true,'should_print_receipt'=>false]);
+            }
+            if (!in_array((string)$r35Intent->status,['pending','expired'],true)) return response()->json(['success'=>false,'error'=>'Split payment reservation is no longer payable.'],409);
+            if ($r35SplitMode === '') $r35SplitMode=(string)$r35Intent->split_mode;
+            if ($r35SplitMode !== (string)$r35Intent->split_mode) return response()->json(['success'=>false,'error'=>'Split payment mode does not match reservation.'],409);
+            $request->merge([
+                'amount'=>(float)$r35Intent->payable_amount,'tip_amount'=>(float)$r35Intent->tip_amount,'coupon_discount'=>0,'coupon_code'=>null,
+                'selected_items'=>json_decode((string)$r35Intent->selected_items,true) ?: null,
+                'payer_label'=>'PMD R35 '.(string)$r35Intent->split_mode,
+                'idempotency_key'=>$r35Token,
+            ]);
+            $r35IntentId=(int)$r35Intent->id;
+            if (in_array(strtolower((string)$request->payment_method),['cash','cod'],true) && !$request->boolean('staff_confirmed')) {
+                return response()->json(['success'=>false,'error'=>'Cash must be collected and confirmed by restaurant staff.'],422);
+            }
         }
 
         $contextValues = array_values(array_unique(array_filter([
@@ -739,6 +1088,7 @@ Route::group([
         ]);
 
         $normalizedPaymentMethod = strtolower((string)$request->payment_method);
+        $normalizedProviderCode = strtolower(str_replace('-', '_', (string)$request->input('payment_provider', $request->input('provider', ''))));
         $paidStatusId = (int)(\Illuminate\Support\Facades\DB::table('statuses')
             ->whereRaw('LOWER(status_name) = ?', ['paid'])
             ->value('status_id') ?? 10);
@@ -752,12 +1102,145 @@ Route::group([
         $selectedItemsPayload = collect($request->input('selected_items', []));
         $transactionId = null;
 
+        /*
+         * PMD_R69_STRIPE_SERVER_VERIFICATION
+         *
+         * A QR guest order may become operational only after Stripe itself says
+         * the referenced PaymentIntent succeeded. The browser result alone is
+         * not payment authority.
+         */
+        $stripeVerifiedIntent = null;
+        if ($normalizedProviderCode === 'stripe') {
+            $stripePaymentIntentId = trim((string)$request->input('payment_reference', ''));
+            if ($stripePaymentIntentId === '' || !str_starts_with($stripePaymentIntentId, 'pi_')) {
+                return response()->json(['success' => false, 'error' => 'Stripe payment reference is required before settlement.'], 422);
+            }
+
+            $stripePayment = \Admin\Models\Payments_model::isEnabled()
+                ->where('code', 'stripe')
+                ->first();
+            if (!$stripePayment) {
+                return response()->json(['success' => false, 'error' => 'Stripe is not configured.'], 503);
+            }
+
+            $stripeData = (array)$stripePayment->data;
+            $stripeMode = (string)($stripeData['transaction_mode'] ?? 'test');
+            $stripeSecretKey = $stripeMode === 'live'
+                ? (string)($stripeData['live_secret_key'] ?? '')
+                : (string)($stripeData['test_secret_key'] ?? '');
+
+            if ($stripeSecretKey === '') {
+                return response()->json(['success' => false, 'error' => 'Stripe secret key is not configured.'], 503);
+            }
+
+            try {
+                \Stripe\Stripe::setApiKey($stripeSecretKey);
+                $stripeCurl = new \Stripe\HttpClient\CurlClient();
+                $stripeCurl->setConnectTimeout(5);
+                $stripeCurl->setTimeout(10);
+                \Stripe\ApiRequestor::setHttpClient($stripeCurl);
+                $stripeVerifiedIntent = \Stripe\PaymentIntent::retrieve($stripePaymentIntentId);
+            } catch (\Throwable $e) {
+                \Log::warning('PMD_R69_STRIPE_PAY_EXISTING_VERIFY_FAILED', [
+                    'order_id' => (int)$order->order_id,
+                    'payment_intent_id' => $stripePaymentIntentId,
+                    'message' => $e->getMessage(),
+                ]);
+                return response()->json(['success' => false, 'error' => 'Unable to verify the Stripe payment. Do not pay again; refresh payment status.'], 422);
+            }
+
+            if ((string)($stripeVerifiedIntent->status ?? '') !== 'succeeded') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Stripe has not completed this payment.',
+                    'stripe_status' => (string)($stripeVerifiedIntent->status ?? 'unknown'),
+                ], 422);
+            }
+
+            // One Stripe PaymentIntent may settle several orders on the same table.
+            // Amount authority is enforced cumulatively inside the settlement transaction.
+        }
+
         try {
-            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId) {
+            $result = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $order, $normalizedPaymentMethod, $normalizedProviderCode, $paidStatusId, $hasSplitTables, $selectedItemsPayload, $allocationColumn, $allocationMode, $hasAllocOrderMenuColumn, $hasAllocMenuIdColumn, &$transactionId, $r35IntentId, $r35SplitMode, $stripeVerifiedIntent) {
                 $lockedOrder = \Admin\Models\Orders_model::query()
                     ->where('order_id', $order->order_id)
                     ->lockForUpdate()
                     ->firstOrFail();
+
+                // PMD_R69_PROVIDER_REFERENCE_IDEMPOTENCY
+                // If the provider succeeded but the browser/proxy timed out after this
+                // transaction committed, a retry with the same provider reference must
+                // return the existing settlement instead of charging the order twice.
+                $providerReference = trim((string)$request->input('payment_reference', ''));
+                if ($providerReference !== '') {
+                    $existingProviderTx = $hasSplitTables
+                        ? \Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                            ->where('order_id', (int)$lockedOrder->order_id)
+                            ->where('payment_reference', $providerReference)
+                            ->orderByDesc('id')
+                            ->first()
+                        : null;
+
+                    $referenceAlreadyApplied = $existingProviderTx
+                        || hash_equals((string)($lockedOrder->settlement_reference ?? ''), $providerReference);
+
+                    if ($referenceAlreadyApplied) {
+                        $currentTotal = (float)(\Illuminate\Support\Facades\DB::table('order_totals')
+                            ->where('order_id', $lockedOrder->order_id)
+                            ->where('code', 'total')
+                            ->value('value') ?? $lockedOrder->order_total ?? 0);
+                        $currentSettled = max(0, (float)($lockedOrder->settled_amount ?? 0));
+                        $currentRemaining = max(0, round($currentTotal - $currentSettled, 4));
+                        $existingPaidAmount = (float)($existingProviderTx->amount ?? 0);
+
+                        return [
+                            'lockedOrder' => $lockedOrder,
+                            'previousSettlementStatus' => strtolower((string)($lockedOrder->settlement_status ?? 'unpaid')),
+                            'newSettlementStatus' => $currentRemaining <= 0.0001 ? 'paid' : 'partial',
+                            'newSettled' => $currentSettled,
+                            'remaining' => $currentRemaining,
+                            'calculatedAmount' => $existingPaidAmount,
+                            'allocationRows' => [],
+                            'alreadyPaid' => false,
+                            'idempotentReplay' => true,
+                            'tipAmount' => 0.0,
+                            'couponDiscount' => 0.0,
+                            'payableAmount' => $existingPaidAmount,
+                        ];
+                    }
+                }
+
+                // PMD_SPLIT_PAYMENT_SAFETY_R35: intent and order are locked together.
+                if ($r35IntentId) {
+                    $lockedR35Intent = \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')
+                        ->where('id', $r35IntentId)->lockForUpdate()->first();
+                    if (!$lockedR35Intent) throw new \InvalidArgumentException('Split payment reservation was not found.');
+                    if ((string)$lockedR35Intent->status === 'settled') {
+                        $transactionId = $lockedR35Intent->transaction_id ? (int)$lockedR35Intent->transaction_id : null;
+                        $currentTotal = (float)(\Illuminate\Support\Facades\DB::table('order_totals')
+                            ->where('order_id', $lockedOrder->order_id)->where('code', 'total')->value('value') ?? $lockedOrder->order_total ?? 0);
+                        $currentSettled = max(0, (float)($lockedOrder->settled_amount ?? 0));
+                        $currentRemaining = max(0, round($currentTotal - $currentSettled, 4));
+                        return [
+                            'lockedOrder' => $lockedOrder,
+                            'previousSettlementStatus' => strtolower((string)($lockedOrder->settlement_status ?? 'partial')),
+                            'newSettlementStatus' => $currentRemaining <= 0.0001 ? 'paid' : 'partial',
+                            'newSettled' => $currentSettled,
+                            'remaining' => $currentRemaining,
+                            'calculatedAmount' => (float)$lockedR35Intent->principal_amount,
+                            'allocationRows' => [],
+                            'alreadyPaid' => false,
+                            'idempotentReplay' => true,
+                            'tipAmount' => (float)$lockedR35Intent->tip_amount,
+                            'couponDiscount' => 0.0,
+                            'payableAmount' => (float)$lockedR35Intent->payable_amount,
+                        ];
+                    }
+                    if (!in_array((string)$lockedR35Intent->status, ['pending','expired'], true)) {
+                        throw new \InvalidArgumentException('Split payment reservation is no longer payable.');
+                    }
+                }
 
                 $canonicalTotalForGuard = \Illuminate\Support\Facades\DB::table('order_totals')
                     ->where('order_id', $lockedOrder->order_id)
@@ -838,81 +1321,105 @@ Route::group([
                     }
                 }
 
+                $amountOnlySplitR35 = in_array($r35SplitMode, ['equal','shares'], true) && $selectedItemsPayload->isEmpty();
                 $allocationQty = [];
                 if ($selectedItemsPayload->isNotEmpty()) {
                     foreach ($selectedItemsPayload as $itemPayload) {
                         $menuId = (int)($itemPayload['order_menu_id'] ?? 0);
                         $qty = round((float)($itemPayload['quantity'] ?? 0), 3);
-                        if ($menuId <= 0 || $qty <= 0) {
-                            throw new \InvalidArgumentException('Invalid selected item payload');
-                        }
+                        if ($menuId <= 0 || $qty <= 0) throw new \InvalidArgumentException('Invalid selected item payload');
                         $allocationQty[$menuId] = round(($allocationQty[$menuId] ?? 0) + $qty, 3);
                     }
-                } else {
-                    foreach ($remainingByOrderMenu as $menuId => $remainingInfo) {
-                        $allocationQty[$menuId] = (float)$remainingInfo['remaining_qty'];
-                    }
+                } elseif (!$amountOnlySplitR35) {
+                    foreach ($remainingByOrderMenu as $menuId => $remainingInfo) $allocationQty[$menuId] = (float)$remainingInfo['remaining_qty'];
                 }
-
-                if (empty($allocationQty)) {
-                    throw new \InvalidArgumentException('No payable items remaining');
-                }
+                if (empty($allocationQty) && !$amountOnlySplitR35) throw new \InvalidArgumentException('No payable items remaining');
 
                 $allocationRows = [];
                 $calculatedAmount = 0.0;
                 foreach ($allocationQty as $menuId => $qtyToPay) {
-                    if (!isset($remainingByOrderMenu[$menuId])) {
-                        throw new \InvalidArgumentException('Selected item does not belong to order or is already paid');
-                    }
+                    if (!isset($remainingByOrderMenu[$menuId])) throw new \InvalidArgumentException('Selected item does not belong to order or is already paid');
                     $maxRemaining = (float)$remainingByOrderMenu[$menuId]['remaining_qty'];
-                    if ($qtyToPay > $maxRemaining + 0.0001) {
-                        throw new \InvalidArgumentException('Selected quantity exceeds unpaid quantity');
-                    }
+                    if ($qtyToPay > $maxRemaining + 0.0001) throw new \InvalidArgumentException('Selected quantity exceeds unpaid quantity');
                     $unitPrice = (float)$remainingByOrderMenu[$menuId]['unit_price'];
                     $lineTotal = round($unitPrice * $qtyToPay, 4);
-                    $allocationRows[] = [
-                        'order_menu_id' => $menuId,
-                        'menu_id' => (int)($remainingByOrderMenu[$menuId]['row']->menu_id ?? 0),
-                        'name' => (string)($remainingByOrderMenu[$menuId]['row']->name ?? ''),
-                        'quantity_paid' => $qtyToPay,
-                        'unit_price' => $unitPrice,
-                        'line_total' => $lineTotal,
-                    ];
+                    $allocationRows[] = ['order_menu_id'=>$menuId,'menu_id'=>(int)($remainingByOrderMenu[$menuId]['row']->menu_id ?? 0),
+                        'name'=>(string)($remainingByOrderMenu[$menuId]['row']->name ?? ''),'quantity_paid'=>$qtyToPay,'unit_price'=>$unitPrice,'line_total'=>$lineTotal];
                     $calculatedAmount += $lineTotal;
                 }
 
-                $calculatedItemSubtotal = round($calculatedAmount, 4);
-                $calculatedAmount = round($calculatedItemSubtotal * $orderGrossRatio, 4);
-                if ($calculatedAmount <= 0) {
-                    throw new \InvalidArgumentException('Payment amount must be greater than zero');
-                }
-                // PMD_PAY_EXISTING_TIP_COUPON_AMOUNT_FIX
-                // The selected item subtotal closes/settles the order items, but the actual
-                // payment provider charge can be lower/higher because of coupon/tip.
                 $tipAmount = max(0, round((float)$request->input('tip_amount', 0), 4));
                 $couponDiscount = max(0, round((float)$request->input('coupon_discount', 0), 4));
-                $couponDiscount = min($couponDiscount, round($calculatedAmount + $tipAmount, 4));
-                $payableAmount = round(max(0, $calculatedAmount + $tipAmount - $couponDiscount), 4);
+                if ($amountOnlySplitR35) {
+                    if (!$r35IntentId) throw new \InvalidArgumentException('Amount split requires a valid payment reservation');
+                    if ($couponDiscount > 0.0001) throw new \InvalidArgumentException('Coupons are only supported on full remaining payment');
+                    $payableAmount = round((float)$request->input('amount', 0), 4);
+                    $calculatedAmount = round($payableAmount - $tipAmount, 4);
+                    if ($calculatedAmount <= 0) throw new \InvalidArgumentException('Payment amount must be greater than zero');
+                } else {
+                    $calculatedItemSubtotal = round($calculatedAmount, 4);
+                    $calculatedAmount = round($calculatedItemSubtotal * $orderGrossRatio, 4);
+                    if ($calculatedAmount <= 0) throw new \InvalidArgumentException('Payment amount must be greater than zero');
+                    $couponDiscount = min($couponDiscount, round($calculatedAmount + $tipAmount, 4));
+                    $payableAmount = round(max(0, $calculatedAmount + $tipAmount - $couponDiscount), 4);
+                    if ($request->filled('amount')) {
+                        $requestedAmount = round((float)$request->input('amount'), 4);
+                        if (abs($requestedAmount - $payableAmount) > 0.02) throw new \InvalidArgumentException('Selected items amount mismatch');
+                    }
+                }
+                // PMD_R69_STRIPE_CUMULATIVE_AMOUNT_GUARD
+                if ($normalizedProviderCode === 'stripe') {
+                    if (!$stripeVerifiedIntent) {
+                        throw new \InvalidArgumentException('Stripe payment verification is missing.');
+                    }
 
-                if ($request->filled('amount')) {
-                    $requestedAmount = round((float)$request->input('amount'), 4);
-                    if (abs($requestedAmount - $payableAmount) > 0.02) {
-                        \Log::warning('QR_SETTLEMENT_DEBUG pay-existing amount mismatch', [
-                            'order_id' => $lockedOrder->order_id,
-                            'requested_amount' => $requestedAmount,
-                            'selected_items_subtotal' => $calculatedItemSubtotal,
-                            'selected_items_payable_total' => $calculatedAmount,
-                            'tip_amount' => $tipAmount,
-                            'coupon_discount' => $couponDiscount,
-                            'payable_amount' => $payableAmount,
-                        ]);
-                        throw new \InvalidArgumentException('Selected items amount mismatch');
+                    $stripeCurrency = strtolower((string)($stripeVerifiedIntent->currency ?? ''));
+                    $stripeZeroDecimalCurrencies = ['bif','clp','djf','gnf','jpy','kmf','krw','mga','pyg','rwf','ugx','vnd','vuv','xaf','xof','xpf'];
+                    $stripeReceivedMinor = (int)($stripeVerifiedIntent->amount_received ?? $stripeVerifiedIntent->amount ?? 0);
+                    $stripeReceivedMajor = in_array($stripeCurrency, $stripeZeroDecimalCurrencies, true)
+                        ? (float)$stripeReceivedMinor
+                        : round($stripeReceivedMinor / 100, 4);
+
+                    $stripeReference = (string)$stripeVerifiedIntent->id;
+                    $alreadyAllocatedToOrders = 0.0;
+                    if ($hasSplitTables) {
+                        $alreadyAllocatedToOrders = (float)\Illuminate\Support\Facades\DB::table('order_payment_transactions')
+                            ->where('payment_reference', $stripeReference)
+                            ->sum('amount');
+                    }
+
+                    if (
+                        $stripeReceivedMajor <= 0
+                        || round($alreadyAllocatedToOrders + $payableAmount, 4) > round($stripeReceivedMajor + 0.02, 4)
+                    ) {
+                        throw new \InvalidArgumentException('Stripe payment amount is not sufficient for this settlement.');
+                    }
+                }
+
+                // SQUARE_PAY_EXISTING_SERVER_VERIFIED_R1
+                if ($normalizedProviderCode === 'square') {
+                    $squarePaymentId = trim((string)$request->input('payment_reference', ''));
+                    if ($squarePaymentId === '') throw new \InvalidArgumentException('Square payment reference is required before settlement.');
+                    $squareRuntime = app(\App\Services\Payments\SquareRuntimeService::class);
+                    $squareCfg = $squareRuntime->providerConfig(true);
+                    $squareCurrency = strtoupper((string)(app(\App\Services\Platform\LocationPlatformContext::class)->currencyCode((int)($lockedOrder->location_id ?? 0) ?: null) ?: ($squareCfg['configured_currency'] ?? '')));
+                    if ($squareCurrency === '') throw new \InvalidArgumentException('Square settlement currency is unavailable.');
+                    $squareReference = substr($r35IntentId ? 'PMD-'.(int)$lockedOrder->order_id.'-I-'.(int)$r35IntentId : 'PMD-'.(int)$lockedOrder->order_id, 0, 40);
+                    $squareVerified = $squareRuntime->verifyPayment(
+                        $squarePaymentId,
+                        $squareRuntime->toMinor($payableAmount, $squareCurrency),
+                        $squareCurrency,
+                        $squareReference,
+                        (string)($squareCfg['location_id'] ?? '')
+                    );
+                    if (!($squareVerified['is_paid'] ?? false) || !($squareVerified['verification_ok'] ?? false)) {
+                        throw new \InvalidArgumentException('Square payment is not server-verified as COMPLETED for this exact amount, currency and order reference.');
                     }
                 }
                 $remainingGrossTotal = round($remainingTotal * $orderGrossRatio, 4);
-                if ($calculatedAmount > $remainingGrossTotal + 0.0001) {
-                    throw new \InvalidArgumentException('Cannot overpay remaining amount');
-                }
+                $financialRemaining = max(0, round((float)$lockedOrder->order_total - (float)$lockedOrder->settled_amount, 4));
+                $maximumPrincipal = $amountOnlySplitR35 ? $financialRemaining : $remainingGrossTotal;
+                if ($calculatedAmount > $maximumPrincipal + 0.02) throw new \InvalidArgumentException('Cannot overpay remaining amount');
 
                 $orderTotal = round((float)($lockedOrder->order_total ?? 0), 4);
                 $currentSettled = max(0, round((float)($lockedOrder->settled_amount ?? 0), 4));
@@ -925,7 +1432,7 @@ Route::group([
                 }
 
                 if ($hasSplitTables) {
-                    $transactionId = \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insertGetId([
+                    $transactionPayload = [
                         'order_id' => (int)$lockedOrder->order_id,
                         'payment_method' => $normalizedPaymentMethod,
                         'payment_reference' => $request->filled('payment_reference') ? (string)$request->payment_reference : null,
@@ -935,7 +1442,11 @@ Route::group([
                         'paid_at' => now(),
                         'created_at' => now(),
                         'updated_at' => now(),
-                    ]);
+                    ];
+                    if ($request->filled('idempotency_key') && \Illuminate\Support\Facades\Schema::hasColumn('order_payment_transactions', 'idempotency_key')) {
+                        $transactionPayload['idempotency_key'] = (string)$request->input('idempotency_key');
+                    }
+                    $transactionId = \Illuminate\Support\Facades\DB::table('order_payment_transactions')->insertGetId($transactionPayload);
                     $insertRows = [];
                     foreach ($allocationRows as $allocationRow) {
                         $insertRow = [
@@ -957,7 +1468,7 @@ Route::group([
                         }
                         $insertRows[] = $insertRow;
                     }
-                    \Illuminate\Support\Facades\DB::table('order_payment_transaction_items')->insert($insertRows);
+                    if (!empty($insertRows)) \Illuminate\Support\Facades\DB::table('order_payment_transaction_items')->insert($insertRows);
                 }
 
                 $lockedOrder->settlement_status = $newSettlementStatus;
@@ -968,10 +1479,19 @@ Route::group([
                 }
                 $lockedOrder->processed = $newSettlementStatus === 'paid' ? 1 : 0;
                 if ($newSettlementStatus === 'paid') {
-                    $lockedOrder->status_id = $paidStatusId;
+                    // PMD_PRESERVE_KITCHEN_STATUS_ON_PAYMENT_R28
+                    // Payment settlement is financial state. Keep the existing kitchen/fulfilment
+                    // status_id (Received/Preparing/Ready/etc.) intact after a mid-service payment.
                     $lockedOrder->settled_at = now();
                 }
                 $lockedOrder->save();
+                if ($r35IntentId) {
+                    \Illuminate\Support\Facades\DB::table('pmd_guest_payment_intents')->where('id', $r35IntentId)->update([
+                        'status' => 'settled', 'transaction_id' => $transactionId,
+                        'payment_reference' => $request->filled('payment_reference') ? (string)$request->payment_reference : null,
+                        'updated_at' => now(),
+                    ]);
+                }
 
                 return compact('lockedOrder', 'previousSettlementStatus', 'newSettlementStatus', 'newSettled', 'remaining', 'calculatedAmount', 'allocationRows') + ['alreadyPaid' => false, 'tipAmount' => $tipAmount, 'couponDiscount' => $couponDiscount, 'payableAmount' => $payableAmount];
             });
@@ -996,7 +1516,25 @@ Route::group([
         $couponDiscount = round((float)($result['couponDiscount'] ?? 0), 4);
         $allocationRows = $result['allocationRows'];
         $alreadyPaid = (bool)($result['alreadyPaid'] ?? false);
-        $shouldPrintReceipt = !$alreadyPaid && $previousSettlementStatus !== 'paid' && $newSettlementStatus === 'paid';
+        $idempotentReplay = (bool)($result['idempotentReplay'] ?? false);
+        $shouldPrintReceipt = !$alreadyPaid && !$idempotentReplay && $previousSettlementStatus !== 'paid' && $newSettlementStatus === 'paid';
+
+        if ($idempotentReplay) {
+            return response()->json([
+                'success' => true,
+                'order_id' => (int)$request->order_id,
+                'transaction_id' => $transactionId ? (int)$transactionId : null,
+                'message' => 'Payment already recorded',
+                'settlement_status' => $newSettlementStatus,
+                'settled_amount' => $newSettled,
+                'remaining_amount' => $remaining,
+                'paid_amount' => $paymentAmount,
+                'allocations' => [],
+                'already_paid' => false,
+                'idempotent_replay' => true,
+                'should_print_receipt' => false,
+            ]);
+        }
 
         if ($alreadyPaid) {
             return response()->json([
@@ -1311,6 +1849,116 @@ Route::group([
 
         return response()->json(['success' => true, 'data' => ['review_id' => $reviewId]]);
     });
+
+    // PMD_PAID_INVOICE_DOWNLOAD_R28
+    // PMD_CANONICAL_CUSTOMER_INVOICE_R28E
+    // Paid customer invoices now reuse the exact Admin customer-invoice Blade as the
+    // single visual/data authority. No second PDF layout is maintained in this API.
+    // The HMAC table-session capability and full-payment guard from R28 remain required.
+    Route::get('/orders/{order}/paid-invoice', function (\Illuminate\Http\Request $request, $orderId) {
+        $orderId = (int)$orderId;
+        if ($orderId < 1) return response('Invoice not found', 404);
+
+        $token = trim((string)$request->query('token', ''));
+        if ($token === '') return response('Invoice token is required', 403);
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('pmd_table_order_drafts')) {
+            return response('Invoice session not found', 404);
+        }
+
+        $submittedDraft = \Illuminate\Support\Facades\DB::table('pmd_table_order_drafts')
+            ->where('status', 'submitted')
+            ->where('order_id', $orderId)
+            ->orderByDesc('id')
+            ->first();
+        $sessionKey = trim((string)($submittedDraft->session_key ?? ''));
+        if (!$submittedDraft || $sessionKey === '') return response('Invoice session not found', 404);
+
+        $expectedToken = hash_hmac(
+            'sha256',
+            $request->getHost().'|'.$orderId.'|'.$sessionKey,
+            (string)config('app.key')
+        );
+        if (!hash_equals($expectedToken, $token)) return response('Invalid invoice token', 403);
+
+        $order = \Admin\Models\Orders_model::query()->where('order_id', $orderId)->first();
+        if (!$order) return response('Invoice not found', 404);
+
+        $canonicalTotal = \Illuminate\Support\Facades\DB::table('order_totals')
+            ->where('order_id', $orderId)
+            ->where('code', 'total')
+            ->value('value');
+        $orderTotal = round((float)($canonicalTotal ?? $order->order_total ?? 0), 4);
+        $settledAmount = max(0, round((float)($order->settled_amount ?? 0), 4));
+        $settlementStatus = strtolower(trim((string)($order->settlement_status ?? '')));
+        $isPaid = in_array($settlementStatus, ['paid', 'settled'], true)
+            || ($orderTotal > 0 && $settledAmount >= $orderTotal - 0.0001);
+        if (!$isPaid) return response('Invoice is available after full payment', 409);
+
+        // Use the platform's existing invoice-number/date authority before rendering the
+        // canonical customer view. This is the same Orders_model/HasInvoice path used by Admin.
+        try {
+            if (method_exists($order, 'hasInvoice') && !$order->hasInvoice()) $order->generateInvoice();
+            $order = $order->fresh() ?: $order;
+        } catch (\Throwable $e) {
+            \Log::warning('PMD R28E invoice metadata generation skipped', [
+                'order_id' => $orderId,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            $html = \Illuminate\Support\Facades\View::make('admin::orders.customer_invoice', [
+                'model' => $order,
+            ])->render();
+        } catch (\Throwable $e) {
+            \Log::error('PMD R28E canonical customer invoice render failed', [
+                'order_id' => $orderId,
+                'message' => $e->getMessage(),
+            ]);
+            return response('Unable to render customer invoice', 500);
+        }
+
+        // The canonical Admin customer invoice is HTML/print CSS. When opened from the
+        // frontend download button, request print=1 so the browser immediately offers its
+        // native Print / Save as PDF flow while preserving the exact Admin design, logo,
+        // tenant invoice template, footer, VAT/Fiskaly data and future Admin-side changes.
+        $printRequested = in_array(strtolower(trim((string)$request->query('print', '0'))), ['1', 'true', 'yes', 'on'], true);
+        if ($printRequested) {
+            $printScript = <<<'HTML'
+<script id="pmd-r28e-canonical-invoice-autoprint">
+(function () {
+  var fired = false;
+  function printCanonicalInvoice() {
+    if (fired) return;
+    fired = true;
+    window.setTimeout(function () {
+      try { window.print(); } catch (e) {}
+    }, 300);
+  }
+  if (document.readyState === 'complete') printCanonicalInvoice();
+  else window.addEventListener('load', printCanonicalInvoice, { once: true });
+})();
+</script>
+HTML;
+            if (stripos($html, '</body>') !== false) {
+                $html = preg_replace('/<\/body>/i', $printScript.'</body>', $html, 1);
+            } else {
+                $html .= $printScript;
+            }
+        }
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Content-Disposition' => 'inline',
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'Pragma' => 'no-cache',
+            'Referrer-Policy' => 'no-referrer',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Frame-Options' => 'SAMEORIGIN',
+            'X-PMD-Invoice-Authority' => 'admin::orders.customer_invoice',
+        ]);
+    })->withoutMiddleware([\Igniter\Cart\Middleware\Currency::class]);
 
     Route::get('/orders/{order}/business-invoice', function ($orderId) {
         $orderId = (int)$orderId;

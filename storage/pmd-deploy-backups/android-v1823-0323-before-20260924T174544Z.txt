@@ -1,0 +1,7 @@
+timestamp_utc=20260924T174544Z
+root=/var/www/paymydine
+checkout_head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=f62a6fa9056d37476436f2dda27459eca8c643ab
+android_source=78e6fc2d5b739b414a082b5f1ea277e61e5835d2
+apk=PayMyDine-Android-0.3.23.apk
+apk_sha256=b30c298b389a947e2329fdc1d2a75c3663a6dbf964f875fb0cfcff40634b171a

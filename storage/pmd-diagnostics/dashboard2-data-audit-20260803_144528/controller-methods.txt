@@ -1,0 +1,18 @@
+316:    protected function channels(Carbon $start, Carbon $end): array
+424:    protected function tipSubquery(): ?Builder
+432:    protected function tips(Carbon $start, Carbon $end): array
+447:    protected function analyticsPayload(string $requestedPeriod): array
+472:            'sales_over_time' => $this->safeAnalytics(fn () => $this->analyticsSalesSeries($start, $now, $period)),
+473:            'sales_by_hour' => $this->safeAnalytics(fn () => $this->analyticsSalesByHour($start, $now)),
+474:            'top_items' => $this->safeAnalytics(fn () => $this->analyticsTopItems($start, $now)),
+476:            'payment_methods' => $this->safeAnalytics(fn () => $this->analyticsPaymentMethods($start, $now)),
+478:            'live_operations' => $this->safeAnalytics(fn () => $this->analyticsLiveOperations($now)),
+479:            'recent_transactions' => $this->safeAnalytics(fn () => $this->analyticsTransactions($start, $now)),
+480:            'alerts' => $this->safeAnalytics(fn () => $this->analyticsAlerts($start, $now)),
+481:            'reviews' => $this->safeAnalytics(fn () => $this->analyticsReviews()),
+483:            'calendar_events' => $this->safeAnalytics(fn () => $this->analyticsCalendarEvents($now)),
+654:        $negative = Schema::hasTable('reviews') ? DB::table('reviews')->where('location_id', $this->locationId())->whereRaw('(quality + service + delivery) / 3 <= 2')->count() : null;
+655:        return ['available' => true, 'types' => ['failed_payments' => $failed, 'refunds' => $refunds, 'long_open_tables' => null, 'out_of_stock' => $stock, 'negative_reviews' => $negative], 'unavailable' => ['long_open_tables'], 'source' => 'settlement states, stock flags and location reviews; no reliable open-duration alert threshold configured'];
+660:        if (!Schema::hasTable('reviews')) return $this->unavailable('reviews table unavailable');
+661:        $base = DB::table('reviews')->where('location_id', $this->locationId())->where('review_status', 1);
+666:        return ['available' => true, 'average' => $summary->rating === null ? null : round((float)$summary->rating, 1), 'count' => (int)$summary->count, 'rated_count' => (int)$summary->count, 'unrated_count' => $unrated, 'latest' => $latest->map(fn ($r) => ['rating' => round(((int)$r->quality + (int)$r->service + (int)$r->delivery) / 3, 1), 'comment' => mb_substr(strip_tags((string)$r->review_text), 0, 180), 'date' => (string)$r->created_at])->all(), 'sample_count' => (int)$summary->count, 'source_mode' => 'approved_rated_reviews', 'source' => 'approved current-location reviews excluding zero/unrated rows from average'];

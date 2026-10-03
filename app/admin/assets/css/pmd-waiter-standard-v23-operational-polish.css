@@ -1,0 +1,404 @@
+/* PMD Waiter Standard POS V2.3 — operational polish for /admin/dashboardwaiternew */
+
+body.pmd-waiter-standard-v23-page{
+  --pmd-v23-bg:#e8eef3;
+  --pmd-v23-surface:#ffffff;
+  --pmd-v23-surface-2:#f3f6f8;
+  --pmd-v23-line:#aeb9c4;
+  --pmd-v23-line-strong:#73808d;
+  --pmd-v23-text:#101820;
+  --pmd-v23-muted:#5f7081;
+  --pmd-v23-top:#0b1118;
+  --pmd-v23-blue:#2563eb;
+  --pmd-v23-green:#16a34a;
+  --pmd-v23-red:#dc2626;
+  --pmd-v23-orange:#ea580c;
+  --pmd-v23-yellow:#eab308;
+  --pmd-v23-purple:#7c3aed;
+  background:var(--pmd-v23-bg)!important;
+  color:var(--pmd-v23-text)!important;
+  font-size:16px;
+}
+
+html[data-pmd-pos-theme="dark"] body.pmd-waiter-standard-v23-page{
+  --pmd-v23-bg:#0d141b;
+  --pmd-v23-surface:#18222c;
+  --pmd-v23-surface-2:#202c37;
+  --pmd-v23-line:#455463;
+  --pmd-v23-line-strong:#718092;
+  --pmd-v23-text:#f5f8fb;
+  --pmd-v23-muted:#b3c0cc;
+  --pmd-v23-top:#070b10;
+  --pmd-v23-blue:#60a5fa;
+  --pmd-v23-green:#4ade80;
+  --pmd-v23-red:#fb7185;
+  --pmd-v23-orange:#fb923c;
+  --pmd-v23-yellow:#facc15;
+  --pmd-v23-purple:#c084fc;
+  color-scheme:dark;
+}
+
+body.pmd-waiter-standard-v23-page,
+body.pmd-waiter-standard-v23-page .pmd-waiter-standard-v2,
+body.pmd-waiter-standard-v23-page .pmd-v2-launcher,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage,
+body.pmd-waiter-standard-v23-page .pmd-v2-pos-layer,
+body.pmd-waiter-standard-v23-page .pmd-pos-app,
+body.pmd-waiter-standard-v23-page .pmd-pos-workspace,
+body.pmd-waiter-standard-v23-page .pmd-pos-catalog,
+body.pmd-waiter-standard-v23-page .pmd-pos-menu-scroll{
+  background:var(--pmd-v23-bg)!important;
+  color:var(--pmd-v23-text)!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-topbar,
+body.pmd-waiter-standard-v23-page .pmd-pos-topbar,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-head{
+  background:var(--pmd-v23-top)!important;
+  color:#fff!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-command,
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+body.pmd-waiter-standard-v23-page .pmd-v2-footer,
+body.pmd-waiter-standard-v23-page .pmd-pos-tools,
+body.pmd-waiter-standard-v23-page .pmd-pos-categories,
+body.pmd-waiter-standard-v23-page .pmd-pos-cart,
+body.pmd-waiter-standard-v23-page .pmd-pos-cart-head,
+body.pmd-waiter-standard-v23-page .pmd-pos-checkout,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-dialog,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-main,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-summary,
+body.pmd-waiter-standard-v23-page .pmd-pos-modal-card{
+  background:var(--pmd-v23-surface)!important;
+  color:var(--pmd-v23-text)!important;
+  border-color:var(--pmd-v23-line)!important;
+}
+
+/* Header: explicit online waiter identity, no manual refresh key. */
+.pmd-v23-online-user{
+  min-height:42px;
+  padding:0 12px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid rgba(255,255,255,.24);
+  border-radius:3px;
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.pmd-v23-online-user i{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#22c55e;
+  box-shadow:0 0 0 4px rgba(34,197,94,.14);
+}
+.pmd-v23-online-user span{color:#9fb0bf;font-size:10px}
+.pmd-v23-online-user b{color:#fff}
+
+body.pmd-waiter-standard-v23-page .pmd-pos-back.pmd-v23-back-icon{
+  width:46px!important;
+  min-width:46px!important;
+  height:42px!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:3px!important;
+  font-size:24px!important;
+  line-height:1!important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-pos-table-title strong{
+  font-size:25px!important;
+  line-height:1.05!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-table-title span{
+  color:#b8c4cf!important;
+  font-size:16px!important;
+  font-weight:850!important;
+  letter-spacing:.055em!important;
+  text-transform:uppercase!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-waiter{
+  color:#fff!important;
+  font-size:14px!important;
+  font-weight:850!important;
+}
+
+/* Launcher: stronger readable cards in both themes. */
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button,
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button,
+body.pmd-waiter-standard-v23-page .pmd-v2-search,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key{
+  border-radius:3px!important;
+  border-color:var(--pmd-v23-line)!important;
+  background:var(--pmd-v23-surface)!important;
+  color:var(--pmd-v23-text)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button,
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button{
+  min-height:46px!important;
+  font-size:12px!important;
+  font-weight:950!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-mode-keys button.is-active,
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys button.is-active{
+  background:var(--pmd-v23-top)!important;
+  color:#fff!important;
+  border-color:var(--pmd-v23-top)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-search input{
+  color:var(--pmd-v23-text)!important;
+  font-size:15px!important;
+  font-weight:750!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-key>strong{
+  color:var(--pmd-v23-text)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-name,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-info,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-info b,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-info small,
+body.pmd-waiter-standard-v23-page .pmd-v21-age-meta{
+  color:var(--pmd-v23-text)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v2-table-info small,
+body.pmd-waiter-standard-v23-page .pmd-v21-age-meta{
+  color:var(--pmd-v23-muted)!important;
+}
+
+/* Categories: sharp operational color, stronger active state. */
+body.pmd-waiter-standard-v23-page .pmd-pos-category{
+  min-height:56px!important;
+  border:1px solid var(--pmd-v23-line)!important;
+  border-left:6px solid var(--pmd-v23-category-accent,var(--pmd-v23-blue))!important;
+  border-radius:3px!important;
+  background:var(--pmd-v23-surface)!important;
+  color:var(--pmd-v23-text)!important;
+  font-size:13px!important;
+  font-weight:950!important;
+  line-height:1.1!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-category:hover{
+  background:var(--pmd-v23-surface-2)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-category.is-active{
+  background:var(--pmd-v23-category-accent,var(--pmd-v23-blue))!important;
+  color:#fff!important;
+  border-color:var(--pmd-v23-category-accent,var(--pmd-v23-blue))!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v23-special-category{
+  border-left-width:8px!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v23-special-category[data-v21-virtual="chef"]{
+  --pmd-v23-category-accent:var(--pmd-v23-purple)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v23-special-category[data-v21-virtual="bestseller"]{
+  --pmd-v23-category-accent:var(--pmd-v23-orange)!important;
+}
+
+/* Product keys: whole key is the button. No ADD badge. */
+body.pmd-waiter-standard-v23-page .pmd-pos-product.pmd-v21-product-key,
+body.pmd-waiter-standard-v23-page .pmd-pos-product.pmd-v23-product-key,
+body.pmd-waiter-standard-v23-page .pmd-pos-product.pmd-v21-product-key:nth-child(n){
+  min-height:116px!important;
+  padding:12px!important;
+  border:1px solid var(--pmd-v23-line-strong)!important;
+  border-left:7px solid var(--pmd-v23-accent,var(--pmd-v21-product-accent,var(--pmd-v23-blue)))!important;
+  border-radius:3px!important;
+  background:var(--pmd-v23-surface)!important;
+  color:var(--pmd-v23-text)!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+  transition:transform .08s ease,background .08s ease,box-shadow .08s ease!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-product:hover{
+  background:var(--pmd-v23-surface-2)!important;
+  box-shadow:inset 0 0 0 2px var(--pmd-v23-accent,var(--pmd-v23-blue))!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-product:active,
+body.pmd-waiter-standard-v23-page .pmd-pos-product.is-v23-added{
+  transform:translateY(1px) scale(.985)!important;
+  background:color-mix(in srgb,var(--pmd-v23-accent,var(--pmd-v23-blue)) 17%,var(--pmd-v23-surface))!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-product-name{
+  color:var(--pmd-v23-text)!important;
+  font-size:16px!important;
+  font-weight:950!important;
+  line-height:1.15!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-price{
+  color:var(--pmd-v23-orange)!important;
+  font-size:18px!important;
+  font-weight:1000!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-plus{display:none!important}
+body.pmd-waiter-standard-v23-page .pmd-pos-product.has-v23-quantity::after{
+  content:attr(data-v23-quantity) "×";
+  position:absolute;
+  right:9px;
+  bottom:9px;
+  min-width:30px;
+  height:28px;
+  padding:0 7px;
+  display:grid;
+  place-items:center;
+  border-radius:3px;
+  background:var(--pmd-v23-blue);
+  color:#fff;
+  font-size:13px;
+  font-weight:1000;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-product.is-v23-added::before{
+  content:'✓';
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  background:rgba(22,163,74,.88);
+  color:#fff;
+  font-size:34px;
+  font-weight:1000;
+  z-index:3;
+}
+
+.pmd-v23-special-empty{
+  grid-column:1/-1;
+  min-height:120px;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  border:1px dashed var(--pmd-v23-line-strong);
+  background:var(--pmd-v23-surface-2);
+  color:var(--pmd-v23-muted);
+  font-size:15px;
+  font-weight:850;
+  text-align:center;
+}
+
+/* Cart and checkout hierarchy. */
+body.pmd-waiter-standard-v23-page .pmd-pos-cart h2,
+body.pmd-waiter-standard-v23-page .pmd-pos-cart b,
+body.pmd-waiter-standard-v23-page .pmd-pos-cart strong,
+body.pmd-waiter-standard-v23-page .pmd-pos-cart span,
+body.pmd-waiter-standard-v23-page .pmd-pos-cart label{
+  color:var(--pmd-v23-text);
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-cart h2{font-size:21px!important}
+body.pmd-waiter-standard-v23-page .pmd-pos-table-note,
+body.pmd-waiter-standard-v23-page input,
+body.pmd-waiter-standard-v23-page textarea{
+  background:var(--pmd-v23-surface)!important;
+  color:var(--pmd-v23-text)!important;
+  border-color:var(--pmd-v23-line)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-action.hold{
+  background:var(--pmd-v23-yellow)!important;
+  color:#211800!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-action.send{
+  background:var(--pmd-v23-green)!important;
+  color:#fff!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v21-pay-primary:not(:disabled){
+  background:var(--pmd-v23-blue)!important;
+  color:#fff!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v21-more-button{
+  background:var(--pmd-v23-surface-2)!important;
+  color:var(--pmd-v23-text)!important;
+  border-color:var(--pmd-v23-line)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-v21-more-menu,
+body.pmd-waiter-standard-v23-page .pmd-pos-cart-item,
+body.pmd-waiter-standard-v23-page .pmd-pos-sent-item{
+  background:var(--pmd-v23-surface)!important;
+  color:var(--pmd-v23-text)!important;
+  border-color:var(--pmd-v23-line)!important;
+}
+
+/* Payment: complete dark/light contrast instead of mixed surfaces. */
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-modal{
+  color:var(--pmd-v23-text)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-body,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-block,
+body.pmd-waiter-standard-v23-page .pmd-pos-balance-card,
+body.pmd-waiter-standard-v23-page .pmd-pos-method,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-history-item,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-history,
+body.pmd-waiter-standard-v23-page .pmd-v221-tender-panel,
+body.pmd-waiter-standard-v23-page .pmd-v221-keypad button,
+body.pmd-waiter-standard-v23-page .pmd-v221-quick-cash button,
+body.pmd-waiter-standard-v23-page .pmd-pos-split-panel{
+  background:var(--pmd-v23-surface)!important;
+  color:var(--pmd-v23-text)!important;
+  border-color:var(--pmd-v23-line)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-dialog *,
+body.pmd-waiter-standard-v23-page .pmd-pos-modal-card *{
+  border-color:var(--pmd-v23-line);
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-block-title b,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-summary h3,
+body.pmd-waiter-standard-v23-page .pmd-pos-balance-card strong,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-totals,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-fields span{
+  color:var(--pmd-v23-text)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-block-title span,
+body.pmd-waiter-standard-v23-page .pmd-pos-payment-safety,
+body.pmd-waiter-standard-v23-page .pmd-pos-balance-card small,
+body.pmd-waiter-standard-v23-page .pmd-pos-method small{
+  color:var(--pmd-v23-muted)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-method.is-active,
+body.pmd-waiter-standard-v23-page .pmd-pos-split-tabs button.is-active,
+body.pmd-waiter-standard-v23-page .pmd-pos-tip-buttons button.is-active{
+  background:var(--pmd-v23-blue)!important;
+  color:#fff!important;
+  border-color:var(--pmd-v23-blue)!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-pay-button{
+  background:var(--pmd-v23-green)!important;
+  color:#fff!important;
+}
+body.pmd-waiter-standard-v23-page .pmd-pos-change-box{
+  background:color-mix(in srgb,var(--pmd-v23-green) 18%,var(--pmd-v23-surface))!important;
+  color:var(--pmd-v23-green)!important;
+}
+
+@media(max-width:900px){
+  .pmd-v23-online-user span{display:none}
+  body.pmd-waiter-standard-v23-page .pmd-pos-table-title strong{font-size:21px!important}
+}
+
+@media(max-width:780px){
+  body.pmd-waiter-standard-v23-page{font-size:15px}
+  .pmd-v23-online-user{min-height:40px;padding:0 9px}
+  .pmd-v23-online-user b{max-width:78px;overflow:hidden;text-overflow:ellipsis}
+  body.pmd-waiter-standard-v23-page .pmd-pos-category{min-height:58px!important;font-size:12px!important}
+  body.pmd-waiter-standard-v23-page .pmd-pos-product.pmd-v21-product-key,
+  body.pmd-waiter-standard-v23-page .pmd-pos-product.pmd-v23-product-key{
+    min-height:118px!important;
+    padding:10px!important;
+  }
+  body.pmd-waiter-standard-v23-page .pmd-pos-product-name{font-size:15px!important}
+  body.pmd-waiter-standard-v23-page .pmd-pos-price{font-size:17px!important}
+}
+
+@media(max-width:430px){
+  .pmd-v23-online-user{display:none}
+  body.pmd-waiter-standard-v23-page .pmd-pos-back.pmd-v23-back-icon{
+    width:42px!important;
+    min-width:42px!important;
+  }
+  body.pmd-waiter-standard-v23-page .pmd-pos-table-title strong{font-size:20px!important}
+  body.pmd-waiter-standard-v23-page .pmd-pos-table-title span{font-size:10px!important}
+}

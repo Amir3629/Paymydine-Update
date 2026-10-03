@@ -349,7 +349,6 @@ export const KazenSharedCheckoutNightPolishStyles = () => (
         [data-pmd-checkout-kazen-skin="1"] button:active { transform: translateY(0) scale(.985) !important; }
 
         [data-pmd-checkout-kazen-skin="1"] button[data-pmd-order-status-back="1"],
-        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"],
         [data-pmd-checkout-kazen-skin="1"] button[style*="rgb(6, 47, 42)"],
         [data-pmd-checkout-kazen-skin="1"] button[style*="#062F2A"],
         [data-pmd-checkout-kazen-skin="1"] .icon-btn--accent {
@@ -362,13 +361,58 @@ export const KazenSharedCheckoutNightPolishStyles = () => (
         }
 
         [data-pmd-checkout-kazen-skin="1"] button[data-pmd-order-status-back="1"] *,
-        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"] *,
         [data-pmd-checkout-kazen-skin="1"] button[style*="rgb(6, 47, 42)"] *,
         [data-pmd-checkout-kazen-skin="1"] button[style*="#062F2A"] *,
         [data-pmd-checkout-kazen-skin="1"] .icon-btn--accent * {
           color: #fff6dc !important;
           -webkit-text-fill-color: #fff6dc !important;
           stroke: #fff6dc !important;
+        }
+
+
+
+        /* Native Stripe Pay button: keep it as Kazen primary red, never green/pill. */
+        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"],
+        [data-pmd-checkout-kazen-skin="1"] button.pmd-themed-button[data-pmd-themed-button="primary"][data-pmd-stripe-native-button="1"] {
+          width: 100% !important;
+          min-height: 48px !important;
+          height: 48px !important;
+          border-radius: 0 !important;
+          background: #b85d59 !important;
+          background-color: #b85d59 !important;
+          background-image: linear-gradient(#b85d59, #b85d59) !important;
+          border: 1px solid rgba(143, 55, 51, .62) !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          box-shadow: none !important;
+          filter: none !important;
+          opacity: 1 !important;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+          font-size: .82rem !important;
+          font-weight: 850 !important;
+          letter-spacing: .12em !important;
+          line-height: 1.08 !important;
+          text-transform: uppercase !important;
+        }
+
+        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"] *,
+        [data-pmd-checkout-kazen-skin="1"] button.pmd-themed-button[data-pmd-themed-button="primary"][data-pmd-stripe-native-button="1"] * {
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          stroke: currentColor !important;
+        }
+
+        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"]:disabled,
+        [data-pmd-checkout-kazen-skin="1"] button.pmd-themed-button[data-pmd-themed-button="primary"][data-pmd-stripe-native-button="1"]:disabled {
+          background: #b85d59 !important;
+          background-color: #b85d59 !important;
+          background-image: linear-gradient(#b85d59, #b85d59) !important;
+          border-color: rgba(143, 55, 51, .62) !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          opacity: .58 !important;
+          cursor: not-allowed !important;
+          transform: none !important;
         }
 
         [data-pmd-checkout-kazen-skin="1"] button:not([data-pmd-order-status-back="1"]):not([data-pmd-stripe-native-button="1"]):not(.icon-btn--accent):not([style*="rgb(6, 47, 42)"]):not([style*="#062F2A"]) {
@@ -567,7 +611,6 @@ export const KazenSharedCheckoutSkinStyles = () => (
         [data-pmd-checkout-kazen-skin="1"] button:active { transform: translateY(0) scale(.985) !important; }
 
         [data-pmd-checkout-kazen-skin="1"] button[data-pmd-order-status-back="1"],
-        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"],
         [data-pmd-checkout-kazen-skin="1"] button[style*="rgb(6, 47, 42)"],
         [data-pmd-checkout-kazen-skin="1"] button[style*="#062F2A"],
         [data-pmd-checkout-kazen-skin="1"] .icon-btn--accent {
@@ -580,13 +623,58 @@ export const KazenSharedCheckoutSkinStyles = () => (
         }
 
         [data-pmd-checkout-kazen-skin="1"] button[data-pmd-order-status-back="1"] *,
-        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"] *,
         [data-pmd-checkout-kazen-skin="1"] button[style*="rgb(6, 47, 42)"] *,
         [data-pmd-checkout-kazen-skin="1"] button[style*="#062F2A"] *,
         [data-pmd-checkout-kazen-skin="1"] .icon-btn--accent * {
           color: #fff6dc !important;
           stroke: #fff6dc !important;
           -webkit-text-fill-color: #fff6dc !important;
+        }
+
+
+
+        /* Native Stripe Pay button: keep it as Kazen primary red, never green/pill. */
+        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"],
+        [data-pmd-checkout-kazen-skin="1"] button.pmd-themed-button[data-pmd-themed-button="primary"][data-pmd-stripe-native-button="1"] {
+          width: 100% !important;
+          min-height: 48px !important;
+          height: 48px !important;
+          border-radius: 0 !important;
+          background: #b85d59 !important;
+          background-color: #b85d59 !important;
+          background-image: linear-gradient(#b85d59, #b85d59) !important;
+          border: 1px solid rgba(143, 55, 51, .62) !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          box-shadow: none !important;
+          filter: none !important;
+          opacity: 1 !important;
+          font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+          font-size: .82rem !important;
+          font-weight: 850 !important;
+          letter-spacing: .12em !important;
+          line-height: 1.08 !important;
+          text-transform: uppercase !important;
+        }
+
+        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"] *,
+        [data-pmd-checkout-kazen-skin="1"] button.pmd-themed-button[data-pmd-themed-button="primary"][data-pmd-stripe-native-button="1"] * {
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          stroke: currentColor !important;
+        }
+
+        [data-pmd-checkout-kazen-skin="1"] button[data-pmd-stripe-native-button="1"]:disabled,
+        [data-pmd-checkout-kazen-skin="1"] button.pmd-themed-button[data-pmd-themed-button="primary"][data-pmd-stripe-native-button="1"]:disabled {
+          background: #b85d59 !important;
+          background-color: #b85d59 !important;
+          background-image: linear-gradient(#b85d59, #b85d59) !important;
+          border-color: rgba(143, 55, 51, .62) !important;
+          color: #fffaf3 !important;
+          -webkit-text-fill-color: #fffaf3 !important;
+          opacity: .58 !important;
+          cursor: not-allowed !important;
+          transform: none !important;
         }
 
         [data-pmd-checkout-kazen-skin="1"] button:not([data-pmd-order-status-back="1"]):not([data-pmd-stripe-native-button="1"]):not(.icon-btn--accent):not([style*="rgb(6, 47, 42)"]):not([style*="#062F2A"]) {

@@ -1,0 +1,60 @@
+====================================================
+PMD V11 WORST-NIGHT / GEMINI + PAYMENT + ORDER + WAITER
+Writes ONLY small marked test data to Test2.
+Payment session ONLY if SumUp is confirmed TEST/SANDBOX.
+No real payment capture. No config change. No restart.
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 20:59:54 UTC 2026
+MARKER=PMD_V11_20260911_205954
+====================================================
+
+===== 1. SAFE PRODUCTION PRECHECK =====
+V2_ID=4
+origin=http://127.0.0.1:8088
+nginx=active
+php8.3-fpm=active
+mariadb=active
+pm.max_children=5
+CPU cores=4
+MemAvailable=6338 MiB
+load1=0.03
+public-IP self :443=0
+V2 health HTTP=200 time=0.035s
+PHP CPU before test=1.2%
+real Nginx traffic in 5 sec=0 requests
+
+===== 2. VERIFY CURRENT AI = GEMINI =====
+AI enabled= True
+AI provider= gemini
+AI model= gemini-3.1-flash-lite
+Guest AI model= gemini-3.1-flash-lite
+AI timeout= 25 seconds
+Guest AI per-minute limit= 6
+Global AI per-minute limit= 120
+Gemini key present= True
+
+===== 3. TEST2 SAFE-WRITE / PAYMENT PRECHECK =====
+DB= Test2
+existing active Test2 draft count= 0
+Test2 Card provider= None
+Test2 SumUp environment= test
+Payment sandbox test: SKIPPED for safety
+Order-write test: ENABLED
+
+===== 4. START CPU/RAM MONITOR =====
+monitor pid=2443178
+
+===== 5. WORST-NIGHT TEST =====
+Guest AI on Test2 enabled= False
+menu item found for order test= True
+waiter canary HTTP= 410 time= 0.15 enabled= False
+
+--- BASELINE: normal site load ---
+BASELINE SSR: count=30 bad=0 p50=4557ms p95=8836ms max=9942ms statuses={'200': 30}
+ABORT: baseline is not healthy enough for worst-night test.
+
+===== CLEAN TEST2 TEST DATA =====
+
+
+deleted waiter test notifications=0
+deleted test order drafts=0

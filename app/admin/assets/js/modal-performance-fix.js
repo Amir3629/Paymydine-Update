@@ -91,7 +91,7 @@
     const bodyObserver = new MutationObserver(function(mutations) {
         for (const mutation of mutations) {
             if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                const hasModalOpen = document.body.classList.contains('modal-open');
+                const hasModalOpen = (document.body||document.documentElement).classList.contains('modal-open');
                 const modal = document.querySelector('.modal.show');
                 const isMediaModal = modal && (modal.id === 'media-manager' || modal.classList.contains('media-modal'));
 

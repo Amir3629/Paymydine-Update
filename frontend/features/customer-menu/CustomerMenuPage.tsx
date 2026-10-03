@@ -41,6 +41,7 @@ import { useTableQrContext } from "@/features/customer-menu/hooks/useTableQrCont
 import { useOrganicThemeEffects } from "@/features/customer-menu/theme/useOrganicThemeEffects";
 import { useCustomerMenuThemeBootstrap } from "@/features/customer-menu/theme/useCustomerMenuThemeBootstrap";
 import { LoadingSpinner } from "@/features/customer-menu/components/LoadingSpinner";
+import { isValetFeatureEnabled } from "@/features/valet/valet-config";
 
 // Hook to get current theme background color
 /* PMD_REMOTE_CONSOLE_INJECTED */
@@ -79,7 +80,7 @@ function MenuContent() {
   } = useCheckoutState({ items, taxSettings })
   const { themeId: currentFrontendTheme, isResolved: isFrontendThemeResolved } = useCurrentFrontendTheme()
   const [forceModernGreenTheme, setForceModernGreenTheme] = useState(false)
-  const { isOrganicBotanicalTheme, isModernGreenTheme, isKazenJapaneseTheme } = useCustomerThemeSelection(currentFrontendTheme, forceModernGreenTheme)
+  const { isOrganicBotanicalTheme, isModernGreenTheme, isKazenJapaneseTheme, isVelvetTerracottaTheme } = useCustomerThemeSelection(currentFrontendTheme, forceModernGreenTheme)
   const shouldHoldThemeRender = !isFrontendThemeResolved && !forceModernGreenTheme
   const { t, language } = useLanguageStore()
   const { toast } = useToast()
@@ -102,6 +103,29 @@ function MenuContent() {
     tableInfo,
     setTableInfoState,
   })
+
+  // PMD_AUDIT_PHASE2_NOTE_PERSISTENCE
+  const noteDraftStorageKey = React.useMemo(() => {
+    const tableKey = String(tableIdString || displayTableNumber || tableInfo?.table_id || tableInfo?.table_no || "delivery").trim() || "delivery"
+    return `pmd-note-draft:${tableKey}`
+  }, [tableIdString, displayTableNumber, tableInfo?.table_id, tableInfo?.table_no])
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(noteDraftStorageKey)
+      if (saved && !note) setNote(saved)
+    } catch {}
+    // Only hydrate when the table-specific key changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteDraftStorageKey])
+
+  useEffect(() => {
+    try {
+      const value = String(note || "")
+      if (value.trim()) localStorage.setItem(noteDraftStorageKey, value)
+      else localStorage.removeItem(noteDraftStorageKey)
+    } catch {}
+  }, [note, noteDraftStorageKey])
   const { tableDraft: sharedTableOrder, setTableDraft: setSharedTableOrder } = useTableOrderDraft({
     context: sharedTableOrderContext,
     enabled: Boolean(tableInfo?.table_id || tableInfo?.table_no),
@@ -132,6 +156,7 @@ function MenuContent() {
   })
 
   const shouldShowPayMyDineFooterLogo = useCustomerMenuFooterLogoVisibility({ isModernGreenTheme, isOrganicBotanicalTheme })
+  const showValet = isValetFeatureEnabled(cmsSettings, merchantSettings, tableInfo)
 
   useCustomerMenuThemeBootstrap(setForceModernGreenTheme)
 
@@ -212,6 +237,7 @@ function MenuContent() {
     shouldShowTableOrderAction,
     displayTableNumber,
     language,
+    showValet,
   })
 
   // Native Organic Botanical handles menu actions directly; no parent frame bridge is installed.
@@ -242,6 +268,7 @@ function MenuContent() {
     }
     try {
       await apiClient.callTableNote(String(resolvedTableId), trimmedNote, new Date().toISOString());
+      try { localStorage.removeItem(noteDraftStorageKey) } catch {}
       setNote("")
       setNoteModalOpen(false)
       toast({
@@ -272,6 +299,82 @@ function MenuContent() {
     setLocalOpenOrder,
   })
 
+
+  // PMD_AUDIT_PHASE4_V2_TABLE_ORDER_POLLING
+  // Keep checkout/order status fresh when another guest/session adds to the same table.
+  useEffect(() => {
+    const resolvedTableId = String(tableInfo?.table_id || "").trim()
+    if (!resolvedTableId) return
+
+    let cancelled = false
+
+    const refreshPendingTableOrder = async () => {
+      try {
+        const pendingQr = await apiClient.getPendingQrOrderByTable(
+          resolvedTableId,
+          {
+            tableNo: tableInfo?.table_no ?? tableInfo?.tableNo ?? null,
+            qr: tableInfo?.qr_code ?? sharedTableOrderQr ?? null,
+          },
+        )
+
+        if (cancelled || !pendingQr?.success || !pendingQr.data?.order_id) return
+
+        const pendingId = Number(pendingQr.data.order_id)
+        const nextOrderTotal = Number((pendingQr.data as any).order_total || 0)
+        const nextSettledAmount = Number((pendingQr.data as any).settled_amount || 0)
+        const nextRemainingAmount = Number((pendingQr.data as any).remaining_amount || nextOrderTotal || 0)
+        const submittedItems = Array.isArray((pendingQr.data as any).items) ? (pendingQr.data as any).items : []
+
+        setExistingOrderId(pendingId)
+        setPendingSettlementSummary({
+          orderTotal: nextOrderTotal,
+          settledAmount: nextSettledAmount,
+          remainingAmount: nextRemainingAmount,
+        })
+        setLocalOpenOrder((previous: any | null) => ({
+          ...(previous || {}),
+          orderId: pendingId,
+          status: "submitted_unpaid",
+          paymentStatus: nextRemainingAmount <= 0 ? "paid" : nextSettledAmount > 0 ? "partial" : "unpaid",
+          tableNumber: tableInfo?.table_no ?? null,
+          total: nextOrderTotal,
+          orderTotal: nextOrderTotal,
+          settledAmount: nextSettledAmount,
+          remainingAmount: nextRemainingAmount,
+          submittedItems,
+          payment: "qr_pay_later",
+          updatedAt: new Date().toISOString(),
+        }))
+        setHasLocalOpenOrder(true)
+      } catch (error) {
+        if (process.env.NODE_ENV !== "production") {
+          console.debug("[PMD table polling] refresh failed", error)
+        }
+      }
+    }
+
+    void refreshPendingTableOrder()
+    const interval = window.setInterval(refreshPendingTableOrder, 5000)
+    const onFocus = () => { void refreshPendingTableOrder() }
+    window.addEventListener("focus", onFocus)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+      window.removeEventListener("focus", onFocus)
+    }
+  }, [
+    tableInfo?.table_id,
+    tableInfo?.table_no,
+    tableInfo?.qr_code,
+    sharedTableOrderQr,
+    setExistingOrderId,
+    setHasLocalOpenOrder,
+    setLocalOpenOrder,
+    setPendingSettlementSummary,
+  ])
+
   useOrganicThemeEffects({
     enabled: isOrganicBotanicalTheme,
     tableIdString,
@@ -293,14 +396,135 @@ function MenuContent() {
 
   const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
 
-  if (shouldHoldThemeRender) {
+  if (shouldHoldThemeRender || (isLoading && apiMenuItems.length === 0 && menuItems.length === 0)) {
     return (
       <div
         className="pmd-customer-page page--menu relative min-h-screen w-full"
         data-pmd-theme-loading="1"
-        style={{ background: "#f5fff8af0", color: "#343529" }}
+        data-pmd-menu-loading-skeleton="1"
+        style={{ background: "#fbf8f2", color: "#343529" }}
       >
-        <LoadingSpinner />
+        <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-5 py-6 sm:px-8">
+          <div className="flex items-center justify-between">
+            <div className="h-10 w-32 animate-pulse rounded-full bg-black/10" />
+            <div className="h-9 w-24 animate-pulse rounded-full bg-black/10" />
+          </div>
+          <div className="h-44 animate-pulse rounded-[2rem] bg-black/10" />
+          <div className="flex gap-3 overflow-hidden">
+            {[0, 1, 2, 3].map((idx) => (
+              <div key={idx} className="h-10 min-w-28 animate-pulse rounded-full bg-black/10" />
+            ))}
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((idx) => (
+              <div key={idx} className="h-48 animate-pulse rounded-[1.6rem] bg-black/10" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // PMD_TABLE_ENABLE_DISABLE_R40
+  const shouldShowDisabledTableFallback =
+    !isLoading &&
+    Boolean(tableInfo?.table_disabled || tableInfo?.disabled)
+
+  if (shouldShowDisabledTableFallback) {
+    const disabledTableLabel =
+      tableInfo?.table_no ?? tableInfo?.table_id ?? displayTableNumber ?? null
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f8fbf9] px-6 text-center text-[#16312a]">
+        <div className="w-full max-w-md rounded-[28px] border border-[#d7e6df] bg-white/95 px-7 py-8 shadow-[0_24px_64px_rgba(24,57,47,.10)]">
+          <img
+            src="/brand/paymydine-logo.svg"
+            alt="PayMyDine"
+            className="mx-auto mb-5 h-[74px] w-[74px] object-contain"
+          />
+          <h1 className="text-2xl font-extrabold tracking-[-0.025em] text-[#143c31]">
+            This table is not active
+          </h1>
+          <p className="mx-auto mt-3 max-w-[34ch] text-sm leading-6 text-[#65756f]">
+            Please ask a staff member to guide you with ordering.
+          </p>
+          {disabledTableLabel != null ? (
+            <div className="mt-5 inline-flex min-h-10 items-center rounded-full border border-[#cce3d9] bg-[#eff8f4] px-4 text-sm font-extrabold text-[#075f4b]">
+              Table {String(disabledTableLabel)}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  // PMD_AUDIT_PHASE2_MISSING_TABLE_FALLBACK
+  const hasTableLookupHint = Boolean(
+    tableIdString ||
+    displayTableNumber ||
+    tableInfo?.table_id ||
+    tableInfo?.table_no ||
+    searchParams.get("table") ||
+    searchParams.get("table_id") ||
+    searchParams.get("table_no") ||
+    searchParams.get("qr")
+  )
+
+  const customerPath =
+    typeof window !== "undefined"
+      ? window.location.pathname.replace(/\/+$/, "")
+      : ""
+
+  const shouldShowInvalidTableFallback =
+    !isLoading &&
+    hasTableLookupHint &&
+    !tableInfo?.table_id &&
+    !tableInfo?.table_no &&
+    (
+      customerPath.startsWith("/table/") ||
+      Boolean(
+        searchParams.get("table") ||
+        searchParams.get("table_id") ||
+        searchParams.get("table_no") ||
+        searchParams.get("qr")
+      )
+    )
+
+  if (shouldShowInvalidTableFallback) {
+    const invalidLabel =
+      displayTableNumber ||
+      searchParams.get("table_no") ||
+      searchParams.get("table") ||
+      searchParams.get("table_id")
+
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f8fbf9] px-6 text-center text-[#16312a]">
+        <div className="w-full max-w-md rounded-[28px] border border-[#d7e6df] bg-white/95 px-7 py-8 shadow-[0_24px_64px_rgba(24,57,47,.10)]">
+          <img src="/brand/paymydine-logo.svg" alt="PayMyDine" className="mx-auto mb-5 h-[74px] w-[74px] object-contain" />
+          <h1 className="text-2xl font-extrabold tracking-[-0.025em] text-[#143c31]">This table is not active</h1>
+          <p className="mx-auto mt-3 max-w-[34ch] text-sm leading-6 text-[#65756f]">Please ask a staff member to guide you with ordering.</p>
+          {invalidLabel ? (
+            <div className="mt-5 inline-flex min-h-10 items-center rounded-full border border-[#cce3d9] bg-[#eff8f4] px-4 text-sm font-extrabold text-[#075f4b]">
+              Table {String(invalidLabel)}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  const shouldShowMissingTableFallback =
+    !isLoading &&
+    !hasTableLookupHint &&
+    customerPath === "/menu"
+
+  if (shouldShowMissingTableFallback) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#fbf8f2] px-6 text-center text-[#242320]">
+        <div className="max-w-md rounded-3xl border border-[#d8b982] bg-white/85 p-6 shadow-sm">
+          <h1 className="text-xl font-bold">Oops, we could not find your table.</h1>
+          <p className="mt-3 text-sm leading-6 text-[#6b6258]">Please scan the QR code on your table again, or ask a member of staff for help.</p>
+        </div>
       </div>
     )
   }
@@ -309,6 +533,7 @@ function MenuContent() {
     <CustomerMenuThemeRoutes
       {...{
         isKazenJapaneseTheme,
+        isVelvetTerracottaTheme,
         isModernGreenTheme,
         isOrganicBotanicalTheme,
         shouldShowPayMyDineFooterLogo,
@@ -369,6 +594,7 @@ function MenuContent() {
         note,
         setNote,
         handleSendNote,
+        showValet,
 
       }}
     />

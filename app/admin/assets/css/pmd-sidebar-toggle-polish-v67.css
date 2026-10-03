@@ -1,0 +1,116 @@
+/* PMD Sidebar Toggle Polish v67
+   Fixes audited issue: icon was 44x44 inside 32x32 button. */
+
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle {
+  position: absolute !important;
+  right: -16px !important;
+  left: auto !important;
+
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(214, 174, 88, .88) !important;
+  background: linear-gradient(180deg, #fff8e8 0%, #ffe8b4 100%) !important;
+  color: #063b34 !important;
+
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, .20),
+    0 0 0 4px rgba(255, 244, 220, .18),
+    inset 0 1px 0 rgba(255, 255, 255, .88) !important;
+
+  z-index: 12000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  overflow: visible !important;
+  transition:
+    background .14s ease,
+    color .14s ease,
+    box-shadow .14s ease,
+    border-color .14s ease,
+    transform .14s ease !important;
+}
+
+/* Keep the button visually tied to the logo area */
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-sidebar-icons-toggle {
+  top: 122px !important;
+}
+
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .sidebar .pmd-sidebar-icons-toggle,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle {
+  top: 125px !important;
+}
+
+/* Critical fix: FontAwesome/global icon rules were making the icon 44x44 */
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i.fa,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > .fa,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > i,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > i.fa,
+body.page.pmd-admin-theme-v1 .sidebar .pmd-sidebar-icons-toggle > .fa {
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  font-size: 18px !important;
+  line-height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  color: currentColor !important;
+  transform: translateY(.5px) !important;
+  overflow: visible !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > i::before,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle > .fa::before {
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  line-height: 16px !important;
+  display: inline-block !important;
+  text-align: center !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:hover {
+  background: linear-gradient(180deg, #fff1cf 0%, #ffd984 100%) !important;
+  color: #042722 !important;
+  border-color: rgba(229, 185, 88, 1) !important;
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, .24),
+    0 0 0 5px rgba(255, 225, 156, .22),
+    inset 0 1px 0 rgba(255, 255, 255, .92) !important;
+  transform: translateY(-1px) !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:active {
+  transform: translateY(0) scale(.96) !important;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, .18),
+    0 0 0 3px rgba(255, 225, 156, .18),
+    inset 0 1px 2px rgba(0, 0, 0, .12) !important;
+}
+
+/* Optional tiny tooltip via title remains native; no custom tooltip added. */

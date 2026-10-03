@@ -1,0 +1,28 @@
+{
+  "name": "paymydine-waiter-final-qa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end, responsive, visual and operational QA for the isolated PayMyDine waiter workstation.",
+  "scripts": {
+    "install:browser": "playwright install chromium",
+    "validate": "playwright test --list",
+    "test": "playwright test --project=desktop",
+    "test:smoke": "playwright test --project=desktop --grep @smoke",
+    "test:full": "playwright test --grep-invert @mutation",
+    "test:responsive": "playwright test --project=tablet --project=phone tests/visual-responsive.spec.js",
+    "test:stability": "playwright test --project=desktop tests/stability.spec.js",
+    "test:mutations": "playwright test --project=desktop --grep @mutation",
+    "test:headed": "playwright test --project=desktop --headed",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report playwright-report"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "latest",
+    "@playwright/test": "latest",
+    "dotenv": "latest"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

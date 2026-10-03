@@ -1,0 +1,76 @@
+/* PMD Sidebar Button Size v6
+   Keep sidebar width same, only make buttons/icons/text a bit bigger.
+*/
+
+html body.page.pmd-admin-theme-v1 {
+  --pmd-sidebar-width: 188px !important;
+}
+
+/* Root buttons: bigger, but same sidebar width */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link {
+  height: 47px !important;
+  min-height: 47px !important;
+  padding-left: 11px !important;
+  padding-right: 10px !important;
+  gap: 9px !important;
+  font-size: 0.90rem !important;
+  font-weight: 800 !important;
+  border-radius: 16px !important;
+}
+
+/* Root icons bigger */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link > i.fa {
+  width: 22px !important;
+  min-width: 22px !important;
+  height: 22px !important;
+}
+
+/* Root text must not overflow */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link > .content {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Submenu items also a bit bigger */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link {
+  height: 34px !important;
+  min-height: 34px !important;
+  padding-left: 6px !important;
+  padding-right: 4px !important;
+  gap: 7px !important;
+  font-size: 0.81rem !important;
+  font-weight: 620 !important;
+  border-radius: 12px !important;
+}
+
+/* Submenu icons bigger */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > ul.nav > .nav-item > .nav-link > i.fa {
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+}
+
+/* Active button should stay clean and not overflow */
+html body.page.pmd-admin-theme-v1 #side-nav-menu .nav-link {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* Keep System parent normal, even when opened */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item.open > .nav-link.system,
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link.system[data-toggle="collapse"],
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link.system[aria-expanded="true"] {
+  background: transparent !important;
+  color: rgba(249,250,251,0.92) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* But hover can still be subtle */
+html body.page.pmd-admin-theme-v1 #side-nav-menu > .nav-item > .nav-link.system:hover {
+  background: rgba(255,255,255,0.06) !important;
+  color: #fff !important;
+}

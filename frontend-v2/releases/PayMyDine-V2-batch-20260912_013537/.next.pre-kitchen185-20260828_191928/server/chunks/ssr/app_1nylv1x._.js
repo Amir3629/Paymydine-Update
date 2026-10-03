@@ -1,0 +1,3 @@
+module.exports=[48525,a=>{a.v({card:"error-module__uHmsfa__card",mark:"error-module__uHmsfa__mark",page:"error-module__uHmsfa__page",retry:"error-module__uHmsfa__retry"})},66188,a=>{"use strict";var b=a.i(7997),c=a.i(48525);a.s(["default",0,function(){return(0,b.jsx)("main",{className:c.default.page,children:(0,b.jsxs)("section",{className:c.default.card,children:[(0,b.jsx)("p",{children:"PayMyDine"}),(0,b.jsx)("h1",{children:"Menu not found"}),(0,b.jsx)("p",{children:"The requested table, theme preview or menu route is not available."}),(0,b.jsx)("a",{className:c.default.retry,href:"/",children:"Return to the menu"})]})})}])},2894,function(a){a.n(a.i(66188))}];
+
+//# sourceMappingURL=app_1nylv1x._.js.map

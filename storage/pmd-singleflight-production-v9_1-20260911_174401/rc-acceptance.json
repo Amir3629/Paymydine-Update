@@ -1,0 +1,28 @@
+{
+  "rows": [
+    {
+      "workload": "MIX",
+      "concurrency": 12,
+      "requests": 48,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 2028,
+      "p95_ms": 4059,
+      "max_ms": 4376,
+      "rps": 4.62
+    },
+    {
+      "workload": "QR",
+      "concurrency": 16,
+      "requests": 64,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1467,
+      "p95_ms": 1582,
+      "max_ms": 1651,
+      "rps": 10.53
+    }
+  ]
+}

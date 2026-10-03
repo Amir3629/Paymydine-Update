@@ -20,6 +20,7 @@ export type UseThemeMenuActionsInput = {
   shouldShowTableOrderAction: boolean
   displayTableNumber?: string | number | null
   language?: string
+  showValet?: boolean
 }
 
 export function useCustomerThemeActions({
@@ -37,6 +38,7 @@ export function useCustomerThemeActions({
   shouldShowTableOrderAction,
   displayTableNumber,
   language,
+  showValet = true,
 }: UseThemeMenuActionsInput) {
   return useMemo(
     () =>
@@ -59,6 +61,7 @@ export function useCustomerThemeActions({
         onCallWaiter: handleWaiterClick,
         onOpenNote: handleNoteClick,
         onOpenValet: () => {
+          if (!showValet) return
           const currentSearch = typeof window !== "undefined" ? window.location.search || "" : ""
           if (tableIdString) {
             window.location.href = `/table/${tableIdString}/valet${currentSearch}`
@@ -69,6 +72,7 @@ export function useCustomerThemeActions({
         cartCount: totalItems,
         tableOrderCount: tableOrderActionCount,
         showTableOrder: shouldShowTableOrderAction,
+        showValet,
         tableNumber: displayTableNumber,
         currentLocale: language,
         language,
@@ -88,6 +92,7 @@ export function useCustomerThemeActions({
       shouldShowTableOrderAction,
       displayTableNumber,
       language,
+      showValet,
     ]
   )
 }

@@ -28,17 +28,21 @@ export default function SumUpHostedCheckout(props: Props) {
         setError(null)
         console.info("SUMUP_HOSTED_CHECKOUT_REDIRECT", { stage: "init" })
 
+        const returnUrl =
+          props.successUrl ??
+          `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=sumup`
+
         const payload = {
           amount: props.amount,
           currency: props.currency,
           order_id: props.orderId ?? null,
           order_type: props.orderType ?? "guest",
           description: props.description ?? "PayMyDine SumUp hosted checkout",
-          return_url: props.successUrl ?? `${window.location.origin}/payment/sumup/complete`,
+          return_url: returnUrl,
           cancel_url: props.cancelUrl ?? `${window.location.origin}/menu`,
         }
 
-        const res = await fetch("/api/v1/payments/card/create-session", {
+        const res = await fetch("/api/v1/payments/sumup/self-service-checkout", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -63,6 +67,8 @@ export default function SumUpHostedCheckout(props: Props) {
         if (checkoutId && typeof window !== "undefined") {
           localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
             checkout_id: checkoutId,
+            method_code: "card",
+            provider_code: "sumup",
             return_to: `${window.location.pathname}${window.location.search}`,
             created_at: Date.now(),
           }))

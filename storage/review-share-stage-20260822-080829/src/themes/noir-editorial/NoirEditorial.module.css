@@ -1,0 +1,131 @@
+.root {
+  min-height: 100dvh;
+  overflow-x: clip;
+  background: #050505;
+  color: #f4f3ef;
+  font-family: Arial, Helvetica, sans-serif;
+}
+.header {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 5.4rem;
+  padding: 1.1rem clamp(1rem, 4vw, 4rem);
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  background: #050505;
+}
+.headerActions { display: flex; align-items: center; gap: .55rem; }
+.table { border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: .65rem .85rem; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.iconButton { position: relative; display: grid; width: 2.65rem; height: 2.65rem; place-items: center; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; background: transparent; color: inherit; cursor: pointer; }
+.iconButton svg { width: 1rem; }
+.iconButton span { position: absolute; top: -.28rem; right: -.2rem; display: grid; min-width: 1.15rem; height: 1.15rem; place-items: center; border-radius: 999px; background: #f4f3ef; color: #050505; font-size: .6rem; font-weight: 900; }
+.hero { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(18rem,.9fr); min-height: min(70rem, calc(100dvh - 5.4rem)); border-bottom: 1px solid rgba(255,255,255,.12); }
+.heroCopy { display: flex; flex-direction: column; justify-content: center; padding: clamp(2.5rem, 7vw, 7rem) clamp(1.25rem, 6vw, 6rem); }
+.eyebrow { font-size: .67rem; font-weight: 760; letter-spacing: .34em; text-transform: uppercase; color: #aaa8a0; }
+.hero h1 { margin: 1.3rem 0; max-width: 10ch; font-family: Didot, 'Bodoni 72', Georgia, serif; font-size: clamp(4.2rem, 11vw, 10.5rem); font-weight: 400; line-height: .73; letter-spacing: -.06em; text-transform: uppercase; }
+.hero h1 em { font-weight: 400; color: #f4f3ef; }
+.hero p { max-width: 34rem; margin: 0; color: #aaa8a0; font-size: clamp(.9rem, 1.5vw, 1.05rem); line-height: 1.7; }
+.heroActions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 2rem; }
+.callButton { display: inline-flex; min-height: 4.5rem; align-items: center; gap: 1rem; min-width: min(100%, 22rem); padding: .85rem 1.2rem; background: #f4f3ef; color: #050505; text-decoration: none; }
+.callButton > svg { width: 2rem; height: 2rem; }
+.callButton span { display: grid; gap: .15rem; font-weight: 850; }
+.callButton small { font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; }
+.ghostAction { display: inline-flex; min-height: 3rem; align-items: center; gap: .55rem; border: 1px solid rgba(255,255,255,.22); padding: .65rem .9rem; background: transparent; color: inherit; cursor: pointer; }
+.ghostAction svg { width: 1rem; }
+.heroVisual { position: relative; min-height: 36rem; overflow: hidden; background: #0c0c0c; }
+.heroVisual::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #050505 0%, transparent 35%), linear-gradient(0deg, #050505 0%, transparent 28%); pointer-events: none; }
+.heroVisual img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.15) brightness(.58); }
+.heroMark { position: absolute; z-index: 2; right: 2rem; bottom: 2rem; font-family: Georgia, serif; font-size: 4rem; font-weight: 300; }
+.discovery { padding: 3.2rem clamp(1rem, 5vw, 5rem) 1.4rem; }
+.discoveryHead { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; }
+.discovery h2 { margin: .4rem 0 0; font-family: Didot, Georgia, serif; font-size: clamp(2.6rem, 6vw, 5rem); font-weight: 400; text-transform: uppercase; }
+.search { display: flex; width: min(25rem, 100%); align-items: center; gap: .6rem; border-bottom: 1px solid rgba(255,255,255,.3); padding: .7rem 0; }
+.search svg { width: 1rem; color: #aaa; }
+.search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #fff; }
+.categories { display: flex; gap: clamp(1rem, 3vw, 2.6rem); margin-top: 2rem; overflow-x: auto; padding-bottom: .75rem; scrollbar-width: none; }
+.categories button { flex: 0 0 auto; border: 0; border-bottom: 1px solid transparent; padding: .55rem 0; background: transparent; color: #8e8d88; font-size: .72rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; cursor: pointer; }
+.categories .categoryActive { border-color: #fff; color: #fff; }
+.items { display: grid; gap: 0; padding: 0 clamp(1rem, 5vw, 5rem) 6rem; }
+.item { display: grid; grid-template-columns: minmax(0,1fr) minmax(18rem,.9fr); min-height: 26rem; border-top: 1px solid rgba(255,255,255,.16); }
+.itemReverse { grid-template-columns: minmax(18rem,.9fr) minmax(0,1fr); }
+.itemReverse .itemImage { order: 2; }
+.itemImage { position: relative; min-height: 24rem; overflow: hidden; border: 0; padding: 0; background: #111; color: #fff; cursor: pointer; }
+.itemImage img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(.55) contrast(1.1); transition: transform .5s ease, filter .5s ease; }
+.itemImage:hover img { transform: scale(1.025); filter: grayscale(0); }
+.itemImage > span { position: absolute; top: 1.2rem; right: 1.2rem; font-family: Georgia, serif; font-size: 1.4rem; }
+.itemCopy { display: flex; flex-direction: column; justify-content: center; padding: clamp(1.4rem, 5vw, 4rem); }
+.itemNumber { color: #777; font-family: Georgia, serif; font-size: 1rem; }
+.itemTitle { margin: .8rem 0; border: 0; padding: 0; background: transparent; color: #f4f3ef; font-family: Didot, Georgia, serif; font-size: clamp(2.5rem, 5vw, 5.5rem); line-height: .86; text-align: start; text-transform: uppercase; cursor: pointer; }
+.itemCopy p { max-width: 33rem; margin: 0 0 1rem; color: #9d9b95; line-height: 1.65; }
+.itemBottom { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; }
+.itemBottom strong { font-family: Didot, Georgia, serif; font-size: 2.5rem; font-weight: 400; }
+.serviceRail { position: sticky; z-index: 20; bottom: 1rem; display: flex; width: min(46rem, calc(100% - 2rem)); margin: -5rem auto 2rem; overflow: hidden; border: 1px solid rgba(255,255,255,.2); background: rgba(10,10,10,.86); backdrop-filter: blur(20px); }
+.serviceRail button { display: flex; min-width: 0; flex: 1; align-items: center; justify-content: center; gap: .5rem; border: 0; border-right: 1px solid rgba(255,255,255,.16); padding: .9rem .65rem; background: transparent; color: #f4f3ef; font-size: .68rem; font-weight: 780; cursor: pointer; }
+.serviceRail button:last-child { border-right: 0; }
+.serviceRail svg { width: 1rem; }
+.social { display: flex; justify-content: center; padding: 1rem; }
+.empty { padding: 5rem 1rem; color: #888; text-align: center; }
+@media (max-width: 780px) {
+  .header { align-items: flex-start; }
+  .table { display: none; }
+  .hero { grid-template-columns: 1fr; }
+  .heroCopy { min-height: 44rem; }
+  .heroVisual { min-height: 26rem; }
+  .item, .itemReverse { grid-template-columns: 1fr; }
+  .itemReverse .itemImage { order: 0; }
+  .itemImage { min-height: 19rem; }
+  .serviceRail span { display: none; }
+  .serviceRail button { min-height: 3.4rem; }
+}
+@media (max-width: 520px) {
+  .header { padding: .85rem; }
+  .headerActions { gap: .35rem; }
+  .heroCopy { padding: 3rem 1.1rem; min-height: 38rem; }
+  .hero h1 { font-size: clamp(4rem, 24vw, 6rem); }
+  .discoveryHead { align-items: stretch; flex-direction: column; }
+  .items, .discovery { padding-left: .85rem; padding-right: .85rem; }
+  .itemCopy { padding: 2rem .5rem 2.8rem; }
+  .itemTitle { font-size: 3.2rem; }
+}
+
+/* PMD MOBILE-FIRST RESPONSIVE R13 START */
+/* Product posture: mobile-first QR menu. Wide screens keep a centered tablet-like canvas. */
+@media (min-width: 1100px) {
+  .header { padding-inline: max(1.25rem, calc((100vw - 64rem) / 2 + 1.25rem)); }
+  .hero, .discovery, .items { width: min(calc(100% - 2rem), 64rem); margin-inline: auto; }
+  .discovery { padding-left: 0; padding-right: 0; }
+  .items { padding-left: 0; padding-right: 0; }
+  .hero { min-height: 42rem; }
+  .hero h1 { font-size: clamp(4.6rem, 8vw, 7.5rem); }
+}
+@media (min-width: 681px) and (max-width: 1099px) {
+  .hero, .discovery, .items { width: min(calc(100% - 2rem), 64rem); margin-inline: auto; }
+  .discovery, .items { padding-left: 0; padding-right: 0; }
+}
+@media (max-width: 680px) {
+  .header { min-height: 4.7rem; padding: .75rem; }
+  .hero { width: 100%; min-height: 0; grid-template-columns: 1fr; }
+  .heroCopy { min-height: 25rem; padding: 2.25rem 1rem; }
+  .heroVisual { min-height: 18rem; }
+  .hero h1 { font-size: clamp(3.2rem, 20vw, 4.8rem); }
+  .discovery, .items { width: 100%; padding-left: .75rem; padding-right: .75rem; }
+  .itemCopy { padding: 1.5rem .35rem 2rem; }
+  .itemTitle { font-size: clamp(2.2rem, 14vw, 3.1rem); }
+  .serviceRail { width: calc(100% - 1rem); }
+}
+/* PMD MOBILE-FIRST RESPONSIVE R13 END */
+
+/* PMD UNIFIED BOTTOM ACTION BAR R14 START */
+.root { padding-bottom: calc(6.8rem + env(safe-area-inset-bottom,0px)); }
+.dock { position: fixed; z-index: 70; left: 50%; bottom: max(.55rem, env(safe-area-inset-bottom,0px)); display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); width: min(calc(100% - 1rem),46rem); transform: translateX(-50%); overflow-x: auto; border: 1px solid rgba(255,255,255,.22); border-radius: .2rem; background: rgba(5,5,5,.96); box-shadow: 0 1.1rem 3.5rem rgba(0,0,0,.55); backdrop-filter: blur(18px); scrollbar-width: none; }
+.dock button { position: relative; display: flex; min-width:0; min-height: 4.65rem; flex-direction: column; align-items: center; justify-content: center; gap: .28rem; border: 0; border-right: 1px solid rgba(255,255,255,.12); background: transparent; color: #d7d5cf; font: inherit; cursor: pointer; }
+.dock button:last-child { border-right: 0; }.dock svg { width: 1.15rem; height: 1.15rem; }.dock span { max-width: 6rem; font-size: .58rem; font-weight: 800; letter-spacing: .09em; line-height: 1.15; text-align: center; text-transform: uppercase; }.dock b { position: absolute; top: .3rem; right: .45rem; display:grid; min-width:1.05rem; height:1.05rem; place-items:center; border-radius:999px; background:#f2f0ea; color:#050505; font-size:.56rem; }.dock small { font-size:.55rem; color:#aaa8a1; }.dock .dockPrimary { background:#f2f0ea; color:#050505; }.dock .dockPrimary small { color:#373632; }
+@media (max-width:680px){.headerActions .iconButton{display:none}.dock{width:calc(100% - .7rem)}.dock button{min-height:4.35rem}.dock span{font-size:.54rem}}
+/* PMD UNIFIED BOTTOM ACTION BAR R14 END */
+
+
+/* PMD_STABLE_BOTTOM_ACTIONS_R17C */
+.dock button[aria-disabled="true"]{opacity:.52;filter:saturate(.55)}

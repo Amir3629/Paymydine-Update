@@ -333,6 +333,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
             $userId = $request->input('user_id');
             $timestamp = $request->input('timestamp', now()->toDateTimeString());
             $verificationType = $request->input('verification_type', 'fingerprint');
+            $attendanceAction = $request->input('action');
 
             $device = FingerDevices_model::findOrFail($deviceId);
 
@@ -340,7 +341,8 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
                 $device,
                 $userId,
                 $timestamp,
-                $verificationType
+                $verificationType,
+                $attendanceAction
             );
 
             return response()->json($result, $result['success'] ? 200 : 500);
@@ -365,135 +367,149 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
     public function manualAttendance(Request $request)
     {
         try {
-            $staffId = $request->input('staff_id');
-            $action = $request->input('action'); // 'check-in' or 'check-out'
-            $dateTime = $request->input('date_time');
-            $note = $request->input('note');
+            $staffId = (int)$request->input('staff_id');
+            $action = strtolower(trim((string)$request->input('action')));
+            $dateTime = trim((string)$request->input('date_time'));
+            $note = trim((string)$request->input('note'));
 
-            // Validate inputs
-            if (!$staffId || !$action || !$dateTime || !$note) {
+            if ($staffId <= 0 || !in_array($action, ['check-in', 'check-out'], true) || $dateTime === '' || $note === '') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Missing required fields'
+                    'message' => 'Missing or invalid required fields',
                 ], 400);
             }
 
-            // Verify staff exists
             $staff = Staffs_model::find($staffId);
             if (!$staff) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Staff not found'
-                ], 404);
+                return response()->json(['success' => false, 'message' => 'Staff not found'], 404);
             }
 
-            // Get current admin user
             $adminUser = \Admin\Facades\AdminAuth::getUser();
-            $adminName = $adminUser ? $adminUser->staff->staff_name : 'System';
+            $adminName = $adminUser ? optional($adminUser->staff)->staff_name : 'System';
+            $locationId = (int)(\Admin\Facades\AdminLocation::getId() ?: ($staff->staff_location_id ?? 0));
+            $eventAt = \Carbon\Carbon::parse($dateTime);
+            $eventValue = $eventAt->format('Y-m-d H:i:s');
 
             if ($action === 'check-in') {
-                // Create new check-in record
+                $open = \Admin\Models\Staff_attendance_model::query()
+                    ->where('staff_id', $staffId)
+                    ->whereNull('check_out_time')
+                    ->orderByDesc('check_in_time')
+                    ->first();
+
+                if ($open) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'This staff member already has an open check-in',
+                        'attendance_id' => (int)$open->attendance_id,
+                    ], 409);
+                }
+
                 $attendance = new \Admin\Models\Staff_attendance_model();
                 $attendance->staff_id = $staffId;
-                $attendance->check_in_time = date('Y-m-d H:i:s', strtotime($dateTime));
-                $attendance->location_id = $staff->staff_location_id ?? 1;
+                $attendance->check_in_time = $eventValue;
+                $attendance->location_id = $locationId > 0 ? $locationId : null;
                 $attendance->device_type = 'manual';
                 $attendance->device_id = null;
                 $attendance->notes = "Manual check-in by {$adminName}. Reason: {$note}";
+
+                if (Schema::hasColumn('staff_attendance', 'verification_method')) $attendance->verification_method = 'manual';
+                if (Schema::hasColumn('staff_attendance', 'status')) $attendance->status = 'checked_in';
+                if (Schema::hasColumn('staff_attendance', 'timezone')) $attendance->timezone = config('app.timezone');
+                if (Schema::hasColumn('staff_attendance', 'ip_address')) $attendance->ip_address = $request->ip();
+                if (Schema::hasColumn('staff_attendance', 'user_agent')) $attendance->user_agent = $request->userAgent();
                 $attendance->save();
 
-                // Log audit trail
-                try {
-                    if (class_exists('\Admin\Models\Attendance_audit_logs_model') && 
-                        Schema::hasTable('ti_attendance_audit_logs')) {
-                        \Admin\Models\Attendance_audit_logs_model::create([
-                            'attendance_id' => $attendance->attendance_id,
-                            'staff_id' => $staffId,
-                            'changed_by' => $adminUser ? $adminUser->staff_id : null,
-                            'action' => 'manual_check_in',
-                            'old_value' => null,
-                            'new_value' => json_encode(['check_in_time' => $attendance->check_in_time]),
-                            'reason' => $note,
-                            'ip_address' => $request->ip(),
-                            'created_at' => now()
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    // Log error but don't fail the request
-                    Log::warning('Failed to create audit log: ' . $e->getMessage());
-                }
+                $this->writeAttendanceAudit(
+                    $attendance,
+                    'created',
+                    null,
+                    $attendance->toArray(),
+                    $note,
+                    $adminUser,
+                    $request
+                );
 
                 return response()->json([
                     'success' => true,
                     'message' => 'Manual check-in recorded successfully',
-                    'data' => $attendance
+                    'data' => $attendance,
                 ]);
-
-            } elseif ($action === 'check-out') {
-                // Find today's open check-in
-                $attendance = \Admin\Models\Staff_attendance_model::where('staff_id', $staffId)
-                    ->whereDate('check_in_time', date('Y-m-d', strtotime($dateTime)))
-                    ->whereNull('check_out_time')
-                    ->orderBy('check_in_time', 'desc')
-                    ->first();
-
-                if (!$attendance) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'No open check-in found for this staff member today'
-                    ], 404);
-                }
-
-                // Update with check-out time
-                $attendance->check_out_time = date('Y-m-d H:i:s', strtotime($dateTime));
-                $attendance->notes = ($attendance->notes ? $attendance->notes . "\n" : '') . 
-                                    "Manual check-out by {$adminName}. Reason: {$note}";
-                $attendance->save();
-
-                // Log audit trail
-                try {
-                    if (class_exists('\Admin\Models\Attendance_audit_logs_model') && 
-                        Schema::hasTable('ti_attendance_audit_logs')) {
-                        \Admin\Models\Attendance_audit_logs_model::create([
-                            'attendance_id' => $attendance->attendance_id,
-                            'staff_id' => $staffId,
-                            'changed_by' => $adminUser ? $adminUser->staff_id : null,
-                            'action' => 'manual_check_out',
-                            'old_value' => null,
-                            'new_value' => json_encode(['check_out_time' => $attendance->check_out_time]),
-                            'reason' => $note,
-                            'ip_address' => $request->ip(),
-                            'created_at' => now()
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    // Log error but don't fail the request
-                    Log::warning('Failed to create audit log: ' . $e->getMessage());
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Manual check-out recorded successfully',
-                    'data' => $attendance
-                ]);
-
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid action. Must be "check-in" or "check-out"'
-                ], 400);
             }
 
+            $attendance = \Admin\Models\Staff_attendance_model::query()
+                ->where('staff_id', $staffId)
+                ->whereNull('check_out_time')
+                ->where('check_in_time', '<=', $eventValue)
+                ->orderByDesc('check_in_time')
+                ->first();
+
+            if (!$attendance) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No open check-in found for this staff member',
+                ], 404);
+            }
+
+            $oldValues = $attendance->toArray();
+            $attendance->check_out_time = $eventValue;
+            $attendance->notes = ($attendance->notes ? $attendance->notes."\n" : '').
+                "Manual check-out by {$adminName}. Reason: {$note}";
+
+            if (Schema::hasColumn('staff_attendance', 'verification_method')) $attendance->verification_method = 'manual';
+            if (Schema::hasColumn('staff_attendance', 'status')) $attendance->status = 'checked_out';
+            if (Schema::hasColumn('staff_attendance', 'hours_worked')) {
+                $checkIn = \Carbon\Carbon::parse($attendance->check_in_time);
+                $attendance->hours_worked = round(max(0, $checkIn->diffInSeconds($eventAt)) / 3600, 2);
+            }
+            $attendance->save();
+
+            $this->writeAttendanceAudit(
+                $attendance,
+                'updated',
+                $oldValues,
+                $attendance->toArray(),
+                $note,
+                $adminUser,
+                $request
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Manual check-out recorded successfully',
+                'data' => $attendance,
+            ]);
+
         } catch (\Exception $e) {
-            Log::error('BiometricDevicesAPI::manualAttendance error: ' . $e->getMessage(), [
+            Log::error('BiometricDevicesAPI::manualAttendance error: '.$e->getMessage(), [
                 'staff_id' => $request->input('staff_id'),
                 'action' => $request->input('action'),
-                'trace' => $e->getTraceAsString()
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to record manual attendance: ' . $e->getMessage()
+                'message' => 'Failed to record manual attendance: '.$e->getMessage(),
             ], 500);
+        }
+    }
+
+    private function writeAttendanceAudit($attendance, string $action, ?array $oldValues, array $newValues, string $reason, $adminUser, Request $request): void
+    {
+        try {
+            if (!Schema::hasTable('attendance_audit_logs')) return;
+
+            \Admin\Models\Attendance_audit_logs_model::create([
+                'attendance_id' => (int)$attendance->attendance_id,
+                'changed_by' => $adminUser && $adminUser->staff ? (int)$adminUser->staff->getKey() : null,
+                'action' => $action,
+                'old_values' => $oldValues,
+                'new_values' => $newValues,
+                'reason' => $reason,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        } catch (\Throwable $error) {
+            Log::warning('Failed to create attendance audit log: '.$error->getMessage());
         }
     }
 
@@ -577,7 +593,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
             foreach ($staff as $member) {
                 try {
                     if (class_exists('\Admin\Models\Staff_device_mappings_model') && 
-                        \Illuminate\Support\Facades\Schema::hasTable('ti_staff_device_mappings')) {
+                        \Illuminate\Support\Facades\Schema::hasTable('staff_device_mappings')) {
                         $member->enrolled_devices = \Admin\Models\Staff_device_mappings_model::where('staff_id', $member->staff_id)
                             ->count();
                     } else {
@@ -623,7 +639,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
             $enrollments = [];
             try {
                 if (class_exists('\Admin\Models\Staff_device_mappings_model') && 
-                    \Illuminate\Support\Facades\Schema::hasTable('ti_staff_device_mappings')) {
+                    \Illuminate\Support\Facades\Schema::hasTable('staff_device_mappings')) {
                     $enrollments = \Admin\Models\Staff_device_mappings_model::with('device')
                         ->where('staff_id', $staffId)
                         ->get();
@@ -662,7 +678,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
         try {
             $enrollments = [];
             if (class_exists('\Admin\Models\Staff_device_mappings_model') && 
-                Schema::hasTable('ti_staff_device_mappings')) {
+                Schema::hasTable('staff_device_mappings')) {
                 $enrollments = \Admin\Models\Staff_device_mappings_model::with('device')
                     ->where('staff_id', $staffId)
                     ->get()
@@ -672,7 +688,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
                             'device_name' => $mapping->device ? $mapping->device->name : 'N/A',
                             'device_type' => $mapping->device ? $mapping->device->device_type : 'N/A',
                             'enrolled_at' => $mapping->created_at,
-                            'device_uid' => $mapping->device_user_id
+                            'device_uid' => $mapping->device_uid
                         ];
                     })
                     ->toArray();
@@ -894,11 +910,11 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
             foreach ($rfidDevices as $device) {
                 // Create mapping
                 if (class_exists('\Admin\Models\Staff_device_mappings_model') && 
-                    Schema::hasTable('ti_staff_device_mappings')) {
+                    Schema::hasTable('staff_device_mappings')) {
                     \Admin\Models\Staff_device_mappings_model::create([
                         'staff_id' => $staff->staff_id,
                         'device_id' => $device->device_id,
-                        'device_user_id' => $cardUid, // Use card UID as device user ID
+                        'device_uid' => null,
                         'card_uid' => $cardUid,
                         'card_label' => $cardLabel,
                         'enrollment_type' => 'rfid',
@@ -910,8 +926,8 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
             }
 
             // Remove from unassigned cards if exists
-            if (Schema::hasTable('ti_unassigned_cards')) {
-                DB::table('ti_unassigned_cards')
+            if (Schema::hasTable('unassigned_cards')) {
+                DB::table('unassigned_cards')
                     ->where('card_uid', $cardUid)
                     ->delete();
             }
@@ -950,7 +966,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
             $assignments = [];
             
             if (class_exists('\Admin\Models\Staff_device_mappings_model') && 
-                Schema::hasTable('ti_staff_device_mappings')) {
+                Schema::hasTable('staff_device_mappings')) {
                 $mappings = \Admin\Models\Staff_device_mappings_model::with(['staff', 'device'])
                     ->whereNotNull('card_uid')
                     ->get();
@@ -993,8 +1009,8 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
         try {
             $cards = [];
             
-            if (Schema::hasTable('ti_unassigned_cards')) {
-                $unassigned = DB::table('ti_unassigned_cards')
+            if (Schema::hasTable('unassigned_cards')) {
+                $unassigned = DB::table('unassigned_cards')
                     ->orderBy('last_seen_at', 'desc')
                     ->get();
 
@@ -1064,7 +1080,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
 
             foreach ($rfidDevices as $device) {
                 if (class_exists('\Admin\Models\Staff_device_mappings_model') && 
-                    Schema::hasTable('ti_staff_device_mappings')) {
+                    Schema::hasTable('staff_device_mappings')) {
                     // Check if already exists
                     $existing = \Admin\Models\Staff_device_mappings_model::where('staff_id', $staffId)
                         ->where('device_id', $device->device_id)
@@ -1075,7 +1091,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
                         \Admin\Models\Staff_device_mappings_model::create([
                             'staff_id' => $staffId,
                             'device_id' => $device->device_id,
-                            'device_user_id' => $cardUid,
+                            'device_uid' => null,
                             'card_uid' => $cardUid,
                             'enrollment_type' => 'rfid',
                             'enrolled_at' => now(),
@@ -1087,8 +1103,8 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
             }
 
             // Remove from unassigned cards
-            if (Schema::hasTable('ti_unassigned_cards')) {
-                DB::table('ti_unassigned_cards')
+            if (Schema::hasTable('unassigned_cards')) {
+                DB::table('unassigned_cards')
                     ->where('card_uid', $cardUid)
                     ->delete();
             }
@@ -1118,7 +1134,7 @@ class BiometricDevicesAPI extends \Admin\Classes\AdminController
     {
         try {
             if (class_exists('\Admin\Models\Staff_device_mappings_model') && 
-                Schema::hasTable('ti_staff_device_mappings')) {
+                Schema::hasTable('staff_device_mappings')) {
                 $mapping = \Admin\Models\Staff_device_mappings_model::find($mappingId);
                 
                 if ($mapping) {

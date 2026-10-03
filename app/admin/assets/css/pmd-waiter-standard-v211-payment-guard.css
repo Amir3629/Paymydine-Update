@@ -1,0 +1,16 @@
+/* PayMyDine Waiter Payment Stable V2.1.1 */
+.pmd-v2-pos-host .pmd-v211-payment-error{grid-column:1/-1;min-height:128px;padding:18px;display:grid;place-items:center;align-content:center;gap:8px;border:2px solid #c62b3b;border-radius:4px;background:#fff1f2;color:#161b20;text-align:center}
+.pmd-v2-pos-host .pmd-v211-payment-error strong{color:#b31f30;font-size:15px;font-weight:1000;letter-spacing:.04em}
+.pmd-v2-pos-host .pmd-v211-payment-error span{max-width:620px;font-size:12px;font-weight:850}
+.pmd-v2-pos-host .pmd-v211-payment-error small{color:#68727c;font-size:10px;font-weight:750}
+.pmd-v2-pos-host .pmd-v211-payment-error button{min-width:220px;min-height:46px;margin-top:5px;padding:0 16px;border:0;border-radius:4px;background:#11151a;color:#fff;font-size:11px;font-weight:1000;cursor:pointer}
+.pmd-v2-pos-host .pmd-v211-payment-warning{margin:0 0 7px;padding:9px 11px;display:grid;gap:3px;border:1px solid #9b7616;border-left:5px solid #d09a18;border-radius:4px;background:#fff8dc;color:#2e2818}
+.pmd-v2-pos-host .pmd-v211-payment-warning strong{font-size:10px;font-weight:1000;letter-spacing:.05em}
+.pmd-v2-pos-host .pmd-v211-payment-warning span{font-size:9px;font-weight:800}
+.pmd-v2-pos-host .pmd-v211-payment-warning.is-blocking{border-color:#bd2637;border-left-color:#bd2637;background:#fff0f1;color:#5b1720}
+.pmd-v2-pos-host [data-v211-payment-mode="storage-missing"] [data-pos-pay-button]{opacity:.5;pointer-events:none}
+@media(max-width:780px){
+  .pmd-v2-pos-host .pmd-v211-payment-error{min-height:180px;padding:16px 12px}
+  .pmd-v2-pos-host .pmd-v211-payment-error button{width:100%;min-height:52px}
+  .pmd-v2-pos-host .pmd-v211-payment-warning{margin:6px}
+}

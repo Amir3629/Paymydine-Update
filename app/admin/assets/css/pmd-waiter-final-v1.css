@@ -1,0 +1,340 @@
+/* PMD Waiter Final V1 — one isolated design authority. */
+:root {
+  --pmd-final-font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { width: 100%; min-height: 100%; margin: 0; }
+body.pmd-waiter-final-page {
+  overflow-x: hidden;
+  font-family: var(--pmd-final-font);
+  font-weight: 650;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+button, input, textarea { font: inherit; }
+button { -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+
+.pmd-final {
+  --bg: #e7edf2;
+  --surface: #ffffff;
+  --surface-2: #f5f7f9;
+  --surface-3: #edf1f4;
+  --text: #111820;
+  --muted: #617080;
+  --line: #aeb9c4;
+  --line-soft: #d5dde4;
+  --header: #0f1720;
+  --header-text: #f8fafc;
+  --key: #17212b;
+  --key-hover: #0c131a;
+  --green: #148447;
+  --green-soft: #e3f5e9;
+  --orange: #be6800;
+  --orange-soft: #fff0dc;
+  --red: #c93040;
+  --red-soft: #fde8eb;
+  --blue: #1874b8;
+  --blue-soft: #e4f2fc;
+  --yellow: #d49a00;
+  --shadow: 0 2px 8px rgba(15, 23, 32, .12);
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.pmd-final[data-theme="dark"] {
+  --bg: #0d141b;
+  --surface: #1a242e;
+  --surface-2: #222e39;
+  --surface-3: #111a22;
+  --text: #f4f7fa;
+  --muted: #aeb9c5;
+  --line: #4d5b68;
+  --line-soft: #33414e;
+  --header: #080d12;
+  --header-text: #f8fafc;
+  --key: #e8edf1;
+  --key-hover: #ffffff;
+  --green: #36c675;
+  --green-soft: #153b29;
+  --orange: #f0a126;
+  --orange-soft: #3d2b13;
+  --red: #ff6674;
+  --red-soft: #482029;
+  --blue: #55aeea;
+  --blue-soft: #17334a;
+  --yellow: #ffc447;
+  --shadow: 0 2px 12px rgba(0, 0, 0, .32);
+}
+
+.pmd-final-launcher { min-height: 100vh; display: flex; flex-direction: column; }
+.pmd-final-header {
+  min-height: 72px;
+  padding: 10px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--header);
+  color: var(--header-text);
+  border-bottom: 1px solid #35404b;
+}
+.pmd-final-brand { display: flex; align-items: center; min-width: 0; gap: 11px; }
+.pmd-final-logo {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  background: #fff; color: #101820; border-radius: 7px; font-size: 23px; font-weight: 950;
+}
+.pmd-final-brand strong { display: block; font-size: 18px; line-height: 1.05; letter-spacing: .02em; }
+.pmd-final-brand small { display: block; margin-top: 5px; color: #bdc7d1; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.pmd-final-header-actions { display: flex; align-items: center; gap: 7px; }
+.pmd-final-sync {
+  min-height: 40px; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid #46525e; border-radius: 5px; font-size: 11px; letter-spacing: .08em;
+}
+.pmd-final-sync i { width: 8px; height: 8px; border-radius: 50%; background: #f0a126; }
+.pmd-final-sync.is-online i { background: #2fd276; box-shadow: 0 0 0 4px rgba(47, 210, 118, .12); }
+.pmd-final-sync.is-error i { background: #ff5c69; }
+.pmd-final-icon-button {
+  position: relative; width: 44px; height: 44px; border: 1px solid #46525e; border-radius: 5px;
+  background: #18222c; color: #fff; font-size: 18px; font-weight: 900; cursor: pointer;
+}
+.pmd-final-icon-button:hover, .pmd-final-icon-button:focus-visible { background: #25313d; outline: 2px solid #71b9ec; outline-offset: 1px; }
+.pmd-final-icon-button.has-counter b {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px;
+  display: grid; place-items: center; border-radius: 10px; background: #e43146; color: #fff;
+  border: 2px solid var(--header); font-size: 10px;
+}
+
+.pmd-final-commandbar {
+  display: grid; grid-template-columns: minmax(0, auto) minmax(320px, 1fr); gap: 16px;
+  padding: 12px 22px 9px; background: var(--surface-3); border-bottom: 1px solid var(--line);
+}
+.pmd-final-view-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.pmd-final-view-tabs button,
+.pmd-final-area-tabs button,
+.pmd-final-operations-link {
+  min-height: 44px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface);
+  color: var(--text); padding: 0 13px; cursor: pointer; font-size: 11px; letter-spacing: .06em; font-weight: 900;
+}
+.pmd-final-view-tabs button { display: inline-flex; align-items: center; gap: 9px; }
+.pmd-final-view-tabs button b { min-width: 25px; padding: 4px 6px; background: var(--surface-3); border-radius: 3px; }
+.pmd-final-view-tabs button.is-active,
+.pmd-final-area-tabs button.is-active { background: var(--key); color: var(--surface); border-color: var(--key); }
+.pmd-final-view-tabs button.is-active b { background: rgba(255,255,255,.16); color: inherit; }
+.pmd-final-command-actions { display: flex; justify-content: flex-end; gap: 8px; min-width: 0; }
+.pmd-final-search {
+  min-width: 260px; max-width: 430px; flex: 1; min-height: 44px; display: flex; align-items: center; gap: 9px;
+  padding: 0 12px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface);
+}
+.pmd-final-search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 12px; font-weight: 800; }
+.pmd-final-search input::placeholder { color: var(--muted); }
+.pmd-final-search button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 20px; }
+.pmd-final-operations-link { white-space: nowrap; background: var(--surface-2); }
+
+.pmd-final-area-tabs {
+  min-height: 51px; padding: 8px 22px; display: flex; align-items: center; gap: 6px; overflow-x: auto;
+  background: var(--surface-2); border-bottom: 1px solid var(--line);
+}
+.pmd-final-area-tabs button { min-height: 35px; white-space: nowrap; }
+
+.pmd-final-status-strip {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px;
+  background: var(--line); border-bottom: 1px solid var(--line);
+}
+.pmd-final-status-strip article { min-height: 52px; padding: 8px 22px; display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+.pmd-final-status-strip span { color: var(--muted); font-size: 10px; letter-spacing: .08em; }
+.pmd-final-status-strip strong { font-size: 18px; }
+
+.pmd-final-table-stage { position: relative; flex: 1; min-height: 420px; padding: 10px 22px 24px; }
+.pmd-final-table-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(152px, 1fr)); gap: 8px; align-items: stretch;
+}
+.pmd-final-table {
+  position: relative; min-height: 176px; padding: 12px 11px 10px; display: flex; flex-direction: column; align-items: flex-start;
+  border: 1px solid var(--line); border-top: 6px solid var(--blue); border-radius: 4px; background: var(--surface);
+  color: var(--text); text-align: left; box-shadow: var(--shadow); cursor: pointer; overflow: hidden;
+}
+.pmd-final-table:hover, .pmd-final-table:focus-visible { transform: translateY(-1px); outline: 3px solid color-mix(in srgb, var(--blue) 45%, transparent); outline-offset: -2px; }
+.pmd-final-table.is-free { border-top-color: var(--green); }
+.pmd-final-table.is-open { border-top-color: var(--blue); }
+.pmd-final-table.is-payment { border-top-color: var(--red); }
+.pmd-final-table.is-ready { border-top-color: var(--orange); }
+.pmd-final-table.is-attention { border-top-color: var(--red); background: color-mix(in srgb, var(--red-soft) 25%, var(--surface)); }
+.pmd-final-table-status { color: var(--muted); font-size: 10px; letter-spacing: .1em; font-weight: 950; }
+.pmd-final-table.is-free .pmd-final-table-status { color: var(--green); }
+.pmd-final-table.is-payment .pmd-final-table-status,
+.pmd-final-table.is-attention .pmd-final-table-status { color: var(--red); }
+.pmd-final-table.is-ready .pmd-final-table-status { color: var(--orange); }
+.pmd-final-table-number { margin-top: 7px; font-size: clamp(39px, 4vw, 54px); line-height: .92; letter-spacing: -.06em; }
+.pmd-final-table-name { margin-top: 7px; color: var(--muted); font-size: 9px; letter-spacing: .08em; }
+.pmd-final-table-divider { width: 100%; height: 1px; margin: 8px 0; background: var(--line-soft); }
+.pmd-final-table-primary { font-size: 11px; line-height: 1.2; font-weight: 950; }
+.pmd-final-table-secondary { width: 100%; margin-top: auto; display: flex; justify-content: space-between; gap: 6px; color: var(--muted); font-size: 9px; }
+.pmd-final-table-secondary b, .pmd-final-table-secondary small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pmd-final-badge {
+  position: absolute; top: 9px; right: 9px; min-width: 31px; height: 31px; padding: 0 7px; display: grid; place-items: center;
+  border-radius: 3px; background: var(--key); color: var(--surface); font-size: 12px; font-weight: 950;
+}
+.pmd-final-badge.is-call { background: var(--red); color: #fff; }
+.pmd-final-badge.is-ready { background: var(--orange); color: #fff; }
+.pmd-final-badge.is-note { background: var(--yellow); color: #18120a; }
+
+.pmd-final-loading, .pmd-final-empty { min-height: 300px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: var(--muted); }
+.pmd-final-loading span { width: 13px; height: 13px; margin: 0 2px; display: inline-block; background: var(--key); animation: pmd-final-pulse 1s infinite alternate; }
+.pmd-final-loading span:nth-child(2) { animation-delay: .12s; }
+.pmd-final-loading span:nth-child(3) { animation-delay: .24s; }
+.pmd-final-loading span:nth-child(4) { animation-delay: .36s; }
+.pmd-final-loading b { display: block; margin-top: 8px; font-size: 11px; letter-spacing: .09em; }
+@keyframes pmd-final-pulse { from { opacity: .22; } to { opacity: 1; } }
+.pmd-final-empty strong { color: var(--text); font-size: 20px; }
+.pmd-final-empty span { font-size: 13px; }
+.pmd-final-empty button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 4px; background: var(--key); color: var(--surface); cursor: pointer; }
+.pmd-final-footer { min-height: 42px; padding: 8px 22px; display: flex; justify-content: space-between; gap: 18px; color: var(--muted); border-top: 1px solid var(--line); font-size: 9px; letter-spacing: .05em; }
+
+.pmd-final-drawer { position: fixed; inset: 0; z-index: 9000; pointer-events: none; }
+.pmd-final-drawer.is-open { pointer-events: auto; }
+.pmd-final-drawer-backdrop { position: absolute; inset: 0; border: 0; background: rgba(5, 9, 13, .58); opacity: 0; transition: opacity .16s ease; }
+.pmd-final-drawer.is-open .pmd-final-drawer-backdrop { opacity: 1; }
+.pmd-final-drawer > section {
+  position: absolute; top: 0; right: 0; width: min(430px, 92vw); height: 100%; display: flex; flex-direction: column;
+  background: var(--surface); color: var(--text); border-left: 1px solid var(--line); transform: translateX(102%); transition: transform .18s ease;
+}
+.pmd-final-drawer.is-open > section { transform: translateX(0); }
+.pmd-final-drawer header { min-height: 76px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; background: var(--header); color: #fff; }
+.pmd-final-drawer header small { color: #8dd4ff; letter-spacing: .12em; }
+.pmd-final-drawer header h2 { margin: 3px 0 0; font-size: 20px; }
+.pmd-final-drawer header button { width: 42px; height: 42px; border: 1px solid #4a5662; background: #1b2630; color: #fff; font-size: 22px; cursor: pointer; }
+.pmd-final-drawer-tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); }
+.pmd-final-drawer-tabs button { min-height: 48px; border: 0; background: var(--surface-2); color: var(--muted); cursor: pointer; font-size: 10px; letter-spacing: .07em; }
+.pmd-final-drawer-tabs button.is-active { background: var(--surface); color: var(--text); box-shadow: inset 0 -4px var(--blue); }
+.pmd-final-drawer-list { padding: 10px; overflow: auto; }
+.pmd-final-drawer-row { width: 100%; min-height: 76px; padding: 10px; display: grid; grid-template-columns: 46px 1fr 20px; align-items: center; gap: 10px; border: 1px solid var(--line-soft); border-radius: 4px; background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+.pmd-final-drawer-row + .pmd-final-drawer-row { margin-top: 7px; }
+.pmd-final-drawer-row > b { width: 44px; height: 44px; display: grid; place-items: center; background: var(--surface-3); font-size: 20px; }
+.pmd-final-drawer-row span strong, .pmd-final-drawer-row span small { display: block; }
+.pmd-final-drawer-row span strong { font-size: 12px; }
+.pmd-final-drawer-row span small { margin-top: 5px; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.pmd-final-drawer-empty { padding: 56px 20px; text-align: center; color: var(--muted); }
+.pmd-final-drawer-empty strong, .pmd-final-drawer-empty span { display: block; }
+.pmd-final-drawer-empty strong { color: var(--text); font-size: 17px; }
+.pmd-final-drawer-empty span { margin-top: 8px; font-size: 12px; line-height: 1.5; }
+
+.pmd-final-pos-layer { position: fixed; inset: 0; z-index: 8500; background: var(--bg); overflow: hidden; }
+.pmd-final-pos-host, .pmd-final-pos-host > .pmd-pos-app { width: 100%; height: 100%; min-height: 100%; }
+.pmd-final-pos-loading { position: absolute; inset: 0; z-index: 9; display: grid; place-content: center; gap: 12px; text-align: center; background: var(--bg); color: var(--text); }
+.pmd-final-pos-loading.is-hidden { display: none; }
+.pmd-final-pos-loading span { width: 42px; height: 42px; margin: auto; border: 4px solid var(--line-soft); border-top-color: var(--blue); border-radius: 50%; animation: pmd-final-spin .8s linear infinite; }
+.pmd-final-pos-loading button { min-height: 42px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+@keyframes pmd-final-spin { to { transform: rotate(360deg); } }
+.pmd-final-toast { position: fixed; left: 50%; bottom: 22px; z-index: 12000; min-width: 260px; max-width: min(560px, 90vw); padding: 13px 18px; transform: translate(-50%, 30px); opacity: 0; pointer-events: none; background: var(--header); color: #fff; text-align: center; border-radius: 4px; box-shadow: 0 12px 38px rgba(0,0,0,.3); transition: .18s ease; font-size: 11px; }
+.pmd-final-toast.is-visible { transform: translate(-50%, 0); opacity: 1; }
+.pmd-final-toast.is-error { background: #b52031; }
+
+/* POS workspace: final consistent rectangular workstation styling. */
+.pmd-final .pmd-pos-app { --pmd-pos-bg: var(--bg); background: var(--bg) !important; color: var(--text) !important; font-family: var(--pmd-final-font) !important; }
+.pmd-final .pmd-pos-topbar { min-height: 64px !important; padding: 8px 10px !important; background: var(--header) !important; color: #fff !important; border-bottom: 1px solid #3f4b56 !important; }
+.pmd-final .pmd-pos-topbar button { border-radius: 4px !important; }
+.pmd-final .pmd-pos-workspace { background: var(--bg) !important; }
+.pmd-final .pmd-pos-catalog { background: var(--bg) !important; border-right-color: var(--line) !important; }
+.pmd-final .pmd-pos-tools { padding: 8px !important; background: var(--surface-3) !important; border-bottom: 1px solid var(--line) !important; }
+.pmd-final .pmd-pos-search-wrap, .pmd-final .pmd-pos-search { background: var(--surface) !important; color: var(--text) !important; border-color: var(--line) !important; border-radius: 4px !important; }
+.pmd-final .pmd-pos-categories { background: var(--surface-3) !important; border-right-color: var(--line) !important; padding: 8px !important; gap: 6px !important; }
+.pmd-final .pmd-pos-categories button { min-height: 58px !important; border: 1px solid var(--line) !important; border-radius: 4px !important; background: var(--surface) !important; color: var(--text) !important; font-size: 10px !important; }
+.pmd-final .pmd-pos-categories button.is-active { background: var(--key) !important; color: var(--surface) !important; border-color: var(--key) !important; }
+.pmd-final .pmd-pos-menu-scroll { background: var(--bg) !important; }
+.pmd-final .pmd-pos-menu-grid { padding: 6px !important; gap: 5px !important; background: var(--bg) !important; }
+.pmd-final .pmd-pos-menu-item { min-height: 106px !important; border: 1px solid var(--line) !important; border-radius: 4px !important; background: var(--surface) !important; color: var(--text) !important; box-shadow: none !important; }
+.pmd-final .pmd-pos-menu-item:hover { outline: 2px solid var(--blue) !important; outline-offset: -2px; }
+.pmd-final .pmd-pos-menu-item-name { color: var(--text) !important; font-size: 13px !important; }
+.pmd-final .pmd-pos-menu-item-price { color: var(--orange) !important; font-size: 15px !important; }
+.pmd-final .pmd-pos-cart { background: var(--surface) !important; color: var(--text) !important; border-left-color: var(--line) !important; }
+.pmd-final .pmd-pos-cart-head, .pmd-final .pmd-pos-checkout { background: var(--surface) !important; border-color: var(--line) !important; }
+.pmd-final .pmd-pos-cart h2, .pmd-final .pmd-pos-cart b, .pmd-final .pmd-pos-cart strong { color: var(--text) !important; }
+.pmd-final .pmd-pos-cart small, .pmd-final .pmd-pos-section-heading { color: var(--muted) !important; }
+.pmd-final .pmd-pos-existing, .pmd-final .pmd-pos-sent-section, .pmd-final .pmd-pos-new-section { background: var(--surface-2) !important; }
+.pmd-final .pmd-pos-cart-item, .pmd-final .pmd-pos-sent-item { background: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--line-soft) !important; border-radius: 4px !important; }
+.pmd-final .pmd-pos-table-note, .pmd-final .pmd-pos-item-note, .pmd-final .pmd-pos-payment-input { background: var(--surface) !important; color: var(--text) !important; border-color: var(--line) !important; border-radius: 4px !important; }
+.pmd-final .pmd-pos-action, .pmd-final .pmd-pos-secondary-actions button { border-radius: 4px !important; }
+.pmd-final .pmd-pos-action.send { background: var(--green) !important; color: #fff !important; }
+.pmd-final .pmd-pos-action.hold { background: #66717c !important; color: #fff !important; }
+.pmd-final .pmd-pos-secondary-actions button { background: var(--surface-2) !important; color: var(--text) !important; border-color: var(--line) !important; }
+.pmd-final .pmd-pos-secondary-actions [data-pos-payment] { background: #e4a100 !important; color: #141008 !important; }
+
+/* Payment is a stable full-screen workstation, styled only by CSS. */
+.pmd-final .pmd-pos-payment-modal { position: fixed !important; inset: 0 !important; z-index: 11000 !important; padding: 12px !important; background: rgba(4, 8, 12, .76) !important; overflow: auto !important; }
+.pmd-final .pmd-pos-payment-dialog { width: min(1380px, 100%) !important; min-height: calc(100vh - 24px) !important; max-height: none !important; margin: 0 auto !important; background: var(--surface-3) !important; color: var(--text) !important; border: 1px solid var(--line) !important; border-radius: 4px !important; box-shadow: 0 22px 70px rgba(0,0,0,.42) !important; overflow: visible !important; }
+.pmd-final .pmd-pos-payment-head { position: sticky !important; top: 0 !important; z-index: 2 !important; min-height: 72px !important; background: var(--header) !important; color: #fff !important; border-bottom: 1px solid #44505c !important; }
+.pmd-final .pmd-pos-payment-head h2, .pmd-final .pmd-pos-payment-head p { color: #fff !important; }
+.pmd-final .pmd-pos-payment-close { border-radius: 4px !important; }
+.pmd-final .pmd-pos-payment-body { display: grid !important; grid-template-columns: minmax(0, 1fr) 340px !important; gap: 12px !important; padding: 12px !important; background: var(--surface-3) !important; overflow: visible !important; }
+.pmd-final .pmd-pos-payment-main, .pmd-final .pmd-pos-payment-summary { min-width: 0; }
+.pmd-final .pmd-pos-payment-balance { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 6px !important; }
+.pmd-final .pmd-pos-payment-balance > * { background: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--line) !important; border-radius: 4px !important; }
+.pmd-final .pmd-pos-payment-block { background: var(--surface-2) !important; color: var(--text) !important; border: 1px solid var(--line) !important; border-radius: 4px !important; box-shadow: none !important; }
+.pmd-final .pmd-pos-payment-block-title, .pmd-final .pmd-pos-payment-block-title b { color: var(--text) !important; }
+.pmd-final .pmd-pos-payment-block-title span { color: var(--muted) !important; }
+.pmd-final .pmd-pos-split-tabs { gap: 5px !important; }
+.pmd-final .pmd-pos-split-tabs button, .pmd-final .pmd-pos-tip-buttons button, .pmd-final .pmd-pos-method-grid button { border: 1px solid var(--line) !important; border-radius: 4px !important; background: var(--surface) !important; color: var(--text) !important; }
+.pmd-final .pmd-pos-split-tabs button.is-active, .pmd-final .pmd-pos-tip-buttons button.is-active, .pmd-final .pmd-pos-method-grid button.is-active { background: var(--key) !important; color: var(--surface) !important; border-color: var(--key) !important; }
+.pmd-final .pmd-pos-split-panel { background: var(--surface) !important; color: var(--text) !important; border-radius: 4px !important; }
+.pmd-final .pmd-pos-payment-summary { position: sticky !important; top: 84px !important; align-self: start !important; min-height: 520px !important; padding: 14px !important; background: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--line) !important; border-radius: 4px !important; }
+.pmd-final .pmd-pos-payment-summary h3, .pmd-final .pmd-pos-payment-summary b, .pmd-final .pmd-pos-payment-summary strong { color: var(--text) !important; }
+.pmd-final .pmd-pos-payment-summary span, .pmd-final .pmd-pos-payment-safety { color: var(--muted) !important; }
+.pmd-final .pmd-pos-pay-button { min-height: 58px !important; border-radius: 4px !important; background: var(--green) !important; color: #fff !important; }
+.pmd-final .pmd-pos-payment-secondary { min-height: 48px !important; border-radius: 4px !important; background: var(--surface-2) !important; color: var(--text) !important; border: 1px solid var(--line) !important; }
+.pmd-final .pmd-pos-change-box { background: var(--green-soft) !important; color: var(--green) !important; border-radius: 4px !important; }
+.pmd-final .pmd-pos-payment-history { background: var(--surface-2) !important; color: var(--muted) !important; border-radius: 4px !important; }
+
+@media (max-width: 1100px) {
+  .pmd-final-commandbar { grid-template-columns: 1fr; }
+  .pmd-final-command-actions { justify-content: stretch; }
+  .pmd-final-table-grid { grid-template-columns: repeat(auto-fill, minmax(142px, 1fr)); }
+  .pmd-final .pmd-pos-payment-body { grid-template-columns: 1fr !important; }
+  .pmd-final .pmd-pos-payment-summary { position: static !important; min-height: 0 !important; }
+}
+
+@media (max-width: 720px) {
+  .pmd-final-header { min-height: 62px; padding: 8px 10px; }
+  .pmd-final-logo { width: 39px; height: 39px; }
+  .pmd-final-brand strong { font-size: 14px; }
+  .pmd-final-brand small { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pmd-final-sync { display: none; }
+  .pmd-final-icon-button { width: 40px; height: 40px; }
+  .pmd-final-commandbar { padding: 8px 10px; gap: 8px; }
+  .pmd-final-view-tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: 100%; gap: 4px; }
+  .pmd-final-view-tabs button { min-height: 46px; padding: 4px; justify-content: center; flex-direction: column; gap: 2px; font-size: 8px; }
+  .pmd-final-view-tabs button b { padding: 2px 4px; min-width: 20px; }
+  .pmd-final-command-actions { display: grid; grid-template-columns: 1fr auto; }
+  .pmd-final-search { min-width: 0; }
+  .pmd-final-operations-link { width: 48px; overflow: hidden; font-size: 0; }
+  .pmd-final-operations-link::after { content: "OPS"; font-size: 9px; }
+  .pmd-final-area-tabs { padding: 7px 10px; }
+  .pmd-final-status-strip { grid-template-columns: 1fr 1fr; }
+  .pmd-final-status-strip article { padding: 7px 10px; min-height: 46px; }
+  .pmd-final-table-stage { padding: 7px 8px 18px; }
+  .pmd-final-table-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .pmd-final-table { min-height: 156px; padding: 10px 9px 8px; }
+  .pmd-final-table-number { font-size: 42px; }
+  .pmd-final-footer { display: none; }
+  .pmd-final .pmd-pos-payment-modal { padding: 0 !important; }
+  .pmd-final .pmd-pos-payment-dialog { width: 100% !important; min-height: 100vh !important; border: 0 !important; }
+  .pmd-final .pmd-pos-payment-body { padding: 7px !important; gap: 7px !important; }
+  .pmd-final .pmd-pos-payment-balance { grid-template-columns: 1fr !important; }
+  .pmd-final .pmd-pos-split-tabs { display: grid !important; grid-template-columns: 1fr 1fr !important; }
+  .pmd-final .pmd-pos-method-grid { grid-template-columns: 1fr 1fr !important; }
+  .pmd-final .pmd-pos-adjustments { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 390px) {
+  .pmd-final-brand small { max-width: 115px; }
+  .pmd-final-header-actions { gap: 4px; }
+  .pmd-final-icon-button[data-final-reservations] { display: none; }
+  .pmd-final-table-grid { grid-template-columns: 1fr 1fr; }
+  .pmd-final-table { min-height: 150px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

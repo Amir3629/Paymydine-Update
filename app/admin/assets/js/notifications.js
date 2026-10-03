@@ -42,7 +42,94 @@
 
   function show(el){ el && el.classList.remove('d-none'); }
   function hide(el){ el && el.classList.add('d-none'); }
-  function setCount(n){ if(n>0){COUNT.textContent=String(n);COUNT.classList.remove('d-none');} else {COUNT.textContent='0';COUNT.classList.add('d-none');}}
+  // PMD_NOTIFICATION_COUNT_IDEMPOTENT_DOM_V1
+  // Do not mutate an already-correct server-rendered badge.
+  function setCount(n) {
+    const value = Math.max(
+      0,
+      Number(n) || 0
+    );
+
+    const text =
+      String(value);
+
+    if (
+      COUNT.textContent !== text
+    ) {
+      COUNT.textContent =
+        text;
+    }
+
+    const hidden =
+      COUNT.classList.contains(
+        'd-none'
+      );
+
+    if (
+      value > 0 &&
+      hidden
+    ) {
+      COUNT.classList.remove(
+        'd-none'
+      );
+    } else if (
+      value <= 0 &&
+      !hidden
+    ) {
+      COUNT.classList.add(
+        'd-none'
+      );
+    }
+
+
+    // PMD_SETTINGS_FAMILY_COUNT_MIRROR_V18_3
+    /*
+     * Settings detail pages use a permanent server-first visible
+     * counter to prevent refresh geometry changes.
+     *
+     * COUNT remains the canonical notification-engine data node.
+     * We only mirror its already-resolved value into the existing
+     * visible node when that node exists.
+     *
+     * No timer.
+     * No observer.
+     * No second API request.
+     */
+    const settingsFamilyVisibleCount =
+      document.querySelector(
+        '[data-pmd-settings-family-notification-count-v18]'
+      );
+
+    if (settingsFamilyVisibleCount) {
+      if (
+        settingsFamilyVisibleCount.textContent !== text
+      ) {
+        settingsFamilyVisibleCount.textContent =
+          text;
+      }
+
+      const visualHidden =
+        settingsFamilyVisibleCount.classList.contains(
+          'd-none'
+        );
+
+      if (
+        value > 0 &&
+        visualHidden
+      ) {
+        settingsFamilyVisibleCount.classList.remove(
+          'd-none'
+        );
+      } else if (
+        value <= 0 &&
+        !visualHidden
+      ) {
+        settingsFamilyVisibleCount.classList.add(
+          'd-none'
+        );
+      }
+    }
+  }
 
   async function fetchJSON(url, opts={}){
     const res = await fetch(url, {
@@ -315,17 +402,55 @@
     document.addEventListener('keydown', (e)=>{ if (e.key==='Escape') close(); });
   }
 
-  // keep the badge fresh
-  refreshCount();
+  // PMD_PERF_R3_SHARED_NOTIFICATION_POLL
+  // When push-notifications.js is present, its existing poll also carries the
+  // unread count. Stop the second HTTP poller as soon as that signal arrives.
+  window.addEventListener('pmd:notification:count', (event) => {
+    const detail = event && event.detail ? event.detail : {};
+    setCount(Math.max(0, Number(detail.count || 0)));
+    window.PMDNotificationCountDrivenByPush = true;
+
+    if (window.PMDNotificationCountFallbackTimer) {
+      clearTimeout(window.PMDNotificationCountFallbackTimer);
+      window.PMDNotificationCountFallbackTimer = null;
+    }
+
+    if (window.notificationCountInterval) {
+      clearInterval(window.notificationCountInterval);
+      window.notificationCountInterval = null;
+    }
+  });
+
+  // PMD_PERF_R7_NOTIFICATION_FIRST_POLL_DEDUP
+  // push-notifications.js performs its first request after ~1s and already
+  // carries the unread count. Give it a short authority window before falling
+  // back to /count, avoiding two authenticated notification requests on every
+  // full Admin navigation.
+  if (window.PMDNotificationCountFallbackTimer) {
+    clearTimeout(window.PMDNotificationCountFallbackTimer);
+  }
+
+  window.PMDNotificationCountFallbackTimer = setTimeout(() => {
+    window.PMDNotificationCountFallbackTimer = null;
+    if (!window.PMDNotificationCountDrivenByPush) {
+      refreshCount();
+    }
+  }, 2200);
   
-  // Store interval ID in global scope for cleanup and duplicate prevention
+  // Store interval ID in global scope for fallback-only refreshes.
   if (window.notificationCountInterval) {
     clearInterval(window.notificationCountInterval);
   }
-  window.notificationCountInterval = setInterval(refreshCount, 20000); // Very slow polling (20s) to reduce CPU load
+  window.notificationCountInterval = setInterval(() => {
+    if (!window.PMDNotificationCountDrivenByPush) refreshCount();
+  }, 30000);
   
   // Clean up interval on page unload to prevent memory leaks and CPU usage
   window.addEventListener('beforeunload', () => {
+    if (window.PMDNotificationCountFallbackTimer) {
+      clearTimeout(window.PMDNotificationCountFallbackTimer);
+      window.PMDNotificationCountFallbackTimer = null;
+    }
     if (window.notificationCountInterval) {
       clearInterval(window.notificationCountInterval);
       window.notificationCountInterval = null;
@@ -343,9 +468,9 @@
       }
     } else {
       // Resume polling when tab becomes visible
-      if (!window.notificationCountInterval) {
-        refreshCount(); // Refresh immediately
-        window.notificationCountInterval = setInterval(refreshCount, 20000); // Match the slow polling interval
+      if (!window.notificationCountInterval && !window.PMDNotificationCountDrivenByPush) {
+        refreshCount();
+        window.notificationCountInterval = setInterval(refreshCount, 30000);
       }
     }
   });

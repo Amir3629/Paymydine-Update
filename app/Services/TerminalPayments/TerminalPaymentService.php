@@ -2,6 +2,8 @@
 
 namespace App\Services\TerminalPayments;
 
+use Admin\Models\Terminal_devices_model;
+use App\Services\Fiscal\GermanyFiscalSettlementBridge;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -10,71 +12,678 @@ class TerminalPaymentService
 {
     public function createAttempt(int $orderId, string $providerCode, ?string $terminalId = null): array
     {
-        if (!Schema::hasTable('payment_attempts')) {
-            return ['success' => false, 'error' => 'payment_attempts table is missing. Run migrations first.'];
+        if (!Schema::hasTable('payment_attempts')) return ['success'=>false,'error'=>'payment_attempts table is missing. Run migrations first.'];
+        $order=DB::table('orders')->where('order_id',$orderId)->first();
+        if(!$order) return ['success'=>false,'error'=>'Order not found.'];
+        $providerCode=strtolower(trim($providerCode));
+        // PMD_SQUARE_TERMINAL_CANADA_R10_MARKET_GUARD
+        $allowedProviderCodes=array_keys(Terminal_devices_model::listProviderOptions());
+        if(!in_array($providerCode,$allowedProviderCodes,true))return ['success'=>false,'error'=>'This terminal provider is not enabled for the active restaurant market.'];
+        $provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
+        if($providerCode==='sumup'){
+            $terminal=$this->resolveSumupTerminal($terminalId);
+            if(!$terminal) return ['success'=>false,'error'=>'No active SumUp terminal is configured.'];
+            $config['reader_id']=(string)$terminal->reader_id;$config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            $config['affiliate_key']=trim((string)($terminal->affiliate_key??''))?:($config['affiliate_key']??null);$config['return_url']=$this->sumupReturnUrl();$terminalId=(string)$terminal->reader_id;
         }
-        $order = DB::table('orders')->where('order_id', $orderId)->first();
-        if (!$order) return ['success' => false, 'error' => 'Order not found.'];
-
-        $provider = $this->provider($providerCode);
-        $config = $this->providerConfig($providerCode);
-        $validation = $provider->validateConfiguration($config);
-        if (!($validation['ok'] ?? false)) {
-            return ['success' => false, 'error' => $validation['message'] ?? 'Provider is not configured.'];
+        // PMD_VR_TERMINAL_ROUTING_R1
+        // PMD_VR_TERMINAL_SIMULATOR_R1_20260905
+        if($providerCode==='vr_payment'){
+            $terminal=$this->resolveVrPaymentTerminal($terminalId);
+            if(!$terminal) return ['success'=>false,'error'=>'No ready VR Payment terminal is available. Use a PMD VR Simulator in TEST mode or link a real VR terminal.'];
+            $simulatorScenario=$this->vrPaymentSimulatorScenario($terminal);
+            if($simulatorScenario!==null){
+                $vrConfig=app(\Admin\Classes\VRPaymentGatewayService::class)->getConfig();
+                $config=array_merge($config,$vrConfig);
+                if(strtolower(trim((string)($config['mode']??'test')))!=='test'){
+                    return ['success'=>false,'error'=>'PMD VR Simulator is TEST-only and is blocked while VR Payment is in live mode.'];
+                }
+                $config['pmd_vr_simulator']=true;
+                $config['pmd_vr_simulator_scenario']=$simulatorScenario;
+                $config['environment']='test';
+                $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+                $config['reader_id']=(string)$terminal->reader_id;
+                $terminalId=(string)$terminal->reader_id;
+            }else{
+                $providerTerminalId=Schema::hasColumn('terminal_devices','provider_terminal_id')?(string)($terminal->provider_terminal_id??''):'';
+                if($providerTerminalId===''&&ctype_digit((string)($terminal->reader_id??'')))$providerTerminalId=(string)$terminal->reader_id;
+                if($providerTerminalId==='')return ['success'=>false,'error'=>'Selected VR Payment terminal has no provider terminal ID. Re-test the provider connection.'];
+                $config['terminal_id']=$providerTerminalId;
+                $config['provider_terminal_id']=$providerTerminalId;
+                $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+                $config['reader_id']=(string)$terminal->reader_id;
+                $terminalId=(string)$terminal->reader_id;
+            }
         }
+        if($providerCode==='worldline'){
+            if(!Schema::hasTable('terminal_devices'))return ['success'=>false,'error'=>'No Worldline terminal devices table is available.'];
+            $requested=trim((string)$terminalId);
+            $query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['worldline'])->where('is_active',1)->whereNotNull('reader_id')->where('reader_id','!=','');
+            if($requested!=='')$query->where(function($q)use($requested){if(ctype_digit($requested))$q->orWhere('terminal_device_id',(int)$requested);$q->orWhere('reader_id',$requested);});
+            $terminal=$query->orderBy('terminal_device_id')->first();
+            if(!$terminal)return ['success'=>false,'error'=>'No active Worldline Terminal API device is configured. Add and activate it under Settings > Devices.'];
+            $config['terminal_id']=(string)$terminal->reader_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            if(Schema::hasColumn('terminal_devices','environment'))$config['terminal_environment']=strtolower(trim((string)($terminal->environment??($config['terminal_environment']??'test'))));
+            $terminalId=(string)$terminal->reader_id;
+        }
+        if($providerCode==='square'){
+            $terminal=$this->resolveSquareTerminal($terminalId);
+            if(!$terminal)return ['success'=>false,'error'=>'No active Square Terminal API device is configured. Add it under Settings > Devices.'];
+            $config['device_id']=(string)$terminal->reader_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            $terminalId=(string)$terminal->reader_id;
+        }
+        $validation=$provider->validateConfiguration($config);if(!($validation['ok']??false)) return ['success'=>false,'error'=>$validation['message']??'Provider is not configured.'];
+        $amount=(float)($order->order_total??$order->total??0);if($amount<=0)return ['success'=>false,'error'=>'Order total must be greater than zero.'];
+        $currency=(string)($config['currency']??'EUR');
+        $requestPayload=['order_id'=>$orderId,'amount'=>$amount,'currency'=>$currency,'provider_code'=>$providerCode,'terminal_device_id'=>$config['terminal_device_id']??null,'reader_id'=>$config['reader_id']??$terminalId,'environment'=>$config['environment']??null];
+        $id=DB::table('payment_attempts')->insertGetId($this->filterColumns('payment_attempts',['order_id'=>$orderId,'provider_code'=>$providerCode,'terminal_id'=>$terminalId?:($config['terminal_id']??null),'terminal_device_id'=>$config['terminal_device_id']??null,'amount'=>$amount,'currency'=>$currency,'status'=>'pending','request_payload'=>json_encode($requestPayload),'created_at'=>now(),'updated_at'=>now()]));
+        Log::info('PMD_TERMINAL_PAYMENT_CREATE',['attempt_id'=>$id,'order_id'=>$orderId,'provider_code'=>$providerCode,'amount'=>$amount,'currency'=>$currency]);
+        if($providerCode==='sumup')$config['return_url']=$this->sumupReturnUrl($id);
+        $attempt=(array)DB::table('payment_attempts')->where('id',$id)->first();
+        $result=$provider->createPayment($attempt,$config);
 
-        $amount = (float)($order->order_total ?? $order->total ?? 0);
-        $currency = (string)($config['currency'] ?? 'EUR');
-        $id = DB::table('payment_attempts')->insertGetId([
-            'order_id' => $orderId,
-            'provider_code' => $providerCode,
-            'terminal_id' => $terminalId ?: ($config['terminal_id'] ?? null),
-            'amount' => $amount,
-            'currency' => $currency,
-            'status' => 'pending',
-            'request_payload' => json_encode(['order_id' => $orderId, 'amount' => $amount, 'currency' => $currency, 'provider_code' => $providerCode]),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        Log::info('PMD_TERMINAL_PAYMENT_CREATE', ['attempt_id' => $id, 'order_id' => $orderId, 'provider_code' => $providerCode, 'amount' => $amount, 'currency' => $currency]);
+        /* PMD_TERMINAL_TIP_CREATE_V46
+         * Some terminal APIs return gratuity immediately, others only during
+         * status refresh. Keep it separate from the restaurant order amount. */
+        $tipAmount=$this->terminalTipAmountFromResultV46(
+            (array)$result,
+            (string)($attempt['currency']??$currency)
+        );
 
-        $attempt = (array)DB::table('payment_attempts')->where('id', $id)->first();
-        $result = $provider->createPayment($attempt, $config);
-        $status = ($result['ok'] ?? false) ? ($result['status'] ?? 'sent_to_terminal') : 'failed';
-        DB::table('payment_attempts')->where('id', $id)->update([
-            'status' => $status,
-            'provider_reference' => $result['provider_reference'] ?? null,
-            'response_payload' => json_encode($this->redact($result)),
-            'error_message' => ($result['ok'] ?? false) ? null : ($result['message'] ?? 'Terminal payment failed.'),
-            'updated_at' => now(),
-        ]);
-        Log::info(($result['ok'] ?? false) ? 'PMD_TERMINAL_PAYMENT_SENT' : 'PMD_TERMINAL_PAYMENT_FAILED', ['attempt_id' => $id, 'provider_code' => $providerCode, 'status' => $status]);
-
-        return ['success' => (bool)($result['ok'] ?? false), 'attempt_id' => $id, 'status' => $status, 'message' => $result['message'] ?? null];
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        // PMD's local VR simulators are diagnostics only. They MUST NEVER settle
+        // an order or generate a paid invoice/receipt.
+        $isPmdVrSimulator=$this->isPmdVrSimulatorAttempt($attempt);
+        $rawStatus=(string)($result['status']??(($result['ok']??false)?'sent_to_terminal':'failed'));
+        $status=$isPmdVrSimulator
+            ? $this->mapPmdVrSimulatorStatus($rawStatus)
+            : (($result['ok']??false)?$rawStatus:'failed');
+        DB::table('payment_attempts')->where('id',$id)->update($this->filterColumns('payment_attempts',[
+            'status'=>$status,
+            'provider_reference'=>$result['provider_reference']??null,
+            'response_payload'=>json_encode($this->redact($result)),
+            'tip_amount'=>$tipAmount,
+            'error_message'=>$isPmdVrSimulator?null:(($result['ok']??false)?null:($result['message']??'Terminal payment failed.')),
+            'updated_at'=>now(),
+        ]));
+        Log::info(($result['ok']??false)?'PMD_TERMINAL_PAYMENT_SENT':'PMD_TERMINAL_PAYMENT_FAILED',['attempt_id'=>$id,'provider_code'=>$providerCode,'status'=>$status]);
+        // PMD_TERMINAL_IMMEDIATE_SETTLEMENT_R1
+        $fiscalization=null;
+        if(!$isPmdVrSimulator&&$status==='paid'){
+            $fiscalization=$this->settleSuccessfulAttempt($id,$result);
+        }
+        return [
+            'success'=>$isPmdVrSimulator?true:(bool)($result['ok']??false),
+            'attempt_id'=>$id,
+            'status'=>$status,
+            'message'=>$isPmdVrSimulator
+                ? 'TEST ONLY — '.(string)($result['message']??'VR simulator scenario completed.').' No payment was recorded and the order remains unpaid.'
+                : ($result['message']??null),
+            'simulated'=>$isPmdVrSimulator,
+            'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
+            'tip_amount'=>$tipAmount,
+            'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
+            'fiscalization'=>$fiscalization,
+        ];
     }
 
-    public function provider(string $code): TerminalPaymentProviderInterface
+    public function refreshAttempt(int $attemptId): array
     {
-        return match ($code) {
-            'worldline' => new WorldlineTerminalProvider(),
-            'vr_payment' => new VrPaymentTerminalProvider(),
-            default => new NullTerminalProvider($code),
+        if(!Schema::hasTable('payment_attempts'))return ['success'=>false,'error'=>'payment_attempts table is missing.'];
+        $attempt=(array)(DB::table('payment_attempts')->where('id',$attemptId)->first()?:[]);if(!$attempt)return ['success'=>false,'error'=>'Payment attempt not found.'];
+
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        // Migration guard for simulator attempts created before R6.
+        if($this->isPmdVrSimulatorAttempt($attempt)&&strtolower((string)($attempt['status']??''))==='paid'){
+            DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
+                'status'=>'simulated_approved',
+                'error_message'=>null,
+                'updated_at'=>now(),
+            ]));
+            return [
+                'success'=>true,
+                'attempt_id'=>$attemptId,
+                'status'=>'simulated_approved',
+                'message'=>'TEST ONLY — simulator approval detected. No new settlement is allowed by R6.',
+                'simulated'=>true,
+                'payment_recorded'=>false,
+            ];
+        }
+        if(($attempt['status']??'')==='paid'){
+            $fiscalization=$this->settleSuccessfulAttempt($attemptId,[]);
+            return [
+                'success'=>true,
+                'attempt_id'=>$attemptId,
+                'status'=>'paid',
+                'message'=>'Payment already confirmed.',
+                'simulated'=>false,
+                'payment_recorded'=>true,
+                'tip_amount'=>$this->terminalTipForAttemptV46($attemptId,$attempt,[]),
+                'fiscalization'=>$fiscalization,
+            ];
+        }
+        $providerCode=strtolower((string)($attempt['provider_code']??''));$provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
+        if($providerCode==='sumup'){$terminal=$this->resolveSumupTerminal((string)($attempt['terminal_id']??''));if(!$terminal)return ['success'=>false,'error'=>'SumUp terminal for this attempt was not found.'];$config['reader_id']=(string)$terminal->reader_id;$config['terminal_device_id']=(int)$terminal->terminal_device_id;$config['affiliate_key']=trim((string)($terminal->affiliate_key??''))?:($config['affiliate_key']??null);}
+        if($providerCode==='vr_payment'){
+            $terminal=$this->resolveVrPaymentTerminal((string)($attempt['terminal_id']??''));
+            if(!$terminal)return ['success'=>false,'error'=>'VR Payment terminal for this attempt was not found.'];
+            $simulatorScenario=$this->vrPaymentSimulatorScenario($terminal);
+            if($simulatorScenario!==null){
+                $vrConfig=app(\Admin\Classes\VRPaymentGatewayService::class)->getConfig();
+                $config=array_merge($config,$vrConfig);
+                if(strtolower(trim((string)($config['mode']??'test')))!=='test'){
+                    return ['success'=>false,'error'=>'PMD VR Simulator is TEST-only and is blocked while VR Payment is in live mode.'];
+                }
+                $config['pmd_vr_simulator']=true;
+                $config['pmd_vr_simulator_scenario']=$simulatorScenario;
+                $config['environment']='test';
+                $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+                $config['reader_id']=(string)$terminal->reader_id;
+            }else{
+                $providerTerminalId=Schema::hasColumn('terminal_devices','provider_terminal_id')?(string)($terminal->provider_terminal_id??''):'';
+                if($providerTerminalId===''&&ctype_digit((string)($terminal->reader_id??'')))$providerTerminalId=(string)$terminal->reader_id;
+                $config['terminal_id']=$providerTerminalId;
+                $config['provider_terminal_id']=$providerTerminalId;
+                $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+                $config['reader_id']=(string)$terminal->reader_id;
+            }
+        }
+        if($providerCode==='worldline'){
+            if(!Schema::hasTable('terminal_devices'))return ['success'=>false,'error'=>'Worldline terminal devices table is unavailable.'];
+            $requested=trim((string)($attempt['terminal_id']??''));
+            $query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['worldline'])->whereNotNull('reader_id')->where('reader_id','!=','');
+            if($requested!=='')$query->where(function($q)use($requested){if(ctype_digit($requested))$q->orWhere('terminal_device_id',(int)$requested);$q->orWhere('reader_id',$requested);});
+            $terminal=$query->orderBy('terminal_device_id')->first();
+            if(!$terminal)return ['success'=>false,'error'=>'Worldline terminal for this attempt was not found.'];
+            $config['terminal_id']=(string)$terminal->reader_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+            if(Schema::hasColumn('terminal_devices','environment'))$config['terminal_environment']=strtolower(trim((string)($terminal->environment??($config['terminal_environment']??'test'))));
+        }
+        if($providerCode==='square'){
+            $terminal=$this->resolveSquareTerminal((string)($attempt['terminal_id']??''));
+            if(!$terminal)return ['success'=>false,'error'=>'Square terminal for this attempt was not found.'];
+            $config['device_id']=(string)$terminal->reader_id;
+            $config['reader_id']=(string)$terminal->reader_id;
+            $config['terminal_device_id']=(int)$terminal->terminal_device_id;
+        }
+        $result=$provider->checkStatus($attempt,$config);
+        /* PMD_TERMINAL_TIP_REFRESH_V46 */
+        $tipAmount=$this->terminalTipAmountFromResultV46(
+            (array)$result,
+            (string)($attempt['currency']??($config['currency']??'EUR'))
+        );
+        if($tipAmount===null){
+            $tipAmount=$this->terminalTipForAttemptV46(
+                $attemptId,
+                $attempt,
+                []
+            );
+        }
+        $isPmdVrSimulator=$this->isPmdVrSimulatorAttempt($attempt);
+        $rawStatus=(string)($result['status']??($attempt['status']??'pending'));
+        $status=$isPmdVrSimulator?$this->mapPmdVrSimulatorStatus($rawStatus):$rawStatus;
+        DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
+            'status'=>$status,
+            'response_payload'=>json_encode($this->redact($result)),
+            'tip_amount'=>$tipAmount,
+            'error_message'=>($result['ok']??false)?null:($result['message']??null),
+            'updated_at'=>now(),
+        ]));
+        $fiscalization=null;
+        if(!$isPmdVrSimulator&&$status==='paid'){
+            $fiscalization=$this->settleSuccessfulAttempt($attemptId,$result);
+        }
+        return [
+            'success'=>$isPmdVrSimulator?true:(bool)($result['ok']??false),
+            'attempt_id'=>$attemptId,
+            'status'=>$status,
+            'message'=>$isPmdVrSimulator
+                ? 'TEST ONLY — '.(string)($result['message']??'VR simulator scenario updated.').' No payment was recorded and the order remains unpaid.'
+                : ($result['message']??null),
+            'simulated'=>$isPmdVrSimulator,
+            'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
+            'tip_amount'=>$tipAmount,
+            'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
+            'fiscalization'=>$fiscalization,
+        ];
+    }
+
+    public function handleSumupCallback(int $attemptId,array $payload=[]):array
+    {
+        Log::info('PMD_SUMUP_TERMINAL_CALLBACK',['attempt_id'=>$attemptId,'payload'=>$this->redact($payload)]);
+        return $this->refreshAttempt($attemptId);
+    }
+
+    public function provider(string $code):TerminalPaymentProviderInterface
+    {
+        return match(strtolower($code)){'sumup'=>new SumupTerminalProvider(),'worldline'=>new WorldlineTerminalProvider(),'square'=>new SquareTerminalProvider(),'vr_payment'=>new VrPaymentTerminalProvider(),default=>new NullTerminalProvider($code)};
+    }
+
+    public function providerConfig(string $code):array
+    {
+        $code=strtolower(trim($code));$config=[];
+        if($code==='sumup'&&Schema::hasTable('terminal_provider_configs')){
+            try{$tenantConfig=app(SumupTenantConnectionService::class)->activeConfig();if(!empty($tenantConfig['ready']))$config=$tenantConfig;}catch(\Throwable $e){Log::warning('PMD_SUMUP_TENANT_CONFIG_FAILED',['message'=>$e->getMessage()]);}
+        }
+        if(!$config&&(Schema::hasTable('payment_methods')||Schema::hasTable('payments'))){
+            try{$model=\Admin\Models\Payments_model::query()->where('code',$code)->where('status',1)->first();if($model&&method_exists($model,'getConfigData'))$config=(array)$model->getConfigData();}catch(\Throwable $e){Log::warning('PMD_TERMINAL_PROVIDER_CONFIG_PRIMARY_FAILED',['provider_code'=>$code,'message'=>$e->getMessage()]);}
+        }
+        if($code==='sumup'&&(empty($config['access_token'])||empty($config['id_application']))){$legacy=$this->legacySumupConfig();$config=array_merge($legacy,array_filter($config,static fn($value)=>$value!==null&&$value!==''));}
+        if($code==='sumup'){$config['url']=rtrim((string)($config['url']??'https://api.sumup.com'),'/');$config['merchant_code']=(string)($config['merchant_code']??$config['id_application']??'');$config['id_application']=(string)($config['id_application']??$config['merchant_code']??'');$config['affiliate_app_id']=(string)($config['affiliate_app_id']??SumupTenantConnectionService::APP_ID);$config['currency']=strtoupper((string)($config['currency']??'EUR'));}
+        if($code==='square'){
+            $mode=strtolower(trim((string)($config['transaction_mode']??'test')))==='live'?'live':'test';
+            $prefix=$mode==='live'?'live_':'test_';
+            $config['transaction_mode']=$mode;
+            $config['mode']=$mode;
+            $config['access_token']=trim((string)($config[$prefix.'access_token']??''));
+            $config['location_id']=trim((string)($config[$prefix.'location_id']??''));
+            try{$platform=app(\App\Services\Platform\LocationPlatformContext::class);$config['pmd_country_code']=strtoupper((string)($platform->countryCode()??''));$config['currency']=strtoupper((string)($platform->currencyCode()??($config['currency']??'')));}catch(\Throwable $ignored){$config['currency']=strtoupper((string)($config['currency']??''));}
+        }
+        return $config;
+    }
+
+    private function legacySumupConfig():array
+    {
+        if(!Schema::hasTable('pos_configs')||!Schema::hasTable('pos_devices'))return [];
+        try{
+            $deviceId=DB::table('pos_devices')->whereRaw('LOWER(code) = ?',['sumup'])->orderByDesc('device_id')->value('device_id');if(!$deviceId)return [];
+            $row=DB::table('pos_configs')->where('device_id',(int)$deviceId)->orderByDesc('config_id')->first();if(!$row)return [];
+            return ['url'=>rtrim((string)($row->url??'https://api.sumup.com'),'/'),'access_token'=>(string)($row->access_token??''),'id_application'=>(string)($row->id_application??''),'merchant_code'=>(string)($row->id_application??''),'affiliate_key'=>(string)($row->sumup_affiliate_key??''),'affiliate_app_id'=>SumupTenantConnectionService::APP_ID,'legacy_config_id'=>(int)($row->config_id??0),'currency'=>'EUR'];
+        }catch(\Throwable $e){Log::warning('PMD_SUMUP_LEGACY_CONFIG_FAILED',['message'=>$e->getMessage()]);return [];}
+    }
+
+    private function resolveSumupTerminal(?string $terminalId=null)
+    {
+        if(!Schema::hasTable('terminal_devices'))return null;$query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['sumup'])->where('is_active',1)->whereNotNull('reader_id')->where('reader_id','!=','');$terminalId=trim((string)$terminalId);
+        if($terminalId!=='')$query->where(function($q)use($terminalId){if(ctype_digit($terminalId))$q->orWhere('terminal_device_id',(int)$terminalId);$q->orWhere('reader_id',$terminalId);});return $query->orderBy('terminal_device_id')->first();
+    }
+
+    private function resolveVrPaymentTerminal(?string $terminalId=null)
+    {
+        if(!Schema::hasTable('terminal_devices'))return null;
+        $query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['vr_payment'])->where('is_active',1)->whereNotNull('reader_id')->where('reader_id','!=','');
+        $terminalId=trim((string)$terminalId);
+        if($terminalId!=='')$query->where(function($q)use($terminalId){
+            if(ctype_digit($terminalId)){
+                $q->orWhere('terminal_device_id',(int)$terminalId);
+                if(Schema::hasColumn('terminal_devices','provider_terminal_id'))$q->orWhere('provider_terminal_id',(int)$terminalId);
+            }
+            $q->orWhere('reader_id',$terminalId);
+        });
+        return $query->orderBy('terminal_device_id')->first();
+    }
+
+    // PMD_VR_TERMINAL_SIMULATOR_R1_20260905
+    private function vrPaymentSimulatorScenario($terminal): ?string
+    {
+        if(!$terminal)return null;
+        $readerId=strtoupper(trim((string)($terminal->reader_id??'')));
+        if(!str_starts_with($readerId,'PMD-VR-SIM-'))return null;
+        $allowed=['approve','decline','cancel','timeout','delayed_success'];
+        $metadata=[];
+        $raw=(string)($terminal->metadata??'');
+        if($raw!==''){
+            $decoded=json_decode($raw,true);
+            if(is_array($decoded))$metadata=$decoded;
+        }
+        $scenario=strtolower(trim((string)($metadata['scenario']??'')));
+        if(in_array($scenario,$allowed,true))return $scenario;
+        $suffix=substr($readerId,strlen('PMD-VR-SIM-'));
+        return match($suffix){
+            'APPROVE'=>'approve',
+            'DECLINE'=>'decline',
+            'CANCEL'=>'cancel',
+            'TIMEOUT'=>'timeout',
+            'DELAYED'=>'delayed_success',
+            default=>null,
         };
     }
 
-    private function providerConfig(string $code): array
+    // PMD_VR_PAYMENT_SAFETY_R6_20260905
+    private function isPmdVrSimulatorAttempt(array $attempt):bool
     {
-        if (!Schema::hasTable('payment_methods') && !Schema::hasTable('payments')) return [];
-        $model = \Admin\Models\Payments_model::query()->where('code', $code)->where('status', 1)->first();
-        return $model && method_exists($model, 'getConfigData') ? (array)$model->getConfigData() : [];
+        if(strtolower(trim((string)($attempt['provider_code']??'')))!=='vr_payment')return false;
+        $terminalId=strtoupper(trim((string)($attempt['terminal_id']??'')));
+        return str_starts_with($terminalId,'PMD-VR-SIM-');
     }
 
-    private function redact(array $payload): array
+    private function mapPmdVrSimulatorStatus(string $status):string
     {
-        foreach ($payload as $key => $value) {
-            if (preg_match('/secret|token|key|password|certificate/i', (string)$key)) $payload[$key] = '[redacted]';
-            elseif (is_array($value)) $payload[$key] = $this->redact($value);
-        }
-        return $payload;
+        return match(strtolower(trim($status))){
+            'paid','authorized','completed','fulfilled','fulfill'=>'simulated_approved',
+            'failed','declined','decline'=>'simulated_declined',
+            'cancelled','canceled','voided'=>'simulated_cancelled',
+            'simulated_approved','simulated_declined','simulated_cancelled','simulated_pending'=>strtolower(trim($status)),
+            default=>'simulated_pending',
+        };
     }
+
+    private function resolveSquareTerminal(?string $terminalId=null)
+    {
+        if(!Schema::hasTable('terminal_devices'))return null;
+        $query=DB::table('terminal_devices')->whereRaw('LOWER(provider_code) = ?',['square'])->where('is_active',1)->whereNotNull('reader_id')->where('reader_id','!=','');
+        $terminalId=trim((string)$terminalId);
+        if($terminalId!=='')$query->where(function($q)use($terminalId){if(ctype_digit($terminalId))$q->orWhere('terminal_device_id',(int)$terminalId);$q->orWhere('reader_id',$terminalId);});
+        return $query->orderBy('terminal_device_id')->first();
+    }
+
+    private function sumupReturnUrl(?int $attemptId=null):string
+    {
+        $base=request()->getSchemeAndHttpHost();$adminUri=trim((string)config('system.adminUri','admin'),'/');$path='/'.$adminUri.'/terminal-payments/sumup/callback';if($attemptId)$path.='/'.$attemptId;return rtrim($base,'/').$path;
+    }
+
+    /**
+     * PMD_TERMINAL_TIP_EXTRACT_V46
+     *
+     * Return only gratuity explicitly reported by a terminal/provider. Never
+     * infer a tip from the difference between the bill and charged amount.
+     */
+    private function terminalTipAmountFromResultV46(array $payload,string $currency='EUR'):?float
+    {
+        $currency=strtoupper(trim($currency))?:'EUR';
+
+        $walk=function($value,$key='')use(&$walk,$currency){
+            $normalized=strtolower(preg_replace('/[^a-z0-9]/i','',(string)$key));
+
+            if(is_array($value)){
+                if(in_array($normalized,['tipamount','gratuityamount'],true)
+                    && array_key_exists('value',$value)
+                    && array_key_exists('minor_unit',$value)
+                    && is_numeric($value['value'])
+                    && is_numeric($value['minor_unit'])){
+                    return round(max(0,(float)$value['value'])/(10**max(0,(int)$value['minor_unit'])),4);
+                }
+
+                if(in_array($normalized,['tipmoney','gratuitymoney'],true)
+                    && array_key_exists('amount',$value)
+                    && is_numeric($value['amount'])){
+                    $moneyCurrency=strtoupper(trim((string)($value['currency']??$currency)))?:$currency;
+                    $exp=$this->terminalCurrencyExponentV46($moneyCurrency);
+                    return round(max(0,(float)$value['amount'])/(10**$exp),4);
+                }
+
+                foreach($value as $childKey=>$childValue){
+                    $found=$walk($childValue,(string)$childKey);
+                    if($found!==null)return $found;
+                }
+                return null;
+            }
+
+            if(!is_scalar($value)||$value==='')return null;
+
+            if(in_array($normalized,['tipamount','gratuityamount','tip','gratuity'],true)
+                && is_numeric($value)){
+                return round(max(0,(float)$value),4);
+            }
+
+            if(in_array($normalized,['tipminor','gratuityminor'],true)
+                && is_numeric($value)){
+                return round(max(0,(float)$value)/(10**$this->terminalCurrencyExponentV46($currency)),4);
+            }
+
+            return null;
+        };
+
+        return $walk($payload,'');
+    }
+
+    private function terminalCurrencyExponentV46(string $currency):int
+    {
+        $currency=strtoupper(trim($currency));
+        if(in_array($currency,['BHD','IQD','JOD','KWD','LYD','OMR','TND'],true))return 3;
+        if(in_array($currency,['BIF','CLP','DJF','GNF','JPY','KMF','KRW','PYG','RWF','UGX','VND','VUV','XAF','XOF','XPF'],true))return 0;
+        return 2;
+    }
+
+    private function terminalTipForAttemptV46(int $attemptId,array $attempt,array $providerResult=[]):?float
+    {
+        $currency=(string)($attempt['currency']??'EUR');
+
+        $tip=$providerResult
+            ? $this->terminalTipAmountFromResultV46($providerResult,$currency)
+            : null;
+        if($tip!==null)return $tip;
+
+        $stored=json_decode((string)($attempt['response_payload']??''),true);
+        if(is_array($stored)){
+            $tip=$this->terminalTipAmountFromResultV46($stored,$currency);
+            if($tip!==null)return $tip;
+        }
+
+        if(array_key_exists('tip_amount',$attempt)&&is_numeric($attempt['tip_amount'])){
+            return round(max(0,(float)$attempt['tip_amount']),4);
+        }
+
+        if(Schema::hasTable('order_payment_transactions')
+            && Schema::hasColumn('order_payment_transactions','tip_amount')
+            && Schema::hasColumn('order_payment_transactions','idempotency_key')){
+            $storedTip=DB::table('order_payment_transactions')
+                ->where('idempotency_key','terminal-attempt-'.$attemptId)
+                ->value('tip_amount');
+            if($storedTip!==null&&is_numeric($storedTip)){
+                return round(max(0,(float)$storedTip),4);
+            }
+        }
+
+        return null;
+    }
+
+    private function settleSuccessfulAttempt(int $attemptId,array $providerResult):array
+    {
+        // PMD_VR_PAYMENT_SAFETY_R6_20260905
+        $preview=(array)(DB::table('payment_attempts')->where('id',$attemptId)->first()?:[]);
+        if($preview&&$this->isPmdVrSimulatorAttempt($preview)){
+            DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
+                'status'=>'simulated_approved',
+                'error_message'=>null,
+                'updated_at'=>now(),
+            ]));
+            Log::warning('PMD_VR_SIMULATOR_SETTLEMENT_BLOCKED_R6',[
+                'attempt_id'=>$attemptId,
+                'order_id'=>(int)($preview['order_id']??0),
+                'terminal_id'=>(string)($preview['terminal_id']??''),
+            ]);
+            return [
+                'required'=>false,
+                'ok'=>true,
+                'provider'=>'fiskaly',
+                'status'=>'not_applicable',
+                'message'=>'Simulator payments are never fiscalized.',
+            ];
+        }
+
+        /* PMD_TERMINAL_TIP_SETTLEMENT_V46 */
+        $tipAmount=$this->terminalTipForAttemptV46(
+            $attemptId,
+            $preview,
+            $providerResult
+        );
+
+        DB::transaction(function()use($attemptId,$providerResult,$tipAmount){
+            $attempt=DB::table('payment_attempts')
+                ->where('id',$attemptId)
+                ->lockForUpdate()
+                ->first();
+            if(!$attempt)throw new RuntimeException('Payment attempt not found during settlement.');
+
+            $order=DB::table('orders')
+                ->where('order_id',(int)$attempt->order_id)
+                ->lockForUpdate()
+                ->first();
+            if(!$order)throw new RuntimeException('Order not found during terminal settlement.');
+
+            $orderTotal=round((float)($order->order_total??$attempt->amount??0),4);
+            $alreadySettled=round((float)($order->settled_amount??0),4);
+            $settlementStatus=strtolower((string)($order->settlement_status??''));
+            $reference=(string)($attempt->provider_reference??'');
+            $transactionId=null;
+            $idempotencyKey='terminal-attempt-'.$attemptId;
+
+            if(Schema::hasTable('order_payment_transactions')
+                && Schema::hasColumn('order_payment_transactions','idempotency_key')){
+                $existing=DB::table('order_payment_transactions')
+                    ->where('idempotency_key',$idempotencyKey)
+                    ->first();
+                if($existing)$transactionId=(int)$existing->id;
+            }
+
+            if($settlementStatus==='paid'||($orderTotal>0&&$alreadySettled>=$orderTotal-.0001)){
+                if($transactionId&&$tipAmount!==null){
+                    DB::table('order_payment_transactions')
+                        ->where('id',$transactionId)
+                        ->update($this->filterColumns('order_payment_transactions',[
+                            'tip_amount'=>$tipAmount,
+                            'updated_at'=>now(),
+                        ]));
+                }
+
+                DB::table('payment_attempts')
+                    ->where('id',$attemptId)
+                    ->update($this->filterColumns('payment_attempts',[
+                        'status'=>'paid',
+                        'tip_amount'=>$tipAmount,
+                        'updated_at'=>now(),
+                    ]));
+                return;
+            }
+
+            if($alreadySettled>.0001){
+                DB::table('payment_attempts')->where('id',$attemptId)->update($this->filterColumns('payment_attempts',[
+                    'status'=>'reconciliation_required',
+                    'tip_amount'=>$tipAmount,
+                    'error_message'=>'The terminal provider approved the charge after another partial payment was recorded. Manual reconciliation required.',
+                    'updated_at'=>now(),
+                ]));
+                Log::error('PMD_TERMINAL_RECONCILIATION_REQUIRED',[
+                    'attempt_id'=>$attemptId,
+                    'order_id'=>(int)$attempt->order_id,
+                ]);
+                return;
+            }
+
+            if(Schema::hasTable('order_payment_transactions')){
+                if(!$transactionId){
+                    $transactionId=(int)DB::table('order_payment_transactions')->insertGetId(
+                        $this->filterColumns('order_payment_transactions',[
+                            'order_id'=>(int)$attempt->order_id,
+                            'payment_method'=>'direct_terminal',
+                            'payment_reference'=>$reference?:null,
+                            'amount'=>(float)$attempt->amount,
+                            'tip_amount'=>$tipAmount,
+                            'settlement_status'=>'paid',
+                            'provider_code'=>(string)$attempt->provider_code,
+                            'paid_at'=>now(),
+                            'idempotency_key'=>$idempotencyKey,
+                            'notes'=>'Confirmed by terminal provider.',
+                            'created_at'=>now(),
+                            'updated_at'=>now(),
+                        ])
+                    );
+                }elseif($tipAmount!==null){
+                    DB::table('order_payment_transactions')
+                        ->where('id',$transactionId)
+                        ->update($this->filterColumns('order_payment_transactions',[
+                            'tip_amount'=>$tipAmount,
+                            'updated_at'=>now(),
+                        ]));
+                }
+
+                $this->allocateAllOrderItems(
+                    $transactionId,
+                    (int)$attempt->order_id
+                );
+            }
+
+            $orderUpdate=$this->filterColumns('orders',[
+                'settled_amount'=>$orderTotal,
+                'settlement_status'=>'paid',
+                'settlement_method'=>'direct_terminal',
+                'settlement_reference'=>$reference?:null,
+                'settled_at'=>now(),
+                'processed'=>1,
+                'updated_at'=>now(),
+            ]);
+            if($orderUpdate){
+                DB::table('orders')
+                    ->where('order_id',(int)$attempt->order_id)
+                    ->update($orderUpdate);
+            }
+
+            $attemptUpdate=[
+                'status'=>'paid',
+                'tip_amount'=>$tipAmount,
+                'error_message'=>null,
+                'updated_at'=>now(),
+            ];
+            if($providerResult){
+                $attemptUpdate['response_payload']=json_encode(
+                    $this->redact($providerResult)
+                );
+            }
+
+            DB::table('payment_attempts')
+                ->where('id',$attemptId)
+                ->update($this->filterColumns('payment_attempts',$attemptUpdate));
+
+            Log::info('PMD_TERMINAL_PAYMENT_SETTLED',[
+                'attempt_id'=>$attemptId,
+                'order_id'=>(int)$attempt->order_id,
+                'provider_code'=>(string)$attempt->provider_code,
+                'transaction_id'=>$transactionId,
+                'amount'=>(float)$attempt->amount,
+                'tip_amount'=>$tipAmount,
+            ]);
+        });
+
+        /* PMD_GERMANY_TERMINAL_FISCAL_SETTLEMENT_V69
+         * Provider settlement is committed first. SIGN DE runs afterwards so
+         * a TSE outage cannot undo an already-approved card transaction.
+         */
+        $attempt=(array)(DB::table('payment_attempts')
+            ->where('id',$attemptId)
+            ->first()?:[]);
+        $orderId=(int)($attempt['order_id']??0);
+        $order=$orderId>0
+            ? DB::table('orders')->where('order_id',$orderId)->first()
+            : null;
+        $orderTotal=(float)($order->order_total??0);
+        $settled=(float)($order->settled_amount??0);
+        $status=strtolower((string)($order->settlement_status??''));
+        $fullyPaid=$order&&(
+            in_array($status,['paid','settled'],true)
+            || ($orderTotal>0&&$settled>=$orderTotal-.0001)
+        );
+
+        if(!$fullyPaid){
+            return [
+                'required'=>false,
+                'ok'=>true,
+                'provider'=>'fiskaly',
+                'status'=>'not_due',
+                'message'=>'Order is not fully settled.',
+            ];
+        }
+
+        return app(GermanyFiscalSettlementBridge::class)
+            ->finalizeIfEnabled(
+                $orderId,
+                (string)($attempt['provider_code']??'direct_terminal'),
+                (string)($attempt['provider_reference']??'')
+            );
+    }
+
+    private function allocateAllOrderItems(int $transactionId,int $orderId):void
+    {
+        if(!Schema::hasTable('order_menus')||!Schema::hasTable('order_payment_transaction_items'))return;if(DB::table('order_payment_transaction_items')->where('transaction_id',$transactionId)->exists())return;$columns=Schema::getColumnListing('order_payment_transaction_items');$allocationColumn=in_array('order_menu_id',$columns,true)?'order_menu_id':(in_array('order_item_id',$columns,true)?'order_item_id':null);if(!$allocationColumn)return;$rows=[];
+        foreach(DB::table('order_menus')->where('order_id',$orderId)->get() as $item){$quantity=max(0,(float)($item->quantity??0));$subtotal=(float)($item->subtotal??0);$unitPrice=$quantity>0?round($subtotal/$quantity,4):(float)($item->price??0);$orderMenuId=(int)($item->order_menu_id??0);if($orderMenuId<=0||$quantity<=0)continue;$rows[]=$this->filterColumns('order_payment_transaction_items',['transaction_id'=>$transactionId,$allocationColumn=>$orderMenuId,'order_menu_id'=>$orderMenuId,'menu_id'=>(int)($item->menu_id??0),'quantity_paid'=>$quantity,'unit_price'=>$unitPrice,'line_total'=>$subtotal,'created_at'=>now(),'updated_at'=>now()]);}
+        if($rows)DB::table('order_payment_transaction_items')->insert($rows);
+    }
+
+    private function filterColumns(string $table,array $data):array{if(!Schema::hasTable($table))return $data;return array_intersect_key($data,array_flip(Schema::getColumnListing($table)));}
+    private function redact(array $payload):array{foreach($payload as $key=>$value){if(preg_match('/secret|token|key|password|certificate/i',(string)$key))$payload[$key]='[redacted]';elseif(is_array($value))$payload[$key]=$this->redact($value);}return $payload;}
 }

@@ -74,10 +74,7 @@ export async function startHostedRedirectCheckoutFlow({
     let shouldFallbackFromWero = false
     try {
       let existingOrderStart: any = null
-      const existingSubmittedOrderId =
-        checkoutStep === "payment" && !pendingSummary
-          ? resolveSubmittedPaymentOrderId()
-          : null
+      const existingSubmittedOrderId = resolveSubmittedPaymentOrderId()
       if (existingSubmittedOrderId) {
         existingOrderStart = await apiClient.startExistingOrderPayment({
           order_id: Number(existingSubmittedOrderId),
@@ -93,8 +90,23 @@ export async function startHostedRedirectCheckoutFlow({
       const providerCode = selectedMethod.code === "wero"
         ? (selectedProviderCodeForCheckout === "worldline" ? "worldline" : (selectedProviderCodeForCheckout === "vr_payment" ? "vr_payment" : "stripe"))
         : (selectedProviderCodeForCheckout || "unknown")
-      const providerReturnCode = providerCode === "worldline" ? "worldline" : (providerCode === "vr_payment" ? "vr_payment" : "wero")
-      const merchantReference = `PMD-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+
+      if (providerCode === "worldline" && !existingSubmittedOrderId) {
+        throw new Error("Submit the order first, then start the Worldline payment.")
+      }
+
+      const providerReturnCode = providerCode === "worldline"
+        ? "worldline"
+        : providerCode === "vr_payment"
+          ? "vr_payment"
+          : providerCode === "sumup"
+            ? "sumup"
+            : providerCode === "square"
+              ? "square"
+              : "wero"
+      const merchantReference = existingSubmittedOrderId
+        ? `PMD-ORDER-${existingSubmittedOrderId}`
+        : `PMD-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
       const returnUrl =
         typeof window !== "undefined"
           ? `${window.location.origin}${window.location.pathname}${window.location.search ? `${window.location.search}&` : "?"}payment_return_provider=${encodeURIComponent(providerReturnCode)}`
@@ -111,13 +123,22 @@ export async function startHostedRedirectCheckoutFlow({
         apple_pay: "/api/v1/payments/vr-payment/apple-pay/create-session",
         google_pay: "/api/v1/payments/vr-payment/google-pay/create-session",
       }
-      const checkoutEndpoint = providerCode === "vr_payment"
-        ? (vrEndpointByMethod[selectedMethod.code] || "/api/v1/payments/vr-payment/card/create-session")
-        : selectedMethod.code === "wero"
-          ? (selectedProviderCodeForCheckout === "worldline"
-            ? "/api/v1/payments/worldline/wero/create-session"
-            : "/api/v1/payments/wero/create-session")
-          : "/api/v1/payments/card/create-session"
+      const worldlineEndpointByMethod: Record<string, string> = {
+        card: "/api/v1/payments/worldline/runtime/card/create-session",
+        paypal: "/api/v1/payments/worldline/runtime/paypal/create-session",
+        wero: "/api/v1/payments/worldline/runtime/wero/create-session",
+        apple_pay: "/api/v1/payments/worldline/runtime/apple-pay/create-session",
+        google_pay: "/api/v1/payments/worldline/runtime/google-pay/create-session",
+      }
+      const checkoutEndpoint = providerCode === "worldline"
+        ? (worldlineEndpointByMethod[selectedMethod.code] || worldlineEndpointByMethod.card)
+        : providerCode === "vr_payment"
+          ? (vrEndpointByMethod[selectedMethod.code] || "/api/v1/payments/vr-payment/card/create-session")
+          : providerCode === "sumup"
+            ? "/api/v1/payments/sumup/self-service-checkout"
+            : selectedMethod.code === "wero"
+              ? "/api/v1/payments/wero/create-session"
+              : "/api/v1/payments/card/create-session"
       console.info("[PMD_CHECKOUT_FLOW_TRACE]", {
         selected_method: selectedMethod.code,
         backend_selected_provider: providerCode,
@@ -135,6 +156,7 @@ export async function startHostedRedirectCheckoutFlow({
           customer_email: paymentFormData.email || "",
           merchant_reference: merchantReference,
           order_id: existingSubmittedOrderId ? Number(existingSubmittedOrderId) : undefined,
+          description: "PayMyDine order",
           items: itemsToPay.map((item: any) => ({
             id: String(item.item.id),
             name: item.item.name,
@@ -168,7 +190,8 @@ export async function startHostedRedirectCheckoutFlow({
           "worldline_session_unavailable",
         ].includes(resolvedErrorCode)
         const fallbackAllowed = Boolean(json?.allow_fallback) || fallbackAllowedByCode
-        const normalizedErrorMessage = json?.error
+        const normalizedErrorMessage = json?.message
+          || json?.error
           || (rawBody && rawBody.length < 1000 ? rawBody : "")
           || `${providerLabel} checkout failed with HTTP ${res.status}`
 
@@ -250,6 +273,7 @@ export async function startHostedRedirectCheckoutFlow({
         if (providerCode === "worldline" && json?.hosted_checkout_id) {
           localStorage.setItem("pmd_worldline_pending_checkout", JSON.stringify({
             hosted_checkout_id: String(json.hosted_checkout_id),
+            order_id: Number(json?.order_id || existingSubmittedOrderId || 0),
             method_code: selectedMethod.code,
             provider_code: providerCode,
             created_at: Date.now(),
@@ -258,6 +282,8 @@ export async function startHostedRedirectCheckoutFlow({
         if (providerCode === "sumup" && json?.checkout_id) {
           localStorage.setItem("pmd_sumup_pending_checkout", JSON.stringify({
             checkout_id: String(json.checkout_id),
+            method_code: selectedMethod.code,
+            provider_code: providerCode,
             created_at: Date.now(),
           }))
         }

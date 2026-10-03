@@ -9,11 +9,6 @@ use Illuminate\Support\Str;
 
 class Tables_model extends Model
 {
-
-    
-
-    
-
     use Locationable;
     use Sortable;
 
@@ -37,7 +32,10 @@ class Tables_model extends Model
         'extra_capacity' => 'integer',
         'priority' => 'integer',
         'is_joinable' => 'boolean',
+        // table_status remains the legacy enabled/disabled flag.
         'table_status' => 'boolean',
+        'operational_status_updated_at' => 'datetime',
+        'operational_status_updated_by' => 'integer',
         'floor_x' => 'float',
         'floor_y' => 'float',
         'floor_width' => 'float',
@@ -59,6 +57,9 @@ class Tables_model extends Model
         'priority',
         'is_joinable',
         'table_status',
+        'operational_status',
+        'operational_status_updated_at',
+        'operational_status_updated_by',
         'qr_code',
         'floor_x',
         'floor_y',
@@ -214,11 +215,6 @@ class Tables_model extends Model
         }
     }
 
-
-    
-
-
-
     // PMD_POS_TABLE_LABEL_REAL_FINAL
     public function getTableNoAttribute($value)
     {
@@ -228,8 +224,6 @@ class Tables_model extends Model
 
         return $value;
     }
-
-
 
     public function filterFields($fields)
     {
@@ -254,5 +248,4 @@ class Tables_model extends Model
             $field->comment = 'POS/custom table: exact label shown here. Internal table_no remains unchanged.';
         }
     }
-
 }

@@ -1,0 +1,332 @@
+/* PMD Waiter Table State V154
+ * Physical table status owns the table color.
+ * Payment and order status remain independent chips.
+ */
+
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table].pmd-v154-table-state-ready {
+  overflow: visible !important;
+  isolation: isolate !important;
+  transition:
+    background-color .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease !important;
+}
+
+/* Available */
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="available"] {
+  background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%) !important;
+  border: 2px solid #16a34a !important;
+  color: #14532d !important;
+  box-shadow: 0 0 0 4px rgba(34,197,94,.10), 0 10px 22px rgba(22,163,74,.15) !important;
+}
+
+/* Occupied */
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="occupied"] {
+  background: linear-gradient(180deg, #fff1f2 0%, #fee2e2 100%) !important;
+  border: 2px solid #dc2626 !important;
+  color: #7f1d1d !important;
+  box-shadow: 0 0 0 4px rgba(220,38,38,.10), 0 10px 24px rgba(220,38,38,.17) !important;
+}
+
+/* Needs cleaning */
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="cleaning"] {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%) !important;
+  border: 2px solid #f97316 !important;
+  color: #7c2d12 !important;
+  box-shadow: 0 0 0 4px rgba(249,115,22,.11), 0 10px 24px rgba(234,88,12,.16) !important;
+}
+
+/* Reserved */
+html.pmd-dashboardwaiter-kiosk-page
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state="reserved"] {
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border: 2px solid #2563eb !important;
+  color: #1e3a8a !important;
+  box-shadow: 0 0 0 4px rgba(37,99,235,.10), 0 10px 24px rgba(37,99,235,.15) !important;
+}
+
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state] > span,
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state] > em {
+  color: inherit !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-state-stack {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 6 !important;
+  pointer-events: none !important;
+  border-radius: inherit !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-table-chip,
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip,
+#pmd-waiter-dashboard-root .pmd-v154-order-chip {
+  position: absolute !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 0 !important;
+  max-width: calc(100% - 8px) !important;
+  min-height: 15px !important;
+  height: 15px !important;
+  padding: 0 5px !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255,255,255,.88) !important;
+  background: rgba(255,255,255,.90) !important;
+  box-shadow: 0 3px 8px rgba(15,23,42,.13) !important;
+  color: #0f172a !important;
+  font-family: inherit !important;
+  font-size: 7.5px !important;
+  line-height: 1 !important;
+  font-weight: 950 !important;
+  letter-spacing: -.01em !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-table-chip {
+  top: 4px !important;
+  left: 4px !important;
+  z-index: 3 !important;
+  max-width: calc(100% - 25px) !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  appearance: none !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-table-chip:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 5px 12px rgba(15,23,42,.18) !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip {
+  left: 4px !important;
+  bottom: 4px !important;
+  max-width: 53% !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-order-chip {
+  right: 4px !important;
+  bottom: 4px !important;
+  max-width: 43% !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="unpaid"] {
+  background: #991b1b !important;
+  color: #fff !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="partial"] {
+  background: #d97706 !important;
+  color: #fff !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="paid"] {
+  background: #15803d !important;
+  color: #fff !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="refunded"] {
+  background: #7e22ce !important;
+  color: #fff !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-payment-chip[data-payment-state="none"] {
+  background: rgba(255,255,255,.86) !important;
+  color: #475569 !important;
+}
+
+#pmd-waiter-dashboard-root .pmd-v154-order-chip[data-order-state="none"] {
+  color: #64748b !important;
+}
+
+/* Keep the original order-count badge clear of the operational chip. */
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-pmd-v154-table-state] > small {
+  top: 3px !important;
+  right: 3px !important;
+  z-index: 8 !important;
+}
+
+/* Floor editing owns the pointer and must stay visually quiet. */
+#pmd-waiter-dashboard-root.pmd-w19-editing .pmd-v154-state-stack {
+  display: none !important;
+}
+
+#pmd-waiter-dashboard-root.pmd-w89-compact .pmd-v154-order-chip,
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real.pmd-v40-compact-authority .pmd-v154-order-chip {
+  display: none !important;
+}
+
+#pmd-waiter-dashboard-root.pmd-w89-compact .pmd-v154-payment-chip,
+#pmd-waiter-dashboard-root .pmd-w5-floor-map-real.pmd-v40-compact-authority .pmd-v154-payment-chip {
+  max-width: calc(100% - 8px) !important;
+  right: 4px !important;
+}
+
+/* Legend */
+#pmd-waiter-dashboard-root .pmd-v154-dot-available { background: #22c55e !important; }
+#pmd-waiter-dashboard-root .pmd-v154-dot-occupied { background: #ef4444 !important; }
+#pmd-waiter-dashboard-root .pmd-v154-dot-cleaning { background: #f97316 !important; }
+#pmd-waiter-dashboard-root .pmd-v154-dot-reserved { background: #3b82f6 !important; }
+
+#pmd-waiter-dashboard-root .pmd-v154-legend-note {
+  margin-top: 10px !important;
+  padding: 10px !important;
+  border-radius: 12px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+/* Status control modal */
+.pmd-v154-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000005 !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  background: rgba(2, 8, 23, .56) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.pmd-v154-modal.is-open {
+  display: flex !important;
+}
+
+.pmd-v154-modal-card {
+  position: relative !important;
+  width: min(560px, 100%) !important;
+  border: 1px solid rgba(15, 23, 42, .12) !important;
+  border-radius: 24px !important;
+  background: #ffffff !important;
+  box-shadow: 0 30px 90px rgba(2,8,23,.34) !important;
+  padding: 24px !important;
+  color: #0f172a !important;
+}
+
+.pmd-v154-modal-close {
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 999px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  font-size: 22px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.pmd-v154-modal-kicker {
+  margin-bottom: 6px !important;
+  color: #0f766e !important;
+  font-size: 10px !important;
+  font-weight: 950 !important;
+  letter-spacing: .14em !important;
+}
+
+.pmd-v154-modal-card h3 {
+  margin: 0 44px 18px 0 !important;
+  font-size: 26px !important;
+  font-weight: 1000 !important;
+  letter-spacing: -.04em !important;
+}
+
+.pmd-v154-modal-summary {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-bottom: 16px !important;
+}
+
+.pmd-v154-modal-summary > div {
+  min-height: 72px !important;
+  padding: 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 16px !important;
+  background: #f8fafc !important;
+}
+
+.pmd-v154-modal-summary small {
+  display: block !important;
+  margin-bottom: 5px !important;
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .06em !important;
+}
+
+.pmd-v154-modal-summary strong {
+  font-size: 14px !important;
+  font-weight: 1000 !important;
+}
+
+.pmd-v154-modal-actions {
+  display: grid !important;
+  gap: 10px !important;
+}
+
+.pmd-v154-modal-action {
+  width: 100% !important;
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid #dbe3e8 !important;
+  background: linear-gradient(90deg, #0b3d32 0%, #07110f 100%) !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  cursor: pointer !important;
+}
+
+.pmd-v154-modal-action:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 10px 24px rgba(7,17,15,.18) !important;
+}
+
+.pmd-v154-modal-action:disabled,
+.pmd-v154-modal-close:disabled {
+  opacity: .55 !important;
+  cursor: wait !important;
+}
+
+.pmd-v154-modal-message {
+  min-height: 18px !important;
+  margin-top: 12px !important;
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 640px) {
+  .pmd-v154-modal-summary {
+    grid-template-columns: 1fr !important;
+  }
+}

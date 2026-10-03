@@ -1,0 +1,117 @@
+/* PMD Sidebar Closed Logo Mode v66
+   Closed = fixed small logo 2 + no switcher.
+   Open = normal testing switcher visible. */
+
+/* When sidebar is closed, hide the LOGO switcher completely */
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-nav-item-v38,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-logo-cycle-btn-v38 {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+/* When sidebar is open, keep the compact LOGO switcher visible at bottom/end */
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-logo-cycle-nav-item-v38 {
+  display: flex !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  opacity: 1 !important;
+  order: 99 !important;
+  margin-top: 18px !important;
+}
+
+/* Closed rail logo dimensions: stable and centered */
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-server-v65 {
+  width: 80px !important;
+  min-height: 54px !important;
+  height: 54px !important;
+  margin: -64px auto 18px !important;
+  padding: 0 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+  contain: layout paint !important;
+}
+
+/* Closed logo image: logo 2 is usually wider, so let it breathe without overflowing the rail */
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38,
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v65 {
+  max-width: 74px !important;
+  max-height: 50px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Open logo keeps normal selected logo dimensions from v65 */
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-platform-logo-slot-v38,
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-platform-logo-slot-server-v65 {
+  width: 186px !important;
+  min-height: 84px !important;
+  height: 84px !important;
+  margin: -42px auto -2px !important;
+  padding: 0 8px !important;
+}
+
+/* Edge toggle button: clean edge placement and centered arrow */
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle {
+  position: absolute !important;
+  right: -17px !important;
+  left: auto !important;
+  top: var(--pmd-sidebar-toggle-top-v66, 122px) !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(200,155,74,.78) !important;
+  background: #fff4dc !important;
+  color: #063b34 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 10px 22px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.72) !important;
+  z-index: 12000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  transition: background-color .12s ease, color .12s ease, box-shadow .12s ease, border-color .12s ease !important;
+}
+
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-sidebar-icons-toggle {
+  --pmd-sidebar-toggle-top-v66: 96px;
+}
+
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-sidebar-icons-toggle {
+  --pmd-sidebar-toggle-top-v66: 122px;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle:hover {
+  background: #ffe8b4 !important;
+  color: #042722 !important;
+  border-color: rgba(200,155,74,.96) !important;
+  box-shadow: 0 12px 25px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.82) !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle i,
+body.page.pmd-admin-theme-v1 .pmd-sidebar-icons-toggle .fa {
+  font-size: 18px !important;
+  line-height: 18px !important;
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 !important;
+  color: currentColor !important;
+  display: block !important;
+  text-align: center !important;
+  transform: translateY(1px) !important;
+}

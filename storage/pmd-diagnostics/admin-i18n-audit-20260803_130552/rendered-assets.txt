@@ -1,0 +1,6 @@
+app/admin/views/layouts/default.blade.php:4:@include('admin::_partials.pmd_admin_i18n')
+app/admin/views/_partials/pmd_admin_i18n.blade.php:29:        'app/admin/assets/js/pmd-admin-i18n-catalog-de.js'
+app/admin/views/_partials/pmd_admin_i18n.blade.php:33:        'app/admin/assets/js/pmd-admin-i18n-v1.js'
+app/admin/views/_partials/pmd_admin_i18n.blade.php:81:    src="/app/admin/assets/js/pmd-admin-i18n-catalog-de.js?v={{ $pmdCatalogueVersion }}"
+app/admin/views/_partials/pmd_admin_i18n.blade.php:85:    src="/app/admin/assets/js/pmd-admin-i18n-v1.js?v={{ $pmdRuntimeVersion }}"
+app/admin/views/_layouts/default.blade.php:3687:@include('admin::_partials.pmd_admin_i18n')

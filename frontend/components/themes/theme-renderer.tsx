@@ -101,6 +101,7 @@ const themeComponentRegistry = {
   organic_botanical_paper: organicThemeComponents,
   modern_green: neutralThemeComponents,
   kazen_japanese: neutralThemeComponents,
+  velvet_terracotta: neutralThemeComponents,
 } satisfies Record<ThemeCanonicalId, ThemeMenuComponentSet>
 
 export type ThemeMenuRendererSlot = keyof ThemeMenuComponentSet

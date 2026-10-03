@@ -1,0 +1,130 @@
+/* ==========================================================
+   PMD RESTAURANT PROFILE — SPACING AUTHORITY V10
+   TRUE sidebar-to-content rail fix.
+
+   Root cause:
+   multiple legacy admin wrappers can each contribute horizontal
+   padding/margin, and the profile/header/form max-width rules can
+   visually keep the content centered even after one gutter changes.
+
+   V10 removes ALL legacy horizontal spacing on the ancestor shell
+   for this page, then applies exactly one 16px gutter at the profile
+   root. Header and form are full-width inside that single rail.
+   ========================================================== */
+
+/* ----------------------------------------------------------
+   ZERO LEGACY HORIZONTAL SHELL SPACING — THIS PAGE ONLY
+   ---------------------------------------------------------- */
+body:has(#pmd-restaurant-profile) .page-wrapper,
+body:has(#pmd-restaurant-profile) .page-content,
+body:has(#pmd-restaurant-profile) .content-wrapper,
+body:has(#pmd-restaurant-profile) .main-content,
+body:has(#pmd-restaurant-profile) .nk-wrap,
+body:has(#pmd-restaurant-profile) .nk-content,
+body:has(#pmd-restaurant-profile) .nk-content-inner,
+body:has(#pmd-restaurant-profile) .nk-content-body,
+body:has(#pmd-restaurant-profile) .nk-content-wrap,
+body:has(#pmd-restaurant-profile) .container,
+body:has(#pmd-restaurant-profile) .container-fluid {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  max-width: none !important;
+}
+
+/* Kill Bootstrap/grid horizontal compensation if Restaurant Profile
+   is wrapped in rows/columns by the admin shell. */
+body:has(#pmd-restaurant-profile) .container-fluid > .row,
+body:has(#pmd-restaurant-profile) .container > .row,
+body:has(#pmd-restaurant-profile) .nk-content-body > .row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body:has(#pmd-restaurant-profile) .container-fluid > .row > [class*="col-"],
+body:has(#pmd-restaurant-profile) .container > .row > [class*="col-"],
+body:has(#pmd-restaurant-profile) .nk-content-body > .row > [class*="col-"] {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* ----------------------------------------------------------
+   ONE AND ONLY HORIZONTAL GUTTER
+   ---------------------------------------------------------- */
+body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
+  --pmd-page-gutter: 16px;
+  --pmd-section-gap: 18px;
+  --pmd-card-pad: 20px;
+  --pmd-field-gap: 15px;
+  --pmd-compact-gap: 10px;
+
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding-left: var(--pmd-page-gutter) !important;
+  padding-right: var(--pmd-page-gutter) !important;
+}
+
+/* No centering/max-width rail here: content should begin exactly
+   16px after the host content edge next to the permanent sidebar. */
+body:has(#pmd-restaurant-profile) #pmd-profile-header,
+body:has(#pmd-restaurant-profile) #pmd-restaurant-profile-form {
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-restaurant-profile-form {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-section {
+  margin-top: 0 !important;
+  margin-bottom: var(--pmd-section-gap) !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-section:last-child {
+  margin-bottom: 0 !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-card__body {
+  padding: var(--pmd-card-pad) !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-card__body--hours {
+  padding: 16px !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-grid {
+  gap: var(--pmd-field-gap) !important;
+}
+
+body:has(#pmd-restaurant-profile) .pmd-profile-hours-grid,
+body:has(#pmd-restaurant-profile) .pmd-profile-social-grid,
+body:has(#pmd-restaurant-profile) .pmd-profile-day-card__times {
+  gap: var(--pmd-compact-gap) !important;
+}
+
+body:has(#pmd-restaurant-profile) #pmd-profile-header {
+  margin-bottom: var(--pmd-section-gap) !important;
+}
+
+@media (max-width: 820px) {
+  body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
+    --pmd-page-gutter: 14px;
+    --pmd-section-gap: 14px;
+    --pmd-card-pad: 16px;
+    --pmd-field-gap: 12px;
+    --pmd-compact-gap: 8px;
+  }
+}
+
+@media (max-width: 560px) {
+  body:has(#pmd-restaurant-profile) #pmd-restaurant-profile {
+    --pmd-page-gutter: 12px;
+  }
+}

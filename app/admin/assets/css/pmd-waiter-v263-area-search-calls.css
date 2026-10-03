@@ -1,0 +1,168 @@
+/* PMD Waiter V2.6.3 */
+
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation {
+  transition:
+    background-color .12s ease,
+    color .12s ease,
+    border-color .12s ease,
+    transform .12s ease,
+    box-shadow .12s ease !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:hover,
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:focus-visible {
+  background: color-mix(in srgb, var(--v257-color) 10%, #fff) !important;
+  border-top-color: var(--v257-color) !important;
+  border-right-color: var(--v257-color) !important;
+  border-bottom-color: var(--v257-color) !important;
+  transform: translateX(-2px) !important;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, .12) !important;
+  outline: none !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.v257-operations-rail .v257-operation:active {
+  transform: translateX(-1px) scale(.985) !important;
+  box-shadow: none !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.v257-operation[data-v257-action="alerts"] {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  padding: 8px 9px !important;
+}
+
+body.pmd-waiter-standard-v23-page .v257-alert-count {
+  position: static !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: rgb(220, 38, 38) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  display: block !important;
+  font: inherit !important;
+  font-size: 14px !important;
+  font-weight: 1000 !important;
+  line-height: 1 !important;
+}
+
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys {
+  display: flex !important;
+  align-items: center !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v2-area-keys .pmd-v263-area-search {
+  order: -100 !important;
+  position: relative !important;
+  flex: 0 0 104px !important;
+  width: 104px !important;
+  min-width: 104px !important;
+  max-width: 104px !important;
+  height: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  border: 1px solid rgb(174, 185, 196) !important;
+  border-left: 6px solid rgb(71, 85, 105) !important;
+  border-radius: 3px !important;
+  background: #fff !important;
+  transition: width .16s ease, max-width .16s ease, flex-basis .16s ease !important;
+  box-sizing: border-box !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v2-area-keys .pmd-v263-area-search.is-open,
+body.pmd-waiter-standard-v23-page
+.pmd-v2-area-keys .pmd-v263-area-search:focus-within {
+  flex-basis: 230px !important;
+  width: 230px !important;
+  max-width: 230px !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v263-area-search > span {
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  height: 44px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: rgb(16, 24, 32) !important;
+  font-size: 25px !important;
+  font-weight: 1000 !important;
+  cursor: pointer !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v263-area-search input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  border: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  color: rgb(16, 24, 32) !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: .35px !important;
+  text-transform: uppercase !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v263-area-search:not(.is-open):not(:focus-within) input {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v263-area-search button {
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 44px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: rgb(16, 24, 32) !important;
+  font-size: 19px !important;
+  cursor: pointer !important;
+}
+
+body.pmd-waiter-standard-v23-page
+.pmd-v2-topbar .pmd-v233-header-search {
+  display: none !important;
+}
+
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:hover,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.v257-operations-rail .v257-operation:focus-visible {
+  background: color-mix(in srgb, var(--v257-color) 18%, #17212b) !important;
+}
+
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v263-area-search {
+  background: #17212b !important;
+  border-color: #536171 !important;
+}
+
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v263-area-search > span,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v263-area-search input,
+body.pmd-waiter-standard-v23-page.pmd-v221-dark
+.pmd-v263-area-search button {
+  color: #fff !important;
+}

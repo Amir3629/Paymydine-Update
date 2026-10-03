@@ -1,0 +1,132 @@
+/* PMD Waiter V2.5.9 — right rail matches left rail */
+
+body.pmd-waiter-standard-v23-page {
+  --v257-rail-width:128px !important;
+}
+
+/* Keep the floor aligned between two equal side rails. */
+body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+  margin-right:136px !important;
+}
+
+body.pmd-waiter-standard-v23-page [data-v2-table-grid] {
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr)) !important;
+  gap:7px !important;
+}
+
+/* Start directly below the main header, with no visual dead zone. */
+.v257-operations-rail {
+  top:102px !important;
+  right:0 !important;
+  bottom:0 !important;
+  width:128px !important;
+  padding:0 7px 10px !important;
+  gap:7px !important;
+  align-content:start !important;
+  justify-content:flex-start !important;
+  border-left:1px solid var(--pmd-v23-line) !important;
+  background:var(--pmd-v23-page) !important;
+}
+
+/* Equal sizing and rhythm with the left filter rail. */
+.v257-operation {
+  position:relative !important;
+  min-height:61px !important;
+  width:100% !important;
+  padding:10px 12px 10px 13px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  border:1px solid var(--pmd-v23-line) !important;
+  border-left:5px solid var(--v257-color) !important;
+  border-right:1px solid var(--pmd-v23-line) !important;
+  border-radius:3px !important;
+  background:var(--pmd-v23-surface) !important;
+  color:var(--pmd-v23-text) !important;
+  text-align:left !important;
+  overflow:hidden !important;
+  box-shadow:none !important;
+}
+
+.v257-operation strong {
+  display:block !important;
+  max-width:92px !important;
+  font-size:10px !important;
+  line-height:1.08 !important;
+  font-weight:1000 !important;
+  letter-spacing:.015em !important;
+  white-space:normal !important;
+  word-break:normal !important;
+}
+
+/* Remove decorative coloured dots completely. */
+.v257-operation > i {
+  display:none !important;
+}
+
+/* Keep hover/active restrained and operational. */
+.v257-operation:hover,
+.v257-operation.is-active {
+  background:color-mix(
+    in srgb,
+    var(--v257-color) 10%,
+    var(--pmd-v23-surface)
+  ) !important;
+  border-color:var(--v257-color) !important;
+  color:var(--pmd-v23-text) !important;
+}
+
+/* Notification label and count get separate space. */
+.v257-operation[data-v257-action="alerts"] {
+  padding-right:38px !important;
+}
+
+.v257-operation[data-v257-action="alerts"] strong {
+  max-width:76px !important;
+  font-size:9px !important;
+}
+
+.v257-alert-count {
+  position:absolute !important;
+  top:50% !important;
+  right:9px !important;
+  transform:translateY(-50%) !important;
+  min-width:22px !important;
+  height:22px !important;
+  padding:0 5px !important;
+  display:grid !important;
+  place-items:center !important;
+  border-radius:12px !important;
+  background:#dc2626 !important;
+  color:#fff !important;
+  font-size:10px !important;
+  line-height:1 !important;
+  font-weight:1000 !important;
+  font-style:normal !important;
+}
+
+/* Override prior compact rules on narrower desktops as well. */
+@media (max-width:1250px) {
+  body.pmd-waiter-standard-v23-page {
+    --v257-rail-width:128px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page .pmd-v2-area-keys,
+  body.pmd-waiter-standard-v23-page .pmd-v2-table-stage {
+    margin-right:136px !important;
+  }
+
+  .v257-operations-rail {
+    width:128px !important;
+  }
+
+  .v257-operation strong {
+    max-width:92px !important;
+    font-size:10px !important;
+  }
+
+  body.pmd-waiter-standard-v23-page [data-v2-table-grid] {
+    grid-template-columns:repeat(auto-fill,minmax(136px,1fr)) !important;
+  }
+}

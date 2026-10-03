@@ -1,0 +1,15 @@
+timestamp_utc=20260922T213146Z
+root=/var/www/paymydine
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=978e662dc44cfaf810a6004f64fae206835291f1
+base=bacd4ea5a83e111596f71fee5c512db9a6298a0a
+target=9146c37239fb59538bef8c30b45dc282008f0562
+android_source_commit=54420003a5d79b0b522af05c20cbdd81541b59a5
+android_ci_run=35783711641
+apk_release=PayMyDine-POS-Tablet-Preview-0.3.7.apk
+apk_public=PayMyDine-Android-0.3.7.apk
+apk_sha256=371cbf3ce9d2c900cb8dc9560aabe5aa660eecfbe16cb841d0d89d04eb0c63c8
+
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+?? app/Services/PmdMobileSync/PmdMobilePairingService.php

@@ -1,0 +1,1919 @@
+/* PMD_DASHBOARD_LAB_ANALYTICS_V1
+ * Clean Dashboard2 analytics cards for /admin/dashboardlab only.
+ * Static geometry from first paint. No transition/animation authority.
+ */
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1 {
+  width: min(1480px, 100%);
+  min-width: 0;
+  margin: 18px auto 0;
+  padding: 0 0 28px;
+  box-sizing: border-box;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1 *,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1 *::before,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1 *::after {
+  box-sizing: border-box;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid #dce7e3;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 7px 20px rgba(16, 42, 67, .07);
+  color: #22312c;
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card > header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  min-height: 34px;
+  margin: 0 0 12px;
+  padding: 0;
+  overflow: visible;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card > header h3 {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  color: #17231f;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -.015em;
+}
+
+/* PMD_DASHBOARD_LAB_ANALYTICS_COMPACT_CONTROLS_V4 */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+  height: 28px;
+  margin: 0 0 0 auto;
+  padding: 2px;
+  border: 1px solid #d7e5e0;
+  border-radius: 9px;
+  background: #f8fbfa;
+  box-shadow: 0 2px 6px rgba(16, 42, 67, .06);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar button,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar a {
+  appearance: none;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  min-width: 30px;
+  height: 22px;
+  min-height: 22px;
+  max-height: 22px;
+  margin: 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #52635f;
+  box-shadow: none;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: none;
+  transition: none !important;
+  animation: none !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar button.is-active,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar button[aria-pressed="true"] {
+  background: #008f6a;
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(0, 143, 106, .2);
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar a {
+  min-width: 48px;
+  color: #0a6b56;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar button:focus-visible,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar a:focus-visible {
+  outline: 2px solid #00a676;
+  outline-offset: 1px;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__body {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  color: #52615b;
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 1;
+  visibility: visible;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* PMD_DASHBOARD_LAB_ANALYTICS_COMPACT_ROWS_V4
+ * Desktop chart rows intentionally compacted from 500px to 430px.
+ */
+@media (min-width: 1281px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesOverTime"] {
+    grid-column: span 9;
+    height: 430px;
+    min-height: 430px;
+    max-height: 430px;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="categorySales"] {
+    grid-column: span 3;
+    height: 430px;
+    min-height: 430px;
+    max-height: 430px;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesByHour"] {
+    grid-column: span 9;
+    height: 430px;
+    min-height: 430px;
+    max-height: 430px;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="paymentMethods"] {
+    grid-column: span 3;
+    height: 430px;
+    min-height: 430px;
+    max-height: 430px;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="recentTransactions"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="alerts"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="liveOperations"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="channelSplit"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="topItems"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="tips"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="reviews"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="calendarEvents"] {
+    grid-column: span 3;
+    height: 255px;
+    min-height: 255px;
+    max-height: 255px;
+  }
+}
+
+/* Main charts. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 30px;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__frame {
+  display: flex;
+  align-items: stretch;
+  justify-content: stretch;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__frame svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  max-height: 385px;
+  overflow: visible;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__slider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__slider input[type="range"] {
+  appearance: none;
+  width: min(220px, 48%);
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__slider input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: #00a676;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4.5px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #00a676;
+  box-shadow: 0 1px 5px rgba(0, 122, 89, .35);
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__slider input[type="range"]::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: #00a676;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__slider input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #00a676;
+  box-shadow: 0 1px 5px rgba(0, 122, 89, .35);
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-grid-line {
+  stroke: #e6ece9;
+  stroke-width: 1;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-axis {
+  stroke: #d9e2de;
+  stroke-width: 1;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-axis-label {
+  fill: #718079;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-area {
+  fill: rgba(0, 166, 118, .08);
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-line {
+  fill: none;
+  stroke: #00a676;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-point {
+  fill: #fff;
+  stroke: #00a676;
+  stroke-width: 3;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-bar {
+  fill: #00a676;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-bar.is-zero {
+  fill: #dfe6e2;
+}
+
+/* Donuts. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  justify-items: center;
+  align-content: start;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut > svg {
+  display: block;
+  width: 142px;
+  height: 142px;
+  margin: 0 auto;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut__legend {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut__legend li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 7px;
+  min-width: 0;
+  padding: 2px 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut__legend i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut__legend span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut__legend b {
+  color: #263832;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Lists and compact cards. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-list {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid #edf1ef;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-list li:last-child {
+  border-bottom: 0;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-list li > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-list li > :last-child {
+  flex: 0 0 auto;
+  color: #263832;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-summary b {
+  color: #173f35;
+  font-size: 26px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-stats > div {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f5f8f6;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-stats dt {
+  color: #728079;
+  font-size: 10px;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-stats dd {
+  margin: 3px 0 0;
+  color: #20342d;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 86px;
+  margin: 0;
+  color: #87938e;
+  text-align: center;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card[data-pmd-lab-analytics-widget="recentTransactions"]
+.pmd-dashboard-lab-analytics__body,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card[data-pmd-lab-analytics-widget="alerts"]
+.pmd-dashboard-lab-analytics__body,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card[data-pmd-lab-analytics-widget="liveOperations"]
+.pmd-dashboard-lab-analytics__body,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card[data-pmd-lab-analytics-widget="topItems"]
+.pmd-dashboard-lab-analytics__body,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-analytics__body,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card[data-pmd-lab-analytics-widget="reviews"]
+.pmd-dashboard-lab-analytics__body,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card[data-pmd-lab-analytics-widget="calendarEvents"]
+.pmd-dashboard-lab-analytics__body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 1280px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesOverTime"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesByHour"] {
+    grid-column: span 12;
+    height: 440px;
+    min-height: 440px;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="categorySales"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="paymentMethods"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="recentTransactions"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="alerts"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="liveOperations"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="channelSplit"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="topItems"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="tips"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="reviews"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="calendarEvents"] {
+    grid-column: span 6;
+    height: 280px;
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 760px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  #pmd-dashboard-lab-analytics-v1 {
+    margin-top: 10px;
+  }
+
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  .pmd-dashboard-lab-analytics__grid {
+    gap: 10px;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget] {
+    grid-column: span 12 !important;
+    height: auto !important;
+    min-height: 255px !important;
+    max-height: none !important;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesOverTime"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesByHour"] {
+    min-height: 370px !important;
+  }
+
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  .pmd-dashboard-lab-analytics__card {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  .pmd-dashboard-lab-analytics__card > header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  .pmd-dashboard-lab-analytics__toolbar {
+    margin-left: 0;
+  }
+
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  .pmd-dashboard-lab-chart__frame svg {
+    min-height: 245px;
+  }
+}
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_ANALYTICS_SCROLL_FIRSTPAINT_V2
+
+   This asset is loaded only by /admin/dashboardlab.
+   The Lab now explicitly owns document vertical scrolling so inherited
+   admin-shell height/overflow rules cannot trap rows 2-4 below viewport.
+   ========================================================== */
+html {
+  height: auto !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+html body.page.pmd-dashboard-lab-page,
+html body.page.pmd-dashboard-lab-page .page,
+html body.page.pmd-dashboard-lab-page .page-wrapper,
+html body.page.pmd-dashboard-lab-page .page-content,
+html body.page.pmd-dashboard-lab-page .content-wrapper,
+html body.page.pmd-dashboard-lab-page .container-fluid,
+html body.page.pmd-dashboard-lab-page #pmd-dashboard-lab,
+html body.page.pmd-dashboard-lab-page .pmd-dashboard-lab__stage {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+html body.page.pmd-dashboard-lab-page,
+html body.page.pmd-dashboard-lab-page .page-wrapper,
+html body.page.pmd-dashboard-lab-page .page-content,
+html body.page.pmd-dashboard-lab-page #pmd-dashboard-lab {
+  min-height: 100vh !important;
+}
+
+html body.page.pmd-dashboard-lab-page
+#pmd-dashboard-lab-analytics-v1 {
+  display: block !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+html body.page.pmd-dashboard-lab-page
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__grid {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_DENSITY_TYPOGRAPHY_V5
+   Readable typography without making controls or cards bulky.
+   Layout-only CSS. Server-DOM and interaction JS remain untouched.
+   ========================================================== */
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__grid {
+  gap: 14px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card {
+  padding: 14px !important;
+  border-radius: 16px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card > header {
+  min-height: 32px !important;
+  margin-bottom: 9px !important;
+  gap: 10px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__card > header h3 {
+  font-size: 18px !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.02em !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__body {
+  font-size: 14px !important;
+  line-height: 1.42 !important;
+}
+
+/* Keep the compact control footprint from V4.1, only make its text readable. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 2px !important;
+  gap: 2px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar button,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar a {
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  min-width: 31px !important;
+  padding: 0 6px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__toolbar a {
+  min-width: 50px !important;
+}
+
+/* Readable chart labels while reducing vertical card footprint. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-lab-chart-axis-label {
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__frame svg {
+  min-height: 245px !important;
+  max-height: 305px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut {
+  gap: 8px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut > svg {
+  width: 132px !important;
+  height: 132px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut__legend li {
+  column-gap: 7px !important;
+  padding: 2px 0 !important;
+  font-size: 15px !important;
+  line-height: 1.3 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-donut__legend b {
+  font-size: 14px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-list li {
+  gap: 9px !important;
+  padding: 6px 0 !important;
+  font-size: 14px !important;
+  line-height: 1.32 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-summary {
+  gap: 8px !important;
+  margin-bottom: 7px !important;
+  font-size: 14px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-summary b {
+  font-size: 27px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-stats {
+  gap: 8px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-stats > div {
+  padding: 9px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-stats dt {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-stats dd {
+  font-size: 17px !important;
+  line-height: 1.2 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-empty {
+  min-height: 62px !important;
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+}
+
+/* Desktop density: both large chart rows are shorter again. */
+@media (min-width: 1281px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesOverTime"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="categorySales"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesByHour"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="paymentMethods"] {
+    height: 360px !important;
+    min-height: 360px !important;
+    max-height: 360px !important;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="recentTransactions"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="alerts"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="liveOperations"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="channelSplit"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="topItems"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="tips"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="reviews"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="calendarEvents"] {
+    height: 230px !important;
+    min-height: 230px !important;
+    max-height: 230px !important;
+  }
+}
+
+@media (max-width: 1280px) and (min-width: 761px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesOverTime"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesByHour"] {
+    height: 390px !important;
+    min-height: 390px !important;
+  }
+
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="categorySales"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="paymentMethods"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="recentTransactions"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="alerts"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="liveOperations"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="channelSplit"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="topItems"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="tips"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="reviews"],
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="calendarEvents"] {
+    height: 250px !important;
+    min-height: 250px !important;
+  }
+}
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_ANALYTICS_REFINEMENT_V7
+   - vertical chart-window rails beside Sales charts
+   - larger Payment methods donut
+   - binary Dine in / Takeaway channel presentation
+   - Tips cells fill their compact card cleanly
+   - preserve Top-selling toolbar lift and four-row list contract
+   No animation/observer/timer/layout retry.
+   ========================================================== */
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="salesOverTime"]
+.pmd-dashboard-lab-analytics__body,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="salesByHour"]
+.pmd-dashboard-lab-analytics__body {
+  padding-left: 42px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__range-rail {
+  position: absolute !important;
+  z-index: 3 !important;
+  left: 14px !important;
+  top: 70px !important;
+  bottom: 20px !important;
+  display: flex !important;
+  width: 30px !important;
+  min-width: 30px !important;
+  margin: 0 !important;
+  padding: 7px 4px !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 7px !important;
+  border: 1px solid #d7e5e0 !important;
+  border-radius: 10px !important;
+  background: #f8fbfa !important;
+  color: #52625e !important;
+  box-shadow: 0 2px 6px rgba(16, 42, 67, .05) !important;
+  box-sizing: border-box !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__range-rail > span {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: .01em !important;
+  writing-mode: vertical-rl !important;
+  transform: rotate(180deg) !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-analytics__range-rail input[type="range"] {
+  -webkit-appearance: slider-vertical !important;
+  appearance: auto !important;
+  writing-mode: vertical-lr !important;
+  direction: rtl !important;
+  flex: 1 1 auto !important;
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 100% !important;
+  min-height: 150px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  accent-color: #00a676 !important;
+  cursor: ns-resize !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-dashboard-lab-chart__slider {
+  display: none !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-analytics__body {
+  margin-top: -10px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut {
+  gap: 2px !important;
+  transform: translateY(-3px) !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut > svg {
+  width: 136px !important;
+  height: 136px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="channelSplit"]
+.pmd-dashboard-lab-analytics__body {
+  margin-top: -8px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="channelSplit"]
+.pmd-dashboard-lab-donut {
+  gap: 3px !important;
+  transform: translateY(-5px) !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="channelSplit"]
+.pmd-dashboard-lab-donut > svg {
+  width: 112px !important;
+  height: 112px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut__legend li,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="channelSplit"]
+.pmd-dashboard-lab-donut__legend li {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 1.18 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-analytics__body {
+  overflow-y: hidden !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-stats {
+  height: 100% !important;
+  min-height: 0 !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-stats > div {
+  display: flex !important;
+  min-height: 0 !important;
+  padding: 12px !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-stats dt {
+  font-size: 13px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-stats dd {
+  margin-top: 5px !important;
+  font-size: 19px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-lab-analytics-widget="topItems"]
+> header
+.pmd-dashboard-lab-analytics__toolbar {
+  transform: translateY(-5px) !important;
+}
+
+@media (max-width: 760px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesOverTime"]
+  .pmd-dashboard-lab-analytics__body,
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  [data-pmd-lab-analytics-widget="salesByHour"]
+  .pmd-dashboard-lab-analytics__body {
+    padding-left: 36px !important;
+  }
+
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  .pmd-dashboard-lab-analytics__range-rail {
+    left: 10px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+  }
+}
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_CUSTOM_VERTICAL_RANGE_V7_3
+   Canonical post-V7.1 visual owner:
+   - custom Safari-independent vertical chart-window rails
+   - 150px Payment methods donut
+   - Tips cells fill the available compact-card body
+   CSS has no transition/animation/timer/observer authority.
+   ========================================================== */
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="salesOverTime"],
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="salesByHour"] {
+  position: relative !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="salesOverTime"]
+.pmd-dashboard-lab-analytics__body,
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="salesByHour"]
+.pmd-dashboard-lab-analytics__body {
+  padding-left: 68px !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__range-rail--custom {
+  position: absolute !important;
+  z-index: 6 !important;
+  left: 14px !important;
+  top: 64px !important;
+  /* PMD_DASHBOARD_LAB_RANGE_EVENTS_V8_3_5 */
+  bottom: auto !important;
+  display: grid !important;
+  grid-template-rows: 40px 132px !important;
+  row-gap: 2px !important;
+  align-content: start !important;
+  align-items: stretch !important;
+  justify-items: center !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 190px !important;
+  max-height: 190px !important;
+  margin: 0 !important;
+  padding: 8px 6px !important;
+  overflow: visible !important;
+  border: 1px solid #d7e5e0 !important;
+  border-radius: 12px !important;
+  background: #f8fbfa !important;
+  box-shadow: 0 2px 7px rgba(16, 42, 67, .06) !important;
+  box-sizing: border-box !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__range-label {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #52625e !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  letter-spacing: .01em !important;
+  writing-mode: vertical-rl !important;
+  transform: rotate(180deg) !important;
+  transform-origin: center !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  align-self: center !important;
+  justify-self: center !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__range-track {
+  position: relative !important;
+  display: block !important;
+  align-self: center !important;
+  justify-self: center !important;
+  width: 22px !important;
+  min-width: 22px !important;
+  height: 132px !important;
+  min-height: 132px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: transparent !important;
+  cursor: ns-resize !important;
+  touch-action: none !important;
+  outline: none !important;
+  box-sizing: border-box !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__range-track::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  width: 5px !important;
+  border-radius: 999px !important;
+  background: #dce9e4 !important;
+  transform: translateX(-50%) !important;
+  pointer-events: none !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__range-fill {
+  position: absolute !important;
+  z-index: 1 !important;
+  left: 50% !important;
+  bottom: 0 !important;
+  width: 5px !important;
+  height: var(--pmd-range-progress, 50%) !important;
+  border-radius: 999px !important;
+  background: #00a676 !important;
+  transform: translateX(-50%) !important;
+  pointer-events: none !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__range-thumb {
+  position: absolute !important;
+  z-index: 2 !important;
+  left: 50% !important;
+  bottom: var(--pmd-range-progress, 50%) !important;
+  width: 17px !important;
+  height: 17px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 3px solid #fff !important;
+  border-radius: 50% !important;
+  background: #00a676 !important;
+  box-shadow: 0 1px 6px rgba(0, 122, 89, .28) !important;
+  transform: translate(-50%, 50%) !important;
+  pointer-events: none !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__range-track:focus-visible {
+  outline: 2px solid #00a676 !important;
+  outline-offset: 3px !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__range-native {
+  display: none !important;
+  position: absolute !important;
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  max-height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut > svg {
+  width: 150px !important;
+  height: 150px !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-analytics__body {
+  position: relative !important;
+  display: block !important;
+  align-self: stretch !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-stats {
+  position: absolute !important;
+  inset: 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  gap: 10px !important;
+  align-items: stretch !important;
+  align-content: stretch !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="tips"]
+.pmd-dashboard-lab-stats > div {
+  display: flex !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  padding: 14px 15px !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+@media (max-width: 760px) {
+  #pmd-dashboard-lab-analytics-v1
+  [data-pmd-lab-analytics-widget="salesOverTime"]
+  .pmd-dashboard-lab-analytics__body,
+  #pmd-dashboard-lab-analytics-v1
+  [data-pmd-lab-analytics-widget="salesByHour"]
+  .pmd-dashboard-lab-analytics__body {
+    padding-left: 58px !important;
+  }
+
+  #pmd-dashboard-lab-analytics-v1
+  .pmd-dashboard-lab-analytics__range-rail--custom {
+    left: 10px !important;
+    width: 40px !important;
+    min-width: 40px !important;
+  }
+
+  #pmd-dashboard-lab-analytics-v1
+  [data-pmd-lab-analytics-widget="tips"]
+  .pmd-dashboard-lab-stats {
+    position: static !important;
+    inset: auto !important;
+    min-height: 168px !important;
+  }
+}
+
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_CONTENT_REFINEMENT_V8
+   Payment legend rhythm + review/event content polish.
+   No animation/timer/observer/layout retry authority.
+   ========================================================== */
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut__legend {
+  gap: 3px !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut__legend li {
+  padding: 2px 0 !important;
+  line-height: 1.3 !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-list,
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-event-list {
+  display: grid !important;
+  gap: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-list li,
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-event-list li {
+  min-width: 0 !important;
+  padding: 6px 0 !important;
+  border-bottom: 1px solid #e7eeeb !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-list li:last-child,
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-event-list li:last-child {
+  border-bottom: 0 !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-line,
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-event-list li {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-stars {
+  color: #d99a00 !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+  letter-spacing: .5px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-time,
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-event-list > li > b {
+  flex: 0 0 auto !important;
+  font-size: 13px !important;
+  white-space: nowrap !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-copy,
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-event-copy {
+  display: flex !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-copy strong,
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-event-copy strong {
+  overflow: hidden !important;
+  color: #263832 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-copy span,
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-event-copy span {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  color: #61706c !important;
+  font-size: 12.5px !important;
+  line-height: 1.25 !important;
+  -webkit-box-orient: vertical !important;
+  -webkit-line-clamp: 1 !important;
+}
+
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_REVIEWS_PAYMENT_POLISH_V8_1
+   Exact Payment legend rhythm + review count in card heading.
+   No JS timing/layout authority.
+   ========================================================== */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="categorySales"]
+.pmd-dashboard-lab-donut__legend,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut__legend {
+  gap: 3px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="categorySales"]
+.pmd-dashboard-lab-donut__legend li,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut__legend li {
+  grid-template-columns: 14px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  column-gap: 7px !important;
+  min-height: 28px !important;
+  padding: 2px 0 !important;
+  font-size: 15px !important;
+  line-height: 1.3 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="reviews"]
+> header
+.pmd-dashboard-lab-review-heading {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="reviews"]
+.pmd-dashboard-lab-review-heading__count {
+  color: #153f32 !important;
+  font-size: 26px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="reviews"]
+.pmd-dashboard-lab-review-heading__label {
+  color: #5d6d68 !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="reviews"]
+.pmd-dashboard-lab-analytics__body {
+  padding-top: 2px !important;
+}
+
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_COMPACT_CONTROLS_LIVE_REVIEWS_V8_2
+   Compact top-right controls + live count heading + category fit.
+   No timing/layout retry authority.
+   ========================================================== */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar {
+  gap: 4px !important;
+  flex: 0 0 auto !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar button,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar a {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  min-width: 30px !important;
+  width: auto !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 7px !important;
+  border-radius: 9px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar a {
+  width: 30px !important;
+  min-width: 30px !important;
+  padding: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-toolbar-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 18px !important;
+  height: 18px !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-live-heading] {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-live-heading__count {
+  color: #153f32 !important;
+  font-size: 26px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-live-heading__label {
+  color: #5d6d68 !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="liveOperations"]
+.pmd-dashboard-lab-analytics__body {
+  padding-top: 2px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="categorySales"]
+.pmd-dashboard-lab-donut__legend {
+  margin-top: -12px !important;
+}
+
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_LOCALE_PAYMENT_REVIEWS_V8_3
+   - cookie-aligned compact locale authority
+   - six-row Payment legend fit
+   - one-line review rows
+   No timer / observer / RAF / layout retry authority.
+   ========================================================== */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut {
+  gap: 0 !important;
+  transform: translateY(-5px) !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut > svg {
+  width: 144px !important;
+  height: 144px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut__legend {
+  gap: 0 !important;
+  margin-top: -5px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="paymentMethods"]
+.pmd-dashboard-lab-donut__legend li {
+  min-height: 24px !important;
+  padding: 0 !important;
+  line-height: 1.12 !important;
+  font-size: 15px !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="reviews"]
+.pmd-dashboard-lab-review-list li {
+  padding: 5px 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="reviews"]
+.pmd-dashboard-lab-review-line {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  justify-content: initial !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-inline-copy {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-inline-copy strong {
+  flex: 0 1 auto !important;
+  max-width: 110px !important;
+  overflow: hidden !important;
+  color: #263832 !important;
+  font-size: 12.5px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-review-inline-copy span {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  color: #61706c !important;
+  font-size: 12.5px !important;
+  line-height: 1.2 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+
+/* ==========================================================
+   PMD_DASHBOARD_LAB_RANGE_EVENTS_V8_3_5
+   Count belongs to the Upcoming events heading; body begins
+   directly with event rows. No new layout/runtime authority.
+   ========================================================== */
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="calendarEvents"]
+.pmd-dashboard-lab-event-heading {
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="calendarEvents"]
+.pmd-dashboard-lab-event-heading__count,
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="calendarEvents"]
+.pmd-dashboard-lab-event-heading__label {
+  font: inherit !important;
+  color: inherit !important;
+  line-height: inherit !important;
+}
+
+#pmd-dashboard-lab-analytics-v1
+[data-pmd-lab-analytics-widget="calendarEvents"]
+.pmd-dashboard-lab-event-list {
+  margin-top: 2px !important;
+}

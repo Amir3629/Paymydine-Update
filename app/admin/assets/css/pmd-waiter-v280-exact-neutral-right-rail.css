@@ -1,0 +1,119 @@
+/* ==========================================================
+   PMD Waiter V2.8.0
+   Exact neutral left-button clone on right rail
+   ========================================================== */
+
+html body .pmd-v280-right-rail {
+  z-index: 80 !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+
+  isolation: isolate !important;
+}
+
+/*
+ * Remove any old pseudo-element surface that could show a
+ * different background behind the buttons.
+ */
+html body .pmd-v280-right-rail::before,
+html body .pmd-v280-right-rail::after {
+  display: none !important;
+  content: none !important;
+  background: transparent !important;
+}
+
+/*
+ * Right buttons remain the exact neutral left-button surface.
+ */
+html body .pmd-v280-right-rail .pmd-v280-operation {
+  position: relative !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+
+  flex: 0 0 auto !important;
+
+  transform: none !important;
+  translate: none !important;
+
+  transition: none !important;
+  animation: none !important;
+
+  box-shadow: none !important;
+  filter: none !important;
+
+  cursor: pointer !important;
+}
+
+/*
+ * Never change the cloned surface on interaction.
+ */
+html body .pmd-v280-right-rail .pmd-v280-operation:hover,
+html body .pmd-v280-right-rail .pmd-v280-operation:focus,
+html body .pmd-v280-right-rail .pmd-v280-operation:focus-visible,
+html body .pmd-v280-right-rail .pmd-v280-operation:active {
+  transform: none !important;
+  translate: none !important;
+
+  box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+html body .pmd-v280-label {
+  display: block !important;
+
+  color: inherit !important;
+
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  font-style: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: inherit !important;
+
+  text-align: left !important;
+  white-space: normal !important;
+
+  pointer-events: none !important;
+}
+
+html body .pmd-v280-bell {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 100% !important;
+  height: 100% !important;
+
+  color: #ff3b3b !important;
+
+  pointer-events: none !important;
+}
+
+html body .pmd-v280-bell svg {
+  width: 25px !important;
+  height: 25px !important;
+
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+
+/*
+ * Old hidden workflow rail.
+ */
+html body [data-v280-workflow-bridge] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

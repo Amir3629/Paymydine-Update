@@ -38,6 +38,9 @@
   "exclude": [
     "node_modules",
     ".next",
-    "_legacy"
+    "_legacy",
+    "storage",
+    "storage/backups",
+    "**/storage/backups/**"
   ]
 }

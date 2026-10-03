@@ -1,0 +1,56 @@
+# PMD_INTERNAL_BACKEND_R1
+#
+# Next.js SSR backend traffic only.
+# Bound to loopback: never publicly reachable.
+#
+server {
+    listen 127.0.0.1:8088;
+    server_name _;
+
+    root /var/www/paymydine;
+    index index.php;
+
+    access_log /var/log/nginx/pmd-internal-backend-access.log combined;
+    error_log  /var/log/nginx/pmd-internal-backend-error.log warn;
+
+    # PMD_LOAD_AMPLIFICATION_GUARD_R1
+    #
+    # Current V2 already calls the canonical endpoints first:
+    #
+    # /api/v1/vat-settings
+    # /api/v1/frontend-theme-v2
+    #
+    # These two are legacy fallback requests.
+    # Never spend another PHP worker on them from SSR.
+    location = /vat-settings {
+        return 404;
+    }
+
+    location = /simple-theme {
+        return 404;
+    }
+
+    # Internal Laravel front controller for SSR reads.
+    location / {
+        include fastcgi_params;
+
+        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
+        fastcgi_param SCRIPT_NAME /index.php;
+        fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
+
+        fastcgi_param HTTP_HOST $http_host;
+        fastcgi_param SERVER_NAME $http_host;
+
+        # Preserve production HTTPS semantics inside Laravel.
+        fastcgi_param HTTPS on;
+        fastcgi_param HTTP_X_FORWARDED_PROTO https;
+        fastcgi_param HTTP_X_FORWARDED_HOST $http_host;
+        fastcgi_param HTTP_X_PMD_TENANT_HOST $http_x_pmd_tenant_host;
+
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+
+        fastcgi_connect_timeout 5s;
+        fastcgi_send_timeout 30s;
+        fastcgi_read_timeout 30s;
+    }
+}

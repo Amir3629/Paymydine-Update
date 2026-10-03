@@ -35,7 +35,7 @@
                 e.preventDefault();
                 
                 // Add leaving class for fade-out animation
-                document.body.classList.add('page-leaving');
+                (document.body||document.documentElement).classList.add('page-leaving');
                 
                 // Lock all fixed containers to prevent any movement
                 const fixedElements = ['.nk-wrap', '.nk-header', '.nk-sidebar'];

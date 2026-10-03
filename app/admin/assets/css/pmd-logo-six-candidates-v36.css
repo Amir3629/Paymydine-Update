@@ -1,0 +1,121 @@
+/* PMD Logo Six Candidates v36
+   Adds logo candidates 4-6 and overrides the old 3-logo switcher.
+   Uses same sidebar PMD logo slot. No dashboard/backend changes. */
+
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 112px !important;
+  padding: 15px 10px 10px !important;
+  margin: 0 auto 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 82px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* One logo image, six visual presets. */
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26 {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  margin: 0 auto !important;
+}
+
+/* Existing candidates */
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26[data-logo-index="0"] {
+  max-width: 178px !important;
+  max-height: 86px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26[data-logo-index="1"] {
+  max-width: 194px !important;
+  max-height: 92px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26[data-logo-index="2"] {
+  max-width: 154px !important;
+  max-height: 66px !important;
+}
+
+/* New candidates */
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26[data-logo-index="3"] {
+  max-width: 188px !important;
+  max-height: 88px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26[data-logo-index="4"] {
+  max-width: 188px !important;
+  max-height: 88px !important;
+}
+html body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v26[data-logo-index="5"] {
+  max-width: 180px !important;
+  max-height: 86px !important;
+}
+
+/* Candidate-specific slot spacing */
+html.pmd-logo-candidate-1-v36 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26,
+html.pmd-logo-candidate-4-v36 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26,
+html.pmd-logo-candidate-5-v36 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26,
+html.pmd-logo-candidate-6-v36 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 112px !important;
+  padding-top: 15px !important;
+  padding-bottom: 10px !important;
+}
+html.pmd-logo-candidate-2-v36 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 118px !important;
+  padding-top: 16px !important;
+  padding-bottom: 12px !important;
+}
+html.pmd-logo-candidate-3-v36 body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v26 {
+  min-height: 82px !important;
+  padding-top: 8px !important;
+  padding-bottom: 4px !important;
+  margin-bottom: 0 !important;
+}
+html.pmd-logo-candidate-3-v36 body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v26 {
+  min-height: 66px !important;
+}
+
+/* Menu spacing based on selected logo size */
+html body.page.pmd-admin-theme-v1 #side-nav-menu,
+html body.page.pmd-admin-theme-v1 .side-nav-menu,
+html body.page.pmd-admin-theme-v1 .sidebar-menu,
+html body.page.pmd-admin-theme-v1 .nav-sidebar {
+  margin-top: 16px !important;
+  padding-top: 6px !important;
+}
+html.pmd-logo-candidate-2-v36 body.page.pmd-admin-theme-v1 #side-nav-menu,
+html.pmd-logo-candidate-2-v36 body.page.pmd-admin-theme-v1 .side-nav-menu,
+html.pmd-logo-candidate-2-v36 body.page.pmd-admin-theme-v1 .sidebar-menu,
+html.pmd-logo-candidate-2-v36 body.page.pmd-admin-theme-v1 .nav-sidebar {
+  margin-top: 20px !important;
+}
+html.pmd-logo-candidate-3-v36 body.page.pmd-admin-theme-v1 #side-nav-menu,
+html.pmd-logo-candidate-3-v36 body.page.pmd-admin-theme-v1 .side-nav-menu,
+html.pmd-logo-candidate-3-v36 body.page.pmd-admin-theme-v1 .sidebar-menu,
+html.pmd-logo-candidate-3-v36 body.page.pmd-admin-theme-v1 .nav-sidebar {
+  margin-top: 6px !important;
+  padding-top: 2px !important;
+}
+
+/* LOGO button shows 1/6 etc */
+html body.page.pmd-admin-theme-v1 .pmd-logo-cycle-btn-v25 small {
+  min-width: 24px !important;
+  text-align: right !important;
+}
+
+/* Collapsed sidebar */
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v26,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed .pmd-platform-logo-slot-v26 {
+  min-height: 74px !important;
+  padding: 10px 4px 8px !important;
+}
+html body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v26,
+html body.page.pmd-admin-theme-v1.pmd-sidebar-collapsed img.pmd-platform-logo-img-v26 {
+  max-width: 56px !important;
+  max-height: 56px !important;
+}

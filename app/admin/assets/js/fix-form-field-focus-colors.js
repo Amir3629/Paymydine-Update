@@ -125,34 +125,62 @@
         fixFormFieldFocusColors();
     }
     
-    // Run more frequently to catch green colors immediately
-    setInterval(fixFormFieldFocusColors, 100);
-    
-    // Watch for new form fields
-    const observer = new MutationObserver(function(mutations) {
-        let shouldFix = false;
-        mutations.forEach(function(mutation) {
-            if (mutation.addedNodes.length > 0) {
-                mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) { // Element node
-                        if (node.matches && node.matches('.form-control, input, textarea, select') ||
-                            node.querySelector && node.querySelector('.form-control, input, textarea, select')) {
-                            shouldFix = true;
+    /*
+     * PMD_R2_PERFORMANCE_SURGICAL_V2_FOCUS
+     *
+     * Reservations2 already receives exact focusin/focusout handling above.
+     * Avoid scanning every form element every 100ms and avoid a body-wide
+     * MutationObserver on this large workspace.
+     */
+    const pmdR2PerformanceRoute =
+        String(window.location.pathname || '')
+            .replace(/\/+$/, '') === '/admin/reservations2';
+
+    if (!pmdR2PerformanceRoute) {
+
+        // Legacy safety loop retained for other admin pages.
+        setInterval(fixFormFieldFocusColors, 100);
+
+        const observer = new MutationObserver(function(mutations) {
+            let shouldFix = false;
+
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) {
+                            if (
+                                node.matches &&
+                                node.matches(
+                                    '.form-control, input, textarea, select'
+                                ) ||
+                                node.querySelector &&
+                                node.querySelector(
+                                    '.form-control, input, textarea, select'
+                                )
+                            ) {
+                                shouldFix = true;
+                            }
                         }
-                    }
-                });
+                    });
+                }
+            });
+
+            if (shouldFix) {
+                fixFormFieldFocusColors();
             }
         });
-        if (shouldFix) {
-            fixFormFieldFocusColors();
-        }
-    });
-    
-    // Start observing
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+    } else {
+        console.info(
+            '[PMD R2 Performance V2] ' +
+            '100ms form scan + body observer disabled.'
+        );
+    }
     
     console.log('✅ Form field focus color fix initialized - using dark blue instead of green (instant, no delay)');
 })();

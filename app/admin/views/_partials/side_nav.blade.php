@@ -1,322 +1,1468 @@
-<div class="sidebar" role="navigation">
-    <div id="navSidebar" class="nav-sidebar">
-        <div class="pmd-sidebar-brand sidebar-mobile-brand">
-            <a class="logo" href="{{ admin_url('dashboard') }}" aria-label="Dashboard">
-                <i class="logo-svg"></i>
-            </a>
-        </div>
-        {!! $this->makePartial('side_nav_items', [
-            'navItems' => $navItems,
-            'navAttributes' => [
-                'id' => 'side-nav-menu',
-                'class' => 'nav',
-            ],
-        ]) !!}
-        @php
-            $pmdUserPanel = \Admin\Classes\UserPanel::forUser();
-            $pmdFaviconPath = setting('favicon_logo');
-            $pmdDefaultAvatar = $pmdUserPanel->getAvatarUrl().'&s=64';
-            $pmdProfileImage = $pmdFaviconPath
-                ? asset('assets/media/uploads/'.ltrim($pmdFaviconPath, '/'))
-                : $pmdDefaultAvatar;
-        @endphp
-        <div class="pmd-sidebar-profile-card" aria-label="Admin profile" style="display:none;">
-            <a class="pmd-sidebar-profile-card__identity" href="{{ admin_url('staffs/account') }}">
-                <img src="{{ $pmdProfileImage }}" alt="{{ $pmdUserPanel->getUserName() }}">
-                <span>
-                    <strong>{{ $pmdUserPanel->getUserName() }}</strong>
-                    <small>{{ $pmdUserPanel->getRoleName() ?: 'Administrator' }}</small>
-                </span>
-            </a>
-            <a class="pmd-sidebar-profile-card__logout" href="{{ admin_url('logout') }}" aria-label="Logout" title="Logout">
-                <i class="fa fa-power-off" aria-hidden="true"></i>
-            </a>
-        </div>
-    <!-- HEADER_RUNTIME_HOTFIX_V4_START -->
-<script>
-(function () {
-  if (document.body && document.body.classList.contains('pmd-admin-theme-v1')) return;
-  function setImp(el, prop, value) {
-    if (!el) return;
-    el.style.setProperty(prop, value, 'important');
-  }
+{{-- PMD GLOBAL SIDE MENU 2 AUTHORITY --}}
+@include('admin::_partials.pmd_side_menu2_global')
 
-  function rem(el, prop) {
-    if (!el) return;
-    el.style.removeProperty(prop);
-  }
+{{-- PMD_SIDEBAR_LANGUAGE_MARKET_TOGGLE_R2 --}}
+@php
+    $pmdMarketCode = strtoupper(trim(
+        (string)setting('pmd_market_country_code', 'DE')
+    ));
 
-  function applyHeaderHotfix() {
-    const vw = window.innerWidth;
-    const header = document.querySelector('.navbar-top');
-    if (!header) return;
+    $pmdMarketProfile =
+        (new \App\Services\Platform\CountryPlatformProfileRegistry())
+            ->profile($pmdMarketCode);
 
-    const sidebar = document.querySelector('.sidebar');
-    const navSidebar = document.querySelector('#navSidebar');
-    const sideNavMenu = document.querySelector('#side-nav-menu');
-    const toggler = header.querySelector('.navbar-toggler');
+    $pmdEligibleLocales = array_values(array_unique(array_filter(array_map(
+        static fn ($code) => strtolower(trim((string)$code)),
+        (array)($pmdMarketProfile['languages']['eligible'] ?? ['en'])
+    ))));
 
-    if (!sidebar || !navSidebar) return;
-
-    const content =
-      document.querySelector('.content') ||
-      document.querySelector('.main-content') ||
-      document.querySelector('.page-content') ||
-      document.querySelector('.content-wrapper') ||
-      document.querySelector('#page-wrapper');
-
-    // ---------- TABLET ----------
-    if (vw >= 768 && vw < 1200) {
-      [sidebar, navSidebar, sideNavMenu].forEach(el => {
-        if (!el) return;
-
-        // فقط چیزهایی که باعث مخفی/جابجا شدن می‌شوند
-        rem(el, 'background');
-        rem(el, 'background-color');
-        rem(el, 'background-image');
-        rem(el, 'border-right');
-        rem(el, 'box-shadow');
-        rem(el, 'color');
-        rem(el, 'border-top-right-radius');
-        rem(el, 'border-bottom-right-radius');
-        rem(el, 'border-radius');
-
-        setImp(el, 'display', 'block');
-        setImp(el, 'visibility', 'visible');
-        setImp(el, 'opacity', '1');
-        setImp(el, 'transform', 'none');
-        setImp(el, 'left', '0');
-        setImp(el, 'right', 'auto');
-      });
-
-      setImp(sidebar, 'position', 'fixed');
-      setImp(sidebar, 'top', '64px');
-      setImp(sidebar, 'height', 'calc(100vh - 64px)');
-      setImp(sidebar, 'overflow-y', 'auto');
-      setImp(sidebar, 'overflow-x', 'hidden');
-      setImp(sidebar, 'z-index', '1020');
-      setImp(sidebar, 'border-top-right-radius', '0');
-      setImp(sidebar, 'border-bottom-right-radius', '0');
-      setImp(sidebar, 'border-radius', '0');
-
-      setImp(navSidebar, 'position', 'relative');
-      setImp(navSidebar, 'top', '0');
-      setImp(navSidebar, 'height', '100%');
-      setImp(navSidebar, 'overflow', 'visible');
-      setImp(navSidebar, 'border-top-right-radius', '0');
-      setImp(navSidebar, 'border-bottom-right-radius', '0');
-      setImp(navSidebar, 'border-radius', '0');
-
-      navSidebar.classList.add('show');
-      navSidebar.classList.remove('collapse');
-
-      document.body.classList.add('sidebar-expanded');
-      document.body.classList.remove('sidebar-collapsed');
-
-      const sidebarWidth =
-        sidebar.getBoundingClientRect().width ||
-        parseFloat(getComputedStyle(sidebar).width) ||
-        230;
-
-      if (content && sidebarWidth > 0) {
-        setImp(content, 'margin-left', Math.round(sidebarWidth) + 'px');
-      }
-
-      if (toggler) {
-        setImp(toggler, 'display', 'none');
-      }
-    }
-
-    // ---------- MOBILE ----------
-    if (vw < 768) {
-      if (toggler) {
-        setImp(toggler, 'display', 'block');
-      }
-
-      if (content) {
-        rem(content, 'margin-left');
-      }
-
-      sidebar.style.removeProperty('position');
-      sidebar.style.removeProperty('top');
-      sidebar.style.removeProperty('height');
-      sidebar.style.removeProperty('overflow-y');
-      sidebar.style.removeProperty('overflow-x');
-      sidebar.style.removeProperty('z-index');
-      sidebar.style.removeProperty('border-top-right-radius');
-      sidebar.style.removeProperty('border-bottom-right-radius');
-      sidebar.style.removeProperty('border-radius');
-
-      navSidebar.style.removeProperty('position');
-      navSidebar.style.removeProperty('top');
-      navSidebar.style.removeProperty('height');
-      navSidebar.style.removeProperty('overflow');
-      navSidebar.style.removeProperty('border-top-right-radius');
-      navSidebar.style.removeProperty('border-bottom-right-radius');
-      navSidebar.style.removeProperty('border-radius');
-    }
-
-    // ---------- DESKTOP ----------
-    if (vw >= 1200) {
-      if (toggler) {
-        toggler.style.removeProperty('display');
-      }
-
-      if (content) {
-        rem(content, 'margin-left');
-      }
-
-      sidebar.style.removeProperty('border-top-right-radius');
-      sidebar.style.removeProperty('border-bottom-right-radius');
-      sidebar.style.removeProperty('border-radius');
-
-      navSidebar.style.removeProperty('border-top-right-radius');
-      navSidebar.style.removeProperty('border-bottom-right-radius');
-      navSidebar.style.removeProperty('border-radius');
-    }
-  }
-
-  function run() {
+    $pmdEnabledLocales = [];
     try {
-      applyHeaderHotfix();
-    } catch (e) {
-      console.error('HEADER_RUNTIME_HOTFIX_V4', e);
+        $pmdEnabledLocales = \Illuminate\Support\Facades\DB::connection('tenant')
+            ->table('languages')
+            ->whereIn('code', $pmdEligibleLocales)
+            ->where('status', 1)
+            ->pluck('code')
+            ->map(static fn ($code) => strtolower(trim((string)$code)))
+            ->values()
+            ->all();
+    } catch (\Throwable $ignored) {
+        $pmdEnabledLocales = [];
     }
-  }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', run);
-  } else {
-    run();
-  }
+    $pmdAvailableLocales = array_values(array_intersect(
+        $pmdEligibleLocales,
+        $pmdEnabledLocales
+    ));
 
-  window.addEventListener('load', run);
-  window.addEventListener('resize', run);
+    if (!$pmdAvailableLocales) {
+        $pmdAvailableLocales = $pmdEligibleLocales ?: ['en'];
+    }
 
-  setTimeout(run, 100);
-  setTimeout(run, 400);
-  setTimeout(run, 900);
-})();
-</script>
-<!-- HEADER_RUNTIME_HOTFIX_V4_END -->
-</div>
-</div>
+    $pmdCurrentLocale = strtolower(
+        (string)request()->cookie(
+            'pmd_admin_locale',
+            app()->getLocale()
+        )
+    );
+
+    if (!in_array($pmdCurrentLocale, $pmdAvailableLocales, true)) {
+        $pmdPreferredLocale = strtolower(trim(
+            (string)($pmdMarketProfile['languages']['default'] ?? 'en')
+        ));
+
+        $pmdCurrentLocale = in_array($pmdPreferredLocale, $pmdAvailableLocales, true)
+            ? $pmdPreferredLocale
+            : (string)$pmdAvailableLocales[0];
+    }
+
+    $pmdNextLocale = $pmdCurrentLocale;
+    foreach ($pmdAvailableLocales as $pmdCandidateLocale) {
+        if ($pmdCandidateLocale !== $pmdCurrentLocale) {
+            $pmdNextLocale = $pmdCandidateLocale;
+            break;
+        }
+    }
+
+    $pmdLanguageNames = [
+        'en' => 'English',
+        'de' => 'Deutsch',
+        'tr' => 'Türkçe',
+        'ar' => 'العربية',
+    ];
+
+    $pmdNextLanguageLabel =
+        $pmdLanguageNames[$pmdNextLocale]
+        ?? strtoupper($pmdNextLocale);
+
+    $pmdLanguageEndpoint = url(
+        config('system.adminUri', 'admin')
+        .'/_pmd/market-language-switch-r2'
+    );
+@endphp
 
 
-
-
-
-
-
-<!-- TOOLBAR_BUTTONS_RUNTIME_FIX_V1_START -->
-<!-- Disabled: toolbar button layout is now CSS-owned by pmd-admin/components/toolbar-buttons.css. -->
-<!-- TOOLBAR_BUTTONS_RUNTIME_FIX_V1_END -->
-
-<!-- TOOLBAR_BUTTONS_RUNTIME_FIX_V2_START -->
-<!-- Disabled: toolbar button layout is now CSS-owned by pmd-admin/components/toolbar-buttons.css. -->
-<!-- TOOLBAR_BUTTONS_RUNTIME_FIX_V2_END -->
-
-
-<!-- ORDER_HEADER_RUNTIME_FIX_V3_START -->
-<script>
+<!-- PMD_LANGUAGE_TRUE_FIRST_PAINT_V5 -->
+<script id="pmd-language-first-paint-state-v5">
 (function () {
+    'use strict';
 
-  function set(el, prop, value) {
-    if (!el) return;
-    el.style.setProperty(prop, value, 'important');
-  }
-
-  function fix() {
-    var root = document.querySelector('.order-info-header');
-    if (!root) return;
-
-    set(root, 'margin-top', '16px');
-    set(root, 'align-items', 'stretch');
-
-    var status = root.querySelector('.header-status-clickable');
-    if (status) {
-      set(status, 'display', 'inline-flex');
-      set(status, 'align-items', 'center');
-      set(status, 'justify-content', 'center');
-      set(status, 'gap', '8px');
-      set(status, 'height', '40px');
-      set(status, 'min-height', '40px');
-      set(status, 'padding', '0 14px');
-      set(status, 'line-height', '1');
+    if (window.innerWidth <= 820) {
+        return;
     }
 
-    var assignee = root.querySelector('.header-assignee-clickable');
-    if (assignee) {
-      set(assignee, 'display', 'inline-flex');
-      set(assignee, 'align-items', 'center');
-      set(assignee, 'justify-content', 'center');
-      set(assignee, 'min-height', '40px');
-      set(assignee, 'padding', '0 14px');
-      set(assignee, 'line-height', '1');
+    var state = 'collapsed';
+
+    try {
+        state =
+            localStorage.getItem(
+                'pmd.sideMenu2.state'
+            ) === 'expanded'
+                ? 'expanded'
+                : 'collapsed';
+    } catch (error) {
+        state = 'collapsed';
     }
 
-    root.querySelectorAll('.invoice-icon-btn, .send-invoice-icon-btn, .note-icon-btn').forEach(function(btn){
-      set(btn, 'display', 'inline-flex');
-      set(btn, 'align-items', 'center');
-      set(btn, 'justify-content', 'center');
-      set(btn, 'width', '40px');
-      set(btn, 'height', '40px');
-      set(btn, 'min-width', '40px');
-      set(btn, 'min-height', '40px');
-      set(btn, 'padding', '0');
-      set(btn, 'line-height', '1');
-    });
+    var html =
+        document.documentElement;
 
-    root.querySelectorAll('.header-status-clickable i, .invoice-icon-btn i, .send-invoice-icon-btn i, .note-icon-btn i').forEach(function(icon){
-      set(icon, 'display', 'inline-flex');
-      set(icon, 'align-items', 'center');
-      set(icon, 'justify-content', 'center');
-      set(icon, 'width', '1em');
-      set(icon, 'height', '1em');
-      set(icon, 'line-height', '1');
-      set(icon, 'margin', '0');
-      set(icon, 'padding', '0');
-    });
-  }
+    html.classList.toggle(
+        'pmd-sm2-expanded',
+        state === 'expanded'
+    );
 
-  function run() {
-    try { fix(); } catch(e) { console.error('ORDER_HEADER_FIX_V3', e); }
-  }
-
-  // اجرا چند مرحله‌ای (خیلی مهم)
-  window.addEventListener('load', function(){
-    setTimeout(run, 200);
-    setTimeout(run, 800);
-    setTimeout(run, 1500);
-    setTimeout(run, 3000);
-  });
-
-  // اگر JS های دیگر خراب کردند، دوباره اصلاح کن
-  var observer = new MutationObserver(function(){
-    run();
-  });
-
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
-
+    html.classList.toggle(
+        'pmd-sm2-collapsed',
+        state !== 'expanded'
+    );
 })();
 </script>
-<!-- ORDER_HEADER_RUNTIME_FIX_V3_END -->
+
+<style id="pmd-language-first-paint-css-v5">
+#pmd-sidebar-language {
+    position: fixed;
+    left: 18px;
+    bottom: 88px;
+    z-index: 99999;
+    font-family: inherit;
+}
+
+#pmd-sidebar-language,
+#pmd-sidebar-language * {
+    box-sizing: border-box;
+}
+
+#pmd-language-trigger {
+    width: 52px;
+    height: 46px;
+
+    padding: 0 7px;
+
+    border: 0;
+    border-radius: 14px;
+
+    background: rgba(255,255,255,.11);
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 4px;
+
+    cursor: pointer;
+
+    font-family: inherit;
+
+    transition:
+        background .15s ease,
+        transform .15s ease,
+        width .18s ease;
+}
+
+#pmd-language-trigger:hover {
+    background: rgba(255,255,255,.18);
+}
+
+#pmd-language-trigger:active {
+    transform: scale(.97);
+}
+
+.pmd-language-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+
+    color: #ffffff;
+
+    flex: 0 0 auto;
+}
+
+.pmd-language-icon svg {
+    display: block;
+
+    width: 22px;
+    height: 22px;
+
+    stroke: currentColor;
+}
+
+.pmd-language-label {
+    display: none;
+
+    flex: 1;
+
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    text-align: left;
+}
+
+.pmd-current-language {
+    min-width: 27px;
+
+    padding: 4px 5px;
+
+    border-radius: 8px;
+
+    background: #fff;
+    color: #07594c;
+
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 900;
+
+    text-align: center;
+}
+
+#pmd-sidebar-language.is-wide
+#pmd-language-trigger {
+    width: 142px;
+
+    padding: 0 13px;
+
+    justify-content: flex-start;
+
+    gap: 9px;
+}
+
+#pmd-sidebar-language.is-wide
+.pmd-language-label {
+    display: block;
+}
+
+#pmd-sidebar-language.is-loading
+#pmd-language-trigger {
+    opacity: .55;
+    pointer-events: none;
+}
+
+@media (max-width: 820px) {
+    #pmd-sidebar-language {
+        bottom: 82px;
+    }
+}
+
+html.pmd-sm2-collapsed #pmd-sidebar-language {
+    overflow: visible !important;
+}
+
+html.pmd-sm2-collapsed #pmd-language-trigger {
+    position: relative !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    height: 46px !important;
+
+    padding: 0 !important;
+
+    display: block !important;
+
+    overflow: visible !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    position: absolute !important;
+
+    left: 50% !important;
+    top: 50% !important;
+
+    width: 24px !important;
+    height: 24px !important;
+
+    margin: 0 !important;
+
+    transform:
+        translate(-50%, -50%) !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon svg {
+    width: 22px !important;
+    height: 22px !important;
+
+    margin: 0 !important;
+
+    display: block !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-current-language {
+    position: absolute !important;
+
+    left: calc(100% - 2px) !important;
+    top: 50% !important;
+
+    margin: 0 !important;
+
+    transform:
+        translateY(-50%) !important;
+
+    z-index: 2 !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-label {
+    display: none !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    left: calc(50% - 4px) !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language {
+    transform: none !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    left: 50% !important;
+}
+
+html:not(.pmd-sm2-runtime-ready)
+#pmd-sidebar-language,
+html:not(.pmd-sm2-runtime-ready)
+#pmd-language-trigger,
+html:not(.pmd-sm2-runtime-ready)
+#pmd-language-trigger * {
+    transition: none !important;
+    animation: none !important;
+}
+
+/* ============================================================
+   PMD_LANGUAGE_SERVER_GEOMETRY_FINAL_V7
+
+   pmd-language-first-paint-state-v5 already reads the stored
+   sidebar state before this markup is parsed.
+
+   Therefore expanded/collapsed HTML classes are the first-paint
+   geometry authority. Runtime may observe state, but may not
+   reposition or resize this control after paint.
+   ============================================================ */
+
+#pmd-sidebar-language {
+    left: 18px !important;
+    transform: none !important;
+}
+
+html.pmd-sm2-collapsed #pmd-sidebar-language {
+    left: 18px !important;
+    transform: none !important;
+}
+
+html.pmd-sm2-expanded #pmd-sidebar-language {
+    left: 20px !important;
+    transform: none !important;
+}
+
+html.pmd-sm2-collapsed #pmd-language-trigger {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    padding: 0 !important;
+
+    display: block !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-label {
+    display: none !important;
+}
+
+html.pmd-sm2-expanded #pmd-language-trigger {
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+
+    padding: 0 13px !important;
+
+    display: flex !important;
+    justify-content: flex-start !important;
+
+    gap: 9px !important;
+}
+
+html.pmd-sm2-expanded
+#pmd-language-trigger
+.pmd-language-label {
+    display: block !important;
+}
+
+html.pmd-sm2-expanded
+#pmd-language-trigger
+.pmd-language-icon {
+    position: static !important;
+
+    width: 24px !important;
+    height: 24px !important;
+
+    margin: 0 !important;
+
+    transform: none !important;
+}
+
+html.pmd-sm2-expanded
+#pmd-language-trigger
+.pmd-current-language {
+    position: static !important;
+
+    margin: 0 !important;
+
+    transform: none !important;
+}
+
+/* Runtime class is allowed to exist but has no geometry authority. */
+html.pmd-sm2-collapsed
+#pmd-sidebar-language.is-wide
+#pmd-language-trigger {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+}
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language:not(.is-wide)
+#pmd-language-trigger {
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+}
+
+</style>
+
+<style id="pmd-language-exact-center-v8">
+/*
+ * PMD_LANGUAGE_EXACT_CENTER_V8
+ *
+ * Canonical desktop Side Menu geometry:
+ *   left gap  = 14px
+ *   collapsed = 72px
+ *   expanded  = 160px
+ *
+ * Language:
+ *   collapsed = 52px -> left = 14 + 10 = 24px
+ *   expanded  = 142px -> left = 14 + 21 = 35px
+ *
+ * No runtime measurement and no post-paint correction.
+ */
+@media (min-width: 821px) {
+    html.pmd-sm2-collapsed
+    #pmd-sidebar-language {
+        left:
+            calc(
+                var(--pmd-sm2-gap, 14px)
+                + 10px
+            ) !important;
+
+        transform: none !important;
+    }
+
+    html.pmd-sm2-expanded
+    #pmd-sidebar-language {
+        left:
+            calc(
+                var(--pmd-sm2-gap, 14px)
+                + 21px
+            ) !important;
+
+        transform: none !important;
+    }
+}
+</style>
+
+<!-- /PMD_LANGUAGE_TRUE_FIRST_PAINT_V5 -->
+
+<div
+    id="pmd-sidebar-language"
+    data-endpoint="{{ $pmdLanguageEndpoint }}"
+    data-current="{{ $pmdCurrentLocale }}"
+    data-next="{{ $pmdNextLocale }}"
+    data-pmd-language-v13
+>
+    <button
+        type="button"
+        id="pmd-language-trigger"
+        aria-label="Switch language to {{ strtoupper($pmdNextLocale) }}"
+        title="Switch to {{ $pmdNextLanguageLabel }}"
+    >
+        <span
+            class="pmd-language-v13__collapsed-code"
+            aria-hidden="true"
+        >
+            {{ strtoupper($pmdNextLocale) }}
+        </span>
+
+        <span
+            class="pmd-language-v13__expanded-icon"
+            aria-hidden="true"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                ></circle>
+
+                <path
+                    d="M3 12h18"
+                ></path>
+
+                <path
+                    d="M12 3a15 15 0 0 1 0 18"
+                ></path>
+
+                <path
+                    d="M12 3a15 15 0 0 0 0 18"
+                ></path>
+            </svg>
+        </span>
+
+        <span
+            class="pmd-language-v13__expanded-label"
+        >
+            {{ $pmdNextLanguageLabel }}
+        </span>
+    </button>
+</div>
+
+<style>
+#pmd-sidebar-language {
+    position: fixed;
+    left: 18px;
+    bottom: 88px;
+    z-index: 99999;
+    font-family: inherit;
+}
+
+#pmd-sidebar-language,
+#pmd-sidebar-language * {
+    box-sizing: border-box;
+}
+
+#pmd-language-trigger {
+    width: 52px;
+    height: 46px;
+
+    padding: 0 7px;
+
+    border: 0;
+    border-radius: 14px;
+
+    background: rgba(255,255,255,.11);
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 4px;
+
+    cursor: pointer;
+
+    font-family: inherit;
+
+    transition:
+        background .15s ease,
+        transform .15s ease,
+        width .18s ease;
+}
+
+#pmd-language-trigger:hover {
+    background: rgba(255,255,255,.18);
+}
+
+#pmd-language-trigger:active {
+    transform: scale(.97);
+}
+
+.pmd-language-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+
+    color: #ffffff;
+
+    flex: 0 0 auto;
+}
+
+.pmd-language-icon svg {
+    display: block;
+
+    width: 22px;
+    height: 22px;
+
+    stroke: currentColor;
+}
+
+.pmd-language-label {
+    display: none;
+
+    flex: 1;
+
+    color: #fff;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    text-align: left;
+}
+
+.pmd-current-language {
+    min-width: 27px;
+
+    padding: 4px 5px;
+
+    border-radius: 8px;
+
+    background: #fff;
+    color: #07594c;
+
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 900;
+
+    text-align: center;
+}
+
+#pmd-sidebar-language.is-wide
+#pmd-language-trigger {
+    width: 142px;
+
+    padding: 0 13px;
+
+    justify-content: flex-start;
+
+    gap: 9px;
+}
+
+#pmd-sidebar-language.is-wide
+.pmd-language-label {
+    display: block;
+}
+
+#pmd-sidebar-language.is-loading
+#pmd-language-trigger {
+    opacity: .55;
+    pointer-events: none;
+}
+
+@media (max-width: 820px) {
+    #pmd-sidebar-language {
+        bottom: 82px;
+    }
+}
+</style>
+
+<script>
+/*
+ * PMD_LANGUAGE_DIRECT_TOGGLE_STABLE_20260807
+ *
+ * One click:
+ *
+ * DE -> EN
+ * EN -> DE
+ *
+ * No popup.
+ */
+(function () {
+    'use strict';
+
+    function bootLanguageToggle() {
+        var root =
+            document.getElementById(
+                'pmd-sidebar-language'
+            );
+
+        var trigger =
+            document.getElementById(
+                'pmd-language-trigger'
+            );
+
+        if (
+            !root
+            || !trigger
+            || root.dataset.stableReady === '1'
+        ) {
+            return;
+        }
+
+        root.dataset.stableReady = '1';
+
+        var endpoint =
+            root.getAttribute(
+                'data-endpoint'
+            );
+
+        var nextLocale =
+            String(
+                root.getAttribute(
+                    'data-next'
+                ) || ''
+            )
+            .trim()
+            .toLowerCase();
+
+        function csrfToken() {
+            var meta =
+                document.querySelector(
+                    'meta[name="csrf-token"]'
+                );
+
+            if (
+                meta
+                && meta.getAttribute(
+                    'content'
+                )
+            ) {
+                return meta.getAttribute(
+                    'content'
+                );
+            }
+
+            var hidden =
+                document.querySelector(
+                    'input[name="_token"]'
+                );
+
+            return hidden
+                ? hidden.value
+                : '';
+        }
+
+        function syncWidth() {
+            /*
+             * Side Menu 2 html classes own state/geometry.
+             *
+             * Remove any stale legacy runtime state only.
+             * NO DOM width measurement.
+             * NO inline left write.
+             */
+            root.classList.remove(
+                'is-wide'
+            );
+
+            root.style.removeProperty(
+                'left'
+            );
+        }
+
+        syncWidth();
+
+        window.addEventListener(
+            'resize',
+            syncWidth,
+            { passive: true }
+        );
+
+        document.addEventListener(
+            'pmd:side-menu2-state',
+            syncWidth
+        );
+
+        trigger.addEventListener(
+            'click',
+            async function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (
+                    root.classList.contains(
+                        'is-loading'
+                    )
+                ) {
+                    return;
+                }
+
+                if (
+                    !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/.test(nextLocale)
+                ) {
+                    console.error(
+                        '[PMD Language] Invalid next locale',
+                        nextLocale
+                    );
+
+                    return;
+                }
+
+                root.classList.add(
+                    'is-loading'
+                );
+
+                try {
+                    var body =
+                        new URLSearchParams();
+
+                    body.set(
+                        'code',
+                        nextLocale
+                    );
+
+                    var token =
+                        csrfToken();
+
+                    if (token) {
+                        body.set(
+                            '_token',
+                            token
+                        );
+                    }
+
+                    var headers = {
+                        'Content-Type':
+                            'application/x-www-form-urlencoded; charset=UTF-8',
+
+                        'X-Requested-With':
+                            'XMLHttpRequest',
+
+                        'Accept':
+                            'application/json'
+                    };
+
+                    if (token) {
+                        headers[
+                            'X-CSRF-TOKEN'
+                        ] = token;
+                    }
+
+                    var response =
+                        await fetch(
+                            endpoint,
+                            {
+                                method: 'POST',
+                                credentials:
+                                    'same-origin',
+                                cache:
+                                    'no-store',
+                                headers:
+                                    headers,
+                                body:
+                                    body.toString()
+                            }
+                        );
+
+                    var raw =
+                        await response.text();
+
+                    var data = {};
+
+                    try {
+                        data =
+                            raw
+                                ? JSON.parse(raw)
+                                : {};
+                    } catch (ignore) {}
+
+                    if (
+                        !response.ok
+                        || !data.ok
+                    ) {
+                        throw new Error(
+                            data.message
+                            || (
+                                'Language switch failed: HTTP '
+                                + response.status
+                            )
+                        );
+                    }
+
+                    /*
+                     * Cookie is written by backend.
+                     * Hard navigation guarantees every page-level
+                     * translation authority starts in new locale.
+                     */
+                    window.location.href =
+                        window.location.pathname
+                        + window.location.search
+                        + window.location.hash;
+                } catch (error) {
+                    root.classList.remove(
+                        'is-loading'
+                    );
+
+                    console.error(
+                        '[PMD Language Toggle]',
+                        error
+                    );
+                }
+            }
+        );
+    }
+
+    if (
+        document.readyState ===
+        'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            bootLanguageToggle,
+            { once: true }
+        );
+    } else {
+        bootLanguageToggle();
+    }
+})();
+</script>
+{{-- PMD_TURKISH_ADMIN_I18N_R3_LOADER --}}
+<script src="/app/admin/assets/js/pmd-admin-i18n-tr-v1.js?v=20260831-r3"></script>
+{{-- PMD_SIDEBAR_LANGUAGE_DIRECT_TOGGLE_20260807_END --}}
 
 
-<!-- ICON_BUTTON_FIX_V1_START -->
-<!-- Disabled: toolbar button layout is now CSS-owned by pmd-admin/components/toolbar-buttons.css. -->
-<!-- ICON_BUTTON_FIX_V1_END -->
 
 
-<!-- TOOLBAR_STABILIZER_V1_START -->
-<!-- Disabled: toolbar button layout is now CSS-owned by pmd-admin/components/toolbar-buttons.css. -->
-<!-- TOOLBAR_STABILIZER_V1_END -->
+<style>
+/*
+ * PMD_LANGUAGE_COLLAPSED_CENTER_ALIGNMENT_20260807
+ *
+ * Language icon follows the same centered geometry as every
+ * other collapsed Side Menu icon.
+ *
+ * The DE/EN badge floats outside and does not participate in
+ * centering the globe.
+ */
+
+html.pmd-sm2-collapsed #pmd-sidebar-language {
+    overflow: visible !important;
+}
+
+html.pmd-sm2-collapsed #pmd-language-trigger {
+    position: relative !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    height: 46px !important;
+
+    padding: 0 !important;
+
+    display: block !important;
+
+    overflow: visible !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    position: absolute !important;
+
+    left: 50% !important;
+    top: 50% !important;
+
+    width: 24px !important;
+    height: 24px !important;
+
+    margin: 0 !important;
+
+    transform:
+        translate(-50%, -50%) !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon svg {
+    width: 22px !important;
+    height: 22px !important;
+
+    margin: 0 !important;
+
+    display: block !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-current-language {
+    position: absolute !important;
+
+    left: calc(100% - 2px) !important;
+    top: 50% !important;
+
+    margin: 0 !important;
+
+    transform:
+        translateY(-50%) !important;
+
+    z-index: 2 !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-label {
+    display: none !important;
+}
+</style>
 
 
-<!-- TOOLBAR_STABILIZER_V2_START -->
-<!-- Disabled: toolbar button layout is now CSS-owned by pmd-admin/components/toolbar-buttons.css. -->
-<!-- TOOLBAR_STABILIZER_V2_END -->
+<style>
+/*
+ * PMD_LANGUAGE_COLLAPSED_ICON_LEFT_NUDGE_20260807
+ *
+ * Optical alignment only.
+ * Does not change language behaviour.
+ */
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    left: calc(50% - 4px) !important;
+}
+</style>
 
+
+<style>
+/*
+ * PMD_LANGUAGE_WHOLE_CONTROL_ALIGN_20260807
+ *
+ * Move the complete collapsed language control:
+ * frame + icon + badge.
+ *
+ * Undo previous icon-only optical nudge.
+ */
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language {
+    transform: none !important;
+}
+
+html.pmd-sm2-collapsed
+#pmd-language-trigger
+.pmd-language-icon {
+    left: 50% !important;
+}
+</style>
+
+
+{{-- PMD_LANGUAGE_TEXT_ONLY_GLOBAL_V3_3 --}}
+<style id="pmd-language-text-only-global-v3-3">
+#pmd-sidebar-language #pmd-language-trigger .pmd-language-icon,
+#pmd-sidebar-language #pmd-language-trigger .pmd-language-label {
+  display: none !important;
+  visibility: hidden !important;
+}
+#pmd-sidebar-language #pmd-language-trigger,
+#pmd-sidebar-language.is-wide #pmd-language-trigger,
+html.pmd-sm2-collapsed #pmd-sidebar-language #pmd-language-trigger,
+html.pmd-sm2-expanded #pmd-sidebar-language #pmd-language-trigger {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 52px !important;
+  min-width: 52px !important;
+  max-width: 52px !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+#pmd-sidebar-language #pmd-language-trigger .pmd-current-language,
+html.pmd-sm2-collapsed #pmd-sidebar-language #pmd-language-trigger .pmd-current-language,
+html.pmd-sm2-expanded #pmd-sidebar-language #pmd-language-trigger .pmd-current-language {
+  position: static !important;
+  inset: auto !important;
+  display: inline !important;
+  min-width: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  transform: none !important;
+}
+</style>
+
+<!-- PMD_LANGUAGE_EXPANDED_LABEL_V13_START -->
+<style id="pmd-language-expanded-label-v13">
+/*
+ * PMD_LANGUAGE_EXPANDED_LABEL_V13
+ *
+ * Consolidated existing V13 authority.
+ *
+ * COLLAPSED:
+ *   DE / EN only
+ *
+ * EXPANDED:
+ *   Globe + Deutsch / English
+ *
+ * The icon and label are explicitly positioned on ONE row,
+ * therefore legacy flex/block rules cannot stack them.
+ */
+
+#pmd-sidebar-language[data-pmd-language-v13] {
+    position: fixed !important;
+
+    left: 24px !important;
+    bottom: 88px !important;
+
+    z-index: 99999 !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    box-sizing: border-box !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+#pmd-sidebar-language[data-pmd-language-v13]
+#pmd-language-trigger {
+    position: relative !important;
+
+    display: block !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: 0 !important;
+    border-radius: 14px !important;
+
+    background:
+        rgba(255,255,255,.11)
+        !important;
+
+    color: #fff !important;
+
+    box-shadow: none !important;
+
+    overflow: visible !important;
+
+    transform: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   Legacy language children must not compete with V13.
+   ---------------------------------------------------------- */
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-label,
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-current-language {
+    display: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   COLLAPSED CODE
+   ---------------------------------------------------------- */
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__collapsed-code {
+    position: absolute !important;
+
+    inset: 0 !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    width: 52px !important;
+    height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #fff !important;
+
+    font-family: inherit !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+
+    text-align: center !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+
+/* Expanded children hidden by default. */
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-icon,
+
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-label {
+    display: none !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXPANDED ROOT
+   ---------------------------------------------------------- */
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13] {
+    left: 24px !important;
+
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+
+    height: 46px !important;
+}
+
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+#pmd-language-trigger {
+    width: 142px !important;
+    min-width: 142px !important;
+    max-width: 142px !important;
+
+    height: 46px !important;
+
+    background: transparent !important;
+
+    border-radius: 13px !important;
+}
+
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+#pmd-language-trigger:hover {
+    background:
+        rgba(255,255,255,.09)
+        !important;
+}
+
+
+/* Hide DE / EN code while Side Menu is expanded. */
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__collapsed-code {
+    display: none !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXPANDED ICON
+   X = 10
+   Y = centered inside 46px
+   ---------------------------------------------------------- */
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-icon {
+    position: absolute !important;
+
+    left: 10px !important;
+    top: 12px !important;
+
+    display: grid !important;
+    place-items: center !important;
+
+    width: 22px !important;
+    min-width: 22px !important;
+    max-width: 22px !important;
+
+    height: 22px !important;
+    min-height: 22px !important;
+    max-height: 22px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #fff !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    transform: none !important;
+}
+
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-icon
+svg {
+    display: block !important;
+
+    width: 22px !important;
+    height: 22px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    fill: none !important;
+
+    stroke: currentColor !important;
+
+    transform: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXPANDED LABEL
+   Starts immediately beside Globe.
+   SAME vertical center.
+   ---------------------------------------------------------- */
+
+html.pmd-sm2-expanded
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-label {
+    position: absolute !important;
+
+    left: 42px !important;
+    right: 0 !important;
+
+    top: 0 !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+    justify-content: flex-start !important;
+
+    height: 46px !important;
+    min-height: 46px !important;
+    max-height: 46px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    color: #fff !important;
+
+    font-family: inherit !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+
+    text-align: left !important;
+    white-space: nowrap !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    transform: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   EXPLICIT COLLAPSED STATE
+   Beats stale legacy states/classes.
+   ---------------------------------------------------------- */
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13] {
+    left: 24px !important;
+
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    height: 46px !important;
+}
+
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13]
+#pmd-language-trigger {
+    width: 52px !important;
+    min-width: 52px !important;
+    max-width: 52px !important;
+
+    height: 46px !important;
+
+    background:
+        rgba(255,255,255,.11)
+        !important;
+}
+
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__collapsed-code {
+    display: grid !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-icon,
+
+html.pmd-sm2-collapsed
+#pmd-sidebar-language[data-pmd-language-v13]
+.pmd-language-v13__expanded-label {
+    display: none !important;
+
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+
+@media (max-width: 820px) {
+    #pmd-sidebar-language[data-pmd-language-v13] {
+        bottom: 82px !important;
+    }
+}
+</style>
+<!-- PMD_LANGUAGE_EXPANDED_LABEL_V13_END -->

@@ -1,0 +1,354 @@
+<?php
+
+namespace App\Services\Platform;
+
+/**
+ * PMD_COUNTRY_PLATFORM_PROFILE_R1
+ *
+ * Country is a platform context, not a payment-only flag.
+ *
+ * Each restaurant/location resolves one country profile that can drive:
+ * - timezone/date behaviour
+ * - currency/minor-unit rules
+ * - language eligibility/defaults
+ * - payment provider + method catalogue
+ * - terminal/provider availability
+ * - future regional product settings
+ *
+ * IMPORTANT:
+ * - A profile describes product eligibility, not merchant activation.
+ * - Business opening hours, taxes and legal/fiscal configuration remain explicit
+ *   restaurant settings and are never guessed from country alone.
+ */
+final class CountryPlatformProfileRegistry
+{
+    public const VERSION = '1.3.0';
+    public const CANADA = 'CA';
+    public const GERMANY = 'DE';
+    public const OMAN = 'OM';
+    public const TURKEY = 'TR';
+
+    public function profiles(): array
+    {
+        return [
+            self::GERMANY => [
+                'country_code' => 'DE',
+                'country_iso3' => 'DEU',
+                'country_name' => 'Germany',
+                'calling_code' => '+49',
+                'timezone' => 'Europe/Berlin',
+                'week_start' => 'monday',
+                'date_format_hint' => 'DD.MM.YYYY',
+                'currency' => [
+                    'code' => 'EUR',
+                    'minor_exponent' => 2,
+                ],
+                'languages' => [
+                    'default' => 'de',
+                    'fallback' => 'en',
+                    'eligible' => ['de', 'en'],
+                    'locale_tags' => ['de-DE', 'en-DE'],
+                ],
+                'operations' => [
+                    'business_hours_policy' => 'location_owned',
+                    'reservation_timezone' => 'Europe/Berlin',
+                    'reporting_timezone' => 'Europe/Berlin',
+                    'tax_policy' => 'restaurant_configured',
+                ],
+                'payments' => [
+                    'currency' => 'EUR',
+                    'providers' => [
+                        'stripe' => ['online' => true, 'terminal' => false],
+                        'paypal' => ['online' => true, 'terminal' => false],
+                        'sumup' => ['online' => true, 'terminal' => true],
+                        'vr_payment' => ['online' => true, 'terminal' => true],
+                        'worldline' => ['online' => 'catalogue', 'terminal' => false],
+                    ],
+                    'methods' => [
+                        'de_card' => $this->method('de_card', 'Cards (Germany)', 'card', ['stripe', 'sumup', 'vr_payment', 'worldline']),
+                        'de_apple_pay' => $this->method('de_apple_pay', 'Apple Pay (Germany)', 'apple_pay', ['stripe', 'sumup', 'vr_payment']),
+                        'de_google_pay' => $this->method('de_google_pay', 'Google Pay (Germany)', 'google_pay', ['stripe', 'sumup', 'vr_payment']),
+                        'de_wero' => $this->method('de_wero', 'Wero (Germany)', 'wero', ['worldline', 'vr_payment']),
+                        'de_paypal' => $this->method('de_paypal', 'PayPal (Germany)', 'paypal', ['paypal', 'stripe', 'vr_payment']),
+                        'de_cash' => $this->method('de_cash', 'Cash (Germany)', 'cash', []),
+                    ],
+                ],
+                'terminals' => [
+                    'providers' => [
+                        'sumup' => ['pmd_remote_runtime' => true, 'status' => 'implemented'],
+                        'vr_payment' => ['pmd_remote_runtime' => true, 'status' => 'implemented'],
+                        'worldline' => ['pmd_remote_runtime' => false, 'status' => 'not_certified'],
+                    ],
+                ],
+            ],
+
+            self::CANADA => [
+                'country_code' => 'CA',
+                'country_iso3' => 'CAN',
+                'country_name' => 'Canada',
+                'calling_code' => '+1',
+                'timezone' => 'America/Toronto',
+                'week_start' => 'sunday',
+                'date_format_hint' => 'YYYY-MM-DD',
+                'currency' => [
+                    'code' => 'CAD',
+                    'minor_exponent' => 2,
+                ],
+                'languages' => [
+                    'default' => 'en',
+                    'fallback' => 'en',
+                    'eligible' => ['en'],
+                    'locale_tags' => ['en-CA'],
+                ],
+                'operations' => [
+                    'business_hours_policy' => 'location_owned',
+                    'reservation_timezone' => 'America/Toronto',
+                    'reporting_timezone' => 'America/Toronto',
+                    'tax_policy' => 'restaurant_configured',
+                ],
+                'payments' => [
+                    'currency' => 'CAD',
+                    'providers' => [
+                        'square' => [
+                            'online' => true,
+                            'terminal' => true,
+                            'status' => 'implemented_canada_runtime',
+                        ],
+                    ],
+                    'methods' => [
+                        'ca_card' => $this->method('ca_card', 'Cards (Canada)', 'card', ['square']),
+                        'ca_apple_pay' => $this->method('ca_apple_pay', 'Apple Pay (Canada)', 'apple_pay', ['square']),
+                        'ca_google_pay' => $this->method('ca_google_pay', 'Google Pay (Canada)', 'google_pay', ['square']),
+                        'ca_cash' => $this->method('ca_cash', 'Cash (Canada)', 'cash', []),
+                    ],
+                ],
+                'terminals' => [
+                    'providers' => [
+                        'square' => [
+                            'pmd_remote_runtime' => true,
+                            'status' => 'implemented_sandbox_ready_live_device_validation_pending',
+                        ],
+                    ],
+                ],
+            ],
+
+            self::TURKEY => [
+                'country_code' => 'TR',
+                'country_iso3' => 'TUR',
+                'country_name' => 'Türkiye',
+                'calling_code' => '+90',
+                'timezone' => 'Europe/Istanbul',
+                'week_start' => 'monday',
+                'date_format_hint' => 'DD.MM.YYYY',
+                'currency' => [
+                    'code' => 'TRY',
+                    'minor_exponent' => 2,
+                ],
+                'languages' => [
+                    'default' => 'tr',
+                    'fallback' => 'en',
+                    'eligible' => ['tr', 'en'],
+                    'locale_tags' => ['tr-TR', 'en-TR'],
+                ],
+                'operations' => [
+                    'business_hours_policy' => 'location_owned',
+                    'reservation_timezone' => 'Europe/Istanbul',
+                    'reporting_timezone' => 'Europe/Istanbul',
+                    'tax_policy' => 'restaurant_configured',
+                    'fiscal_modes' => ['yn_okc', 'gmoebys'],
+                ],
+                // Türkiye now has a real provider/method catalogue, but every new
+                // row stays disabled until the merchant's UAT/contract/fiscal
+                // approvals are recorded. Catalogue eligibility is NOT activation.
+                'payments' => [
+                    'currency' => 'TRY',
+                    'providers' => [
+                        'isbank' => [
+                            'online' => true,
+                            'terminal' => true,
+                            'softpos' => 'merchant_and_fiscal_topology_restricted',
+                            'fast_request' => true,
+                            'tr_qr' => true,
+                            'payment_facilitator' => true,
+                            'status' => 'uat_api_foundation_ready_subscription_and_merchant_activation_required',
+                        ],
+                    ],
+                    'methods' => [
+                        'tr_card' => $this->method('tr_card', 'Cards (Türkiye)', 'card', ['isbank'], 'card', ['TROY', 'Visa', 'Mastercard', 'American Express', 'UnionPay', 'JCB']),
+                        'tr_fast_request' => $this->method('tr_fast_request', 'FAST Ödeme İste', 'fast_request', ['isbank']),
+                        'tr_tr_qr' => $this->method('tr_tr_qr', 'TR Karekod / FAST QR', 'tr_qr_fast', ['isbank']),
+                        'tr_ispay' => $this->method('tr_ispay', 'İş\'le Öde', 'ispay', ['isbank']),
+                        'tr_cash' => $this->method('tr_cash', 'Cash (Türkiye)', 'cash', []),
+                    ],
+                ],
+                'terminals' => [
+                    'providers' => [
+                        // This code identifies the payment/terminal-management
+                        // provider, NOT the hardware manufacturer. Manufacturer
+                        // and model remain independent terminal metadata.
+                        'isbank' => [
+                            'kind' => 'bank_payment_application_and_terminal_management',
+                            'device_manufacturer_independent' => true,
+                            'payment_facilitator_api' => true,
+                            'pmd_remote_runtime' => false,
+                            'status' => 'uat_subscription_device_contract_and_operation_paths_required',
+                        ],
+                    ],
+                    'acceptance_channels' => ['physical_terminal', 'softpos', 'online_checkout'],
+                    'fiscal_modes' => ['yn_okc', 'gmoebys'],
+                ],
+            ],
+
+            self::OMAN => [
+                'country_code' => 'OM',
+                'country_iso3' => 'OMN',
+                'country_name' => 'Oman',
+                'calling_code' => '+968',
+                'timezone' => 'Asia/Muscat',
+                'week_start' => 'sunday',
+                'date_format_hint' => 'DD/MM/YYYY',
+                'currency' => [
+                    'code' => 'OMR',
+                    'minor_exponent' => 3,
+                ],
+                'languages' => [
+                    'default' => 'en',
+                    'fallback' => 'en',
+                    'eligible' => ['en', 'ar'],
+                    'locale_tags' => ['en-OM', 'ar-OM'],
+                ],
+                'operations' => [
+                    'business_hours_policy' => 'location_owned',
+                    'reservation_timezone' => 'Asia/Muscat',
+                    'reporting_timezone' => 'Asia/Muscat',
+                    'tax_policy' => 'restaurant_configured',
+                ],
+                'payments' => [
+                    'currency' => 'OMR',
+                    'provider_region' => 'OMN',
+                    'providers' => [
+                        'paymob' => [
+                            'online' => true,
+                            'terminal_product' => true,
+                            'pmd_remote_terminal_runtime' => false,
+                            'status' => 'online_backend_ready_terminal_contract_pending',
+                        ],
+                    ],
+                    'methods' => [
+                        'om_card' => $this->method('om_card', 'Cards (Oman)', 'card', ['paymob'], 'card', ['Visa', 'Mastercard', 'American Express']),
+                        'om_omannet' => $this->method('om_omannet', 'OmanNet (Oman)', 'omannet', ['paymob'], 'omannet', ['OmanNet']),
+                        'om_apple_pay' => $this->method('om_apple_pay', 'Apple Pay (Oman)', 'apple_pay', ['paymob'], 'apple_pay', ['Apple Pay']),
+                        'om_google_pay' => $this->method('om_google_pay', 'Google Pay (Oman)', 'google_pay', ['paymob'], 'google_pay', ['Google Pay']),
+                        'om_cash' => $this->method('om_cash', 'Cash (Oman)', 'cash', []),
+                    ],
+                ],
+                'terminals' => [
+                    'providers' => [
+                        'paymob' => [
+                            'tap_to_pay_product' => true,
+                            'pmd_remote_runtime' => false,
+                            'status' => 'waiting_for_paymob_oman_ecr_terminal_contract',
+                            'requires' => [
+                                'POS/ECR or Cloud Terminal API documentation',
+                                'terminal discovery/provisioning contract',
+                                'remote charge and status contract',
+                                'refund/cancel contract',
+                                'test terminal or simulator',
+                                'certification requirements',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public function profile(?string $country): ?array
+    {
+        $code = $this->normalizeCountry($country);
+        return $code !== '' ? ($this->profiles()[$code] ?? null) : null;
+    }
+
+    public function requireProfile(string $country): array
+    {
+        $profile = $this->profile($country);
+        if (!$profile) {
+            throw new \InvalidArgumentException('Unsupported PayMyDine platform country: '.$country);
+        }
+        return $profile;
+    }
+
+    public function countryOptions(): array
+    {
+        $options = [];
+        foreach ($this->profiles() as $code => $profile) {
+            $options[$code] = (string)$profile['country_name'];
+        }
+        return $options;
+    }
+
+    /** Browser-safe summary for Superadmin create/edit previews. */
+    public function publicProfiles(): array
+    {
+        $result = [];
+        foreach ($this->profiles() as $code => $profile) {
+            $result[$code] = [
+                'country_code' => $code,
+                'country_name' => $profile['country_name'],
+                'timezone' => $profile['timezone'],
+                'currency' => $profile['currency'],
+                'languages' => $profile['languages'],
+                'payment_providers' => array_keys((array)$profile['payments']['providers']),
+                'payment_methods' => array_values(array_map(
+                    static fn (array $method): string => (string)$method['label'],
+                    (array)$profile['payments']['methods']
+                )),
+                'terminal_providers' => (array)$profile['terminals']['providers'],
+            ];
+        }
+        return $result;
+    }
+
+    public function normalizeCountry(?string $country): string
+    {
+        $raw = trim((string)$country);
+        $value = function_exists('mb_strtoupper')
+            ? mb_strtoupper($raw, 'UTF-8')
+            : strtoupper($raw);
+        if ($value === '') return '';
+
+        return match ($value) {
+            'DE', 'DEU', 'GERMANY', 'DEUTSCHLAND' => self::GERMANY,
+            'OM', 'OMN', 'OMAN', 'SULTANATE OF OMAN' => self::OMAN,
+            'CA', 'CAN', 'CANADA' => self::CANADA,
+            'TR', 'TUR', 'TURKEY', 'TURKIYE', 'TÜRKİYE', 'TÜRKIYE' => self::TURKEY,
+            default => $value,
+        };
+    }
+
+    public function canonicalCountryName(string $country): string
+    {
+        $profile = $this->profile($country);
+        return $profile ? (string)$profile['country_name'] : trim($country);
+    }
+
+    private function method(
+        string $code,
+        string $label,
+        string $canonical,
+        array $providers,
+        ?string $paymobIntegrationKey = null,
+        array $brands = []
+    ): array {
+        return [
+            'code' => $code,
+            'label' => $label,
+            'canonical_method' => $canonical,
+            'provider_candidates' => array_values($providers),
+            'paymob_integration_key' => $paymobIntegrationKey,
+            'brands' => array_values($brands),
+            'requires_provider_activation' => $providers !== [],
+            'runtime_offerable' => false,
+        ];
+    }
+}

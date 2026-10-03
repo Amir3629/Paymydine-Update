@@ -1,0 +1,17 @@
+timestamp_utc=20260924T173429Z
+root=/var/www/paymydine
+checkout_head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=ae91533190b6e0165adabb87fda41f93e10ffe85
+pre_v1817_snapshot=04919ec9fb0a2bb54bf47c45f29014dbd505a9eb
+qpos_v92_source=87af917412b7d3e674d0cd8b663ecb89fe1bd6b2
+qpos_v94_source=53320eda20ce886802c26cbb536c6a808f785ab9
+php_v23_target=2456d150e632be756a3b268acce3a37895bbf4ec
+android_source=53320eda20ce886802c26cbb536c6a808f785ab9
+apk_sha256=ec9fed9224ee8206c40c57381f9c56b424f5fd9303acd0a7e739485181176e9b
+
+AM app/admin/assets/js/pmd-quick-pos-v1.js
+AM app/admin/views/pmd_quick_pos_v1.blade.php
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/Services/PmdMobileSync/PmdMobileBootstrapService.php
+?? app/Services/PmdMobileSync/PmdMobileCommandProcessor.php
+?? app/admin/assets/css/pmd-quick-pos-v1.css

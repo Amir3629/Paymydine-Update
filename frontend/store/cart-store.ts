@@ -2,6 +2,15 @@ import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import type { MenuItem } from "@/lib/data"
 
+// PMD_AUDIT_PHASE3_CART_QUANTITY_CAP
+export const PMD_CART_MAX_ITEM_QUANTITY = 20
+
+function pmdClampCartQuantity(value: unknown): number {
+  const quantity = Number(value)
+  if (!Number.isFinite(quantity)) return 0
+  return Math.max(0, Math.min(PMD_CART_MAX_ITEM_QUANTITY, Math.round(quantity)))
+}
+
 export type CartItem = {
   item: MenuItem
   quantity: number
@@ -41,7 +50,7 @@ export const useCartStore = create<CartState>()(
         set((state) => {
           const existingItem = state.items.find((cartItem) => cartItem.item.id === item.id)
           if (existingItem) {
-            const newQuantity = existingItem.quantity + quantity
+            const newQuantity = pmdClampCartQuantity(existingItem.quantity + quantity)
             // Remove item if quantity would be 0 or less
             if (newQuantity <= 0) {
               return {
@@ -56,9 +65,10 @@ export const useCartStore = create<CartState>()(
             }
           }
           // Only add new item if quantity is positive
-          if (quantity <= 0) return state
+          const safeQuantity = pmdClampCartQuantity(quantity)
+          if (safeQuantity <= 0) return state
           return { 
-            items: [...state.items, { item, quantity: quantity }] 
+            items: [...state.items, { item, quantity: safeQuantity }] 
           }
         }),
       removeFromCart: (item) =>
@@ -78,7 +88,7 @@ export const useCartStore = create<CartState>()(
       updateQuantity: (itemId, quantity) =>
         set((state) => ({
           items: state.items
-            .map((cartItem) => (cartItem.item.id === itemId ? { ...cartItem, quantity } : cartItem))
+            .map((cartItem) => (cartItem.item.id === itemId ? { ...cartItem, quantity: pmdClampCartQuantity(quantity) } : cartItem))
             .filter((cartItem) => cartItem.quantity > 0),
         })),
       clearCart: () => set({ items: [] }),

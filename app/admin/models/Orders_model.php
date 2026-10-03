@@ -50,6 +50,15 @@ class Orders_model extends Model
 
     protected $allowedFields = ['text'];
 
+    /**
+     * PMD_PERF_R3_ORDER_TABLE_LABEL_CACHE
+     *
+     * PHP-FPM request memory is discarded after the response, so this static
+     * map is request-local in production. Numeric order_type values previously
+     * executed one tables query per rendered order row.
+     */
+    protected static ?array $pmdTableDisplayMap = null;
+
 
     // Insert order data
     public function insertOrder($data)
@@ -307,15 +316,11 @@ class Orders_model extends Model
         }
 
         if (is_numeric($orderType)) {
-            $table = \DB::table('tables')->where('table_id', $orderType)->first();
-            if ($table) {
-                if (!empty($table->table_name)) {
-                    return $table->table_name;
-                }
+            $tableId = (int)$orderType;
+            $labels = static::pmdTableDisplayMap();
 
-                return (isset($table->table_no) && (int) $table->table_no === 0)
-                    ? 'Cashier'
-                    : 'Table '.((int) $table->table_no);
+            if (isset($labels[$tableId])) {
+                return $labels[$tableId];
             }
         }
 
@@ -334,6 +339,37 @@ class Orders_model extends Model
         return optional(
             $this->location->availableOrderTypes()->get($orderType)
         )->getLabel() ?: $orderType;
+    }
+
+    protected static function pmdTableDisplayMap(): array
+    {
+        if (static::$pmdTableDisplayMap !== null) {
+            return static::$pmdTableDisplayMap;
+        }
+
+        try {
+            static::$pmdTableDisplayMap = DB::table('tables')
+                ->get(['table_id', 'table_name', 'table_no'])
+                ->mapWithKeys(static function ($table) {
+                    $id = (int)($table->table_id ?? 0);
+                    if ($id < 1) {
+                        return [];
+                    }
+
+                    $name = trim((string)($table->table_name ?? ''));
+                    $number = (int)($table->table_no ?? 0);
+                    $label = $name !== ''
+                        ? $name
+                        : ($number === 0 ? 'Cashier' : 'Table '.$number);
+
+                    return [$id => $label];
+                })
+                ->all();
+        } catch (\Throwable $error) {
+            static::$pmdTableDisplayMap = [];
+        }
+
+        return static::$pmdTableDisplayMap;
     }
 
     public function getOrderDatetimeAttribute($value)

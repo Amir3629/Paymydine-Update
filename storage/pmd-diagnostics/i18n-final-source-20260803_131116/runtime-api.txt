@@ -1,0 +1,15 @@
+4:    if (window.PMDAdminI18n && window.PMDAdminI18n.version) {
+5:        window.PMDAdminI18n.run();
+11:    var catalogue = window.PMD_ADMIN_I18N_DE || {};
+25:        Object.keys(catalogue).forEach(function (source) {
+26:            var target = catalogue[source];
+39:    function translatePattern(value) {
+108:    function translateTextNode(node) {
+133:    function translateAttributes(element) {
+173:    function translateRoot(root) {
+213:            observer = new MutationObserver(function (mutations) {
+286:    window.PMDAdminI18n = {
+289:        entries: function () { return Object.keys(catalogue).length; },
+298:        revealTimer = window.setTimeout(reveal, 4000);
+312:        version: window.PMDAdminI18n.version,
+314:        entries: Object.keys(catalogue).length,

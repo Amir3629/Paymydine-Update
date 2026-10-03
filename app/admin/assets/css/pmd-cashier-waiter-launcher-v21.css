@@ -1,0 +1,101 @@
+@import url("/app/admin/assets/css/pmd-cashier-waiter-launcher-v21-base.css?v=20260822-r1");
+
+/* ==========================================================
+   PMD CASHIER QUICK V2.4 — PAYMENT HIT-TEST + SHARP UI AUTHORITY
+   Base V2.1/V2.2 rules are imported above unchanged.
+   ========================================================== */
+@media (max-width: 767px) {
+  body.pmd-cashier-waiter-host-v21 [data-v2-pos-layer]:not([hidden]) {
+    pointer-events: auto !important;
+  }
+
+  body.pmd-cashier-waiter-host-v21 [data-v2-pos-host],
+  body.pmd-cashier-waiter-host-v21 [data-pmd-pos-root] {
+    pointer-events: auto !important;
+  }
+
+  body.pmd-cashier-waiter-host-v21 [data-v2-pos-loading].is-hidden,
+  body.pmd-cashier-waiter-host-v21 [data-v2-pos-loading][hidden] {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  /* Payment owns the hit-test stack while it is open. */
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-modal.is-show {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 2147483500 !important;
+  }
+
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-modal.is-show,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-modal.is-show *,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog input,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog select,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog textarea,
+  body.pmd-cashier-waiter-host-v21 [data-split-mode],
+  body.pmd-cashier-waiter-host-v21 [data-pos-method],
+  body.pmd-cashier-waiter-host-v21 [data-pos-equal-minus],
+  body.pmd-cashier-waiter-host-v21 [data-pos-equal-plus],
+  body.pmd-cashier-waiter-host-v21 [data-tip-percent],
+  body.pmd-cashier-waiter-host-v21 [data-pos-pay-button],
+  body.pmd-cashier-waiter-host-v21 [data-pos-coupon-apply],
+  body.pmd-cashier-waiter-host-v21 [data-pos-payment-close],
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+  }
+
+  /* Sharp Cashier Quick geometry: payment controls and the four command keys. */
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__checks-card,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__checks-card button,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__check,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__money span,
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__note,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-dialog,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-head,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-block,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-summary,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-balance,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-split-tabs,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-split-tabs button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-method-grid button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-tip-buttons button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-input,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-pay-button,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-payment-secondary,
+  body.pmd-cashier-waiter-host-v21 .pmd-pos-coupon-row button {
+    border-radius: 0 !important;
+  }
+
+  /* V2.2 emits data-cql-v22-*; old styling targeted the obsolete V2.1 names. */
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button[data-cql-v22-note] {
+    border-color: #b7791f !important;
+    background: #f59e0b !important;
+    color: #111827 !important;
+  }
+
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button[data-cql-v22-pos-pay] {
+    border-color: #0369a1 !important;
+    background: #0284c7 !important;
+    color: #fff !important;
+  }
+
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button[data-cql-v22-free] {
+    border-color: #15803d !important;
+    background: #16a34a !important;
+    color: #fff !important;
+  }
+
+  body.pmd-cashier-waiter-host-v21 .pmd-cql-v22__pos-header button[data-cql-v22-back] {
+    border-color: #991b1b !important;
+    background: #dc2626 !important;
+    color: #fff !important;
+  }
+}

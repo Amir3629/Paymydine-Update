@@ -20,6 +20,15 @@ type PendingSettlementSummary = {
   remainingAmount: number
 } | null
 
+// PMD_AUDIT_PHASE2_SAFE_TABLE_PARAM
+function normalizeTableLookupParam(value: string | null): string | null {
+  const cleaned = String(value || "").trim()
+  if (!cleaned || cleaned === "undefined" || cleaned === "null") return null
+  // Keep QR/table lookup stable and avoid malformed table params causing client exceptions.
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(cleaned)) return null
+  return cleaned
+}
+
 export function useMenuLoader({
   searchParams,
   apiMenuItems,
@@ -121,10 +130,16 @@ export function useMenuLoader({
           }
         }
 
-        const table_id = searchParams.get("table_id")
-        const table_no = searchParams.get("table_no")
+        const table_id = normalizeTableLookupParam(searchParams.get("table_id"))
+        const table_no = normalizeTableLookupParam(searchParams.get("table_no"))
+        const legacy_table = normalizeTableLookupParam(searchParams.get("table"))
         const qr = searchParams.get("qr")
-        const tableParam = table_no || table_id
+        const rawTableParam = searchParams.get("table_no") || searchParams.get("table_id") || searchParams.get("table")
+        const tableParam = table_no || table_id || legacy_table
+
+        if (rawTableParam && !tableParam) {
+          console.warn("[PMD] Ignoring malformed table parameter", { rawTableParam })
+        }
 
         if (tableParam) {
           try {
@@ -211,6 +226,37 @@ export function useMenuLoader({
                   setPaymentModalOpen(false)
                 }
               }
+            } else if (
+              tableResult.code === "table_disabled" ||
+              tableResult.table_disabled === true
+            ) {
+              // PMD_TABLE_ENABLE_DISABLE_R40
+              // Clear any cached/previous guest menu immediately. A disabled
+              // physical table is not a valid customer ordering context.
+              const disabledTableInfo = {
+                ...(tableResult.data || {}),
+                table_id: String(tableResult.data?.table_id ?? table_id ?? tableParam),
+                table_no:
+                  tableResult.data?.table_no != null
+                    ? Number(tableResult.data.table_no)
+                    : (table_no != null ? Number(table_no) : undefined),
+                table_name: String(tableResult.data?.table_name ?? ""),
+                table_disabled: true,
+                disabled: true,
+              }
+
+              setTableInfoState(disabledTableInfo)
+              setTableInfo(disabledTableInfo)
+              setApiMenuItems([])
+              setDynamicCategories([])
+              clearCart()
+              setExistingOrderId(null)
+              setPendingSettlementSummary(null)
+              setLocalOpenOrder(null)
+              setHasLocalOpenOrder(false)
+              setPaymentModalOpen(false)
+              hydratedPendingOrderRef.current = null
+              return
             }
           } catch (error) {
             console.error("Failed to fetch table info:", error)

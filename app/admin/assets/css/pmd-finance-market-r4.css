@@ -1,0 +1,32 @@
+/*
+ * PMD_FINANCE_MARKET_R4_FIRST_PAINT
+ *
+ * Provider/method fallback HTML still comes from the legacy Finance page. Hide
+ * dynamic market-owned content until LocationPlatformContext has resolved and
+ * the market bridge has rendered the correct tenant catalogue. This prevents an
+ * Oman tenant from flashing Germany/global providers or Fiskaly content before
+ * JavaScript settles.
+ */
+body.pmd-finance-settings-page:not(.pmd-finance-market-r4-ready):not(.pmd-finance-market-r4-failed)
+#payment-providers .pmd-owner-card__body,
+body.pmd-finance-settings-page:not(.pmd-finance-market-r4-ready):not(.pmd-finance-market-r4-failed)
+#payment-methods .pmd-owner-card__body,
+body.pmd-finance-settings-page:not(.pmd-finance-market-r4-ready):not(.pmd-finance-market-r4-failed)
+#fiskaly,
+body.pmd-finance-settings-page:not(.pmd-finance-market-r4-ready):not(.pmd-finance-market-r4-failed)
+.pmd-owner-setting-row:has(input[name="finance[invoice_show_fiskaly]"]) {
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+body.pmd-finance-settings-page.pmd-finance-market-r4-ready
+#payment-providers .pmd-owner-card__body,
+body.pmd-finance-settings-page.pmd-finance-market-r4-ready
+#payment-methods .pmd-owner-card__body,
+body.pmd-finance-settings-page.pmd-finance-market-r4-failed
+#payment-providers .pmd-owner-card__body,
+body.pmd-finance-settings-page.pmd-finance-market-r4-failed
+#payment-methods .pmd-owner-card__body {
+    visibility: visible !important;
+    opacity: 1 !important;
+}

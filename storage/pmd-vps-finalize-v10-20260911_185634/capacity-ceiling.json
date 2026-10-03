@@ -1,0 +1,88 @@
+{
+  "rows": [
+    {
+      "workload": "MIX",
+      "concurrency": 16,
+      "requests": 48,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 2314,
+      "p95_ms": 4166,
+      "max_ms": 4170,
+      "rps": 6.24,
+      "safe": true,
+      "sample_errors": []
+    },
+    {
+      "workload": "MIX",
+      "concurrency": 20,
+      "requests": 60,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 2559,
+      "p95_ms": 4735,
+      "max_ms": 4745,
+      "rps": 7.06,
+      "safe": true,
+      "sample_errors": []
+    },
+    {
+      "workload": "MIX",
+      "concurrency": 24,
+      "requests": 72,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 2365,
+      "p95_ms": 3988,
+      "max_ms": 4987,
+      "rps": 8.61,
+      "safe": true,
+      "sample_errors": []
+    },
+    {
+      "workload": "QR",
+      "concurrency": 20,
+      "requests": 60,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1777,
+      "p95_ms": 2149,
+      "max_ms": 2262,
+      "rps": 10.36,
+      "safe": true,
+      "sample_errors": []
+    },
+    {
+      "workload": "QR",
+      "concurrency": 24,
+      "requests": 72,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1878,
+      "p95_ms": 2255,
+      "max_ms": 2380,
+      "rps": 11.99,
+      "safe": true,
+      "sample_errors": []
+    },
+    {
+      "workload": "QR",
+      "concurrency": 32,
+      "requests": 96,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 2355,
+      "p95_ms": 2599,
+      "max_ms": 2751,
+      "rps": 12.92,
+      "safe": true,
+      "sample_errors": []
+    }
+  ]
+}

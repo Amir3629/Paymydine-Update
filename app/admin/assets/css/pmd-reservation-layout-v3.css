@@ -1,0 +1,1626 @@
+/* =========================================================
+   PMD RESERVATION LAYOUT V3
+   Existing style + KPI + reservation carousel + floor plan
+   ========================================================= */
+
+body.pmd-res-v3-active {
+  overflow: hidden !important;
+}
+
+body.pmd-res-v3-active .pmd-res-v3-hidden {
+  display: none !important;
+}
+
+#pmd-res-v3-workspace {
+  --rv3-bg: #f7f9fa;
+  --rv3-panel: #ffffff;
+  --rv3-line: #d6e5ea;
+  --rv3-line-strong: #b9d4df;
+  --rv3-text: #102638;
+  --rv3-muted: #6d8194;
+  --rv3-green: #007f68;
+  --rv3-green-soft: #e4f7f1;
+  --rv3-blue: #3590cf;
+  --rv3-blue-soft: #e3f3fd;
+  --rv3-gold: #cf9800;
+  --rv3-gold-soft: #fff3c5;
+
+  position: fixed;
+  inset: 40px 0 0 110px;
+  z-index: 450;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--rv3-bg);
+  color: var(--rv3-text);
+  font-family: inherit;
+}
+
+#pmd-res-v3-workspace *,
+#pmd-res-v3-workspace *::before,
+#pmd-res-v3-workspace *::after {
+  box-sizing: border-box;
+}
+
+.pmd-res-v3-header {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--rv3-line);
+  background: #fff;
+}
+
+.pmd-res-v3-heading strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.pmd-res-v3-heading span {
+  display: block;
+  margin-top: 3px;
+  color: var(--rv3-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.pmd-res-v3-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pmd-res-v3-header-actions button,
+.pmd-res-v3-header-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--rv3-line-strong);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--rv3-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pmd-res-v3-header-actions a {
+  border-color: var(--rv3-green);
+  background: var(--rv3-green);
+  color: #fff;
+}
+
+.pmd-res-v3-content {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px 20px 18px;
+  overflow: hidden;
+}
+
+.pmd-res-v3-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pmd-res-v3-kpi {
+  position: relative;
+  min-width: 0;
+  min-height: 112px;
+  padding: 22px 24px;
+  overflow: hidden;
+  border: 1px solid #b9dded;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.pmd-res-v3-kpi-label {
+  display: block;
+  color: #6e8498;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.pmd-res-v3-kpi-value {
+  display: block;
+  margin-top: 8px;
+  color: var(--rv3-text);
+  font-size: 27px;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.pmd-res-v3-kpi-icon {
+  position: absolute;
+  top: 26px;
+  right: 24px;
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid #c5dedf;
+  border-radius: 14px;
+  background: #edf6f4;
+  color: var(--rv3-green);
+  font-size: 19px;
+  font-weight: 950;
+}
+
+.pmd-res-v3-main {
+  display: grid;
+  grid-template-columns: 410px minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.pmd-res-v3-reservations,
+.pmd-res-v3-floor-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--rv3-line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.pmd-res-v3-reservations {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+.pmd-res-v3-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 58px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--rv3-line);
+}
+
+.pmd-res-v3-section-header strong {
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.pmd-res-v3-section-header span {
+  color: var(--rv3-muted);
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.pmd-res-v3-filter-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rv3-line);
+}
+
+.pmd-res-v3-search {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--rv3-line-strong);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--rv3-text);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.pmd-res-v3-filter-row button {
+  width: 42px;
+  min-height: 42px;
+  border: 1px solid var(--rv3-line-strong);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--rv3-text);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.pmd-res-v3-carousel-shell {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: #fbfcfd;
+}
+
+.pmd-res-v3-carousel {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.pmd-res-v3-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.pmd-res-v3-slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 14px;
+  overflow-y: auto;
+  scroll-snap-align: start;
+}
+
+.pmd-res-v3-card {
+  min-height: 100%;
+  padding: 18px;
+  border: 1px solid #bcddeb;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.pmd-res-v3-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pmd-res-v3-card-name {
+  min-width: 0;
+}
+
+.pmd-res-v3-card-name strong {
+  display: block;
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-res-v3-card-name span {
+  display: block;
+  margin-top: 5px;
+  color: var(--rv3-muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.pmd-res-v3-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 20px;
+  background: var(--rv3-green-soft);
+  color: var(--rv3-green);
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.pmd-res-v3-fields {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.pmd-res-v3-field {
+  padding: 11px 13px;
+  border: 1px solid #c7e2ee;
+  border-radius: 12px;
+  background: #f9fcfd;
+}
+
+.pmd-res-v3-field label {
+  display: block;
+  color: #6e8498;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pmd-res-v3-field strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--rv3-text);
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-res-v3-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pmd-res-v3-card-actions a,
+.pmd-res-v3-card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--rv3-green);
+  border-radius: 9px;
+  background: var(--rv3-green);
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.pmd-res-v3-carousel-nav {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 46px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--rv3-line);
+}
+
+.pmd-res-v3-carousel-nav button {
+  height: 40px;
+  border: 1px solid var(--rv3-line-strong);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--rv3-text);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.pmd-res-v3-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pmd-res-v3-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #c9d9df;
+}
+
+.pmd-res-v3-dot.is-active {
+  width: 20px;
+  border-radius: 8px;
+  background: var(--rv3-green);
+}
+
+.pmd-res-v3-empty {
+  display: grid;
+  height: 100%;
+  min-height: 250px;
+  place-items: center;
+  padding: 28px;
+  color: var(--rv3-muted);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.pmd-res-v3-floor-panel {
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr) 42px;
+}
+
+.pmd-res-v3-area-tabs {
+  display: flex;
+  min-width: 0;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--rv3-line);
+  scrollbar-width: none;
+}
+
+.pmd-res-v3-area-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pmd-res-v3-area-tabs button {
+  flex: 0 0 auto;
+  min-width: 95px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--rv3-muted);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.pmd-res-v3-area-tabs button.is-active {
+  border-bottom-color: var(--rv3-green);
+  color: var(--rv3-green);
+}
+
+.pmd-res-v3-floor-scroll {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background:
+    linear-gradient(#eaf0f2 1px, transparent 1px),
+    linear-gradient(90deg, #eaf0f2 1px, transparent 1px),
+    #fcfdfd;
+  background-size: 34px 34px;
+}
+
+.pmd-res-v3-floor-canvas {
+  position: relative;
+  width: 100%;
+  min-width: 830px;
+  height: 100%;
+  min-height: 630px;
+}
+
+.pmd-res-v3-table {
+  position: absolute;
+  display: grid;
+  width: 84px;
+  height: 84px;
+  place-items: center;
+  border: 2px solid #bdd0d8;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--rv3-text);
+  box-shadow: 0 3px 10px rgba(16,38,56,.05);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pmd-res-v3-table.is-round {
+  border-radius: 50%;
+}
+
+.pmd-res-v3-table.is-square {
+  transform: rotate(45deg);
+}
+
+.pmd-res-v3-table.is-square .pmd-res-v3-table-inner {
+  transform: rotate(-45deg);
+}
+
+.pmd-res-v3-table.is-reserved {
+  border-color: var(--rv3-blue);
+  background: var(--rv3-blue-soft);
+}
+
+.pmd-res-v3-table.is-selected {
+  border-color: var(--rv3-green);
+  background: var(--rv3-green-soft);
+  box-shadow: 0 0 0 5px rgba(0,127,104,.19);
+}
+
+.pmd-res-v3-table.is-due {
+  border-color: var(--rv3-gold);
+  background: var(--rv3-gold-soft);
+}
+
+.pmd-res-v3-table-number {
+  display: block;
+  font-size: 16px;
+  font-weight: 1000;
+}
+
+.pmd-res-v3-table-capacity {
+  display: block;
+  margin-top: 4px;
+  color: var(--rv3-muted);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.pmd-res-v3-table-label {
+  position: absolute;
+  left: 50%;
+  bottom: -28px;
+  max-width: 160px;
+  padding: 4px 7px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #343b40;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.pmd-res-v3-floor-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 14px;
+  border-top: 1px solid var(--rv3-line);
+  color: var(--rv3-muted);
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.pmd-res-v3-floor-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pmd-res-v3-floor-legend i {
+  width: 11px;
+  height: 11px;
+  border: 2px solid #bdd0d8;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.pmd-res-v3-floor-legend i.is-reserved {
+  border-color: var(--rv3-blue);
+  background: var(--rv3-blue-soft);
+}
+
+.pmd-res-v3-floor-legend i.is-selected {
+  border-color: var(--rv3-green);
+  background: var(--rv3-green-soft);
+}
+
+.pmd-res-v3-floor-legend i.is-due {
+  border-color: var(--rv3-gold);
+  background: var(--rv3-gold-soft);
+}
+
+@media (max-width: 1100px) {
+  #pmd-res-v3-workspace {
+    inset-left: 88px;
+  }
+
+  .pmd-res-v3-main {
+    grid-template-columns: 350px minmax(0, 1fr);
+  }
+
+  .pmd-res-v3-kpis {
+    gap: 9px;
+  }
+
+  .pmd-res-v3-kpi {
+    padding: 17px;
+  }
+}
+
+@media (max-width: 760px) {
+  body.pmd-res-v3-active {
+    overflow: auto !important;
+  }
+
+  #pmd-res-v3-workspace {
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+  }
+
+  .pmd-res-v3-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 8px 10px;
+  }
+
+  .pmd-res-v3-heading span {
+    display: none;
+  }
+
+  .pmd-res-v3-header-actions button {
+    display: none;
+  }
+
+  .pmd-res-v3-content {
+    overflow: visible;
+    padding: 10px;
+  }
+
+  .pmd-res-v3-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pmd-res-v3-kpi {
+    min-height: 96px;
+    padding: 16px;
+  }
+
+  .pmd-res-v3-kpi-icon {
+    top: 18px;
+    right: 16px;
+    width: 38px;
+    height: 38px;
+  }
+
+  .pmd-res-v3-main {
+    display: block;
+    overflow: visible;
+  }
+
+  .pmd-res-v3-reservations {
+    height: 570px;
+    margin-bottom: 12px;
+  }
+
+  .pmd-res-v3-floor-panel {
+    height: 680px;
+  }
+}
+
+/* V3 end */
+
+/* =========================================================
+   PMD RESERVATION LAYOUT V3.2
+   Shared dashboard floor + clean controls
+   ========================================================= */
+
+/* ---------- Real SVG icons ---------- */
+
+#pmd-res-v3-workspace svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.pmd-res-v3-header-actions button,
+.pmd-res-v3-header-actions a,
+.pmd-res-v3-card-actions a,
+.pmd-res-v32-create-for-table {
+  gap: 7px;
+}
+
+.pmd-res-v3-kpi-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.pmd-res-v3-carousel-nav button {
+  display: grid;
+  place-items: center;
+  padding: 0 !important;
+}
+
+.pmd-res-v3-carousel-nav button svg {
+  width: 21px;
+  height: 21px;
+}
+
+
+/* ---------- Fix broken reservation card text ---------- */
+
+.pmd-res-v3-card,
+.pmd-res-v3-card *,
+.pmd-res-v3-fields,
+.pmd-res-v3-field {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.pmd-res-v3-field strong {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.pmd-res-v3-card-name strong {
+  word-break: normal !important;
+}
+
+.pmd-res-v3-slide {
+  overflow-x: hidden !important;
+}
+
+
+/* ---------- Exact shared Dashboard Floor ---------- */
+
+.pmd-res-v3-floor-panel {
+  position: relative;
+  display: block !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+
+.pmd-res-v3-floor-panel
+.pmd-owner-floor-v60--reservation {
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  display: grid !important;
+  grid-template-rows:
+    auto
+    minmax(0, 1fr)
+    auto !important;
+  border: 0 !important;
+  border-radius: 17px !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  background: #fff !important;
+}
+
+.pmd-owner-floor-v60--reservation
+.pmd-owner-floor-v60__head {
+  min-height: 66px !important;
+  padding: 0 18px !important;
+  border-bottom: 1px solid #d6e5ea !important;
+}
+
+.pmd-owner-floor-v60--reservation
+.pmd-owner-floor-v60__title {
+  font-size: 17px !important;
+  font-weight: 950 !important;
+}
+
+.pmd-owner-floor-v60--reservation
+.pmd-owner-floor-v60__actions:empty {
+  display: none !important;
+}
+
+.pmd-owner-floor-v60--reservation
+.pmd-owner-floor-v60__surface {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 470px !important;
+  overflow: auto !important;
+}
+
+.pmd-owner-floor-v60--reservation
+.pmd-owner-floor-v60__status {
+  min-height: 34px !important;
+  padding: 8px 14px !important;
+}
+
+
+/* ---------- Reservation-only floor interaction ---------- */
+
+.pmd-owner-floor-v60--reservation
+.pmd-owner-floor-v60__table {
+  cursor: pointer !important;
+}
+
+.pmd-owner-floor-v60--reservation
+.pmd-owner-floor-v60__table.is-reservation-selected {
+  border-color: #007f68 !important;
+  background: #e4f7f1 !important;
+  color: #004f42 !important;
+  box-shadow:
+    0 0 0 5px rgba(0,127,104,.18) !important;
+}
+
+.pmd-res-v32-table-panel {
+  position: absolute;
+  top: 78px;
+  right: 16px;
+  z-index: 30;
+  width: min(360px, calc(100% - 32px));
+  max-height: calc(100% - 100px);
+  overflow: auto;
+  border: 1px solid #b9d4df;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow:
+    0 18px 45px rgba(16,38,56,.18);
+}
+
+.pmd-res-v32-table-panel[hidden] {
+  display: none !important;
+}
+
+.pmd-res-v32-table-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 15px;
+  border-bottom: 1px solid #d6e5ea;
+}
+
+.pmd-res-v32-table-panel-head small {
+  display: block;
+  color: #6d8194;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pmd-res-v32-table-panel-head strong {
+  display: block;
+  margin-top: 3px;
+  color: #102638;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.pmd-res-v32-table-panel-head button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #b9d4df;
+  border-radius: 9px;
+  background: #fff;
+  color: #102638;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.pmd-res-v32-table-panel-body {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.pmd-res-v32-table-reservation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #d6e5ea;
+  border-radius: 10px;
+  background: #f8fbfc;
+  color: #102638;
+  text-decoration: none;
+}
+
+.pmd-res-v32-table-reservation span {
+  min-width: 0;
+}
+
+.pmd-res-v32-table-reservation strong {
+  display: block;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-res-v32-table-reservation small {
+  display: block;
+  margin-top: 4px;
+  color: #6d8194;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.pmd-res-v32-table-reservation b {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 15px;
+  background: #e4f7f1;
+  color: #007f68;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.pmd-res-v32-no-reservation {
+  padding: 16px 12px;
+  color: #6d8194;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.pmd-res-v32-create-for-table {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin: 0 12px 12px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #007f68;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.pmd-res-v32-create-for-table svg {
+  width: 17px;
+  height: 17px;
+}
+
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 760px) {
+  .pmd-owner-floor-v60--reservation
+  .pmd-owner-floor-v60__surface {
+    min-height: 560px !important;
+  }
+
+  .pmd-res-v32-table-panel {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: max(
+      8px,
+      env(safe-area-inset-bottom)
+    );
+    width: auto;
+    max-height: 64vh;
+    border-radius: 15px;
+  }
+
+  .pmd-res-v3-header-actions a span {
+    display: none;
+  }
+
+  .pmd-res-v3-header-actions a {
+    width: 43px;
+    min-width: 43px;
+    padding: 0;
+  }
+}
+
+/* V3.2 end */
+
+/* =========================================================
+   PMD RESERVATION V3.3
+   Exact dashboardwaiter floor clone
+   ========================================================= */
+
+.pmd-res-v33-exact-waiter-floor {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 66px minmax(0, 1fr);
+  overflow: hidden;
+  background: #fff;
+}
+
+.pmd-res-v33-floor-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 0 18px;
+  border-bottom: 1px solid #d6e5ea;
+  background: #fff;
+}
+
+.pmd-res-v33-floor-head strong {
+  display: block;
+  color: #102638;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.pmd-res-v33-floor-head span {
+  display: block;
+  margin-top: 3px;
+  color: #6d8194;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.pmd-res-v33-floor-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid #b9d4df;
+  border-radius: 9px;
+  background: #fff;
+  color: #102638;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.pmd-res-v33-floor-head button span {
+  margin: 0;
+  color: inherit;
+}
+
+.pmd-res-v33-floor-viewport {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: #f7fafb;
+}
+
+/*
+ * Force the cloned waiter map into full expanded-map mode.
+ * Do not allow compact row styling.
+ */
+.pmd-res-v33-floor-viewport
+.pmd-w5-floor-map-real {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 900px !important;
+  height: 100% !important;
+  min-height: 620px !important;
+  max-height: none !important;
+  margin: 0 !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+
+/*
+ * Preserve exact percentage coordinates from dashboardwaiter.
+ */
+.pmd-res-v33-floor-viewport
+.pmd-w5-table[data-table] {
+  position: absolute !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.pmd-res-v33-floor-viewport
+.pmd-w5-table[data-table].is-reservation-selected {
+  z-index: 20 !important;
+  border-color: #007f68 !important;
+  background: #e4f7f1 !important;
+  color: #004f42 !important;
+  box-shadow:
+    0 0 0 6px rgba(0,127,104,.20) !important;
+}
+
+/* Remove compact/grid authority inherited from source styles. */
+.pmd-res-v33-floor-viewport
+.pmd-v40-compact-authority
+.pmd-w5-table[data-table],
+.pmd-res-v33-floor-viewport
+.pmd-w89-compact
+.pmd-w5-table[data-table] {
+  position: absolute !important;
+}
+
+/* ---------- Table reservation panel ---------- */
+
+.pmd-res-v33-table-panel {
+  position: absolute;
+  top: 82px;
+  right: 16px;
+  z-index: 100;
+  width: min(370px, calc(100% - 32px));
+  max-height: calc(100% - 100px);
+  overflow: auto;
+  border: 1px solid #b9d4df;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow:
+    0 20px 55px rgba(16,38,56,.20);
+}
+
+.pmd-res-v33-table-panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 15px;
+  border-bottom: 1px solid #d6e5ea;
+}
+
+.pmd-res-v33-table-panel header small {
+  display: block;
+  color: #6d8194;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pmd-res-v33-table-panel header strong {
+  display: block;
+  margin-top: 3px;
+  color: #102638;
+  font-size: 17px;
+  font-weight: 950;
+}
+
+.pmd-res-v33-table-panel header button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #b9d4df;
+  border-radius: 9px;
+  background: #fff;
+  color: #102638;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.pmd-res-v33-table-body {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.pmd-res-v33-reservation-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid #d6e5ea;
+  border-radius: 10px;
+  background: #f8fbfc;
+  color: #102638;
+  text-decoration: none;
+}
+
+.pmd-res-v33-reservation-row span {
+  min-width: 0;
+}
+
+.pmd-res-v33-reservation-row strong {
+  display: block;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-res-v33-reservation-row small {
+  display: block;
+  margin-top: 4px;
+  color: #6d8194;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.pmd-res-v33-reservation-row b {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border-radius: 14px;
+  background: #e4f7f1;
+  color: #007f68;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.pmd-res-v33-empty-table {
+  padding: 16px 10px;
+  color: #6d8194;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.pmd-res-v33-create {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 48px;
+  margin: 0 12px 12px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: #007f68;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+/* ---------- Fix carousel dots ---------- */
+
+.pmd-res-v3-dots {
+  gap: 7px !important;
+}
+
+.pmd-res-v3-dot {
+  display: block !important;
+  flex: 0 0 10px !important;
+  width: 10px !important;
+  min-width: 10px !important;
+  max-width: 10px !important;
+  height: 10px !important;
+  min-height: 10px !important;
+  max-height: 10px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: #c8dce4 !important;
+  box-shadow: none !important;
+  font-size: 0 !important;
+}
+
+.pmd-res-v3-dot.is-active {
+  flex-basis: 24px !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  background: #007f68 !important;
+}
+
+/* Remove the obsolete V3.2 owner-floor rules. */
+.pmd-res-v3-floor-panel
+.pmd-owner-floor-v60--reservation {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .pmd-res-v33-floor-head {
+    padding: 0 11px;
+  }
+
+  .pmd-res-v33-floor-head button span {
+    display: none;
+  }
+
+  .pmd-res-v33-floor-head button {
+    width: 42px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .pmd-res-v33-floor-viewport
+  .pmd-w5-floor-map-real {
+    min-width: 760px !important;
+    min-height: 620px !important;
+  }
+
+  .pmd-res-v33-table-panel {
+    position: fixed;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    bottom: max(
+      8px,
+      env(safe-area-inset-bottom)
+    );
+    width: auto;
+    max-height: 65vh;
+  }
+}
+
+/* V3.3 end */
+
+/* =========================================================
+   PMD RESERVATION V3.4
+   Dashboard2 final shared floor
+   ========================================================= */
+
+/* Dashboard2 final map must fill the available reservation panel. */
+.pmd-res-v33-floor-viewport
+.pmd-w5-floor-map-real[data-pmd-v159-full-floor="1"] {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 900px !important;
+  height: 100% !important;
+  min-height: 620px !important;
+  max-height: none !important;
+  overflow: visible !important;
+  margin: 0 !important;
+  background-color: #fff !important;
+}
+
+/*
+ * Preserve Dashboard2's percentage coordinates and exact
+ * saved table dimensions.
+ */
+.pmd-res-v33-floor-viewport
+.pmd-w5-floor-map-real[data-pmd-v159-full-floor="1"]
+.pmd-w5-table[data-table] {
+  position: absolute !important;
+  right: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  transform: translate(-50%, -50%) !important;
+  cursor: pointer !important;
+}
+
+/* Reservation page is read-only for floor layout. */
+.pmd-res-v33-floor-viewport
+.pmd-v191-floor-control-dock,
+.pmd-res-v33-floor-viewport
+.pmd-v191-control-reserve,
+.pmd-res-v33-floor-viewport
+[data-pmd-v191-control-dock],
+.pmd-res-v33-floor-viewport
+[data-pmd-v191-control-reserve],
+.pmd-res-v33-floor-viewport
+[data-w19-edit],
+.pmd-res-v33-floor-viewport
+[data-w19-save],
+.pmd-res-v33-floor-viewport
+[data-w19-merge],
+.pmd-res-v33-floor-viewport
+[data-w19-compact] {
+  display: none !important;
+}
+
+/* Do not let hidden status chips catch the click. */
+.pmd-res-v33-floor-viewport
+.pmd-v154-state-stack,
+.pmd-res-v33-floor-viewport
+.pmd-v154-state-stack * {
+  pointer-events: none !important;
+}
+
+/* Selected table indication without replacing its live status colour. */
+.pmd-res-v33-floor-viewport
+.pmd-w5-table[data-table].is-reservation-selected {
+  outline: 6px solid rgba(0, 127, 104, .28) !important;
+  outline-offset: 5px !important;
+  box-shadow:
+    0 0 0 2px #007f68,
+    0 12px 28px rgba(16, 38, 56, .22) !important;
+}
+
+/* Do not override the real Dashboard2 table status colours. */
+.pmd-res-v33-floor-viewport
+.pmd-w5-table[data-table].is-reservation-selected {
+  background-color: revert-layer !important;
+}
+
+/* Older cloned T1/T2/T3 map should never stay visible. */
+.pmd-res-v3-floor-panel
+.pmd-owner-floor-v60,
+.pmd-res-v3-floor-panel
+.pmd-owner-floor-v60--reservation {
+  display: none !important;
+}
+
+/* Remove layout buttons even if Dashboard2 inserts them late. */
+.pmd-res-v33-exact-waiter-floor
+.pmd-w19-tools,
+.pmd-res-v33-exact-waiter-floor
+.pmd-v191-floor-control-dock,
+.pmd-res-v33-exact-waiter-floor
+.pmd-v191-control-reserve {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .pmd-res-v33-floor-viewport
+  .pmd-w5-floor-map-real[data-pmd-v159-full-floor="1"] {
+    min-width: 820px !important;
+    min-height: 650px !important;
+  }
+}
+
+/* V3.4 end */
+
+/* =========================================================
+   PMD RESERVATION V3.6.2 — TABLE VISIBILITY RECOVERY
+   This affects only the cloned reservation floor.
+   ========================================================= */
+
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 520px !important;
+  overflow: auto !important;
+}
+
+/*
+ * The real dashboardwaiter map is already cloned with 20 tables.
+ * Keep the saved coordinate system and make the map visible.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport
+.pmd-w5-floor-map-real {
+  position: relative !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  width: max(100%, 1374px) !important;
+  min-width: 1374px !important;
+  height: 560px !important;
+  min-height: 560px !important;
+
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+/*
+ * Preserve each table's inline left/top/width/height.
+ * Only override rules that hide or collapse the cloned tiles.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table] {
+  position: absolute !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  min-width: 58px !important;
+  min-height: 48px !important;
+
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Ensure table contents are not hidden by copied kiosk rules. */
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport
+.pmd-w5-table[data-table]
+> * {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Reservation is read-only for floor editing. */
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport
+:is(
+  .pmd-v191-floor-control-dock,
+  .pmd-w19-tools,
+  [data-w19-edit],
+  [data-w19-save],
+  [data-w19-merge],
+  [data-w19-compact],
+  .pmd-v155-table-actions
+) {
+  display: none !important;
+}
+
+/* Remove the obsolete local and owner fallback maps. */
+#pmd-res-v3-workspace
+.pmd-res-v3-floor-panel
+:is(
+  .pmd-res-v3-area-tabs,
+  .pmd-res-v3-floor-scroll,
+  .pmd-res-v3-floor-legend,
+  .pmd-owner-floor-v60,
+  .pmd-owner-floor-v60--reservation
+) {
+  display: none !important;
+}
+
+/* No new global sidebar may affect the reservation workspace. */
+#pmd-res-v3-workspace {
+  left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* V3.6.2 end */
+
+/* =========================================================
+   PMD RESERVATION FLOOR V3.6.3
+   Correct source coordinates, reservation page only
+   ========================================================= */
+
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 520px !important;
+  overflow: auto !important;
+}
+
+/*
+ * Preserve the source floor's actual coordinate canvas.
+ * The source iframe now calculates this at 1600×900.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport
+.pmd-w5-floor-map-real {
+  position: relative !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  width: 100% !important;
+  min-width: 1000px !important;
+
+  height: 100% !important;
+  min-height: 620px !important;
+
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+/*
+ * Keep each table's cloned inline left/top values.
+ * Do not calculate or replace its coordinates here.
+ */
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table] {
+  position: absolute !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Remove editing and waiter-order controls from Reservations. */
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport
+:is(
+  .pmd-v191-floor-control-dock,
+  .pmd-v191-control-reserve,
+  .pmd-w19-tools,
+  [data-w19-edit],
+  [data-w19-save],
+  [data-w19-merge],
+  [data-w19-compact],
+  .pmd-v155-table-actions
+) {
+  display: none !important;
+}
+
+/* Hide source-only recovery messages. */
+#pmd-res-v3-workspace
+.pmd-res-v33-floor-viewport
+:is(
+  [data-pmd-v160-recovery-note],
+  .pmd-v160-recovery-note,
+  .pmd-floor-recovery-message
+) {
+  display: none !important;
+}
+
+/* V3.6.3 end */

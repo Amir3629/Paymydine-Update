@@ -23,6 +23,8 @@ class Reservations_model extends Model
     use Locationable;
     use Assignable;
 
+    public $skipAutoTableAllocation = false;
+
     /**
      * @var string The database table name
      */
@@ -102,7 +104,8 @@ class Reservations_model extends Model
             $this->addReservationTables((array)$this->attributes['tables']);
         }
 
-        if ($this->location->getOption('auto_allocate_table', 1) && !$this->tables()->count()) {
+        if (!$this->skipAutoTableAllocation
+            && $this->location->getOption('auto_allocate_table', 1) && !$this->tables()->count()) {
             $this->addReservationTables($this->getNextBookableTable()->pluck('table_id')->all());
         }
     }

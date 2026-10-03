@@ -1,0 +1,65 @@
+/* PMD Login Logo + Anti Old UI Flash v58 */
+
+/* Login page PMD logo */
+body.pg-auth .brand-logo,
+body.pg-auth .brand-logo.pb-5 {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding-bottom: 18px !important;
+  margin-bottom: 0 !important;
+  text-align: center !important;
+}
+
+body.pg-auth .brand-logo .logo-link {
+  width: 100% !important;
+  max-width: 320px !important;
+  min-height: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+body.pg-auth .brand-logo img.pmd-login-main-logo-v58,
+body.pg-auth .brand-logo .pmd-login-main-logo-v58,
+body.pg-auth .brand-logo img.pmd-login-main-logo {
+  width: min(100%, 270px) !important;
+  max-width: 270px !important;
+  max-height: 205px !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 auto !important;
+  transform: none !important;
+}
+
+/* hide any old/dark duplicate logo on login */
+body.pg-auth .brand-logo .logo-dark:not(.pmd-login-main-logo-v58),
+body.pg-auth .brand-logo img.logo-dark:not(.pmd-login-main-logo-v58) {
+  display: none !important;
+}
+
+/* Admin preboot shield support after inline critical CSS has loaded */
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .navbar-top,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 .page-wrapper {
+  visibility: hidden !important;
+}
+
+/* Strongly reduce first-second animation/flicker while theme pieces attach */
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1 *,
+html.pmd-ui-fouc-stabilizing-v58 body.page.pmd-admin-theme-v1 .sidebar,
+html.pmd-ui-fouc-stabilizing-v58 body.page.pmd-admin-theme-v1 #navSidebar,
+html.pmd-ui-fouc-stabilizing-v58 body.page.pmd-admin-theme-v1 #side-nav-menu,
+html.pmd-ui-fouc-stabilizing-v58 body.page.pmd-admin-theme-v1 .navbar-top,
+html.pmd-ui-fouc-stabilizing-v58 body.page.pmd-admin-theme-v1 .page-wrapper,
+html.pmd-ui-fouc-stabilizing-v58 body.page.pmd-admin-theme-v1 .pmd-dashboard-modern {
+  transition: none !important;
+  animation: none !important;
+}

@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOMAIN="${1:-}"
+ROOT="/var/www/paymydine"
+SOURCE_VHOST="/etc/nginx/sites-available/test.paymydine.com.conf"
+TARGET_VHOST="/etc/nginx/sites-available/${DOMAIN}.conf"
+ENABLED_VHOST="/etc/nginx/sites-enabled/${DOMAIN}.conf"
+EMAIL="admin@paymydine.com"
+SUPERADMIN_ORIGIN="https://paymydine.com"
+TMP_DIR="$(mktemp -d)"
+TEMP_HTTP="$TMP_DIR/http.conf"
+FINAL_VHOST="$TMP_DIR/final.conf"
+OLD_TARGET="$TMP_DIR/old-target.conf"
+HAD_TARGET=0
+HAD_LINK=0
+COMMITTED=0
+
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+cleanup() {
+  local rc=$?
+  if [[ "$COMMITTED" -ne 1 ]]; then
+    if [[ "$HAD_TARGET" -eq 1 ]]; then
+      install -o root -g root -m 0644 "$OLD_TARGET" "$TARGET_VHOST" || true
+    else
+      rm -f "$TARGET_VHOST" || true
+    fi
+
+    if [[ "$HAD_LINK" -eq 1 ]]; then
+      ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST" || true
+    else
+      rm -f "$ENABLED_VHOST" || true
+    fi
+
+    nginx -t >/dev/null 2>&1 && systemctl reload nginx >/dev/null 2>&1 || true
+  fi
+  rm -rf "$TMP_DIR"
+  exit "$rc"
+}
+trap cleanup EXIT
+
+[[ "$DOMAIN" =~ ^[a-z0-9-]+\.paymydine\.com$ ]] || fail "invalid tenant domain"
+[[ "$DOMAIN" != "www.paymydine.com" ]] || fail "reserved domain"
+[[ -d "$ROOT" ]] || fail "application root missing"
+[[ -f "$SOURCE_VHOST" ]] || fail "canonical test tenant vhost missing"
+command -v nginx >/dev/null 2>&1 || fail "nginx missing"
+command -v certbot >/dev/null 2>&1 || fail "certbot missing"
+command -v openssl >/dev/null 2>&1 || fail "openssl missing"
+command -v python3 >/dev/null 2>&1 || fail "python3 missing"
+
+if [[ -f "$TARGET_VHOST" ]]; then
+  cp -a "$TARGET_VHOST" "$OLD_TARGET"
+  HAD_TARGET=1
+fi
+if [[ -L "$ENABLED_VHOST" ]]; then
+  HAD_LINK=1
+fi
+
+cat > "$TEMP_HTTP" <<EOF
+# PMD_SUPERADMIN_R2_TEMP_ACME ${DOMAIN}
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${DOMAIN};
+    root ${ROOT};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root ${ROOT};
+        try_files \$uri =404;
+    }
+
+    location / {
+        return 302 https://\$host\$request_uri;
+    }
+}
+EOF
+
+install -o root -g root -m 0644 "$TEMP_HTTP" "$TARGET_VHOST"
+ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
+nginx -t
+systemctl reload nginx
+
+if [[ ! -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
+  certbot certonly \
+    --webroot \
+    -w "$ROOT" \
+    -d "$DOMAIN" \
+    --non-interactive \
+    --agree-tos \
+    --email "$EMAIL" \
+    --keep-until-expiring
+fi
+
+[[ -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]] || fail "certificate was not created"
+[[ -s "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ]] || fail "private key was not created"
+
+# Clone the audited test tenant vhost so PHP/Laravel/Next authorities remain
+# identical across tenants. Replace only the hostname/certificate authority.
+sed "s/test\.paymydine\.com/${DOMAIN}/g" "$SOURCE_VHOST" > "$FINAL_VHOST"
+
+# Super Admin is a central control plane. No tenant vhost may execute it.
+# Remove any inherited local /superadmin locations and replace them with a
+# method-preserving redirect to paymydine.com. 307 also keeps stale POST forms
+# safe during the R2 transition.
+python3 - "$FINAL_VHOST" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+text = path.read_text()
+
+patterns = [
+    r'(?ms)^\s*# PMD_SUPERADMIN_RECOVERY_R1\s*\n\s*location\s*=\s*/superadmin\s*\{.*?^\s*\}\s*',
+    r'(?ms)^\s*location\s*=\s*/superadmin\s*\{.*?^\s*\}\s*',
+    r'(?ms)^\s*location\s+\^~\s+/superadmin/\s*\{.*?^\s*\}\s*',
+]
+for pattern in patterns:
+    text = re.sub(pattern, '\n', text)
+
+needle = '    location ^~ /admin/ {'
+pos = text.find(needle)
+if pos < 0:
+    raise SystemExit('admin authority not found in generated tenant vhost')
+
+# Put the central redirect immediately before Admin authority for readability.
+redirect = '''    # PMD_SUPERADMIN_CENTRAL_REDIRECT_R2\n    location = /superadmin {\n        return 307 https://paymydine.com/superadmin;\n    }\n\n    location ^~ /superadmin/ {\n        return 307 https://paymydine.com$request_uri;\n    }\n\n'''
+text = text[:pos] + redirect + text[pos:]
+path.write_text(text)
+PY
+
+grep -q "server_name ${DOMAIN};" "$FINAL_VHOST" || fail "generated vhost server_name validation failed"
+grep -q "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "$FINAL_VHOST" || fail "generated certificate path validation failed"
+grep -q "location \^~ /admin/" "$FINAL_VHOST" || fail "generated vhost lost admin authority"
+grep -q "PMD_SUPERADMIN_CENTRAL_REDIRECT_R2" "$FINAL_VHOST" || fail "generated vhost lost central superadmin redirect"
+grep -Fq 'return 307 https://paymydine.com$request_uri;' "$FINAL_VHOST" || fail "generated vhost superadmin redirect is invalid"
+
+install -o root -g root -m 0644 "$FINAL_VHOST" "$TARGET_VHOST"
+ln -sfn "$TARGET_VHOST" "$ENABLED_VHOST"
+nginx -t
+systemctl reload nginx
+
+# Do not report READY merely because Certbot wrote a certificate. Nginx must
+# actually select THIS tenant server block and present THIS hostname on SNI.
+# A graceful reload can briefly leave old workers accepting connections, so
+# verify with bounded retries before activating the tenant.
+verify_presented_certificate() {
+  local attempt cert_text
+  for attempt in $(seq 1 15); do
+    cert_text="$(
+      echo | openssl s_client \
+        -connect 127.0.0.1:443 \
+        -servername "$DOMAIN" \
+        2>/dev/null \
+      | openssl x509 -noout -subject -ext subjectAltName 2>/dev/null \
+      || true
+    )"
+
+    if grep -Fq "DNS:${DOMAIN}" <<<"$cert_text"; then
+      echo "TLS_SNI_READY ${DOMAIN} attempt=${attempt}"
+      return 0
+    fi
+
+    sleep 1
+  done
+
+  echo "Presented certificate after reload:" >&2
+  echo "$cert_text" >&2
+  return 1
+}
+
+# Confirm the effective Nginx configuration has the exact hostname and then
+# confirm the runtime listener uses its matching certificate.
+nginx -T 2>/dev/null | grep -Fq "server_name ${DOMAIN};" || fail "effective nginx config does not contain exact tenant server_name"
+verify_presented_certificate || fail "nginx is not presenting the ${DOMAIN} certificate on SNI"
+
+COMMITTED=1
+echo "READY ${DOMAIN}"

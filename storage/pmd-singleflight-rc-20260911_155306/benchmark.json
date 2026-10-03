@@ -1,0 +1,52 @@
+{
+  "rows": [
+    {
+      "workload": "MIX",
+      "concurrency": 8,
+      "requests": 48,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1820,
+      "p95_ms": 3757,
+      "max_ms": 4663,
+      "rps": 3.47
+    },
+    {
+      "workload": "MIX",
+      "concurrency": 12,
+      "requests": 48,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 2121,
+      "p95_ms": 3614,
+      "max_ms": 3754,
+      "rps": 4.55
+    },
+    {
+      "workload": "QR",
+      "concurrency": 12,
+      "requests": 48,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1201,
+      "p95_ms": 1317,
+      "max_ms": 1393,
+      "rps": 9.72
+    },
+    {
+      "workload": "QR",
+      "concurrency": 16,
+      "requests": 64,
+      "bad": 0,
+      "5xx": 0,
+      "errors": 0,
+      "p50_ms": 1579,
+      "p95_ms": 1777,
+      "max_ms": 1837,
+      "rps": 10.18
+    }
+  ]
+}

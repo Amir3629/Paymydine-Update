@@ -1,0 +1,18 @@
+                // PMD_MOBILE_SHARED_DEVICE_REVOCATION_V2
+                // The Android row proves trusted restaurant DEVICE + location.
+                // The current human identity is independently bound to this
+                // Admin session by Staff Grant + session binding. Never compare
+                // the device row's historical pairer user_id to the current
+                // shared-tablet staff user.
+                $mobileDeviceValid = $mobileDeviceId > 0
+                    && DB::table('pmd_site_access_devices')
+                        ->where('id', $mobileDeviceId)
+                        ->where('location_id', $locationId)
+                        ->where('device_kind', 'staff_personal')
+                        ->whereNull('revoked_at')
+                        ->exists();
+            } catch (\Throwable $error) {
+                $mobileDeviceValid = false;
+            }
+
+            if (!$mobileDeviceValid) {

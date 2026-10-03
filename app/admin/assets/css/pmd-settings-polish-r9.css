@@ -1,0 +1,165 @@
+/* PMD_SETTINGS_POLISH_R9
+ * Final first-paint authority for the PayMyDine Settings tile.
+ *
+ * Goals:
+ * - exactly one visible PayMyDine label
+ * - no visible JS text swap / blink
+ * - same geometry as the other Settings cards
+ * - luxury black -> deep green surface
+ * - one canonical PayMyDine mark
+ */
+
+html body #pmd-settings-center #pmd-settings-brand {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-group__head h2 {
+  font-size: 0 !important;
+  line-height: 1.2 !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-group__head h2::before {
+  content: none !important;
+  display: none !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-group__head h2::after {
+  content: "PayMyDine" !important;
+  display: inline !important;
+  color: #112823 !important;
+  font-size: 19px !important;
+  line-height: 1.2 !important;
+  font-weight: 760 !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card {
+  display: grid !important;
+  grid-template-columns: 44px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 13px !important;
+  width: 100% !important;
+  min-height: 108px !important;
+  height: auto !important;
+  padding: 15px !important;
+  border: 1px solid rgba(112, 220, 160, .18) !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(
+      112deg,
+      #020403 0%,
+      #06100e 34%,
+      #081b17 67%,
+      #0b2f2a 100%
+    ) !important;
+  color: #fff !important;
+  box-shadow:
+    0 10px 26px rgba(2, 13, 11, .20),
+    0 4px 12px rgba(8, 58, 47, .08),
+    inset 0 1px 0 rgba(255, 255, 255, .035) !important;
+  text-decoration: none !important;
+  overflow: hidden !important;
+  transform: none !important;
+  pointer-events: none !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand
+.pmd-settings-card[data-pmd-paymydine-ready-r9="1"] {
+  pointer-events: auto !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card:hover,
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card:focus-visible {
+  transform: translateY(-2px) !important;
+  border-color: rgba(145, 244, 180, .32) !important;
+  background:
+    linear-gradient(
+      112deg,
+      #010302 0%,
+      #07120f 34%,
+      #09231e 67%,
+      #0d3a32 100%
+    ) !important;
+  box-shadow:
+    0 14px 32px rgba(2, 13, 11, .26),
+    0 6px 18px rgba(8, 72, 56, .12),
+    0 0 20px rgba(68, 214, 130, .06) !important;
+  outline: none !important;
+}
+
+/* One logo authority only. Kill the legacy inline SVG and R3 pseudo-mark. */
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__icon::before,
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__icon::after {
+  content: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  background: none !important;
+  background-image: none !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__icon > * {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__icon {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  background-image: url('/app/admin/assets/images/pmd-brand-mark.svg') !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 40px 40px !important;
+  box-shadow: none !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__body {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+/* Hide whatever legacy/server/JS text exists and render ONE stable label. */
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row strong {
+  font-size: 0 !important;
+  line-height: 1.25 !important;
+  color: transparent !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row strong::before {
+  content: none !important;
+  display: none !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__title-row strong::after {
+  content: "PayMyDine" !important;
+  display: inline !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  font-weight: 760 !important;
+  letter-spacing: -.01em !important;
+  white-space: nowrap !important;
+}
+
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__description,
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__arrow,
+html body #pmd-settings-center #pmd-settings-brand .pmd-settings-card__badge {
+  display: none !important;
+  visibility: hidden !important;
+}

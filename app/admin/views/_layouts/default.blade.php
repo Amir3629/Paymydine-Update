@@ -1,13 +1,691 @@
+{{-- PMD_PERF_R16_ROUTE_SCOPED_LEGACY_LAYOUT_LAYERS
+     Large historical Waiter/Reservations repair layers used to be emitted on
+     every Admin document and then self-aborted in JavaScript. Keep their exact
+     behavior, but let the server omit them from unrelated hot workspaces. --}}
+@php
+    $pmdR16RenderLegacyWaiterLayers =
+        request()->is('admin/dashboardwaiter*')
+        || request()->is('admin/reservations2*');
+
+    $pmdR16RenderDashboardReservationLayers =
+        request()->is('admin/reservations2*');
+@endphp
+
+{{-- PMD_ADMIN_TITLE_EARLY_AUTH_R84A
+     Authenticated Admin title must exist before the large
+     legacy Admin bootstrap begins.
+
+     Only the existing proven R82 title block moved.
+     No other HTML, CSS or JS ordering changed.
+     R83 response surgery remains retired.
+--}}
+{{-- PMD_ADMIN_TITLE_SERVER_FIRST_PAINT_R82
+         Browser tab branding must be correct in the original HTML.
+         Do not expose the legacy site_name/TastyIgniter first and
+         repair it later with JavaScript.
+
+         This is Admin-only. Public restaurant site naming is untouched.
+    --}}
+    @php
+        $pmdAdminDocumentBrandR82 = 'PayMyDine';
+        $pageTitle = trim(
+            (string)Template::getTitle()
+        );
+    @endphp
+
+    @if($pageTitle === '')
+        <title>{{ $pmdAdminDocumentBrandR82 }}</title>
+    @else
+        <title>{{ $pageTitle }}@lang('admin::lang.site_title_separator'){{ $pmdAdminDocumentBrandR82 }}</title>
+    @endif
+{{-- PMD_ADMIN_SERVER_NATIVE_URLS_R81E --}}
+<script id="pmd-admin-server-native-urls-r81e">
+(function () {
+    'use strict';
+
+    if (
+        window.PMDAdminCanonicalURLR81E
+    ) {
+        return;
+    }
+
+    var cleanToInternal = {
+        '/admin/ownerdashboard':
+            '/admin/dashboardlab',
+
+        '/admin/managerdashboard':
+            '/admin/managerlab',
+
+        '/admin/accountantdashboard':
+            '/admin/accountantlab',
+
+        '/admin/orders':
+            '/admin/cashierlab',
+
+        '/admin/reservations':
+            '/admin/reservationslab',
+
+        '/admin/menu':
+            '/admin/pmdmenus',
+
+        '/admin/settings':
+            '/admin/pmdsettings',
+
+        '/admin/settings/restaurant':
+            '/admin/pmdsettings/restaurant',
+
+        '/admin/settings/customer-menu':
+            '/admin/pmdsettings/frontend',
+
+        '/admin/settings/menu-checkout':
+            '/admin/pmdmenu',
+
+        '/admin/settings/customers':
+            '/admin/pmdcustomer',
+
+        '/admin/settings/team':
+            '/admin/pmdteam',
+
+        '/admin/settings/devices':
+            '/admin/pmddevices',
+
+        '/admin/settings/finance':
+            '/admin/pmdfinance',
+
+        '/admin/settings/brand':
+            '/admin/pmdbrand',
+
+        '/admin/settings/advanced':
+            '/admin/pmdadvanced',
+
+        '/admin/smartcategories':
+            '/admin/pmdsmartcategories',
+
+        '/admin/reports':
+            '/admin/pmdreports/sales',
+
+        '/admin/reports/tips':
+            '/admin/pmdreporttips',
+
+        '/admin/reports/channels':
+            '/admin/pmdreportchannels'
+    };
+
+    var internalToClean = {
+        '/admin/dashboardlab':
+            '/admin/ownerdashboard',
+
+        '/admin/managerlab':
+            '/admin/managerdashboard',
+
+        '/admin/accountantlab':
+            '/admin/accountantdashboard',
+
+        '/admin/cashierlab':
+            '/admin/orders',
+
+        '/admin/reservationslab':
+            '/admin/reservations',
+
+        '/admin/pmdmenus':
+            '/admin/menu',
+
+        '/admin/pmdsettings':
+            '/admin/settings',
+
+        '/admin/pmdsettings/restaurant':
+            '/admin/settings/restaurant',
+
+        '/admin/pmdsettings/frontend':
+            '/admin/settings/customer-menu',
+
+        '/admin/pmdmenu':
+            '/admin/settings/menu-checkout',
+
+        '/admin/pmdcustomer':
+            '/admin/settings/customers',
+
+        '/admin/pmdteam':
+            '/admin/settings/team',
+
+        '/admin/pmddevices':
+            '/admin/settings/devices',
+
+        '/admin/pmdfinance':
+            '/admin/settings/finance',
+
+        '/admin/pmdbrand':
+            '/admin/settings/brand',
+
+        '/admin/pmdadvanced':
+            '/admin/settings/advanced',
+
+        '/admin/pmdsmartcategories':
+            '/admin/smartcategories',
+
+        '/admin/pmdreports':
+            '/admin/reports/sales',
+
+        '/admin/pmdreporttips':
+            '/admin/reports/tips',
+
+        '/admin/pmdreportchannels':
+            '/admin/reports/channels'
+    };
+
+    function normalized(value) {
+        var path =
+            String(
+                value || ''
+            )
+            .split('?')[0]
+            .split('#')[0]
+            .replace(/\/+$/, '');
+
+        return path || '/';
+    }
+
+    function logicalPath(value) {
+        var path =
+            normalized(
+                typeof value === 'undefined'
+                    ? window.location.pathname
+                    : value
+            );
+
+        if (cleanToInternal[path]) {
+            return cleanToInternal[path];
+        }
+
+        if (
+            path.indexOf(
+                '/admin/reports/'
+            ) === 0
+        ) {
+            var report =
+                path.slice(
+                    '/admin/reports/'.length
+                );
+
+            if (report === 'tips') {
+                return '/admin/pmdreporttips';
+            }
+
+            if (report === 'channels') {
+                return '/admin/pmdreportchannels';
+            }
+
+            return (
+                '/admin/pmdreports/'
+                + report
+            );
+        }
+
+        var cleanPrefixes = [
+            [
+                '/admin/menu/',
+                '/admin/pmdmenus/'
+            ],
+            [
+                '/admin/settings/menu-checkout/',
+                '/admin/pmdmenu/'
+            ],
+            [
+                '/admin/settings/customers/',
+                '/admin/pmdcustomer/'
+            ],
+            [
+                '/admin/settings/team/',
+                '/admin/pmdteam/'
+            ],
+            [
+                '/admin/settings/devices/',
+                '/admin/pmddevices/'
+            ],
+            [
+                '/admin/settings/finance/',
+                '/admin/pmdfinance/'
+            ],
+            [
+                '/admin/settings/brand/',
+                '/admin/pmdbrand/'
+            ],
+            [
+                '/admin/settings/advanced/',
+                '/admin/pmdadvanced/'
+            ],
+            [
+                '/admin/smartcategories/',
+                '/admin/pmdsmartcategories/'
+            ],
+            [
+                '/admin/settings/restaurant/',
+                '/admin/pmdsettings/restaurant/'
+            ],
+            [
+                '/admin/settings/customer-menu/',
+                '/admin/pmdsettings/frontend/'
+            ]
+        ];
+
+        for (
+            var i = 0;
+            i < cleanPrefixes.length;
+            i += 1
+        ) {
+            var pair =
+                cleanPrefixes[i];
+
+            if (
+                path.indexOf(
+                    pair[0]
+                ) === 0
+            ) {
+                return (
+                    pair[1]
+                    + path.slice(
+                        pair[0].length
+                    )
+                );
+            }
+        }
+
+        return path;
+    }
+
+    function cleanPath(value) {
+        var path =
+            normalized(value);
+
+        if (internalToClean[path]) {
+            return internalToClean[path];
+        }
+
+        if (
+            path.indexOf(
+                '/admin/pmdreports/'
+            ) === 0
+        ) {
+            return (
+                '/admin/reports/'
+                + path.slice(
+                    '/admin/pmdreports/'.length
+                )
+            );
+        }
+
+        var internalPrefixes = [
+            [
+                '/admin/pmdmenus/',
+                '/admin/menu/'
+            ],
+            [
+                '/admin/pmdmenu/',
+                '/admin/settings/menu-checkout/'
+            ],
+            [
+                '/admin/pmdcustomer/',
+                '/admin/settings/customers/'
+            ],
+            [
+                '/admin/pmdteam/',
+                '/admin/settings/team/'
+            ],
+            [
+                '/admin/pmddevices/',
+                '/admin/settings/devices/'
+            ],
+            [
+                '/admin/pmdfinance/',
+                '/admin/settings/finance/'
+            ],
+            [
+                '/admin/pmdbrand/',
+                '/admin/settings/brand/'
+            ],
+            [
+                '/admin/pmdadvanced/',
+                '/admin/settings/advanced/'
+            ],
+            [
+                '/admin/pmdsmartcategories/',
+                '/admin/smartcategories/'
+            ],
+            [
+                '/admin/pmdsettings/restaurant/',
+                '/admin/settings/restaurant/'
+            ],
+            [
+                '/admin/pmdsettings/frontend/',
+                '/admin/settings/customer-menu/'
+            ]
+        ];
+
+        for (
+            var i = 0;
+            i < internalPrefixes.length;
+            i += 1
+        ) {
+            var pair =
+                internalPrefixes[i];
+
+            if (
+                path.indexOf(
+                    pair[0]
+                ) === 0
+            ) {
+                return (
+                    pair[1]
+                    + path.slice(
+                        pair[0].length
+                    )
+                );
+            }
+        }
+
+        return path;
+    }
+
+    function cleanUrl(value) {
+        if (
+            value === null
+            || typeof value === 'undefined'
+        ) {
+            return value;
+        }
+
+        try {
+            var url =
+                new URL(
+                    String(value),
+                    window.location.href
+                );
+
+            if (
+                url.origin !==
+                window.location.origin
+            ) {
+                return value;
+            }
+
+            var nextPath =
+                cleanPath(
+                    url.pathname
+                );
+
+            if (
+                nextPath ===
+                normalized(
+                    url.pathname
+                )
+            ) {
+                return value;
+            }
+
+            return (
+                nextPath
+                + url.search
+                + url.hash
+            );
+        } catch (error) {
+            return value;
+        }
+    }
+
+    var nativePush =
+        window.history
+        && window.history.pushState
+            ? window.history.pushState.bind(
+                window.history
+            )
+            : null;
+
+    var nativeReplace =
+        window.history
+        && window.history.replaceState
+            ? window.history.replaceState.bind(
+                window.history
+            )
+            : null;
+
+    if (nativePush) {
+        window.history.pushState =
+            function (
+                state,
+                title,
+                url
+            ) {
+                return nativePush(
+                    state,
+                    title,
+                    cleanUrl(url)
+                );
+            };
+    }
+
+    if (nativeReplace) {
+        window.history.replaceState =
+            function (
+                state,
+                title,
+                url
+            ) {
+                return nativeReplace(
+                    state,
+                    title,
+                    cleanUrl(url)
+                );
+            };
+    }
+
+    function rewriteAnchor(node) {
+        if (
+            !node
+            || !node.closest
+        ) {
+            return;
+        }
+
+        var anchor =
+            node.closest(
+                'a[href]'
+            );
+
+        if (!anchor) {
+            return;
+        }
+
+        var href =
+            anchor.getAttribute(
+                'href'
+            );
+
+        if (
+            !href
+            || href.charAt(0) === '#'
+            || href.indexOf(
+                'javascript:'
+            ) === 0
+        ) {
+            return;
+        }
+
+        var next =
+            cleanUrl(href);
+
+        if (
+            next !== href
+            && next !== null
+            && typeof next !== 'undefined'
+        ) {
+            anchor.setAttribute(
+                'href',
+                next
+            );
+        }
+    }
+
+    function rewriteForm(form) {
+        if (
+            !form
+            || String(
+                form.tagName || ''
+            ).toLowerCase() !== 'form'
+        ) {
+            return;
+        }
+
+        var action =
+            form.getAttribute(
+                'action'
+            );
+
+        if (
+            action === null
+            || String(action).trim() === ''
+        ) {
+            return;
+        }
+
+        var next =
+            cleanUrl(action);
+
+        if (
+            next !== action
+            && next !== null
+            && typeof next !== 'undefined'
+        ) {
+            form.setAttribute(
+                'action',
+                next
+            );
+        }
+    }
+
+    [
+        'pointerdown',
+        'mousedown',
+        'click',
+        'auxclick'
+    ].forEach(
+        function (type) {
+            document.addEventListener(
+                type,
+                function (event) {
+                    rewriteAnchor(
+                        event.target
+                    );
+                },
+                true
+            );
+        }
+    );
+
+    document.addEventListener(
+        'submit',
+        function (event) {
+            rewriteForm(
+                event.target
+            );
+        },
+        true
+    );
+
+    function cleanInitialNavigation() {
+        Array.prototype.forEach.call(
+            document.querySelectorAll(
+                'a[href]'
+            ),
+            rewriteAnchor
+        );
+
+        Array.prototype.forEach.call(
+            document.forms || [],
+            rewriteForm
+        );
+    }
+
+    if (
+        document.readyState ===
+        'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            cleanInitialNavigation,
+            {
+                once: true
+            }
+        );
+    } else {
+        cleanInitialNavigation();
+    }
+
+    window.PMDAdminCanonicalURLR81E = {
+        version:
+            '1.0.0-server-native',
+
+        serverNative:
+            true,
+
+        logicalPath:
+            logicalPath,
+
+        cleanPath:
+            cleanPath,
+
+        inspect:
+            function () {
+                return {
+                    version:
+                        '1.0.0-server-native',
+
+                    serverNative:
+                        true,
+
+                    browserPath:
+                        String(
+                            window.location.pathname
+                            || ''
+                        ),
+
+                    logicalInternalPath:
+                        logicalPath(),
+
+                    readyState:
+                        document.readyState
+                };
+            }
+    };
+
+    if (
+        document.documentElement
+    ) {
+        document.documentElement
+            .setAttribute(
+                'data-pmd-server-native-url-r81e',
+                '1'
+            );
+    }
+})();
+</script>
 
 
 
 
+
+
+<!-- PMD_R2_EXACT_LATEST_WAITER_FLOOR_V5 -->
+<!-- PMD_RESERVATIONS2_REAL_WAITER_ROUTE_PATCH_V1 -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT_START -->
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v56-pause-read-refresh-edit-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT) return;
   window.PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT = true;
 
@@ -204,10 +882,14 @@
   console.info('[PMD] Waiter Dashboard V56 pause read refresh during edit active');
 })();
 </script>
+@endif
+@endunless
+
 <!-- PMD_WAITER_DASHBOARD_V56_PAUSE_READ_REFRESH_EDIT_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v50-real-floor-drag-clamp-style">
 /*
   V50:
@@ -244,10 +926,15 @@
   transform: translate(-50%, -50%) !important;
 }
 </style>
+@endif
 
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v50-real-floor-drag-clamp-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP) return;
   window.PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP = true;
 
@@ -521,10 +1208,17 @@
   console.info('[PMD] Waiter Dashboard V50 real floor drag + clamp active');
 })();
 </script>
+@endif
+@endunless
+
 <!-- PMD_WAITER_DASHBOARD_V50_REAL_FLOOR_DRAG_CLAMP_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v61-stable-kiosk-no-jump-style">
 /*
   V61:
@@ -758,10 +1452,18 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
 #pmd-waiter-dashboard-root .pmd-v61-dot-red { background: #ef4444 !important; }
 #pmd-waiter-dashboard-root .pmd-v61-dot-dark { background: #0f172a !important; }
 </style>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v61-stable-kiosk-no-jump-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP) return;
   window.PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP = true;
 
@@ -1107,10 +1809,18 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   console.info('[PMD] Waiter Dashboard V61 stable kiosk no-jump active');
 })();
 </script>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V61_STABLE_KIOSK_NO_JUMP_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v65-remove-sidebar-dom-style">
 /*
   V65:
@@ -1156,10 +1866,18 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   max-width: none !important;
 }
 </style>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v65-remove-sidebar-dom-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM) return;
   window.PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM = true;
 
@@ -1422,10 +2140,18 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   console.info('[PMD] Waiter Dashboard V65 remove sidebar DOM active');
 })();
 </script>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V65_REMOVE_SIDEBAR_DOM_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v69-remove-owner-floor-ghost-style">
 /*
   V69:
@@ -1459,10 +2185,18 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   margin-top: -46px !important;
 }
 </style>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v69-remove-owner-floor-ghost-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST) return;
   window.PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST = true;
 
@@ -1637,10 +2371,18 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root {
   console.info('[PMD] Waiter Dashboard V69 remove owner floor ghost active');
 })();
 </script>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V69_REMOVE_OWNER_FLOOR_GHOST_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v70-remove-404-wrapper-logo-ghost-style">
 /*
   V70:
@@ -1687,10 +2429,18 @@ html.pmd-dashboardwaiter-kiosk-page .pmd-final-sidebar-logo-img-v20 {
   pointer-events: none !important;
 }
 </style>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v70-remove-404-wrapper-logo-ghost-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST) return;
   window.PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST = true;
 
@@ -1881,10 +2631,18 @@ html.pmd-dashboardwaiter-kiosk-page .pmd-final-sidebar-logo-img-v20 {
   console.info('[PMD] Waiter Dashboard V70 remove 404 wrapper/logo ghost active');
 })();
 </script>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V70_REMOVE_404_WRAPPER_LOGO_GHOST_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_START -->
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_STYLE_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v74-inside-top-padding-style">
 /*
   V74:
@@ -1931,10 +2689,18 @@ html.pmd-dashboardwaiter-kiosk-page [data-pmd-v74-owner-blocked="1"] {
   z-index: -999 !important;
 }
 </style>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_STYLE_END --}}
 
+
+
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_SCRIPT_BEGIN --}}
+@if(request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v74-inside-top-padding-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING) return;
   window.PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING = true;
 
@@ -2161,10 +2927,15 @@ html.pmd-dashboardwaiter-kiosk-page [data-pmd-v74-owner-blocked="1"] {
   console.info('[PMD] Waiter Dashboard V74 inside top padding active');
 })();
 </script>
+@endif
+@endif
+{{-- PMD_LEAN_V17_PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_SCRIPT_END --}}
+
 <!-- PMD_WAITER_DASHBOARD_V74_INSIDE_TOP_PADDING_END -->
 
 
 <!-- PMD_DASHBOARD_RESERVATION_V3_STABLE_NO_JUMP_START -->
+@if($pmdR16RenderDashboardReservationLayers)
 <style id="pmd-dashboardreservation-v3-style">
 html.pmd-dashboardreservation-page,
 html.pmd-dashboardreservation-page body {
@@ -2429,10 +3200,12 @@ html.pmd-dashboardreservation-page .pmd-final-admin-logo-v20 {
   font-weight: 900 !important;
 }
 </style>
+@endif
 
+@if($pmdR16RenderDashboardReservationLayers)
 <script id="pmd-dashboardreservation-v3-script">
 (function () {
-  if (!/\/admin\/dashboardreservation(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardreservation(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_DASHBOARD_RESERVATION_V3_STABLE_NO_JUMP) return;
   window.PMD_DASHBOARD_RESERVATION_V3_STABLE_NO_JUMP = true;
 
@@ -2664,10 +3437,12 @@ html.pmd-dashboardreservation-page .pmd-final-admin-logo-v20 {
   console.info('[PMD] Reservation Dashboard V3 stable no-jump active');
 })();
 </script>
+@endif
 <!-- PMD_DASHBOARD_RESERVATION_V3_STABLE_NO_JUMP_END -->
 
 
 <!-- PMD_DASHBOARD_RESERVATION_V7_BUTTON_POLISH_START -->
+@if($pmdR16RenderDashboardReservationLayers)
 <style id="pmd-dashboardreservation-v7-button-polish-style">
 /*
   V7:
@@ -2762,10 +3537,12 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   transform: translateY(0) !important;
 }
 </style>
+@endif
 
+@if($pmdR16RenderDashboardReservationLayers)
 <script id="pmd-dashboardreservation-v7-button-polish-script">
 (function () {
-  if (!/\/admin\/dashboardreservation(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/\/admin\/dashboardreservation(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_DASHBOARD_RESERVATION_V7_BUTTON_POLISH) return;
   window.PMD_DASHBOARD_RESERVATION_V7_BUTTON_POLISH = true;
 
@@ -3066,12 +3843,14 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   console.info('[PMD] Reservation Dashboard V7 button polish active');
 })();
 </script>
+@endif
 <!-- PMD_DASHBOARD_RESERVATION_V7_BUTTON_POLISH_END -->
 
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v35-clean-rewrite-card-header-style">
 /*
   V35 clean rewrite.
@@ -3207,10 +3986,15 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   font-weight: 1000 !important;
 }
 </style>
+@endif
 
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v35-clean-rewrite-card-header-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER) return;
   window.PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER = true;
 
@@ -3358,581 +4142,291 @@ html.pmd-dashboardreservation-page #pmd-reservation-dashboard-root .pmd-res-toas
   console.info('[PMD] Waiter Dashboard V35 clean rewritten card header active');
 })();
 </script>
+@endif
+@endunless
+
 <!-- PMD_WAITER_DASHBOARD_V35_CLEAN_REWRITE_CARD_HEADER_END -->
 
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- PMD_OWNER_V114_ISOLATED_DASHBOARD2_START -->
-<style id="pmd-owner-v114-isolated-dashboard2-style">
-/* Dashboard2 isolated page. Does not use old pmd-v15-card / owner dashboard classes. */
-.pmd-d2-root,
-.pmd-d2-root * {
-  box-sizing: border-box;
-  font-family: Roboto, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-.pmd-d2-root {
-  position: fixed;
-  z-index: 35;
-  top: 32px;
-  right: 84px;
-  bottom: 24px;
-  left: 126px;
-  overflow: auto;
-  padding: 28px 28px 56px;
-  background: #f6f8fb;
-  color: #061126;
-  border-radius: 0;
-}
-
-html:not(.pmd-sidebar-icons-only) .pmd-d2-root {
-  left: 230px;
-}
-
-.pmd-d2-shell {
-  width: min(100%, 1540px);
-  margin: 0 auto;
-}
-
-.pmd-d2-kpis {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-  margin-bottom: 22px;
-}
-
-.pmd-d2-kpi,
-.pmd-d2-floor,
-.pmd-d2-card {
-  background: rgba(255,255,255,.94);
-  border: 1px solid rgba(203,213,225,.78);
-  border-radius: 18px;
-  box-shadow: 0 16px 42px rgba(15,23,42,.06);
-}
-
-.pmd-d2-kpi {
-  min-height: 126px;
-  padding: 22px 24px;
-  display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 16px;
-  align-items: center;
-}
-
-.pmd-d2-kpi:nth-child(1) { border-color: rgba(134,239,172,.55); }
-.pmd-d2-kpi:nth-child(2) { border-color: rgba(253,186,116,.55); }
-.pmd-d2-kpi:nth-child(3) { border-color: rgba(147,197,253,.55); }
-.pmd-d2-kpi:nth-child(4) { border-color: rgba(253,186,116,.55); }
-
-.pmd-d2-ico {
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  background: #f1f5f9;
-  display: grid;
-  place-items: center;
-  font-size: 22px;
-}
-
-.pmd-d2-kpi h3 {
-  margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.pmd-d2-kpi strong {
-  display: block;
-  font-size: 38px;
-  line-height: 1;
-  letter-spacing: -.04em;
-}
-
-.pmd-d2-kpi p,
-.pmd-d2-card p,
-.pmd-d2-sub {
-  margin: 8px 0 0;
-  color: #64748b;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.pmd-d2-floor {
-  min-height: 232px;
-  height: 232px;
-  overflow: hidden;
-  padding: 22px 22px 20px;
-  margin-bottom: 18px;
-  transition: height .18s ease, min-height .18s ease;
-}
-
-.pmd-d2-floor.is-expanded {
-  min-height: 660px;
-  height: 660px;
-}
-
-.pmd-d2-floor-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.pmd-d2-floor-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 25px;
-  font-weight: 1000;
-  letter-spacing: -.04em;
-}
-
-.pmd-d2-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.pmd-d2-btn {
-  border: 1px solid rgba(203,213,225,.9);
-  background: #fff;
-  color: #061126;
-  min-width: 74px;
-  height: 48px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.pmd-d2-btn-icon {
-  width: 48px;
-  min-width: 48px;
-  font-size: 22px;
-}
-
-.pmd-d2-surface {
-  height: 108px;
-  border: 1px solid rgba(203,213,225,.95);
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 1px 1px, rgba(148,163,184,.35) 1px, transparent 0) 0 0 / 24px 24px,
-    linear-gradient(180deg, #f9fbff 0%, #eef4f9 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.pmd-d2-floor.is-expanded .pmd-d2-surface {
-  height: 550px;
-}
-
-.pmd-d2-table {
-  position: absolute;
-  width: 78px;
-  height: 48px;
-  border-radius: 999px;
-  border: 4px solid #22c55e;
-  background: #fff;
-  display: grid;
-  place-items: center;
-  font-size: 24px;
-  font-weight: 1000;
-  box-shadow: 0 8px 18px rgba(15,23,42,.08);
-}
-
-.pmd-d2-table.t1 { left: 8%; top: 28px; }
-.pmd-d2-table.t2 { left: 19%; top: 28px; }
-.pmd-d2-table.t3 { left: 30%; top: 28px; }
-.pmd-d2-table.t8 { left: 41%; top: 28px; }
-
-.pmd-d2-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.pmd-d2-card {
-  min-height: 350px;
-  padding: 22px;
-}
-
-.pmd-d2-card h2 {
-  margin: 0;
-  font-size: 23px;
-  line-height: 1.05;
-  letter-spacing: -.045em;
-  font-weight: 1000;
-}
-
-.pmd-d2-row {
-  margin-top: 16px;
-  padding: 14px 16px;
-  background: #f8fafc;
-  border: 1px solid rgba(203,213,225,.86);
-  border-radius: 15px;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-weight: 900;
-}
-
-.pmd-d2-muted {
-  color: #64748b;
-  font-weight: 700;
-}
-
-.pmd-d2-chart {
-  height: 130px;
-  margin-top: 24px;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.pmd-d2-line {
-  position: absolute;
-  inset: 28px 24px 24px;
-}
-
-.pmd-d2-pay {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-top: 22px;
-}
-
-.pmd-d2-donut {
-  width: 120px;
-  height: 120px;
-  border-radius: 999px;
-  background: conic-gradient(#7c3aed 0 82%, #f97316 82% 92%, #e5e7eb 92% 100%);
-  display: grid;
-  place-items: center;
-  position: relative;
-}
-
-.pmd-d2-donut:after {
-  content: "";
-  width: 74px;
-  height: 74px;
-  background: #fff;
-  border-radius: 999px;
-  position: absolute;
-}
-
-.pmd-d2-donut span {
-  position: relative;
-  z-index: 1;
-  font-weight: 1000;
-  text-align: center;
-}
-
-.pmd-d2-mini {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 22px;
-}
-
-.pmd-d2-mini > div {
-  background: #f8fafc;
-  border: 1px solid rgba(203,213,225,.9);
-  border-radius: 14px;
-  padding: 14px;
-  min-height: 100px;
-  font-weight: 900;
-}
-
-.pmd-d2-action-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 22px;
-}
-
-.pmd-d2-action-tile {
-  min-height: 108px;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  background: #f8fafc;
-  border: 1px solid rgba(203,213,225,.9);
-  border-radius: 14px;
-  font-weight: 1000;
-}
-
-#pmd-dashboard2-quick-btn {
-  position: fixed;
-  right: 14px;
-  top: 112px;
-  z-index: 9999;
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  text-decoration: none;
-  background: #043f35;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 1000;
-  border: 1px solid rgba(255,255,255,.8);
-  box-shadow: 0 12px 32px rgba(15,23,42,.18);
-}
-
-html.pmd-dashboard2-active .page-wrapper .card,
-html.pmd-dashboard2-active .page-content > .card,
-html.pmd-dashboard2-active main > .card {
-  display: none !important;
-}
-
-@media (max-width: 1180px) {
-  .pmd-d2-kpis,
-  .pmd-d2-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .pmd-d2-root {
-    left: 112px;
-    right: 24px;
-  }
-}
-
-@media (max-width: 720px) {
-  .pmd-d2-root {
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    border-radius: 0;
-    padding: 18px;
-  }
-
-  .pmd-d2-kpis,
-  .pmd-d2-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
-
-<script id="pmd-owner-v114-isolated-dashboard2-script">
-(function () {
-  'use strict';
-
-  if (window.PMD_OWNER_V114_ISOLATED_DASHBOARD2) return;
-  window.PMD_OWNER_V114_ISOLATED_DASHBOARD2 = true;
-
-  function isAdmin() {
-    return location.pathname.indexOf('/admin') === 0;
-  }
-
-  function isDashboard2() {
-    return /\/admin\/dashboard2\/?$/.test(location.pathname);
-  }
-
-  function addQuickButton() {
-    if (!isAdmin()) return;
-
-    var old = document.querySelector('#pmd-dashboard2-quick-btn');
-    if (old) old.remove();
-
-    var a = document.createElement('a');
-    a.id = 'pmd-dashboard2-quick-btn';
-    a.href = '/admin/dashboard2';
-    a.textContent = 'D2';
-    a.title = 'Clean Dashboard 2';
-    document.body.appendChild(a);
-  }
-
-  function card(title, sub, body) {
-    return ''
-      + '<section class="pmd-d2-card">'
-      + '<h2>' + title + '</h2>'
-      + '<p>' + sub + '</p>'
-      + body
-      + '</section>';
-  }
-
-  function render() {
-    addQuickButton();
-
-    if (!isDashboard2()) return;
-
-    document.documentElement.classList.add('pmd-dashboard2-active');
-
-    var old = document.querySelector('#pmd-d2-root');
-    if (old) old.remove();
-
-    var root = document.createElement('div');
-    root.id = 'pmd-d2-root';
-    root.className = 'pmd-d2-root';
-
-    root.innerHTML = ''
-      + '<div class="pmd-d2-shell">'
-      + '<section class="pmd-d2-kpis">'
-      + '<div class="pmd-d2-kpi"><div class="pmd-d2-ico">💵</div><div><h3>Revenue Today</h3><strong>€0.00</strong><p>All-time €221.94 · 0 orders</p></div></div>'
-      + '<div class="pmd-d2-kpi"><div class="pmd-d2-ico">🧾</div><div><h3>Open Checks</h3><strong>5</strong><p>€221.94 pending value</p></div></div>'
-      + '<div class="pmd-d2-kpi"><div class="pmd-d2-ico">🍽️</div><div><h3>Active Tables</h3><strong>2 / 4</strong><p>50% occupied · 2 free</p></div></div>'
-      + '<div class="pmd-d2-kpi"><div class="pmd-d2-ico">📅</div><div><h3>Orders Today</h3><strong>0</strong><p>5 open checks now</p></div></div>'
-      + '</section>'
-
-      + '<section class="pmd-d2-floor" id="pmd-d2-floor">'
-      + '<div class="pmd-d2-floor-head">'
-      + '<div class="pmd-d2-floor-title">🍽️ Restaurant Floor</div>'
-      + '<div class="pmd-d2-actions"><button class="pmd-d2-btn">Edit</button><button class="pmd-d2-btn pmd-d2-btn-icon" id="pmd-d2-expand">↗</button></div>'
-      + '</div>'
-      + '<div class="pmd-d2-surface">'
-      + '<div class="pmd-d2-table t1">1</div><div class="pmd-d2-table t2">2</div><div class="pmd-d2-table t3">3</div><div class="pmd-d2-table t8">8</div>'
-      + '</div>'
-      + '</section>'
-
-
-      + '<section class="pmd-d2-priority-grid">'
-      + card('Payment Waiting', 'Owner payment risk',
-          '<div class="pmd-d2-row"><span>Pending value<br><span class="pmd-d2-muted">5 open checks unpaid</span></span><b>€221.94</b></div>'
-        + '<div class="pmd-d2-row"><span>Action<br><span class="pmd-d2-muted">Follow up before checkout</span></span><b>Now</b></div>')
-      + card('Kitchen Clear', 'Kitchen delay status',
-          '<div class="pmd-d2-row"><span>Delayed orders<br><span class="pmd-d2-muted">No delayed rows detected</span></span><b>0</b></div>'
-        + '<div class="pmd-d2-row"><span>On-time rate<br><span class="pmd-d2-muted">From kitchen rows</span></span><b>100%</b></div>')
-      + card('Table Status', 'Live table pressure',
-          '<div class="pmd-d2-row"><span>Active tables<br><span class="pmd-d2-muted">50% occupied right now</span></span><b>2 / 4</b></div>'
-        + '<div class="pmd-d2-row"><span>Free tables<br><span class="pmd-d2-muted">Available for new guests</span></span><b>2</b></div>')
-      + card('Reservations', 'Reservation pressure',
-          '<div class="pmd-d2-row"><span>Upcoming<br><span class="pmd-d2-muted">No upcoming reservations</span></span><b>0</b></div>'
-        + '<div class="pmd-d2-row"><span>Pressure<br><span class="pmd-d2-muted">No reservation pressure</span></span><b>Clear</b></div>')
-      + '</section>'
-
-      + '<section class="pmd-d2-grid">'
-      + card('Needs Attention', 'Actionable owner issues',
-          '<div class="pmd-d2-row"><span>Pending value<br><span class="pmd-d2-muted">€221.94 open/unpaid checks</span></span><b>5</b></div>'
-        + '<div class="pmd-d2-row"><span>Table data check<br><span class="pmd-d2-muted">Some orders need table data cleanup</span></span><b>2</b></div>')
-      + card('Recent Activity', 'Latest restaurant activity',
-          '<div class="pmd-d2-row"><span>Order #203<br><span class="pmd-d2-muted">Old table ref 84 · €138.00</span></span><b>●</b></div>'
-        + '<div class="pmd-d2-row"><span>Order #202<br><span class="pmd-d2-muted">Table 3 · €29.99</span></span><b>●</b></div>'
-        + '<div class="pmd-d2-row"><span>Order #201<br><span class="pmd-d2-muted">Table 8 · €14.99</span></span><b>●</b></div>')
-
-      + card('Revenue by Hour', 'Today’s sales rhythm and peak windows',
-          '<div class="pmd-d2-hour-summary"><strong>€0.00</strong><span>today · live hourly view</span></div>'
-        + '<div class="pmd-d2-hour-bars">'
-        + '<span class="is-muted" style="--h:18%"><b>11</b></span>'
-        + '<span class="is-muted" style="--h:30%"><b>13</b></span>'
-        + '<span class="is-muted" style="--h:42%"><b>15</b></span>'
-        + '<span class="is-muted" style="--h:34%"><b>17</b></span>'
-        + '<span style="--h:50%"><b>19</b></span>'
-        + '<span style="--h:72%"><b>20</b></span>'
-        + '<span style="--h:54%"><b>21</b></span>'
-        + '<span class="is-muted" style="--h:36%"><b>23</b></span>'
-        + '</div>'
-        + '<p>All-time sales: €221.94</p>')
-
-      + card('Payments', 'Payment methods and pending value',
-          '<div class="pmd-d2-pay"><div class="pmd-d2-donut"><span>€221.94<br>Total</span></div><div><div class="pmd-d2-row"><span>Pending</span><b>€221.94</b></div><div class="pmd-d2-row"><span>Paid today</span><b>€0.00</b></div></div></div>')
-      + card('Average Guest Spend', 'Average spend from real order totals',
-          '<div class="pmd-d2-row"><span>€20.18<br><span class="pmd-d2-muted">Average Check Value</span></span></div>'
-        + '<div class="pmd-d2-row"><span>€221.94<br><span class="pmd-d2-muted">Open Check Value</span></span></div>')
-      + card('Lost Revenue', 'No-shows, cancellations and risk',
-          '<div class="pmd-d2-row"><span>Confirmed lost today</span><b>€0.00</b></div>'
-        + '<div class="pmd-d2-row"><span>Pending check risk</span><b>€221.94</b></div>')
-
-      + card('Upcoming Reservations', 'Next reservation pressure and table planning',
-          '<div class="pmd-d2-row"><span>—<br><span class="pmd-d2-muted">No upcoming reservations</span></span><b>Clear</b></div>'
-        + '<div class="pmd-d2-row"><span>Table planning<br><span class="pmd-d2-muted">Reservation details will appear once connected</span></span><b>Ready</b></div>')
-
-      + card('Kitchen Performance', 'Prep speed, delays and rush level',
-          '<div class="pmd-d2-kitchen-grid">'
-        + '<div class="pmd-d2-kitchen-box"><small>Avg Prep Time</small><strong>—</strong><span>connect prep timestamps</span></div>'
-        + '<div class="pmd-d2-kitchen-box"><small>Delayed Orders</small><strong>0</strong><span>no delayed rows</span></div>'
-        + '<div class="pmd-d2-kitchen-box"><small>On-Time Rate</small><strong>100%</strong><span>from kitchen rows</span></div>'
-        + '</div>'
-        + '<div class="pmd-d2-kitchen-rush"><span>Rush Status</span><strong>Medium</strong></div>')
-
-      + card('Top Selling Items', 'Based on open checks for now',
-          '<div class="pmd-d2-row"><span>1 · Soda Zitrone</span><b>9</b></div>'
-        + '<div class="pmd-d2-row"><span>2 · AMALA</span><b>6</b></div>'
-        + '<div class="pmd-d2-row"><span>3 · ATA RICE</span><b>1</b></div>')
-      + card('Quick Actions', 'Fast owner actions',
-          '<div class="pmd-d2-action-grid"><div class="pmd-d2-action-tile">👥<br>Walk-in</div><div class="pmd-d2-action-tile">🧾<br>New Order</div><div class="pmd-d2-action-tile">💳<br>Split Bill</div><div class="pmd-d2-action-tile">💬<br>Message</div></div>')
-
-      + '<section class="pmd-d2-card pmd-d2-service-performance">'
-      + '<div class="pmd-d2-service-head"><div><h2>Service Performance</h2><p>Real service overview from current checks and tables</p></div><span>Live</span></div>'
-      + '<div class="pmd-d2-service-table">'
-      + '<div class="pmd-d2-service-row pmd-d2-service-header"><b>Area</b><b>Count</b><b>Value</b><b>Status</b></div>'
-      + '<div class="pmd-d2-service-row"><span><i>🍽️</i>Active tables</span><b>2 / 4</b><b>50%</b><em>Live</em></div>'
-      + '<div class="pmd-d2-service-row"><span><i>🧾</i>Open checks</span><b>5</b><b>€221.94</b><em>Watch</em></div>'
-      + '<div class="pmd-d2-service-row"><span><i>📦</i>Recent orders</span><b>3</b><b>€182.98</b><em>Visible</em></div>'
-      + '<div class="pmd-d2-service-row"><span><i>💶</i>Avg. check</span><b>—</b><b>€20.18</b><em>Today</em></div>'
-      + '</div>'
-      + '</section>'
-
-      + '</section>'
-      + '</div>';
-
-    document.body.appendChild(root);
-
-    var floor = document.querySelector('#pmd-d2-floor');
-    var btn = document.querySelector('#pmd-d2-expand');
-
-    if (btn && floor) {
-      btn.addEventListener('click', function () {
-        floor.classList.toggle('is-expanded');
-        btn.textContent = floor.classList.contains('is-expanded') ? '↙' : '↗';
-      });
+{{-- PMD_RESERVATIONSLAB_LOCAL_FONT_BOOT_V2_START --}}
+@if (request()->is('admin/reservationslab'))
+{{--
+    ReservationsLab zero-swap typography authority.
+    Start same-origin font fetches at the top of <head> and prevent the late
+    admin.js Google Roboto loader from replacing glyph metrics after paint.
+    No content mask, timer, RAF, observer or delayed class mutation.
+--}}
+<link rel="preload" href="/app/admin/assets/fonts/Roboto-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/app/admin/assets/fonts/Roboto-Medium.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/app/admin/assets/fonts/Roboto-Bold.woff2" as="font" type="font/woff2" crossorigin>
+<script id="pmd-reservationslab-local-roboto-boot-v2">
+window.PMD_ADMIN_GLOBAL_ROBOTO_LOADER_V1 = true;
+</script>
+@endif
+{{-- PMD_RESERVATIONSLAB_LOCAL_FONT_BOOT_V2_END --}}
+
+{{-- PMD_R2_FINAL_PAINT_GATE_V1_START --}}
+@if (request()->is('admin/reservations2'))
+<style id="pmd-r2-final-paint-gate-v1-style">
+    /*
+     * This class is installed synchronously in <head>, before body paint.
+     * No old Reservations UI or loading stage can become visible.
+     */
+    html.pmd-r2-final-paint-waiting {
+        background: #f5f7fb !important;
     }
 
-    window.PMDDashboard2 = {
-      root: root,
-      expand: function () {
-        floor.classList.add('is-expanded');
-        btn.textContent = '↙';
-      },
-      collapse: function () {
-        floor.classList.remove('is-expanded');
-        btn.textContent = '↗';
-      },
-      debug: function () {
-        return {
-          active: true,
-          path: location.pathname,
-          root: !!document.querySelector('#pmd-d2-root'),
-          cards: document.querySelectorAll('.pmd-d2-card').length,
-          expanded: floor.classList.contains('is-expanded')
-        };
-      }
+    html.pmd-r2-final-paint-waiting body {
+        visibility: hidden !important;
+    }
+</style>
+
+<script id="pmd-r2-final-paint-gate-v1-script">
+(function () {
+    'use strict';
+
+    var html = document.documentElement;
+    var startedAt = Date.now();
+    var attempts = 0;
+    var revealed = false;
+    var MAX_ATTEMPTS = 100;
+    var RETRY_MS = 50;
+    var MAX_WAIT_MS = 10000;
+
+    html.classList.add('pmd-r2-final-paint-waiting');
+
+    function tableCount() {
+        var selectors = [
+            '#pmd-reservations2 [data-table]',
+            '#pmd-reservations2 [data-table-id]',
+            '#pmd-reservations2 .pmd-floor-v1-table',
+            '#pmd-reservations2 .pmd-w5-table[data-table]',
+            '#pmd-reservations2 .pmd-floor-table',
+            '#pmd-reservations2 .pmd-table'
+        ];
+
+        var found = new Set();
+
+        selectors.forEach(function (selector) {
+            try {
+                document.querySelectorAll(selector).forEach(function (node) {
+                    found.add(node);
+                });
+            } catch (error) {
+                // Ignore unsupported/absent selectors.
+            }
+        });
+
+        return found.size;
+    }
+
+    function guardAudit() {
+        try {
+            if (
+                window.PMDR2AuthorityGuardV6 &&
+                typeof window.PMDR2AuthorityGuardV6.audit === 'function'
+            ) {
+                return window.PMDR2AuthorityGuardV6.audit();
+            }
+        } catch (error) {
+            return null;
+        }
+
+        return null;
+    }
+
+    function hasTemporaryStage() {
+        if (!document.body) {
+            return true;
+        }
+
+        var text = String(document.body.innerText || '');
+
+        return (
+            text.indexOf('Loading live floor') !== -1 ||
+            text.indexOf('Select a table') !== -1 ||
+            text.indexOf('No table selected') !== -1
+        );
+    }
+
+    function isFinalReady() {
+        var root = document.getElementById('pmd-reservations2');
+
+        if (!root) {
+            return false;
+        }
+
+        var count = tableCount();
+        var audit = guardAudit();
+
+        if (
+            audit &&
+            audit.ready === true &&
+            Number(audit.tables || 0) >= 20 &&
+            !hasTemporaryStage()
+        ) {
+            return true;
+        }
+
+        return count >= 20 && !hasTemporaryStage();
+    }
+
+    function reveal(reason) {
+        if (revealed) {
+            return;
+        }
+
+        revealed = true;
+
+        /*
+         * Disable transitions only for the exact reveal frame.
+         * This prevents a fade, slide or opacity animation.
+         */
+        var noTransition = document.createElement('style');
+        noTransition.id = 'pmd-r2-final-reveal-no-transition';
+        noTransition.textContent =
+            '*,*::before,*::after{' +
+            'transition:none!important;' +
+            'animation:none!important;' +
+            '}';
+
+        document.head.appendChild(noTransition);
+
+        html.classList.remove('pmd-r2-final-paint-waiting');
+        html.classList.add('pmd-r2-final-paint-ready');
+
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                if (noTransition.parentNode) {
+                    noTransition.parentNode.removeChild(noTransition);
+                }
+            });
+        });
+
+        console.info(
+            '[PMD Reservations2 Final Paint Gate V1] Revealed',
+            {
+                reason: reason,
+                elapsedMs: Date.now() - startedAt,
+                attempts: attempts,
+                tables: tableCount(),
+                guard: guardAudit()
+            }
+        );
+    }
+
+    function check() {
+        attempts += 1;
+
+        if (isFinalReady()) {
+            reveal('final-ui-ready');
+            return;
+        }
+
+        if (
+            attempts >= MAX_ATTEMPTS ||
+            Date.now() - startedAt >= MAX_WAIT_MS
+        ) {
+            /*
+             * Safety fallback: never leave the user on a hidden page
+             * if an unrelated runtime error prevents final readiness.
+             */
+            reveal('safety-timeout');
+            return;
+        }
+
+        setTimeout(check, RETRY_MS);
+    }
+
+    window.PMDReservations2FinalPaintGateV1 = {
+        version: '1.0.0',
+
+        reveal: function () {
+            reveal('manual');
+        },
+
+        audit: function () {
+            return {
+                version: '1.0.0',
+                revealed: revealed,
+                waiting:
+                    html.classList.contains(
+                        'pmd-r2-final-paint-waiting'
+                    ),
+                ready:
+                    html.classList.contains(
+                        'pmd-r2-final-paint-ready'
+                    ),
+                attempts: attempts,
+                elapsedMs: Date.now() - startedAt,
+                tables: tableCount(),
+                temporaryStage: hasTemporaryStage(),
+                guard: guardAudit(),
+                permanentObservers: 0,
+                permanentIntervals: 0
+            };
+        }
     };
 
-    console.info('[PMD] Dashboard2 isolated v114 active');
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', render, { once: true });
-  } else {
-    render();
-  }
-
-  window.addEventListener('load', render, { once: true });
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            check,
+            {once: true}
+        );
+    } else {
+        check();
+    }
 })();
 </script>
-<!-- PMD_OWNER_V114_ISOLATED_DASHBOARD2_END -->
+@endif
+{{-- PMD_R2_FINAL_PAINT_GATE_V1_END --}}
+
+
+{{-- PMD_R2_V61_HEAD_PREPAINT_START --}}
+@if (request()->is('admin/reservations2'))
+<style id="pmd-r2-v61-head-prepaint">
+html:not(.pmd-r2-v6-ready) #pmd-reservations2 {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: none !important;
+    animation: none !important;
+}
+html.pmd-r2-v6-ready #pmd-reservations2 {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transition: none !important;
+    animation: none !important;
+}
+</style>
+<script id="pmd-r2-v61-head-prepaint-script">
+document.documentElement.classList.add('pmd-r2-v6-booting');
+</script>
+@endif
+{{-- PMD_R2_V61_HEAD_PREPAINT_END --}}
+
+@include('admin::_partials.pmd_admin_i18n')
 
 
 
+
+{{-- PMD_DASHBOARD2_RETIRE_EMERGENCY_UNHIDE_V1 --}}
+@unless (
+    request()->is('admin/dashboard2') ||
+    request()->is('admin/dashboard2/*') ||
+    request()->is('admin/managerlab*') ||
+    request()->is('admin/accountantlab*') ||
+    request()->is('admin/cashierlab*') ||
+    request()->is('admin/reservationslab*') ||
+    request()->is('admin/pmdreports*') ||
+    request()->is('admin/pmdreportchannels*') ||
+    request()->is('admin/pmdreporttips*')
+)
 <!-- PMD_OWNER_EMERGENCY_UNHIDE_START -->
 <style id="pmd-owner-emergency-unhide-style">
 html.pmd-owner-clean-v113-boot .pmd-v15-shell,
@@ -3956,6 +4450,9 @@ html.pmd-owner-clean-v113-active .pmd-v15-shell,
 }
 </style>
 
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
 <script id="pmd-owner-emergency-unhide-script">
 (function () {
   function rescue() {
@@ -3996,7 +4493,11 @@ html.pmd-owner-clean-v113-active .pmd-v15-shell,
   console.info('[PMD] Owner emergency unhide active');
 })();
 </script>
+@endunless
+
 <!-- PMD_OWNER_EMERGENCY_UNHIDE_END -->
+@endunless
+{{-- /PMD_DASHBOARD2_RETIRE_EMERGENCY_UNHIDE_V1 --}}
 
 
 
@@ -4004,7 +4505,7 @@ html.pmd-owner-clean-v113-active .pmd-v15-shell,
 <script>
 (function () {
   try {
-    var p = String(location.pathname || '').replace(/\/+$/, '');
+    var p = String((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) || '').replace(/\/+$/, '');
     if (p === '/admin/dashboard' || p.indexOf('/admin/dashboard/') === 0) {
       var h = document.documentElement;
       h.classList.add(
@@ -4168,71 +4669,80 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_PRELOAD_END -->
 @php
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
+    // PMD_CLEAN_ROLE_WORKSPACE_MEDIA_LAYOUT_GUARD_V1
+    $pmdIsCleanRoleWorkspace = request()->is('admin/managerlab*')
+        || request()->is('admin/accountantlab*')
+        || request()->is('admin/cashierlab*')
+        || request()->is('admin/reservationslab*')
+        || request()->is('admin/pmdreports*')
+        || request()->is('admin/pmdreportchannels*')
+        || request()->is('admin/pmdreporttips*');
 @endphp
 
     {!! get_metas() !!}
     <meta name="csrf-token" content="{{ csrf_token() }}">
     {!! get_favicon() !!}
-    @empty($pageTitle = Template::getTitle())
-        <title>{{setting('site_name')}}</title>
-    @else
-        <title>{{ $pageTitle }}@lang('admin::lang.site_title_separator'){{setting('site_name')}}</title>
-    @endempty
-    {{-- Use asset combiner to ensure all widget CSS files are included --}}
+        {{-- Use asset combiner to ensure all widget CSS files are included --}}
     {!! get_style_tags() !!}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/notifications.css') }}">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/push-notifications.css') }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/header-dropdowns.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/header-dropdowns.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Remove Green Edges from Dropdowns -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/remove-green-edges.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-transitions.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/custom-fixes.css') }}?v={{ time() }}">
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/calendar.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/remove-green-edges.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+    {{-- PMD_RESERVATIONSLAB_NO_GENERIC_ENTRY_ANIMATION_V1_START --}}
+    @unless(request()->is('admin/reservationslab*'))
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-transitions.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+    @endunless
+    {{-- PMD_RESERVATIONSLAB_NO_GENERIC_ENTRY_ANIMATION_V1_END --}}
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/custom-fixes.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/calendar.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Modern Admin Settings Styling -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-settings-modern.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-settings-modern.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- SweetAlert2 – match admin modal/card design -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/sweetalert2-modal-style.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/sweetalert2-modal-style.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Admin confirm modal – rounder card, button spacing, Cancel style -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-confirm-modal.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-confirm-modal.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Unified modal design – round corners, nice buttons, consistent styling for all modals -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-modals-unified.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-modals-unified.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Rounded corners for notification panel, settings menu, profile dropdown, toast -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-cards-rounded.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/admin-cards-rounded.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Blue Buttons Override - Replace all green buttons with login button style -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/blue-buttons-override.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Smooth Corner - Replace Star Icon with Rounded Corner -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/smooth-corner-replace-star.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     {{-- Dashboard Container Widget CSS is included via get_style_tags() combiner --}}
     <!-- Fix Menu-Grid Hover - Only icon scale, no green flashing -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-menu-grid-hover.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-menu-grid-hover.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Footer Button - Remove green hover -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-footer-button-no-green.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-footer-button-no-green.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Toggle Switches - Restore iOS-style appearance -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-toggle-switches.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-toggle-switches.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Notification Header Border - Make it straight and full width -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-border.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-border.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Notification Header Buttons - Fix z-index, spacing, padding, borders -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-buttons.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-notification-header-buttons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Profile Dropdown - Remove green hover effects and green text-muted color -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-green.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-green.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Profile Dropdown Hover - Remove inline styles blocking hover effect -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-hover.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-hover.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Profile Dropdown Closed - Disable items when dropdown is closed -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-closed.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-profile-dropdown-closed.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Fix Green Buttons and Text - Change btn-default, btn-outline-default, and text-muted from green to dark blue/gray -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/fix-green-buttons-and-text.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Modern Media Finder - Elegant image uploader redesign -->
     @unless($pmdIsNativeMediaContext)
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/modern-media-finder.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     @endunless
     <!-- Media Finder Widget CSS - Required for image uploader fields -->
-    <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/formwidgets/mediafinder/assets/css/mediafinder.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Date range picker: load last so overrides (bigger card, buttons, ranges) win over .btn-sm etc -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/daterangepicker-arrows.css') }}?v={{ time() }}">
+    @unless(request()->is('admin/reservations2'))
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/daterangepicker-arrows.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+@endunless
     <!-- No green toolbar buttons - MUST load last so toolbar Save/Back stay blue -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/no-green-toolbar-buttons.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/no-green-toolbar-buttons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     <!-- Dropdown fields same size as text inputs - load after other form styles -->
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dropdown-field-same-size.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/dropdown-field-same-size.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     {{-- Critical: prevent green flash on first paint - inline so it's in the first render --}}
     <style id="no-green-toolbar-critical">
         body:not(.pmd-admin-theme-v1) .toolbar-action,
@@ -4722,10 +5232,10 @@ html.pmd-owner-v69-no-loader .pmd-v36-span-2 {
 </script>
 
     @unless($pmdIsNativeMediaContext)
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-mediamanager-autofix.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-mediamanager-autofix.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
     @endunless
     {{-- Final admin toolbar button override: keep after legacy/admin/page CSS because older files override toolbar button sizing and colors. --}}
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin/components/toolbar-buttons.css') }}?v={{ time() }}">
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin/components/toolbar-buttons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 
 <!-- PMD_DASHBOARD_LOGO_SIZE_FIX_START -->
 <style id="pmd-dashboard-logo-size-fix">
@@ -4910,18 +5420,18 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 /* PMD_MEDIA_MANAGER_PREVIEW_TOOLBAR_FIX_END */
 </style>
     <!-- PayMyDine Admin Theme v1 - centralized final general visual layer (intentionally last CSS include) -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-sidebar-clean-v4.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-svg-mask-icons.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-ref-icons.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-active-state-fix.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-parent-open-v5.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-button-size-v6.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-system-lock-v7.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-column-flow-v8.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-submenu-active-v9.css') }}?v={{ time() }}">
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-child-icons-v10.css') }}?v={{ time() }}">
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-modern-v1.css') }}?v={{ time() }}"> --}}
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-theme-v1.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-sidebar-clean-v4.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-svg-mask-icons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-ref-icons.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-active-state-fix.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-parent-open-v5.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-button-size-v6.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-system-lock-v7.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-column-flow-v8.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-submenu-active-v9.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-child-icons-v10.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-modern-v1.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 
     {{-- PMD all-pages toolbar guard: hide only legacy buttons, never the header/proxy containers --}}
     <script>
@@ -4982,7 +5492,7 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
     </style>
 
     {{-- PMD header actions: load early with defer to reduce proxy delay --}}
-    <script defer src="{{ asset('app/admin/assets/js/pmd-admin-header-actions.js') }}?v={{ time() }}"></script>
+    <script defer src="{{ asset('app/admin/assets/js/pmd-admin-header-actions.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
     <style id="pmd-toolbar-collapse-legacy-actions">
         /*
@@ -5046,17 +5556,17 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
         }
     </style>
 
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-remove-hero-v3.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-kpi-polish-v4.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v53.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-preview-v9.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner2-v11.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v12.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v13-polish.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v14-compact.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v15-rolebar.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-w3-quick-icons-v16.css') }}?v={{ time() }}"> --}}
-    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-icons-only-v15.css') }}?v={{ time() }}">
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-remove-hero-v3.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-kpi-polish-v4.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-real-data-v53.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-preview-v9.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner2-v11.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v12.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v13-polish.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v14-compact.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-waiter3-v15-rolebar.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-w3-quick-icons-v16.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-icons-only-v15.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_DASHBOARD_NO_JUMP_V17_START -->
 <script>
 (function () {
@@ -5065,22 +5575,22 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
   } catch (e) {}
 })();
 </script>
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-no-jump-v17.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-no-jump-v17.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_DASHBOARD_NO_JUMP_V17_END -->
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-match-v13.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-match-v13.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_CSS_END -->
 <!-- PMD_OWNER_BLACK_HEADER_V24_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-black-header-v24.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-owner-black-header-v24.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_OWNER_BLACK_HEADER_V24_CSS_END -->
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-universal-layout-editor-v35.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-universal-layout-editor-v35.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_CSS_END -->
 <!-- PMD_LOGO_SWITCHER_FINAL_V38_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-logo-switcher-final-v38.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-logo-switcher-final-v38.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_LOGO_SWITCHER_FINAL_V38_CSS_END -->
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-manager-ops-dashboard-v29.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-manager-ops-dashboard-v29.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_CSS_END -->
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_EARLY_START -->
 <script>
@@ -5091,40 +5601,48 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
 </script>
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_EARLY_END -->
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-recover-native-v50.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-recover-native-v50.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_CSS_END -->
 <!-- PMD_SIDEBAR_CLOSED_LOGO_TUNE_V51_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-tune-v51.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-tune-v51.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_CLOSED_LOGO_TUNE_V51_CSS_END -->
 <!-- PMD_SIDEBAR_CLOSED_RAISE_V52_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-raise-v52.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-raise-v52.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_CLOSED_RAISE_V52_CSS_END -->
 <!-- PMD_SIDEBAR_RAISE_ALL_V53_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-raise-all-v53.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-raise-all-v53.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_RAISE_ALL_V53_CSS_END -->
 <!-- PMD_SIDEBAR_CLOSED_ICONS_LOWER_V54_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-icons-lower-v54.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-icons-lower-v54.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_CLOSED_ICONS_LOWER_V54_CSS_END -->
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-logo-last-toggle-v55.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-logo-last-toggle-v55.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_CSS_END -->
 <!-- PMD_SIDEBAR_MENU_LOWER_V56_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-menu-lower-v56.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-menu-lower-v56.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_MENU_LOWER_V56_CSS_END -->
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-loader-hard-reset-v64.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-admin-loader-hard-reset-v64.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_ADMIN_LOADER_HARD_RESET_V64_CSS_END -->
 <!-- PMD_STABLE_LOGO_KPI_V65_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-stable-logo-kpi-v65.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-stable-logo-kpi-v65.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_STABLE_LOGO_KPI_V65_CSS_END -->
 <!-- PMD_SIDEBAR_CLOSED_LOGO_MODE_V66_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-mode-v66.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-closed-logo-mode-v66.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_CLOSED_LOGO_MODE_V66_CSS_END -->
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-toggle-top-gap-v70.css') }}?v={{ time() }}">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-sidebar-toggle-top-gap-v70.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_CSS_END -->
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CONTEXT_START -->
 @php
+    /*
+     * PMD_PERF_R12_ADMIN_ROLE_CONTEXT_SINGLEFLIGHT
+     * Body views on clean workspaces publish this before makeLayout(); other
+     * pages resolve it here once and Side Menu 2 reuses the same request value.
+     */
+    $__pmdRoleCacheKeyR12 =
+        '_pmd_admin_role_context_r12';
+
     $__pmdRoleDash = [
         'logged_in' => false,
         'username' => null,
@@ -5132,35 +5650,83 @@ body .media-manager .media-sidebar .sidebar-preview-toolbar button.btn-outline-d
         'staff_name' => null,
         'role_code' => null,
         'role_name' => null,
+        'is_super_user' => false,
     ];
 
     try {
-        $__pmdUser = null;
+        $__pmdRoleRequestR12 = request();
+        $__pmdCachedRoleR12 =
+            $__pmdRoleRequestR12->attributes->get(
+                $__pmdRoleCacheKeyR12
+            );
 
-        if (class_exists('\Admin\Facades\AdminAuth')) {
-            $__pmdUser = \Admin\Facades\AdminAuth::getUser();
-        } elseif (class_exists('AdminAuth')) {
-            $__pmdUser = \AdminAuth::getUser();
-        }
+        if (is_array($__pmdCachedRoleR12)) {
+            $__pmdRoleDash = array_merge(
+                $__pmdRoleDash,
+                $__pmdCachedRoleR12
+            );
+        } else {
+            $__pmdUser = null;
 
-        if ($__pmdUser) {
-            $__pmdRoleDash['logged_in'] = true;
-            $__pmdRoleDash['username'] = $__pmdUser->username ?? null;
-            $__pmdRoleDash['staff_id'] = $__pmdUser->staff_id ?? null;
+            if (class_exists('\Admin\Facades\AdminAuth')) {
+                $__pmdUser =
+                    \Admin\Facades\AdminAuth::getUser();
+            } elseif (class_exists('AdminAuth')) {
+                $__pmdUser =
+                    \AdminAuth::getUser();
+            }
 
-            if (!empty($__pmdRoleDash['staff_id'])) {
-                $__pmdStaffRole = \Illuminate\Support\Facades\DB::table('staffs as s')
-                    ->leftJoin('staff_roles as r', 'r.staff_role_id', '=', 's.staff_role_id')
-                    ->where('s.staff_id', $__pmdRoleDash['staff_id'])
-                    ->select('s.staff_name', 'r.code as role_code', 'r.name as role_name')
-                    ->first();
+            if ($__pmdUser) {
+                $__pmdRoleDash['logged_in'] = true;
+                $__pmdRoleDash['username'] =
+                    $__pmdUser->username ?? null;
+                $__pmdRoleDash['staff_id'] =
+                    $__pmdUser->staff_id ?? null;
+                $__pmdRoleDash['is_super_user'] =
+                    !empty($__pmdUser->is_super_user);
 
-                if ($__pmdStaffRole) {
-                    $__pmdRoleDash['staff_name'] = $__pmdStaffRole->staff_name ?? null;
-                    $__pmdRoleDash['role_code'] = $__pmdStaffRole->role_code ?? null;
-                    $__pmdRoleDash['role_name'] = $__pmdStaffRole->role_name ?? null;
+                if (!empty($__pmdRoleDash['staff_id'])) {
+                    $__pmdStaffRole =
+                        \Illuminate\Support\Facades\DB::table('staffs as s')
+                            ->leftJoin(
+                                'staff_roles as r',
+                                'r.staff_role_id',
+                                '=',
+                                's.staff_role_id'
+                            )
+                            ->where(
+                                's.staff_id',
+                                $__pmdRoleDash['staff_id']
+                            )
+                            ->select(
+                                's.staff_name',
+                                's.staff_email',
+                                'r.code as role_code',
+                                'r.name as role_name'
+                            )
+                            ->first();
+
+                    if ($__pmdStaffRole) {
+                        $__pmdRoleDash['staff_name'] =
+                            $__pmdStaffRole->staff_name
+                            ?? null;
+                        $__pmdRoleDash['staff_email'] =
+                            $__pmdStaffRole->staff_email
+                            ?? null;
+                        $__pmdRoleDash['role_code'] =
+                            $__pmdStaffRole->role_code
+                            ?? null;
+                        $__pmdRoleDash['role_name'] =
+                            $__pmdStaffRole->role_name
+                            ?? null;
+                    }
                 }
             }
+
+            $__pmdRoleRequestR12->attributes->set(
+                $__pmdRoleCacheKeyR12,
+                $__pmdRoleDash
+            );
         }
     } catch (\Throwable $e) {
         $__pmdRoleDash['error'] = $e->getMessage();
@@ -5187,38 +5753,38 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_KDS_SERVER_FAST_V82_BLADE_FLAG_END -->
 
 <!-- PMD_KDS_SERVER_FAST_V82_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-server-fast-v82.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-server-fast-v82.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_KDS_SERVER_FAST_V82_JS_END -->
 <!-- PMD_KDS_ULTRA_FAST_V83_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-ultra-fast-v83.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-kds-ultra-fast-v83.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_KDS_ULTRA_FAST_V83_JS_END -->
 <!-- PMD_DASHBOARD_ROLE_PREBOOT_V78_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preboot-v78.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preboot-v78.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_DASHBOARD_ROLE_PREBOOT_V78_JS_END -->
 
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-dashboard-lock-v72.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_CSS_END -->
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-no-sidebar-v73.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-role-no-sidebar-v73.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_CSS_END -->
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-stability-v78.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-role-stability-v78.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_CSS_END -->
 
 <!-- PMD_DASHBOARD_STABILITY_V77_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-stability-v77.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-stability-v77.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_DASHBOARD_STABILITY_V77_CSS_END -->
 
 
 
 
 <!-- PMD_KDS_SERVER_FAST_V82_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-server-fast-v82.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-server-fast-v82.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_KDS_SERVER_FAST_V82_CSS_END -->
 
 <!-- PMD_KDS_ULTRA_FAST_V83_CSS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-ultra-fast-v83.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-kds-ultra-fast-v83.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_KDS_ULTRA_FAST_V83_CSS_END -->
 
 <!-- PMD_WAITER_STABLE_MOBILE_V97_CSS_START -->
@@ -5228,10 +5794,14 @@ window.PMD_ROLE_DASHBOARD_CONTEXT_V72 = @json($__pmdRoleDash);
 <!-- PMD_WAITER_DATA_REPAIR_V100_CSS_END -->
     {{-- PMD waiter rebuild: old dashboard asset disabled --}}
 {{-- PMD waiter rebuild: old dashboard asset disabled --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v161-direct-renderer.css') }}?v={{ time() }}"> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v162-fix-mount-position.css') }}?v={{ time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v161-direct-renderer.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-dashboard-v162-fix-mount-position.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"> --}}
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_CSS_START -->
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-dashboard-clean-v23.css') }}?v={{ time() }}">
+{{-- PMD_LEAN_V14_OWNER_CSS_GUARDED_BEGIN --}}
+@unless(request()->is('admin/reservations*'))
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-dashboard-clean-v23.css') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}">
+@endunless
+{{-- PMD_LEAN_V14_OWNER_CSS_GUARDED_END --}}
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_CSS_END -->
 
 
@@ -5306,7 +5876,7 @@ section.pmd962-hero,
   var MARK = 'PMD_KDS_INDEX_V130_INLINE_ADVANCED_NO_FLASH';
 
   function isKdsIndex() {
-    return location.pathname.replace(/\/+$/, '') === '/admin/kds_stations';
+    return (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname).replace(/\/+$/, '') === '/admin/kds_stations';
   }
 
   if (!isKdsIndex()) return;
@@ -5499,10 +6069,6 @@ section.pmd962-hero,
 <!-- PMD_KDS_INDEX_V130_INLINE_ADVANCED_NO_FLASH_END -->
 
 
-
-
-
-
 <!-- PMD_KDS_INDEX_V133_CLEAN_CSS_STABILITY_START -->
 <?php if (function_exists('request') && trim(request()->path(), '/') === 'admin/kds_stations'): ?>
 <style id="pmd-kds-index-v133-clean-css-stability">
@@ -5625,7 +6191,7 @@ section.pmd962-hero,
       '/admin/payments'
     ];
 
-    var path = window.location.pathname.replace(/\/+$/, '');
+    var path = (window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname).replace(/\/+$/, '');
 
     if (supported.indexOf(path) !== -1) {
       document.documentElement.classList.add('pmd-new-pages-antiflash-v40');
@@ -5667,20 +6233,18 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
 <!-- /PMD Universal Admin Forms v1 -->
 
 
-
-
-
-
-
 <!-- PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v5-boot">
 (function () {
-  if (/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) {
+  if (/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) {
     document.documentElement.classList.add('pmd-waiter-dashboard-active');
   }
 })();
 </script>
+@endif
 
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v5-style">
 html.pmd-waiter-dashboard-active,
 html.pmd-waiter-dashboard-active body {
@@ -6284,7 +6848,12 @@ html.pmd-waiter-dashboard-active body {
   }
 }
 </style>
+@endif
 
+
+{{-- PMD_R2_V6_AUTHORITY_GUARD --}}
+@unless (request()->is('admin/reservations2'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v5-script">
 (function () {
   if (window.PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI) return;
@@ -6317,7 +6886,7 @@ html.pmd-waiter-dashboard-active body {
   ];
 
   function isPage() {
-    return /\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash);
+    return /(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash);
   }
 
   function esc(v) {
@@ -7144,11 +7713,15 @@ html.pmd-waiter-dashboard-active body {
   else boot();
 })();
 </script>
+@endif
+@endunless
+
 <!-- PMD_WAITER_DASHBOARD_V5_WORKFLOW_UI_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V6_CLEANUP_FIXES_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v6-cleanup-fixes-style">
 /*
   V6 cleanup:
@@ -7221,30 +7794,15 @@ html.pmd-waiter-dashboard-active .pmd-w5-card:hover {
   box-shadow: 0 18px 44px rgba(15,23,42,.07) !important;
 }
 </style>
-<script id="pmd-waiter-dashboard-v6-cleanup-fixes-script">
-(function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+@endif
 
-  document.documentElement.classList.add('pmd-waiter-dashboard-active');
 
-  function killOldBubbles() {
-    document.querySelectorAll('#pmd-dashboard2-quick-btn,.pmd-d2-quick-btn,[id*="dashboard2"][id*="quick"],[class*="dashboard2"][class*="quick"]').forEach(function (el) {
-      el.remove();
-    });
-  }
-
-  killOldBubbles();
-  setTimeout(killOldBubbles, 300);
-  setTimeout(killOldBubbles, 1000);
-
-  console.info('[PMD] Waiter Dashboard V6 cleanup active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V6_CLEANUP_FIXES_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V7_SOFT_FLOOR_REMOVE_TOP_ACTIONS_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v7-soft-floor-remove-top-actions-style">
 /*
   V7 waiter polish:
@@ -7337,32 +7895,15 @@ html.pmd-waiter-dashboard-active div.pmd-w5-actions:has(button[data-new-order]) 
   display: none !important;
 }
 </style>
-<script id="pmd-waiter-dashboard-v7-soft-floor-remove-top-actions-script">
-(function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+@endif
 
-  function hideDuplicateTopActions() {
-    document.querySelectorAll('.pmd-w5-actions').forEach(function (el) {
-      if (el.querySelector('[data-new-order]') || (el.querySelector('[data-filter="all"]') && el.querySelector('[data-filter="my"]'))) {
-        el.style.display = 'none';
-        el.style.visibility = 'hidden';
-        el.style.pointerEvents = 'none';
-      }
-    });
-  }
 
-  hideDuplicateTopActions();
-  setTimeout(hideDuplicateTopActions, 120);
-  setTimeout(hideDuplicateTopActions, 600);
-
-  console.info('[PMD] Waiter Dashboard V7 soft floor + duplicate actions hidden');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V7_SOFT_FLOOR_REMOVE_TOP_ACTIONS_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V8_REAL_FLOOR_MAP_STYLE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v8-real-floor-map-style">
 /*
   V8:
@@ -7463,17 +8004,12 @@ html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real .pmd-w5-table.is-selecte
   box-shadow: 0 0 0 5px rgba(96,165,250,.16), 0 8px 18px rgba(15,23,42,.055) !important;
 }
 </style>
+@endif
 <!-- PMD_WAITER_DASHBOARD_V8_REAL_FLOOR_MAP_STYLE_END -->
 
 
-
-
-
-
-
-
-
 <!-- PMD_WAITER_DASHBOARD_V14_ORDER_TABLE_EFFECT_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v14-order-table-effect-style">
 /*
   V14:
@@ -7519,11 +8055,13 @@ html.pmd-waiter-dashboard-active .pmd-w5-card[data-table="-"] {
   border-color: #fecaca !important;
 }
 </style>
+@endif
 <!-- PMD_WAITER_DASHBOARD_V14_ORDER_TABLE_EFFECT_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V15_PAYMENT_TABLE_EFFECT_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v15-payment-table-effect-style">
 /*
   V15:
@@ -7572,11 +8110,13 @@ html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real .pmd-w5-table.is-urgent 
   box-shadow: 0 0 0 5px rgba(248,113,113,.18), 0 18px 34px rgba(15,23,42,.12) !important;
 }
 </style>
+@endif
 <!-- PMD_WAITER_DASHBOARD_V15_PAYMENT_TABLE_EFFECT_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V16_SHARP_COLOR_BOOST_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v16-sharp-color-boost-style">
 /*
   V16 sharp color boost.
@@ -7844,11 +8384,13 @@ html.pmd-waiter-dashboard-active .notification-badge {
   box-shadow: 0 6px 14px rgba(220,38,38,.28) !important;
 }
 </style>
+@endif
 <!-- PMD_WAITER_DASHBOARD_V16_SHARP_COLOR_BOOST_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v17-order-card-cleanup-style">
 /*
   V17 order card cleanup:
@@ -7963,135 +8505,10 @@ html.pmd-waiter-dashboard-active .pmd-w5-tab {
   font-weight: 1000 !important;
 }
 </style>
+@endif
 
-<script id="pmd-waiter-dashboard-v17-order-card-cleanup-script">
-(function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP) return;
-  window.PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP = true;
 
-  var hiddenTabs = new Set([
-    'Needs Action',
-    'Payment Waiting',
-    'Ready to Serve',
-    'Notes / Calls',
-    'Selected Table'
-  ]);
 
-  function norm(s) {
-    return String(s || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function isSystemNoteText(txt) {
-    txt = String(txt || '');
-    return /Table Draft Basket|table_draft_id|submitted_by|guest_session/i.test(txt);
-  }
-
-  function findCardTable(card) {
-    var dataTable = norm(card.getAttribute('data-table') || card.dataset.table || '');
-    if (dataTable && dataTable !== '-' && dataTable !== '—') {
-      return /^Table/i.test(dataTable) ? dataTable : ('Table ' + dataTable);
-    }
-
-    var pills = Array.from(card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"]'));
-    for (var i = 0; i < pills.length; i++) {
-      var t = norm(pills[i].textContent);
-      if (/^Table\s+\d+/i.test(t)) return t;
-      if (/^\d+$/.test(t) && Number(t) > 0 && Number(t) <= 999) return 'Table ' + t;
-    }
-
-    var text = norm(card.textContent);
-    var m = text.match(/\bTable\s+(\d+)\b/i);
-    if (m) return 'Table ' + m[1];
-
-    return 'No table';
-  }
-
-  function cleanupTabs() {
-    document.querySelectorAll('.pmd-w5-tabs button, .pmd-w5-tab, button[data-filter]').forEach(function (btn) {
-      var t = norm(btn.textContent);
-      if (hiddenTabs.has(t)) {
-        btn.classList.add('pmd-v17-hidden-tab');
-        btn.setAttribute('aria-hidden', 'true');
-        btn.tabIndex = -1;
-      }
-    });
-  }
-
-  function cleanupSelectedNote() {
-    document.querySelectorAll('.pmd-w5-selected-note').forEach(function (el) {
-      el.classList.add('pmd-v17-hidden-system-note');
-    });
-  }
-
-  function cleanupSystemNotes(card) {
-    card.querySelectorAll('[class*="note"], .pmd-w5-note, .pmd-w5-note-box, .pmd-w5-order-note').forEach(function (note) {
-      if (isSystemNoteText(note.textContent)) {
-        note.classList.add('pmd-v17-hidden-system-note');
-      }
-    });
-
-    /* fallback: hide small divs that only contain system draft note */
-    card.querySelectorAll('div, p, section').forEach(function (el) {
-      if (el === card) return;
-      if (el.querySelector('button, input, select, textarea')) return;
-
-      var txt = norm(el.textContent);
-      if (!txt || txt.length > 500) return;
-
-      if (isSystemNoteText(txt)) {
-        el.classList.add('pmd-v17-hidden-system-note');
-      }
-    });
-  }
-
-  function replaceTopRightPill(card) {
-    var tableText = findCardTable(card);
-
-    var topRight =
-      card.querySelector('.pmd-w5-pill.red') ||
-      card.querySelector('.pmd-w5-pill.is-red') ||
-      Array.from(card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"]')).find(function (el) {
-        var t = norm(el.textContent);
-        return /^\d+$/.test(t) || /^Received$/i.test(t);
-      });
-
-    if (!topRight) return;
-
-    topRight.textContent = tableText;
-    topRight.classList.remove('red', 'is-red');
-    topRight.classList.add('pmd-v17-card-table-top');
-
-    if (tableText === 'No table') {
-      topRight.classList.add('pmd-v17-no-table');
-    } else {
-      topRight.classList.remove('pmd-v17-no-table');
-    }
-  }
-
-  function cleanupCards() {
-    document.querySelectorAll('.pmd-w5-card, .pmd-w5-order-card').forEach(function (card) {
-      cleanupSystemNotes(card);
-      replaceTopRightPill(card);
-    });
-  }
-
-  function run() {
-    cleanupTabs();
-    cleanupSelectedNote();
-    cleanupCards();
-  }
-
-  document.addEventListener('pmd-waiter-dashboard-rendered', run);
-  setTimeout(run, 100);
-  setTimeout(run, 400);
-  setTimeout(run, 1200);
-
-  window.PMDWaiterOrderCardCleanup = { run: run };
-
-  console.info('[PMD] Waiter Dashboard V17 order card cleanup active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V17_ORDER_CARD_CLEANUP_END -->
 
 
@@ -8099,6 +8516,7 @@ html.pmd-waiter-dashboard-active .pmd-w5-tab {
 
 
 <!-- PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_WORKING_UNMERGE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v19-clean-cards-working-unmerge-style">
 /*
   V19:
@@ -8364,38 +8782,20 @@ html.pmd-waiter-dashboard-active .pmd-w19-unmerge {
   box-shadow: 0 8px 18px rgba(239,51,64,.34) !important;
 }
 
-/* Compact mode */
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w5-floor-map-real {
-  min-height: 118px !important;
-  height: 118px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 16px 18px !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w5-floor-map-real .pmd-w5-table {
+/* Compact mode changes only the floor viewport. The real table nodes keep
+ * their saved absolute coordinates, dimensions, colors, numbers and badges. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root.pmd-w19-compact
+.pmd-w5-floor-map-real {
+  height: var(--pmd-v190-floor-height) !important;
+  min-height: var(--pmd-v190-floor-height) !important;
+  max-height: var(--pmd-v190-floor-height) !important;
+  display: block !important;
   position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
-  width: 78px !important;
-  height: 62px !important;
-  min-width: 78px !important;
-  min-height: 62px !important;
-  flex: 0 0 78px !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-w19-compact .pmd-w19-merged-table {
-  position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
-  min-width: 112px !important;
-  min-height: 68px !important;
-  flex: 0 0 112px !important;
+  padding: 0 !important;
+  overflow: var(--pmd-v190-floor-overflow) !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
 }
 
 /* Order cards must stay clean, not yellow */
@@ -8446,590 +8846,16 @@ html.pmd-waiter-dashboard-active .pmd-w5-btn.active {
   color: #ffffff !important;
 }
 </style>
+@endif
 
-<script id="pmd-waiter-dashboard-v19-clean-cards-working-unmerge-script">
-(function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_UNMERGE) return;
-  window.PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_UNMERGE = true;
 
-  var SAVE_LAYOUT_ENDPOINT = '/admin/pmd-waiter-dashboard-v10-save-layout';
-  var MERGE_ENDPOINT = '/admin/pmd-waiter-dashboard-v10-merge-tables';
-  var MERGES_ENDPOINT = '/admin/pmd-waiter-dashboard-v10-table-merges';
-  var UNMERGE_ENDPOINT = '/admin/pmd-waiter-dashboard-v19-unmerge-tables';
 
-  var state = {
-    edit: false,
-    merge: false,
-    compact: localStorage.getItem('pmd_waiter_floor_compact') === '1',
-    selected: new Set(),
-    merges: []
-  };
-
-  function csrf() {
-    var m = document.querySelector('meta[name="csrf-token"]');
-    if (m && m.content) return m.content;
-    var i = document.querySelector('input[name="_token"]');
-    if (i && i.value) return i.value;
-    return '';
-  }
-
-  function root() { return document.querySelector('#pmd-waiter-dashboard-root'); }
-  function map() { return document.querySelector('.pmd-w5-floor-map-real'); }
-
-  function tables() {
-    return Array.from(document.querySelectorAll('.pmd-w5-floor-map-real .pmd-w5-table[data-table]'));
-  }
-
-  function tableByNo(no) {
-    return tables().find(function (el) {
-      return String(el.dataset.table) === String(no);
-    });
-  }
-
-  function center(el) {
-    var m = map();
-    if (!m || !el) return null;
-
-    var mr = m.getBoundingClientRect();
-    var r = el.getBoundingClientRect();
-
-    return {
-      x: r.left + r.width / 2 - mr.left,
-      y: r.top + r.height / 2 - mr.top,
-      w: r.width,
-      h: r.height
-    };
-  }
-
-  function distance(a, b) {
-    var dx = a.x - b.x;
-    var dy = a.y - b.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  function areClose(aNo, bNo) {
-    var a = center(tableByNo(aNo));
-    var b = center(tableByNo(bNo));
-    if (!a || !b) return false;
-
-    var d = distance(a, b);
-    var maxGap = Math.max(170, Math.min(260, (a.w + b.w) * 1.65));
-
-    return d <= maxGap;
-  }
-
-  function isInMerge(no) {
-    return state.merges.some(function (m) {
-      return (m.table_numbers || []).map(String).indexOf(String(no)) !== -1;
-    });
-  }
-
-  function hasPendingSave() {
-    return state.edit || (state.merge && state.selected.size >= 2);
-  }
-
-  function installTools() {
-    var head = document.querySelector('.pmd-w5-floor .pmd-w5-head');
-    if (!head) return;
-
-    head.querySelectorAll('.pmd-w10-lite-tools,.pmd-w10-floor-tools,.pmd-w11-tools,.pmd-w12-tools,.pmd-w19-tools').forEach(function (x) {
-      x.remove();
-    });
-
-    var tools = document.createElement('div');
-    tools.className = 'pmd-w19-tools';
-    tools.innerHTML =
-      '<button class="pmd-w19-btn primary pmd-w19-save-hidden" data-w19-save title="Save">✓</button>' +
-      '<button class="pmd-w19-btn" data-w19-edit title="Edit layout">✎</button>' +
-      '<button class="pmd-w19-btn" data-w19-merge title="Merge tables">↔<small></small></button>' +
-      '<button class="pmd-w19-btn" data-w19-compact title="Compact / expand floor">▤</button>';
-
-    head.appendChild(tools);
-    sync();
-  }
-
-  function sync() {
-    var r = root();
-    if (!r) return;
-
-    r.classList.toggle('pmd-w19-editing', state.edit);
-    r.classList.toggle('pmd-w19-merging', state.merge);
-    r.classList.toggle('pmd-w19-compact', state.compact);
-
-    tables().forEach(function (el) {
-      el.classList.toggle('pmd-w19-selected', state.selected.has(String(el.dataset.table)));
-    });
-
-    var save = document.querySelector('[data-w19-save]');
-    var edit = document.querySelector('[data-w19-edit]');
-    var merge = document.querySelector('[data-w19-merge]');
-    var compact = document.querySelector('[data-w19-compact]');
-    var badge = merge && merge.querySelector('small');
-
-    if (save) save.classList.toggle('pmd-w19-save-hidden', !hasPendingSave());
-    if (edit) edit.classList.toggle('primary', state.edit);
-    if (merge) merge.classList.toggle('warn', state.merge);
-    if (compact) compact.classList.toggle('primary', state.compact);
-
-    if (badge) {
-      badge.textContent = state.selected.size;
-      badge.classList.toggle('is-show', state.selected.size > 0);
-    }
-
-    renderMergedIcons();
-  }
-
-  function validateMergeSelection(nums) {
-    nums = nums.map(String);
-
-    if (nums.length < 2) return { ok: false, error: 'Select at least 2 tables.' };
-
-    for (var i = 0; i < nums.length; i++) {
-      if (isInMerge(nums[i])) {
-        return { ok: false, error: 'Table ' + nums[i] + ' is already merged. Unmerge it first.' };
-      }
-    }
-
-    var visited = new Set([nums[0]]);
-    var changed = true;
-
-    while (changed) {
-      changed = false;
-
-      nums.forEach(function (a) {
-        if (!visited.has(a)) return;
-
-        nums.forEach(function (b) {
-          if (visited.has(b)) return;
-          if (areClose(a, b)) {
-            visited.add(b);
-            changed = true;
-          }
-        });
-      });
-    }
-
-    if (visited.size !== nums.length) {
-      return { ok: false, error: 'Only close tables can be merged.' };
-    }
-
-    return { ok: true };
-  }
-
-  function strongestClass(els) {
-    var cls = '';
-
-    els.forEach(function (el) {
-      if (!el) return;
-
-      if (el.classList.contains('is-urgent')) cls = 'is-urgent';
-      else if (cls !== 'is-urgent' && el.classList.contains('is-ready')) cls = 'is-ready';
-      else if (!cls && (
-        el.classList.contains('is-payment') ||
-        el.classList.contains('is-active') ||
-        el.classList.contains('busy') ||
-        el.classList.contains('has-orders')
-      )) cls = 'is-payment';
-    });
-
-    return cls;
-  }
-
-  function removeMergedIcons() {
-    document.querySelectorAll('.pmd-w19-merged-table').forEach(function (x) {
-      x.remove();
-    });
-
-    tables().forEach(function (el) {
-      el.classList.remove('pmd-w19-in-merge');
-    });
-  }
-
-  function renderMergedIcons() {
-    var m = map();
-    if (!m) return;
-
-    removeMergedIcons();
-
-    state.merges.forEach(function (merge) {
-      var nums = (merge.table_numbers || []).map(String);
-      var els = nums.map(tableByNo).filter(Boolean);
-
-      if (els.length < 2) return;
-
-      var points = els.map(center).filter(Boolean);
-      if (!points.length) return;
-
-      var avgX = points.reduce(function (s, p) { return s + p.x; }, 0) / points.length;
-      var avgY = points.reduce(function (s, p) { return s + p.y; }, 0) / points.length;
-
-      var mr = m.getBoundingClientRect();
-      var leftPct = (avgX / mr.width) * 100;
-      var topPct = (avgY / mr.height) * 100;
-
-      els.forEach(function (el) {
-        el.classList.add('pmd-w19-in-merge');
-      });
-
-      var icon = document.createElement('button');
-      icon.type = 'button';
-      icon.className = 'pmd-w19-merged-table ' + strongestClass(els);
-      icon.dataset.mergeKey = merge.merge_key || '';
-      icon.dataset.mergeId = merge.id || merge.merge_id || '';
-      icon.dataset.tables = nums.join(',');
-
-      icon.style.left = leftPct.toFixed(2) + '%';
-      icon.style.top = topPct.toFixed(2) + '%';
-
-      icon.innerHTML =
-        '<span class="pmd-w19-unmerge" title="Unmerge">×</span>' +
-        '<div>' +
-          '<div class="pmd-w19-merged-main">' + nums.join('+') + '</div>' +
-          '<div class="pmd-w19-merged-sub">Merged table</div>' +
-        '</div>';
-
-      m.appendChild(icon);
-    });
-  }
-
-  async function loadMerges() {
-    try {
-      var r = await fetch(MERGES_ENDPOINT + '?ts=' + Date.now(), {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-      });
-
-      var j = await r.json();
-
-      if (r.ok && j && j.ok && Array.isArray(j.merges)) {
-        state.merges = j.merges;
-      }
-    } catch (e) {}
-
-    renderMergedIcons();
-  }
-
-  async function saveLayout() {
-    var payload = tables().map(function (el) {
-      return {
-        table_no: el.dataset.table,
-        floor_x: parseFloat(String(el.style.left || '').replace('%', '')) || 10,
-        floor_y: parseFloat(String(el.style.top || '').replace('%', '')) || 10,
-        floor_width: Math.max(80, Math.round(el.offsetWidth || 96)),
-        floor_height: Math.max(56, Math.round(el.offsetHeight || 68))
-      };
-    });
-
-    try {
-      var r = await fetch(SAVE_LAYOUT_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({ tables: payload })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        alert('Layout save failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      state.edit = false;
-      sync();
-      alert('Floor layout saved.');
-    } catch (e) {
-      alert('Layout save failed: ' + e.message);
-    }
-  }
-
-  async function saveMerge() {
-    var nums = Array.from(state.selected);
-    var check = validateMergeSelection(nums);
-
-    if (!check.ok) {
-      alert(check.error);
-      return;
-    }
-
-    try {
-      var r = await fetch(MERGE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({ table_numbers: nums })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        alert('Merge failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      state.merge = false;
-      state.selected.clear();
-
-      await loadMerges();
-      sync();
-    } catch (e) {
-      alert('Merge failed: ' + e.message);
-    }
-  }
-
-  async function unmerge(icon) {
-    if (!icon) return;
-
-    var mergeKey = icon.dataset.mergeKey || '';
-    var id = icon.dataset.mergeId || '';
-    var nums = (icon.dataset.tables || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-
-    try {
-      var r = await fetch(UNMERGE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({
-          merge_key: mergeKey,
-          id: id,
-          table_numbers: nums
-        })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        alert('Unmerge failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      state.merges = state.merges.filter(function (m) {
-        var mKey = String(m.merge_key || '');
-        var mId = String(m.id || m.merge_id || '');
-        var mNums = (m.table_numbers || []).map(String).sort().join(',');
-        var iNums = nums.map(String).sort().join(',');
-
-        if (mergeKey && mKey === mergeKey) return false;
-        if (id && mId === String(id)) return false;
-        if (iNums && mNums === iNums) return false;
-
-        return true;
-      });
-
-      renderMergedIcons();
-      await loadMerges();
-      sync();
-    } catch (e) {
-      alert('Unmerge failed: ' + e.message);
-    }
-  }
-
-  function save() {
-    if (state.edit) {
-      saveLayout();
-      return;
-    }
-
-    if (state.merge && state.selected.size >= 2) {
-      saveMerge();
-      return;
-    }
-  }
-
-  function toggleCompact() {
-    state.compact = !state.compact;
-    state.edit = false;
-    localStorage.setItem('pmd_waiter_floor_compact', state.compact ? '1' : '0');
-    sync();
-  }
-
-  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
-    installTools();
-    loadMerges();
-  });
-
-  document.addEventListener('click', function (e) {
-    var unmergeBtn = e.target.closest('.pmd-w19-unmerge');
-    if (unmergeBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      unmerge(unmergeBtn.closest('.pmd-w19-merged-table'));
-      return;
-    }
-
-    var saveBtn = e.target.closest('[data-w19-save]');
-    if (saveBtn) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      save();
-      return;
-    }
-
-    var edit = e.target.closest('[data-w19-edit]');
-    if (edit) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      state.edit = !state.edit;
-      state.merge = false;
-      state.selected.clear();
-      sync();
-      return;
-    }
-
-    var merge = e.target.closest('[data-w19-merge]');
-    if (merge) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      state.merge = !state.merge;
-      state.edit = false;
-      state.selected.clear();
-      sync();
-      return;
-    }
-
-    var compact = e.target.closest('[data-w19-compact]');
-    if (compact) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      toggleCompact();
-      return;
-    }
-
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    if (!table) return;
-
-    var no = String(table.dataset.table);
-
-    if (state.merge) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-
-      if (isInMerge(no)) {
-        alert('Table ' + no + ' is already merged. Unmerge it first.');
-        return;
-      }
-
-      var selected = Array.from(state.selected);
-
-      if (!state.selected.has(no) && selected.length > 0) {
-        var canConnect = selected.some(function (existing) {
-          return areClose(existing, no);
-        });
-
-        if (!canConnect) {
-          alert('Only close tables can be merged.');
-          return;
-        }
-      }
-
-      if (state.selected.has(no)) state.selected.delete(no);
-      else state.selected.add(no);
-
-      sync();
-      return;
-    }
-
-    if (state.edit && isInMerge(no)) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      alert('This table is merged. Unmerge it first to edit layout.');
-      return;
-    }
-  }, true);
-
-  document.addEventListener('pointerdown', function (e) {
-    if (state.compact) return;
-
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    var m = map();
-
-    if (!state.edit || !table || !m) return;
-
-    var no = String(table.dataset.table);
-
-    if (isInMerge(no)) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      alert('This table is merged. Unmerge it first to edit layout.');
-      return;
-    }
-
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    var rect = m.getBoundingClientRect();
-
-    function move(ev) {
-      var x = ((ev.clientX - rect.left) / rect.width) * 100;
-      var y = ((ev.clientY - rect.top) / rect.height) * 100;
-
-      x = Math.max(2, Math.min(98, x));
-      y = Math.max(2, Math.min(98, y));
-
-      table.style.left = x.toFixed(2) + '%';
-      table.style.top = y.toFixed(2) + '%';
-    }
-
-    function up() {
-      document.removeEventListener('pointermove', move, true);
-      document.removeEventListener('pointerup', up, true);
-    }
-
-    document.addEventListener('pointermove', move, true);
-    document.addEventListener('pointerup', up, true);
-  }, true);
-
-  installTools();
-  loadMerges();
-
-  setTimeout(installTools, 300);
-  setTimeout(loadMerges, 500);
-  setTimeout(installTools, 1200);
-  setTimeout(loadMerges, 1500);
-
-  window.PMDWaiterFloorToolbar = {
-    state: state,
-    save: save,
-    saveLayout: saveLayout,
-    saveMerge: saveMerge,
-    loadMerges: loadMerges,
-    unmerge: unmerge,
-    validateMergeSelection: validateMergeSelection
-  };
-
-  console.info('[PMD] Waiter Dashboard V19 clean cards + working unmerge active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V19_CLEAN_CARDS_WORKING_UNMERGE_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v20-unmerge-hotfix-style">
 /* Keep order cards clean white */
 html.pmd-waiter-dashboard-active .pmd-w5-card,
@@ -9054,206 +8880,16 @@ html.pmd-waiter-dashboard-active .pmd-w5-order-card [class*="items"] {
   background-image: none !important;
 }
 </style>
+@endif
 
-<script id="pmd-waiter-dashboard-v20-unmerge-hotfix-script">
-(function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX) return;
-  window.PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX = true;
 
-  var LIST_ENDPOINT = '/admin/pmd-waiter-dashboard-v20-table-merges';
-  var MERGE_ENDPOINT = '/admin/pmd-waiter-dashboard-v20-merge-tables';
-  var UNMERGE_ENDPOINT = '/admin/pmd-waiter-dashboard-v20-unmerge-tables';
 
-  function csrf() {
-    var m = document.querySelector('meta[name="csrf-token"]');
-    if (m && m.content) return m.content;
-    var i = document.querySelector('input[name="_token"]');
-    if (i && i.value) return i.value;
-    return '';
-  }
-
-  function selectedTables() {
-    if (window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state && PMDWaiterFloorToolbar.state.selected) {
-      return Array.from(PMDWaiterFloorToolbar.state.selected).map(String);
-    }
-
-    return Array.from(document.querySelectorAll('.pmd-w19-selected, .pmd-v18-selected, .pmd-w12-selected'))
-      .map(function (x) { return String(x.dataset.table || '').trim(); })
-      .filter(Boolean);
-  }
-
-  async function loadMergesIntoV19() {
-    try {
-      var r = await fetch(LIST_ENDPOINT + '?ts=' + Date.now(), {
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-      });
-
-      var j = await r.json();
-
-      if (r.ok && j && j.ok && window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state) {
-        PMDWaiterFloorToolbar.state.merges = j.merges || [];
-      }
-
-      if (window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.loadMerges) {
-        // V19 will redraw from DB after our endpoint fixed DB rows.
-        PMDWaiterFloorToolbar.loadMerges();
-      }
-
-      return j;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  async function unmergeIcon(icon) {
-    if (!icon) return;
-
-    var mergeKey = icon.dataset.mergeKey || '';
-    var id = icon.dataset.mergeId || '';
-    var nums = String(icon.dataset.tables || '')
-      .split(',')
-      .map(function (x) { return x.trim(); })
-      .filter(Boolean);
-
-    icon.style.opacity = '.35';
-    icon.style.pointerEvents = 'none';
-
-    try {
-      var r = await fetch(UNMERGE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({
-          id: id,
-          merge_key: mergeKey,
-          table_numbers: nums
-        })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        icon.style.opacity = '';
-        icon.style.pointerEvents = '';
-        alert('Unmerge failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      icon.remove();
-
-      document.querySelectorAll('.pmd-w19-in-merge, .pmd-v18-in-merge').forEach(function (x) {
-        x.classList.remove('pmd-w19-in-merge', 'pmd-v18-in-merge');
-      });
-
-      await loadMergesIntoV19();
-
-      setTimeout(function () {
-        if (window.PMDWaiterDashboard && PMDWaiterDashboard.refresh) {
-          PMDWaiterDashboard.refresh();
-        }
-      }, 150);
-
-    } catch (e) {
-      icon.style.opacity = '';
-      icon.style.pointerEvents = '';
-      alert('Unmerge failed: ' + e.message);
-    }
-  }
-
-  async function mergeSelected() {
-    var nums = selectedTables();
-
-    if (nums.length < 2) return;
-
-    try {
-      var r = await fetch(MERGE_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({ table_numbers: nums })
-      });
-
-      var j = await r.json();
-
-      if (!r.ok || !j || !j.ok) {
-        alert('Merge failed: ' + ((j && j.error) || ('HTTP ' + r.status)));
-        return;
-      }
-
-      if (window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state) {
-        PMDWaiterFloorToolbar.state.selected.clear();
-        PMDWaiterFloorToolbar.state.merge = false;
-      }
-
-      await loadMergesIntoV19();
-
-      setTimeout(function () {
-        if (window.PMDWaiterDashboard && PMDWaiterDashboard.refresh) {
-          PMDWaiterDashboard.refresh();
-        }
-      }, 150);
-
-    } catch (e) {
-      alert('Merge failed: ' + e.message);
-    }
-  }
-
-  // pointerdown happens before the old V19 click handler, so this forces X to work.
-  document.addEventListener('pointerdown', function (e) {
-    var x = e.target.closest('.pmd-w19-unmerge, .pmd-v18-unmerge');
-    if (!x) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    var icon = x.closest('.pmd-w19-merged-table, .pmd-v18-merged-table');
-    unmergeIcon(icon);
-  }, true);
-
-  // Intercept merge save only when merge mode is active.
-  document.addEventListener('pointerdown', function (e) {
-    var save = e.target.closest('[data-w19-save]');
-    if (!save) return;
-
-    var st = window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state;
-    if (!st || !st.merge) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-
-    mergeSelected();
-  }, true);
-
-  window.PMDWaiterMergeV20 = {
-    list: loadMergesIntoV19,
-    unmergeIcon: unmergeIcon,
-    mergeSelected: mergeSelected
-  };
-
-  setTimeout(loadMergesIntoV19, 500);
-
-  console.info('[PMD] Waiter Dashboard V20 unmerge hotfix active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V20_UNMERGE_HOTFIX_END -->
 
 
 
 <!-- PMD_WAITER_DASHBOARD_V21_STABLE_FLOOR_ORDER_CLEANUP_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v21-stable-floor-order-cleanup-style">
 /*
   V21 stability polish:
@@ -9351,239 +8987,241 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
   cursor: pointer !important;
 }
 </style>
+@endif
 
-<script id="pmd-waiter-dashboard-v21-stable-floor-order-cleanup-script">
-(function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_WAITER_DASHBOARD_V21_STABLE_CLEANUP) return;
-  window.PMD_WAITER_DASHBOARD_V21_STABLE_CLEANUP = true;
 
-  var CLEAN_ENDPOINT = '/admin/pmd-waiter-dashboard-v21-clean-merge-overlaps';
-  var LIST_ENDPOINT = '/admin/pmd-waiter-dashboard-v20-table-merges';
 
-  function csrf() {
-    var m = document.querySelector('meta[name="csrf-token"]');
-    if (m && m.content) return m.content;
-    var i = document.querySelector('input[name="_token"]');
-    if (i && i.value) return i.value;
-    return '';
-  }
-
-  function norm(s) {
-    return String(s || '').replace(/\s+/g, ' ').trim();
-  }
-
-  function toolbarState() {
-    return window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.state
-      ? PMDWaiterFloorToolbar.state
-      : null;
-  }
-
-  function isEditMode() {
-    var st = toolbarState();
-    return !!(st && st.edit);
-  }
-
-  function isMergeMode() {
-    var st = toolbarState();
-    return !!(st && st.merge);
-  }
-
-  function isSystemNoteText(txt) {
-    return /Table Draft Basket|table_draft_id|submitted_by|guest_session/i.test(String(txt || ''));
-  }
-
-  function findCardTable(card) {
-    var text = norm(card.textContent);
-
-    var direct = card.querySelector('.pmd-v17-card-table-top, .pmd-v21-table-badge');
-    if (direct) {
-      var dt = norm(direct.textContent);
-      if (/^Table\s+\d+$/i.test(dt)) return dt;
-    }
-
-    var pills = Array.from(card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"]'));
-    for (var i = 0; i < pills.length; i++) {
-      var t = norm(pills[i].textContent);
-      if (/^Table\s+\d+$/i.test(t)) return t;
-    }
-
-    var m = text.match(/\bTable\s+(\d+)\b/i);
-    if (m) return 'Table ' + m[1];
-
-    return 'No table';
-  }
-
-  function cleanupOrderCards() {
-    document.querySelectorAll('.pmd-w5-card, .pmd-w5-order-card').forEach(function (card) {
-      var tableText = findCardTable(card);
-      var pills = Array.from(card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"]'));
-
-      var topBadge =
-        card.querySelector('.pmd-v17-card-table-top') ||
-        card.querySelector('.pmd-v21-table-badge') ||
-        pills.find(function (p) {
-          var t = norm(p.textContent);
-          return /^Table\s+\d+$/i.test(t) || /^No table$/i.test(t);
-        });
-
-      if (topBadge) {
-        topBadge.textContent = tableText;
-        topBadge.classList.add('pmd-v21-table-badge');
-
-        if (tableText === 'No table') {
-          topBadge.classList.add('pmd-v21-no-table');
-        } else {
-          topBadge.classList.remove('pmd-v21-no-table');
-        }
-      }
-
-      // Hide duplicate Table — / Table - / left bad table pills.
-      pills.forEach(function (p) {
-        var t = norm(p.textContent);
-
-        if (/^Table\s*[—-]$/i.test(t) || /^Table\s*$/i.test(t)) {
-          p.classList.add('pmd-v21-hide');
-          return;
-        }
-
-        if (topBadge && p !== topBadge && /^Table\s+\d+$/i.test(t)) {
-          p.classList.add('pmd-v21-hide');
-        }
-      });
-
-      // Hide fake note/change badge if no real customer note exists.
-      var hasRealNote = false;
-
-      card.querySelectorAll('[class*="note"], .pmd-w5-note, .pmd-w5-note-box, .pmd-w5-order-note').forEach(function (n) {
-        var t = norm(n.textContent);
-
-        if (!t) return;
-
-        if (isSystemNoteText(t)) {
-          n.classList.add('pmd-v21-hide');
-          return;
-        }
-
-        if (!/^Note\s*\/\s*change$/i.test(t) && !/^Note$/i.test(t)) {
-          hasRealNote = true;
-        }
-      });
-
-      card.querySelectorAll('.pmd-w5-pill, [class*="pill"], [class*="badge"], button').forEach(function (el) {
-        var t = norm(el.textContent);
-
-        if (/^Note\s*\/\s*change$/i.test(t) && !hasRealNote) {
-          el.classList.add('pmd-v21-hide');
-        }
-      });
-    });
-  }
-
-  async function cleanupMergeOverlaps() {
-    try {
-      var r = await fetch(CLEAN_ENDPOINT, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-TOKEN': csrf()
-        },
-        body: JSON.stringify({})
-      });
-
-      var j = await r.json();
-
-      if (j && j.ok) {
-        console.info('[PMD] V21 merge cleanup', j);
-
-        if (window.PMDWaiterMergeV20 && PMDWaiterMergeV20.list) {
-          await PMDWaiterMergeV20.list();
-        } else if (window.PMDWaiterFloorToolbar && PMDWaiterFloorToolbar.loadMerges) {
-          await PMDWaiterFloorToolbar.loadMerges();
-        }
-
-        setTimeout(function () {
-          if (window.PMDWaiterDashboard && PMDWaiterDashboard.refresh) {
-            PMDWaiterDashboard.refresh();
-          }
-        }, 200);
-      }
-
-      return j;
-    } catch (e) {
-      console.warn('[PMD] V21 merge cleanup failed', e);
-      return null;
-    }
-  }
-
-  // In edit layout mode, block normal table click/select.
-  document.addEventListener('click', function (e) {
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    if (!table) return;
-
-    if (isEditMode()) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-  }, true);
-
-  // Also block pointerup in edit mode so old table click logic does not fire after drag.
-  document.addEventListener('pointerup', function (e) {
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    if (!table) return;
-
-    if (isEditMode()) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-  }, true);
-
-  // If merge mode is on, prevent old normal table selection.
-  document.addEventListener('click', function (e) {
-    var table = ((e && e.target && e.target.nodeType === 1) ? e.target.closest('.pmd-w5-floor-map-real .pmd-w5-table[data-table]') : null);
-    if (!table) return;
-
-    if (isMergeMode()) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-  }, true);
-
-  document.addEventListener('pmd-waiter-dashboard-rendered', function () {
-    setTimeout(cleanupOrderCards, 60);
-    setTimeout(cleanupOrderCards, 300);
-  });
-
-  setTimeout(cleanupOrderCards, 200);
-  setTimeout(cleanupOrderCards, 700);
-  setTimeout(cleanupOrderCards, 1500);
-
-  // Run cleanup once on load to remove old duplicate/overlap test merges.
-  setTimeout(cleanupMergeOverlaps, 800);
-
-  window.PMDWaiterV21Cleanup = {
-    cards: cleanupOrderCards,
-    merges: cleanupMergeOverlaps
-  };
-
-  console.info('[PMD] Waiter Dashboard V21 stable floor/order cleanup active');
-})();
-</script>
 <!-- PMD_WAITER_DASHBOARD_V21_STABLE_FLOOR_ORDER_CLEANUP_END -->
 
 
 
 
+
+
+
+
+<!-- PMD_SETTINGS_FAMILY_HEADER_V18_PREBOOT_START -->
+<script id="pmd-settings-family-v18-preboot">
+(function () {
+    'use strict';
+
+    function clean(value) {
+        return String(value || '')
+            .split('?')[0]
+            .split('#')[0]
+            .replace(/\/+$/, '') || '/';
+    }
+
+
+    function isDetail(path) {
+        path = clean(
+            window.PMDAdminCanonicalURLR81E
+                ? window.PMDAdminCanonicalURLR81E.logicalPath(path)
+                : path
+        );
+
+        if (
+            path === '/admin/pmdsettings/restaurant' ||
+            path === '/admin/pmdsettings/frontend' ||
+            path === '/admin/pmdmenu' ||
+            path === '/admin/pmdcustomer' ||
+            path === '/admin/pmdteam' ||
+            path === '/admin/pmdfinance' ||
+            path === '/admin/pmdbrand' ||
+            path === '/admin/pmdadvanced' ||
+            path === '/admin/pmddevices'
+        ) {
+            return true;
+        }
+
+        return (
+            path.indexOf('/admin/pmddevices/') === 0
+        );
+    }
+
+
+    function isSettingsNavigation(path) {
+        path = clean(
+            window.PMDAdminCanonicalURLR81E
+                ? window.PMDAdminCanonicalURLR81E.logicalPath(path)
+                : path
+        );
+
+        return (
+            path === '/admin/pmdsettings' ||
+            path.indexOf('/admin/pmdsettings/') === 0 ||
+            path === '/admin/pmdmenu' ||
+            path === '/admin/pmdcustomer' ||
+            path === '/admin/pmdteam' ||
+            path === '/admin/pmdfinance' ||
+            path === '/admin/pmdbrand' ||
+            path === '/admin/pmdadvanced' ||
+            path === '/admin/pmddevices' ||
+            path.indexOf('/admin/pmddevices/') === 0
+        );
+    }
+
+
+    var path =
+        clean((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname));
+
+
+    if (isDetail(path)) {
+        var html =
+            document.documentElement;
+
+        html.classList.add(
+            'pmd-settings-family-v18-route'
+        );
+
+        html.classList.remove(
+            'pmd-sm2-runtime-ready'
+        );
+
+
+        /*
+         * Resolve Side Menu state before BODY/page content exists.
+         */
+        var state =
+            'collapsed';
+
+        try {
+            state =
+                localStorage.getItem(
+                    'pmd.sideMenu2.state'
+                ) === 'expanded'
+                    ? 'expanded'
+                    : 'collapsed';
+        } catch (error) {}
+
+
+        html.classList.toggle(
+            'pmd-sm2-expanded',
+            state === 'expanded'
+        );
+
+        html.classList.toggle(
+            'pmd-sm2-collapsed',
+            state !== 'expanded'
+        );
+
+
+        /*
+         * PMD_SETTINGS_FAMILY_V18_EXACT_LAYOUT_BYPASS
+         *
+         * Exact Layout already supports an existing
+         * PMDAdminExactLayoutV4 compatibility authority.
+         *
+         * Set it BEFORE that script starts so Settings detail
+         * pages do not start its boot timers/observer.
+         *
+         * V18 CSS owns this shell instead.
+         */
+        window.PMDSettingsFamilyStaticShellV18 = {
+            version: '18.0.1',
+            settingsFamilyV18: true,
+
+            apply: function () {
+                return {
+                    version: '18.0.1',
+                    route: path,
+                    bypassed: true
+                };
+            }
+        };
+
+
+        window.PMDAdminExactLayoutV4 =
+            window.PMDSettingsFamilyStaticShellV18;
+    }
+
+
+    /*
+     * Settings navigation uses normal browser navigation.
+     * We do NOT preventDefault().
+     *
+     * We only block propagation into the legacy SPA
+     * transition handler.
+     */
+    document.addEventListener(
+        'click',
+        function (event) {
+            if (
+                event.defaultPrevented ||
+                event.button !== 0 ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey ||
+                event.altKey
+            ) {
+                return;
+            }
+
+            var link =
+                event.target &&
+                event.target.closest
+                    ? event.target.closest(
+                        '#navSidebar a[href],'
+                        + '#pmd-side-menu2 a[href]'
+                    )
+                    : null;
+
+            if (!link) {
+                return;
+            }
+
+            var targetPath = '';
+
+            try {
+                targetPath =
+                    clean(
+                        new URL(
+                            link.href,
+                            window.location.href
+                        ).pathname
+                    );
+            } catch (error) {
+                return;
+            }
+
+            if (
+                isSettingsNavigation(path) ||
+                isSettingsNavigation(targetPath)
+            ) {
+                event.stopPropagation();
+            }
+        },
+        true
+    );
+})();
+</script>
+<!-- PMD_SETTINGS_FAMILY_HEADER_V18_PREBOOT_END -->
+
+<!-- PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2 -->
+<link
+    rel="stylesheet"
+    id="pmd-admin-primary-dark-green-authority-v2"
+    href="/app/admin/assets/css/pmd-admin-primary-dark-green-authority-v2.css?v=20260826-dark-green-authority-v2"
+>
+<!-- /PMD_ADMIN_PRIMARY_DARK_GREEN_AUTHORITY_V2 -->
+
+
+<!-- PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_HEAD -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r3-real-admin-layout"
+    data-pmd-platform-card-system-v2="1"
+    data-pmd-platform-card-real-layout="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_HEAD -->
+
 </head>
+@php
+    /* PMD_PERF_R13_LAYOUT_STAGE_PROFILER */
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_head'
+    );
+@endphp
 <script>
     // SMART FIX: Force dropdown alignment WITHOUT breaking Bootstrap animations
     (function() {
@@ -9635,7 +9273,27 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <body class="page pmd-admin-theme-v1 {{ $this->bodyClass }}">
 @if(AdminAuth::isLogged())
     {!! $this->makePartial('top_nav') !!}
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_top_nav'
+        );
+    @endphp
+
     {!! AdminMenu::render('side_nav') !!}
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_side_nav'
+        );
+    @endphp
+@else
+    @php
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_top_nav'
+        );
+        \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+            'layout_side_nav'
+        );
+    @endphp
 @endif
 
 <div class="page-wrapper">
@@ -9643,6 +9301,12 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
         {!! Template::getBlock('body') !!}
     </div>
 </div>
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_body_content'
+    );
+@endphp
 
 <div id="notification">
     {!! $this->makePartial('flash') !!}
@@ -9652,38 +9316,70 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 @endif
 {!! $this->makePartial('confirm_modal') !!}
 {!! Assets::getJsVars() !!}
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_shell_partials'
+    );
+@endphp
+
 {{-- Use asset combiner to ensure all widget JS files are included --}}
 @php
     $pmdIsNativeMediaContext = request()->is('admin/settings*') || request()->is('admin/media_manager*');
+    // PMD_CLEAN_ROLE_WORKSPACE_MEDIA_LAYOUT_GUARD_V1
+    $pmdIsCleanRoleWorkspace = request()->is('admin/managerlab*')
+        || request()->is('admin/accountantlab*')
+        || request()->is('admin/cashierlab*')
+        || request()->is('admin/reservationslab*')
+        || request()->is('admin/pmdreports*')
+        || request()->is('admin/pmdreportchannels*')
+        || request()->is('admin/pmdreporttips*');
 @endphp
 
 <!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 <!-- PMD EARLY SORTABLE DROPZONE START -->
-    <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/Sortable.min.js') }}?v={{ time() }}"></script>
-    <script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ time() }}"></script>
+@unless($pmdIsCleanRoleWorkspace)
+    @unless(request()->is('admin/reservations2'))
+{{-- PMD_LEAN_V14_SORTABLE_GUARDED_BEGIN --}}
+@unless(request()->is('admin/reservations*'))
+<script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/Sortable.min.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+@endunless
+{{-- PMD_LEAN_V14_SORTABLE_GUARDED_END --}}
+@endunless
+    @unless(request()->is('admin/reservations2'))
+<script src="{{ asset('app/admin/assets/vendor/pmd-mediafix/dropzone.min.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+@endunless
+@endunless
 <!-- PMD EARLY SORTABLE DROPZONE END -->
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_EARLY_MEDIA_GUARD_END -->
 
 {!! get_script_tags() !!}
+
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_asset_combiner'
+    );
+@endphp
+
 <!-- SlimSelect: dropdown inside form so it scrolls with page (must run before selectList is used) -->
-<script src="{{ asset('app/admin/assets/js/slim-select-relative-position.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/slim-select-relative-position.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Admin confirm modal (Cancel + Delete) – replaces SweetAlert for data-request-confirm -->
-<script src="{{ asset('app/admin/assets/js/admin-confirm-modal.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/admin-confirm-modal.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Notification System - ENABLED FOR CPU TESTING -->
 <!-- PMD_KDS_SERVER_FAST_V82_NOTIFICATIONS_JS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/notifications.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/notifications.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_NOTIFICATIONS_JS_GUARD_END -->
 <!-- PMD_KDS_SERVER_FAST_V82_PUSH_JS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/push-notifications.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_PUSH_JS_GUARD_END -->
@@ -9692,19 +9388,23 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_SERVER_FAST_V82_MODAL_FIX_JS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/modal-performance-fix.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_MODAL_FIX_JS_GUARD_END -->
 @endunless
 
 <!-- Fix Bootstrap Dropdown _menu null (Folders/Filter/Sort dropdowns on Media Manager) -->
-<script src="{{ asset('app/admin/assets/js/fix-bootstrap-dropdown-null.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-bootstrap-dropdown-null.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Smooth Page Transitions -->
 <!-- PMD_KDS_ULTRA_FAST_V83_SMOOTH_TRANSITIONS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?v={{ time() }}"></script>
+{{-- PMD_RESERVATIONSLAB_NO_GENERIC_ENTRY_RUNTIME_V1_START --}}
+@unless(request()->is('admin/reservationslab*'))
+<script src="{{ asset('app/admin/assets/js/smooth-transitions.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+@endunless
+{{-- PMD_RESERVATIONSLAB_NO_GENERIC_ENTRY_RUNTIME_V1_END --}}
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_SMOOTH_TRANSITIONS_GUARD_END -->
@@ -9712,7 +9412,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_ULTRA_FAST_V83_FORCE_ALIGN_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/force-button-alignment.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/force-button-alignment.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_FORCE_ALIGN_GUARD_END -->
@@ -9720,90 +9420,90 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_ULTRA_FAST_V83_PAGE_SPECIFIC_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/page-specific-fixes.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_PAGE_SPECIFIC_GUARD_END -->
 <!-- Fix Media Finder Inline Styles -->
 @unless($pmdIsNativeMediaContext)
-<script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-media-finder-inline-styles.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- Fix History Button Text Centering - Removes inline styles that prevent flexbox centering -->
-<script src="{{ asset('app/admin/assets/js/fix-history-button-centering.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-history-button-centering.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- Fix Notification Buttons Bottom Border - Ensures bottom border is visible -->
-<script src="{{ asset('app/admin/assets/js/fix-notification-buttons-border.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-notification-buttons-border.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- Fix Profile Dropdown Green Hover - Removes green hover effect via JavaScript -->
-<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-green.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-green.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- Fix Tab Link Colors - Force dark blue instead of green -->
 <!-- PMD_KDS_ULTRA_FAST_V83_TAB_COLOR_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-tab-link-colors.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-tab-link-colors.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_TAB_COLOR_GUARD_END -->
 <!-- Fix Suggestion Sentences Label - Remove underline and button shadow -->
 <!-- PMD_KDS_ULTRA_FAST_V83_SUGGESTION_LABEL_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-suggestion-sentences-label.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-suggestion-sentences-label.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_SUGGESTION_LABEL_GUARD_END -->
 <!-- Fix Form Field Focus Colors - Remove green, use dark blue -->
 <!-- PMD_KDS_ULTRA_FAST_V83_FOCUS_COLOR_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-form-field-focus-colors.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-form-field-focus-colors.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_FOCUS_COLOR_GUARD_END -->
 <!-- Fix Profile Dropdown Closed - Disables items when dropdown is closed -->
-<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-closed.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-profile-dropdown-closed.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- Fix Menu-Grid Hover - Ensures Tax and Advanced buttons hover works properly -->
 <!-- PMD_KDS_ULTRA_FAST_V83_MENU_GRID_HOVER_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-menu-grid-hover.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-menu-grid-hover.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_MENU_GRID_HOVER_GUARD_END -->
 <!-- Disable tooltips on Note, History, and settings menu-grid (redundant labels) -->
-<script src="{{ asset('app/admin/assets/js/fix-disable-tooltips.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-disable-tooltips.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Modal Blur Fix -->
 <!-- PMD_KDS_ULTRA_FAST_V83_MODAL_BLUR_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/modal-blur-fix.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_MODAL_BLUR_GUARD_END -->
 <!-- Media Manager Search Icon Fix -->
 @unless($pmdIsNativeMediaContext)
-<script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/media-search-icon-fix.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 
 <!-- Image Preview Persistence Fix -->
 @unless($pmdIsNativeMediaContext)
-<script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/image-preview-persistence.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 @endunless
 
 <!-- Debug Redirects (Remove this in production) -->
 <!-- PMD_KDS_ULTRA_FAST_V83_DEBUG_REDIRECTS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/debug-redirects.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_DEBUG_REDIRECTS_GUARD_END -->
 <!-- Sidebar Star Icon - DISABLED (replaced by unified shell curve) -->
-<!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ time() }}" defer></script> -->
+<!-- <script src="{{ asset('app/admin/assets/js/sidebar-star-icon.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}" defer></script> -->
 
 <!-- Folder Creation Dropdown Card -->
-<script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/folder-dropdown-card.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Global Button Width Fix - Enforces 48x48px buttons on all pages -->
 <!-- PMD_KDS_ULTRA_FAST_V83_BUTTON_WIDTH_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/fix-button-widths-global.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/fix-button-widths-global.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_BUTTON_WIDTH_GUARD_END -->
@@ -9811,13 +9511,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_ULTRA_FAST_V83_DYNAMIC_DROPDOWN_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/dynamic-dropdown-height.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/dynamic-dropdown-height.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 @endunless
 <!-- PMD_KDS_ULTRA_FAST_V83_DYNAMIC_DROPDOWN_GUARD_END -->
 <!-- PMD Admin Toolbar Auto Normalizer -->
-<script src="{{ asset('app/admin/assets/js/pmd-admin-toolbar-normalizer.js') }}?v={{ time() }}"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-admin-responsive-shell.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-admin-toolbar-normalizer.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-admin-responsive-shell.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 
 <!-- Guide Tour Button Handler -->
 <script>
@@ -10001,7 +9701,9 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_KDS_SERVER_FAST_V82_MEDIAFIX_JS_GUARD_START -->
 @unless(!empty($__pmdIsKdsDashboardV82))
 
-<script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ time() }}"></script>
+@unless(request()->is('admin/reservations2'))
+<script src="{{ asset('app/admin/assets/js/pmd-mediafinder-autofix.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+@endunless
 @endunless
 <!-- PMD_KDS_SERVER_FAST_V82_MEDIAFIX_JS_GUARD_END -->
 @endunless
@@ -10009,7 +9711,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- PMD_DASHBOARD_LOGO_INVOICE_SYNC_PROMPT_V1_START -->
 <script id="pmd-dashboard-logo-invoice-sync-prompt-v1">
 (function () {
-    if (!/\/admin\/settings\/edit\/general(?:$|[?#\/])/.test(window.location.pathname)) {
+    if (!/\/admin\/settings\/edit\/general(?:$|[?#\/])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname))) {
         return;
     }
 
@@ -10144,7 +9846,7 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 <script>
 (function(){
- if(!/admin\/settings\/edit\/setup/.test(window.location.pathname)) return;
+ if(!/admin\/settings\/edit\/setup/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : window.location.pathname))) return;
  function v(n){var e=document.querySelector('[name="setting['+n+']"]'); return e?e.value:'';}
  function on(){
   var p=document.getElementById('pmd-invoice-preview'); if(!p) return;
@@ -10159,54 +9861,54 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 })();
 </script>
     
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ time() }}"></script>
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-api-v3.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preview-v9.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner2-v11.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v12.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v13-polish.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v14-compact.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v15-rolebar.js') }}?v={{ time() }}"></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-w3-quick-icons-v16.js') }}?v={{ time() }}"></script> --}}
-    <script src="{{ asset('app/admin/assets/js/pmd-sidebar-icons-only-v15.js') }}?v={{ time() }}"></script>
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-no-jump-v17.js') }}?v={{ time() }}"></script> --}}
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-system-lock-v7.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-modern-v1.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-real-api-v3.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-preview-v9.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner2-v11.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v12.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v13-polish.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v14-compact.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-waiter3-v15-rolebar.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-w3-quick-icons-v16.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
+    <script src="{{ asset('app/admin/assets/js/pmd-sidebar-icons-only-v15.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-no-jump-v17.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner-match-v13.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-owner-match-v13.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_OWNER_DASHBOARD_MATCH_V13_JS_END -->
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-universal-layout-editor-v35.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-universal-layout-editor-v35.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_UNIVERSAL_LAYOUT_EDITOR_V35_JS_END -->
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-recover-native-v50.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-recover-native-v50.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_SIDEBAR_RECOVER_NATIVE_V50_JS_END -->
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-manager-ops-dashboard-v29.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-manager-ops-dashboard-v29.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_MANAGER_OPS_DASHBOARD_V29_JS_END -->
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-logo-last-toggle-v55.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-logo-last-toggle-v55.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_SIDEBAR_LOGO_LAST_TOGGLE_V55_JS_END -->
 <!-- PMD_STABLE_LOGO_KPI_V65_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-stable-logo-switcher-v65.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-stable-logo-switcher-v65.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_STABLE_LOGO_KPI_V65_JS_END -->
 <!-- PMD_SIDEBAR_CLOSED_LOGO_MODE_V66_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-closed-logo-mode-v66.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-closed-logo-mode-v66.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_SIDEBAR_CLOSED_LOGO_MODE_V66_JS_END -->
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-sidebar-toggle-top-gap-v70.js') }}?v={{ time() }}"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-sidebar-toggle-top-gap-v70.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script>
 <!-- PMD_SIDEBAR_TOGGLE_TOP_GAP_V70_JS_END -->
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-dashboard-lock-v72.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-dashboard-lock-v72.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_ROLE_DASHBOARD_LOCK_V72_JS_END -->
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-no-sidebar-v73.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-role-no-sidebar-v73.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_ROLE_NO_SIDEBAR_LOCK_V73_JS_END -->
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-stability-v78.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-role-stability-v78.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_DASHBOARD_ROLE_STABILITY_V78_JS_END -->
 
 <!-- PMD_DASHBOARD_STABILITY_V77_JS_START -->
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-stability-v77.js') }}?v={{ time() }}"></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-dashboard-stability-v77.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}"></script> --}}
 <!-- PMD_DASHBOARD_STABILITY_V77_JS_END -->
 
 <!-- PMD_WAITER_STABLE_MOBILE_V97_JS_START -->
@@ -10229,13 +9931,8 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
     {{-- PMD waiter rebuild: old dashboard asset disabled --}}
 {{-- PMD waiter rebuild: old dashboard asset disabled --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v161-direct-renderer.js') }}?v={{ time() }}" defer></script> --}}
-{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v162-fix-mount-position.js') }}?v={{ time() }}" defer></script> --}}
-
-
-
-
-
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v161-direct-renderer.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}" defer></script> --}}
+{{-- PMD owner clean v1 disabled legacy dashboard asset: <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-v162-fix-mount-position.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}" defer></script> --}}
 
 
 <!-- PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
@@ -10244,7 +9941,11 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <!-- /PMD_ADMIN_FINAL_SINGLE_LOGO_V20 -->
 
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_START -->
-<script src="{{ asset('app/admin/assets/js/pmd-owner-dashboard-clean-v23.js') }}?v={{ time() }}" defer></script>
+{{-- PMD_LEAN_V14_OWNER_JS_GUARDED_BEGIN --}}
+@unless(request()->is('admin/reservations*'))
+<script src="{{ asset('app/admin/assets/js/pmd-owner-dashboard-clean-v23.js') }}?v={{ request()->is('admin/reservations*') ? 'pmd-reservations-v18-20260728' : time() }}" defer></script>
+@endunless
+{{-- PMD_LEAN_V14_OWNER_JS_GUARDED_END --}}
 <!-- PMD_OWNER_DASHBOARD_CLEAN_V23_JS_END -->
     <script src="/app/admin/assets/js/pmd-admin-universal-client-list-v1.js?v=50" defer></script>
 
@@ -10265,2875 +9966,274 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 
 
 
-
-<!-- PMD_V180_FINAL_FLOOR_LAST_WRAPPER_START -->
-<!--
-  V180: V175c/V175e moved here intentionally.
-  They must run AFTER old V36/V40/V44/V46/V47/V89/V105 floor scripts.
--->
-<!-- PMD_V175C_NO_DUPE_NO_BLINK_START -->
-<style id="pmd-v175c-no-dupe-no-blink-style">
-html.pmd-waiter-dashboard-active,
-html.pmd-waiter-dashboard-active body {
-  scroll-behavior: auto !important;
-}
-
-html.pmd-waiter-dashboard-active #pmd-waiter-dashboard-root *,
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map *,
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real *,
-html.pmd-waiter-dashboard-active .pmd-v155-floor-map * {
-  transition: none !important;
-  animation: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map,
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real,
-html.pmd-waiter-dashboard-active .pmd-v155-floor-map,
-html.pmd-waiter-dashboard-active [class*="floor-map"] {
-  height: 430px !important;
-  min-height: 430px !important;
-  max-height: 430px !important;
-  overflow: visible !important;
-  background: #ffffff !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile {
-  width: 104px !important;
-  height: 86px !important;
-  min-width: 104px !important;
-  min-height: 86px !important;
-  max-width: 104px !important;
-  max-height: 86px !important;
-  border-radius: 18px !important;
-  box-sizing: border-box !important;
-  transform: none !important;
-  filter: none !important;
-  text-shadow: none !important;
-  transition: none !important;
-  animation: none !important;
-  color: #05070d !important;
-  -webkit-text-fill-color: #05070d !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-hide-dupe-number {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile.pmd-v175c-table-red {
-  background: #ff3347 !important;
-  border: 4px solid #b70821 !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile.pmd-v175c-table-green {
-  background: #16c65b !important;
-  border: 4px solid #047a36 !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-table-number {
-  position: absolute !important;
-  inset: 0 !important;
-  left: 0 !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transform: none !important;
-  font-size: var(--pmd-v184-number-size, 30px) !important;
-  line-height: 1 !important;
-  font-weight: 950 !important;
-  color: #05070d !important;
-  -webkit-text-fill-color: #05070d !important;
-  text-shadow: none !important;
-  z-index: 20 !important;
-  pointer-events: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge {
-  position: absolute !important;
-  top: -13px !important;
-  right: -13px !important;
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  min-height: 36px !important;
-  border-radius: 999px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: #ffffff !important;
-  color: #061225 !important;
-  -webkit-text-fill-color: #061225 !important;
-  border: 2px solid #061225 !important;
-  box-shadow: 0 3px 9px rgba(6, 18, 37, .16) !important;
-  font-size: 21px !important;
-  line-height: 1 !important;
-  z-index: 80 !important;
-  pointer-events: none !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge img {
-  width: 25px !important;
-  height: 25px !important;
-  display: block !important;
-  object-fit: contain !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="waiter"] {
-  background: #fff4bf !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="note"] {
-  background: #e8f3ff !important;
-}
-</style>
-
-<script id="pmd-v175c-no-dupe-no-blink-script">
-(function () {
-  'use strict';
-
-  if (window.PMDWaiterFloorStableV175b && window.PMDWaiterFloorStableV175b.stop) {
-    try { window.PMDWaiterFloorStableV175b.stop(); } catch (e) {}
-  }
-
-  if (window.PMDWaiterFloorStableV175c && window.PMDWaiterFloorStableV175c.active) return;
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-
-  document.documentElement.classList.add('pmd-waiter-dashboard-active');
-
-  var CLEANING_IMG = '/app/admin/assets/images/pmd/Cleaning.png';
-  var TABLE_ENDPOINT = '/admin/pmd-waiter-table-states-v154';
-  var NOTIF_ENDPOINT = '/admin/notifications-api';
-
-  var POLL_MS = 10000;
-  var TILE_CLASS = 'pmd-v175c-floor-tile';
-  var NUMBER_CLASS = 'pmd-v175c-table-number';
-  var BADGE_CLASS = 'pmd-v175c-attention-badge';
-  var HIDE_CLASS = 'pmd-v175c-hide-dupe-number';
-
-  var OLD_BADGE_SELECTORS = [
-    '[data-pmd-v170f-slot-badge]',
-    '[data-pmd-v170c-attention-badge]',
-    '[data-pmd-v170b-attention-badge]',
-    '.pmd-v170g-pinned-badge',
-    '.pmd-v174-attention-badge',
-    '.pmd-v175b-attention-badge'
-  ].join(',');
-
-  var OLD_NUMBER_SELECTORS = [
-    '.pmd-v175b-table-number'
-  ].join(',');
-
-  var TILE_SELECTORS = [
-    '.pmd-w5-table',
-    '.pmd-v155-table',
-    '.pmd-floor-table',
-    '.pmd-waiter-floor-table',
-    '[data-table]',
-    '[data-table-number]',
-    '[data-table-no]'
-  ].join(',');
-
-  var state = {
-    tableMap: {},
-    attentionMap: {},
-    timer: null,
-    observer: null,
-    raf: 0,
-    updates: 0
-  };
-
-  function clean(v) {
-    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-  }
-
-  function setImportant(el, prop, value) {
-    if (!el || !el.style) return;
-    if (el.style.getPropertyValue(prop) === value && el.style.getPropertyPriority(prop) === 'important') return;
-    el.style.setProperty(prop, value, 'important');
-  }
-
-  function parsePayload(n) {
-    try {
-      if (!n || !n.payload) return {};
-      return typeof n.payload === 'string' ? JSON.parse(n.payload) : n.payload;
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function isHandled(n) {
-    if (!n) return true;
-    if (n.read === true || n.seen === true || n.is_read === true || n.is_seen === true) return true;
-    if (n.status && /read|seen|dismiss|archiv|closed|done/i.test(String(n.status))) return true;
-
-    return [
-      n.read_at,
-      n.seen_at,
-      n.dismissed_at,
-      n.archived_at,
-      n.deleted_at,
-      n.recipient_read_at,
-      n.recipient_seen_at
-    ].some(Boolean);
-  }
-
-  function tableNoFromNotification(n) {
-    var p = parsePayload(n);
-    var candidates = [
-      n && n.table_name,
-      p.table_name,
-      p.table_label,
-      p.table,
-      p.table_no,
-      p.table_number,
-      n && n.message,
-      n && n.title
-    ].map(clean).filter(Boolean);
-
-    for (var i = 0; i < candidates.length; i++) {
-      var s = candidates[i];
-
-      var m = s.match(/\bTable\s*#?\s*(\d+)\b/i);
-      if (m) return m[1];
-
-      m = s.match(/\bT\s*#?\s*(\d+)\b/i);
-      if (m) return m[1];
-
-      if (/^\d+$/.test(s)) return s;
-    }
-
-    return '';
-  }
-
-  function removeKnownOldBadges(root) {
-    (root || document).querySelectorAll(OLD_BADGE_SELECTORS).forEach(function (el) {
-      if (el && el.parentNode) el.parentNode.removeChild(el);
-    });
-
-    (root || document).querySelectorAll(OLD_NUMBER_SELECTORS).forEach(function (el) {
-      if (el && el.parentNode) el.parentNode.removeChild(el);
-    });
-
-    (root || document).querySelectorAll('.pmd-v170g-pinned-tile').forEach(function (el) {
-      el.classList.remove('pmd-v170g-pinned-tile');
-    });
-  }
-
-  function tableNoFromElement(el) {
-    if (!el || el.nodeType !== 1) return '';
-
-    var attrs = [
-      'data-table-number',
-      'data-table-no',
-      'data-table',
-      'data-pmd-table-number',
-      'data-pmd-table-no'
-    ];
-
-    for (var i = 0; i < attrs.length; i++) {
-      var v = clean(el.getAttribute(attrs[i]));
-      if (/^\d+$/.test(v)) return v;
-    }
-
-    var clone = el.cloneNode(true);
-    clone.querySelectorAll('.' + BADGE_CLASS + ', .' + NUMBER_CLASS + ', ' + OLD_BADGE_SELECTORS + ', ' + OLD_NUMBER_SELECTORS).forEach(function (x) {
-      x.remove();
-    });
-
-    var txt = clean(clone.textContent || '');
-    var m = txt.match(/\b(\d{1,3})\b/);
-    return m ? m[1] : '';
-  }
-
-  function floorElements() {
-    return Array.from(document.querySelectorAll([
-      '.pmd-w5-floor-map',
-      '.pmd-w5-floor-map-real',
-      '.pmd-v155-floor-map',
-      '[class*="floor-map"]'
-    ].join(','))).filter(function (el) {
-      var r = el.getBoundingClientRect();
-      return r.width > 300 && r.height > 80;
-    });
-  }
-
-  function activeCardsTopY() {
-    var nodes = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,div,span,strong'));
-    var header = nodes.find(function (el) {
-      var t = clean(el.textContent);
-      if (!/Active Order Cards/i.test(t)) return false;
-      if (t.length > 40) return false;
-      var r = el.getBoundingClientRect();
-      return r.width > 20 && r.height > 10;
-    });
-
-    return header ? header.getBoundingClientRect().top : window.innerHeight;
-  }
-
-  function findTiles() {
-    var floorBottom = activeCardsTopY();
-    var all = Array.from(document.querySelectorAll(TILE_SELECTORS));
-    var byNo = new Map();
-
-    all.forEach(function (el) {
-      if (!el || el.closest('.pmd-v35-card, .pmd-order-card, [class*="order-card"]')) return;
-
-      var r = el.getBoundingClientRect();
-      if (r.top >= floorBottom) return;
-      if (r.width < 50 || r.width > 230) return;
-      if (r.height < 40 || r.height > 190) return;
-
-      var no = tableNoFromElement(el);
-      if (!no) return;
-
-      var area = r.width * r.height;
-      var prev = byNo.get(no);
-
-      if (!prev || area > prev.area) {
-        byNo.set(no, { el: el, area: area });
-      }
-    });
-
-    return Array.from(byNo.entries()).map(function (entry) {
-      return { tableNo: entry[0], el: entry[1].el };
-    });
-  }
-
-  function cleaningFromTable(t) {
-    if (!t) return false;
-
-    var s = [
-      t.table_status,
-      t.table_status_label,
-      t.operational_status,
-      t.operational_status_label,
-      t.status,
-      t.status_label
-    ].map(clean).join(' ').toLowerCase();
-
-    return /clean|cleaning|needs\s*cleaning|dirty|customer\s*left/.test(s);
-  }
-
-  function shouldBeGreen(tile, no) {
-    var t = state.tableMap[no];
-    if (cleaningFromTable(t)) return false;
-
-    var cls = clean(tile.el.className).toLowerCase();
-
-    if (cls.indexOf('is-payment') !== -1) return false;
-    if (cls.indexOf('is-urgent') !== -1) return false;
-    if (cls.indexOf('ready') !== -1) return true;
-
-    var s = [
-      t && t.table_status,
-      t && t.table_status_label,
-      t && t.operational_status,
-      t && t.operational_status_label
-    ].map(clean).join(' ').toLowerCase();
-
-    if (/occupied|payment|unpaid|clean|dirty|urgent/.test(s)) return false;
-    if (/ready|available|free/.test(s)) return true;
-
-    return false;
-  }
-
-  async function fetchTables() {
-    try {
-      var r = await fetch(TABLE_ENDPOINT + '?_=' + Date.now(), {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      var j = await r.json().catch(function () { return null; });
-      var arr = j && Array.isArray(j.tables) ? j.tables : [];
-      var map = {};
-
-      arr.forEach(function (t) {
-        var raw = clean(t.table_number || t.table_no || t.number || t.table_label || '');
-        var m = raw.match(/\d+/);
-        if (!m) return;
-        map[m[0]] = t;
-      });
-
-      return map;
-    } catch (e) {
-      return {};
-    }
-  }
-
-  async function fetchAttention() {
-    try {
-      var r = await fetch(NOTIF_ENDPOINT + '?limit=50&_=' + Date.now(), {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        headers: {
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      var j = await r.json().catch(function () { return null; });
-      var items = j && j.ok && Array.isArray(j.items) ? j.items : [];
-      var map = {};
-
-      items.forEach(function (n) {
-        if (!n || !['waiter_call', 'table_note', 'staff_note'].includes(n.type)) return;
-        if (isHandled(n)) return;
-
-        var no = tableNoFromNotification(n);
-        if (!no) return;
-
-        var old = map[no];
-
-        if (!old || n.type === 'waiter_call') {
-          map[no] = {
-            type: n.type,
-            id: n.id || '',
-            label: n.type === 'waiter_call' ? 'Waiter Call' : 'Note'
-          };
-        }
-      });
-
-      return map;
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function desiredBadge(no) {
-    var att = state.attentionMap[no];
-
-    if (att && att.type === 'waiter_call') {
-      return { kind: 'waiter', icon: '🔔', key: 'waiter:' + att.id, label: 'Waiter Call' };
-    }
-
-    if (att && (att.type === 'table_note' || att.type === 'staff_note')) {
-      return { kind: 'note', icon: '📝', key: 'note:' + att.id, label: 'Note' };
-    }
-
-    if (cleaningFromTable(state.tableMap[no])) {
-      return { kind: 'cleaning', icon: '', key: 'cleaning', label: 'Needs Cleaning' };
-    }
-
-    return null;
-  }
-
-  function isCornerSmallBadge(parent, child) {
-    var pr = parent.getBoundingClientRect();
-    var cr = child.getBoundingClientRect();
-
-    if (cr.width > 46 || cr.height > 46) return false;
-
-    var nearRight = cr.left > pr.right - 55;
-    var nearTop = cr.top < pr.top + 30;
-
-    return nearRight && nearTop;
-  }
-
-  function hideDuplicateNumbers(tile) {
-    var el = tile.el;
-    var no = tile.tableNo;
-
-    Array.from(el.childNodes).forEach(function (node) {
-      if (node.nodeType === 3) {
-        if (clean(node.nodeValue) === no) node.nodeValue = '';
-        return;
-      }
-
-      if (node.nodeType !== 1) return;
-
-      var child = node;
-
-      if (child.classList.contains(NUMBER_CLASS)) return;
-      if (child.classList.contains(BADGE_CLASS)) return;
-
-      if (child.matches && child.matches(OLD_BADGE_SELECTORS + ', ' + OLD_NUMBER_SELECTORS)) {
-        child.remove();
-        return;
-      }
-
-      var text = clean(child.textContent || '');
-      if (text !== no) return;
-
-      if (isCornerSmallBadge(el, child)) return;
-
-      var fs = parseFloat(getComputedStyle(child).fontSize || '0') || 0;
-      var cr = child.getBoundingClientRect();
-
-      if (fs >= 18 || cr.width > 32 || cr.height > 32) {
-        child.classList.add(HIDE_CLASS);
-        child.setAttribute('aria-hidden', 'true');
-        setImportant(child, 'display', 'none');
-      }
-    });
-  }
-
-  function ensureNumber(tile) {
-    var el = tile.el;
-    var no = tile.tableNo;
-    var label = el.querySelector(':scope > .' + NUMBER_CLASS);
-
-    if (!label) {
-      label = document.createElement('span');
-      label.className = NUMBER_CLASS;
-      el.appendChild(label);
-    }
-
-    if (label.textContent !== no) label.textContent = no;
-  }
-
-  function setTileVisual(tile) {
-    var el = tile.el;
-    var no = tile.tableNo;
-
-    el.classList.add(TILE_CLASS);
-
-    if (getComputedStyle(el).position === 'static') {
-      setImportant(el, 'position', 'absolute');
-    }
-
-    setImportant(el, 'width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
-    setImportant(el, 'height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
-    setImportant(el, 'min-width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
-    setImportant(el, 'min-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
-    setImportant(el, 'max-width', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileW ? window.PMDFloorSizeV184.tileW() : '104px'));
-    setImportant(el, 'max-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.tileH ? window.PMDFloorSizeV184.tileH() : '86px'));
-    setImportant(el, 'transform', 'none');
-    setImportant(el, 'filter', 'none');
-    setImportant(el, 'transition', 'none');
-    setImportant(el, 'animation', 'none');
-    setImportant(el, 'text-shadow', 'none');
-    setImportant(el, 'color', '#05070d');
-    setImportant(el, '-webkit-text-fill-color', '#05070d');
-
-    if (shouldBeGreen(tile, no)) {
-      el.classList.add('pmd-v175c-table-green');
-      el.classList.remove('pmd-v175c-table-red');
-      setImportant(el, 'background', '#16c65b');
-      setImportant(el, 'border', '4px solid #047a36');
-    } else {
-      el.classList.add('pmd-v175c-table-red');
-      el.classList.remove('pmd-v175c-table-green');
-      setImportant(el, 'background', '#ff3347');
-      setImportant(el, 'border', '4px solid #b70821');
-    }
-
-    hideDuplicateNumbers(tile);
-    ensureNumber(tile);
-  }
-
-  function repairFloor() {
-    floorElements().forEach(function (floor) {
-      setImportant(floor, 'height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'min-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'max-height', (window.PMDFloorSizeV184 && window.PMDFloorSizeV184.floorHeight ? window.PMDFloorSizeV184.floorHeight() : '430px'));
-      setImportant(floor, 'overflow', 'visible');
-      setImportant(floor, 'background', '#ffffff');
-      setImportant(floor, 'transform', 'none');
-      setImportant(floor, 'transition', 'none');
-      setImportant(floor, 'animation', 'none');
-    });
-  }
-
-  function renderBadgeContent(badge, desired) {
-    if (desired.kind === 'cleaning') {
-      if (!badge.querySelector('img')) {
-        badge.textContent = '';
-        var img = document.createElement('img');
-        img.src = CLEANING_IMG;
-        img.alt = 'Cleaning';
-        badge.appendChild(img);
-      }
-      return;
-    }
-
-    if (badge.querySelector('img') || badge.textContent !== desired.icon) {
-      badge.textContent = desired.icon;
-    }
-  }
-
-  function applyAll() {
-    removeKnownOldBadges(document);
-    repairFloor();
-
-    var tiles = findTiles();
-
-    tiles.forEach(function (tile) {
-      setTileVisual(tile);
-
-      var desired = desiredBadge(tile.tableNo);
-      var badges = tile.el.querySelectorAll(':scope > .' + BADGE_CLASS);
-
-      badges.forEach(function (b, index) {
-        if (index > 0) b.remove();
-      });
-
-      var badge = tile.el.querySelector(':scope > .' + BADGE_CLASS);
-
-      if (!desired) {
-        if (badge) badge.remove();
-        return;
-      }
-
-      if (!badge) {
-        badge = document.createElement('span');
-        badge.className = BADGE_CLASS;
-        tile.el.appendChild(badge);
-      }
-
-      badge.setAttribute('data-pmd-kind', desired.kind);
-      badge.setAttribute('data-pmd-key', desired.key);
-      badge.setAttribute('title', desired.label + ' · Table ' + tile.tableNo);
-      renderBadgeContent(badge, desired);
-    });
-
-    state.updates += 1;
-  }
-
-  async function refresh() {
-    var both = await Promise.all([fetchTables(), fetchAttention()]);
-    state.tableMap = both[0] || {};
-    state.attentionMap = both[1] || {};
-    applyAll();
-    return debug(false);
-  }
-
-  function scheduleApply() {
-    if (state.raf) return;
-
-    state.raf = requestAnimationFrame(function () {
-      state.raf = 0;
-      applyAll();
-    });
-  }
-
-  function observe() {
-    var root = document.querySelector('#pmd-waiter-dashboard-root') || document.body;
-
-    if (state.observer) state.observer.disconnect();
-
-    state.observer = new MutationObserver(function () {
-      scheduleApply();
-    });
-
-    state.observer.observe(root, {
-      subtree: true,
-      childList: true
-    });
-  }
-
-  function debug(printTable) {
-    var tiles = findTiles().map(function (tile) {
-      var r = tile.el.getBoundingClientRect();
-      var badge = tile.el.querySelector(':scope > .' + BADGE_CLASS);
-      var numbers = tile.el.querySelectorAll(':scope > .' + NUMBER_CLASS).length;
-      var hiddenDupes = tile.el.querySelectorAll(':scope > .' + HIDE_CLASS).length;
-
-      return {
-        table: tile.tableNo,
-        badge: badge ? badge.getAttribute('data-pmd-kind') : '',
-        numbers: numbers,
-        hiddenDupes: hiddenDupes,
-        x: Math.round(r.x),
-        y: Math.round(r.y),
-        w: Math.round(r.width),
-        h: Math.round(r.height),
-        bg: getComputedStyle(tile.el).backgroundColor
-      };
-    });
-
-    if (printTable !== false) console.table(tiles);
-
-    return {
-      active: true,
-      updates: state.updates,
-      tiles: tiles,
-      floors: floorElements().map(function (f) {
-        var r = f.getBoundingClientRect();
-        return { w: Math.round(r.width), h: Math.round(r.height), cls: clean(f.className).slice(0, 100) };
-      }),
-      oldBadges: document.querySelectorAll(OLD_BADGE_SELECTORS).length,
-      oldNumbers: document.querySelectorAll(OLD_NUMBER_SELECTORS).length
-    };
-  }
-
-  function stop() {
-    if (state.timer) clearInterval(state.timer);
-    if (state.observer) state.observer.disconnect();
-    if (state.raf) cancelAnimationFrame(state.raf);
-    state.timer = null;
-    state.observer = null;
-    state.raf = 0;
-    console.info('[PMD] V175c no-dupe no-blink stopped');
-  }
-
-  removeKnownOldBadges(document);
-  repairFloor();
-  observe();
-
-  setTimeout(function () { refresh(); }, 100);
-  setTimeout(function () { refresh(); }, 700);
-  setTimeout(function () { refresh(); }, 1500);
-
-  state.timer = setInterval(function () {
-    refresh();
-  }, POLL_MS);
-
-  window.PMDWaiterFloorStableV175c = {
-    active: true,
-    refresh: refresh,
-    debug: function () { return debug(true); },
-    stop: stop
-  };
-
-  console.info('[PMD] V175c no-dupe no-blink active');
-})();
-</script>
-<!-- PMD_V175C_NO_DUPE_NO_BLINK_END -->
-
-
-<script id="pmd-v180-final-floor-last-debug">
-(function () {
-  'use strict';
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-
-  window.PMDFinalFloorLastV180 = {
-    active: true,
-    debug: function () {
-      var rows = Array.prototype.slice.call(document.querySelectorAll('.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table')).map(function (el) {
-        var r = el.getBoundingClientRect();
-        var cs = getComputedStyle(el);
-        return {
-          text: String(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 20),
-          x: Math.round(r.x),
-          y: Math.round(r.y),
-          w: Math.round(r.width),
-          h: Math.round(r.height),
-          bg: cs.backgroundColor,
-          cls: String(el.className || '').slice(0, 120)
-        };
-      });
-      console.table(rows);
-      return {
-        active: true,
-        v175c: typeof window.PMDWaiterFloorStableV175c,
-        v175e: typeof window.PMDWaiterBadgeCornerSnapV175e,
-        tiles: rows.length,
-        oldBadges: document.querySelectorAll('[data-pmd-v170f-slot-badge], .pmd-v170g-pinned-badge, .pmd-v174-attention-badge, .pmd-v175b-attention-badge').length,
-        rows: rows
-      };
-    }
-  };
-
-  console.info('[PMD] V180 final floor authority runs last active');
-})();
-</script>
-<!-- PMD_V180_FINAL_FLOOR_LAST_WRAPPER_END -->
-
-
-
-
-
-
-<!-- PMD_V183_SINGLE_BADGE_AUTHORITY_START -->
-<style id="pmd-v183-single-badge-authority-style">
+<!-- PMD_V193_PAYMENT_CORNER_START -->
+<style id="pmd-v193-payment-corner-style">
 /*
-  V183: one badge visual authority only.
-  V175e and V182 are removed. This only styles existing top-right badges.
-*/
+ * V193 — payment status in the shared top-right status position.
+ *
+ * Priority:
+ *   1. Attention / waiter / cleaning
+ *   2. Payment status
+ *   3. Order-count badge
+ *
+ * CSS only: no observers, timers or JavaScript state changes.
+ */
 
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge,
-html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
+/* Convert the old top-left PAID/PARTIAL ribbon into a corner icon. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+.pmd-v154-payment-chip[data-payment-state="paid"],
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+.pmd-v154-payment-chip[data-payment-state="partial"] {
   position: absolute !important;
-  top: -13px !important;
-  right: -13px !important;
-  left: auto !important;
+
+  inset: auto !important;
+  top: -12px !important;
+  right: -12px !important;
   bottom: auto !important;
+  left: auto !important;
 
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
-  min-height: 36px !important;
-  max-width: 36px !important;
-  max-height: 36px !important;
-
-  border-radius: 999px !important;
-  border: 2px solid #061225 !important;
-  box-shadow: 0 3px 9px rgba(6, 18, 37, .16) !important;
-
-  background: #ffffff !important;
-  color: #061225 !important;
-  -webkit-text-fill-color: #061225 !important;
-
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  max-width: 30px !important;
+  max-height: 30px !important;
 
   margin: 0 !important;
   padding: 0 !important;
-  box-sizing: border-box !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  border: 0 !important;
+  outline: 0 !important;
+  border-radius: 999px !important;
+
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+
+  box-shadow: none !important;
+
+  /*
+   * Hide the original PAID/PARTIAL wording.
+   * The icon is rendered through ::after.
+   */
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+
+  font-size: 0 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-indent: 0 !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
 
   transform: none !important;
   translate: none !important;
   transition: none !important;
   animation: none !important;
 
-  z-index: 150 !important;
+  overflow: visible !important;
   pointer-events: none !important;
-  overflow: hidden !important;
+  user-select: none !important;
+
   opacity: 1 !important;
   visibility: visible !important;
+
+  z-index: 149 !important;
 }
 
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="waiter"] {
-  background: #fff3b8 !important;
-  font-size: 22px !important;
-  line-height: 1 !important;
-}
+/* PAID icon. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+.pmd-v154-payment-chip[data-payment-state="paid"]::after {
+  content: "✓" !important;
 
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge[data-pmd-kind="cleaning"] {
-  background: #ffffff !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-attention-badge img {
-  width: 25px !important;
-  height: 25px !important;
-  min-width: 25px !important;
-  min-height: 25px !important;
-  max-width: 25px !important;
-  max-height: 25px !important;
-  object-fit: contain !important;
-  display: block !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v183-order-count-badge {
-  background: #ffffff !important;
-  color: #061225 !important;
-  -webkit-text-fill-color: #061225 !important;
-  font-size: 18px !important;
-  line-height: 1 !important;
-  font-weight: 950 !important;
-  font-family: inherit !important;
-}
-</style>
-
-<script id="pmd-v183-single-badge-authority-script">
-(function () {
-  'use strict';
-
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMDSingleBadgeAuthorityV183 && window.PMDSingleBadgeAuthorityV183.active) return;
-
-  var raf = 0;
-  var observer = null;
-
-  var TILE_SEL = '.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table';
-  var ATTENTION_SEL = '.pmd-v175c-attention-badge';
-  var NUMBER_SEL = '.pmd-v175c-table-number';
-
-  function clean(v) {
-    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-  }
-
-  function imp(el, prop, val) {
-    if (!el || !el.style) return;
-    if (el.style.getPropertyValue(prop) === val && el.style.getPropertyPriority(prop) === 'important') return;
-    el.style.setProperty(prop, val, 'important');
-  }
-
-  function lockCircle(el, type) {
-    if (!el) return;
-
-    imp(el, 'position', 'absolute');
-    imp(el, 'top', '-13px');
-    imp(el, 'right', '-13px');
-    imp(el, 'left', 'auto');
-    imp(el, 'bottom', 'auto');
-
-    imp(el, 'width', '36px');
-    imp(el, 'height', '36px');
-    imp(el, 'min-width', '36px');
-    imp(el, 'min-height', '36px');
-    imp(el, 'max-width', '36px');
-    imp(el, 'max-height', '36px');
-
-    imp(el, 'border-radius', '999px');
-    imp(el, 'border', '2px solid #061225');
-    imp(el, 'box-shadow', '0 3px 9px rgba(6, 18, 37, .16)');
-
-    imp(el, 'background', '#ffffff');
-    imp(el, 'color', '#061225');
-    imp(el, '-webkit-text-fill-color', '#061225');
-
-    imp(el, 'display', 'flex');
-    imp(el, 'align-items', 'center');
-    imp(el, 'justify-content', 'center');
-
-    imp(el, 'margin', '0');
-    imp(el, 'padding', '0');
-    imp(el, 'box-sizing', 'border-box');
-
-    imp(el, 'transform', 'none');
-    imp(el, 'translate', 'none');
-    imp(el, 'transition', 'none');
-    imp(el, 'animation', 'none');
-
-    imp(el, 'z-index', '150');
-    imp(el, 'pointer-events', 'none');
-    imp(el, 'overflow', 'hidden');
-    imp(el, 'opacity', '1');
-    imp(el, 'visibility', 'visible');
-
-    if (type === 'order') {
-      el.classList.add('pmd-v183-order-count-badge');
-      imp(el, 'font-size', '18px');
-      imp(el, 'font-weight', '950');
-      imp(el, 'line-height', '1');
-    }
-
-    var kind = el.getAttribute('data-pmd-kind') || '';
-
-    if (kind === 'waiter') {
-      imp(el, 'background', '#fff3b8');
-      imp(el, 'font-size', '22px');
-      imp(el, 'line-height', '1');
-    }
-
-    if (kind === 'cleaning') {
-      imp(el, 'background', '#ffffff');
-    }
-
-    if (kind === 'note') {
-      imp(el, 'background', '#e8f3ff');
-      imp(el, 'font-size', '20px');
-      imp(el, 'line-height', '1');
-    }
-
-    var img = el.querySelector('img');
-    if (img) {
-      imp(img, 'width', '25px');
-      imp(img, 'height', '25px');
-      imp(img, 'min-width', '25px');
-      imp(img, 'min-height', '25px');
-      imp(img, 'max-width', '25px');
-      imp(img, 'max-height', '25px');
-      imp(img, 'object-fit', 'contain');
-      imp(img, 'display', 'block');
-      imp(img, 'margin', '0');
-      imp(img, 'padding', '0');
-      imp(img, 'transform', 'none');
-      imp(img, 'transition', 'none');
-      imp(img, 'animation', 'none');
-    }
-  }
-
-  function looksLikeOrderCount(tile, el) {
-    if (!tile || !el || el.nodeType !== 1) return false;
-    if (el.matches(ATTENTION_SEL + ',' + NUMBER_SEL)) return false;
-    if (el.closest(ATTENTION_SEL)) return false;
-
-    var txt = clean(el.textContent || '');
-    if (!/^[1-9][0-9]?$/.test(txt)) return false;
-
-    var tr = tile.getBoundingClientRect();
-    var r = el.getBoundingClientRect();
-
-    if (r.width > 52 || r.height > 52) return false;
-
-    var nearTop = r.top <= tr.top + 32;
-    var nearRight = r.left >= tr.right - 56;
-
-    return nearTop && nearRight;
-  }
-
-  function polishTile(tile) {
-    if (!tile) return;
-
-    imp(tile, 'overflow', 'visible');
-
-    var attention = tile.querySelector(':scope > ' + ATTENTION_SEL);
-    if (attention) lockCircle(attention, 'attention');
-
-    Array.prototype.slice.call(tile.children).forEach(function (child) {
-      if (looksLikeOrderCount(tile, child)) {
-        lockCircle(child, 'order');
-      }
-    });
-  }
-
-  function apply() {
-    document.documentElement.classList.add('pmd-waiter-dashboard-active');
-
-    Array.prototype.slice.call(document.querySelectorAll(TILE_SEL)).forEach(polishTile);
-
-    Array.prototype.slice.call(document.querySelectorAll(ATTENTION_SEL)).forEach(function (el) {
-      lockCircle(el, 'attention');
-    });
-
-    return debug(false);
-  }
-
-  function schedule() {
-    if (raf) return;
-
-    raf = requestAnimationFrame(function () {
-      raf = 0;
-      apply();
-    });
-  }
-
-  function debug(print) {
-    var rows = Array.prototype.slice.call(document.querySelectorAll(TILE_SEL)).map(function (tile) {
-      var r = tile.getBoundingClientRect();
-      var attention = tile.querySelector(':scope > ' + ATTENTION_SEL);
-      var orderBadges = Array.prototype.slice.call(tile.children).filter(function (child) {
-        return child.classList && child.classList.contains('pmd-v183-order-count-badge');
-      });
-
-      return {
-        text: clean(tile.textContent).slice(0, 28),
-        attention: attention ? (attention.getAttribute('data-pmd-kind') || 'yes') : '',
-        orderBadges: orderBadges.map(function (x) { return clean(x.textContent); }).join(','),
-        x: Math.round(r.x),
-        y: Math.round(r.y),
-        w: Math.round(r.width),
-        h: Math.round(r.height)
-      };
-    });
-
-    if (print !== false) console.table(rows);
-
-    return {
-      active: true,
-      tiles: rows.length,
-      attentionBadges: document.querySelectorAll(ATTENTION_SEL).length,
-      orderBadges: document.querySelectorAll('.pmd-v183-order-count-badge').length,
-      oldBadgeLayers: {
-        v175e: typeof window.PMDWaiterBadgeCornerSnapV175e,
-        v182: typeof window.PMDTopRightBadgePolishV182
-      },
-      rows: rows
-    };
-  }
-
-  observer = new MutationObserver(schedule);
-  observer.observe(document.querySelector('#pmd-waiter-dashboard-root') || document.body, {
-    subtree: true,
-    childList: true
-  });
-
-  apply();
-  setTimeout(apply, 200);
-  setTimeout(apply, 900);
-  setTimeout(apply, 1800);
-
-  window.PMDSingleBadgeAuthorityV183 = {
-    active: true,
-    apply: apply,
-    debug: function () { return debug(true); },
-    stop: function () {
-      if (observer) observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-      observer = null;
-      raf = 0;
-      console.info('[PMD] V183 single badge authority stopped');
-    }
-  };
-
-  console.info('[PMD] V183 single badge authority active');
-})();
-</script>
-<!-- PMD_V183_SINGLE_BADGE_AUTHORITY_END -->
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<!-- PMD_V190_DETERMINISTIC_FLOOR_COMPACT_START -->
-<style id="pmd-v190-deterministic-floor-compact-style">
-html.pmd-waiter-dashboard-active {
-  --pmd-v190-floor-height: 430px;
-}
-
-html.pmd-waiter-dashboard-active.pmd-v190-floor-compact {
-  --pmd-v190-floor-height: 430px;
-}
-
-html.pmd-waiter-dashboard-active.pmd-v190-floor-expanded {
-  --pmd-v190-floor-height: min(720px, calc(100vh - 235px));
-}
-
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map,
-html.pmd-waiter-dashboard-active .pmd-w5-floor-map-real,
-html.pmd-waiter-dashboard-active .pmd-v155-floor-map {
-  position: relative !important;
-  height: var(--pmd-v190-floor-height) !important;
-  min-height: var(--pmd-v190-floor-height) !important;
-  max-height: var(--pmd-v190-floor-height) !important;
-  overflow: visible !important;
-  background: #fff !important;
-  transform: none !important;
-  transition: height 220ms ease, min-height 220ms ease, max-height 220ms ease !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-w5-table,
-html.pmd-waiter-dashboard-active .pmd-v155-table,
-html.pmd-waiter-dashboard-active .pmd-floor-table,
-html.pmd-waiter-dashboard-active .pmd-waiter-floor-table,
-html.pmd-waiter-dashboard-active .pmd-v175c-floor-tile {
-  position: absolute !important;
-  width: 104px !important;
-  height: 86px !important;
-  min-width: 104px !important;
-  min-height: 86px !important;
-  max-width: 104px !important;
-  max-height: 86px !important;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  transform: none !important;
-  transition: none !important;
-  animation: none !important;
-  overflow: visible !important;
-}
-
-html.pmd-waiter-dashboard-active .pmd-v175c-table-number {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  text-align: center !important;
-  transform: none !important;
+
+  width: 30px !important;
+  height: 30px !important;
+
+  color: #15803d !important;
+  -webkit-text-fill-color: #15803d !important;
+
+  font-family: inherit !important;
+  font-size: 21px !important;
   line-height: 1 !important;
+  font-weight: 1000 !important;
+
+  text-align: center !important;
+  text-shadow: none !important;
+
+  transform: none !important;
+}
+
+/* PARTIAL icon. */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]
+.pmd-v154-payment-chip[data-payment-state="partial"]::after {
+  content: "◐" !important;
+
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 30px !important;
+  height: 30px !important;
+
+  color: #b45309 !important;
+  -webkit-text-fill-color: #b45309 !important;
+
+  font-family: inherit !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  font-weight: 1000 !important;
+
+  text-align: center !important;
+  text-shadow: none !important;
+
+  transform: none !important;
+}
+
+/*
+ * Attention has the highest priority.
+ *
+ * When a waiter/cleaning/attention badge is present, payment is
+ * hidden completely so the two statuses never overlap.
+ */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]:has(
+  > .pmd-v175c-attention-badge
+)
+> .pmd-v154-payment-chip[data-payment-state="paid"],
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]:has(
+  > .pmd-v175c-attention-badge
+)
+> .pmd-v154-payment-chip[data-payment-state="partial"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/*
+ * Payment has priority over the order-count badge.
+ *
+ * This applies only when no attention badge exists.
+ */
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]:not(
+  :has(> .pmd-v175c-attention-badge)
+):has(
+  > .pmd-v154-payment-chip[data-payment-state="paid"]
+)
+> .pmd-v183-order-count-badge,
+
+html.pmd-waiter-dashboard-active
+#pmd-waiter-dashboard-root
+.pmd-w5-floor-map-real
+.pmd-w5-table[data-table]:not(
+  :has(> .pmd-v175c-attention-badge)
+):has(
+  > .pmd-v154-payment-chip[data-payment-state="partial"]
+)
+> .pmd-v183-order-count-badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 </style>
+<!-- PMD_V193_PAYMENT_CORNER_END -->
 
-<script id="pmd-v190-deterministic-floor-compact-script">
-(function () {
-  'use strict';
 
-  if (!/\/admin\/dashboardwaiter(?:$|[?#\/])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMDFloorDeterministicV190 && window.PMDFloorDeterministicV190.active) return;
 
-  var root = document.documentElement;
-  var mode = localStorage.getItem('pmd_waiter_floor_compact_v190') || 'compact';
-  var raf = 0;
-  var observer = null;
-  var lastClick = 0;
-  var applying = false;
 
-  var FLOOR_SEL = '.pmd-w5-floor-map, .pmd-w5-floor-map-real, .pmd-v155-floor-map';
-  var TILE_SEL = '.pmd-w5-table, .pmd-v155-table, .pmd-floor-table, .pmd-waiter-floor-table, .pmd-v175c-floor-tile';
-  var BTN_SEL = '.pmd-w19-btn[data-w19-compact], button[data-w19-compact], [data-w19-compact]';
 
-  var BASE_W = 1374;
 
-  var POS = {
-    "1":  {x: 93,  y: 69},
-    "2":  {x: 434, y: 61},
-    "3":  {x: 807, y: 104},
-    "4":  {x: 737, y: 302},
-    "5":  {x: 568, y: 135},
-    "6":  {x: 211, y: 67},
-    "7":  {x: 1087, y: 148},
-    "8":  {x: 997, y: 214},
-    "9":  {x: 873, y: 171},
-    "10": {x: 1000, y: 337},
-    "11": {x: 101, y: 194},
-    "12": {x: 304, y: 195},
-    "13": {x: 449, y: 215},
-    "14": {x: 964, y: 99},
-    "15": {x: 1084, y: 72},
-    "16": {x: 111, y: 301},
-    "17": {x: 303, y: 301},
-    "18": {x: 492, y: 324},
-    "19": {x: 614, y: 303},
-    "20": {x: 879, y: 301}
-  };
 
-  function clean(v) {
-    return String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
-  }
 
-  function qsa(sel, base) {
-    try { return Array.prototype.slice.call((base || document).querySelectorAll(sel)); }
-    catch (e) { return []; }
-  }
+<!-- PMD_SETTINGS_FAMILY_HEADER_V18_RUNTIME_START -->
+<script src="/app/admin/assets/js/pmd-settings-family-header-v18.js?v=20260820_103303"></script>
+<!-- PMD_SETTINGS_FAMILY_HEADER_V18_RUNTIME_END -->
 
-  function imp(el, prop, val) {
-    if (!el || !el.style) return;
-    if (el.style.getPropertyValue(prop) === String(val) && el.style.getPropertyPriority(prop) === 'important') return;
-    el.style.setProperty(prop, String(val), 'important');
-  }
+<!-- PMD_OVERLAY_CONSOLE_PROVEN_REAL_ADMIN_LAYOUT_V4 -->
+<script
+    id="pmd-overlay-single-visual-plane-v4-script"
+    src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-modal-chrome-dark-green-v1"
+></script>
+<!-- /PMD_OVERLAY_CONSOLE_PROVEN_REAL_ADMIN_LAYOUT_V4 -->
 
-  function getFloor() {
-    return document.querySelector(FLOOR_SEL);
-  }
 
-  function getTiles() {
-    var f = getFloor();
-    if (!f) return [];
-    return qsa(TILE_SEL, f).filter(function (tile) {
-      return tile.closest(FLOOR_SEL) === f;
-    });
-  }
+<!-- PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_FINAL -->
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-platform-card-system-v2.css?v=20260913-r3-real-admin-layout"
+    data-pmd-platform-card-system-v2-final="1"
+    data-pmd-platform-card-real-layout-final="1"
+>
+<!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_FINAL -->
 
-  function tableNo(tile) {
-    if (!tile) return '';
-
-    var attrs = ['data-table-number', 'data-table-no', 'data-table', 'data-pmd-table-number', 'data-pmd-table-no'];
-    for (var i = 0; i < attrs.length; i++) {
-      var v = clean(tile.getAttribute(attrs[i]));
-      if (/^(20|1[0-9]|[1-9])$/.test(v)) return v;
-    }
-
-    var n = null;
-    try { n = tile.querySelector(':scope > .pmd-v175c-table-number'); }
-    catch (e) { n = tile.querySelector('.pmd-v175c-table-number'); }
-
-    if (n) {
-      var nt = clean(n.textContent);
-      if (/^(20|1[0-9]|[1-9])$/.test(nt)) return nt;
-    }
-
-    var txt = clean(tile.textContent || '');
-    var m = txt.match(/\b(20|1[0-9]|[1-9])\b/);
-    return m ? m[1] : '';
-  }
-
-  function heightForMode() {
-    if (mode === 'expanded') {
-      var h = Math.max(520, Math.min(720, window.innerHeight - 235));
-      return h + 'px';
-    }
-    return '430px';
-  }
-
-  function unwrapOldScalers() {
-    qsa('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').forEach(function (scaler) {
-      var parent = scaler.parentElement;
-      if (!parent) return;
-      while (scaler.firstChild) parent.insertBefore(scaler.firstChild, scaler);
-      scaler.remove();
-    });
-  }
-
-  function normalizeNumber(tile) {
-    var n = null;
-    try { n = tile.querySelector(':scope > .pmd-v175c-table-number'); }
-    catch (e) { n = tile.querySelector('.pmd-v175c-table-number'); }
-
-    if (!n) return;
-
-    imp(n, 'position', 'absolute');
-    imp(n, 'inset', '0');
-    imp(n, 'width', '100%');
-    imp(n, 'height', '100%');
-    imp(n, 'display', 'flex');
-    imp(n, 'align-items', 'center');
-    imp(n, 'justify-content', 'center');
-    imp(n, 'text-align', 'center');
-    imp(n, 'transform', 'none');
-    imp(n, 'line-height', '1');
-  }
-
-  function applyTile(tile, floorW) {
-    var no = tableNo(tile);
-    var p = POS[no];
-
-    imp(tile, 'position', 'absolute');
-
-    if (p) {
-      imp(tile, 'left', Math.round(p.x * (floorW / BASE_W)) + 'px');
-      imp(tile, 'top', p.y + 'px');
-    }
-
-    imp(tile, 'width', '104px');
-    imp(tile, 'height', '86px');
-    imp(tile, 'min-width', '104px');
-    imp(tile, 'min-height', '86px');
-    imp(tile, 'max-width', '104px');
-    imp(tile, 'max-height', '86px');
-    imp(tile, 'display', 'block');
-    imp(tile, 'visibility', 'visible');
-    imp(tile, 'opacity', '1');
-    imp(tile, 'transform', 'none');
-    imp(tile, 'transition', 'none');
-    imp(tile, 'animation', 'none');
-    imp(tile, 'overflow', 'visible');
-
-    normalizeNumber(tile);
-  }
-
-  function updateButton() {
-    qsa(BTN_SEL).forEach(function (btn) {
-      btn.setAttribute('title', mode === 'expanded' ? 'Compact floor' : 'Expand floor');
-      btn.setAttribute('aria-label', mode === 'expanded' ? 'Compact floor' : 'Expand floor');
-      btn.setAttribute('data-pmd-v190-mode', mode);
-    });
-  }
-
-  function apply() {
-    if (applying) return;
-    applying = true;
-
-    root.classList.add('pmd-waiter-dashboard-active');
-
-    root.classList.remove(
-      'pmd-v184-floor-small', 'pmd-v184-floor-large',
-      'pmd-v185-floor-small', 'pmd-v185-floor-large', 'pmd-v185-sizing',
-      'pmd-v187-floor-small', 'pmd-v187-floor-large', 'pmd-v187-sizing',
-      'pmd-v188-floor-compact', 'pmd-v188-floor-expanded',
-      'pmd-v189-floor-compact', 'pmd-v189-floor-expanded'
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_body_legacy'
     );
-
-    root.classList.toggle('pmd-v190-floor-compact', mode === 'compact');
-    root.classList.toggle('pmd-v190-floor-expanded', mode === 'expanded');
-
-    var h = heightForMode();
-    root.style.setProperty('--pmd-v190-floor-height', h);
-
-    unwrapOldScalers();
-
-    var f = getFloor();
-    if (f) {
-      var fw = f.getBoundingClientRect().width || BASE_W;
-
-      imp(f, 'position', 'relative');
-      imp(f, 'height', h);
-      imp(f, 'min-height', h);
-      imp(f, 'max-height', h);
-      imp(f, 'overflow', 'visible');
-      imp(f, 'background', '#ffffff');
-      imp(f, 'transform', 'none');
-
-      getTiles().forEach(function (tile) {
-        applyTile(tile, fw);
-      });
-    }
-
-    updateButton();
-    applying = false;
-  }
-
-  function setMode(next, reason) {
-    if (next !== 'compact' && next !== 'expanded') next = 'compact';
-
-    mode = next;
-    localStorage.setItem('pmd_waiter_floor_compact_v190', mode);
-
-    apply();
-
-    console.info('[PMD] V190 floor mode', {
-      mode: mode,
-      reason: reason || 'set'
-    });
-  }
-
-  function toggle(reason) {
-    setMode(mode === 'expanded' ? 'compact' : 'expanded', reason || 'toggle');
-  }
-
-  function isNotificationClose(btn) {
-    return !!(
-      btn &&
-      (
-        btn.closest('.notification-toast, .toast, .toast-container, .notification, .push-notification, [class*="notification"], [class*="toast"]') ||
-        btn.matches('.notification-toast-close, [aria-label="Close"], [aria-label="close"]')
-      )
-    );
-  }
-
-  function isExactCompactButton(btn) {
-    if (!btn) return false;
-    if (isNotificationClose(btn)) return false;
-    if (!btn.matches(BTN_SEL)) return false;
-
-    var f = getFloor();
-    if (!f) return false;
-
-    var fr = f.getBoundingClientRect();
-    var br = btn.getBoundingClientRect();
-
-    return br.bottom <= fr.top + 25 && br.right >= fr.right - 180;
-  }
-
-  function onClick(e) {
-    var btn = e.target && e.target.closest ? e.target.closest('button,a,[role="button"],.btn,[data-w19-compact]') : null;
-    if (!isExactCompactButton(btn)) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-
-    var now = Date.now();
-    if (now - lastClick < 400) return;
-    lastClick = now;
-
-    toggle('data-w19-compact-button');
-  }
-
-  function schedule() {
-    if (raf) return;
-    raf = requestAnimationFrame(function () {
-      raf = 0;
-      apply();
-    });
-  }
-
-  function debug(print) {
-    var f = getFloor();
-    var fr = f ? f.getBoundingClientRect() : null;
-    var list = getTiles();
-
-    var coords = {};
-    var xs = [];
-    var ys = [];
-
-    var rows = list.map(function (tile) {
-      var r = tile.getBoundingClientRect();
-      var no = tableNo(tile);
-      var k = Math.round(r.x) + ',' + Math.round(r.y);
-      coords[k] = true;
-      xs.push(r.x);
-      ys.push(r.y);
-
-      return {
-        table: no,
-        relX: fr ? Math.round(r.x - fr.x) : '',
-        relY: fr ? Math.round(r.y - fr.y) : '',
-        x: Math.round(r.x),
-        y: Math.round(r.y),
-        w: Math.round(r.width),
-        h: Math.round(r.height),
-        left: tile.style.getPropertyValue('left'),
-        top: tile.style.getPropertyValue('top')
-      };
-    });
-
-    var spread = {
-      count: rows.length,
-      unique: Object.keys(coords).length,
-      dupes: rows.length - Object.keys(coords).length,
-      spreadX: xs.length ? Math.round(Math.max.apply(null, xs) - Math.min.apply(null, xs)) : 0,
-      spreadY: ys.length ? Math.round(Math.max.apply(null, ys) - Math.min.apply(null, ys)) : 0
-    };
-
-    var floors = f ? [{
-      x: Math.round(fr.x),
-      y: Math.round(fr.y),
-      w: Math.round(fr.width),
-      h: Math.round(fr.height),
-      style: (f.getAttribute('style') || '').slice(0, 180)
-    }] : [];
-
-    var buttons = qsa(BTN_SEL).map(function (btn) {
-      var r = btn.getBoundingClientRect();
-      return {
-        text: clean(btn.textContent),
-        title: btn.getAttribute('title') || '',
-        mode: btn.getAttribute('data-pmd-v190-mode') || '',
-        x: Math.round(r.x),
-        y: Math.round(r.y),
-        w: Math.round(r.width),
-        h: Math.round(r.height)
-      };
-    });
-
-    var out = {
-      active: true,
-      mode: mode,
-      height: heightForMode(),
-      spread: spread,
-      oldObjects: {
-        v184: typeof window.PMDFloorSizeV184,
-        v185: typeof window.PMDFloorScaleWrapperV185,
-        v186: typeof window.PMDFloorToggleDebounceV186,
-        v187: typeof window.PMDFloorScaleSafeV187,
-        v188: typeof window.PMDFloorCompactExpandV188,
-        v189: typeof window.PMDFloorPositionLockV189
-      },
-      oldScalerNodes: document.querySelectorAll('.pmd-v185-floor-scaler, .pmd-v187-floor-scaler').length,
-      floors: floors,
-      rows: rows,
-      buttons: buttons
-    };
-
-    if (print !== false) {
-      console.table(floors);
-      console.table(rows);
-      console.table(buttons);
-      console.log(out);
-    }
-
-    return out;
-  }
-
-  document.addEventListener('click', onClick, true);
-
-  observer = new MutationObserver(schedule);
-  observer.observe(document.querySelector('#pmd-waiter-dashboard-root') || document.body, {
-    subtree: true,
-    childList: true
-  });
-
-  [
-    'pmd_waiter_floor_size_v184',
-    'pmd_waiter_floor_scale_v185',
-    'pmd_waiter_floor_scale_v187',
-    'pmd_waiter_floor_compact_v188',
-    'pmd_waiter_floor_compact_v189',
-    'pmd_waiter_floor_positions_v189'
-  ].forEach(function (k) {
-    localStorage.removeItem(k);
-  });
-
-  apply();
-  setTimeout(apply, 80);
-  setTimeout(apply, 250);
-  setTimeout(apply, 1000);
-  setTimeout(apply, 2500);
-
-  window.PMDFloorDeterministicV190 = {
-    active: true,
-    apply: apply,
-    set: setMode,
-    toggle: toggle,
-    compact: function () { setMode('compact', 'api'); },
-    expand: function () { setMode('expanded', 'api'); },
-    expanded: function () { setMode('expanded', 'api'); },
-    debug: function () { return debug(true); },
-    stop: function () {
-      document.removeEventListener('click', onClick, true);
-      if (observer) observer.disconnect();
-      if (raf) cancelAnimationFrame(raf);
-      observer = null;
-      raf = 0;
-      console.info('[PMD] V190 deterministic floor stopped');
-    }
-  };
-
-  console.info('[PMD] V190 deterministic floor compact active');
-})();
-</script>
-<!-- PMD_V190_DETERMINISTIC_FLOOR_COMPACT_END -->
+@endphp
 
 </body>
 </html>
 
+@php
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_html_end'
+    );
+@endphp
+
 <!-- PMD_OWNER_V122_DASHBOARD2_EXACT_MAIN_KPI_COLORS_START -->
-<style id="pmd-owner-v122-dashboard2-exact-main-kpi-colors-style">
-/*
-  Dashboard2 v122
-  Fix: top 4 KPI colors must match main dashboard.
-  No iframe mirror. No invented colors on normal cards.
-*/
-
-html.pmd-dashboard2-active,
-html.pmd-dashboard2-active body {
-  overflow: hidden !important;
-  background: #f6f8fb !important;
-}
-
-html.pmd-dashboard2-active #pmd-dashboard2-quick-btn,
-html.pmd-dashboard2-active .pmd-d2-quick-btn,
-html.pmd-dashboard2-active [id*="dashboard2"][id*="quick"],
-html.pmd-dashboard2-active [class*="dashboard2"][class*="quick"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-/* Same distance/spacing as the clean D2 version */
-html.pmd-dashboard2-active .pmd-d2-root {
-  top: 72px !important;
-  left: 100px !important;
-  right: 8px !important;
-  bottom: 0 !important;
-  padding: 16px 16px 64px !important;
-  overflow: auto !important;
-  background: #f6f8fb !important;
-  border-top: 1px solid rgba(226,232,240,.72) !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-shell {
-  width: 100% !important;
-  max-width: none !important;
-  margin: 0 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpis,
-html.pmd-dashboard2-active .pmd-d2-grid {
-  gap: 16px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpis {
-  margin-bottom: 16px !important;
-}
-
-/* Remove wrong old pseudo colors */
-html.pmd-dashboard2-active .pmd-d2-card::before,
-html.pmd-dashboard2-active .pmd-d2-card::after,
-html.pmd-dashboard2-active .pmd-d2-kpi::before,
-html.pmd-dashboard2-active .pmd-d2-kpi::after {
-  display: none !important;
-  content: none !important;
-}
-
-/* Base normal cards: white like main dashboard */
-html.pmd-dashboard2-active .pmd-d2-floor,
-html.pmd-dashboard2-active .pmd-d2-card {
-  background: #ffffff !important;
-  border: 1px solid #dbe3ee !important;
-  box-shadow: 0 14px 38px rgba(15,23,42,.05) !important;
-  color: #061126 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-card {
-  height: 328px !important;
-  min-height: 328px !important;
-  max-height: 328px !important;
-  border-radius: 18px !important;
-  overflow: hidden !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-floor {
-  height: 218px !important;
-  min-height: 218px !important;
-  max-height: 218px !important;
-  margin-bottom: 16px !important;
-  border-radius: 18px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-floor.is-expanded {
-  height: 620px !important;
-  min-height: 620px !important;
-  max-height: 620px !important;
-}
-
-/* Top KPI cards — exact main dashboard style */
-html.pmd-dashboard2-active .pmd-d2-kpi {
-  position: relative !important;
-  overflow: hidden !important;
-  height: 112px !important;
-  min-height: 112px !important;
-  padding: 18px 24px !important;
-  border-radius: 18px !important;
-  box-shadow: 0 14px 38px rgba(15,23,42,.05) !important;
-}
-
-/* Revenue Today: green + lavender bottom */
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(1) {
-  background:
-    radial-gradient(circle at 12% 50%, rgba(220,252,231,.72), transparent 30%),
-    linear-gradient(135deg, #f0fdf4 0%, #ffffff 58%, #f5f3ff 100%) !important;
-  border: 1px solid #bbf7d0 !important;
-}
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(1)::after {
-  content: "" !important;
-  display: block !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: 4px !important;
-  background: linear-gradient(90deg, #86efac 0%, #c4b5fd 100%) !important;
-}
-
-/* Pending Value: warm orange */
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(2) {
-  background:
-    radial-gradient(circle at 12% 50%, rgba(255,237,213,.76), transparent 30%),
-    linear-gradient(135deg, #fff7ed 0%, #ffffff 58%, #fdf2f8 100%) !important;
-  border: 1px solid #fdba74 !important;
-}
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(2)::after {
-  content: "" !important;
-  display: block !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: 4px !important;
-  background: linear-gradient(90deg, #fdba74 0%, #f0abfc 100%) !important;
-}
-
-/* Table Occupancy: blue */
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(3) {
-  background:
-    radial-gradient(circle at 12% 50%, rgba(219,234,254,.82), transparent 30%),
-    linear-gradient(135deg, #eff6ff 0%, #ffffff 58%, #f5f3ff 100%) !important;
-  border: 1px solid #bfdbfe !important;
-}
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(3)::after {
-  content: "" !important;
-  display: block !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: 4px !important;
-  background: linear-gradient(90deg, #93c5fd 0%, #c4b5fd 100%) !important;
-}
-
-/* Orders Today: peach/pink */
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(4) {
-  background:
-    radial-gradient(circle at 12% 50%, rgba(252,231,243,.78), transparent 30%),
-    linear-gradient(135deg, #fff7ed 0%, #ffffff 58%, #fdf2f8 100%) !important;
-  border: 1px solid #fdba74 !important;
-}
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(4)::after {
-  content: "" !important;
-  display: block !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: 4px !important;
-  background: linear-gradient(90deg, #fdba74 0%, #f9a8d4 100%) !important;
-}
-
-/* KPI icons matching each card */
-html.pmd-dashboard2-active .pmd-d2-kpi .pmd-d2-ico {
-  width: 56px !important;
-  height: 56px !important;
-  border-radius: 999px !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.9) !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(1) .pmd-d2-ico {
-  background: #dcfce7 !important;
-  border: 1px solid #bbf7d0 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(2) .pmd-d2-ico {
-  background: #ffedd5 !important;
-  border: 1px solid #fed7aa !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(3) .pmd-d2-ico {
-  background: #dbeafe !important;
-  border: 1px solid #bfdbfe !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(4) .pmd-d2-ico {
-  background: #fce7f3 !important;
-  border: 1px solid #fbcfe8 !important;
-}
-
-/* Inner blocks: only these match main dashboard colored items */
-html.pmd-dashboard2-active .pmd-d2-row,
-html.pmd-dashboard2-active .pmd-d2-mini > div,
-html.pmd-dashboard2-active .pmd-d2-action-tile {
-  background: #f8fafc !important;
-  border: 1px solid #dbe3ee !important;
-  color: #061126 !important;
-}
-
-/* Average Guest Spend: first row green, second row orange — same as main */
-html.pmd-dashboard2-active .pmd-d2-grid > .pmd-d2-card:nth-child(5) .pmd-d2-row:nth-of-type(1) {
-  background: #ecfdf5 !important;
-  border-color: #86efac !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-grid > .pmd-d2-card:nth-child(5) .pmd-d2-row:nth-of-type(2) {
-  background: #fff7ed !important;
-  border-color: #fdba74 !important;
-}
-
-/* Lost Revenue: only first risk row orange, not full card */
-html.pmd-dashboard2-active .pmd-d2-grid > .pmd-d2-card:nth-child(6) .pmd-d2-row:nth-of-type(1) {
-  background: #fff7ed !important;
-  border-color: #fdba74 !important;
-}
-
-/* Floor tables */
-html.pmd-dashboard2-active .pmd-d2-table {
-  background: #ffffff !important;
-  border: 3px solid #22c55e !important;
-  color: #061126 !important;
-  box-shadow: 0 8px 18px rgba(34,197,94,.08) !important;
-}
-
-@media (max-width: 1200px) {
-  html.pmd-dashboard2-active .pmd-d2-root {
-    left: 96px !important;
-    right: 8px !important;
-    padding: 14px !important;
-  }
-
-  html.pmd-dashboard2-active .pmd-d2-kpis,
-  html.pmd-dashboard2-active .pmd-d2-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-</style>
-
-<script id="pmd-owner-v122-dashboard2-exact-main-kpi-colors-script">
-(function () {
-  if (!/\/admin\/dashboard2(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  document.documentElement.classList.add('pmd-dashboard2-active');
-  console.info('[PMD] Dashboard2 v122 exact main KPI colors active');
-})();
-</script>
 <!-- PMD_OWNER_V122_DASHBOARD2_EXACT_MAIN_KPI_COLORS_END -->
 
 <!-- PMD_OWNER_V123_DASHBOARD2_REMOVE_KPI_BOTTOM_EDGE_START -->
-<style id="pmd-owner-v123-dashboard2-remove-kpi-bottom-edge-style">
-/*
-  Dashboard2 v123
-  Remove only the colored bottom edge/stripe under the top KPI cards.
-  Keep card backgrounds, borders, icons, spacing.
-*/
-
-html.pmd-dashboard2-active .pmd-d2-kpi::after,
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(1)::after,
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(2)::after,
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(3)::after,
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(4)::after {
-  display: none !important;
-  content: none !important;
-  height: 0 !important;
-  opacity: 0 !important;
-  background: none !important;
-  border: 0 !important;
-  box-shadow: none !important;
-}
-
-/* Make the bottom border look exactly like the other card edges */
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(1) {
-  border-bottom-color: #bbf7d0 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(2) {
-  border-bottom-color: #fdba74 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(3) {
-  border-bottom-color: #bfdbfe !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kpi:nth-child(4) {
-  border-bottom-color: #fdba74 !important;
-}
-</style>
-
-<script id="pmd-owner-v123-dashboard2-remove-kpi-bottom-edge-script">
-(function () {
-  if (!/\/admin\/dashboard2(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  document.documentElement.classList.add('pmd-dashboard2-active');
-  console.info('[PMD] Dashboard2 v123 remove KPI bottom edge active');
-})();
-</script>
 <!-- PMD_OWNER_V123_DASHBOARD2_REMOVE_KPI_BOTTOM_EDGE_END -->
 
 <!-- PMD_OWNER_V124_DASHBOARD2_UNDER_FLOOR_CARD_HEIGHT_START -->
-<style id="pmd-owner-v124-dashboard2-under-floor-card-height-style">
-/*
-  Dashboard2 v124
-  Only increases the height of cards under Restaurant Floor.
-  Width, KPI cards, and Floor card stay unchanged.
-*/
-
-html.pmd-dashboard2-active .pmd-d2-grid > .pmd-d2-card {
-  height: 362px !important;
-  min-height: 362px !important;
-  max-height: 362px !important;
-}
-
-/* Give visual content a little more room inside the taller cards */
-html.pmd-dashboard2-active .pmd-d2-chart {
-  height: 136px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-mini > div {
-  min-height: 104px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-action-tile {
-  min-height: 108px !important;
-}
-
-/* Keep responsive screens safe */
-@media (max-width: 1200px) {
-  html.pmd-dashboard2-active .pmd-d2-grid > .pmd-d2-card {
-    height: auto !important;
-    min-height: 340px !important;
-    max-height: none !important;
-  }
-}
-</style>
-
-<script id="pmd-owner-v124-dashboard2-under-floor-card-height-script">
-(function () {
-  if (!/\/admin\/dashboard2(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  document.documentElement.classList.add('pmd-dashboard2-active');
-  console.info('[PMD] Dashboard2 v124 under-floor card height active');
-})();
-</script>
 <!-- PMD_OWNER_V124_DASHBOARD2_UNDER_FLOOR_CARD_HEIGHT_END -->
 
 <!-- PMD_OWNER_V128_DASHBOARD2_STATIC_PRIORITY_IN_V114_START -->
-<style id="pmd-owner-v128-dashboard2-static-priority-in-v114-style">
-/*
-  V128:
-  Priority cards are now inside V114 initial HTML render.
-  No delayed insert. No blink loop.
-  Same structure/style as normal pmd-d2-card cards.
-*/
-
-html.pmd-dashboard2-active .pmd-d2-priority-grid {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 16px !important;
-  width: 100% !important;
-  margin: 0 0 16px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-priority-grid > .pmd-d2-card {
-  height: 362px !important;
-  min-height: 362px !important;
-  max-height: 362px !important;
-  border-radius: 18px !important;
-  background: #ffffff !important;
-  border: 1px solid #dbe3ee !important;
-  box-shadow: 0 14px 38px rgba(15,23,42,.05) !important;
-  overflow: hidden !important;
-}
-
-/* Keep these cards neutral, same as the lower cards */
-html.pmd-dashboard2-active .pmd-d2-priority-grid > .pmd-d2-card .pmd-d2-row {
-  background: #f8fafc !important;
-  border: 1px solid #dbe3ee !important;
-  color: #061126 !important;
-}
-
-/* Revenue by Hour */
-html.pmd-dashboard2-active .pmd-d2-hour-summary {
-  margin-top: 18px !important;
-  display: flex !important;
-  align-items: baseline !important;
-  gap: 10px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-hour-summary strong {
-  font-size: 30px !important;
-  line-height: 1 !important;
-  letter-spacing: -.045em !important;
-  font-weight: 1000 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-hour-summary span {
-  color: #64748b !important;
-  font-size: 13px !important;
-  font-weight: 800 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-hour-bars {
-  height: 146px !important;
-  margin-top: 18px !important;
-  padding: 18px 14px 26px !important;
-  border-radius: 16px !important;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
-  display: grid !important;
-  grid-template-columns: repeat(8, 1fr) !important;
-  gap: 9px !important;
-  align-items: end !important;
-  border: 1px solid rgba(219,227,238,.72) !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-hour-bars span {
-  position: relative !important;
-  height: var(--h) !important;
-  min-height: 12px !important;
-  border-radius: 999px 999px 6px 6px !important;
-  background: linear-gradient(180deg, #86efac 0%, #22c55e 100%) !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-hour-bars span.is-muted {
-  background: linear-gradient(180deg, #dbeafe 0%, #93c5fd 100%) !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-hour-bars span b {
-  position: absolute !important;
-  left: 50% !important;
-  bottom: -22px !important;
-  transform: translateX(-50%) !important;
-  color: #64748b !important;
-  font-size: 10.5px !important;
-  font-weight: 800 !important;
-}
-
-/* Kitchen Performance */
-html.pmd-dashboard2-active .pmd-d2-kitchen-grid {
-  margin-top: 18px !important;
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  gap: 10px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kitchen-box {
-  min-height: 100px !important;
-  padding: 14px !important;
-  border-radius: 15px !important;
-  background: #f8fafc !important;
-  border: 1px solid #dbe3ee !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kitchen-box small {
-  display: block !important;
-  color: #64748b !important;
-  text-transform: uppercase !important;
-  letter-spacing: .04em !important;
-  font-size: 10.5px !important;
-  font-weight: 1000 !important;
-  line-height: 1.2 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kitchen-box strong {
-  display: block !important;
-  margin-top: 12px !important;
-  font-size: 24px !important;
-  line-height: 1 !important;
-  font-weight: 1000 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kitchen-box span {
-  display: block !important;
-  margin-top: 7px !important;
-  color: #64748b !important;
-  font-size: 12px !important;
-  font-weight: 800 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-kitchen-rush {
-  margin-top: 12px !important;
-  min-height: 54px !important;
-  padding: 14px 16px !important;
-  border-radius: 15px !important;
-  background: #fff7ed !important;
-  border: 1px solid #fdba74 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  font-weight: 1000 !important;
-}
-
-@media (max-width: 1200px) {
-  html.pmd-dashboard2-active .pmd-d2-priority-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-</style>
 <!-- PMD_OWNER_V128_DASHBOARD2_STATIC_PRIORITY_IN_V114_END -->
 
 <!-- PMD_OWNER_V130_DASHBOARD2_SERVICE_PERFORMANCE_START -->
-<style id="pmd-owner-v130-dashboard2-service-performance-style">
-/*
-  V130:
-  Adds Service Performance card using real current dashboard values.
-  Static initial render. No delayed JS. No fake staff names.
-*/
-
-html.pmd-dashboard2-active .pmd-d2-service-performance {
-  grid-column: span 2 !important;
-  height: 362px !important;
-  min-height: 362px !important;
-  max-height: 362px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-head {
-  display: flex !important;
-  align-items: flex-start !important;
-  justify-content: space-between !important;
-  gap: 18px !important;
-  margin-bottom: 18px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-head h2 {
-  margin: 0 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-head p {
-  margin: 6px 0 0 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-head span {
-  height: 34px !important;
-  padding: 0 14px !important;
-  border-radius: 999px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: #ecfdf5 !important;
-  border: 1px solid #86efac !important;
-  color: #166534 !important;
-  font-size: 12px !important;
-  font-weight: 1000 !important;
-  white-space: nowrap !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-table {
-  display: grid !important;
-  gap: 10px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row {
-  min-height: 54px !important;
-  display: grid !important;
-  grid-template-columns: 1.3fr .55fr .7fr .6fr !important;
-  align-items: center !important;
-  gap: 12px !important;
-  padding: 12px 14px !important;
-  border-radius: 14px !important;
-  background: #f8fafc !important;
-  border: 1px solid #dbe3ee !important;
-  color: #061126 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-header {
-  min-height: 38px !important;
-  background: #ffffff !important;
-  color: #64748b !important;
-  font-size: 12px !important;
-  text-transform: uppercase !important;
-  letter-spacing: .035em !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row span {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  min-width: 0 !important;
-  font-weight: 1000 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row span i {
-  width: 34px !important;
-  height: 34px !important;
-  flex: 0 0 34px !important;
-  border-radius: 12px !important;
-  display: grid !important;
-  place-items: center !important;
-  font-style: normal !important;
-  background: #eff6ff !important;
-  border: 1px solid #bfdbfe !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row:nth-child(3) span i {
-  background: #fff7ed !important;
-  border-color: #fdba74 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row:nth-child(4) span i {
-  background: #f5f3ff !important;
-  border-color: #c4b5fd !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row:nth-child(5) span i {
-  background: #ecfdf5 !important;
-  border-color: #86efac !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row b {
-  font-weight: 1000 !important;
-  white-space: nowrap !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row em {
-  font-style: normal !important;
-  justify-self: end !important;
-  padding: 7px 10px !important;
-  border-radius: 999px !important;
-  background: #ffffff !important;
-  border: 1px solid #dbe3ee !important;
-  color: #475569 !important;
-  font-size: 11px !important;
-  font-weight: 1000 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row:nth-child(2) em {
-  background: #ecfdf5 !important;
-  border-color: #86efac !important;
-  color: #166534 !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-row:nth-child(3) em {
-  background: #fff7ed !important;
-  border-color: #fdba74 !important;
-  color: #9a3412 !important;
-}
-
-@media (max-width: 1200px) {
-  html.pmd-dashboard2-active .pmd-d2-service-performance {
-    grid-column: span 1 !important;
-  }
-
-  html.pmd-dashboard2-active .pmd-d2-service-row {
-    grid-template-columns: 1fr .55fr .7fr !important;
-  }
-
-  html.pmd-dashboard2-active .pmd-d2-service-row em {
-    display: none !important;
-  }
-}
-</style>
 <!-- PMD_OWNER_V130_DASHBOARD2_SERVICE_PERFORMANCE_END -->
 
 <!-- PMD_OWNER_V131_DASHBOARD2_HIDE_CARD_SUBTITLES_START -->
-<style id="pmd-owner-v131-dashboard2-hide-card-subtitles-style">
-/*
-  V131:
-  Hide card subtitle / undertitle lines below the floor.
-  CSS only. No JS. No delayed render.
-*/
-
-/* Normal dashboard cards under floor */
-html.pmd-dashboard2-active .pmd-d2-grid > .pmd-d2-card > h2 + p {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Priority cards */
-html.pmd-dashboard2-active .pmd-d2-priority-grid > .pmd-d2-card > h2 + p {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Service Performance subtitle */
-html.pmd-dashboard2-active .pmd-d2-service-head p {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-/* Keep spacing clean after removing subtitles */
-html.pmd-dashboard2-active .pmd-d2-grid > .pmd-d2-card > h2,
-html.pmd-dashboard2-active .pmd-d2-priority-grid > .pmd-d2-card > h2 {
-  margin-bottom: 18px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-service-head {
-  margin-bottom: 18px !important;
-}
-</style>
 <!-- PMD_OWNER_V131_DASHBOARD2_HIDE_CARD_SUBTITLES_END -->
 
 <!-- PMD_OWNER_V132_DASHBOARD2_LIVE_CONNECTOR_START -->
-<style id="pmd-owner-v132-dashboard2-live-connector-style">
-/*
-  V132:
-  Connect dashboard2 to the existing real owner-dashboard data endpoint.
-  No card rebuild loop. No mutation observer. No fake names.
-*/
-
-/* Make sure removed priority icons stay removed */
-html.pmd-dashboard2-active .pmd-d2-priority-grid > .pmd-d2-card::before,
-html.pmd-dashboard2-active .pmd-d2-priority-grid > .pmd-d2-card::after {
-  display: none !important;
-  content: none !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-priority-grid > .pmd-d2-card {
-  padding-right: 22px !important;
-}
-
-html.pmd-dashboard2-active .pmd-d2-live-updated {
-  transition: background-color .18s ease, border-color .18s ease;
-}
-
-html.pmd-dashboard2-active .pmd-d2-live-pill {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  height: 28px !important;
-  padding: 0 10px !important;
-  border-radius: 999px !important;
-  background: #ecfdf5 !important;
-  border: 1px solid #86efac !important;
-  color: #166534 !important;
-  font-size: 11px !important;
-  font-weight: 1000 !important;
-}
-</style>
-
-<script id="pmd-owner-v132-dashboard2-live-connector-script">
-(function () {
-  'use strict';
-
-  if (!/\/admin\/dashboard2(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
-  if (window.PMD_OWNER_V132_DASHBOARD2_LIVE_CONNECTOR) return;
-  window.PMD_OWNER_V132_DASHBOARD2_LIVE_CONNECTOR = true;
-
-  var ENDPOINT = '/admin/pmd-owner-dashboard-clean-v1-data';
-  var state = {
-    active: true,
-    endpoint: ENDPOINT,
-    connected: false,
-    lastError: null,
-    lastUpdated: null,
-    updates: 0,
-    data: null
-  };
-
-  function esc(v) {
-    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c];
-    });
-  }
-
-  function text(el, value) {
-    if (el && value != null) el.textContent = String(value);
-  }
-
-  function money(v, fallback) {
-    if (typeof v === 'string' && v.trim()) return v.trim();
-    var n = Number(v);
-    if (!isFinite(n)) return fallback || '€0.00';
-    return '€' + n.toFixed(2);
-  }
-
-  function num(v, fallback) {
-    var n = Number(v);
-    return isFinite(n) ? n : (fallback || 0);
-  }
-
-  function get(obj, path, fallback) {
-    var cur = obj;
-    for (var i = 0; i < path.length; i++) {
-      if (!cur || typeof cur !== 'object' || !(path[i] in cur)) return fallback;
-      cur = cur[path[i]];
-    }
-    return cur == null ? fallback : cur;
-  }
-
-  function metric(data, keys) {
-    keys = Array.isArray(keys) ? keys : [keys];
-
-    var m = data && data.metrics;
-
-    if (Array.isArray(m)) {
-      for (var i = 0; i < keys.length; i++) {
-        var found = m.find(function (x) {
-          return String(x.key || x.name || '').toLowerCase() === String(keys[i]).toLowerCase();
-        });
-        if (found) return found;
-      }
-    }
-
-    if (m && typeof m === 'object') {
-      for (var j = 0; j < keys.length; j++) {
-        if (m[keys[j]]) {
-          var val = m[keys[j]];
-          if (val && typeof val === 'object') return val;
-          return { value: val, raw: val };
-        }
-      }
-    }
-
-    if (data && typeof data === 'object') {
-      for (var k = 0; k < keys.length; k++) {
-        if (data[keys[k]] != null) return { value: data[keys[k]], raw: data[keys[k]] };
-      }
-    }
-
-    return null;
-  }
-
-  function mValue(data, keys, fallback) {
-    var m = metric(data, keys);
-    if (!m) return fallback;
-    return m.value != null ? m.value : (m.label != null ? m.label : (m.raw != null ? m.raw : fallback));
-  }
-
-  function mRaw(data, keys, fallback) {
-    var m = metric(data, keys);
-    if (!m) return fallback;
-    return m.raw != null ? m.raw : (m.raw_value != null ? m.raw_value : (m.value != null ? m.value : fallback));
-  }
-
-  function mNote(data, keys, fallback) {
-    var m = metric(data, keys);
-    if (!m) return fallback;
-    return m.note || m.subtitle || m.description || fallback;
-  }
-
-  function card(title) {
-    var low = String(title).toLowerCase();
-    return Array.prototype.slice.call(document.querySelectorAll('.pmd-d2-card')).find(function (c) {
-      var h = c.querySelector('h2');
-      return h && h.textContent.trim().toLowerCase() === low;
-    }) || null;
-  }
-
-  function row(label, note, value) {
-    return '<div class="pmd-d2-row"><span>' + esc(label) + '<br><span class="pmd-d2-muted">' + esc(note || '') + '</span></span><b>' + esc(value == null ? '—' : value) + '</b></div>';
-  }
-
-  function actionTile(label, icon) {
-    return '<div class="pmd-d2-action-tile">' + esc(icon || '') + '<br>' + esc(label) + '</div>';
-  }
-
-  function sections(data) {
-    return (data && data.sections) || {};
-  }
-
-  function floorSummary(data) {
-    var fp = get(data, ['sections', 'floor_plan'], {});
-    var summary = fp.summary || {};
-    var tables = Array.isArray(fp.tables) ? fp.tables : [];
-
-    var total = num(summary.total || summary.tables || summary.all, tables.length || 0);
-    var busy = num(summary.busy || summary.occupied || summary.active, 0);
-    var free = num(summary.free || summary.available, 0);
-    var reserved = num(summary.reserved, 0);
-
-    if (!total && tables.length) total = tables.length;
-
-    if (!busy && tables.length) {
-      busy = tables.filter(function (t) {
-        var st = String(t.status || t.state || t.table_status || '').toLowerCase();
-        return /busy|occupied|dining|open|unpaid|payment/.test(st) || Number(t.open_orders || t.due_count || 0) > 0;
-      }).length;
-    }
-
-    if (!free && total) {
-      free = Math.max(0, total - busy - reserved);
-    }
-
-    return { total: total, busy: busy, free: free, reserved: reserved, tables: tables };
-  }
-
-  function recentOrders(data) {
-    return get(data, ['sections', 'recent_orders'], []) || [];
-  }
-
-  function upcomingReservations(data) {
-    return get(data, ['sections', 'upcoming_reservations'], []) || [];
-  }
-
-  function topItems(data) {
-    return get(data, ['sections', 'top_items'], []) || [];
-  }
-
-  function kitchenData(data) {
-    return get(data, ['sections', 'kitchen'], {}) || {};
-  }
-
-  function orderTotal(o) {
-    if (!o) return 0;
-    if (typeof o.total === 'number') return o.total;
-    var s = String(o.total_label || o.total || '').replace(/[^\d.,-]/g, '').replace(',', '.');
-    return Number(s) || 0;
-  }
-
-  function sumOrders(rows) {
-    return rows.reduce(function (sum, o) { return sum + orderTotal(o); }, 0);
-  }
-
-  function updateKpis(data) {
-    var kpis = Array.prototype.slice.call(document.querySelectorAll('.pmd-d2-kpi'));
-    if (kpis.length < 4) return;
-
-    var fs = floorSummary(data);
-    var orders = recentOrders(data);
-    var openChecks = mValue(data, ['open_checks', 'open_orders', 'pending_checks'], orders.length || '0');
-    var openChecksRaw = num(mRaw(data, ['open_checks', 'open_orders', 'pending_checks'], openChecks), num(openChecks, 0));
-    var pendingValue = mValue(data, ['pending_value', 'open_check_value', 'open_checks_value', 'unpaid_value', 'pending_payments'], null);
-    var revenueToday = mValue(data, ['revenue_today', 'sales_today', 'today_revenue', 'total_sales'], '€0.00');
-    var ordersToday = mValue(data, ['orders_today', 'today_orders'], '0');
-
-    var activeText = fs.total ? (fs.busy + ' / ' + fs.total) : mValue(data, ['active_tables'], '—');
-    var occPct = fs.total ? Math.round((fs.busy / fs.total) * 100) + '%' : mValue(data, ['table_occupancy'], '—');
-
-    [
-      ['Revenue Today', revenueToday, 'Live sales today'],
-      ['Open Checks', String(openChecksRaw || openChecks || 0), (pendingValue ? pendingValue : money(sumOrders(orders))) + ' pending value'],
-      ['Active Tables', activeText, occPct + ' occupied · ' + fs.free + ' free'],
-      ['Orders Today', String(ordersToday), String(openChecksRaw || openChecks || 0) + ' open checks now']
-    ].forEach(function (x, i) {
-      var h = kpis[i].querySelector('h3');
-      var strong = kpis[i].querySelector('strong');
-      var p = kpis[i].querySelector('p');
-      text(h, x[0]);
-      text(strong, x[1]);
-      text(p, x[2]);
-      kpis[i].classList.add('pmd-d2-live-updated');
-    });
-  }
-
-  function updatePriorityCards(data) {
-    var fs = floorSummary(data);
-    var orders = recentOrders(data);
-    var reservations = upcomingReservations(data);
-    var k = kitchenData(data);
-
-    var openChecks = num(mRaw(data, ['open_checks', 'open_orders', 'pending_checks'], orders.length || 0), orders.length || 0);
-    var pendingValue = mValue(data, ['pending_value', 'open_check_value', 'open_checks_value', 'unpaid_value', 'pending_payments'], money(sumOrders(orders)));
-    var delayed = num(k.delayed || k.delayed_orders || mRaw(data, ['delayed_orders', 'kitchen_queue'], 0), 0);
-
-    var payment = card('Payment Waiting');
-    if (payment) {
-      var rows = payment.querySelectorAll('.pmd-d2-row');
-      if (rows[0]) rows[0].outerHTML = row('Pending value', openChecks + ' open checks unpaid', pendingValue);
-      if (rows[1]) rows[1].outerHTML = row('Action', openChecks > 0 ? 'Follow up before checkout' : 'No payment action needed', openChecks > 0 ? 'Now' : 'Clear');
-    }
-
-    var kitchen = card('Kitchen Clear');
-    if (kitchen) {
-      var kRows = kitchen.querySelectorAll('.pmd-d2-row');
-      if (kRows[0]) kRows[0].outerHTML = row('Delayed orders', delayed ? 'Kitchen needs attention' : 'No delayed rows detected', delayed);
-      if (kRows[1]) kRows[1].outerHTML = row('On-time rate', 'From kitchen rows', delayed ? 'Check' : '100%');
-    }
-
-    var tables = card('Table Status');
-    if (tables) {
-      var tRows = tables.querySelectorAll('.pmd-d2-row');
-      if (tRows[0]) tRows[0].outerHTML = row('Active tables', fs.total ? (Math.round((fs.busy / fs.total) * 100) + '% occupied right now') : 'Live floor data', fs.total ? fs.busy + ' / ' + fs.total : '—');
-      if (tRows[1]) tRows[1].outerHTML = row('Free tables', 'Available for new guests', fs.free);
-    }
-
-    var res = card('Reservations');
-    if (res) {
-      var rRows = res.querySelectorAll('.pmd-d2-row');
-      if (rRows[0]) rRows[0].outerHTML = row('Upcoming', reservations.length ? 'Next reservations connected' : 'No upcoming reservations', reservations.length);
-      if (rRows[1]) rRows[1].outerHTML = row('Pressure', reservations.length ? 'Check upcoming arrivals' : 'No reservation pressure', reservations.length ? 'Watch' : 'Clear');
-    }
-  }
-
-  function updateRecentActivity(data) {
-    var c = card('Recent Activity');
-    if (!c) return;
-
-    var orders = recentOrders(data).slice(0, 3);
-
-    if (!orders.length) {
-      c.querySelectorAll('.pmd-d2-row').forEach(function (x) { x.remove(); });
-      c.insertAdjacentHTML('beforeend', row('No recent orders', 'Live data connected', '—'));
-      return;
-    }
-
-    var html = orders.map(function (o) {
-      return row(
-        'Order #' + (o.id || '—'),
-        (o.table_label || o.table_ref || 'No table') + ' · ' + (o.total_label || money(o.total || 0)),
-        '●'
-      );
-    }).join('');
-
-    c.querySelectorAll('.pmd-d2-row').forEach(function (x) { x.remove(); });
-    c.insertAdjacentHTML('beforeend', html);
-  }
-
-  function updatePaymentsAndFinance(data) {
-    var orders = recentOrders(data);
-    var pendingValue = mValue(data, ['pending_value', 'open_check_value', 'open_checks_value', 'unpaid_value', 'pending_payments'], money(sumOrders(orders)));
-    var paidToday = mValue(data, ['paid_today', 'payments_today', 'settled_today'], '€0.00');
-    var avgTicket = mValue(data, ['avg_ticket', 'average_check', 'average_order_value'], null);
-    var avgFallback = orders.length ? money(sumOrders(orders) / Math.max(1, orders.length)) : '€0.00';
-
-    var payments = card('Payments');
-    if (payments) {
-      var donut = payments.querySelector('.pmd-d2-donut span');
-      if (donut) donut.innerHTML = esc(pendingValue) + '<br>Total';
-
-      var rows = payments.querySelectorAll('.pmd-d2-row');
-      if (rows[0]) rows[0].outerHTML = '<div class="pmd-d2-row"><span>Pending</span><b>' + esc(pendingValue) + '</b></div>';
-      if (rows[1]) rows[1].outerHTML = '<div class="pmd-d2-row"><span>Paid today</span><b>' + esc(paidToday) + '</b></div>';
-    }
-
-    var avg = card('Average Guest Spend');
-    if (avg) {
-      var rows2 = avg.querySelectorAll('.pmd-d2-row');
-      if (rows2[0]) rows2[0].outerHTML = '<div class="pmd-d2-row"><span>' + esc(avgTicket || avgFallback) + '<br><span class="pmd-d2-muted">Average Check Value</span></span></div>';
-      if (rows2[1]) rows2[1].outerHTML = '<div class="pmd-d2-row"><span>' + esc(pendingValue) + '<br><span class="pmd-d2-muted">Open Check Value</span></span></div>';
-    }
-
-    var lost = card('Lost Revenue');
-    if (lost) {
-      var rows3 = lost.querySelectorAll('.pmd-d2-row');
-      if (rows3[0]) rows3[0].outerHTML = '<div class="pmd-d2-row"><span>Confirmed lost today</span><b>' + esc(mValue(data, ['lost_revenue', 'cancelled_revenue'], '€0.00')) + '</b></div>';
-      if (rows3[1]) rows3[1].outerHTML = '<div class="pmd-d2-row"><span>Pending check risk</span><b>' + esc(pendingValue) + '</b></div>';
-    }
-  }
-
-  function updateRevenueByHour(data) {
-    var c = card('Revenue by Hour');
-    if (!c) return;
-
-    var revenue = mValue(data, ['revenue_today', 'sales_today', 'today_revenue', 'total_sales'], '€0.00');
-    var strong = c.querySelector('.pmd-d2-hour-summary strong');
-    if (strong) strong.textContent = revenue;
-
-    var rows = recentOrders(data);
-    if (!rows.length) return;
-
-    var hourMap = {};
-    rows.forEach(function (o) {
-      var d = new Date(o.created_at || o.date || o.updated_at || Date.now());
-      var h = isFinite(d.getTime()) ? d.getHours() : 0;
-      hourMap[h] = (hourMap[h] || 0) + orderTotal(o);
-    });
-
-    var hours = Object.keys(hourMap).map(Number).sort(function (a,b){ return a-b; }).slice(-8);
-    if (!hours.length) return;
-
-    var max = Math.max.apply(null, hours.map(function (h) { return hourMap[h]; })) || 1;
-    var html = hours.map(function (h, idx) {
-      var pct = Math.max(14, Math.round((hourMap[h] / max) * 72));
-      return '<span class="' + (idx < 4 ? 'is-muted' : '') + '" style="--h:' + pct + '%"><b>' + h + '</b></span>';
-    }).join('');
-
-    var bars = c.querySelector('.pmd-d2-hour-bars');
-    if (bars) bars.innerHTML = html;
-  }
-
-  function updateReservationsAndKitchen(data) {
-    var reservations = upcomingReservations(data).slice(0, 2);
-    var res = card('Upcoming Reservations');
-
-    if (res) {
-      res.querySelectorAll('.pmd-d2-row').forEach(function (x) { x.remove(); });
-
-      if (!reservations.length) {
-        res.insertAdjacentHTML('beforeend',
-          row('—', 'No upcoming reservations', 'Clear') +
-          row('Table planning', 'Reservation details will appear once connected', 'Ready')
-        );
-      } else {
-        res.insertAdjacentHTML('beforeend', reservations.map(function (r) {
-          var name = r.guest_name || r.name || 'Reservation';
-          var time = [r.reserve_date, r.reserve_time, r.time].filter(Boolean).join(' ');
-          var detail = (r.guests ? r.guests + ' guests' : 'Guest count —') + (r.table_ref ? ' · Table ' + r.table_ref : '');
-          return row(name, time || detail, detail);
-        }).join(''));
-      }
-    }
-
-    var k = kitchenData(data);
-    var delayed = num(k.delayed || k.delayed_orders || mRaw(data, ['delayed_orders', 'kitchen_queue'], 0), 0);
-    var queue = num(k.queue || k.open || mRaw(data, ['kitchen_queue'], 0), 0);
-    var ontime = delayed > 0 ? Math.max(0, Math.round(((queue - delayed) / Math.max(queue, 1)) * 100)) : 100;
-
-    var kitchen = card('Kitchen Performance');
-    if (kitchen) {
-      var boxes = kitchen.querySelectorAll('.pmd-d2-kitchen-box');
-      if (boxes[0]) boxes[0].innerHTML = '<small>Avg Prep Time</small><strong>' + esc(k.avg_prep_time || k.avg_prep || '—') + '</strong><span>' + esc(k.avg_prep_time ? 'from kitchen rows' : 'connect prep timestamps') + '</span>';
-      if (boxes[1]) boxes[1].innerHTML = '<small>Delayed Orders</small><strong>' + esc(delayed) + '</strong><span>' + esc(delayed ? 'needs attention' : 'no delayed rows') + '</span>';
-      if (boxes[2]) boxes[2].innerHTML = '<small>On-Time Rate</small><strong>' + esc(ontime) + '%</strong><span>from kitchen rows</span>';
-
-      var rush = kitchen.querySelector('.pmd-d2-kitchen-rush strong');
-      if (rush) rush.textContent = queue > 6 ? 'High' : (queue > 2 ? 'Medium' : 'Low');
-    }
-  }
-
-  function updateTopItems(data) {
-    var c = card('Top Selling Items');
-    if (!c) return;
-
-    var items = topItems(data).slice(0, 3);
-    if (!items.length) return;
-
-    c.querySelectorAll('.pmd-d2-row').forEach(function (x) { x.remove(); });
-    c.insertAdjacentHTML('beforeend', items.map(function (it, i) {
-      return row((i + 1) + ' · ' + (it.label || it.name || it.item_name || 'Item'), 'Based on open checks', it.count || it.qty || it.orders || 0);
-    }).join(''));
-  }
-
-  function updateServicePerformance(data) {
-    var c = document.querySelector('.pmd-d2-service-performance');
-    if (!c) return;
-
-    var fs = floorSummary(data);
-    var orders = recentOrders(data);
-    var openChecks = num(mRaw(data, ['open_checks', 'open_orders', 'pending_checks'], orders.length || 0), orders.length || 0);
-    var pendingValue = mValue(data, ['pending_value', 'open_check_value', 'open_checks_value', 'unpaid_value', 'pending_payments'], money(sumOrders(orders)));
-    var avg = mValue(data, ['avg_ticket', 'average_check', 'average_order_value'], orders.length ? money(sumOrders(orders) / Math.max(1, orders.length)) : '€0.00');
-
-    var table = c.querySelector('.pmd-d2-service-table');
-    if (!table) return;
-
-    table.innerHTML =
-      '<div class="pmd-d2-service-row pmd-d2-service-header"><b>Area</b><b>Count</b><b>Value</b><b>Status</b></div>' +
-      '<div class="pmd-d2-service-row"><span><i>🍽️</i>Active tables</span><b>' + esc(fs.total ? fs.busy + ' / ' + fs.total : '—') + '</b><b>' + esc(fs.total ? Math.round((fs.busy / fs.total) * 100) + '%' : '—') + '</b><em>Live</em></div>' +
-      '<div class="pmd-d2-service-row"><span><i>🧾</i>Open checks</span><b>' + esc(openChecks) + '</b><b>' + esc(pendingValue) + '</b><em>' + esc(openChecks ? 'Watch' : 'Clear') + '</em></div>' +
-      '<div class="pmd-d2-service-row"><span><i>📦</i>Recent orders</span><b>' + esc(orders.length) + '</b><b>' + esc(money(sumOrders(orders))) + '</b><em>Visible</em></div>' +
-      '<div class="pmd-d2-service-row"><span><i>💶</i>Avg. check</span><b>—</b><b>' + esc(avg) + '</b><em>Today</em></div>';
-  }
-
-  function updateQuickActions() {
-    var c = card('Quick Actions');
-    if (!c) return;
-
-    var actions = c.querySelectorAll('.pmd-d2-action-tile');
-    if (actions.length >= 4) {
-      actions[0].onclick = function () { location.href = '/admin/reservations/create'; };
-      actions[1].onclick = function () { location.href = '/admin/orders/create'; };
-      actions[2].onclick = function () { location.href = '/admin/orders'; };
-      actions[3].onclick = function () { location.href = '/admin/notifications'; };
-      actions.forEach(function (a) {
-        a.style.cursor = 'pointer';
-        a.setAttribute('role', 'button');
-        a.setAttribute('tabindex', '0');
-      });
-    }
-  }
-
-  function applyData(data) {
-    state.data = data;
-    state.connected = true;
-    state.lastError = null;
-    state.lastUpdated = new Date().toISOString();
-    state.updates++;
-
-    document.documentElement.classList.add('pmd-dashboard2-active', 'pmd-dashboard2-live-connected');
-
-    updateKpis(data);
-    updatePriorityCards(data);
-    updateRecentActivity(data);
-    updatePaymentsAndFinance(data);
-    updateRevenueByHour(data);
-    updateReservationsAndKitchen(data);
-    updateTopItems(data);
-    updateServicePerformance(data);
-    updateQuickActions();
-
-    console.info('[PMD] Dashboard2 v132 live data connected', {
-      updates: state.updates,
-      sections: Object.keys(sections(data)),
-      metricsType: Array.isArray(data.metrics) ? 'array' : typeof data.metrics
-    });
-  }
-
-  function refresh() {
-    return fetch(ENDPOINT + '?ts=' + Date.now(), {
-      credentials: 'same-origin',
-      headers: {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(applyData)
-      .catch(function (err) {
-        state.connected = false;
-        state.lastError = String(err && err.message ? err.message : err);
-        console.warn('[PMD] Dashboard2 v132 live data failed', state.lastError);
-      });
-  }
-
-  function start() {
-    var tries = 0;
-    var timer = setInterval(function () {
-      tries++;
-      if (document.querySelector('#pmd-d2-root') || tries > 80) {
-        clearInterval(timer);
-        refresh();
-        setInterval(refresh, 60000);
-      }
-    }, 50);
-  }
-
-  window.PMDDashboard2Live = {
-    refresh: refresh,
-    debug: function () {
-      var d = state.data || {};
-      return {
-        active: state.active,
-        endpoint: state.endpoint,
-        connected: state.connected,
-        lastError: state.lastError,
-        lastUpdated: state.lastUpdated,
-        updates: state.updates,
-        metricsType: Array.isArray(d.metrics) ? 'array' : typeof d.metrics,
-        sections: Object.keys(sections(d)),
-        recentOrders: recentOrders(d).length,
-        reservations: upcomingReservations(d).length,
-        topItems: topItems(d).length,
-        priorityCards: document.querySelectorAll('.pmd-d2-priority-grid > .pmd-d2-card').length,
-        delayedScriptsGone: Array.prototype.slice.call(document.querySelectorAll('script[id*="v125"],script[id*="v126"],script[id*="v127"]')).map(function (x) { return x.id; })
-      };
-    }
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', start, { once: true });
-  } else {
-    start();
-  }
-})();
-</script>
 <!-- PMD_OWNER_V132_DASHBOARD2_LIVE_CONNECTOR_END -->
 
 
 <!-- PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v36-status-colors-select-dragfix-style">
 /*
   V36:
@@ -13287,13 +10387,23 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   user-select: none !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V36 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v36-status-colors-select-dragfix-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX) return;
   window.PMD_WAITER_DASHBOARD_V36_STATUS_COLORS_SELECT_DRAGFIX = true;
 
@@ -13768,7 +10878,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V36 status colors + select mode + drag/drop fix active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V36');</script>
 @endif
@@ -13778,6 +10890,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
 
 <!-- PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v40-authoritative-compact-merge-style">
 /*
   V40:
@@ -13902,13 +11015,23 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   z-index: 5 !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V40 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v40-authoritative-compact-merge-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE) return;
   window.PMD_WAITER_DASHBOARD_V40_AUTHORITATIVE_COMPACT_MERGE = true;
 
@@ -14330,7 +11453,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V40 authoritative compact merge active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V40');</script>
 @endif
@@ -14340,6 +11465,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
 
 <!-- PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v41-flat-board-frames-style">
 /*
   V41:
@@ -14414,13 +11540,23 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   margin-top: 22px !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V41 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v41-flat-board-frames-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES) return;
   window.PMD_WAITER_DASHBOARD_V41_FLAT_BOARD_FRAMES = true;
 
@@ -14477,7 +11613,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V41 flat board frames active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V41');</script>
 @endif
@@ -14487,6 +11625,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
 
 <!-- PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v43-restore-inner-floor-frame-style">
 /*
   V43:
@@ -14542,13 +11681,23 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   margin-left: auto !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V43 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v43-restore-inner-floor-frame-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME) return;
   window.PMD_WAITER_DASHBOARD_V43_RESTORE_INNER_FLOOR_FRAME = true;
 
@@ -14599,7 +11748,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V43 restored inner floor frame active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V43');</script>
 @endif
@@ -14609,6 +11760,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
 
 <!-- PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v44-floor-icon-size-fix-style">
 /*
   V44:
@@ -14705,13 +11857,23 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   font-size: 22px !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V44 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v44-floor-icon-size-fix-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX) return;
   window.PMD_WAITER_DASHBOARD_V44_FLOOR_ICON_SIZE_FIX = true;
 
@@ -14757,7 +11919,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V44 floor icon size fix active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V44');</script>
 @endif
@@ -14767,6 +11931,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
 
 <!-- PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v46-floor-map-true-white-style">
 /*
   V46:
@@ -14805,13 +11970,23 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   background-image: none !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V46 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v46-floor-map-true-white-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE) return;
   window.PMD_WAITER_DASHBOARD_V46_FLOOR_MAP_TRUE_WHITE = true;
 
@@ -14856,7 +12031,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V46 true white floor map active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V46');</script>
 @endif
@@ -14866,6 +12043,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
 
 <!-- PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v47-compact-table-visual-cleanup-style">
 /*
   V47:
@@ -14943,13 +12121,23 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   border-radius: 16px !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V47 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v47-compact-table-visual-cleanup-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP) return;
   window.PMD_WAITER_DASHBOARD_V47_COMPACT_TABLE_VISUAL_CLEANUP = true;
 
@@ -14995,7 +12183,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V47 compact table visual cleanup active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V47');</script>
 @endif
@@ -15005,6 +12195,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
 
 <!-- PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v48-title-cleanup-icons-style">
 /*
   V48:
@@ -15033,13 +12224,23 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
   line-height: 1 !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V48 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v48-title-cleanup-icons-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS) return;
   window.PMD_WAITER_DASHBOARD_V48_TITLE_CLEANUP_ICONS = true;
 
@@ -15099,7 +12300,9 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
   console.info('[PMD] Waiter Dashboard V48 title cleanup/icons active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V48');</script>
 @endif
@@ -15109,6 +12312,7 @@ html.pmd-dashboard2-active .pmd-d2-live-pill {
 
 
 <!-- PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v89-floor-position-lock-style">
 /*
   V89:
@@ -15186,13 +12390,23 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
   border-radius: 999px !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V89 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v89-floor-position-lock-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK) return;
   window.PMD_WAITER_DASHBOARD_V89_FLOOR_POSITION_LOCK = true;
 
@@ -15538,7 +12752,9 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
 
   console.info('[PMD] Waiter Dashboard V89 floor position lock active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V89');</script>
 @endif
@@ -15548,6 +12764,7 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root.pmd-w89-compact .
 
 
 <!-- PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE_START -->
+@if($pmdR16RenderLegacyWaiterLayers)
 <style id="pmd-waiter-dashboard-v105-remove-merge-feature-style">
 /*
   V105:
@@ -15583,13 +12800,23 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
   pointer-events: none !important;
 }
 </style>
+@endif
 
 
 {{-- PMD_V181_DISABLE_OLD_WAITER_FLOOR_PATCH_START:V105 --}}
 @if (!request()->is('admin/dashboardwaiter*'))
+@if($pmdR16RenderLegacyWaiterLayers)
 <script id="pmd-waiter-dashboard-v105-remove-merge-feature-script">
 (function () {
-  if (!/\/admin\/dashboardwaiter(?:$|[?#])/.test(location.pathname + location.search + location.hash)) return;
+  /*
+   * PMD Reservations2 V7.1:
+   * This is an obsolete Waiter authority. The real Waiter page still
+   * uses it where appropriate, but Reservations2 uses V175c–V191.
+   */
+  if (/^\/admin\/reservations2\/?$/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname))) return;
+
+(function () {
+  if (!/(?:\/admin\/dashboardwaiter|\/admin\/reservations2)(?:$|[?#])/.test((window.PMDAdminCanonicalURLR81E ? window.PMDAdminCanonicalURLR81E.logicalPath() : location.pathname) + location.search + location.hash)) return;
   if (window.PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE) return;
   window.PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE = true;
 
@@ -15889,7 +13116,9 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
 
   console.info('[PMD] Waiter Dashboard V105 merge feature removed active');
 })();
+})();
 </script>
+@endif
 @else
 <script>console.info('[PMD] V181 skipped old waiter floor patch: V105');</script>
 @endif
@@ -15897,3 +13126,20 @@ html.pmd-dashboardwaiter-kiosk-page #pmd-waiter-dashboard-root .pmd-v18-merged-t
 
 <!-- PMD_WAITER_DASHBOARD_V105_REMOVE_MERGE_FEATURE_END -->
 
+
+<!-- ============================================================
+     PMD_DASHBOARD2_LAYOUT_LEGACY_QUARANTINE_V2
+
+     Old Dashboard2 v114-v132 inline layout patches removed.
+     Dashboard2 now uses app/admin/views/dashboard.blade.php route branch
+     plus pmd-dashboard2-rebuild-v1.css/js.
+     Reservations2 untouched.
+     ============================================================ -->
+
+
+@php
+    /* PMD_PERF_R13_LAYOUT_POST_HTML_STAGE_PROFILER */
+    \App\Http\Middleware\PmdLivePerformanceProfiler::checkpoint(
+        'layout_post_html_legacy'
+    );
+@endphp

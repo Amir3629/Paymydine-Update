@@ -1,0 +1,10 @@
+Cache-Control: max-age=0, no-store, private
+Date: Sat, 12 Sep 2026 19:28:45 GMT
+Content-Type: application/json
+X-PMD-AI-Surface: frontend-v2
+Vary: Origin
+Set-Cookie: paymydine_session=eyJpdiI6Ik9UdHU4MU13T2hJTkVaMVNpdnFsdHc9PSIsInZhbHVlIjoiTGFGOWlCeWREZjJkUE4wWVVuRlEyOHNZanlEdWVwR1ZPTDZibXRtRElZRlllR3BRV0NzRy9mV1kybkIwZ2hxQVZhNWZIa3h0cUZlRVA0NW00NGF1M2ZTQmJjS1lwSWo4aVJVRTFvbDh5ZThQVnIwZzlVNTZSa0Z5OGxtd3ZpOVAiLCJtYWMiOiJhNmJlYmZjYTIwMWE3MTg3YTY5YzU0MGExZWU2OWI4NmJjMTM0Mjg3ZTMyMmQ1MzFlNDVmMzc1Njc0MDY4YmEzIiwidGFnIjoiIn0%3D; expires=Sat, 12-Sep-2026 21:28:45 GMT; Max-Age=7200; path=/; domain=.paymydine.com; secure; httponly; samesite=lax
+
+
+
+{"ok":true,"enabled":false,"read_only":true,"scope":"customer_menu_location","location_id":1,"surface":"frontend_v2"}

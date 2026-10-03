@@ -1,0 +1,122 @@
+/* PMD Admin Loader Hard Reset v64
+   CSS-only safety. No loaders. No overlays. No JS observers. */
+
+/* Kill all experimental loader overlay pseudo-elements if browser/cache still has old classes */
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1::before,
+html.pmd-ui-fouc-shield-v58 body.page.pmd-admin-theme-v1::after,
+html.pmd-dashboard-jank-lock-v59 body.page.pmd-admin-theme-v1::before,
+html.pmd-dashboard-jank-lock-v59 body.page.pmd-admin-theme-v1::after,
+html.pmd-shell-loading-v60 body.page.pmd-admin-theme-v1::before,
+html.pmd-shell-loading-v60 body.page.pmd-admin-theme-v1::after,
+html.pmd-sidebar-logo-locking-v60 body.page.pmd-admin-theme-v1::before,
+html.pmd-sidebar-logo-locking-v60 body.page.pmd-admin-theme-v1::after,
+html.pmd-sidebar-logo-locking-v62 body.page.pmd-admin-theme-v1::before,
+html.pmd-sidebar-logo-locking-v62 body.page.pmd-admin-theme-v1::after {
+  display: none !important;
+  content: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Nothing should stay hidden */
+body.page.pmd-admin-theme-v1 .sidebar,
+body.page.pmd-admin-theme-v1 #navSidebar,
+body.page.pmd-admin-theme-v1 #side-nav-menu,
+body.page.pmd-admin-theme-v1 .navbar-top,
+body.page.pmd-admin-theme-v1 .navbar-fixed-top,
+body.page.pmd-admin-theme-v1 .page-wrapper,
+body.page.pmd-admin-theme-v1 .page-content,
+body.page.pmd-admin-theme-v1 .pmd-dashboard-modern,
+body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38,
+body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* Stable sidebar logo geometry only — no hiding, no overlay, no JS loop */
+body.page.pmd-admin-theme-v1 .pmd-platform-logo-slot-v38 {
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  contain: layout paint !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) .pmd-platform-logo-slot-v38 {
+  width: 186px !important;
+  min-height: 84px !important;
+  height: 84px !important;
+  margin: -42px auto -2px !important;
+  padding: 0 8px !important;
+}
+
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only .pmd-platform-logo-slot-v38 {
+  width: 80px !important;
+  min-height: 54px !important;
+  height: 54px !important;
+  margin: -64px auto 4px !important;
+  padding: 0 4px !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-platform-logo-link-v38 {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+body.page.pmd-admin-theme-v1 img.pmd-platform-logo-img-v38 {
+  display: block !important;
+  object-fit: contain !important;
+  transform: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+body.page.pmd-admin-theme-v1:not(.pmd-sidebar-icons-only) img.pmd-platform-logo-img-v38 {
+  max-width: 118px !important;
+  max-height: 80px !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+body.page.pmd-admin-theme-v1.pmd-sidebar-icons-only img.pmd-platform-logo-img-v38 {
+  max-width: 70px !important;
+  max-height: 50px !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* Keep page usable and stop dashboard number animation bounce */
+body.page.pmd-admin-theme-v1 .pmd-dashboard-modern,
+body.page.pmd-admin-theme-v1 .pmd-dashboard-modern *,
+body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-value,
+body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-sub,
+body.page.pmd-admin-theme-v1 .pmd-real-loaded,
+body.page.pmd-admin-theme-v1 .pmd-real-updated {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+body.page.pmd-admin-theme-v1 .pmd-dashboard-kpi-value,
+body.page.pmd-admin-theme-v1 [class*="kpi-value"],
+body.page.pmd-admin-theme-v1 [class*="metric-value"] {
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+}
+
+/* Remove accidental content fade classes from old experiments */
+body.page.pmd-admin-theme-v1.pmd-page-leaving-v60 .page-wrapper,
+body.page.pmd-admin-theme-v1.pmd-page-leaving-v60 .page-content,
+html.pmd-shell-loading-v60 body.page.pmd-admin-theme-v1 .page-wrapper,
+html.pmd-shell-loading-v60 body.page.pmd-admin-theme-v1 .page-content {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}

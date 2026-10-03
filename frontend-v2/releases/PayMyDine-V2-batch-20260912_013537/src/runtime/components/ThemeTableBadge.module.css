@@ -1,0 +1,74 @@
+.host {
+  position: relative !important;
+}
+
+.badge {
+  position: absolute;
+  top: clamp(.65rem, 2vw, 1rem);
+  left: 50%;
+  z-index: 50;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--pmd-line, currentColor) 78%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pmd-control, var(--pmd-surface, #fff)) 94%, transparent);
+  color: var(--pmd-text, currentColor);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.badge span {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .6;
+}
+
+.badge strong {
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: .01em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Collision geometry is measured by the shared badge component, but rendering
+ * remains CSS-owned. Four bounded buckets replace runtime style mutation. */
+.copyClearance { translate: 0 0; }
+.clearance16 { translate: 0 16px; }
+.clearance32 { translate: 0 32px; }
+.clearance48 { translate: 0 48px; }
+.clearance64 { translate: 0 64px; }
+
+@media (max-width: 680px) {
+  .badge {
+    top: .6rem;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    min-height: 28px;
+    max-width: calc(100% - 1.5rem);
+    gap: 5px;
+    padding: 4px 9px;
+  }
+
+  .badge span {
+    font-size: 8px;
+  }
+
+  .badge strong {
+    min-width: 0;
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+  }
+}

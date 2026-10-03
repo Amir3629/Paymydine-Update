@@ -1,0 +1,17 @@
+/* PMD_STAFF_PORTAL_TIME_CLOCK_V1 */
+.pmd-staff-time-clock{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:11px;margin:0 0 12px;padding:12px;border:1px solid #d8e6e1;border-radius:14px;background:#f8fbfa;color:#17342f}
+.pmd-staff-time-clock.is-active{border-color:#a7d9c7;background:#f0faf6}
+.pmd-staff-time-clock__icon{display:grid;width:42px;height:42px;place-items:center;border-radius:12px;background:#e9f3ef;color:#0a6552}
+.pmd-staff-time-clock.is-active .pmd-staff-time-clock__icon{background:#d9f2e8;color:#087155}
+.pmd-staff-time-clock__icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.pmd-staff-time-clock__copy{display:grid;gap:2px;min-width:0}
+.pmd-staff-time-clock__copy small{color:#72837e;font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.045em}
+.pmd-staff-time-clock__copy strong{overflow:hidden;color:#153a32;font-size:14px;font-weight:900;text-overflow:ellipsis;white-space:nowrap}
+.pmd-staff-time-clock__copy span{overflow:hidden;color:#73837f;font-size:10.5px;font-weight:700;line-height:1.35;text-overflow:ellipsis;white-space:nowrap}
+.pmd-staff-time-clock__copy b{color:#0a6552;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}
+.pmd-staff-time-clock form{margin:0}
+.pmd-staff-time-clock__button{min-height:38px;padding:0 13px;border:1px solid #0a6552;border-radius:10px;background:#0a6552;color:#fff;font:inherit;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap}
+.pmd-staff-time-clock__button:hover{background:#075445;border-color:#075445}
+.pmd-staff-time-clock.is-active .pmd-staff-time-clock__button{border-color:#b24b42;background:#fff5f4;color:#9a362f}
+.pmd-staff-time-clock.is-active .pmd-staff-time-clock__button:hover{background:#fee9e7}
+@media(max-width:760px){.pmd-staff-time-clock{grid-template-columns:40px minmax(0,1fr);gap:9px;padding:11px}.pmd-staff-time-clock__icon{width:38px;height:38px}.pmd-staff-time-clock form{grid-column:1/-1}.pmd-staff-time-clock__button{width:100%;min-height:42px}.pmd-staff-time-clock__copy strong{font-size:13px}.pmd-staff-time-clock__copy span{white-space:normal}}

@@ -1,0 +1,16 @@
+/* PMD_SHIFTS_ENDPOINT_LABEL_CENTER_V12B
+ * The canonical Shifts CSS gives the first and last timeline labels special
+ * edge transforms (none / -100%). That makes the two 06:00 endpoint labels
+ * look different from every internal 2-hour label.
+ *
+ * Center both endpoints on their exact timeline boundaries just like all
+ * other labels. The extra .pmd-shifts-final-screen ancestor intentionally
+ * raises specificity above the legacy first-child/last-child exceptions.
+ */
+body.pmd-shifts-page .pmd-shifts-final-screen .pmd-shifts-final-scale > span:first-child,
+body.pmd-shifts-page .pmd-shifts-final-screen .pmd-shifts-final-scale > span:last-child {
+  transform: translate(-50%, -50%) !important;
+  width: max-content !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}

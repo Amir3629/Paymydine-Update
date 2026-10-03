@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Contracts\Http\Kernel;
 use App\Helpers\TenantContextHelper;
 use Main\Classes\Customer;
 use System\Classes\ErrorHandler;
@@ -50,6 +51,17 @@ class ServiceProvider extends AppServiceProvider
         $this->includeHelpers();
 
         parent::register('system');
+
+        // PMD_LIVE_PERFORMANCE_PROFILER_R1
+        // Registered globally but effectively dormant unless the short-lived
+        // storage/framework/pmd-performance-live.json switch is present.
+        // This lets us profile Admin + customer/API requests together without
+        // leaving production-wide debug mode enabled.
+        if (!$this->app->runningInConsole()) {
+            $this->app[Kernel::class]->prependMiddleware(
+                \App\Http\Middleware\PmdLivePerformanceProfiler::class
+            );
+        }
 
         $this->registerProviders();
         $this->registerSingletons();

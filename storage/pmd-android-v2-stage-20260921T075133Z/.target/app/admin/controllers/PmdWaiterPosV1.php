@@ -1,0 +1,127 @@
+<?php
+
+namespace Admin\Controllers;
+
+use Admin\Classes\AdminController;
+
+require_once __DIR__.'/concerns/PmdWaiterPosRenderEndpoints.php';
+require_once __DIR__.'/concerns/PmdWaiterPosSaveEndpoint.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentBasicEndpoints.php';
+require_once __DIR__.'/concerns/PmdWaiterPosSettleEndpoint.php';
+require_once __DIR__.'/concerns/PmdWaiterPosTerminalEndpoint.php';
+require_once __DIR__.'/concerns/PmdWaiterPosBootstrapConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosMenuCatalogV26Concern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosNoteHistoryV26Concern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosOrderPersistenceConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosCanonicalTableReferenceV150Concern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosTableStateV154Concern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosOrderScopeConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosRobustTableScopeV11Concern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosOperationsSummaryV12Concern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentSummaryConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosTerminalProvidersConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentFallbackConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentAllocationConcern.php';
+require_once __DIR__.'/concerns/PmdWaiterPosPaymentTransactionConcern.php';
+
+/**
+ * PayMyDine Waiter POS V2.
+ *
+ * The V1 class name is retained for safe selective deployment. The production
+ * implementation is intentionally split into focused concerns so ordering,
+ * settlement and provider integration stay reviewable.
+ */
+class PmdWaiterPosV1 extends AdminController
+{
+    use \Admin\Controllers\Concerns\PmdWaiterPosRenderEndpoints;
+    use \Admin\Controllers\Concerns\PmdWaiterPosSaveEndpoint;
+    use \Admin\Controllers\Concerns\PmdWaiterPosPaymentBasicEndpoints;
+    use \Admin\Controllers\Concerns\PmdWaiterPosSettleEndpoint;
+    use \Admin\Controllers\Concerns\PmdWaiterPosTerminalEndpoint;
+    use \Admin\Controllers\Concerns\PmdWaiterPosBootstrapConcern,
+        \Admin\Controllers\Concerns\PmdWaiterPosMenuCatalogV26Concern {
+        \Admin\Controllers\Concerns\PmdWaiterPosMenuCatalogV26Concern::menuPayload insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosBootstrapConcern;
+    }
+    use \Admin\Controllers\Concerns\PmdWaiterPosNoteHistoryV26Concern;
+    use \Admin\Controllers\Concerns\PmdWaiterPosOrderPersistenceConcern,
+        \Admin\Controllers\Concerns\PmdWaiterPosCanonicalTableReferenceV150Concern {
+        \Admin\Controllers\Concerns\PmdWaiterPosCanonicalTableReferenceV150Concern::fillNewOrder insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosOrderPersistenceConcern;
+    }
+    use \Admin\Controllers\Concerns\PmdWaiterPosTableStateV154Concern;
+    use \Admin\Controllers\Concerns\PmdWaiterPosOrderScopeConcern,
+        \Admin\Controllers\Concerns\PmdWaiterPosRobustTableScopeV11Concern {
+        \Admin\Controllers\Concerns\PmdWaiterPosRobustTableScopeV11Concern::applyTableScope insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosOrderScopeConcern;
+    }
+    use \Admin\Controllers\Concerns\PmdWaiterPosOperationsSummaryV12Concern;
+    use \Admin\Controllers\Concerns\PmdWaiterPosPaymentSummaryConcern,
+        \Admin\Controllers\Concerns\PmdWaiterPosTerminalProvidersConcern {
+        \Admin\Controllers\Concerns\PmdWaiterPosTerminalProvidersConcern::terminalProviders insteadof
+            \Admin\Controllers\Concerns\PmdWaiterPosPaymentSummaryConcern;
+    }
+    use \Admin\Controllers\Concerns\PmdWaiterPosPaymentFallbackConcern;
+    use \Admin\Controllers\Concerns\PmdWaiterPosPaymentAllocationConcern;
+    use \Admin\Controllers\Concerns\PmdWaiterPosPaymentTransactionConcern;
+
+    protected $requiredPermissions = 'Admin.Orders';
+
+    /**
+     * PMD_MOBILE_SYNC_V1
+     *
+     * Mobile API authentication remains outside AdminAuth. The command bridge
+     * injects the already-verified tenant user so existing POS helpers keep
+     * their canonical permission/user attribution behavior.
+     */
+    protected $pmdMobileUserOverride = null;
+    protected ?array $pmdMobileIdentityOverride = null;
+
+    public function pmdUseMobileIdentity(array $identity): self
+    {
+        $this->pmdMobileIdentityOverride = $identity;
+        $this->pmdMobileUserOverride = $identity['user'] ?? null;
+
+        return $this;
+    }
+
+    public function pmdMobileIdentity(): ?array
+    {
+        return $this->pmdMobileIdentityOverride;
+    }
+
+    /*
+     * PMD_PERF_R3_POS_SCHEMA_CACHE
+     *
+     * POS concerns ask the same tenant schema questions repeatedly during one
+     * data/payment request. information_schema must not be queried every time.
+     */
+    protected array $pmdPosSchemaTableCache = [];
+    protected array $pmdPosSchemaColumnCache = [];
+
+    protected function pmdPosHasTable(string $table): bool
+    {
+        if (!array_key_exists($table, $this->pmdPosSchemaTableCache)) {
+            $this->pmdPosSchemaTableCache[$table] =
+                \Illuminate\Support\Facades\Schema::hasTable($table);
+        }
+
+        return (bool)$this->pmdPosSchemaTableCache[$table];
+    }
+
+    protected function pmdPosColumns(string $table): array
+    {
+        if (!array_key_exists($table, $this->pmdPosSchemaColumnCache)) {
+            $this->pmdPosSchemaColumnCache[$table] = $this->pmdPosHasTable($table)
+                ? \Illuminate\Support\Facades\Schema::getColumnListing($table)
+                : [];
+        }
+
+        return $this->pmdPosSchemaColumnCache[$table];
+    }
+
+    protected function pmdPosHasColumn(string $table, string $column): bool
+    {
+        return in_array($column, $this->pmdPosColumns($table), true);
+    }
+}

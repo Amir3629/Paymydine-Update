@@ -1,0 +1,59 @@
+/* ============================================================
+   PMD_FLOOR_SCROLL_CHAIN_V127
+
+   Touch handoff for every shared Floor consumer:
+   - Owner dashboard
+   - Manager / clean workspaces
+   - Reservations
+   - standalone Floor
+   - Quick POS embedded Floor
+
+   The map keeps horizontal/vertical panning, but reaching an inner scroll
+   boundary hands the continuing vertical gesture back to the page instead of
+   trapping the user's finger inside the Floor. Table buttons also allow pan
+   gestures unless Floor edit/drag mode is active.
+   ============================================================ */
+
+@media (pointer: coarse), (max-width: 1024px) {
+  .pmd-floor-v1__canvas-wrap,
+  [data-floor-root] [data-floor-scroll],
+  #pmd-r2-shared-floor-canvas-v310 [data-floor-scroll],
+  #pmd-r2-shared-floor-canvas-v310 .pmd-floor-v1__canvas-wrap {
+    overscroll-behavior-x: contain !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-x pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /*
+   * The legacy Floor card used touch-action:none even outside edit mode,
+   * which lets a table card swallow the start of a page-scroll gesture.
+   * Normal cards remain tappable while pan gestures are browser-owned.
+   */
+  .pmd-floor-v1:not(.is-editing) .pmd-floor-v1__table,
+  [data-floor-root]:not(.is-editing) [data-floor-table],
+  #pmd-r2-shared-floor-canvas-v310:not(.is-editing) [data-floor-table] {
+    touch-action: manipulation !important;
+  }
+
+  /*
+   * Editing is the exception: dragging a table needs exclusive pointer
+   * ownership exactly as before.
+   */
+  .pmd-floor-v1.is-editing .pmd-floor-v1__table,
+  [data-floor-root].is-editing [data-floor-table],
+  #pmd-r2-shared-floor-canvas-v310.is-editing [data-floor-table] {
+    touch-action: none !important;
+  }
+
+  /*
+   * "One row" / strip Floor is horizontally scrollable. Vertical movement
+   * must still be allowed to bubble to the outer page.
+   */
+  #pmd-r2-shared-floor-canvas-v310.is-strip-mode [data-floor-scroll],
+  .pmd-floor-v1.is-strip-mode [data-floor-scroll] {
+    overscroll-behavior-x: contain !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: pan-x pan-y !important;
+  }
+}

@@ -1,5 +1,14 @@
 <?php
 
+/* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_START */
+\Illuminate\Support\Facades\Route::get('admin/pmd-owner-dashboard-clean-v1-data', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'index']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-owner-dashboard-clean-v1-audit', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'audit']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'floorLayout']);
+\Illuminate\Support\Facades\Route::get('admin/pmd-owner-dashboard-floor-db-context', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'floorDatabaseContext']);
+\Illuminate\Support\Facades\Route::post('admin/pmd-owner-dashboard-floor-layout', [\Admin\Controllers\PmdOwnerDashboardCleanV1::class, 'saveFloorLayout']);
+/* PMD_OWNER_DASHBOARD_CLEAN_V1_ROUTES_END */
+
+
 // PMD_WAITER_DASHBOARD_REBUILD_20260624
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-dashboard-data', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'data']);
 \Illuminate\Support\Facades\Route::get('admin/pmd-waiter-dashboard-audit', [\Admin\Controllers\PmdWaiterDashboardV149::class, 'audit']);
@@ -41,6 +50,11 @@ require_once __DIR__.'/routes/sumup.php';
 require_once __DIR__.'/routes/menu-helpers.php';
 require_once __DIR__.'/routes/main-app-before.php';
 require_once __DIR__.'/routes/worldline-public.php';
+require_once __DIR__.'/routes/pmd-table-display-v1.php';
+// PMD_KIOSK_V1_ROUTE_ROOT_FIX
+// The kiosk route module is repository-root routes/pmd-kiosk-v1.php, not
+// app/main/routes/pmd-kiosk-v1.php. Use base_path so VPS route loading is stable.
+require_once base_path('routes/pmd-kiosk-v1.php');
 
 
 

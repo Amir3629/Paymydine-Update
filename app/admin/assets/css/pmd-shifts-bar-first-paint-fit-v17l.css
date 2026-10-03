@@ -1,0 +1,37 @@
+/* PMD_SHIFTS_BAR_FIRST_PAINT_FIT_V17L
+ * Static first-paint replacement for the useful typography portion that used
+ * to be injected by pmd-shifts-live-attendance-v1.js after DOMContentLoaded.
+ *
+ * V17K correctly removed that late JS injection because it caused the visible
+ * refresh blink. These rules restore the same proven bar-content fit from the
+ * initial stylesheet cascade, with ZERO runtime geometry writes.
+ */
+
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift {
+  align-content:center!important;
+  grid-template-rows:auto auto!important;
+  gap:3px!important;
+  padding:7px 10px!important;
+  line-height:1.15!important;
+}
+
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift > strong {
+  display:block!important;
+  margin:0!important;
+  font-size:12px!important;
+  line-height:1.2!important;
+  font-variant-numeric:tabular-nums!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+
+html body.pmd-shifts-page #pmd-shifts .pmd-shifts-final-shift > span {
+  display:block!important;
+  margin:0!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}

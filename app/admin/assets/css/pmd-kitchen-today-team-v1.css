@@ -1,0 +1,155 @@
+/* PMD_KITCHEN_TEAM_TODAY_MODAL_V3
+ * Shift-scoped Owner/Manager confirmation. This is intentionally a focused
+ * PMD modal card rather than another large Dashboard section.
+ */
+.pmd-kitchen-today-modal{
+  position:fixed;
+  inset:0;
+  z-index:2147481800;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.pmd-kitchen-today-modal *{box-sizing:border-box}
+.pmd-kitchen-today-modal__backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(9,24,22,.28);
+  backdrop-filter:blur(7px);
+  -webkit-backdrop-filter:blur(7px);
+}
+.pmd-kitchen-today{
+  position:relative;
+  z-index:1;
+  width:min(760px,calc(100vw - 32px));
+  max-height:min(760px,calc(100dvh - 40px));
+  overflow:auto;
+  display:grid;
+  gap:15px;
+  margin:0;
+  padding:20px;
+  border:1px solid #cfe0dc;
+  border-radius:22px;
+  background:#f8fbfa;
+  box-shadow:0 30px 90px rgba(6,28,24,.24);
+}
+.pmd-kitchen-today__title{
+  color:#08745c;
+  font-size:13px;
+  font-weight:950;
+  line-height:1.2;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.pmd-kitchen-today__form{
+  min-width:0;
+  display:grid;
+  gap:14px;
+  margin:0;
+}
+.pmd-kitchen-today__people{
+  min-width:0;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.pmd-kitchen-today__person{
+  position:relative;
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr);
+  align-items:center;
+  gap:9px;
+  min-width:0;
+  margin:0;
+  padding:10px 11px;
+  border:1px solid #d9e6e2;
+  border-radius:12px;
+  background:#fff;
+  cursor:pointer;
+  user-select:none;
+}
+.pmd-kitchen-today__person>input{
+  position:absolute;
+  width:1px;
+  height:1px;
+  opacity:0;
+  pointer-events:none;
+}
+.pmd-kitchen-today__check{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border:1px solid #cfe0ed;
+  border-radius:9px;
+  background:#fff;
+  color:transparent;
+}
+.pmd-kitchen-today__check svg{
+  width:16px;
+  height:16px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.pmd-kitchen-today__person>input:checked+.pmd-kitchen-today__check{
+  border-color:#78bca8;
+  background:#e8f7f0;
+  color:#075c47;
+  box-shadow:0 0 0 3px rgba(7,92,71,.07);
+}
+.pmd-kitchen-today__person:has(input:not(:checked)){
+  background:#f5f7f6;
+  opacity:.58;
+}
+.pmd-kitchen-today__person-copy{
+  min-width:0;
+  display:grid;
+  gap:3px;
+}
+.pmd-kitchen-today__person-copy strong{
+  min-width:0;
+  overflow:hidden;
+  color:#17342f;
+  font-size:12.5px;
+  font-weight:850;
+  line-height:1.15;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.pmd-kitchen-today__person-copy small{
+  min-width:0;
+  overflow:hidden;
+  color:#71827d;
+  font-size:10.5px;
+  font-weight:700;
+  line-height:1.15;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.pmd-kitchen-today__confirm{
+  min-width:120px;
+  min-height:44px;
+  justify-self:end;
+  padding:0 20px;
+  border:1px solid #08745c;
+  border-radius:12px;
+  background:#08745c;
+  color:#fff;
+  font:inherit;
+  font-size:12.5px;
+  font-weight:850;
+  cursor:pointer;
+  box-shadow:none;
+}
+.pmd-kitchen-today__confirm:hover{background:#075f4f}
+
+@media(max-width:680px){
+  .pmd-kitchen-today-modal{padding:12px}
+  .pmd-kitchen-today{width:min(100%,620px);padding:15px;border-radius:18px}
+  .pmd-kitchen-today__people{grid-template-columns:1fr}
+  .pmd-kitchen-today__confirm{width:100%;justify-self:stretch}
+}

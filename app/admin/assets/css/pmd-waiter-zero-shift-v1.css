@@ -1,0 +1,197 @@
+/*
+ * PMD WAITER DASHBOARD — ZERO SHIFT V3
+ * Route: /admin/dashboardwaiternew (and /admin/waiter alias)
+ *
+ * FINAL-DOM RULE:
+ * The live waiter dashboard is progressively rewritten by multiple production
+ * layers. During boot we keep the stable page/stage visible, keep DOM geometry
+ * measurable for downstream scripts, and visually suppress only surfaces that
+ * are still being rewritten. Final surfaces appear once, with no reveal motion.
+ *
+ * Important: V2.8.0 determines the final right rail by measuring the left rail.
+ * Therefore the left rail must stay visibility:visible while booting; opacity:0
+ * hides it from the user without making downstream visible()/geometry checks fail.
+ */
+
+body.pmd-waiter-new-page {
+  --pmd-waiter-zero-area-height: 50px;
+}
+
+/* Never hide the whole document. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3),
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-launcher,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-table-stage {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/*
+ * LEFT FILTER RAIL
+ * Keep it measurable and CSS-visible for V2.8.0, but visually transparent.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-mode-keys {
+  visibility: visible !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Areas are populated/relabelled after the first data pass. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-area-keys {
+  min-height: var(--pmd-waiter-zero-area-height) !important;
+  height: var(--pmd-waiter-zero-area-height) !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/*
+ * The command shell owns the left rail. Keep its layout in place while hiding
+ * it visually. V3 explicitly restores this parent on final paint; V2 forgot to
+ * restore the parent opacity, which could leave the completed left rail hidden.
+ */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-command,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-top-actions,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+[data-v2-user] {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Hide every visible right-rail generation until V2.8.x finalizes it. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.v257-operations-rail:not([data-v280-workflow-bridge]),
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v257-operations-rail:not([data-v280-workflow-bridge]),
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v279-right-rail,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v280-right-rail {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Base V2 -> V2.1 -> V2.4.1 -> V2.7.4 all rewrite these card nodes. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-table-grid {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-table-grid > *,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-table-key,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v21-table-key,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.v241-card {
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+/* Never expose the transient base NO TABLES state during startup. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-empty,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-empty[hidden] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* The existing skeleton is the only intentional loading surface. */
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-loading,
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-loading[hidden] {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+body.pmd-waiter-new-page:not(.pmd-waiter-zero-shift-ready-v3)
+.pmd-v2-footer {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+/*
+ * FINAL PAINT — no transition/fade/slide/scale.
+ * Crucially .pmd-v2-command is restored together with its final left rail.
+ */
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v2-command,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v2-mode-keys,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v2-area-keys,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v2-top-actions,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+[data-v2-user],
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v2-table-grid,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.v257-operations-rail:not([data-v280-workflow-bridge]),
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v257-operations-rail:not([data-v280-workflow-bridge]),
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v279-right-rail,
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v280-right-rail {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transition: none !important;
+  animation: none !important;
+  transform: none !important;
+}
+
+body.pmd-waiter-new-page.pmd-waiter-zero-shift-ready-v3
+.pmd-v2-area-keys {
+  min-height: var(--pmd-waiter-zero-area-height) !important;
+}
+
+@media (max-width: 780px) {
+  body.pmd-waiter-new-page {
+    --pmd-waiter-zero-area-height: 50px;
+  }
+}

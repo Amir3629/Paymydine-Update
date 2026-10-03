@@ -118,7 +118,7 @@
   }
 
   function run(){
-    if(!document.body.classList.contains('pmd-admin-theme-v1')) return;
+    if(!(document.body||document.documentElement).classList.contains('pmd-admin-theme-v1')) return;
     document.querySelectorAll(SAFE_CONTAINERS).forEach(classify);
     document.querySelectorAll(DISCOVERY_ROOTS).forEach(discoverAndNormalize);
   }

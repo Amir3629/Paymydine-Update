@@ -57,11 +57,11 @@
          * The layout fallback removes preboot after a short safe delay.
          */
         document.documentElement.classList.add('pmd-admin-toolbar-ready');
-        if (document.body) document.body.classList.add('pmd-admin-toolbar-ready');
+        if (document.body) (document.body||document.documentElement).classList.add('pmd-admin-toolbar-ready');
       } catch (e) {}
     }
 
-    if (!document.body || !document.body.classList.contains('pmd-admin-theme-v1')) return;
+    if (!document.body || !(document.body||document.documentElement).classList.contains('pmd-admin-theme-v1')) return;
 
     const mainMenu = document.querySelector('#menu-mainmenu');
     if (!mainMenu) return;
@@ -73,8 +73,22 @@
       if (el) el.style.setProperty(prop, value, 'important');
     }
 
+    /* PMD_ORDER_EDIT_HEADER_AUTHORITY_V16
+     *
+     * Dashboard-style header authority:
+     * Dashboard and Order Edit do NOT receive the generated Back control.
+     *
+     * This changes header presentation only.
+     * Existing header action proxy behavior remains unchanged.
+     */
     function isDashboardPage() {
-      return /\/admin\/dashboard\/?$/.test(window.location.pathname);
+      const pathname = String(window.location.pathname || '').replace(/\/+$/, '');
+
+      return (
+        /^\/admin\/dashboard$/.test(pathname) ||
+        /^\/admin\/dashboard2$/.test(pathname) ||
+        /^\/admin\/orders\/edit\/\d+$/.test(pathname)
+      );
     }
 
     function textOf(el) {
@@ -179,14 +193,46 @@
       });
     }
 
+    /* PMD_HEADER_CANONICAL_TOOLTIPS_R9_V2
+     * Header fallback copy comes from the active canonical catalogue.
+     * No locale-specific wording lives in this runtime.
+     */
+    function pmdHeaderTranslate(source) {
+      const english = window.PMD_PLATFORM_MESSAGES_ENGLISH || {};
+      const active = window.PMD_PLATFORM_MESSAGES || {};
+      const sourceText = String(source || '');
+      const keys = Object.keys(english);
+
+      for (let index = 0; index < keys.length; index += 1) {
+        const key = keys[index];
+        if (
+          String(english[key] || '') === sourceText &&
+          typeof active[key] === 'string' &&
+          active[key].trim()
+        ) {
+          return active[key];
+        }
+      }
+
+      if (
+        window.PMDAdminI18n &&
+        typeof window.PMDAdminI18n.translate === 'function'
+      ) {
+        const translated = window.PMDAdminI18n.translate(sourceText);
+        if (translated) return translated;
+      }
+
+      return sourceText;
+    }
+
     function cleanTooltipLabel(label) {
       const normalized = (label || '').replace(/\s+/g, ' ').trim();
 
       if (!normalized) return '';
-      if (/account/i.test(normalized)) return 'Account';
-      if (/notification/i.test(normalized)) return 'Notifications';
-      if (/storefront|preview/i.test(normalized)) return 'Storefront';
-      if (/settings/i.test(normalized)) return normalized.length > 24 ? 'Settings' : normalized;
+      if (/account/i.test(normalized)) return pmdHeaderTranslate('Account');
+      if (/notification/i.test(normalized)) return pmdHeaderTranslate('Notifications');
+      if (/storefront|preview/i.test(normalized)) return pmdHeaderTranslate('Storefront');
+      if (/settings/i.test(normalized)) return normalized.length > 24 ? pmdHeaderTranslate('Settings') : normalized;
 
       return normalized;
     }
@@ -242,14 +288,14 @@
 
     function normalizeHeaderIconTooltips() {
       [
-        ['.navbar-top #menuitem-preview > a.nav-link', 'Storefront'],
-        ['.navbar-top #notifDropdown', 'Notifications'],
-        ['.navbar-top #notif-root > span > a.nav-link', 'Notifications'],
-        ['.navbar-top #notif-root > a.nav-link', 'Notifications'],
-        ['.navbar-top .pmd-header-search', 'Search settings'],
-        ['.navbar-top .pmd-topbar-settings-item > span > a.nav-link', 'Settings'],
-        ['.navbar-top .pmd-topbar-settings-item > a.nav-link', 'Settings'],
-        ['.navbar-top .pmd-topbar-user-item > a.nav-link', 'Account']
+        ['.navbar-top #menuitem-preview > a.nav-link', pmdHeaderTranslate('Storefront')],
+        ['.navbar-top #notifDropdown', pmdHeaderTranslate('Notifications')],
+        ['.navbar-top #notif-root > span > a.nav-link', pmdHeaderTranslate('Notifications')],
+        ['.navbar-top #notif-root > a.nav-link', pmdHeaderTranslate('Notifications')],
+        ['.navbar-top .pmd-header-search', pmdHeaderTranslate('Search settings')],
+        ['.navbar-top .pmd-topbar-settings-item > span > a.nav-link', pmdHeaderTranslate('Settings')],
+        ['.navbar-top .pmd-topbar-settings-item > a.nav-link', pmdHeaderTranslate('Settings')],
+        ['.navbar-top .pmd-topbar-user-item > a.nav-link', pmdHeaderTranslate('Account')]
       ].forEach(([selector, label]) => {
         document.querySelectorAll(selector).forEach(el => ensureCustomTooltip(el, label));
       });
@@ -350,7 +396,7 @@
       if (!label && !icon) return false;
       if (label.length > 90) return false;
 
-      if (el.closest('.edit-mode-only') && !document.body.classList.contains('edit-mode-active')) return false;
+      if (el.closest('.edit-mode-only') && !(document.body||document.documentElement).classList.contains('edit-mode-active')) return false;
 
       return true;
     }
@@ -644,7 +690,7 @@
         pmdRevealToolbarPreboot('sync-complete');
         normalizeHeaderIconTooltips();
 
-        document.body.classList.toggle('pmd-has-header-actions', originals.length > 0);
+        (document.body||document.documentElement).classList.toggle('pmd-has-header-actions', originals.length > 0);
 
         requestAnimationFrame(() => playHeaderFlip(beforeRects));
       } finally {

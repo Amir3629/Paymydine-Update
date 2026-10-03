@@ -1,0 +1,736 @@
+/* ==========================================================
+   PMD_FINANCE_FLAT_UI_V1
+
+   Finance-specific visual flattening.
+
+   Principle:
+     ONE top-level visual card.
+
+   Outer cards remain cards.
+   Inner sections/panels/lists become content structure.
+
+   Applies ONLY to Finance.
+   ========================================================== */
+
+
+/* ==========================================================
+   1. MAIN FINANCE PAGE
+   Outer .pmd-owner-card stays the card.
+   ========================================================== */
+
+
+/*
+ * Nested owner panels are content groups,
+ * not another set of cards.
+ */
+html body.pmd-finance-settings-page
+#pmd-finance-page
+.pmd-owner-card__body
+> .pmd-owner-grid
+> .pmd-owner-panel {
+    border:
+        0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    background-image:
+        none
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    padding:
+        4px 0 18px
+        !important;
+}
+
+
+/*
+ * More breathing room replaces visual boxes.
+ */
+html body.pmd-finance-settings-page
+#pmd-finance-page
+.pmd-owner-card__body
+> .pmd-owner-grid {
+    column-gap:
+        28px
+        !important;
+
+    row-gap:
+        22px
+        !important;
+}
+
+
+/*
+ * Payment-method list:
+ * no rounded rectangle inside the main Finance card.
+ */
+html body.pmd-finance-settings-page
+#pmd-finance-page
+.pmd-owner-card__body
+> .pmd-owner-list {
+    border:
+        0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    overflow:
+        visible
+        !important;
+}
+
+
+/*
+ * Provider catalogue:
+ * rows + dividers are enough.
+ */
+html body.pmd-finance-settings-page
+#pmd-finance-page
+.pmd-provider-list {
+    border:
+        0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    box-shadow:
+        none
+        !important;
+
+    overflow:
+        visible
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+#pmd-finance-page
+:is(
+    .pmd-owner-list-row,
+    .pmd-provider-row
+) {
+    background:
+        transparent
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+#pmd-finance-page
+.pmd-owner-list
+> .pmd-owner-list-row {
+    padding-left:
+        0
+        !important;
+
+    padding-right:
+        0
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+#pmd-finance-page
+.pmd-provider-list
+> .pmd-provider-row {
+    padding-left:
+        0
+        !important;
+
+    padding-right:
+        0
+        !important;
+}
+
+
+/* ==========================================================
+   2. STANDARD FINANCE INLINE MODAL
+   Used by VR Payment and normal method/provider editor.
+   ========================================================== */
+
+
+/*
+ * Outer modal remains the ONE modal card.
+ */
+html body.pmd-finance-settings-page
+.pmd-settings-inline-card {
+    background:
+        #ffffff
+        !important;
+}
+
+
+/*
+ * Remove the gray canvas that visually creates
+ * another layer inside the modal.
+ */
+html body.pmd-finance-settings-page
+.pmd-settings-inline-card__body {
+    padding:
+        22px
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    background-image:
+        none
+        !important;
+}
+
+
+/*
+ * Provider connection / Payment method sections:
+ * headings + content only. No nested card.
+ */
+html body.pmd-finance-settings-page
+.pmd-settings-inline-card__body
+.pmd-inline-section {
+    margin:
+        0
+        !important;
+
+    padding:
+        0
+        !important;
+
+    border:
+        0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    background-image:
+        none
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/*
+ * If a modal has multiple sections, separate them
+ * with a simple divider rather than another rectangle.
+ */
+html body.pmd-finance-settings-page
+.pmd-settings-inline-card__body
+.pmd-inline-section
++
+.pmd-inline-section {
+    margin-top:
+        24px
+        !important;
+
+    padding-top:
+        24px
+        !important;
+
+    border-top:
+        1px solid #e7efed
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-inline-section__head {
+    margin:
+        0 0 18px
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-inline-section__head h3 {
+    margin:
+        0
+        !important;
+
+    color:
+        #10211d
+        !important;
+
+    font-size:
+        17px
+        !important;
+
+    font-weight:
+        820
+        !important;
+
+    line-height:
+        1.2
+        !important;
+
+    letter-spacing:
+        -.02em
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-inline-section__head p {
+    margin:
+        5px 0 0
+        !important;
+
+    color:
+        #71817d
+        !important;
+
+    font-size:
+        12px
+        !important;
+
+    line-height:
+        1.45
+        !important;
+}
+
+
+/*
+ * Enabled/disabled rows are information rows,
+ * not cards.
+ */
+html body.pmd-finance-settings-page
+.pmd-settings-inline-card
+.pmd-inline-setting-row {
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/*
+ * Labels/copy must never pick up a visual frame.
+ */
+html body.pmd-finance-settings-page
+.pmd-settings-inline-card
+:is(
+    .pmd-inline-field > label,
+    .pmd-inline-setting-copy strong,
+    .pmd-inline-setting-copy small
+) {
+    border:
+        0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/*
+ * Inputs stay framed because they are controls.
+ * Remove the tiny resting shadow for a cleaner UI.
+ */
+html body.pmd-finance-settings-page
+.pmd-settings-inline-modal
+.pmd-inline-field
+> input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+
+html body.pmd-finance-settings-page
+.pmd-settings-inline-modal
+.pmd-inline-field
+> select,
+
+html body.pmd-finance-settings-page
+.pmd-settings-inline-modal
+.pmd-inline-field
+> textarea {
+    border:
+        1px solid #d5e3df
+        !important;
+
+    border-radius:
+        12px
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-settings-inline-modal
+.pmd-inline-field
+> input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus,
+
+html body.pmd-finance-settings-page
+.pmd-settings-inline-modal
+.pmd-inline-field
+> select:focus,
+
+html body.pmd-finance-settings-page
+.pmd-settings-inline-modal
+.pmd-inline-field
+> textarea:focus {
+    border-color:
+        #8dbdaf
+        !important;
+
+    box-shadow:
+        0 0 0 3px rgba(7,95,79,.075)
+        !important;
+}
+
+
+/*
+ * Notes/results may have a soft surface,
+ * but not another bordered card.
+ */
+html body.pmd-finance-settings-page
+:is(
+    .pmd-inline-note,
+    .pmd-inline-result
+) {
+    border:
+        0
+        !important;
+
+    border-radius:
+        10px
+        !important;
+
+    background:
+        #f7faf9
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   3. SUMUP / PAYMENT PROVIDER CATALOGUE MODAL
+   This is a DIFFERENT modal implementation.
+   ========================================================== */
+
+
+/*
+ * Outer provider dialog is the card.
+ */
+html body.pmd-finance-settings-page
+.pmd-provider-modal__dialog {
+    background:
+        #ffffff
+        !important;
+}
+
+
+/*
+ * Flat white modal body.
+ */
+html body.pmd-finance-settings-page
+.pmd-provider-modal__body {
+    gap:
+        18px
+        !important;
+
+    padding:
+        18px 20px 20px
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    background-image:
+        none
+        !important;
+}
+
+
+/*
+ * "Connection" is a content section,
+ * NOT another bordered rounded card.
+ */
+html body.pmd-finance-settings-page
+.pmd-provider-modal__body
+.pmd-provider-modal-section {
+    margin:
+        0
+        !important;
+
+    padding:
+        0
+        !important;
+
+    border:
+        0
+        !important;
+
+    border-radius:
+        0
+        !important;
+
+    background:
+        transparent
+        !important;
+
+    background-image:
+        none
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-provider-modal__body
+.pmd-provider-modal-section
++
+.pmd-provider-modal-section {
+    margin-top:
+        6px
+        !important;
+
+    padding-top:
+        22px
+        !important;
+
+    border-top:
+        1px solid #e7efed
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-provider-modal-section__head {
+    margin-bottom:
+        16px
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-provider-modal-section__head strong {
+    color:
+        #10211d
+        !important;
+
+    font-size:
+        15px
+        !important;
+
+    font-weight:
+        820
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-provider-modal-section__head span {
+    margin-top:
+        4px
+        !important;
+
+    color:
+        #71817d
+        !important;
+
+    font-size:
+        11px
+        !important;
+}
+
+
+/*
+ * Environment Test/Production remains a selector.
+ * It is a control, so its border is intentional.
+ */
+html body.pmd-finance-settings-page
+.pmd-provider-env-tabs button {
+    box-shadow:
+        none
+        !important;
+
+    transform:
+        none
+        !important;
+}
+
+
+/*
+ * Provider form inputs:
+ * controls keep border, lose decorative resting shadow.
+ */
+html body.pmd-finance-settings-page
+.pmd-provider-modal-field
+input {
+    border:
+        1px solid #d5e3df
+        !important;
+
+    border-radius:
+        12px
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-provider-modal-field
+input:focus {
+    border-color:
+        #8dbdaf
+        !important;
+
+    box-shadow:
+        0 0 0 3px rgba(7,95,79,.075)
+        !important;
+}
+
+
+/*
+ * Header/footer belong to the outer card:
+ * simple divider only.
+ */
+html body.pmd-finance-settings-page
+.pmd-provider-modal__header {
+    border-bottom:
+        1px solid #e7efed
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+html body.pmd-finance-settings-page
+.pmd-provider-modal__footer {
+    border-top:
+        1px solid #e7efed
+        !important;
+
+    background:
+        #ffffff
+        !important;
+
+    box-shadow:
+        none
+        !important;
+}
+
+
+/* ==========================================================
+   4. MOBILE
+   ========================================================== */
+
+@media (max-width: 760px) {
+
+    html body.pmd-finance-settings-page
+    .pmd-settings-inline-card__body {
+        padding:
+            16px
+            !important;
+    }
+
+    html body.pmd-finance-settings-page
+    .pmd-provider-modal__body {
+        padding:
+            16px
+            !important;
+    }
+
+    html body.pmd-finance-settings-page
+    #pmd-finance-page
+    .pmd-owner-card__body
+    > .pmd-owner-grid {
+        row-gap:
+            20px
+            !important;
+    }
+
+    html body.pmd-finance-settings-page
+    #pmd-finance-page
+    .pmd-owner-card__body
+    > .pmd-owner-grid
+    > .pmd-owner-panel
+    +
+    .pmd-owner-panel {
+        padding-top:
+            20px
+            !important;
+
+        border-top:
+            1px solid #edf2f0
+            !important;
+    }
+}

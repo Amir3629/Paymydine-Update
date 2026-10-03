@@ -1,0 +1,70 @@
+====================================================
+PMD V11 WORST-NIGHT / GEMINI + PAYMENT + ORDER + WAITER
+Writes ONLY small marked test data to Test2.
+Payment session ONLY if SumUp is confirmed TEST/SANDBOX.
+No real payment capture. No config change. No restart.
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 21:00:46 UTC 2026
+MARKER=PMD_V11_20260911_210046
+====================================================
+
+===== 1. SAFE PRODUCTION PRECHECK =====
+V2_ID=4
+origin=http://127.0.0.1:8088
+nginx=active
+php8.3-fpm=active
+mariadb=active
+pm.max_children=5
+CPU cores=4
+MemAvailable=6347 MiB
+load1=0.74
+public-IP self :443=0
+V2 health HTTP=200 time=0.008s
+PHP CPU before test=26.0%
+real Nginx traffic in 5 sec=49 requests
+
+===== 2. VERIFY CURRENT AI = GEMINI =====
+AI enabled= True
+AI provider= gemini
+AI model= gemini-3.1-flash-lite
+Guest AI model= gemini-3.1-flash-lite
+AI timeout= 25 seconds
+Guest AI per-minute limit= 6
+Global AI per-minute limit= 120
+Gemini key present= True
+
+===== 3. TEST2 SAFE-WRITE / PAYMENT PRECHECK =====
+DB= Test2
+existing active Test2 draft count= 0
+Test2 Card provider= None
+Test2 SumUp environment= test
+Payment sandbox test: SKIPPED for safety
+Order-write test: ENABLED
+
+===== 4. START CPU/RAM MONITOR =====
+monitor pid=2443395
+
+===== 5. WORST-NIGHT TEST =====
+Guest AI on Test2 enabled= False
+menu item found for order test= True
+waiter canary HTTP= 410 time= 0.128 enabled= False
+
+--- BASELINE: normal site load ---
+BASELINE SSR: count=30 bad=0 p50=3897ms p95=6913ms max=7451ms statuses={'200': 30}
+
+--- FULL WORST-NIGHT MIX ---
+starting together: SSR=24, Gemini AI=0, SumUp sandbox sessions=0, waiter calls=0, order writes=4
+SSR: count=24 bad=0 p50=3940ms p95=10124ms max=10160ms statuses={'200': 24}
+ORDER: count=4 bad=0 p50=420ms p95=600ms max=600ms statuses={'200': 4}
+full storm wall time= 10.796 s
+
+CORE SURVIVAL = FAIL
+WAITER/ORDER ACTIONS = PASS
+GEMINI AI STORM = SKIPPED
+SUMUP PAYMENT STORM = SKIPPED
+
+===== CLEAN TEST2 TEST DATA =====
+
+
+deleted waiter test notifications=0
+deleted test order drafts=1

@@ -1,0 +1,12 @@
+timestamp_utc=20260921T152042Z
+root=/var/www/paymydine
+head=71750b33cc21b7ddcef24c946c5ccd01b2b83864
+origin_main=7e47054093b7900b79958f025df797a1330aa7de
+base=8779cc06f67a45cb0df733ab9680457d4350076f
+target=048c802423d7c387b37e308e4e4b44bb29f024a5
+apk=PayMyDine-POS-Tablet-Preview-0.2.6.apk
+apk_sha256=4a2eec3ef424cf744fb895a3fabcab2f3861d02ead699cffc052b806313bd5a1
+
+AM app/admin/views/pmdsettings/index.blade.php
+?? app/admin/assets/css/pmd-quick-pos-v1.css
+?? app/admin/views/pmd_quick_pos_v1.blade.php

@@ -1,0 +1,288 @@
+/* PMD_SETTINGS_POLISH_R4
+ * Final first-paint authority for owner Settings copy and Restaurant logo UI.
+ * - no legacy Remove-logo flash
+ * - Remove button stays directly under the preview before JS runs
+ * - remove checkbox hides the preview immediately
+ * - simple owner-facing copy across Settings pages
+ */
+
+/* ---------------------------------------------------------
+   Restaurant: remove technical/repetitive helper copy.
+   --------------------------------------------------------- */
+#pmd-restaurant-profile .pmd-profile-customer-menu-note-r19,
+#pmd-restaurant-profile .pmd-profile-logo-authority-r21,
+#pmd-restaurant-profile .pmd-profile-logo-source-r20 {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-help-r19 {
+  font-size: 0 !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-help-r19::after {
+  content: "PNG, JPG or WEBP · max 5 MB." !important;
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 600 !important;
+}
+
+/* ---------------------------------------------------------
+   Restaurant: stable two-column logo layout from FIRST PAINT.
+   R3 may later wrap preview+button in a stack; both states render identically.
+   --------------------------------------------------------- */
+#pmd-restaurant-profile .pmd-profile-logo-uploader-r19 {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 148px !important;
+  grid-template-rows: auto auto !important;
+  column-gap: 16px !important;
+  row-gap: 8px !important;
+  align-items: start !important;
+}
+
+/* Let the existing input/help/remove children participate directly in the
+ * uploader grid before R3 creates its preview stack. */
+#pmd-restaurant-profile .pmd-profile-logo-input-r19 {
+  display: contents !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-input-r19 input[type="file"] {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-help-r19 {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  margin: 0 !important;
+  align-self: start !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-uploader-r19 > .pmd-profile-logo-preview-r19 {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  min-height: 96px !important;
+  margin: 0 !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 {
+  grid-column: 2 !important;
+  grid-row: 1 / span 2 !important;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  margin: 0 !important;
+  align-self: start !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-preview-r19 {
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  min-height: 96px !important;
+  margin: 0 !important;
+}
+
+/* Same compact button before and after R3 moves it. */
+#pmd-restaurant-profile .pmd-profile-logo-remove-r20 {
+  position: relative !important;
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  gap: 0 !important;
+  border: 1px solid #e29a9a !important;
+  border-radius: 7px !important;
+  background: #fff !important;
+  color: #a62626 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  font-weight: 720 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  user-select: none !important;
+  overflow: hidden !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-remove-r20::before {
+  content: none !important;
+  display: none !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-remove-r20 input[type="checkbox"] {
+  position: absolute !important;
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  max-height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-remove-r20 span {
+  display: inline !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font: inherit !important;
+  pointer-events: none !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-remove-r20:hover,
+#pmd-restaurant-profile .pmd-profile-logo-remove-r20:focus-visible {
+  border-color: #cd5555 !important;
+  background: #fff7f7 !important;
+  color: #8d1f1f !important;
+  outline: none !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-remove-r20.is-pmd-remove-selected-r4,
+#pmd-restaurant-profile .pmd-profile-logo-remove-r20:has(input:checked) {
+  border-color: #b42323 !important;
+  background: #fff4f4 !important;
+  color: #961f1f !important;
+}
+
+/* CSS-only immediate preview removal. This works at the exact moment the
+ * checkbox changes, independently from old R1/R2 listeners. */
+#pmd-restaurant-profile .pmd-profile-logo-uploader-r19:has(input[name="profile[remove_logo]"]:checked) .pmd-profile-logo-preview-r19 > * {
+  display: none !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-logo-uploader-r19:has(input[name="profile[remove_logo]"]:checked) .pmd-profile-logo-preview-r19::after {
+  content: "No restaurant logo selected" !important;
+  display: block !important;
+  color: #75858c !important;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+}
+
+/* ---------------------------------------------------------
+   Simple owner-facing sentences — first-paint copy authority.
+   --------------------------------------------------------- */
+#pmd-restaurant-profile .pmd-profile-section--blue .pmd-profile-card__header p,
+#pmd-restaurant-profile .pmd-profile-section--cyan .pmd-profile-card__header p,
+#pmd-frontend-settings .pmd-frontend-header__left p,
+#pmd-frontend-settings .pmd-frontend-form > .pmd-frontend-section:first-child .pmd-frontend-card__header p,
+#pmd-team-access #pmd-team-members-section .pmd-team-card__header p,
+#pmd-team-access #pmd-team-roles-section .pmd-team-card__header p,
+#pmd-devices-page #hardware-overview .pmd-owner-card__title p,
+#pmd-devices-page #pos-devices .pmd-owner-card__title p,
+#pmd-devices-page #payment-terminals .pmd-owner-card__title p,
+#pmd-devices-page #kds .pmd-owner-card__title p,
+#pmd-devices-page #cash-drawers .pmd-owner-card__title p,
+#pmd-devices-page #biometric .pmd-owner-card__title p,
+#pmd-devices-page #device-configuration .pmd-owner-card__title p,
+#pmd-finance-page #payment-methods .pmd-owner-card__title p,
+#pmd-finance-page #tax-invoicing .pmd-owner-card__title p,
+#pmd-finance-page #fiskaly .pmd-owner-card__title p {
+  font-size: 0 !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-section--blue .pmd-profile-card__header p::after {
+  content: "Shown on your digital menu.";
+}
+#pmd-restaurant-profile .pmd-profile-section--cyan .pmd-profile-card__header p::after {
+  content: "Shown to guests on your digital menu.";
+}
+#pmd-frontend-settings .pmd-frontend-header__left p::after {
+  content: "Choose the look of your digital menu.";
+}
+#pmd-frontend-settings .pmd-frontend-form > .pmd-frontend-section:first-child .pmd-frontend-card__header p::after {
+  content: "Choose a theme for your digital menu.";
+}
+#pmd-team-access #pmd-team-members-section .pmd-team-card__header p::after {
+  content: "Add staff and manage who can sign in.";
+}
+#pmd-team-access #pmd-team-roles-section .pmd-team-card__header p::after {
+  content: "Built-in roles for your team.";
+}
+#pmd-devices-page #hardware-overview .pmd-owner-card__title p::after {
+  content: "See your connected devices in one place.";
+}
+#pmd-devices-page #pos-devices .pmd-owner-card__title p::after {
+  content: "POS screens used by your team.";
+}
+#pmd-devices-page #payment-terminals .pmd-owner-card__title p::after {
+  content: "Card readers connected to PayMyDine.";
+}
+#pmd-devices-page #kds .pmd-owner-card__title p::after {
+  content: "Kitchen screens for your orders.";
+}
+#pmd-devices-page #cash-drawers .pmd-owner-card__title p::after {
+  content: "Cash drawers connected to your POS.";
+}
+#pmd-devices-page #biometric .pmd-owner-card__title p::after {
+  content: "Devices used for staff sign-in.";
+}
+#pmd-devices-page #device-configuration .pmd-owner-card__title p::after {
+  content: "Extra device connections and setup.";
+}
+#pmd-finance-page #payment-methods .pmd-owner-card__title p::after {
+  content: "Choose how guests can pay.";
+}
+#pmd-finance-page #tax-invoicing .pmd-owner-card__title p::after {
+  content: "Set VAT, receipts and invoice details.";
+}
+#pmd-finance-page #fiskaly .pmd-owner-card__title p::after {
+  content: "Set up Fiskaly and TSE for Germany.";
+}
+
+#pmd-restaurant-profile .pmd-profile-section--blue .pmd-profile-card__header p::after,
+#pmd-restaurant-profile .pmd-profile-section--cyan .pmd-profile-card__header p::after,
+#pmd-frontend-settings .pmd-frontend-header__left p::after,
+#pmd-frontend-settings .pmd-frontend-form > .pmd-frontend-section:first-child .pmd-frontend-card__header p::after,
+#pmd-team-access #pmd-team-members-section .pmd-team-card__header p::after,
+#pmd-team-access #pmd-team-roles-section .pmd-team-card__header p::after,
+#pmd-devices-page .pmd-owner-card__title p::after,
+#pmd-finance-page .pmd-owner-card__title p::after {
+  font-size: 12.5px !important;
+  line-height: 1.45 !important;
+  font-weight: 400 !important;
+  color: inherit !important;
+}
+
+@media (max-width: 720px) {
+  #pmd-restaurant-profile .pmd-profile-logo-uploader-r19 {
+    grid-template-columns: minmax(0, 1fr) 118px !important;
+    column-gap: 10px !important;
+  }
+
+  #pmd-restaurant-profile .pmd-profile-logo-uploader-r19 > .pmd-profile-logo-preview-r19,
+  #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3,
+  #pmd-restaurant-profile .pmd-profile-logo-preview-stack-r3 .pmd-profile-logo-preview-r19,
+  #pmd-restaurant-profile .pmd-profile-logo-remove-r20 {
+    width: 118px !important;
+    min-width: 118px !important;
+    max-width: 118px !important;
+  }
+}

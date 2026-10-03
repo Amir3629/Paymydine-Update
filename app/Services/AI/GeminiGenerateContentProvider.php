@@ -1,0 +1,536 @@
+<?php
+
+namespace App\Services\AI;
+
+use RuntimeException;
+
+final class GeminiGenerateContentProvider implements AiProvider
+{
+    public function create(array $payload): array
+    {
+        $key = trim((string)config('pmd_ai.gemini_api_key', ''));
+        if ($key === '') {
+            throw new RuntimeException('GEMINI_API_KEY is not configured on the server.');
+        }
+
+        if (!function_exists('curl_init')) {
+            throw new RuntimeException('PHP cURL extension is required for PMD Intelligence.');
+        }
+
+        $model = trim((string)($payload['model'] ?? config('pmd_ai.model', 'gemini-3.7-flash')));
+        if ($model === '') {
+            $model = 'gemini-3.7-flash';
+        }
+
+        $baseUrl = rtrim(
+            (string)config(
+                'pmd_ai.gemini_base_url',
+                'https://generativelanguage.googleapis.com'
+            ),
+            '/'
+        );
+        $url = $baseUrl.'/v1beta/models/'.rawurlencode($model).':generateContent';
+        $timeout = max(3, (int)config('pmd_ai.request_timeout_seconds', 25));
+
+        $request = [
+            'contents' => $this->translateInput((array)($payload['input'] ?? [])),
+            'generationConfig' => [
+                'maxOutputTokens' => max(
+                    128,
+                    (int)($payload['max_output_tokens'] ?? config('pmd_ai.max_output_tokens', 1400))
+                ),
+                'thinkingConfig' => [
+                    'thinkingLevel' => (string)config('pmd_ai.gemini_thinking_level', 'low'),
+                ],
+            ],
+        ];
+
+        $responseMimeType = trim((string)($payload['response_mime_type'] ?? ''));
+        if ($responseMimeType !== '') {
+            $request['generationConfig']['responseMimeType'] = $responseMimeType;
+        }
+
+        $instructions = trim((string)($payload['instructions'] ?? ''));
+        if ($instructions !== '') {
+            $request['systemInstruction'] = [
+                'parts' => [
+                    ['text' => $instructions],
+                ],
+            ];
+        }
+
+        $functionDeclarations = $this->functionDeclarations(
+            (array)($payload['tools'] ?? [])
+        );
+        if ($functionDeclarations) {
+            $request['tools'] = [[
+                'functionDeclarations' => $functionDeclarations,
+            ]];
+        }
+
+        // A short, bounded retry smooths over Gemini's documented/transient
+        // high-demand responses without creating a retry loop or multiplying
+        // normal request cost. Permanent 4xx errors are never retried.
+        $extraRetries = max(
+            0,
+            min(1, (int)config('pmd_ai.gemini_transient_retries', 1))
+        );
+        $maxAttempts = 1 + $extraRetries;
+        $retryDelayMs = max(
+            0,
+            min(1500, (int)config('pmd_ai.gemini_retry_delay_ms', 350))
+        );
+        $totalLatencyMs = 0;
+
+        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+            $transport = $this->sendRequest($url, $key, $request, $timeout);
+            $totalLatencyMs += (int)$transport['latency_ms'];
+
+            $raw = $transport['raw'];
+            $curlError = (string)$transport['curl_error'];
+            $status = (int)$transport['http_status'];
+            $requestId = $transport['request_id'];
+
+            if ($raw === false || $curlError !== '') {
+                // A 25-second network timeout should not silently become a
+                // 50-second request. Transport failures remain fail-fast.
+                throw new RuntimeException('Gemini transport failed: '.$curlError);
+            }
+
+            $decoded = json_decode((string)$raw, true);
+            if (!is_array($decoded)) {
+                throw new RuntimeException('Gemini returned an invalid JSON response.');
+            }
+
+            if ($status >= 200 && $status < 300) {
+                return [
+                    'body' => $decoded,
+                    'http_status' => $status,
+                    'request_id' => $requestId,
+                    'latency_ms' => $totalLatencyMs,
+                    'attempt_count' => $attempt,
+                ];
+            }
+
+            $message = (string)($decoded['error']['message'] ?? ('Gemini HTTP '.$status));
+
+            if (
+                $attempt < $maxAttempts
+                && $this->isTransientHttpFailure($status, $decoded, $message)
+            ) {
+                logger()->info('PMD Gemini transient retry', [
+                    'model' => $model,
+                    'status' => $status,
+                    'attempt' => $attempt,
+                    'max_attempts' => $maxAttempts,
+                ]);
+
+                if ($retryDelayMs > 0) {
+                    usleep($retryDelayMs * 1000);
+                }
+                continue;
+            }
+
+            throw new RuntimeException($message);
+        }
+
+        throw new RuntimeException('Gemini request failed after bounded retry.');
+    }
+
+    public function outputText(array $response): string
+    {
+        $parts = [];
+        foreach ($this->candidateParts($response) as $part) {
+            if (!empty($part['thought'])) {
+                continue;
+            }
+            if (isset($part['text']) && is_string($part['text'])) {
+                $text = trim($part['text']);
+                if ($text !== '') {
+                    $parts[] = $text;
+                }
+            }
+        }
+
+        return trim(implode("\n", $parts));
+    }
+
+    public function functionCalls(array $response): array
+    {
+        $calls = [];
+
+        foreach ($this->candidateParts($response) as $part) {
+            $functionCall = $part['functionCall'] ?? null;
+            if (!is_array($functionCall)) {
+                continue;
+            }
+
+            $name = trim((string)($functionCall['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $arguments = $functionCall['args'] ?? [];
+            if (!is_array($arguments)) {
+                $arguments = [];
+            }
+
+            $argumentsJson = $arguments === []
+                ? '{}'
+                : json_encode(
+                    $arguments,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                );
+
+            $calls[] = [
+                'call_id' => (string)($functionCall['id'] ?? ''),
+                'name' => $name,
+                'arguments' => $argumentsJson,
+                'raw' => $functionCall,
+            ];
+        }
+
+        return $calls;
+    }
+
+    public function modelHistoryItems(array $response): array
+    {
+        $content = $response['candidates'][0]['content'] ?? null;
+        if (!is_array($content)) {
+            return [];
+        }
+
+        // Preserve Gemini's complete model content, including encrypted
+        // thoughtSignature fields required by Gemini 3 function-call turns.
+        return [[
+            'type' => 'gemini_model_content',
+            'content' => $content,
+        ]];
+    }
+
+    public function toolResultItem(array $call, $output): array
+    {
+        return [
+            'type' => 'gemini_function_response',
+            'call_id' => (string)($call['call_id'] ?? ''),
+            'name' => (string)($call['name'] ?? ''),
+            'response' => [
+                'result' => $output,
+            ],
+        ];
+    }
+
+    public function usage(array $response): array
+    {
+        return (array)($response['usageMetadata'] ?? []);
+    }
+
+    public function responseModel(array $response): string
+    {
+        return (string)(
+            $response['modelVersion']
+            ?? config('pmd_ai.model', 'gemini-3.7-flash')
+        );
+    }
+
+    public function name(): string
+    {
+        return 'gemini';
+    }
+
+    private function sendRequest(string $url, string $key, array $request, int $timeout): array
+    {
+        $requestId = null;
+        $started = microtime(true);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => min(8, $timeout),
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_IPRESOLVE => (bool)config('pmd_ai.gemini_force_ipv4', true)
+                ? CURL_IPRESOLVE_V4
+                : CURL_IPRESOLVE_WHATEVER,
+            CURLOPT_HTTPHEADER => [
+                'x-goog-api-key: '.$key,
+                'x-goog-api-client: paymydine-ai/1.0',
+                'Content-Type: application/json',
+            ],
+            CURLOPT_POSTFIELDS => json_encode(
+                $request,
+                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            ),
+            CURLOPT_HEADERFUNCTION => function ($curl, $header) use (&$requestId) {
+                $length = strlen($header);
+                foreach (['x-request-id:', 'x-goog-request-id:'] as $prefix) {
+                    if (stripos($header, $prefix) === 0) {
+                        $requestId = trim(substr($header, strlen($prefix)));
+                        break;
+                    }
+                }
+                return $length;
+            },
+        ]);
+
+        $raw = curl_exec($ch);
+        $curlError = curl_error($ch);
+        $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        curl_close($ch);
+
+        return [
+            'raw' => $raw,
+            'curl_error' => $curlError,
+            'http_status' => $status,
+            'request_id' => $requestId,
+            'latency_ms' => (int)round((microtime(true) - $started) * 1000),
+        ];
+    }
+
+    private function isTransientHttpFailure(int $status, array $decoded, string $message): bool
+    {
+        if (in_array($status, [429, 500, 502, 503, 504], true)) {
+            return true;
+        }
+
+        $providerStatus = mb_strtolower(trim((string)($decoded['error']['status'] ?? '')));
+        if (in_array($providerStatus, ['unavailable', 'resource_exhausted'], true)) {
+            return true;
+        }
+
+        $text = mb_strtolower($message);
+        foreach ([
+            'high demand',
+            'try again later',
+            'temporarily unavailable',
+            'resource exhausted',
+        ] as $needle) {
+            if (str_contains($text, $needle)) return true;
+        }
+
+        return false;
+    }
+
+    private function candidateParts(array $response): array
+    {
+        return array_values(
+            (array)($response['candidates'][0]['content']['parts'] ?? [])
+        );
+    }
+
+    private function translateInput(array $input): array
+    {
+        $contents = [];
+        $pendingFunctionParts = [];
+
+        // Gemini requires responses to parallel function calls from one model
+        // turn to be grouped together in the immediately following user turn.
+        $flushFunctionResponses = static function () use (&$contents, &$pendingFunctionParts): void {
+            if (!$pendingFunctionParts) {
+                return;
+            }
+
+            $contents[] = [
+                'role' => 'user',
+                'parts' => $pendingFunctionParts,
+            ];
+            $pendingFunctionParts = [];
+        };
+
+        foreach ($input as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            if (($item['type'] ?? null) === 'gemini_function_response') {
+                $functionResponse = [
+                    'name' => (string)($item['name'] ?? ''),
+                    'response' => is_array($item['response'] ?? null)
+                        ? $item['response']
+                        : ['result' => $item['response'] ?? null],
+                ];
+
+                $callId = trim((string)($item['call_id'] ?? ''));
+                if ($callId !== '') {
+                    $functionResponse['id'] = $callId;
+                }
+
+                $pendingFunctionParts[] = [
+                    'functionResponse' => $functionResponse,
+                ];
+                continue;
+            }
+
+            $flushFunctionResponses();
+
+            if (isset($item['role']) && array_key_exists('content', $item)) {
+                $content = $item['content'];
+                $parts = [];
+
+                if (is_array($content)) {
+                    foreach ($content as $part) {
+                        if (!is_array($part)) continue;
+                        $type = (string)($part['type'] ?? '');
+
+                        if ($type === 'input_text') {
+                            $text = trim((string)($part['text'] ?? ''));
+                            if ($text !== '') $parts[] = ['text' => $text];
+                            continue;
+                        }
+
+                        if ($type === 'input_image') {
+                            $inline = $this->inlineDataFromDataUrl((string)($part['image_url'] ?? ''));
+                            if ($inline !== null) $parts[] = ['inlineData' => $inline];
+                            continue;
+                        }
+
+                        if ($type === 'input_file') {
+                            $inline = $this->inlineDataFromDataUrl((string)($part['file_data'] ?? ''));
+                            if ($inline !== null) $parts[] = ['inlineData' => $inline];
+                        }
+                    }
+                } else {
+                    $text = trim((string)$content);
+                    if ($text !== '') $parts[] = ['text' => $text];
+                }
+
+                if (!$parts) {
+                    continue;
+                }
+
+                $contents[] = [
+                    'role' => ((string)$item['role'] === 'assistant') ? 'model' : 'user',
+                    'parts' => $parts,
+                ];
+                continue;
+            }
+
+            if (($item['type'] ?? null) === 'gemini_model_content') {
+                $content = $item['content'] ?? null;
+                if (is_array($content)) {
+                    $contents[] = $this->normalizeModelContentForReplay($content);
+                }
+            }
+        }
+
+        $flushFunctionResponses();
+
+        if (!$contents) {
+            throw new RuntimeException('Gemini request has no conversation content.');
+        }
+
+        return $contents;
+    }
+
+    private function inlineDataFromDataUrl(string $value): ?array
+    {
+        $value = trim($value);
+        if ($value === '' || !preg_match('/^data:([^;,]+);base64,(.+)$/s', $value, $matches)) {
+            return null;
+        }
+
+        $mime = strtolower(trim((string)$matches[1]));
+        if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'], true)) {
+            throw new RuntimeException('Gemini multimodal input type is not allowed.');
+        }
+
+        $data = preg_replace('/\s+/', '', (string)$matches[2]) ?? '';
+        if ($data === '' || base64_decode($data, true) === false) {
+            throw new RuntimeException('Gemini multimodal input is invalid.');
+        }
+
+        return [
+            'mimeType' => $mime,
+            'data' => $data,
+        ];
+    }
+
+    private function normalizeModelContentForReplay(array $content): array
+    {
+        $parts = $content['parts'] ?? null;
+        if (!is_array($parts)) {
+            return $content;
+        }
+
+        foreach ($parts as $index => $part) {
+            if (!is_array($part)) {
+                continue;
+            }
+
+            $functionCall = $part['functionCall'] ?? null;
+            if (!is_array($functionCall)) {
+                continue;
+            }
+
+            // json_decode(..., true) cannot retain the distinction between
+            // an empty JSON object and an empty JSON array. Gemini function
+            // args are an object, so restore {} before replaying model history.
+            if (($functionCall['args'] ?? null) === []) {
+                $functionCall['args'] = (object)[];
+            }
+
+            $part['functionCall'] = $functionCall;
+            $parts[$index] = $part;
+        }
+
+        $content['parts'] = $parts;
+        return $content;
+    }
+
+    private function functionDeclarations(array $tools): array
+    {
+        $declarations = [];
+
+        foreach ($tools as $tool) {
+            if (!is_array($tool) || ($tool['type'] ?? null) !== 'function') {
+                continue;
+            }
+
+            $name = trim((string)($tool['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $declaration = [
+                'name' => $name,
+                'description' => (string)($tool['description'] ?? ''),
+                'parameters' => $this->normalizeSchema(
+                    $tool['parameters'] ?? [
+                        'type' => 'object',
+                        'properties' => (object)[],
+                    ]
+                ),
+            ];
+
+            $declarations[] = $declaration;
+        }
+
+        return $declarations;
+    }
+
+    private function normalizeSchema($value)
+    {
+        if (is_object($value)) {
+            $value = get_object_vars($value);
+        }
+
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        $normalized = [];
+        foreach ($value as $key => $child) {
+            if (in_array((string)$key, ['additionalProperties', 'strict', '$schema'], true)) {
+                continue;
+            }
+
+            $normalized[$key] = $this->normalizeSchema($child);
+
+            if ($key === 'properties' && $normalized[$key] === []) {
+                $normalized[$key] = (object)[];
+            }
+        }
+
+        return $normalized;
+    }
+}

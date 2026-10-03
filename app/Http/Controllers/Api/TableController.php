@@ -168,13 +168,29 @@ class TableController extends Controller
             
             $table = DB::table('tables')
                 ->whereRaw($whereClause, [$param])
-                ->where('table_status', 1)
                 ->first();
 
             if (!$table) {
                 return response()->json([
+                    'success' => false,
                     'error' => 'Table not found'
                 ], 404);
+            }
+
+            // PMD_TABLE_ENABLE_DISABLE_R40
+            if (!(bool)($table->table_status ?? true)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'This table is currently unavailable.',
+                    'code' => 'table_disabled',
+                    'table_disabled' => true,
+                    'data' => [
+                        'table_id' => (int)($table->table_id ?? 0),
+                        'table_no' => $table->table_no ?? null,
+                        'table_name' => $table->table_name ?? null,
+                        'status' => false,
+                    ],
+                ]);
             }
 
             // Get location ID for tenant-aware URL construction

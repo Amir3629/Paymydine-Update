@@ -1,0 +1,64 @@
+{
+  "rows": [
+    {
+      "host": "test2.paymydine.com",
+      "status": 200,
+      "ms": 940,
+      "error": null
+    },
+    {
+      "host": "mimoza.paymydine.com",
+      "status": 200,
+      "ms": 1501,
+      "error": null
+    },
+    {
+      "host": "loumi.paymydine.com",
+      "status": 200,
+      "ms": 1273,
+      "error": null
+    },
+    {
+      "host": "moon.paymydine.com",
+      "status": 200,
+      "ms": 1952,
+      "error": null
+    },
+    {
+      "host": "tomo.paymydine.com",
+      "status": 200,
+      "ms": 2420,
+      "error": null
+    },
+    {
+      "host": "test2.paymydine.com",
+      "status": 200,
+      "ms": 631,
+      "error": null
+    },
+    {
+      "host": "mimoza.paymydine.com",
+      "status": 200,
+      "ms": 1967,
+      "error": null
+    },
+    {
+      "host": "loumi.paymydine.com",
+      "status": 200,
+      "ms": 1202,
+      "error": null
+    },
+    {
+      "host": "moon.paymydine.com",
+      "status": 200,
+      "ms": 2338,
+      "error": null
+    },
+    {
+      "host": "tomo.paymydine.com",
+      "status": 200,
+      "ms": 1726,
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+====================================================
+PMD SAFE STABLE-BOOTSTRAP MICRO-CACHE V5.1
+No DB writes. No order/waiter/note/payment writes.
+Only loopback Nginx + V2 env switch after parity gates.
+HOST=vps-252f1bc4
+UTC=Fri Sep 11 10:48:24 UTC 2026
+====================================================
+
+===== PRECHECK =====
+V2_ID=1
+current origin=http://127.0.0.1:8088
+nginx=active
+php8.3-fpm=active
+mariadb=active
+load1=0.00
+public-IP self :443=0
+
+===== INSTALL SHADOW CACHED LOOPBACK 8089 =====
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+waiting for nginx to activate 127.0.0.1:8089...
+8089 listener: READY
+LISTEN 0      511        127.0.0.1:8089      0.0.0.0:*          
+
+===== PARITY: CURRENT 8088 VS CACHED 8089 =====
+/api/v1/settings                                                     8088=200/182ms 8089=200/130ms cache=MISS PASS
+/api/v1/restaurant                                                   8088=200/123ms 8089=200/96ms cache=MISS PASS
+/api/v1/categories                                                   8088=200/126ms 8089=200/111ms cache=MISS PASS
+/api/v1/menu                                                         8088=200/152ms 8089=200/143ms cache=MISS PASS
+/api/v1/menu-content-translations                                    8088=200/137ms 8089=200/126ms cache=MISS PASS
+/api/v1/frontend-theme-v2                                            8088=200/120ms 8089=200/127ms cache=MISS PASS
+/api/v1/payments                                                     8088=200/284ms 8089=200/283ms cache=BYPASS PASS
+/api/v1/payments/worldline/runtime-methods                           8088=200/141ms 8089=200/118ms cache=BYPASS PASS
+/api/v1/vat-settings                                                 8088=200/111ms 8089=200/121ms cache=MISS PASS
+/api/v1/tip-settings                                                 8088=404/130ms 8089=404/135ms cache=MISS PASS
+/api/v1/table-info?table_id=1&table_no=1&qr_code=ms1VGx2MT           8088=200/121ms 8089=200/120ms cache=BYPASS PASS
+/api/v1/table-order-draft?table_id=1&table_no=1&qr=ms1VGx2MT         8088=200/123ms 8089=200/126ms cache=BYPASS PASS
+/vat-settings                                                        8088=404 8089=404 PASS
+/simple-theme                                                        8088=404 8089=404 PASS
+PARITY GATE: PASS
+
+===== CACHE BEHAVIOR PROOF =====
+first  HTTP=200 cache=MISS
+second HTTP=200 cache=HIT
+table-info HTTP=200 cache=BYPASS
+CACHE POLICY GATE: PASS
+
+===== SWITCH V2 TO CACHED LOOPBACK 8089 =====
+[PM2] Applying action restartProcessId on app [paymydine-frontend-v2](ids: [ 1 ])
+[PM2] [paymydine-frontend-v2](1) ✓
+┌────┬──────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                     │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ paymydine-frontend-v2    │ default     │ N/A     │ fork    │ 2422216  │ 0s     │ 5    │ online    │ 0%       │ 24.5mb   │ ubuntu   │ disabled │
+│ 0  │ paymydine-landing        │ default     │ N/A     │ fork    │ 2413766  │ 4h     │ 0    │ online    │ 0%       │ 57.6mb   │ ubuntu   │ disabled │
+└────┴──────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/ubuntu/.pm2/dump.pm2
+V2_ID=1
+new origin=http://127.0.0.1:8089
+
+===== REAL SSR FUNCTIONAL GATE =====
+test2.paymydine.com          HTTP=200 time=1.207s bytes=29417 PASS
+mimoza.paymydine.com         HTTP=200 time=0.683s bytes=39376 PASS
+loumi.paymydine.com          HTTP=200 time=0.480s bytes=27101 PASS
+moon.paymydine.com           HTTP=200 time=2.570s bytes=41693 PASS
+tomo.paymydine.com           HTTP=200 time=3.045s bytes=64339 PASS
+SSR FUNCTIONAL GATE: PASS
+public-IP Node self requests=0
+
+===== START READ-ONLY CAPACITY VALIDATION =====
+Known V4 baseline: MIX c8 p95=6797ms; QR c16 p95=7335ms
+V5 safety: any 5xx/transport error hard-stops.
+
+--- MIX V5 ---
+MIX c=4  req=48  bad=0   5xx=0   err=0  p50=1824ms p95=3086ms max=3198ms rps=2.22 PASS
+MIX c=8  req=48  bad=0   5xx=0   err=0  p50=3361ms p95=5338ms max=6737ms rps=2.22 PASS
+MIX c=12 req=48  bad=1   5xx=0   err=1  p50=6006ms p95=10337ms max=12027ms rps=1.67 FAIL
+HARD STOP: 5xx/transport error
+
+====================================================
+PMD CACHE V5 FAILED - SAFE ROLLBACK
+====================================================
+Restoring V2 origin to http://127.0.0.1:8088
+[PM2] Applying action restartProcessId on app [paymydine-frontend-v2](ids: [ 1 ])
+[PM2] [paymydine-frontend-v2](1) ✓
+┌────┬──────────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                     │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 1  │ paymydine-frontend-v2    │ default     │ N/A     │ fork    │ 2423413  │ 0s     │ 6    │ online    │ 0%       │ 22.1mb   │ ubuntu   │ disabled │
+│ 0  │ paymydine-landing        │ default     │ N/A     │ fork    │ 2413766  │ 4h     │ 0    │ online    │ 0%       │ 58.1mb   │ ubuntu   │ disabled │
+└────┴──────────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/ubuntu/.pm2/dump.pm2
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+ROLLBACK COMPLETE
+backup=/var/www/paymydine/storage/pmd-cache-v5-20260911_104824
