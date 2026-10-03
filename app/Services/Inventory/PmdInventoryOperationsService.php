@@ -165,6 +165,46 @@ final class PmdInventoryOperationsService
         $transfers = $this->recentTransfers($locationId, $storageById);
         $preparations = $this->preparations($locationId);
 
+        // Add audit / PO metadata to the existing recent-purchase contract.
+        $recentPurchases = is_array($snapshot['recent_purchases'] ?? null)
+            ? $snapshot['recent_purchases']
+            : [];
+        $receiptIds = array_values(array_filter(array_map(
+            static fn ($row) => (int)($row['id'] ?? 0),
+            $recentPurchases
+        )));
+        $receiptMeta = $receiptIds
+            ? DB::table('pmd_inventory_receipts')
+                ->where('location_id', $locationId)
+                ->whereIn('id', $receiptIds)
+                ->get([
+                    'id',
+                    'invoice_number',
+                    'purchase_order_id',
+                    'storage_location_id',
+                    'document_fingerprint',
+                    'reversed_at',
+                    'reversed_by',
+                ])
+                ->keyBy('id')
+            : collect();
+
+        foreach ($recentPurchases as &$purchase) {
+            $meta = $receiptMeta->get((int)($purchase['id'] ?? 0));
+            $purchase['invoice_number'] = (string)($meta->invoice_number ?? '');
+            $purchase['purchase_order_id'] = (int)($meta->purchase_order_id ?? 0);
+            $purchase['storage_location_id'] = (int)($meta->storage_location_id ?? 0);
+            $purchase['storage_name'] = (string)(
+                $storageById[(int)($meta->storage_location_id ?? 0)]['name'] ?? ''
+            );
+            $purchase['reversed_at'] = !empty($meta->reversed_at)
+                ? (string)$meta->reversed_at
+                : null;
+            $purchase['reversed_by'] = (int)($meta->reversed_by ?? 0);
+        }
+        unset($purchase);
+        $snapshot['recent_purchases'] = $recentPurchases;
+
         $itemRows = is_array($snapshot['items'] ?? null) ? $snapshot['items'] : [];
         $mappedItems = 0;
         $expiryRiskLots = 0;
