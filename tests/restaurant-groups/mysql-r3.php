@@ -35,6 +35,16 @@ namespace {
         if(!$root||!is_file($root.'/vendor/autoload.php')||!is_file($root.'/.env'))throw new \RuntimeException('Application root, vendor dependencies and .env are required.');
         if(!extension_loaded('pdo_mysql'))throw new \RuntimeException('pdo_mysql is required.');
         $loader=require $root.'/vendor/autoload.php';
+        $classMap=[];
+        foreach(glob($bundle.'/app/Services/RestaurantGroups/*.php') as $file) {
+            $class='App\\Services\\RestaurantGroups\\'.basename($file,'.php');
+            if($class===Auth::class) continue; // Auth is the deliberate fixture above.
+            if(class_exists($class,false)) throw new \RuntimeException('A group class was already loaded outside the pinned test bundle.');
+            $classMap[$class]=$file;
+        }
+        // Optimized Composer class maps take precedence over PSR-4 prefixes.
+        // Override those entries so the test cannot silently execute VPS code.
+        $loader->addClassMap($classMap);
         $loader->addPsr4('App\\Services\\RestaurantGroups\\',$bundle.'/app/Services/RestaurantGroups/',true);
         \Dotenv\Dotenv::createImmutable($root)->safeLoad();
         $env=static fn(string $key,$fallback=null)=>$_ENV[$key]??$_SERVER[$key]??$fallback;
@@ -53,7 +63,7 @@ namespace {
             $created[]=$name;$names[$i]=$name;
         }
         echo 'Created fresh test databases: '.implode(', ',$names).PHP_EOL;
-        $container=new Container();Container::setInstance($container);Facade::setFacadeApplication($container);
+        $container=new Container();Container::setInstance($container);Facade::setFacadeApplication($container);Facade::clearResolvedInstances();
         $base=['driver'=>'mysql','host'=>$host,'port'=>$port,'username'=>$user,'password'=>$password,'unix_socket'=>$socket,
             'charset'=>'utf8mb4','collation'=>'utf8mb4_unicode_ci','prefix'=>'ti_','strict'=>true];
         $centralConfig=$base+['database'=>$names[0]];
@@ -113,9 +123,12 @@ namespace {
         $failures++;$reason=$e->getMessage();
         foreach(array_filter([$password??'', $user??'', $host??''],static fn($v)=>$v!=='') as $sensitive) $reason=str_replace($sensitive,'[redacted]',$reason);
         fwrite(STDERR,'HARNESS ERROR ['.get_class($e).']: '.$reason.'. No production schema was selected.'.PHP_EOL);
-        // Do not print exception messages: driver errors can contain host/user details.
+        // No raw exception trace or unredacted driver credentials are printed.
     } finally {
-        if($capsule)foreach(array_keys($capsule->getDatabaseManager()->getConnections()) as $name)$capsule->getDatabaseManager()->disconnect($name);
+        if($capsule)foreach(array_keys($capsule->getDatabaseManager()->getConnections()) as $connectionName) {
+            try { $capsule->getDatabaseManager()->disconnect($connectionName); }
+            catch(\Throwable $e) { $failures++;fwrite(STDERR,'A test connection could not close; continuing generated-database cleanup.'.PHP_EOL); }
+        }
         foreach(array_reverse($created) as $name) {
             try { $admin->exec('DROP DATABASE `'.$name.'`');echo 'Removed test database: '.$name.PHP_EOL; }
             catch(\Throwable $e) { $failures++;fwrite(STDERR,'Cleanup failed for test database '.$name.'. Ask the database administrator to remove only this generated database.'.PHP_EOL); }
