@@ -800,8 +800,24 @@ final class PmdInventoryControlService
         }
 
         $supplier = trim((string)($data['supplier_name'] ?? ''));
+        $supplierId = max(0, (int)($data['supplier_id'] ?? 0));
+        $purchaseOrderId = max(0, (int)($data['purchase_order_id'] ?? 0));
+        $storageLocationId = max(0, (int)($data['storage_location_id'] ?? 0));
         $purchasedAt = $this->date((string)($data['purchased_at'] ?? now()->toDateString()));
         $receiptId = max(0, (int)($data['receipt_id'] ?? 0));
+        $requestedSource = trim((string)($data['source'] ?? 'manual'));
+
+        // Weighted average costing needs the expected on-hand quantity before
+        // this receipt is posted. Build it once, never once per line.
+        $expectedByItem = [];
+        try {
+            $before = $this->snapshot($locationId);
+            foreach ((array)($before['items'] ?? []) as $row) {
+                $expectedByItem[(int)($row['id'] ?? 0)] = max(0, (float)($row['estimated_on_hand'] ?? 0));
+            }
+        } catch (\Throwable $ignored) {
+            $expectedByItem = [];
+        }
 
         return DB::transaction(function () use (
             $locationId,
@@ -809,15 +825,23 @@ final class PmdInventoryControlService
             $data,
             $lines,
             $supplier,
+            $supplierId,
+            $purchaseOrderId,
+            $storageLocationId,
             $purchasedAt,
-            $receiptId
+            $receiptId,
+            $requestedSource,
+            &$expectedByItem
         ) {
-            $source = $receiptId > 0 ? 'ai_receipt' : 'manual';
+            $source = $receiptId > 0
+                ? 'ai_receipt'
+                : ($requestedSource !== '' ? mb_substr($requestedSource, 0, 40) : 'manual');
 
             if ($receiptId > 0) {
                 $receipt = DB::table('pmd_inventory_receipts')
                     ->where('location_id', $locationId)
                     ->where('id', $receiptId)
+                    ->lockForUpdate()
                     ->first();
                 if (!$receipt) {
                     throw new InvalidArgumentException('Receipt review was not found.');
@@ -825,18 +849,37 @@ final class PmdInventoryControlService
                 if (!empty($receipt->confirmed_at)) {
                     throw new InvalidArgumentException('This supplier bill has already been added to stock.');
                 }
+                if (!empty($receipt->reversed_at)) {
+                    throw new InvalidArgumentException('This supplier bill is already reversed.');
+                }
             } else {
-                $receiptId = (int)DB::table('pmd_inventory_receipts')->insertGetId([
+                $receiptInsert = [
                     'location_id' => $locationId,
                     'supplier_name' => $supplier ?: null,
                     'purchased_at' => $purchasedAt,
-                    'source' => 'manual',
+                    'source' => $source,
                     'ai_status' => 'not_requested',
                     'total_amount' => 0,
                     'created_by' => $staffId,
                     'created_at' => now(),
                     'updated_at' => now(),
-                ]);
+                ];
+                if (Schema::hasColumn('pmd_inventory_receipts', 'purchase_order_id')) {
+                    $receiptInsert['purchase_order_id'] = $purchaseOrderId > 0 ? $purchaseOrderId : null;
+                }
+                if (Schema::hasColumn('pmd_inventory_receipts', 'storage_location_id')) {
+                    $receiptInsert['storage_location_id'] = $storageLocationId > 0 ? $storageLocationId : null;
+                }
+                if (Schema::hasColumn('pmd_inventory_receipts', 'invoice_number')) {
+                    $receiptInsert['invoice_number'] = $this->nullableText($data['invoice_number'] ?? null, 120);
+                }
+
+                $receiptId = (int)DB::table('pmd_inventory_receipts')->insertGetId($receiptInsert);
+            }
+
+            $operations = app(PmdInventoryOperationsService::class);
+            if ($storageLocationId < 1 && $operations->ready()) {
+                $storageLocationId = $operations->defaultStorageId($locationId);
             }
 
             $total = 0.0;
@@ -851,8 +894,27 @@ final class PmdInventoryControlService
                 }
 
                 $itemId = max(0, (int)($line['item_id'] ?? 0));
+                $identifierId = max(0, (int)($line['identifier_id'] ?? 0));
+                $purchaseOrderLineId = max(0, (int)($line['purchase_order_line_id'] ?? 0));
+                $identifier = null;
+
+                if ($identifierId > 0 && Schema::hasTable('pmd_inventory_identifiers')) {
+                    $identifier = DB::table('pmd_inventory_identifiers')
+                        ->where('location_id', $locationId)
+                        ->where('id', $identifierId)
+                        ->where('active', 1)
+                        ->first();
+                    if ($identifier) {
+                        $itemId = (int)$identifier->item_id;
+                    }
+                }
+
                 $name = trim((string)($line['item_name'] ?? ''));
-                $unit = $this->unit($line['unit'] ?? 'piece');
+                $unit = $this->unit(
+                    $identifier
+                        ? $identifier->package_unit
+                        : ($line['unit'] ?? 'piece')
+                );
                 $unitCost = max(0, $this->number($line['unit_cost'] ?? 0, 0));
 
                 if ($itemId < 1) {
@@ -867,27 +929,8 @@ final class PmdInventoryControlService
                         ->first();
 
                     if ($existing) {
-                        $baseUnit = strtolower((string)$existing->base_unit);
-                        $purchaseUnit = strtolower((string)($existing->purchase_unit ?? $existing->base_unit));
-                        $lineUnit = strtolower($unit);
-
-                        if ($lineUnit !== $baseUnit && $lineUnit !== $purchaseUnit) {
-                            throw new InvalidArgumentException(
-                                'Purchase unit for '.$name.' must be '.$existing->base_unit.
-                                ($purchaseUnit !== $baseUnit ? ' or '.($existing->purchase_unit ?? $existing->base_unit) : '').
-                                '.'
-                            );
-                        }
-                    }
-
-                    if ($existing) {
                         $itemId = (int)$existing->id;
                     } else {
-                        // PMD_INVENTORY_PURCHASE_CATALOG_R7
-                        // When a first supplier purchase matches the global
-                        // catalogue, preserve useful recipe units automatically.
-                        // Example: 5 kg tomatoes becomes a stock item tracked in
-                        // grams and purchased in kg (1 kg = 1000 g).
                         $catalog = PmdInventoryStockCatalog::bestMatch($name);
                         $catalogBaseUnit = $catalog
                             ? $this->unit($catalog['unit'] ?? $unit)
@@ -918,31 +961,23 @@ final class PmdInventoryControlService
 
                         $newBaseUnit = $useCatalogUnits ? $catalogBaseUnit : $unit;
                         $newPurchaseUnit = $useCatalogUnits ? $catalogPurchaseUnit : $unit;
-                        $newFactor = $useCatalogUnits ? ($catalogFactor ?? 1.0) : 1.0;
+                        $explicitFactor = $this->number($line['base_quantity_per_unit'] ?? 0, 0);
+                        $newFactor = $explicitFactor > 0
+                            ? $explicitFactor
+                            : ($useCatalogUnits ? ($catalogFactor ?? 1.0) : 1.0);
                         $newBaseCost = $unitCost;
 
                         if (
-                            $useCatalogUnits
-                            && strtolower($unit) === strtolower($newPurchaseUnit)
+                            strtolower($unit) === strtolower($newPurchaseUnit)
                             && $newFactor > 0
                         ) {
                             $newBaseCost = $unitCost / $newFactor;
                         }
 
-                        $itemId = (int)DB::table('pmd_inventory_items')->insertGetId([
+                        $newItem = [
                             'location_id' => $locationId,
                             'name' => mb_substr($name, 0, 190),
-                            // PMD_INVENTORY_BARCODE_RECEIVING_R23
-                            // A newly received item may be born from a barcode/QR scan.
-                            // Keep that code on the stock item so the next scan resolves instantly.
-                            'sku' => $this->nullableText(
-                                $line['barcode'] ?? $line['sku'] ?? null,
-                                120
-                            ),
-                            // PMD_INVENTORY_INLINE_PURCHASE_R19
-                            // A custom item created directly from the Purchases
-                            // workspace may provide a reviewed category. Global
-                            // catalogue metadata still wins when available.
+                            'sku' => $this->nullableText($line['sku'] ?? null, 120),
                             'category' => $catalog['category']
                                 ?? $this->nullableText($line['category'] ?? null, 100),
                             'base_unit' => $newBaseUnit,
@@ -956,13 +991,29 @@ final class PmdInventoryControlService
                             'created_by' => $staffId,
                             'created_at' => now(),
                             'updated_at' => now(),
-                        ]);
+                        ];
+                        if (Schema::hasColumn('pmd_inventory_items', 'safety_stock')) {
+                            $newItem['safety_stock'] = 0;
+                        }
+                        if (Schema::hasColumn('pmd_inventory_items', 'default_storage_location_id')) {
+                            $newItem['default_storage_location_id'] = $storageLocationId > 0 ? $storageLocationId : null;
+                        }
+                        if (Schema::hasColumn('pmd_inventory_items', 'yield_percent')) {
+                            $newItem['yield_percent'] = 100;
+                        }
+                        if (Schema::hasColumn('pmd_inventory_items', 'track_expiry')) {
+                            $newItem['track_expiry'] = !empty($line['expiry_date']);
+                        }
+
+                        $itemId = (int)DB::table('pmd_inventory_items')->insertGetId($newItem);
+                        $expectedByItem[$itemId] = 0.0;
                     }
                 }
 
                 $item = DB::table('pmd_inventory_items')
                     ->where('location_id', $locationId)
                     ->where('id', $itemId)
+                    ->where('active', 1)
                     ->first();
                 if (!$item) {
                     throw new InvalidArgumentException('A purchase line references an unavailable stock item.');
@@ -972,11 +1023,19 @@ final class PmdInventoryControlService
                 $purchaseUnit = strtolower((string)($item->purchase_unit ?? $item->base_unit));
                 $purchaseToBase = max(0.0001, (float)($item->purchase_to_base ?? 1));
                 $lineUnit = strtolower($unit);
+                $explicitFactor = max(0, $this->number($line['base_quantity_per_unit'] ?? 0, 0));
 
-                if ($lineUnit === $baseUnit) {
+                if ($identifier && (int)$identifier->item_id === $itemId) {
+                    $factor = max(0.0001, (float)$identifier->base_quantity);
+                    $unit = $this->unit($identifier->package_unit);
+                } elseif ($explicitFactor > 0 && $purchaseOrderLineId > 0) {
+                    $factor = $explicitFactor;
+                } elseif ($lineUnit === $baseUnit) {
                     $factor = 1.0;
                 } elseif ($lineUnit === $purchaseUnit) {
                     $factor = $purchaseToBase;
+                } elseif ($explicitFactor > 0 && !empty($line['barcode'])) {
+                    $factor = $explicitFactor;
                 } else {
                     throw new InvalidArgumentException(
                         'Purchase unit for '.$item->name.' must be '.$item->base_unit.
@@ -986,47 +1045,117 @@ final class PmdInventoryControlService
                 }
 
                 $baseQty = $qty * $factor;
-                $effectiveCost = $unitCost > 0
+                $incomingBaseCost = $unitCost > 0
                     ? ($unitCost / $factor)
                     : max(0, (float)$item->unit_cost);
+
+                $oldCost = max(0, (float)$item->unit_cost);
+                $oldQty = max(0, (float)($expectedByItem[$itemId] ?? 0));
+                $newCost = $incomingBaseCost;
+                if ($oldQty > 0 && $incomingBaseCost > 0) {
+                    $newCost = (($oldQty * $oldCost) + ($baseQty * $incomingBaseCost))
+                        / max(0.0001, $oldQty + $baseQty);
+                } elseif ($incomingBaseCost <= 0) {
+                    $newCost = $oldCost;
+                }
 
                 DB::table('pmd_inventory_items')
                     ->where('id', $itemId)
                     ->update([
-                        'unit_cost' => round($effectiveCost, 6),
+                        'unit_cost' => round($newCost, 6),
                         'supplier_name' => $supplier ?: $item->supplier_name,
                         'updated_at' => now(),
                     ]);
+
+                $lineForOps = $line;
+                $lineForOps['base_quantity_per_unit'] = $factor;
+                $lotId = $operations->recordPurchaseLine(
+                    $locationId,
+                    $staffId,
+                    $itemId,
+                    $receiptId,
+                    $lineForOps,
+                    $baseQty,
+                    $incomingBaseCost,
+                    $oldCost,
+                    $newCost,
+                    $storageLocationId > 0 ? $storageLocationId : null,
+                    $supplierId > 0 ? $supplierId : null
+                );
 
                 $this->movement(
                     $locationId,
                     $itemId,
                     'PURCHASE',
                     $baseQty,
-                    $effectiveCost,
+                    $incomingBaseCost,
                     $staffId,
                     null,
                     null,
                     'purchase_receipt',
                     $receiptId,
-                    $purchasedAt.' '.now()->format('H:i:s')
+                    $purchasedAt.' '.now()->format('H:i:s'),
+                    $storageLocationId > 0 ? $storageLocationId : null,
+                    $lotId,
+                    $purchaseOrderLineId > 0 ? $purchaseOrderLineId : null
                 );
 
-                $total += $qty * ($unitCost > 0 ? $unitCost : ($effectiveCost * $factor));
+                // Upgrade legacy or newly scanned codes into the normalized
+                // identifier table. The package conversion is kept with code.
+                $barcode = trim((string)($line['barcode'] ?? ''));
+                if ($barcode !== '' && $operations->ready()) {
+                    try {
+                        $operations->saveIdentifier(
+                            $locationId,
+                            $staffId,
+                            [
+                                'item_id' => $itemId,
+                                'code' => $barcode,
+                                'code_type' => 'auto',
+                                'package_unit' => $unit,
+                                'package_quantity' => 1,
+                                'base_quantity' => $factor,
+                                'supplier_id' => $supplierId,
+                                'source' => 'purchase',
+                                'is_primary' => empty($item->sku),
+                            ]
+                        );
+                    } catch (\Throwable $ignored) {
+                        // A purchase must not fail merely because an optional
+                        // product identifier is already mapped.
+                    }
+                }
+
+                $expectedByItem[$itemId] = $oldQty + $baseQty;
+                $total += $qty * ($unitCost > 0 ? $unitCost : ($incomingBaseCost * $factor));
+            }
+
+            $receiptUpdate = [
+                'supplier_name' => $supplier ?: null,
+                'purchased_at' => $purchasedAt,
+                'source' => $source,
+                'total_amount' => round($total, 4),
+                'ai_status' => $source === 'ai_receipt' ? 'confirmed' : 'not_requested',
+                'confirmed_at' => now(),
+                'updated_at' => now(),
+            ];
+            if (Schema::hasColumn('pmd_inventory_receipts', 'purchase_order_id')) {
+                $receiptUpdate['purchase_order_id'] = $purchaseOrderId > 0 ? $purchaseOrderId : null;
+            }
+            if (Schema::hasColumn('pmd_inventory_receipts', 'storage_location_id')) {
+                $receiptUpdate['storage_location_id'] = $storageLocationId > 0 ? $storageLocationId : null;
+            }
+            if (Schema::hasColumn('pmd_inventory_receipts', 'invoice_number')) {
+                $invoice = $this->nullableText($data['invoice_number'] ?? null, 120);
+                if ($invoice !== null) {
+                    $receiptUpdate['invoice_number'] = $invoice;
+                }
             }
 
             DB::table('pmd_inventory_receipts')
                 ->where('id', $receiptId)
                 ->where('location_id', $locationId)
-                ->update([
-                    'supplier_name' => $supplier ?: null,
-                    'purchased_at' => $purchasedAt,
-                    'source' => $source,
-                    'total_amount' => round($total, 4),
-                    'ai_status' => $receiptId > 0 && $source === 'ai_receipt' ? 'confirmed' : 'not_requested',
-                    'confirmed_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                ->update($receiptUpdate);
 
             return $receiptId;
         });
