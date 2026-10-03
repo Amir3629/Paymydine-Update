@@ -43,7 +43,7 @@ final class PmdInventoryOperationsService
         return true;
     }
 
-    public function snapshot(int $locationId): array
+    public function snapshot(int $locationId, array $inventoryRows = []): array
     {
         $locationId = $this->location($locationId);
         if (!$this->ready()) {
@@ -208,6 +208,12 @@ final class PmdInventoryOperationsService
                 'status' => (string)$row->status,
             ])
             ->all();
+
+        // FEFO projection: theoretical sales usage lives in the core stock
+        // engine instead of movement rows. Project that depletion onto the
+        // oldest-expiring received lots first so expiry exposure reflects the
+        // current expected stock instead of the original received quantity.
+        $batches = $this->projectFefoRemaining($batches, $inventoryRows);
 
         $expiryDays = max(1, (int)($settings['expiry_alert_days'] ?? 3));
         $expiryLimit = now()->copy()->addDays($expiryDays)->toDateString();
@@ -1236,6 +1242,65 @@ final class PmdInventoryOperationsService
             'expiry_alert_days' => (int)($row->expiry_alert_days ?? 3),
             'notifications_enabled' => (bool)($row->notifications_enabled ?? true),
         ];
+    }
+
+    private function projectFefoRemaining(array $batches, array $inventoryRows): array
+    {
+        if (!$batches || !$inventoryRows) {
+            return $batches;
+        }
+
+        $expectedByItem = [];
+        foreach ($inventoryRows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $itemId = (int)($row['id'] ?? 0);
+            if ($itemId > 0) {
+                $expectedByItem[$itemId] = max(0, (float)($row['estimated_on_hand'] ?? 0));
+            }
+        }
+
+        $indicesByItem = [];
+        foreach ($batches as $index => $batch) {
+            $itemId = (int)($batch['item_id'] ?? 0);
+            if ($itemId > 0) {
+                $indicesByItem[$itemId][] = $index;
+            }
+        }
+
+        foreach ($indicesByItem as $itemId => $indices) {
+            if (!array_key_exists($itemId, $expectedByItem)) {
+                continue;
+            }
+
+            $recorded = 0.0;
+            foreach ($indices as $index) {
+                $recorded += max(0, (float)($batches[$index]['qty_remaining'] ?? 0));
+            }
+
+            $depleted = max(0, $recorded - $expectedByItem[$itemId]);
+
+            // Query ordering is expiry first, so depletion is assigned FEFO.
+            foreach ($indices as $index) {
+                $raw = max(0, (float)($batches[$index]['qty_remaining'] ?? 0));
+                $batches[$index]['recorded_qty_remaining'] = round($raw, 4);
+
+                if ($depleted <= 0) {
+                    $batches[$index]['qty_remaining'] = round($raw, 4);
+                    continue;
+                }
+
+                $consume = min($raw, $depleted);
+                $batches[$index]['qty_remaining'] = round(max(0, $raw - $consume), 4);
+                $depleted -= $consume;
+            }
+        }
+
+        return array_values(array_filter(
+            $batches,
+            static fn ($batch) => (float)($batch['qty_remaining'] ?? 0) > 0.00005
+        ));
     }
 
     private function purchaseOrders(int $locationId): array
