@@ -357,6 +357,8 @@ final class PmdInventoryProService
         $packageQuantity = max(0.0001, $this->number($data['package_quantity'] ?? 1, 1));
         $baseQuantity = max(0.0001, $this->number($data['base_quantity'] ?? $item->purchase_to_base ?? 1, 1));
         $unitPrice = round(max(0, $this->number($data['unit_price'] ?? 0)), 4);
+        $minOrderQty = max(0.0001, $this->number($data['min_order_qty'] ?? 1, 1));
+        $orderMultiple = max(0.0001, $this->number($data['order_multiple'] ?? 1, 1));
         $currency = $this->currency($data['currency'] ?? $supplier->currency ?? 'EUR');
         $supplierSku = $this->nullableText($data['supplier_sku'] ?? null, 120);
         $gtin = $this->nullableText($data['gtin'] ?? null, 190);
@@ -379,6 +381,8 @@ final class PmdInventoryProService
             'package_quantity' => round($packageQuantity, 4),
             'base_quantity' => round($baseQuantity, 4),
             'unit_price' => $unitPrice,
+            'min_order_qty' => round($minOrderQty, 4),
+            'order_multiple' => round($orderMultiple, 4),
             'currency' => $currency,
             'is_preferred' => $isPreferred ? 1 : 0,
             'active' => 1,
