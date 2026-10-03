@@ -18,6 +18,7 @@
   var cameraRunning = false;
   var lastCameraCode = '';
   var lastCameraAt = 0;
+  var bulkImportRows = [];
 
   function esc(value) {
     return String(value == null ? '' : value)
@@ -226,6 +227,8 @@
     setSelect('[data-r24-si-supplier]', supplierOptions('', 'Choose supplier'), true);
     setSelect('[data-r24-si-item]', itemOptions('', 'Choose stock item'), true);
     setSelect('[data-r24-po-supplier]', supplierOptions('', 'Choose supplier'), true);
+    setSelect('[data-r24-merge-target]', itemOptions('', 'Item to keep'), true);
+    setSelect('[data-r24-merge-source]', itemOptions('', 'Duplicate to archive'), true);
 
     var identifiers = Array.isArray(ops().identifiers) ? ops().identifiers : [];
     var idHost = workspace.querySelector('[data-r24-identifier-list]');
@@ -583,6 +586,78 @@
     renderReports();
   }
 
+  function parseCsv(textValue) {
+    var text = String(textValue || '').replace(/^\uFEFF/, '');
+    var rows = [];
+    var row = [];
+    var field = '';
+    var quoted = false;
+
+    for (var i = 0; i < text.length; i += 1) {
+      var ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else if (ch === '"') {
+          quoted = false;
+        } else {
+          field += ch;
+        }
+      } else if (ch === '"') {
+        quoted = true;
+      } else if (ch === ',') {
+        row.push(field);
+        field = '';
+      } else if (ch === '\n') {
+        row.push(field.replace(/\r$/, ''));
+        rows.push(row);
+        row = [];
+        field = '';
+      } else {
+        field += ch;
+      }
+    }
+
+    if (field !== '' || row.length) {
+      row.push(field.replace(/\r$/, ''));
+      rows.push(row);
+    }
+    return rows.filter(function (line) {
+      return line.some(function (cell) { return String(cell || '').trim() !== ''; });
+    });
+  }
+
+  function normalizeCsvHeader(value) {
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+  }
+
+  function csvObjects(textValue) {
+    var rows = parseCsv(textValue);
+    if (rows.length < 2) return [];
+    var headers = rows[0].map(normalizeCsvHeader);
+    return rows.slice(1).map(function (row) {
+      var out = {};
+      headers.forEach(function (key, index) {
+        if (key) out[key] = String(row[index] == null ? '' : row[index]).trim();
+      });
+      return out;
+    }).filter(function (row) {
+      return String(row.name || row.item_name || '').trim() !== '';
+    });
+  }
+
+  function setImportStatus(message, error) {
+    var host = workspace.querySelector('[data-r24-import-status]');
+    if (!host) return;
+    host.textContent = String(message || '');
+    host.classList.toggle('is-error', Boolean(error));
+  }
+
   function csvCell(value) {
     var text = String(value == null ? '' : value);
     return '"' + text.replace(/"/g, '""') + '"';
@@ -818,6 +893,55 @@
       return;
     }
 
+    if (event.target.closest('[data-r24-download-template]')) {
+      downloadCsv('paymydine-inventory-import-template.csv', [
+        [
+          'name','category','base_unit','purchase_unit','purchase_to_base',
+          'purchase_cost','reorder_point','par_level','safety_stock',
+          'lead_time_days','minimum_order_qty','order_multiple','supplier_name',
+          'barcode','package_unit','package_quantity','base_quantity',
+          'expiry_tracking','costing_method','image_url'
+        ],
+        [
+          'Vodka 700ml','Spirits','ml','bottle','700',
+          '12.50','1400','4200','700',
+          '1','1','1','Supplier name',
+          '4000000000000','bottle','1','700',
+          '0','weighted_average',''
+        ]
+      ]);
+      return;
+    }
+
+    if (event.target.closest('[data-r24-run-import]')) {
+      if (!bulkImportRows.length) {
+        setImportStatus('Choose a CSV file first.', true);
+        return;
+      }
+      var run = workspace.querySelector('[data-r24-run-import]');
+      if (run) run.disabled = true;
+      setImportStatus('Importing ' + bulkImportRows.length + ' rows…', false);
+      action('onBulkImportInventory', {rows:bulkImportRows}, null)
+        .then(function (json) {
+          var result = json && json.import ? json.import : {};
+          var errors = Array.isArray(result.errors) ? result.errors : [];
+          setImportStatus(
+            'Created ' + Number(result.created || 0) +
+            ' · updated ' + Number(result.updated || 0) +
+            (errors.length ? ' · ' + errors.length + ' row error(s): ' +
+              errors.slice(0,3).map(function (row) { return 'row ' + row.row + ' ' + row.message; }).join(' | ') : ''),
+            errors.length > 0
+          );
+          bulkImportRows = [];
+          var input = workspace.querySelector('[data-r24-import-file]');
+          if (input) input.value = '';
+        })
+        .finally(function () {
+          if (run) run.disabled = !bulkImportRows.length;
+        });
+      return;
+    }
+
     if (event.target.closest('[data-r24-export-stock]')) {
       exportStock();
       return;
@@ -843,6 +967,39 @@
   });
 
   workspace.addEventListener('change', function (event) {
+    if (event.target.matches('[data-r24-import-file]')) {
+      var file = event.target.files && event.target.files[0];
+      var runImport = workspace.querySelector('[data-r24-run-import]');
+      bulkImportRows = [];
+      if (runImport) runImport.disabled = true;
+      if (!file) {
+        setImportStatus('', false);
+        return;
+      }
+
+      var readPromise = typeof file.text === 'function'
+        ? file.text()
+        : new Promise(function (resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function () { resolve(String(reader.result || '')); };
+            reader.onerror = reject;
+            reader.readAsText(file);
+          });
+
+      readPromise.then(function (textValue) {
+        bulkImportRows = csvObjects(textValue).slice(0,500);
+        if (!bulkImportRows.length) {
+          setImportStatus('No importable rows found. The first CSV row must contain column names and every data row needs name or item_name.', true);
+          return;
+        }
+        if (runImport) runImport.disabled = false;
+        setImportStatus('Ready to import / update ' + bulkImportRows.length + ' item(s).', false);
+      }).catch(function () {
+        setImportStatus('Could not read this CSV file.', true);
+      });
+      return;
+    }
+
     if (event.target.matches('[data-r24-purchase-supplier-id]')) {
       var suppliers = Array.isArray(ops().suppliers) ? ops().suppliers : [];
       var row = suppliers.find(function (supplier) {
@@ -877,6 +1034,30 @@
 
   workspace.addEventListener('submit', function (event) {
     var form = event.target;
+
+    if (form.matches('[data-r24-merge-form]')) {
+      event.preventDefault();
+      var targetId = Number((form.querySelector('[data-r24-merge-target]') || {}).value || 0);
+      var sourceId = Number((form.querySelector('[data-r24-merge-source]') || {}).value || 0);
+      if (!targetId || !sourceId || targetId === sourceId) {
+        toast('Choose two different stock items.', true);
+        return;
+      }
+      var targetItem = items().find(function (row) { return Number(row.id) === targetId; });
+      var sourceItem = items().find(function (row) { return Number(row.id) === sourceId; });
+      var message = 'Merge "' + (sourceItem ? sourceItem.name : 'duplicate') +
+        '" into "' + (targetItem ? targetItem.name : 'target') +
+        '"? The duplicate will be archived and its full history will move to the kept item.';
+      if (!window.confirm(message)) return;
+      action('onMergeInventoryItems', {
+        source_item_id:sourceId,
+        target_item_id:targetId
+      }, 'Duplicate stock item merged and archived.').then(function () {
+        form.reset();
+        renderAll();
+      });
+      return;
+    }
 
     if (form.matches('[data-r24-supplier-form]')) {
       event.preventDefault();
