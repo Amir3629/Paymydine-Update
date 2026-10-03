@@ -402,18 +402,43 @@
                                 placeholder="Scan now, or type a code and press Enter"
                                 data-r19-barcode-input>
                         </label>
-                        <small class="pmd-inv-r23-barcode__hint">Works with common USB/Bluetooth keyboard-mode scanners. The scanner should send Enter after each code.</small>
+                        <div class="pmd-inv-r24-barcode-tools">
+                            <small class="pmd-inv-r23-barcode__hint">USB/Bluetooth HID scanners work directly. Camera scanning uses the browser BarcodeDetector when the device supports it.</small>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-barcode-camera>Use camera</button>
+                        </div>
+                        <div class="pmd-inv-r24-camera" data-r24-barcode-camera-panel hidden>
+                            <video playsinline muted data-r24-barcode-video></video>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-barcode-camera-stop>Stop camera</button>
+                        </div>
                         <div class="pmd-inv-r23-barcode__status" data-r19-barcode-status aria-live="polite"></div>
-                        <div class="pmd-inv-r23-barcode__unknown" data-r19-barcode-unknown hidden>
+                        <div class="pmd-inv-r23-barcode__unknown pmd-inv-r24-barcode-map" data-r19-barcode-unknown hidden>
                             <div>
                                 <strong data-r19-barcode-unknown-code></strong>
-                                <span>This code is not linked yet.</span>
+                                <span data-r24-barcode-code-type>This code is not linked yet.</span>
                             </div>
                             <label>
                                 <span>Link to existing stock</span>
                                 <select data-r19-barcode-link-select></select>
                             </label>
-                            <button type="button" class="pmd-inv-r19-primary" data-r19-barcode-link>Link & add</button>
+                            <label>
+                                <span>Package unit</span>
+                                <select data-r19-barcode-package-unit>
+                                    @foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                                </select>
+                            </label>
+                            <label>
+                                <span>1 scan equals · base quantity</span>
+                                <input type="number" min="0.0001" step="0.0001" value="1" data-r19-barcode-base-qty>
+                            </label>
+                            <label>
+                                <span>Supplier · optional</span>
+                                <select data-r19-barcode-supplier><option value="">No supplier</option></select>
+                            </label>
+                            <label class="pmd-inv-r24-check">
+                                <input type="checkbox" data-r19-barcode-primary>
+                                <span>Primary code for this item</span>
+                            </label>
+                            <button type="button" class="pmd-inv-r19-primary" data-r19-barcode-link>Link package & add</button>
                             <button type="button" class="pmd-inv-r19-secondary" data-r19-barcode-new>New item</button>
                         </div>
                     </section>
