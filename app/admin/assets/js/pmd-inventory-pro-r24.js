@@ -1860,6 +1860,12 @@
   });
 
   workspace.addEventListener('change', function (event) {
+    if (event.target.matches('[data-r24-import-file]')) {
+      importCsvFile(event.target.files && event.target.files[0]);
+      event.target.value = '';
+      return;
+    }
+
     if (event.target.matches('[data-r24-po-item]')) {
       refreshPoLinePackages(event.target.closest('[data-r24-po-line]'));
       return;
@@ -2110,6 +2116,8 @@
       if (settingsHost) saveSettings(settingsHost);
       return;
     }
+
+    if (target.closest('[data-r24-import-template]')) { downloadImportTemplate(); return; }
 
     if (target.closest('[data-r24-camera-start]')) { startCamera(); return; }
     if (target.closest('[data-r24-camera-stop]')) { stopCamera(); return; }
