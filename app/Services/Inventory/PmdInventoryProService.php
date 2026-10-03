@@ -1473,6 +1473,54 @@ final class PmdInventoryProService
         ];
     }
 
+    public function allocateExistingStock(int $locationId, ?int $staffId, array $data): void
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $itemId = max(0, (int)($data['item_id'] ?? 0));
+        $storageId = max(0, (int)($data['storage_location_id'] ?? 0));
+        $qty = max(0, $this->number($data['quantity'] ?? 0));
+
+        $this->item($locationId, $itemId);
+        $this->storageLocation($locationId, $storageId);
+        if ($qty <= 0) {
+            throw new InvalidArgumentException('Allocation quantity must be greater than zero.');
+        }
+
+        $core = app(PmdInventoryControlService::class)->snapshot($locationId);
+        $item = collect((array)($core['items'] ?? []))->first(
+            fn ($row) => (int)($row['id'] ?? 0) === $itemId
+        );
+        if (!is_array($item)) {
+            throw new InvalidArgumentException('Stock item was not found in the current inventory snapshot.');
+        }
+
+        $onHand = (float)($item['estimated_on_hand'] ?? 0);
+        $allocated = (float)DB::table('pmd_inventory_storage_movements')
+            ->where('location_id', $locationId)
+            ->where('item_id', $itemId)
+            ->sum('qty_delta');
+        $unallocated = max(0, $onHand - $allocated);
+
+        if ($qty > $unallocated + 0.00005) {
+            throw new InvalidArgumentException(
+                'Only '.round($unallocated, 4).' base units are currently unallocated.'
+            );
+        }
+
+        $this->storageMovement(
+            $locationId,
+            $storageId,
+            $itemId,
+            $qty,
+            'OPENING_ALLOCATION',
+            $staffId,
+            'inventory_allocation',
+            null,
+            $this->nullableText($data['note'] ?? 'Allocate existing stock to storage', 5000)
+        );
+    }
+
     public function transferStock(int $locationId, ?int $staffId, array $data): void
     {
         $this->assertReady();
