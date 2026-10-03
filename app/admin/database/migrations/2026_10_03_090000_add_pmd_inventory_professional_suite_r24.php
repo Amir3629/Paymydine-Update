@@ -321,6 +321,23 @@ return new class extends Migration
             });
         }
 
+        if (!$schema->hasTable('pmd_inventory_alert_states')) {
+            $schema->create('pmd_inventory_alert_states', function (Blueprint $table): void {
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('location_id')->index();
+                $table->string('alert_key', 190);
+                $table->string('status', 40)->default('clear')->index();
+                $table->timestamp('last_notified_at')->nullable();
+                $table->timestamp('resolved_at')->nullable();
+                $table->timestamps();
+
+                $table->unique(
+                    ['location_id', 'alert_key'],
+                    'pmd_inv_alert_state_key_uq'
+                );
+            });
+        }
+
         if (!$schema->hasTable('pmd_inventory_settings')) {
             $schema->create('pmd_inventory_settings', function (Blueprint $table): void {
                 $table->bigIncrements('id');
