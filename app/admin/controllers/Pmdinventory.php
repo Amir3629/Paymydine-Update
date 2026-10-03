@@ -63,10 +63,21 @@ class Pmdinventory extends AdminController
             asset('app/admin/assets/js/pmd-inventory-v1.js')
             .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r19')
         );
+        $proCssPath = base_path('app/admin/assets/css/pmd-inventory-pro-r24.css');
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-inventory-pro-r24.css')
+            .'?v='.(string)(@filemtime($proCssPath) ?: 'r24')
+        );
+
         $workspaceJsPath = base_path('app/admin/assets/js/pmd-inventory-workspace-r19.js');
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-workspace-r19.js')
             .'?v='.(string)(@filemtime($workspaceJsPath) ?: 'r19')
+        );
+        $proJsPath = base_path('app/admin/assets/js/pmd-inventory-pro-r24.js');
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-inventory-pro-r24.js')
+            .'?v='.(string)(@filemtime($proJsPath) ?: 'r24')
         );
         AdminMenu::setContext('dashboard');
     }
