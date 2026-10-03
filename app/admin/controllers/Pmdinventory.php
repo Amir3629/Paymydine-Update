@@ -270,6 +270,61 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onProSavePreparation(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->savePreparation(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'preparation_id' => $id,
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onProArchivePreparation(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->archivePreparation(
+                $this->locationId(),
+                (int)request()->input('preparation_id', 0)
+            );
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
+    public function onProProducePreparation(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $id = $service->producePreparation(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'production_batch_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onProSavePurchaseOrder(): JsonResponse
     {
         $this->assertOwnerOrManager();
