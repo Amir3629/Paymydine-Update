@@ -491,6 +491,24 @@
       }).join('');
     }
 
+    var supplierPerformance = Array.isArray(analytics.supplier_performance)
+      ? analytics.supplier_performance
+      : [];
+    var supplierPerfHost = workspace.querySelector('[data-r24-supplier-performance]');
+    if (supplierPerfHost) {
+      supplierPerfHost.innerHTML = supplierPerformance.length
+        ? supplierPerformance.map(function (row) {
+            return '<tr><td><strong>' + esc(row.supplier_name || 'Supplier') + '</strong></td>' +
+              '<td>' + esc(money(row.spend_90d || 0)) + '</td>' +
+              '<td>' + esc(String(row.receipts_90d || 0)) + '</td>' +
+              '<td>' + esc(String(row.po_deliveries_180d || 0)) + '</td>' +
+              '<td>' + esc(row.on_time_pct == null ? '—' : num(row.on_time_pct,1) + '%') + '</td>' +
+              '<td>' + esc(row.avg_delay_days == null ? '—' : num(row.avg_delay_days,1) + ' d') + '</td>' +
+              '<td>' + esc(String(row.lead_time_days || 0) + ' d') + '</td></tr>';
+          }).join('')
+        : '<tr><td colspan="7">Supplier performance appears after confirmed purchases and received purchase orders.</td></tr>';
+    }
+
     var wasteReasons = Array.isArray(analytics.waste_by_reason) ? analytics.waste_by_reason : [];
     var wasteHost = workspace.querySelector('[data-r24-waste-reasons]');
     if (wasteHost) {
