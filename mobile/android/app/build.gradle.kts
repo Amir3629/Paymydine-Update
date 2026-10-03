@@ -10,7 +10,7 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 57
+        versionCode = 58
         // PMD_ANDROID_0_3_34_PHONE_WEB_ORIENTATION_V115
         // Phones stay portrait like mobile Web; tablets retain full-sensor rotation.
         // PMD_ANDROID_0_3_34_V115_V114_RELEASE_FINAL
@@ -39,7 +39,7 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.4.4-device-app-v5" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
+        versionName = "0.4.5-device-app-v5" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
         // PMD_ANDROID_0_3_37_V129_CLOUD_REENTRY
         // PMD_ANDROID_0_3_36_V120_LOCAL_FIRST
         // V120 = Local-First transport + latest V119 kitchen-round behavior
