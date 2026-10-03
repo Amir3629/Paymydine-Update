@@ -738,7 +738,7 @@
     return rows.length ? rows : items().slice();
   }
 
-  function renderCountForm(scopeRows) {
+  function renderCountForm(scopeRows, draft) {
     var host = workspace.querySelector('[data-r19-count]');
     var grid = workspace.querySelector('[data-r19-stock-grid]');
     var editor = workspace.querySelector('[data-r19-stock-editor]');
@@ -747,23 +747,33 @@
     if (grid) grid.hidden = true;
 
     var scoped = scopeRows.length !== items().length;
+    draft = draft && typeof draft === 'object' ? draft : {};
+    var draftMap = {};
+    (Array.isArray(draft.lines) ? draft.lines : []).forEach(function (line) {
+      draftMap[Number(line.item_id || 0)] = line;
+    });
+    var draftBlind = draft.blind_count !== false;
     host.hidden = false;
     host.innerHTML =
       '<div class="pmd-inv-r19-count-head"><div><h3>Physical count</h3>' +
       '<small>' + esc(scoped ? 'Counting the current filtered view · ' + scopeRows.length + ' items.' : 'Counting all active stock · ' + scopeRows.length + ' items.') + '</small></div>' +
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-cancel-count>Cancel</button></div>' +
       '<div class="pmd-inv-r24-count-controls">' +
-        '<label class="pmd-inv-r24-check"><input type="checkbox" checked data-r19-count-blind><span>Blind count · hide expected quantities until completion</span></label>' +
+        '<label class="pmd-inv-r24-check"><input type="checkbox"' + (draftBlind ? ' checked' : '') + ' data-r19-count-blind><span>Blind count · hide expected quantities until completion</span></label>' +
         '<span>Count session #' + esc(state.activeCountId || '') + '</span>' +
       '</div>' +
       '<div class="pmd-inv-r19-count-list">' +
       scopeRows.map(function (item) {
         var owner = ownerQuantity(item, item.estimated_on_hand);
+        var saved = draftMap[Number(item.id)] || null;
+        var savedOwnerQty = saved && saved.is_counted
+          ? Number(saved.counted_qty || 0) / Number(owner.factor || 1)
+          : '';
         return '<div class="pmd-inv-r19-count-row" data-r19-count-row="' + esc(item.id) + '">' +
           '<strong>' + esc(item.name) + '<span>' + esc(item.category || '') + '</span></strong>' +
-          '<span data-r19-count-expected-copy hidden>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>' +
-          '<input type="number" min="0" step="0.01" placeholder="Actual ' + esc(owner.unit) + '" data-r19-count-input data-factor="' + esc(owner.factor) + '">' +
-          '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Count privately</span>' +
+          '<span data-r19-count-expected-copy' + (draftBlind ? ' hidden' : '') + '>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>' +
+          '<input type="number" min="0" step="0.01" placeholder="Actual ' + esc(owner.unit) + '" value="' + esc(savedOwnerQty) + '" data-r19-count-input data-factor="' + esc(owner.factor) + '">' +
+          '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>' + (saved && saved.is_counted ? 'Saved draft' : 'Count privately') + '</span>' +
         '</div>';
       }).join('') +
       '</div>' +
@@ -782,8 +792,9 @@
       blind_count:true
     }).then(function (json) {
       state.activeCountId = Number(json && json.count_id || 0);
-      renderCountForm(scopeRows);
-      toast('Physical count session started. Other count sessions are locked until this one is completed or cancelled.');
+      renderCountForm(scopeRows, json && json.count_draft ? json.count_draft : null);
+      refreshCountPrivacy();
+      toast('Physical count session started. Progress is saved as you count; other count sessions stay locked until completion or cancellation.');
     }).catch(function (error) {
       toast(error.message || 'Could not start physical count.', true);
     }).finally(function () {
@@ -2089,6 +2100,25 @@
   workspace.addEventListener('change', function (event) {
     if (event.target.matches('[data-r19-count-blind]')) {
       refreshCountPrivacy();
+      return;
+    }
+    if (event.target.matches('[data-r19-count-input]')) {
+      var countInput = event.target;
+      var countRow = countInput.closest('[data-r19-count-row]');
+      if (countRow && countInput.value !== '' && state.activeCountId) {
+        var itemId = Number(countRow.getAttribute('data-r19-count-row') || 0);
+        var baseQty = Number(countInput.value || 0) * Number(countInput.getAttribute('data-factor') || 1);
+        api.request('onSaveCountProgress', {
+          count_id:Number(state.activeCountId),
+          item_id:itemId,
+          counted_qty:baseQty
+        }).then(function () {
+          var out = countRow.querySelector('[data-r19-count-variance]');
+          if (out && countIsBlind()) out.textContent = 'Saved draft · hidden variance';
+        }).catch(function (error) {
+          toast(error.message || 'Could not save count progress.', true);
+        });
+      }
       return;
     }
     if (event.target.matches('[data-r19-receipt-input]')) {
