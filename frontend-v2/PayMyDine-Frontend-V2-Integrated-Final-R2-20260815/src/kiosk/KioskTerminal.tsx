@@ -2,9 +2,8 @@
 
 import { type CSSProperties } from 'react'
 import {
-  ArrowRight,
+  ChevronRight,
   Minus,
-  PackageOpen,
   Plus,
   Search,
   ShoppingBag,
@@ -222,7 +221,7 @@ export function KioskTerminal() {
         </div>
 
         <div className={styles.serviceMode} data-kiosk-order-type={pickup ? 'pickup' : 'eat-here'}>
-          {pickup ? <PackageOpen aria-hidden="true" /> : <UtensilsCrossed aria-hidden="true" />}
+          {pickup ? <ShoppingBag aria-hidden="true" /> : <UtensilsCrossed aria-hidden="true" />}
           <div>
             <span>{pickup ? copy.takeAway : copy.eatHere}</span>
             <small>{pickup ? 'Pickup order' : 'Dine-in order'}</small>
@@ -400,7 +399,7 @@ export function KioskTerminal() {
               data-pmd-kiosk-primary-checkout="v7"
             >
               <span>{orderLoading ? copy.processing : copy.checkout}</span>
-              <ArrowRight aria-hidden="true" />
+              <ChevronRight aria-hidden="true" />
             </button>
           </div>
         </aside>
@@ -411,7 +410,7 @@ export function KioskTerminal() {
           <span className={styles.compactCount}>{cartCount}</span>
           <span>{copy.yourOrder}</span>
           <strong>{formatCurrency(cartSubtotal)}</strong>
-          <ArrowRight aria-hidden="true" />
+          <ChevronRight aria-hidden="true" />
         </button>
       ) : null}
 
