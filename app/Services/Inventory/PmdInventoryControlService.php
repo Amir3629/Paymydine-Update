@@ -458,7 +458,7 @@ final class PmdInventoryControlService
                 )),
             ] : null,
             'operations' => app(PmdInventoryOperationsService::class)
-                ->snapshot($locationId),
+                ->snapshot($locationId, $rows),
         ];
     }
 
