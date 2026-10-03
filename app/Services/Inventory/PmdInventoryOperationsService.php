@@ -73,6 +73,31 @@ final class PmdInventoryOperationsService
             $supplierById[(int)$supplier['id']] = $supplier;
         }
 
+        $supplierMetrics = DB::table('pmd_inventory_receipts')
+            ->where('location_id', $locationId)
+            ->whereNotNull('confirmed_at')
+            ->whereNull('reversed_at')
+            ->whereNotNull('supplier_id')
+            ->where('purchased_at', '>=', now()->subDays(90)->toDateString())
+            ->selectRaw(
+                'supplier_id, COUNT(*) as receipt_count, '.
+                'COALESCE(SUM(total_amount),0) as spend, MAX(purchased_at) as last_purchase_at'
+            )
+            ->groupBy('supplier_id')
+            ->get()
+            ->keyBy('supplier_id');
+
+        foreach ($suppliers as &$supplier) {
+            $metric = $supplierMetrics->get((int)$supplier['id']);
+            $supplier['receipt_count_90d'] = (int)($metric->receipt_count ?? 0);
+            $supplier['spend_90d'] = round((float)($metric->spend ?? 0), 2);
+            $supplier['last_purchase_at'] = $metric && $metric->last_purchase_at
+                ? (string)$metric->last_purchase_at
+                : null;
+            $supplierById[(int)$supplier['id']] = $supplier;
+        }
+        unset($supplier);
+
         $storageLocations = DB::table('pmd_inventory_storage_locations')
             ->where('location_id', $locationId)
             ->where('active', 1)
@@ -204,6 +229,13 @@ final class PmdInventoryOperationsService
         }
         unset($purchase);
         $snapshot['recent_purchases'] = $recentPurchases;
+
+        $costHistoryByItem = DB::table('pmd_inventory_cost_history')
+            ->where('location_id', $locationId)
+            ->orderByDesc('occurred_at')
+            ->orderByDesc('id')
+            ->get(['item_id', 'new_unit_cost', 'old_unit_cost', 'purchase_unit_cost', 'occurred_at'])
+            ->groupBy('item_id');
 
         $itemRows = is_array($snapshot['items'] ?? null) ? $snapshot['items'] : [];
         $mappedItems = 0;
@@ -374,6 +406,32 @@ final class PmdInventoryOperationsService
             $item['smart_order_estimated_cost'] = round($smartPurchase * $smartCost, 2);
             $item['barcode_ready'] = !empty($itemIdentifiers);
 
+            $costRows = collect($costHistoryByItem->get($itemId, []))->values();
+            $latestCost = $costRows->get(0);
+            $previousCost = $costRows->get(1);
+            $costChangePct = null;
+            if ($latestCost && $previousCost && (float)$previousCost->new_unit_cost > 0) {
+                $costChangePct = round(
+                    (((float)$latestCost->new_unit_cost - (float)$previousCost->new_unit_cost)
+                        / (float)$previousCost->new_unit_cost) * 100,
+                    1
+                );
+            }
+            $item['cost_change_pct'] = $costChangePct;
+            $item['last_cost_at'] = $latestCost && $latestCost->occurred_at
+                ? (string)$latestCost->occurred_at
+                : null;
+
+            if ($costChangePct !== null && abs($costChangePct) >= 10) {
+                $alerts[] = [
+                    'type' => 'cost',
+                    'severity' => $costChangePct > 0 ? 'warning' : 'info',
+                    'title' => (string)($item['name'] ?? 'Stock item').' cost changed',
+                    'detail' => ($costChangePct > 0 ? '+' : '').$costChangePct.'% versus previous receipt',
+                    'item_id' => $itemId,
+                ];
+            }
+
             if (($item['status'] ?? '') === 'critical') {
                 $alerts[] = [
                     'type' => 'stock',
@@ -402,6 +460,107 @@ final class PmdInventoryOperationsService
                 ];
             }
         }
+
+        $menuStockWarnings = [];
+        if (!empty($settings['auto_menu_availability'])) {
+            $itemById = [];
+            foreach ($itemRows as $row) {
+                $itemById[(int)($row['id'] ?? 0)] = $row;
+            }
+
+            foreach ((array)($snapshot['recipes'] ?? []) as $recipe) {
+                $blocking = [];
+                foreach ((array)($recipe['lines'] ?? []) as $line) {
+                    $stock = $itemById[(int)($line['item_id'] ?? 0)] ?? null;
+                    if (
+                        $stock
+                        && (
+                            (string)($stock['status'] ?? '') === 'critical'
+                            || (float)($stock['estimated_on_hand'] ?? 0) <= 0
+                        )
+                    ) {
+                        $blocking[] = (string)($stock['name'] ?? $line['item_name'] ?? 'Stock');
+                    }
+                }
+
+                if ($blocking) {
+                    $warning = [
+                        'menu_id' => (int)($recipe['menu_id'] ?? 0),
+                        'menu_name' => (string)($recipe['menu_name'] ?? 'Menu item'),
+                        'blocking_items' => array_values(array_unique($blocking)),
+                    ];
+                    $menuStockWarnings[] = $warning;
+                    $alerts[] = [
+                        'type' => 'menu_availability',
+                        'severity' => 'warning',
+                        'title' => $warning['menu_name'].' may be unavailable',
+                        'detail' => 'Critical ingredient: '.implode(', ', $warning['blocking_items']),
+                        'menu_id' => $warning['menu_id'],
+                    ];
+                }
+            }
+        }
+
+        $wasteByReason = DB::table('pmd_inventory_movements')
+            ->where('location_id', $locationId)
+            ->where('movement_type', 'WASTE')
+            ->where('occurred_at', '>=', now()->subDays(30))
+            ->selectRaw(
+                "COALESCE(NULLIF(reason,''),'Unspecified') as reason, ".
+                'COUNT(*) as entries, SUM(ABS(qty_delta) * unit_cost) as cost'
+            )
+            ->groupBy('reason')
+            ->orderByDesc('cost')
+            ->get()
+            ->map(static fn ($row) => [
+                'reason' => (string)$row->reason,
+                'entries' => (int)$row->entries,
+                'cost' => round((float)$row->cost, 2),
+            ])
+            ->values()
+            ->all();
+
+        $varianceTop = [];
+        $lastCountId = (int)($snapshot['last_count']['id'] ?? 0);
+        if ($lastCountId > 0) {
+            $varianceTop = DB::table('pmd_inventory_count_lines as l')
+                ->leftJoin('pmd_inventory_items as i', 'i.id', '=', 'l.item_id')
+                ->where('l.count_id', $lastCountId)
+                ->where('l.variance_qty', '<>', 0)
+                ->orderByRaw('ABS(l.variance_qty * l.unit_cost_snapshot) DESC')
+                ->limit(15)
+                ->get([
+                    'l.item_id',
+                    'i.name as item_name',
+                    'i.base_unit',
+                    'l.variance_qty',
+                    'l.unit_cost_snapshot',
+                ])
+                ->map(static fn ($row) => [
+                    'item_id' => (int)$row->item_id,
+                    'item_name' => (string)($row->item_name ?? 'Item'),
+                    'unit' => (string)($row->base_unit ?? 'piece'),
+                    'variance_qty' => round((float)$row->variance_qty, 4),
+                    'variance_cost' => round((float)$row->variance_qty * (float)$row->unit_cost_snapshot, 2),
+                ])
+                ->values()
+                ->all();
+        }
+
+        $estimatedFoodCost30d = 0.0;
+        foreach ($itemRows as $row) {
+            $estimatedFoodCost30d +=
+                max(0, (float)($row['avg_daily_usage'] ?? 0))
+                * 30
+                * max(0, (float)($row['unit_cost'] ?? 0));
+        }
+
+        $snapshot['analytics'] = [
+            'waste_by_reason_30d' => $wasteByReason,
+            'variance_top' => $varianceTop,
+            'estimated_food_cost_30d' => round($estimatedFoodCost30d, 2),
+        ];
+        $snapshot['menu_stock_warnings'] = $menuStockWarnings;
 
         foreach ($lots as &$lot) {
             if (array_key_exists((int)$lot['id'], $effectiveLotQty)) {
