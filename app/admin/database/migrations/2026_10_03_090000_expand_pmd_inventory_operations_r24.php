@@ -259,6 +259,11 @@ return new class extends Migration
                     $table->unsignedBigInteger('batch_id')->nullable()->index();
                 });
             }
+            if (!$schema->hasColumn('pmd_inventory_count_lines', 'is_counted')) {
+                $schema->table('pmd_inventory_count_lines', function (Blueprint $table) {
+                    $table->boolean('is_counted')->default(false)->index();
+                });
+            }
         }
     }
 
