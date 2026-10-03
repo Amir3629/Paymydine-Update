@@ -1290,6 +1290,29 @@
       return;
     }
 
+    if (target.closest('[data-r24-supplier-product-new]')) { openSupplierProductEditor(null); return; }
+    var supplierProductEdit = target.closest('[data-r24-supplier-product-edit]');
+    if (supplierProductEdit) {
+      openSupplierProductEditor(supplierItemById(supplierProductEdit.getAttribute('data-r24-supplier-product-edit')));
+      return;
+    }
+    var supplierProductSave = target.closest('[data-r24-supplier-product-save]');
+    if (supplierProductSave) { saveSupplierProduct(supplierProductSave); return; }
+    var supplierProductArchive = target.closest('[data-r24-supplier-product-archive]');
+    if (supplierProductArchive) {
+      if (!window.confirm('Remove this supplier product mapping? Historical purchase and price records stay intact.')) return;
+      request('onProArchiveSupplierItem', {
+        supplier_item_id:Number(supplierProductArchive.getAttribute('data-r24-supplier-product-archive') || 0)
+      }).then(function (json) {
+        applyCoreSnapshot(json);
+        applySnapshot(json.pro || {});
+        toast('Supplier product removed.');
+      }).catch(function (error) {
+        toast(error.message || 'Could not remove supplier product.', true);
+      });
+      return;
+    }
+
     if (target.closest('[data-r24-code-new]')) { openCodeEditor(null, ''); return; }
     var codeEdit = target.closest('[data-r24-code-edit]');
     if (codeEdit) { openCodeEditor(identifierById(codeEdit.getAttribute('data-r24-code-edit')), ''); return; }
