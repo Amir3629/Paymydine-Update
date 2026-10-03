@@ -413,6 +413,25 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onReturnToSupplier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->returnToSupplier(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'movement_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onItemLedger(): JsonResponse
     {
         $this->assertOwnerOrManager();
