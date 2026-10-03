@@ -200,7 +200,7 @@
   }
 
   function proMode(mode) {
-    return ['orders','suppliers','codes','storage','expiry','ledger','analytics','settings'].indexOf(mode) !== -1;
+    return ['orders','suppliers','codes','storage','prep','expiry','ledger','analytics','settings'].indexOf(mode) !== -1;
   }
 
   function renderUnavailable() {
@@ -233,6 +233,7 @@
     if (state.mode === 'suppliers') renderSuppliers();
     if (state.mode === 'codes') renderCodes();
     if (state.mode === 'storage') renderStorage();
+    if (state.mode === 'prep') renderPrep();
     if (state.mode === 'expiry') renderExpiry();
     if (state.mode === 'ledger') renderLedger();
     if (state.mode === 'analytics') renderAnalytics();
@@ -938,6 +939,173 @@
   }
 
   /* ------------------------------------------------------------
+     Prepared stock / sub-recipes / production
+     ------------------------------------------------------------ */
+
+  function prepById(id) {
+    id = Number(id || 0);
+    return (state.pro.preparations || []).find(function (row) {
+      return Number(row.id) === id;
+    }) || null;
+  }
+
+  function prepIngredientLine(seed) {
+    seed = seed || {};
+    return '<div class="pmd-inv-r24-prep-line" data-r24-prep-line>' +
+      '<label>Ingredient<select data-r24-prep-ingredient>' + itemOptions(seed.item_id) + '</select></label>' +
+      '<label>Base qty / batch<input type="number" min="0.0001" step="0.0001" data-r24-prep-qty value="' + esc(seed.qty_per_batch || '') + '"></label>' +
+      '<button type="button" class="pmd-inv-r24-line-remove" data-r24-prep-line-remove aria-label="Remove">×</button>' +
+    '</div>';
+  }
+
+  function renderPrep() {
+    var host = workspace.querySelector('[data-r24-prep-list]');
+    var history = workspace.querySelector('[data-r24-production-list]');
+    if (!host) return;
+
+    var rows = state.pro.preparations || [];
+    host.innerHTML = rows.length ? rows.map(function (row) {
+      var lines = Array.isArray(row.lines) ? row.lines : [];
+      return '<article class="pmd-inv-r24-card">' +
+        '<div class="pmd-inv-r24-card__head"><div><span>Prep recipe</span><h3>' + esc(row.name || row.output_item_name || 'Preparation') + '</h3></div>' +
+        '<button type="button" class="pmd-inv-r24-icon-btn" data-r24-prep-edit="' + esc(row.id) + '" aria-label="Edit preparation">•••</button></div>' +
+        '<dl>' +
+          '<div><dt>Output</dt><dd>' + esc(num(row.yield_qty || 0,2) + ' ' + (row.output_unit || '') + ' ' + (row.output_item_name || '')) + '</dd></div>' +
+          '<div><dt>Estimated batch cost</dt><dd>' + esc(money(row.estimated_batch_cost || 0)) + '</dd></div>' +
+          '<div><dt>Ingredients</dt><dd>' + esc(lines.length) + '</dd></div>' +
+          '<div><dt>Output unit cost</dt><dd>' + esc(money(row.estimated_output_unit_cost || 0)) + '</dd></div>' +
+        '</dl>' +
+        '<div class="pmd-inv-r24-prep-ingredients">' + lines.map(function (line) {
+          return '<div><strong>' + esc(line.item_name || 'Ingredient') + '</strong><span>' + esc(num(line.qty_per_batch || 0,2) + ' ' + (line.unit || '')) + '</span></div>';
+        }).join('') + '</div>' +
+        '<div class="pmd-inv-r24-editor__actions"><button type="button" class="pmd-inv-r19-primary" data-r24-produce="' + esc(row.id) + '">Produce batch</button></div>' +
+      '</article>';
+    }).join('') : '<div class="pmd-inv-r19-empty">No prep recipes yet. Create one for sauce, dough, broth, prep mix or any stock item produced from other stock.</div>';
+
+    if (history) {
+      var batches = state.pro.production_batches || [];
+      history.innerHTML = batches.length ? batches.map(function (row) {
+        return '<article class="pmd-inv-r24-row">' +
+          '<div class="pmd-inv-r24-row__main"><span class="pmd-inv-r24-status">Produced</span><strong>' + esc(row.preparation_name || row.output_item_name || 'Prep batch') + '</strong>' +
+          '<small>' + esc((row.staff_name || 'Staff') + ' · ' + dateTimeLabel(row.produced_at) + (row.lot_code ? ' · lot ' + row.lot_code : '')) + '</small></div>' +
+          '<div class="pmd-inv-r24-row__meta"><span>' + esc(row.output_storage_name || 'Storage') + '</span><strong>' + esc(num(row.output_qty || 0,2) + ' ' + (row.output_unit || '')) + '</strong>' +
+          '<small>' + esc(money(Number(row.output_qty || 0) * Number(row.unit_cost || 0))) + ' batch value</small></div>' +
+        '</article>';
+      }).join('') : '<div class="pmd-inv-r19-empty">No preparation batches have been produced yet.</div>';
+    }
+  }
+
+  function openPrepEditor(row) {
+    var host = workspace.querySelector('[data-r24-prep-editor]');
+    if (!host) return;
+    row = row || {};
+    var lines = Array.isArray(row.lines) && row.lines.length ? row.lines : [{}];
+    host.hidden = false;
+    host.innerHTML =
+      '<div class="pmd-inv-r24-editor__head"><div><span>Prep recipe</span><h3>' + esc(row.id ? 'Edit preparation' : 'Add preparation') + '</h3></div>' +
+      '<button type="button" class="pmd-inv-r19-secondary" data-r24-editor-close>Close</button></div>' +
+      '<div class="pmd-inv-r24-fields">' +
+        '<label class="is-wide">Name<input type="text" data-r24-prep-name value="' + esc(row.name || '') + '" placeholder="Tomato sauce, pizza dough…"></label>' +
+        '<label>Prepared stock item<select data-r24-prep-output>' + itemOptions(row.output_item_id) + '</select></label>' +
+        '<label>Yield in output base unit<input type="number" min="0.0001" step="0.0001" data-r24-prep-yield value="' + esc(row.yield_qty || 1) + '"></label>' +
+      '</div>' +
+      '<div class="pmd-inv-r24-lines" data-r24-prep-lines>' + lines.map(prepIngredientLine).join('') + '</div>' +
+      '<div class="pmd-inv-r24-editor__actions">' +
+        (row.id ? '<button type="button" class="pmd-inv-r19-secondary is-danger" data-r24-prep-archive="' + esc(row.id) + '">Archive</button>' : '') +
+        '<button type="button" class="pmd-inv-r19-secondary" data-r24-prep-add-line>Add ingredient</button>' +
+        '<button type="button" class="pmd-inv-r19-primary" data-r24-prep-save data-id="' + esc(row.id || '') + '">Save preparation</button>' +
+      '</div>';
+    host.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  function savePrep(button) {
+    var host = workspace.querySelector('[data-r24-prep-editor]');
+    if (!host) return;
+    var outputItemId = Number((host.querySelector('[data-r24-prep-output]') || {}).value || 0);
+    var yieldQty = Number((host.querySelector('[data-r24-prep-yield]') || {}).value || 0);
+    var lines = Array.prototype.slice.call(host.querySelectorAll('[data-r24-prep-line]')).map(function (line) {
+      return {
+        item_id:Number((line.querySelector('[data-r24-prep-ingredient]') || {}).value || 0),
+        qty_per_batch:Number((line.querySelector('[data-r24-prep-qty]') || {}).value || 0)
+      };
+    }).filter(function (line) {
+      return line.item_id > 0 && line.qty_per_batch > 0;
+    });
+    if (!outputItemId || !(yieldQty > 0) || !lines.length) {
+      return toast('Choose the prepared stock item, yield and at least one ingredient.', true);
+    }
+
+    setBusy(host, true);
+    request('onProSavePreparation', {
+      preparation_id:Number(button.getAttribute('data-id') || 0),
+      name:String((host.querySelector('[data-r24-prep-name]') || {}).value || ''),
+      output_item_id:outputItemId,
+      yield_qty:yieldQty,
+      lines:lines
+    }).then(function (json) {
+      applySnapshot(json.pro || {});
+      host.hidden = true;
+      toast('Preparation recipe saved.');
+    }).catch(function (error) {
+      toast(error.message || 'Could not save preparation recipe.', true);
+    }).finally(function () {
+      setBusy(host, false);
+    });
+  }
+
+  function openProduceEditor(prep) {
+    var host = workspace.querySelector('[data-r24-produce-editor]');
+    if (!host || !prep) return;
+    var defaultStorage = defaultStorageId();
+    host.hidden = false;
+    host.innerHTML =
+      '<div class="pmd-inv-r24-editor__head"><div><span>Production batch</span><h3>' + esc(prep.name || prep.output_item_name || 'Preparation') + '</h3>' +
+      '<small>Ingredients leave the source storage and ' + esc(prep.output_item_name || 'prepared stock') + ' enters the output storage.</small></div>' +
+      '<button type="button" class="pmd-inv-r19-secondary" data-r24-editor-close>Close</button></div>' +
+      '<div class="pmd-inv-r24-fields">' +
+        '<label>Batch count<input type="number" min="0.0001" step="0.25" value="1" data-r24-produce-count></label>' +
+        '<label>Actual output · ' + esc(prep.output_unit || 'base unit') + '<input type="number" min="0.0001" step="0.01" value="' + esc(prep.yield_qty || 1) + '" data-r24-produce-output></label>' +
+        '<label>Take ingredients from<select data-r24-produce-source>' + storageOptions(defaultStorage) + '</select></label>' +
+        '<label>Put prepared stock in<select data-r24-produce-destination>' + storageOptions(defaultStorage) + '</select></label>' +
+        '<label>Lot / batch code<input type="text" data-r24-produce-lot placeholder="Optional"></label>' +
+        '<label>Expiry<input type="date" data-r24-produce-expiry></label>' +
+        '<label class="is-wide">Note<input type="text" data-r24-produce-note placeholder="Optional production note"></label>' +
+      '</div>' +
+      '<div class="pmd-inv-r24-editor__actions"><button type="button" class="pmd-inv-r19-primary" data-r24-produce-save="' + esc(prep.id) + '">Record production</button></div>';
+    host.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  function saveProduction(button) {
+    var host = workspace.querySelector('[data-r24-produce-editor]');
+    if (!host) return;
+    var payload = {
+      preparation_id:Number(button.getAttribute('data-r24-produce-save') || 0),
+      batch_count:Number((host.querySelector('[data-r24-produce-count]') || {}).value || 0),
+      output_qty:Number((host.querySelector('[data-r24-produce-output]') || {}).value || 0),
+      source_storage_location_id:Number((host.querySelector('[data-r24-produce-source]') || {}).value || 0),
+      output_storage_location_id:Number((host.querySelector('[data-r24-produce-destination]') || {}).value || 0),
+      lot_code:String((host.querySelector('[data-r24-produce-lot]') || {}).value || ''),
+      expires_at:String((host.querySelector('[data-r24-produce-expiry]') || {}).value || ''),
+      note:String((host.querySelector('[data-r24-produce-note]') || {}).value || '')
+    };
+    if (!payload.preparation_id || !(payload.batch_count > 0) || !(payload.output_qty > 0)) {
+      return toast('Enter a valid batch count and actual output.', true);
+    }
+
+    setBusy(host, true);
+    request('onProProducePreparation', payload).then(function (json) {
+      applyCoreSnapshot(json);
+      applySnapshot(json.pro || {});
+      host.hidden = true;
+      toast('Preparation batch produced and inventory updated.');
+    }).catch(function (error) {
+      toast(error.message || 'Could not record production.', true);
+    }).finally(function () {
+      setBusy(host, false);
+    });
+  }
+
+  /* ------------------------------------------------------------
      Lots / expiry
      ------------------------------------------------------------ */
 
@@ -1536,6 +1704,48 @@
       }).catch(function () {});
       return;
     }
+
+    if (target.closest('[data-r24-prep-new]')) { openPrepEditor(null); return; }
+    var prepEdit = target.closest('[data-r24-prep-edit]');
+    if (prepEdit) {
+      openPrepEditor(prepById(prepEdit.getAttribute('data-r24-prep-edit')));
+      return;
+    }
+    if (target.closest('[data-r24-prep-add-line]')) {
+      var prepLines = workspace.querySelector('[data-r24-prep-lines]');
+      if (prepLines) prepLines.insertAdjacentHTML('beforeend', prepIngredientLine({}));
+      return;
+    }
+    var prepLineRemove = target.closest('[data-r24-prep-line-remove]');
+    if (prepLineRemove) {
+      var prepLine = prepLineRemove.closest('[data-r24-prep-line]');
+      if (prepLine) prepLine.remove();
+      return;
+    }
+    var prepSave = target.closest('[data-r24-prep-save]');
+    if (prepSave) { savePrep(prepSave); return; }
+    var prepArchive = target.closest('[data-r24-prep-archive]');
+    if (prepArchive) {
+      if (!window.confirm('Archive this preparation recipe? Production history stays intact.')) return;
+      request('onProArchivePreparation', {
+        preparation_id:Number(prepArchive.getAttribute('data-r24-prep-archive') || 0)
+      }).then(function (json) {
+        applySnapshot(json.pro || {});
+        var editor = workspace.querySelector('[data-r24-prep-editor]');
+        if (editor) editor.hidden = true;
+        toast('Preparation recipe archived.');
+      }).catch(function (error) {
+        toast(error.message || 'Could not archive preparation.', true);
+      });
+      return;
+    }
+    var produce = target.closest('[data-r24-produce]');
+    if (produce) {
+      openProduceEditor(prepById(produce.getAttribute('data-r24-produce')));
+      return;
+    }
+    var produceSave = target.closest('[data-r24-produce-save]');
+    if (produceSave) { saveProduction(produceSave); return; }
 
     if (target.closest('[data-r24-storage-new]')) { openStorageEditor(null); return; }
     var storageSave = target.closest('[data-r24-storage-save]');
