@@ -544,7 +544,30 @@ class Pmdinventory extends AdminController
             try {
                 $aiPayload = app(PmdInventoryReceiptAiService::class)
                     ->extract($absolutePath, $mime);
+
+                if ($aiPayload) {
+                    try {
+                        app(PmdInventoryOperationsService::class)
+                            ->assertInvoiceAvailable(
+                                $this->locationId(),
+                                $aiPayload['supplier_name'] ?? null,
+                                $aiPayload['invoice_number'] ?? null
+                            );
+                    } catch (\Throwable $duplicateInvoice) {
+                        @unlink($absolutePath);
+                        throw $duplicateInvoice;
+                    }
+                }
             } catch (\Throwable $aiException) {
+                // Duplicate document/invoice errors must stay blocking; normal
+                // AI availability/extraction errors still fall back to manual.
+                if (
+                    str_contains(strtolower($aiException->getMessage()), 'already')
+                    || str_contains(strtolower($aiException->getMessage()), 'duplicate')
+                ) {
+                    throw $aiException;
+                }
+
                 $aiError = $aiException->getMessage();
                 Log::warning('PMD inventory receipt AI extraction unavailable', [
                     'location_id' => $this->locationId(),
