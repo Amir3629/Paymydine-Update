@@ -778,6 +778,7 @@ final class PmdInventoryProService
             [
                 'supplier_name' => $supplier ? (string)$supplier->name : '',
                 'purchased_at' => now()->toDateString(),
+                'pro_receiving_managed' => true,
                 'lines' => $coreLines,
             ]
         );
