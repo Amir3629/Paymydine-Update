@@ -148,6 +148,11 @@ return new class extends Migration
         }
 
         if ($schema->hasTable('pmd_inventory_receipts')) {
+            if (!$schema->hasColumn('pmd_inventory_receipts', 'supplier_id')) {
+                $schema->table('pmd_inventory_receipts', function (Blueprint $table) {
+                    $table->unsignedBigInteger('supplier_id')->nullable()->index()->after('location_id');
+                });
+            }
             if (!$schema->hasColumn('pmd_inventory_receipts', 'document_fingerprint')) {
                 $schema->table('pmd_inventory_receipts', function (Blueprint $table) {
                     $table->string('document_fingerprint', 64)->nullable()->index()->after('mime_type');
