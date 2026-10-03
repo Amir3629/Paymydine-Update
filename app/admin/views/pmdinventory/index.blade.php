@@ -506,13 +506,25 @@
                     <div class="pmd-inv-r19-section-head">
                         <div>
                             <span>Supplier master</span>
-                            <h2>Suppliers and purchasing terms</h2>
-                            <p>Keep lead time, minimum order value, contact details and supplier codes in one place.</p>
+                            <h2>Suppliers, products and purchasing terms</h2>
+                            <p>Keep lead time, minimum order value, supplier SKU, GTIN, pack size, MOQ, order multiple and price in one place.</p>
                         </div>
-                        <button type="button" class="pmd-inv-r19-primary" data-r24-supplier-new>Add supplier</button>
+                        <div class="pmd-inv-r19-head-actions">
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-supplier-product-new>Add supplier product</button>
+                            <button type="button" class="pmd-inv-r19-primary" data-r24-supplier-new>Add supplier</button>
+                        </div>
                     </div>
                     <section class="pmd-inv-r24-editor" data-r24-supplier-editor hidden></section>
+                    <section class="pmd-inv-r24-editor" data-r24-supplier-product-editor hidden></section>
                     <div class="pmd-inv-r24-card-grid" data-r24-supplier-list></div>
+                    <div class="pmd-inv-r24-subsection-head">
+                        <div><span>Supplier catalogue</span><h3>Who sells each stock item and in which package</h3></div>
+                    </div>
+                    <div class="pmd-inv-r24-list" data-r24-supplier-product-list></div>
+                    <div class="pmd-inv-r24-subsection-head">
+                        <div><span>Price history</span><h3>Recent supplier price changes</h3></div>
+                    </div>
+                    <div class="pmd-inv-r24-list" data-r24-price-history-list></div>
                 </section>
 
                 <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="codes" hidden>
