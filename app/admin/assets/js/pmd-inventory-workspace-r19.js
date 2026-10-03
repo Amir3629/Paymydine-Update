@@ -904,12 +904,21 @@
 
   function renderBarcodeLinkOptions() {
     var select = workspace.querySelector('[data-r19-barcode-link-select]');
-    if (!select) return;
-    select.innerHTML = items().slice().sort(function (a, b) {
-      return String(a.name || '').localeCompare(String(b.name || ''));
-    }).map(function (item) {
-      return '<option value="' + esc(item.id) + '">' + esc(item.name + ' · ' + ownerQuantityLabel(item, item.estimated_on_hand, 2)) + '</option>';
-    }).join('');
+    if (select) {
+      select.innerHTML = items().slice().sort(function (a, b) {
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      }).map(function (item) {
+        return '<option value="' + esc(item.id) + '">' + esc(item.name + ' · ' + ownerQuantityLabel(item, item.estimated_on_hand, 2)) + '</option>';
+      }).join('');
+    }
+
+    var supplierSelect = workspace.querySelector('[data-r19-barcode-supplier]');
+    if (supplierSelect) {
+      var suppliers = Array.isArray(snapshot().suppliers) ? snapshot().suppliers : [];
+      supplierSelect.innerHTML = '<option value="">No supplier</option>' + suppliers.map(function (supplier) {
+        return '<option value="' + esc(supplier.id) + '">' + esc(supplier.name) + '</option>';
+      }).join('');
+    }
   }
 
   function setBarcodeStatus(message, error) {
@@ -937,7 +946,7 @@
     panel.hidden = false;
     var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
     if (unknown) unknown.hidden = true;
-    setBarcodeStatus('Scanner ready. Scan the first item.', false);
+    setBarcodeStatus('Scanner ready. Scan a bottle, pack, case, GTIN or supplier code.', false);
     renderBarcodeLinkOptions();
     panel.scrollIntoView({behavior:'smooth', block:'nearest'});
     focusBarcodeInput();
@@ -948,12 +957,11 @@
     if (panel) panel.hidden = true;
     state.barcodeOpen = false;
     state.pendingBarcode = '';
+    var cameraStop = workspace.querySelector('[data-r24-barcode-camera-stop]');
+    if (cameraStop) cameraStop.click();
   }
 
   function ensureBarcodeReview() {
-    // Keep an existing AI/shopping review intact and append scans to it.
-    // This avoids throwing away reviewed purchase lines if the operator scans
-    // an extra case before confirming.
     if (!state.bulkReview) {
       state.bulkReview = {
         receiptId:0,
@@ -965,14 +973,51 @@
     return state.bulkReview;
   }
 
-  function addBarcodeItemToDraft(item, code) {
-    if (!item) return;
-    var review = ensureBarcodeReview();
-    var unit = String(item.purchase_unit || item.unit || 'piece');
-    var cost = Number(item.purchase_unit_cost || 0);
-    var existing = review.lines.find(function (line) {
-      return Number(line.item_id || 0) === Number(item.id);
+  function identifierCost(item, identifier) {
+    var offers = Array.isArray(item && item.supplier_offers) ? item.supplier_offers : [];
+    var supplierId = Number(identifier && identifier.supplier_id || 0);
+    var unit = String(identifier && identifier.package_unit || item.purchase_unit || item.unit || 'piece');
+    var factor = Math.max(.0001, Number(identifier && identifier.base_quantity || item.purchase_to_base || 1));
+
+    var offer = offers.find(function (row) {
+      return supplierId > 0
+        && Number(row.supplier_id || 0) === supplierId
+        && String(row.purchase_unit || '') === unit
+        && Math.abs(Number(row.purchase_to_base || 1) - factor) < .0001;
+    }) || offers.find(function (row) {
+      return Boolean(row.preferred)
+        && String(row.purchase_unit || '') === unit
+        && Math.abs(Number(row.purchase_to_base || 1) - factor) < .0001;
     });
+
+    if (offer) return Number(offer.unit_cost || 0);
+    if (
+      String(item.purchase_unit || item.unit) === unit
+      && Math.abs(Number(item.purchase_to_base || 1) - factor) < .0001
+    ) {
+      return Number(item.purchase_unit_cost || 0);
+    }
+    return Number(item.unit_cost || 0) * factor;
+  }
+
+  function addBarcodeItemToDraft(item, code, identifier) {
+    if (!item) return;
+    identifier = identifier || {};
+    var review = ensureBarcodeReview();
+    var unit = String(identifier.package_unit || item.purchase_unit || item.unit || 'piece');
+    var factor = Math.max(.0001, Number(identifier.base_quantity || item.purchase_to_base || 1));
+    var identifierId = Number(identifier.id || 0);
+    var cost = identifierCost(item, identifier);
+
+    // Same stock item may legitimately have Bottle and Case codes. Merge only
+    // an identical package identifier, never merely by item_id.
+    var existing = review.lines.find(function (line) {
+      return Number(line.item_id || 0) === Number(item.id)
+        && Number(line.identifier_id || 0) === identifierId
+        && String(line.unit || '') === unit
+        && Math.abs(Number(line.base_quantity_per_unit || 1) - factor) < .0001;
+    });
+
     if (existing) {
       existing.quantity = Number(existing.quantity || 0) + 1;
     } else {
@@ -980,18 +1025,53 @@
         item_id:Number(item.id),
         item_name:String(item.name || ''),
         category:String(item.category || ''),
+        identifier_id:identifierId,
         quantity:1,
         unit:unit,
         unit_cost:cost,
+        base_quantity_per_unit:factor,
         barcode:normalizedBarcode(code)
       });
     }
+
     state.pendingBarcode = '';
     var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
     if (unknown) unknown.hidden = true;
-    setBarcodeStatus('Scanned ' + item.name + ' · added 1 ' + unit + ' to the purchase draft.', false);
+    setBarcodeStatus(
+      'Scanned ' + item.name + ' · 1 ' + unit + ' = ' + number(factor, 2) + ' ' + String(item.unit || 'piece') + ' added to draft.',
+      false
+    );
     renderBulkReview();
     focusBarcodeInput();
+  }
+
+  function showUnknownBarcode(code, resolved) {
+    state.pendingBarcode = code;
+    renderBarcodeLinkOptions();
+
+    var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
+    var unknownCode = workspace.querySelector('[data-r19-barcode-unknown-code]');
+    var type = workspace.querySelector('[data-r24-barcode-code-type]');
+    var unit = workspace.querySelector('[data-r19-barcode-package-unit]');
+    var base = workspace.querySelector('[data-r19-barcode-base-qty]');
+
+    if (unknownCode) unknownCode.textContent = code;
+    if (type) {
+      var typeText = String(resolved && resolved.code_type || 'unknown').toUpperCase();
+      type.textContent = typeText + (resolved && resolved.valid_gtin ? ' · valid GTIN check digit' : '') + ' · not linked yet';
+    }
+    if (unknown) unknown.hidden = false;
+
+    var selected = workspace.querySelector('[data-r19-barcode-link-select]');
+    var selectedItem = items().find(function (row) {
+      return Number(row.id) === Number(selected && selected.value || 0);
+    });
+    if (selectedItem) {
+      if (unit) unit.value = String(selectedItem.purchase_unit || selectedItem.unit || 'piece');
+      if (base) base.value = String(selectedItem.purchase_to_base || 1);
+    }
+
+    setBarcodeStatus('Unknown package code. Link the package once; future scans will resolve instantly.', true);
   }
 
   function scanBarcode(code) {
@@ -1003,25 +1083,58 @@
       focusBarcodeInput();
       return;
     }
-    if (code.length > 120) {
+    if (code.length > 160) {
       setBarcodeStatus('The scanned code is too long to store.', true);
       focusBarcodeInput();
       return;
     }
+    if (state.busy) return;
 
-    var item = itemForBarcode(code);
-    if (item) {
-      addBarcodeItemToDraft(item, code);
-      return;
-    }
+    setBarcodeStatus('Looking up ' + code + '…', false);
+    setBusy(true);
 
-    state.pendingBarcode = code;
-    renderBarcodeLinkOptions();
-    var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
-    var unknownCode = workspace.querySelector('[data-r19-barcode-unknown-code]');
-    if (unknownCode) unknownCode.textContent = code;
-    if (unknown) unknown.hidden = false;
-    setBarcodeStatus('Unknown code. Link it once or create a new stock item.', true);
+    api.request('onResolveBarcode', {code:code})
+      .then(function (resolved) {
+        if (!resolved || !resolved.found) {
+          showUnknownBarcode(code, resolved || {});
+          return;
+        }
+
+        var identifier = resolved.identifier || {};
+        var item = items().find(function (row) {
+          return Number(row.id) === Number(identifier.item_id || 0);
+        });
+
+        if (!item) {
+          showUnknownBarcode(code, resolved);
+          return;
+        }
+
+        addBarcodeItemToDraft(item, code, identifier);
+        if (resolved.legacy) {
+          setBarcodeStatus(
+            'Legacy code resolved. Confirm this purchase; map the exact bottle/case conversion when you next edit the code.',
+            false
+          );
+        }
+      })
+      .catch(function () {
+        // Safe fallback for a tenant that has not run R24 yet.
+        var legacy = itemForBarcode(code);
+        if (legacy) {
+          addBarcodeItemToDraft(legacy, code, {
+            id:0,
+            package_unit:String(legacy.purchase_unit || legacy.unit || 'piece'),
+            base_quantity:Number(legacy.purchase_to_base || 1)
+          });
+          return;
+        }
+        showUnknownBarcode(code, {});
+      })
+      .finally(function () {
+        setBusy(false);
+        focusBarcodeInput();
+      });
   }
 
   function linkPendingBarcode() {
@@ -1031,30 +1144,46 @@
     var item = items().find(function (row) { return Number(row.id) === itemId; });
     if (!code || !item || state.busy) return;
 
-    var codes = barcodeTokens(item);
-    if (codes.indexOf(code) === -1) codes.push(code);
-    var factor = purchaseFactor(item);
+    var packageUnitNode = workspace.querySelector('[data-r19-barcode-package-unit]');
+    var baseQtyNode = workspace.querySelector('[data-r19-barcode-base-qty]');
+    var supplierNode = workspace.querySelector('[data-r19-barcode-supplier]');
+    var primaryNode = workspace.querySelector('[data-r19-barcode-primary]');
+    var packageUnit = String(packageUnitNode && packageUnitNode.value || item.purchase_unit || item.unit || 'piece');
+    var baseQty = Number(baseQtyNode && baseQtyNode.value || item.purchase_to_base || 1);
+
+    if (!(baseQty > 0)) {
+      setBarcodeStatus('Enter how much base stock one scan represents.', true);
+      if (baseQtyNode) baseQtyNode.focus();
+      return;
+    }
 
     setBusy(true);
-    api.request('onSaveItem', {
+    api.request('onSaveIdentifier', {
       item_id:Number(item.id),
-      name:String(item.name || ''),
-      category:String(item.category || ''),
-      sku:codes.join(','),
-      purchase_unit:String(item.purchase_unit || item.unit || 'piece'),
-      purchase_to_base:factor,
-      purchase_cost:Number(item.purchase_unit_cost || (Number(item.unit_cost || 0) * factor)),
-      reorder_point:Number(item.reorder_point || 0) / factor,
-      par_level:Number(item.par_level || 0) / factor,
-      supplier_name:String(item.supplier_name || '')
+      code:code,
+      code_type:'auto',
+      package_unit:packageUnit,
+      package_quantity:1,
+      base_quantity:baseQty,
+      supplier_id:Number(supplierNode && supplierNode.value || 0),
+      is_primary:Boolean(primaryNode && primaryNode.checked),
+      source:'scanner'
     }).then(applyActionSnapshot)
       .then(function () {
         var refreshed = items().find(function (row) { return Number(row.id) === itemId; }) || item;
-        addBarcodeItemToDraft(refreshed, code);
-        toast('Barcode linked to ' + item.name + '.');
+        var identifier = (Array.isArray(refreshed.identifiers) ? refreshed.identifiers : []).find(function (row) {
+          return String(row.code || '') === code;
+        }) || {
+          id:0,
+          package_unit:packageUnit,
+          base_quantity:baseQty,
+          supplier_id:Number(supplierNode && supplierNode.value || 0)
+        };
+        addBarcodeItemToDraft(refreshed, code, identifier);
+        toast('Package code linked to ' + item.name + '.');
       })
       .catch(function (error) {
-        setBarcodeStatus(error.message || 'Could not link this barcode.', true);
+        setBarcodeStatus(error.message || 'Could not link this package code.', true);
       })
       .finally(function () {
         setBusy(false);
