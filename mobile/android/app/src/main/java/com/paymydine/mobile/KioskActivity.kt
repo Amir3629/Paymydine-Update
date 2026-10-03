@@ -204,6 +204,7 @@ private fun KioskApp(
         mutableLongStateOf(SystemClock.elapsedRealtime())
     }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     suspend fun loadProfile() {
         val host = store.host()
@@ -330,16 +331,24 @@ private fun KioskApp(
             KioskWelcomeScreen(
                 profile = current,
                 onEatHere = {
-                    serviceMode = "eat_in"
-                    sessionNonce = UUID.randomUUID().toString()
                     lastInteractionMs = SystemClock.elapsedRealtime()
-                    screen = KioskScreen.MENU
+                    context.startActivity(
+                        KioskMenuActivity.intent(
+                            context = context,
+                            profile = current,
+                            serviceMode = "eat_in",
+                        ),
+                    )
                 },
                 onTakeAway = {
-                    serviceMode = "pickup"
-                    sessionNonce = UUID.randomUUID().toString()
                     lastInteractionMs = SystemClock.elapsedRealtime()
-                    screen = KioskScreen.MENU
+                    context.startActivity(
+                        KioskMenuActivity.intent(
+                            context = context,
+                            profile = current,
+                            serviceMode = "pickup",
+                        ),
+                    )
                 },
             )
         }
