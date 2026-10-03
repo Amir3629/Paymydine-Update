@@ -52,4 +52,25 @@ jobs:
 
           grep -Fq 'defer src="/app/admin/assets/js/push-notifications.js'             app/admin/views/pmd_quick_pos_v1.blade.php
 
-          grep -Fq 'pmd-quick-pos-v1.js?v=20261003-r132'             app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'pmd-quick-pos-v1.js?v=20261003-r133'             app/admin/views/pmd_quick_pos_v1.blade.php
+
+          node <<'NODE'
+          const fs = require('fs');
+          const files = [
+            'app/admin/assets/js/pmd-quick-pos-v1.js',
+            'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
+          ];
+          for (const file of files) {
+            const source = fs.readFileSync(file, 'utf8');
+            for (const selector of ['[data-qpos-category]', '[data-qpos-product]']) {
+              const good = "$('" + selector + "', box).forEach";
+              const bad = "$('" + selector + "', box).forEach";
+              if (!source.includes(good)) {
+                throw new Error(file + ' missing collection binding: ' + good);
+              }
+              if (source.includes(bad) && !source.includes(good)) {
+                throw new Error(file + ' still uses single-element binding: ' + bad);
+              }
+            }
+          }
+          NODE
