@@ -281,7 +281,8 @@
         quantity:Number((row.querySelector('[data-r24-po-line-qty]') || {}).value || 0),
         package_unit:String((row.querySelector('[data-r24-po-line-unit]') || {}).value || 'piece'),
         base_quantity:Number((row.querySelector('[data-r24-po-line-base]') || {}).value || 1),
-        unit_cost:Number((row.querySelector('[data-r24-po-line-cost]') || {}).value || 0)
+        unit_cost:Number((row.querySelector('[data-r24-po-line-cost]') || {}).value || 0),
+        supplier_item_id:Number(row.getAttribute('data-r24-supplier-item-id') || 0)
       };
     }).filter(function (line) {
       return line.item_id > 0 && line.quantity > 0;
@@ -316,6 +317,7 @@
               (open && remaining > 0
                 ? '<div class="pmd-inv-r24-receive-line-fields">' +
                     '<input type="number" min="0" max="' + esc(remaining) + '" step="0.01" value="' + esc(remaining) + '" data-r24-receive-qty aria-label="Quantity to receive">' +
+                    '<input type="number" min="0" step="0.01" value="' + esc(line.unit_cost || 0) + '" data-r24-receive-cost aria-label="Actual cost per package">' +
                     '<select data-r24-receive-storage aria-label="Storage">' + storageOptions(storageId, 'Default storage') + '</select>' +
                     '<input type="text" placeholder="Lot / batch" data-r24-receive-lot aria-label="Lot or batch">' +
                     '<input type="date" data-r24-receive-expiry aria-label="Expiry date">' +
@@ -736,6 +738,7 @@
             lines.push({
               line_id:Number(lineNode.getAttribute('data-r24-receive-line') || 0),
               quantity:qty,
+              unit_cost:Number((lineNode.querySelector('[data-r24-receive-cost]') || {}).value || 0),
               storage_location_id:Number((lineNode.querySelector('[data-r24-receive-storage]') || {}).value || 0),
               lot_code:String((lineNode.querySelector('[data-r24-receive-lot]') || {}).value || ''),
               expiry_date:String((lineNode.querySelector('[data-r24-receive-expiry]') || {}).value || '')
@@ -824,6 +827,7 @@
         var unit = line.querySelector('[data-r24-po-line-unit]');
         var base = line.querySelector('[data-r24-po-line-base]');
         var cost = line.querySelector('[data-r24-po-line-cost]');
+        line.setAttribute('data-r24-supplier-item-id', String(match.id || ''));
         if (unit) unit.value = match.package_unit || 'piece';
         if (base) base.value = Number(match.base_quantity || 1);
         if (cost) cost.value = Number(match.price || 0);
