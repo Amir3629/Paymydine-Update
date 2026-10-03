@@ -14,6 +14,7 @@ use App\Services\Inventory\PmdInventoryReceiptAiService;
 use App\Services\Inventory\PmdInventoryStockCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
@@ -448,6 +449,26 @@ class Pmdinventory extends AdminController
                 throw new \InvalidArgumentException('Receipt must be JPG, PNG, WEBP or PDF.');
             }
 
+            // PMD_INVENTORY_DUPLICATE_DOCUMENT_R24
+            // A supplier invoice/receipt must never add stock twice.
+            $documentHash = '';
+            try {
+                $documentHash = (string)hash_file('sha256', (string)$file->getRealPath());
+            } catch (\Throwable $hashError) {
+                $documentHash = '';
+            }
+
+            if (
+                $documentHash !== ''
+                && Schema::hasColumn('pmd_inventory_receipts', 'document_hash')
+                && \Illuminate\Support\Facades\DB::table('pmd_inventory_receipts')
+                    ->where('location_id', $this->locationId())
+                    ->where('document_hash', $documentHash)
+                    ->exists()
+            ) {
+                throw new \InvalidArgumentException('This supplier document was already scanned. Stock was not changed.');
+            }
+
             $relativeDir = 'pmd-inventory-receipts/'.$this->locationId().'/'.now()->format('Y/m');
             $absoluteDir = storage_path('app/'.$relativeDir);
             if (!is_dir($absoluteDir) && !@mkdir($absoluteDir, 0770, true) && !is_dir($absoluteDir)) {
@@ -473,6 +494,28 @@ class Pmdinventory extends AdminController
                 ]);
             }
 
+            if (
+                is_array($aiPayload)
+                && !empty($aiPayload['invoice_number'])
+                && !empty($aiPayload['supplier_name'])
+                && Schema::hasColumn('pmd_inventory_receipts', 'invoice_number')
+            ) {
+                $duplicateInvoice = \Illuminate\Support\Facades\DB::table('pmd_inventory_receipts')
+                    ->where('location_id', $this->locationId())
+                    ->whereRaw('LOWER(COALESCE(supplier_name, \'\')) = ?', [
+                        mb_strtolower(trim((string)$aiPayload['supplier_name']))
+                    ])
+                    ->where('invoice_number', trim((string)$aiPayload['invoice_number']))
+                    ->exists();
+
+                if ($duplicateInvoice) {
+                    @unlink($absolutePath);
+                    throw new \InvalidArgumentException(
+                        'This supplier invoice number was already scanned. Stock was not changed.'
+                    );
+                }
+            }
+
             $receiptId = $inventory->createReceiptReview(
                 $this->locationId(),
                 $this->staffId(),
@@ -480,6 +523,7 @@ class Pmdinventory extends AdminController
                     'path' => $relativePath,
                     'original_name' => mb_substr((string)$file->getClientOriginalName(), 0, 255),
                     'mime_type' => $mime,
+                    'document_hash' => $documentHash,
                 ],
                 $aiPayload,
                 $aiError
