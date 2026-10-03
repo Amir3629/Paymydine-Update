@@ -441,6 +441,36 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onStartCount(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryControlService::class)->startCount(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return ['count_id' => $id];
+        });
+    }
+
+    public function onCancelCount(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryControlService::class)->cancelCount(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('count_id', 0)
+            );
+
+            return ['cancelled' => true];
+        });
+    }
+
     public function onCompleteCount(): JsonResponse
     {
         $this->assertOwnerOrManager();
