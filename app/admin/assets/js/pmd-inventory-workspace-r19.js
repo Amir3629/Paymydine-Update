@@ -953,6 +953,7 @@
     var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
     if (unknown) unknown.hidden = true;
     setBarcodeStatus('Scanner ready. Scan a bottle, pack, case, GTIN or supplier code.', false);
+    restoreBarcodeDraft();
     renderBarcodeLinkOptions();
     panel.scrollIntoView({behavior:'smooth', block:'nearest'});
     focusBarcodeInput();
@@ -978,6 +979,43 @@
     if (!Array.isArray(state.bulkReview.lines)) state.bulkReview.lines = [];
     return state.bulkReview;
   }
+  function barcodeDraftKey() {
+    return 'pmd.inventory.barcodeDraft.v24.' + String(window.location.pathname || 'inventory');
+  }
+
+  function saveBarcodeDraft() {
+    if (!state.bulkReview || state.bulkReview.label !== 'Barcode purchase') return;
+    try {
+      window.sessionStorage.setItem(barcodeDraftKey(), JSON.stringify({
+        savedAt:Date.now(),
+        lines:state.bulkReview.lines || []
+      }));
+    } catch (ignore) {}
+  }
+
+  function restoreBarcodeDraft() {
+    if (state.bulkReview) return;
+    try {
+      var raw = window.sessionStorage.getItem(barcodeDraftKey());
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.lines) || !parsed.lines.length) return;
+      state.bulkReview = {
+        receiptId:0,
+        label:'Barcode purchase',
+        lines:parsed.lines
+      };
+      renderBulkReview();
+      setBarcodeStatus('Restored ' + parsed.lines.length + ' unconfirmed scanned purchase line(s).', false);
+    } catch (ignore) {}
+  }
+
+  function clearBarcodeDraft() {
+    try {
+      window.sessionStorage.removeItem(barcodeDraftKey());
+    } catch (ignore) {}
+  }
+
 
   function identifierCost(item, identifier) {
     var offers = Array.isArray(item && item.supplier_offers) ? item.supplier_offers : [];
@@ -1048,6 +1086,7 @@
       false
     );
     renderBulkReview();
+    saveBarcodeDraft();
     focusBarcodeInput();
   }
 
@@ -1295,6 +1334,7 @@
     setBusy(true);
     api.request('onSavePurchase', payload).then(applyActionSnapshot)
       .then(function () {
+        if (state.bulkReview && state.bulkReview.label === 'Barcode purchase') clearBarcodeDraft();
         state.bulkReview = null;
         var host = workspace.querySelector('[data-r19-receipt-review]');
         if (host) host.hidden = true;
@@ -1726,9 +1766,11 @@
       var idx = Number(removeBulk.getAttribute('data-r19-remove-bulk-line'));
       state.bulkReview.lines.splice(idx,1);
       renderBulkReview();
+      if (state.bulkReview.label === 'Barcode purchase') saveBarcodeDraft();
       return;
     }
     if (event.target.closest('[data-r19-close-review]')) {
+      if (state.bulkReview && state.bulkReview.label === 'Barcode purchase') clearBarcodeDraft();
       state.bulkReview = null;
       var review = workspace.querySelector('[data-r19-receipt-review]');
       if (review) review.hidden = true;
