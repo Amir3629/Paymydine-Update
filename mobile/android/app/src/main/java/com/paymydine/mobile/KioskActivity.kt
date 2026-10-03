@@ -14,6 +14,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
+import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -786,12 +787,6 @@ private fun KioskWebView(
             Uri.encode(profile.theme.accent) +
             "&kiosk_surface=" +
             Uri.encode(profile.theme.surface)
-    val resetUrl =
-        base +
-            "/kiosk-reset/?pmd_kiosk_reset=1" +
-            "&kiosk_session=" +
-            Uri.encode(sessionNonce)
-
     DisposableEffect(Unit) {
         onDispose {
             webView?.let { view ->
@@ -849,8 +844,6 @@ private fun KioskWebView(
                 webChromeClient = WebChromeClient()
                 webViewClient =
                     object : WebViewClient() {
-                        private var resetComplete = false
-
                         override fun onPageStarted(
                             view: WebView,
                             url: String?,
@@ -902,26 +895,6 @@ private fun KioskWebView(
 
                             enableKioskBridge(true)
 
-                            if (!resetComplete && url.contains("pmd_kiosk_reset=1")) {
-                                resetComplete = true
-                                val resetScript =
-                                    """
-                                    (function(){
-                                      try {
-                                        localStorage.clear();
-                                        sessionStorage.clear();
-                                      } catch (e) {}
-                                      window.location.replace(__PMD_KIOSK_TARGET__);
-                                    })();
-                                    """.trimIndent()
-                                        .replace(
-                                            "__PMD_KIOSK_TARGET__",
-                                            org.json.JSONObject.quote(target),
-                                        )
-                                view.evaluateJavascript(resetScript, null)
-                                return
-                            }
-
                             injectKioskGuestUi(
                                 view,
                                 bridgeSecret,
@@ -934,10 +907,19 @@ private fun KioskWebView(
                     false
                 }
 
+                // PMD_KIOSK_NATIVE_DIRECT_LOAD_V57
+                // Clear browser state natively and load the real kiosk page once.
+                // Do not round-trip through /kiosk-reset: a reset-page navigation
+                // can race WebView callbacks and leave the customer on a blank
+                // surface even when the server page itself is healthy.
+                WebStorage.getInstance().deleteAllData()
+                clearCache(true)
+                clearHistory()
+
                 cookies.removeAllCookies {
                     cookies.flush()
                     post {
-                        loadUrl(resetUrl)
+                        loadUrl(target)
                     }
                 }
             }
