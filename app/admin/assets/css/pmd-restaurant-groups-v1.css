@@ -1,32 +1,23 @@
-/* PMD Restaurant Groups V1 */
-.pmd-group-scope-wrap{position:relative;display:inline-flex;align-items:center;gap:8px}
-.pmd-group-scope{height:40px;max-width:260px;border:1px solid #d8e5e0;border-radius:11px;background:#fff;padding:0 34px 0 12px;color:#17372f;font:700 13px/1 Inter,system-ui,sans-serif;outline:none}
-.pmd-group-scope:focus{border-color:#2d6f59;box-shadow:0 0 0 3px rgba(45,111,89,.1)}
-.pmd-group-badge{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border-radius:999px;background:#edf7f2;color:#174d3e;font:800 11px/1 Inter,system-ui,sans-serif}
-.pmd-group-share-trigger{position:fixed;right:22px;bottom:22px;z-index:11500;border:0;border-radius:13px;background:#123d32;color:#fff;min-height:46px;padding:0 16px;font:800 13px/1 Inter,system-ui,sans-serif;box-shadow:0 14px 30px rgba(6,31,25,.22);cursor:pointer}
-.pmd-group-share-trigger:hover{background:#0b2f2a}
-.pmd-group-share-backdrop{position:fixed;inset:0;z-index:12500;background:rgba(5,18,16,.32);backdrop-filter:blur(4px)}
-.pmd-group-share-panel{position:fixed;top:14px;right:14px;bottom:14px;width:min(440px,calc(100vw - 28px));z-index:12501;background:#fff;border:1px solid #dce8e3;border-radius:20px;box-shadow:0 30px 80px rgba(5,28,22,.28);display:flex;flex-direction:column;overflow:hidden;font-family:Inter,system-ui,sans-serif;color:#17372f}
-.pmd-group-share-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:20px;border-bottom:1px solid #e6eeeb}
-.pmd-group-share-head h3{margin:0;font-size:19px}.pmd-group-share-head p{margin:5px 0 0;color:#6f827b;font-size:13px;line-height:1.45}
-.pmd-group-share-close{border:0;background:#eef5f2;color:#17372f;width:36px;height:36px;border-radius:10px;font-size:20px;cursor:pointer}
-.pmd-group-share-body{padding:18px;overflow:auto;display:grid;gap:16px}
-.pmd-group-field{display:grid;gap:7px}.pmd-group-field>label{font-weight:800;font-size:12px;color:#526961}
-.pmd-group-field select{min-height:44px;border:1px solid #d8e5e0;border-radius:11px;background:#fff;padding:9px 11px}
-.pmd-group-targets{display:grid;gap:8px}.pmd-group-target{display:flex;align-items:center;gap:10px;border:1px solid #e0e9e5;border-radius:11px;padding:10px 11px}
-.pmd-group-target input{width:18px;height:18px}.pmd-group-target span{font-size:13px;font-weight:700}.pmd-group-target small{display:block;font-weight:500;color:#789087;margin-top:2px}
-.pmd-group-share-status{min-height:20px;color:#60756d;font-size:12px;line-height:1.45}.pmd-group-share-status.is-error{color:#b42318}.pmd-group-share-status.is-ok{color:#067647}
-.pmd-group-share-actions{display:flex;gap:9px;flex-wrap:wrap}.pmd-group-btn{border:0;border-radius:11px;min-height:42px;padding:0 14px;font-weight:800;font-size:13px;cursor:pointer}.pmd-group-btn.primary{background:#123d32;color:#fff}.pmd-group-btn.soft{background:#eef5f2;color:#17372f}.pmd-group-btn[disabled]{opacity:.5;cursor:not-allowed}
-.pmd-group-preview{border:1px solid #dfe9e5;border-radius:12px;padding:12px;background:#f9fbfa;font-size:12px;line-height:1.5}
-.pmd-group-overwrite{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:#526961}.pmd-group-overwrite input{margin-top:2px}
-@media(max-width:720px){.pmd-group-share-trigger{right:12px;bottom:12px}.pmd-group-scope{max-width:180px}}
-
-.pmd-group-tool-btn{min-height:34px;border:1px solid #d8e5e0;border-radius:10px;background:#fff;color:#17372f;padding:0 10px;font:800 11px/1 Inter,system-ui,sans-serif;cursor:pointer}
-.pmd-group-tool-btn:hover{background:#f4f8f6}
-.pmd-group-account-section{display:grid;gap:12px;padding-bottom:18px;border-bottom:1px solid #e5eeea}
-.pmd-group-account-section:last-child{border-bottom:0;padding-bottom:0}
-.pmd-group-account-section h4{margin:0;font-size:15px}
-.pmd-group-account-section p{margin:-5px 0 2px;color:#6f827b;font-size:12px;line-height:1.5}
-.pmd-group-field input{min-height:44px;border:1px solid #d8e5e0;border-radius:11px;background:#fff;padding:9px 11px;color:#17372f}
-.pmd-group-display-result{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
-.pmd-group-display-result input{min-width:0;min-height:42px;border:1px solid #d8e5e0;border-radius:10px;padding:8px 10px}
+/* PMD Restaurant Groups R3: isolate reporting UI from operational controls. */
+.pmd-group-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 0;margin-bottom:12px;font:inherit;color:#17372f}
+.pmd-group-toolbar>strong{margin-right:auto}
+.pmd-group-btn{border:1px solid #d8e5e0;border-radius:9px;min-height:40px;padding:9px 13px;background:#123d32;color:#fff;font:700 13px/1.3 system-ui,sans-serif;cursor:pointer}
+.pmd-group-btn:disabled{opacity:.5;cursor:not-allowed}
+.pmd-group-toolbar select,.pmd-group-dialog select,.pmd-group-dialog input:not([type=checkbox]){min-height:40px;border:1px solid #d8e5e0;border-radius:8px;background:#fff;color:#17372f;padding:8px 10px;font:inherit;max-width:100%}
+.pmd-group-overview{background:#f4f8f6;border:1px solid #d8e5e0;border-radius:12px;padding:18px;margin:0 0 20px;color:#17372f}
+.pmd-group-overview h3{margin:0 0 14px;font-size:18px}
+.pmd-group-overview p{margin:8px 0;font-size:13px;line-height:1.5}
+.pmd-group-dialog{width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;border:1px solid #d8e5e0;border-radius:14px;background:#fff;color:#17372f;padding:20px;box-shadow:0 25px 70px #001e2233;font:14px/1.5 system-ui,sans-serif}
+.pmd-group-dialog::backdrop{background:#081e1880}
+.pmd-group-dialog header{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #e1ebe5;margin-bottom:15px;padding-bottom:12px}
+.pmd-group-dialog h2{margin:0;font-size:20px}
+.pmd-group-dialog .pmd-group-btn{margin:5px 8px 5px 0}
+.pmd-group-field{display:grid;gap:6px;margin:12px 0}
+.pmd-group-field>span{font-weight:700}
+.pmd-group-location{display:flex;align-items:center;gap:10px;margin:8px 0;padding:9px;border:1px solid #e1ebe5;border-radius:8px}
+.pmd-group-location input{width:18px;height:18px}
+.pmd-group-status{min-height:22px}
+.pmd-group-results{border-top:1px solid #e1ebe5;margin-top:10px}
+.pmd-group-overview .is-error,.pmd-group-dialog .is-error{color:#a92018}
+.pmd-group-dialog [hidden],.pmd-group-overview[hidden]{display:none!important}
+@media(max-width:600px){.pmd-group-toolbar>strong{width:100%}.pmd-group-toolbar select{max-width:100%}}

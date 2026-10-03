@@ -1,553 +1,178 @@
+/* PMD restaurant groups R3: reporting scope never changes the local editor. */
 (function () {
   'use strict';
-
   var path = location.pathname.replace(/\/+$/, '');
-  if (path.indexOf('/admin') !== 0 || /\/admin\/(?:login|logout|reset)/.test(path)) return;
-  if (path.indexOf('/admin/group/') === 0) return;
+  var dashboard = ['/admin/ownerdashboard', '/admin/dashboardlab', '/admin/ownerboard'].indexOf(path) !== -1;
+  var type = /^\/admin\/menus(?:\/|$)/.test(path) ? 'menu' :
+    (/^\/admin\/(?:discounts|coupons)(?:\/|$)/.test(path) ? 'coupon' :
+    (/^\/admin\/(?:settings|pmdsettings)(?:\/|$)/.test(path) ? 'setting' : null));
+  if (!dashboard && !type) return;
+  var context, reportSequence = 0;
 
-  var adminPrefix = '/admin';
-  var context = null;
-  var currentScope = 'all';
-
-  function csrf() {
-    if (window.PMD_RESTAURANT_GROUPS_CSRF) {
-      return String(window.PMD_RESTAURANT_GROUPS_CSRF);
-    }
-    var meta = document.querySelector('meta[name="csrf-token"]');
-    if (meta) return meta.getAttribute('content') || '';
-    var input = document.querySelector('input[name="_token"]');
-    return input ? input.value : '';
+  function el(tag, text, className) {
+    var node = document.createElement(tag);
+    if (text != null) node.textContent = String(text);
+    if (className) node.className = className;
+    return node;
   }
-
-  function api(url, options) {
-    options = options || {};
-    options.credentials = 'same-origin';
-    options.cache = 'no-store';
-    options.headers = Object.assign({
-      Accept: 'application/json',
-      'X-Requested-With': 'XMLHttpRequest'
-    }, options.headers || {});
-    if (options.method && options.method !== 'GET') {
-      options.headers['Content-Type'] = 'application/json';
-      options.headers['X-CSRF-TOKEN'] = csrf();
+  function button(text, handler) {
+    var node = el('button', text, 'pmd-group-btn'); node.type = 'button';
+    node.addEventListener('click', handler); return node;
+  }
+  function request(endpoint, body) {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    var token = window.PMD_RESTAURANT_GROUPS_CSRF || (meta && meta.content) || '';
+    var options = {credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest'}};
+    if (body !== undefined) {
+      options.method='POST'; options.headers['Content-Type']='application/json';
+      options.headers['X-CSRF-TOKEN']=token; options.body=JSON.stringify(body);
     }
-    return fetch(url, options).then(function (response) {
+    return fetch('/admin/group/'+endpoint, options).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (data) {
-        if (!response.ok || data.ok === false) {
-          throw new Error(data.message || ('Request failed (' + response.status + ')'));
-        }
+        if (!response.ok || data.ok === false) throw new Error(data.message || 'The request could not be completed.');
         return data;
       });
     });
   }
-
-  function esc(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char];
+  function dialog(title) {
+    var node = el('dialog', null, 'pmd-group-dialog');
+    var header = el('header'); header.appendChild(el('h2',title));
+    header.appendChild(button('Close',function(){ node.close(); })); node.appendChild(header);
+    document.body.appendChild(node);
+    node.addEventListener('close',function(){ node.remove(); }); node.showModal(); return node;
+  }
+  function field(label, input) {
+    var wrap=el('label',null,'pmd-group-field');wrap.appendChild(el('span',label));wrap.appendChild(input);return wrap;
+  }
+  function status(node,message,error) { node.textContent=message;node.classList.toggle('is-error',!!error); }
+  function locations(container,includeCurrent) {
+    var inputs=[];
+    context.sites.forEach(function(site){
+      if(!includeCurrent && (Number(site.tenant_id)===Number(context.current_tenant_id)||!site.can_publish)) return;
+      var input=el('input');input.type='checkbox';input.value=String(site.tenant_id);
+      var label=el('label',null,'pmd-group-location');label.appendChild(input);label.appendChild(el('span',site.label));container.appendChild(label);inputs.push(input);
     });
+    return inputs;
   }
+  function selected(inputs) { return inputs.filter(function(i){return i.checked;}).map(function(i){return Number(i.value);}); }
 
-  function money(value, currency) {
-    try {
-      return new Intl.NumberFormat(document.documentElement.lang || undefined, {
-        style: 'currency',
-        currency: currency,
-        maximumFractionDigits: 2
-      }).format(Number(value || 0));
-    } catch (error) {
-      return String(Number(value || 0).toFixed(2)) + ' ' + currency;
-    }
-  }
-
-  function card(key) {
-    return document.querySelector('[data-pmd-dashboard2-kpi="' + key + '"]');
-  }
-
-  function writeCard(key, value, description) {
-    var node = card(key);
-    if (!node) return;
-    var valueNode = node.querySelector('.pmd-r2-kpi-v2401-value');
-    var descriptionNode = node.querySelector('.pmd-r2-kpi-v2401-description');
-    if (valueNode) valueNode.textContent = value;
-    if (descriptionNode && description) descriptionNode.textContent = description;
-  }
-
-  function total(snapshot) {
-    return snapshot.totals && snapshot.totals.length === 1 ? snapshot.totals[0] : null;
-  }
-
-  function renderDashboard(snapshot) {
-    var one = total(snapshot);
-    var locations = Array.isArray(snapshot.locations) ? snapshot.locations : [];
-
-    if (one) {
-      writeCard('revenue', money(one.revenue, one.currency), one.locations + ' location' + (one.locations === 1 ? '' : 's'));
-      writeCard('guests', String(one.guests), String(one.orders) + ' paid orders');
-      writeCard('tips', money(one.tips, one.currency), 'Paid-order tips');
-      writeCard('channels', String(one.orders), one.dine_in + ' dine-in · ' + one.takeaway + ' takeaway · ' + one.delivery + ' delivery');
-    } else if (snapshot.mixed_currency) {
-      writeCard('revenue', 'Mixed', snapshot.totals.map(function (row) {
-        return money(row.revenue, row.currency);
-      }).join(' · '));
-      writeCard('tips', 'Mixed', snapshot.totals.map(function (row) {
-        return money(row.tips, row.currency);
-      }).join(' · '));
-      var orderCount = snapshot.totals.reduce(function (sum, row) { return sum + Number(row.orders || 0); }, 0);
-      var guestCount = snapshot.totals.reduce(function (sum, row) { return sum + Number(row.guests || 0); }, 0);
-      writeCard('guests', String(guestCount), String(orderCount) + ' paid orders');
-    }
-
-    writeCard(
-      'turnover',
-      snapshot.turnover_minutes == null ? '—' : Math.round(Number(snapshot.turnover_minutes)) + ' min',
-      'Weighted across selected locations'
-    );
-
-    var occupancy = locations.map(function (row) { return row.occupancy_percent; }).filter(function (value) {
-      return value !== null && value !== undefined;
+  function account() {
+    var node=dialog('Business account');node.appendChild(el('p',context.group.name+' - '+context.owner.username));
+    var inputs=[];
+    ['Current password','New password','Confirm new password'].forEach(function(label,index){
+      var input=el('input');input.type='password';input.maxLength=128;input.autocomplete=index?'new-password':'current-password';
+      node.appendChild(field(label,input));inputs.push(input);
     });
-    writeCard(
-      'occupancy',
-      occupancy.length ? Math.round(occupancy.reduce(function (a,b){return a+Number(b);},0) / occupancy.length) + '%' : '—',
-      'Average selected-location occupancy'
-    );
-
-    var available = locations.reduce(function (sum,row){ return sum + Number(row.menu_available || 0); },0);
-    var menuTotal = locations.reduce(function (sum,row){ return sum + Number(row.menu_total || 0); },0);
-    writeCard('menu', menuTotal ? available + '/' + menuTotal : '—', 'Available menu items');
-
-    if (currentScope === 'all' || Number(currentScope) !== Number(context.current_tenant_id)) {
-      writeCard('kitchen', '—', 'Kitchen time stays location-specific');
-    }
-  }
-
-  function accountTools(host) {
-    if (!context || host.querySelector('[data-pmd-group-account]')) return;
-
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'pmd-group-tool-btn';
-    button.setAttribute('data-pmd-group-account', '1');
-    button.textContent = 'Business account';
-    host.appendChild(button);
-
-    var backdrop = document.createElement('div');
-    backdrop.className = 'pmd-group-share-backdrop';
-    backdrop.hidden = true;
-
-    var panel = document.createElement('aside');
-    panel.className = 'pmd-group-share-panel';
-    panel.hidden = true;
-
-    var foodCourtSection = '';
-    if (context.group.type === 'food_court') {
-      foodCourtSection =
-        '<div class="pmd-group-account-section">' +
-          '<h4>Pickup board</h4>' +
-          '<p>Create a display link for the locations you choose. The board shows order numbers only.</p>' +
-          '<div class="pmd-group-targets" data-display-targets></div>' +
-          '<button type="button" class="pmd-group-btn soft" data-create-display>Create pickup board</button>' +
-          '<div class="pmd-group-display-result" data-display-result hidden>' +
-            '<input type="text" readonly data-display-url>' +
-            '<button type="button" class="pmd-group-btn soft" data-copy-display>Copy link</button>' +
-          '</div>' +
-          '<div class="pmd-group-share-status" data-display-status></div>' +
-        '</div>';
-    }
-
-    panel.innerHTML =
-      '<div class="pmd-group-share-head">' +
-        '<div><h3>Business account</h3><p>' + esc(context.group.name) + ' · ' + esc(context.owner.username) + '</p></div>' +
-        '<button type="button" class="pmd-group-share-close" data-account-close aria-label="Close">×</button>' +
-      '</div>' +
-      '<div class="pmd-group-share-body">' +
-        '<div class="pmd-group-account-section">' +
-          '<h4>Shared Owner password</h4>' +
-          '<p>Changing it here changes the sign-in password for every location in this Business Account.</p>' +
-          '<div class="pmd-group-field"><label>Current password</label><input type="password" autocomplete="current-password" data-current-password></div>' +
-          '<div class="pmd-group-field"><label>New password</label><input type="password" minlength="14" maxlength="128" autocomplete="new-password" data-new-password></div>' +
-          '<div class="pmd-group-field"><label>Confirm new password</label><input type="password" minlength="14" maxlength="128" autocomplete="new-password" data-confirm-password></div>' +
-          '<button type="button" class="pmd-group-btn primary" data-change-password>Change password</button>' +
-          '<div class="pmd-group-share-status" data-password-status></div>' +
-        '</div>' +
-        foodCourtSection +
-      '</div>';
-
-    document.body.appendChild(backdrop);
-    document.body.appendChild(panel);
-
-    function open() {
-      backdrop.hidden = false;
-      panel.hidden = false;
-    }
-
-    function close() {
-      backdrop.hidden = true;
-      panel.hidden = true;
-    }
-
-    button.addEventListener('click', open);
-    backdrop.addEventListener('click', close);
-    panel.querySelector('[data-account-close]').addEventListener('click', close);
-
-    var change = panel.querySelector('[data-change-password]');
-    var passwordStatus = panel.querySelector('[data-password-status]');
-
-    change.addEventListener('click', function () {
-      var current = panel.querySelector('[data-current-password]').value;
-      var next = panel.querySelector('[data-new-password]').value;
-      var confirm = panel.querySelector('[data-confirm-password]').value;
-
-      passwordStatus.className = 'pmd-group-share-status';
-      if (!current || next.length < 14 || next !== confirm) {
-        passwordStatus.textContent = 'Enter the current password and matching new passwords of at least 14 characters.';
-        passwordStatus.classList.add('is-error');
-        return;
-      }
-
-      change.disabled = true;
-      passwordStatus.textContent = 'Changing password…';
-
-      api(adminPrefix + '/group/password', {
-        method: 'POST',
-        body: JSON.stringify({
-          current_password: current,
-          new_password: next,
-          new_password_confirmation: confirm
-        })
-      }).then(function (data) {
-        passwordStatus.textContent = data.message || 'Password changed. Sign in again.';
-        passwordStatus.classList.add('is-ok');
-        window.setTimeout(function () {
-          location.href = adminPrefix + '/login';
-        }, 900);
-      }).catch(function (error) {
-        passwordStatus.textContent = error.message;
-        passwordStatus.classList.add('is-error');
-        change.disabled = false;
+    var message=el('p',null,'pmd-group-status');message.setAttribute('role','status');
+    var save=button('Change shared password',function(){
+      if(inputs[1].value.length<14 || inputs[1].value!==inputs[2].value) {status(message,'Use matching new passwords of at least 14 characters.',true);return;}
+      save.disabled=true;
+      request('password',{current_password:inputs[0].value,new_password:inputs[1].value,new_password_confirmation:inputs[2].value})
+        .then(function(){inputs.forEach(function(i){i.value='';});location.assign('/admin/login');})
+        .catch(function(e){status(message,e.message,true);save.disabled=false;});
+    });
+    node.appendChild(save);node.appendChild(el('p','This changes the Owner password for every location and ends existing Owner sessions.'));node.appendChild(message);
+    if(context.group.type==='food_court') {
+      node.appendChild(el('h3','Pickup display'));var targetBox=el('div');node.appendChild(targetBox);
+      var inputs2=locations(targetBox,true);var output=el('input');output.readOnly=true;output.hidden=true;
+      var create=button('Create display link',function(){
+        var ids=selected(inputs2);if(!ids.length){status(message,'Choose at least one location.',true);return;}
+        create.disabled=true;
+        request('foodcourt/display',{targets:ids}).then(function(data){output.hidden=false;output.value=data.url;status(message,'Keep this display link private.');})
+          .catch(function(e){status(message,e.message,true);}).finally(function(){create.disabled=false;});
       });
-    });
+      node.appendChild(create);node.appendChild(output);
+    }
+  }
 
-    if (context.group.type === 'food_court') {
-      var targetHost = panel.querySelector('[data-display-targets]');
-      var createDisplay = panel.querySelector('[data-create-display]');
-      var displayStatus = panel.querySelector('[data-display-status]');
-      var displayResult = panel.querySelector('[data-display-result]');
-      var displayUrl = panel.querySelector('[data-display-url]');
-      var copyDisplay = panel.querySelector('[data-copy-display]');
-
-      targetHost.innerHTML = context.sites.map(function (site) {
-        return '<label class="pmd-group-target"><input type="checkbox" checked value="' +
-          Number(site.tenant_id) + '"><span>' + esc(site.label) +
-          '<small>' + esc(site.domain || '') + '</small></span></label>';
-      }).join('');
-
-      createDisplay.addEventListener('click', function () {
-        var selected = Array.prototype.map.call(
-          targetHost.querySelectorAll('input:checked'),
-          function (input) { return Number(input.value); }
-        );
-
-        displayStatus.className = 'pmd-group-share-status';
-        if (!selected.length) {
-          displayStatus.textContent = 'Choose at least one location.';
-          displayStatus.classList.add('is-error');
-          return;
-        }
-
-        createDisplay.disabled = true;
-        displayStatus.textContent = 'Creating pickup board…';
-
-        api(adminPrefix + '/group/foodcourt/display', {
-          method: 'POST',
-          body: JSON.stringify({targets: selected})
-        }).then(function (data) {
-          displayUrl.value = data.url || '';
-          displayResult.hidden = !displayUrl.value;
-          displayStatus.textContent = displayUrl.value
-            ? 'Pickup board created. Keep this private display link on the venue screen.'
-            : 'Pickup board was created without a display URL.';
-          displayStatus.classList.add(displayUrl.value ? 'is-ok' : 'is-error');
-        }).catch(function (error) {
-          displayStatus.textContent = error.message;
-          displayStatus.classList.add('is-error');
-        }).finally(function () {
-          createDisplay.disabled = false;
+  function share() {
+    var node=dialog('Publish saved changes');
+    node.appendChild(el('p','Save in this location first. Publishing changes only the target locations selected below.'));
+    var item=el('select');node.appendChild(field('Saved item',item));
+    var box=el('div');node.appendChild(box);var inputs=locations(box,false);
+    var message=el('p',null,'pmd-group-status');message.setAttribute('role','status');node.appendChild(message);
+    var details=el('div',null,'pmd-group-results');node.appendChild(details);
+    var operation=null,busy=false,version=0;
+    var apply=button('Apply to selected locations',function(){
+      if(!operation||busy)return;busy=true;apply.disabled=true;preview.disabled=true;
+      status(message,'Applying the reviewed changes...');var current=operation;
+      request('publish/apply',{operation:current,overwrite:false}).then(function(data){
+        details.replaceChildren();var failed=false;
+        (data.results||[]).forEach(function(row){
+          var site=context.sites.find(function(s){return Number(s.tenant_id)===Number(row.tenant_id);});
+          var label=row.label||(site&&site.label)||('Location '+row.tenant_id);
+          details.appendChild(el('p',label+': '+(row.ok?(row.state==='already_applied'?'Already applied':'Applied'):row.message),row.ok?'':'is-error'));
+          failed=failed||!row.ok;
         });
-      });
-
-      copyDisplay.addEventListener('click', function () {
-        if (!displayUrl.value) return;
-
-        if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(displayUrl.value).then(function () {
-            copyDisplay.textContent = 'Copied';
-            window.setTimeout(function () {
-              copyDisplay.textContent = 'Copy link';
-            }, 1200);
-          });
-          return;
-        }
-
-        displayUrl.select();
-        try { document.execCommand('copy'); } catch (error) {}
-      });
-    }
-  }
-
-  function dashboardScope() {
-    if (path !== '/admin/ownerdashboard' && path !== '/admin/dashboardlab') return;
-    if (!context) return;
-
-    var host = document.querySelector('#pmd-r2-clean-header .pmd-r2-clean-actions')
-      || document.querySelector('#pmd-r2-clean-header')
-      || document.querySelector('#pmd-dashboard-lab');
-
-    if (!host || document.querySelector('[data-pmd-group-scope]')) return;
-
-    var wrap = document.createElement('div');
-    wrap.className = 'pmd-group-scope-wrap';
-    wrap.setAttribute('data-pmd-group-scope', '1');
-
-    var select = null;
-
-    if (context.capabilities.aggregate_dashboard) {
-      select = document.createElement('select');
-      select.className = 'pmd-group-scope';
-      select.setAttribute('aria-label', 'Dashboard location scope');
-      select.innerHTML = '<option value="all">All locations</option>' + context.sites.map(function (site) {
-        return '<option value="' + Number(site.tenant_id) + '">' + esc(site.label) + '</option>';
-      }).join('');
-      wrap.appendChild(select);
-    }
-
-    var badge = document.createElement('span');
-    badge.className = 'pmd-group-badge';
-    badge.textContent = context.group.type === 'food_court'
-      ? 'Food Court'
-      : (context.capabilities.aggregate_dashboard ? 'Multi-location' : 'Business account');
-    wrap.appendChild(badge);
-
-    accountTools(wrap);
-
-    if (host.classList && host.classList.contains('pmd-r2-clean-actions')) {
-      host.insertBefore(wrap, host.firstChild);
-    } else {
-      host.insertBefore(wrap, host.firstChild);
-    }
-
-    if (!select) return;
-
-    try {
-      currentScope = localStorage.getItem('pmd.group.scope.' + context.group.uuid) || 'all';
-    } catch (error) {
-      currentScope = 'all';
-    }
-
-    if (currentScope !== 'all' && !context.sites.some(function (site) {
-      return String(site.tenant_id) === String(currentScope);
-    })) currentScope = 'all';
-
-    select.value = currentScope;
-
-    function load() {
-      select.disabled = true;
-      api(adminPrefix + '/group/snapshot?scope=' + encodeURIComponent(currentScope) + '&period=today')
-        .then(renderDashboard)
-        .catch(function () {})
-        .finally(function () { select.disabled = false; });
-    }
-
-    select.addEventListener('change', function () {
-      currentScope = select.value;
-      try {
-        localStorage.setItem('pmd.group.scope.' + context.group.uuid, currentScope);
-      } catch (error) {}
-      load();
+        status(message,failed?'Some locations were not confirmed. Retry this operation, or create a new preview after resolving conflicts.':'All selected locations were updated.',failed);
+        if(!failed)operation=null;
+        apply.textContent=failed?'Retry unfinished locations':'Apply to selected locations';
+      }).catch(function(e){status(message,e.message+' A retry uses the same operation identifier.',true);})
+        .finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});
+    });apply.disabled=true;
+    var preview=button('Preview locations',function(){
+      var ids=selected(inputs);if(!ids.length||!item.value){status(message,'Choose a saved item and at least one other location.',true);return;}
+      if(busy)return;busy=true;preview.disabled=true;apply.disabled=true;operation=null;details.replaceChildren();
+      var currentVersion=++version;status(message,'Checking selected locations...');
+      request('publish/preview',{type:type,entity_id:item.value,targets:ids}).then(function(data){
+        if(currentVersion!==version)return;operation=data.operation;
+        (data.targets||[]).forEach(function(row){details.appendChild(el('p',row.label+': '+(row.existing?'Update published copy':'Create copy')));});
+        status(message,'Review the target list before applying. A later conflict will stop that location.');
+      }).catch(function(e){status(message,e.message,true);})
+        .finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});
     });
-
-    load();
+    function invalidate(){version++;operation=null;apply.disabled=true;details.replaceChildren();status(message,'Selection changed. Create a new preview.');}
+    item.addEventListener('change',invalidate);inputs.forEach(function(i){i.addEventListener('change',invalidate);});
+    node.appendChild(preview);node.appendChild(apply);
+    preview.disabled=true;
+    request('catalog?type='+encodeURIComponent(type)).then(function(data){
+      (data.items||[]).forEach(function(row){var option=el('option',row.label);option.value=String(row.id);item.appendChild(option);});
+      var match=path.match(/\/menus\/edit\/(\d+)$/);if(match&&Array.from(item.options).some(function(o){return o.value===match[1];}))item.value=match[1];
+      preview.disabled=!item.options.length;status(message,item.options.length?'':'No eligible saved items are available.');
+    }).catch(function(e){status(message,e.message,true);});
   }
 
-  function publishingType() {
-    if (/\/admin\/menus(?:\/|$)/.test(path)) return 'menu';
-    if (/\/admin\/(?:discounts|coupons)(?:\/|$)/.test(path)) return 'coupon';
-    if (/\/admin\/(?:settings|pmdsettings)(?:\/|$)/.test(path)) return 'setting';
-    return null;
-  }
-
-  function sharing() {
-    var type = publishingType();
-    if (!type || !context || !context.capabilities.publish || context.sites.length < 2) return;
-    if (document.querySelector('[data-pmd-group-share-trigger]')) return;
-
-    var trigger = document.createElement('button');
-    trigger.type = 'button';
-    trigger.className = 'pmd-group-share-trigger';
-    trigger.setAttribute('data-pmd-group-share-trigger', '1');
-    trigger.textContent = 'Apply to locations';
-    document.body.appendChild(trigger);
-
-    var backdrop = document.createElement('div');
-    backdrop.className = 'pmd-group-share-backdrop';
-    backdrop.hidden = true;
-
-    var panel = document.createElement('aside');
-    panel.className = 'pmd-group-share-panel';
-    panel.hidden = true;
-    panel.innerHTML =
-      '<div class="pmd-group-share-head">' +
-        '<div><h3>Apply to locations</h3><p>Save this location first. Then publish the saved item to the locations you select.</p></div>' +
-        '<button type="button" class="pmd-group-share-close" data-close aria-label="Close">×</button>' +
-      '</div>' +
-      '<div class="pmd-group-share-body">' +
-        '<div class="pmd-group-field"><label>Saved item</label><select data-entity></select></div>' +
-        '<div class="pmd-group-field"><label>Target locations</label><div class="pmd-group-targets" data-targets></div></div>' +
-        '<label class="pmd-group-overwrite"><input type="checkbox" data-overwrite><span>Overwrite a target only if it changed after the preview. Leave this off unless you reviewed that location.</span></label>' +
-        '<div class="pmd-group-preview" data-preview hidden></div>' +
-        '<div class="pmd-group-share-status" data-status></div>' +
-        '<div class="pmd-group-share-actions"><button type="button" class="pmd-group-btn soft" data-preview-btn>Preview</button><button type="button" class="pmd-group-btn primary" data-apply disabled>Apply changes</button></div>' +
-      '</div>';
-
-    document.body.appendChild(backdrop);
-    document.body.appendChild(panel);
-
-    var entity = panel.querySelector('[data-entity]');
-    var targets = panel.querySelector('[data-targets]');
-    var status = panel.querySelector('[data-status]');
-    var previewBox = panel.querySelector('[data-preview]');
-    var previewButton = panel.querySelector('[data-preview-btn]');
-    var applyButton = panel.querySelector('[data-apply]');
-    var overwrite = panel.querySelector('[data-overwrite]');
-    var operation = null;
-
-    targets.innerHTML = context.sites.filter(function (site) {
-      return Number(site.tenant_id) !== Number(context.current_tenant_id) && site.can_publish;
-    }).map(function (site) {
-      return '<label class="pmd-group-target"><input type="checkbox" value="' + Number(site.tenant_id) + '"><span>' +
-        esc(site.label) + '<small>' + esc(site.domain || '') + '</small></span></label>';
-    }).join('');
-
-    function setStatus(message, mode) {
-      status.textContent = message || '';
-      status.className = 'pmd-group-share-status' + (mode ? ' is-' + mode : '');
-    }
-
-    function open() {
-      backdrop.hidden = false;
-      panel.hidden = false;
-      operation = null;
-      applyButton.disabled = true;
-      previewBox.hidden = true;
-      setStatus('Loading saved items…');
-
-      api(adminPrefix + '/group/catalog?type=' + encodeURIComponent(type))
-        .then(function (data) {
-          var items = Array.isArray(data.items) ? data.items : [];
-          entity.innerHTML = items.map(function (item) {
-            return '<option value="' + esc(item.id) + '">' + esc(item.label) + '</option>';
-          }).join('');
-
-          if (type === 'menu') {
-            var match = path.match(/\/menus\/edit\/(\d+)$/);
-            if (match && Array.prototype.some.call(entity.options, function (option) { return option.value === match[1]; })) {
-              entity.value = match[1];
-            }
-          }
-
-          setStatus(items.length ? 'Choose the locations, then preview.' : 'No saved items are available on this location.', items.length ? '' : 'error');
-          previewButton.disabled = !items.length;
-        })
-        .catch(function (error) {
-          setStatus(error.message, 'error');
-        });
-    }
-
-    function close() {
-      backdrop.hidden = true;
-      panel.hidden = true;
-    }
-
-    trigger.addEventListener('click', open);
-    backdrop.addEventListener('click', close);
-    panel.querySelector('[data-close]').addEventListener('click', close);
-
-    previewButton.addEventListener('click', function () {
-      var selected = Array.prototype.map.call(
-        targets.querySelectorAll('input:checked'),
-        function (input) { return Number(input.value); }
-      );
-
-      if (!selected.length) {
-        setStatus('Choose at least one other location.', 'error');
-        return;
-      }
-
-      previewButton.disabled = true;
-      applyButton.disabled = true;
-      setStatus('Checking target locations…');
-
-      api(adminPrefix + '/group/publish/preview', {
-        method: 'POST',
-        body: JSON.stringify({
-          type: type,
-          entity_id: entity.value,
-          targets: selected
-        })
-      }).then(function (data) {
-        operation = data.operation;
-        previewBox.hidden = false;
-        previewBox.innerHTML = '<strong>Ready to publish</strong><br>' + data.targets.map(function (target) {
-          return esc(target.label) + (target.existing ? ' · update existing copy' : ' · create copy');
-        }).join('<br>');
-        setStatus('Preview created. Apply only after checking these targets.', 'ok');
-        applyButton.disabled = false;
-      }).catch(function (error) {
-        operation = null;
-        previewBox.hidden = true;
-        setStatus(error.message, 'error');
-      }).finally(function () {
-        previewButton.disabled = false;
+  function overview(bar) {
+    if(!context.capabilities.aggregate_dashboard)return;
+    var scope=el('select');scope.setAttribute('aria-label','Report location');
+    var all=el('option','All locations');all.value='all';scope.appendChild(all);
+    context.sites.forEach(function(site){var option=el('option',site.label);option.value=String(site.tenant_id);scope.appendChild(option);});
+    var period=el('select');period.setAttribute('aria-label','Reporting period');
+    [['today','Today'],['week','This week'],['month','This month'],['last30','Last 30 days']].forEach(function(row){var option=el('option',row[1]);option.value=row[0];period.appendChild(option);});
+    bar.appendChild(scope);bar.appendChild(period);
+    var panel=el('section',null,'pmd-group-overview');panel.setAttribute('aria-live','polite');bar.after(panel);
+    var native=Array.from(document.querySelectorAll('#pmd-r2-reservation-kpis-v307, #pmd-dashboard-lab-analytics-v1'))
+      .map(function(node){return {node:node,display:node.style.getPropertyValue('display'),priority:node.style.getPropertyPriority('display')};});
+    function render(data){
+      panel.replaceChildren();panel.appendChild(el('h3',scope.options[scope.selectedIndex].text+' - settlement overview'));
+      if(data.partial)panel.appendChild(el('p','Incomplete overview: one or more locations could not be included.','is-error'));
+      (data.totals||[]).forEach(function(total){
+        panel.appendChild(el('p',total.currency+' | Recorded settled amount: '+total.revenue+' | Orders: '+total.orders+' | Average settled order: '+(total.average_order===null?'Not available':total.average_order)+' | Tips: '+total.tips));
       });
-    });
-
-    applyButton.addEventListener('click', function () {
-      if (!operation) return;
-
-      applyButton.disabled = true;
-      previewButton.disabled = true;
-      setStatus('Publishing…');
-
-      api(adminPrefix + '/group/publish/apply', {
-        method: 'POST',
-        body: JSON.stringify({
-          operation: operation,
-          overwrite: overwrite.checked
-        })
-      }).then(function (data) {
-        var failed = data.results.filter(function (row) { return !row.ok; });
-        if (failed.length) {
-          setStatus(failed.length + ' location(s) were not updated. Review the conflict and create a new preview.', 'error');
-        } else {
-          setStatus('Changes applied to all selected locations.', 'ok');
-          operation = null;
-          applyButton.disabled = true;
-        }
-      }).catch(function (error) {
-        setStatus(error.message, 'error');
-      }).finally(function () {
-        previewButton.disabled = false;
-        if (operation) applyButton.disabled = false;
+      (data.locations||[]).forEach(function(site){
+        panel.appendChild(el('p',site.label+': '+(site.available?site.revenue+' '+site.currency+' | '+site.orders+' orders | '+site.timezone:site.message),site.available?'':'is-error'));
       });
-    });
+      panel.appendChild(el('p','Each location uses its own calendar-day boundary. Settled amounts are not a tax, profit, refund or currency-conversion report.'));
+      panel.appendChild(el('p','Orders, floor, kitchen, menus and settings still belong to the current subdomain.'));
+    }
+    function load(){
+      var seq=++reportSequence;var local=scope.value===String(context.current_tenant_id);
+      native.forEach(function(entry){if(local){entry.node.style.setProperty('display',entry.display,entry.priority);}else{entry.node.style.setProperty('display','none','important');}});
+      panel.replaceChildren(el('p','Loading the selected locations...'));
+      request('snapshot?scope='+encodeURIComponent(scope.value)+'&period='+encodeURIComponent(period.value))
+        .then(function(data){if(seq===reportSequence)render(data);})
+        .catch(function(e){if(seq===reportSequence)panel.replaceChildren(el('p',e.message,'is-error'));});
+    }
+    scope.addEventListener('change',load);period.addEventListener('change',load);bar.appendChild(button('Refresh report',load));load();
   }
 
-  api(adminPrefix + '/group/context')
-    .then(function (data) {
-      if (!data.enabled) return;
-      context = data;
-      dashboardScope();
-      sharing();
-    })
-    .catch(function () {});
+  request('context').then(function(data){
+    if(!data.enabled)return;context=data;
+    var root=document.querySelector('#pmd-dashboard-lab, [data-pmd-ownerboard-v2], .page-content, main');
+    if(!root)return;
+    var bar=el('div',null,'pmd-group-toolbar');bar.appendChild(el('strong',context.group.name));bar.appendChild(button('Business account',account));
+    root.prepend(bar);
+    if(dashboard)overview(bar);
+    if(type&&context.capabilities.publish)bar.appendChild(button('Apply to locations',share));
+  }).catch(function(){ /* Normal login/MFA gates remain the authority. */ });
 })();

@@ -1,606 +1,180 @@
 <?php
-
 namespace App\Services\RestaurantGroups;
 
 use Illuminate\Support\Str;
 
+/** Explicit cross-location publication; target receipts are the commit authority. */
 final class Publisher
 {
-    private const TYPES = ['menu', 'coupon', 'setting'];
-
-    private const SAFE_SETTINGS = [
-        'default_language',
-        'supported_languages',
-        'detect_language',
-        'pmd_v2_tips_enabled',
-        'pmd_v2_coupons_enabled',
-        'pmd_v2_social_enabled',
-        'pmd_v2_service_charge_enabled',
-        'pmd_v2_reservations_enabled',
-    ];
-
-    public function __construct(
-        private Store $store,
-        private Auth $auth,
-        private Schema $schema
-    ) {
-    }
+    public function __construct(private Store $store, private Auth $auth, private Schema $schema) {}
+    private function data(): PublicationData { return app(PublicationData::class); }
 
     public function catalog(string $type): array
     {
-        $type = $this->type($type);
-        $owner = $this->auth->owner(true);
-        $tenantId = $this->store->currentTenantId();
-        $this->store->access((int)$owner->id, $tenantId, true);
-        $db = $this->store->connection($tenantId);
-
-        if ($type === 'menu') {
-            return $db->table('menus')
-                ->orderBy('menu_name')
-                ->get(['menu_id as id', 'menu_name as label'])
-                ->map(static fn ($row) => (array)$row)
-                ->all();
-        }
-
-        if ($type === 'coupon') {
-            return $db->table('igniter_coupons')
-                ->orderBy('name')
-                ->get(['coupon_id as id', 'name as label', 'code'])
-                ->map(static function ($row) {
-                    $item = (array)$row;
-                    $item['label'] = trim((string)$item['label']).' · '.trim((string)$item['code']);
-                    unset($item['code']);
-                    return $item;
-                })
-                ->all();
-        }
-
-        return array_map(
-            static fn ($key) => ['id' => $key, 'label' => $key],
-            self::SAFE_SETTINGS
-        );
+        $owner=$this->auth->owner(true); $source=$this->store->currentTenantId();
+        $site=$this->authorized($owner,$source,null);
+        return $this->data()->catalog($this->store->connection($source),$type,(int)$site->location_id);
     }
 
-    public function preview(
-        string $type,
-        string $entityId,
-        array $requestedTargets
-    ): array {
-        $type = $this->type($type);
-        $owner = $this->auth->owner(true);
-        $sourceTenantId = $this->store->currentTenantId();
-        $sourceSite = $this->store->site($sourceTenantId);
-        $group = $this->store->group((int)$sourceSite->group_id);
-
-        $sites = array_values(array_filter(
-            $this->store->sitesForOwner((int)$owner->id),
-            static fn ($site) => (int)$site['group_id'] === (int)$group->id
-                && !empty($site['can_publish'])
-        ));
-
-        $allowed = array_map('intval', array_column($sites, 'tenant_id'));
-        $targets = Policy::targets($requestedTargets, $allowed);
-        $targets = array_values(array_filter(
-            $targets,
-            static fn ($id) => $id !== $sourceTenantId
-        ));
-
-        if (!$targets) {
-            throw new \InvalidArgumentException('Choose at least one other location.');
-        }
-
-        $this->store->access((int)$owner->id, $sourceTenantId, true);
-        $sourceDb = $this->store->connection($sourceTenantId);
-        $this->schema->installTenant($sourceDb);
-
-        $payload = $this->export($sourceDb, $type, $entityId);
-        $digest = Policy::digest($payload);
-        $entityKey = $this->entityKey(
-            $sourceDb,
-            (string)$group->uuid,
-            $type,
-            $entityId
-        );
-
-        $operationUuid = (string)Str::uuid();
-        $operationId = $this->store->central()->table('pmd_group_operations')->insertGetId([
-            'uuid' => $operationUuid,
-            'group_id' => (int)$group->id,
-            'owner_id' => (int)$owner->id,
-            'source_tenant_id' => $sourceTenantId,
-            'entity_type' => $type,
-            'entity_key' => $entityKey,
-            'payload' => Policy::canonical($payload),
-            'digest' => $digest,
-            'state' => 'preview',
-            'expires_at' => now()->addMinutes(20),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $previewTargets = [];
-
-        foreach ($targets as $tenantId) {
-            $this->store->access((int)$owner->id, $tenantId, true);
-            $db = $this->store->connection($tenantId);
-            $this->schema->installTenant($db);
-
-            $mapping = null;
-            $expected = null;
-            $targetExisting = false;
-
-            if ($type === 'setting') {
-                try {
-                    $current = $this->export($db, $type, $entityId);
-                    $expected = Policy::digest($current);
-                    $targetExisting = true;
-                } catch (\Throwable $ignored) {
-                    $expected = null;
-                    $targetExisting = false;
-                }
-            } else {
-                $mapping = $db->table('pmd_group_entities')
-                    ->where('group_uuid', (string)$group->uuid)
-                    ->where('entity_key', $entityKey)
-                    ->first();
-
-                if ($mapping) {
-                    try {
-                        $current = $this->export($db, $type, (string)$mapping->local_id);
-                        $expected = Policy::digest($current);
-                        $targetExisting = true;
-                    } catch (\Throwable $ignored) {
-                        $expected = null;
-                    }
-                }
-            }
-
-            $this->store->central()->table('pmd_group_operation_targets')->insert([
-                'operation_id' => $operationId,
-                'tenant_id' => $tenantId,
-                'state' => 'pending',
-                'expected_digest' => $expected,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            $site = $this->store->site($tenantId);
-            $previewTargets[] = [
-                'tenant_id' => $tenantId,
-                'label' => (string)$site->label,
-                'existing' => $targetExisting,
-                'conflict_guard' => $expected !== null,
-            ];
-        }
-
-        $this->store->audit(
-            'owner',
-            (int)$owner->id,
-            'publish_preview',
-            (int)$group->id,
-            [
-                'operation' => $operationUuid,
-                'type' => $type,
-                'source_tenant_id' => $sourceTenantId,
-                'targets' => $targets,
-            ]
-        );
-
-        return [
-            'ok' => true,
-            'operation' => $operationUuid,
-            'entity_type' => $type,
-            'entity_key' => $entityKey,
-            'source_digest' => $digest,
-            'targets' => $previewTargets,
-            'expires_at' => now()->addMinutes(20)->toIso8601String(),
-        ];
-    }
-
-    public function apply(string $operationUuid, bool $overwrite = false): array
+    public function preview(string $type,string $entityId,array $requestedTargets): array
     {
-        $owner = $this->auth->owner(true);
-        $operation = $this->store->central()->table('pmd_group_operations')
-            ->where('uuid', $operationUuid)
-            ->first();
-
-        if (
-            !$operation
-            || (int)$operation->owner_id !== (int)$owner->id
-            || !in_array($operation->state, ['preview', 'partial'], true)
-            || now()->greaterThan($operation->expires_at)
-        ) {
-            throw new \DomainException('This publish preview expired. Create a new preview.');
-        }
-
-        $sourceDb = $this->store->connection((int)$operation->source_tenant_id);
-        $payload = json_decode((string)$operation->payload, true);
-        if (!is_array($payload)) throw new \RuntimeException('Publish payload is invalid.');
-
-        $sourceMapping = null;
-        if ((string)$operation->entity_type === 'setting') {
-            $sourceIdentifier = (string)($payload['key'] ?? '');
-            if ($sourceIdentifier === '') {
-                throw new \RuntimeException('Setting publish payload is invalid.');
-            }
-        } else {
-            $sourceMapping = $sourceDb->table('pmd_group_entities')
-                ->where(
-                    'group_uuid',
-                    (string)$this->store->group((int)$operation->group_id)->uuid
-                )
-                ->where('entity_key', (string)$operation->entity_key)
-                ->first();
-
-            if (!$sourceMapping) {
-                throw new \DomainException('The source item mapping is missing.');
-            }
-
-            $sourceIdentifier = (string)$sourceMapping->local_id;
-        }
-
-        $sourceCurrent = $this->export(
-            $sourceDb,
-            (string)$operation->entity_type,
-            $sourceIdentifier
-        );
-
-        if (!hash_equals((string)$operation->digest, Policy::digest($sourceCurrent))) {
-            throw new \DomainException(
-                'The source changed after preview. Review the locations again before publishing.'
-            );
-        }
-
-        $group = $this->store->group((int)$operation->group_id);
-        $targets = $this->store->central()->table('pmd_group_operation_targets')
-            ->where('operation_id', $operation->id)
-            ->orderBy('id')
-            ->get();
-
-        $results = [];
-
-        foreach ($targets as $target) {
-            try {
-                $this->store->access((int)$owner->id, (int)$target->tenant_id, true);
-                $db = $this->store->connection((int)$target->tenant_id);
-                $this->schema->installTenant($db);
-
-                $receipt = $db->table('pmd_group_receipts')
-                    ->where('operation_uuid', $operationUuid)
-                    ->first();
-
-                if ($receipt && hash_equals((string)$receipt->digest, (string)$operation->digest)) {
-                    $results[] = [
-                        'tenant_id' => (int)$target->tenant_id,
-                        'ok' => true,
-                        'state' => 'already_applied',
-                    ];
-                    continue;
-                }
-
-                $mapping = null;
-                $targetIdentifier = null;
-
-                if ((string)$operation->entity_type === 'setting') {
-                    $targetIdentifier = (string)($payload['key'] ?? '');
-                } else {
-                    $mapping = $db->table('pmd_group_entities')
-                        ->where('group_uuid', (string)$group->uuid)
-                        ->where('entity_key', (string)$operation->entity_key)
-                        ->first();
-
-                    if ($mapping) {
-                        $targetIdentifier = (string)$mapping->local_id;
-                    }
-                }
-
-                if ($target->expected_digest && $targetIdentifier !== null) {
-                    $current = $this->export(
-                        $db,
-                        (string)$operation->entity_type,
-                        $targetIdentifier
-                    );
-                    $currentDigest = Policy::digest($current);
-
-                    if (
-                        !hash_equals((string)$target->expected_digest, $currentDigest)
-                        && !$overwrite
-                    ) {
-                        throw new \DomainException(
-                            'This location changed after preview. Review it again or explicitly overwrite it.'
-                        );
-                    }
-                }
-
-                $localId = $db->transaction(function () use (
-                    $db,
-                    $payload,
-                    $operation,
-                    $operationUuid,
-                    $group,
-                    $mapping
-                ) {
-                    $localId = $this->import(
-                        $db,
-                        (string)$operation->entity_type,
-                        $payload,
-                        $mapping ? (string)$mapping->local_id : null,
-                        (int)$this->store->site((int)$this->tenantIdForConnection($db))->location_id
-                    );
-
-                    if ((string)$operation->entity_type !== 'setting') {
-                        $db->table('pmd_group_entities')->updateOrInsert(
-                            [
-                                'group_uuid' => (string)$group->uuid,
-                                'entity_key' => (string)$operation->entity_key,
-                            ],
-                            [
-                                'entity_type' => (string)$operation->entity_type,
-                                'local_id' => (string)$localId,
-                                'last_digest' => (string)$operation->digest,
-                            ]
-                        );
-                    }
-
-                    $db->table('pmd_group_receipts')->updateOrInsert(
-                        ['operation_uuid' => $operationUuid],
-                        [
-                            'digest' => (string)$operation->digest,
-                            'applied_at' => now(),
-                        ]
-                    );
-
-                    return $localId;
+        $this->data()->type($type);
+        $owner=$this->auth->owner(true); $source=$this->store->currentTenantId();
+        $site=$this->authorized($owner,$source,null); $group=$this->store->group((int)$site->group_id);
+        $sites=array_filter($this->store->sitesForOwner((int)$owner->id),fn($s)=>(int)$s['group_id']===(int)$group->id && !empty($s['can_publish']));
+        $targets=Policy::targets($requestedTargets,array_column($sites,'tenant_id'));
+        $targets=array_values(array_filter($targets,fn($id)=>$id!==$source)); sort($targets,SORT_NUMERIC);
+        if (!$targets) throw new \InvalidArgumentException('Choose at least one other location.');
+        $sourceDb=$this->store->connection($source); $this->data()->ready($sourceDb,$type);
+        return PublicationLock::run($sourceDb,'source:'.$group->uuid.':'.$type.':'.$entityId,function() use($owner,$source,$site,$group,$targets,$type,$entityId,$sourceDb) {
+            $state=$sourceDb->transaction(fn()=>$this->data()->state($sourceDb,$type,$entityId,(int)$site->location_id,true));
+            if ($state===null) throw new \DomainException('Saved source item not found.');
+            $currency=$type==='setting'?null:$this->data()->currency($sourceDb);
+            $key=$this->entityKey($sourceDb,(string)$group->uuid,$type,$entityId);
+            $payload=['meta'=>['version'=>PublicationRules::VERSION,'owner_id'=>(int)$owner->id,
+                'auth_version'=>(int)$owner->auth_version,'source_tenant_id'=>$source,
+                'source_id'=>$entityId,'group_uuid'=>(string)$group->uuid,'type'=>$type,
+                'currency'=>$currency], 'item'=>$state['data']];
+            $planned=[];
+            foreach($targets as $tenantId) {
+                $targetSite=$this->authorized($owner,$tenantId,(int)$group->id);
+                $db=$this->store->connection($tenantId); $this->data()->ready($db,$type);
+                if($currency!==null && $currency!==$this->data()->currency($db)) throw new \DomainException('Prices cannot be published between different configured currencies.');
+                $targetState=$db->transaction(function() use($db,$group,$key,$type,$entityId,$targetSite,$state) {
+                    $mapped=$this->mapped($db,(string)$group->uuid,$key,$type,$entityId,true);
+                    $current=$mapped===null?null:$this->data()->state($db,$type,$mapped,(int)$targetSite->location_id,true);
+                    if($type!=='setting' && $mapped!==null && $current===null) throw new \DomainException('A previously published target was deleted. Review its mapping first.');
+                    $this->data()->validateTarget($db,$type,$state['data'],$current===null?null:$mapped,(int)$targetSite->location_id);
+                    return $current;
                 });
-
-                $this->store->central()->table('pmd_group_operation_targets')
-                    ->where('id', $target->id)
-                    ->update([
-                        'state' => 'applied',
-                        'last_error' => null,
-                        'updated_at' => now(),
-                    ]);
-
-                $results[] = [
-                    'tenant_id' => (int)$target->tenant_id,
-                    'ok' => true,
-                    'state' => 'applied',
-                    'local_id' => (int)$localId,
-                ];
-            } catch (\Throwable $error) {
-                $this->store->central()->table('pmd_group_operation_targets')
-                    ->where('id', $target->id)
-                    ->update([
-                        'state' => 'failed',
-                        'last_error' => substr($error->getMessage(), 0, 500),
-                        'updated_at' => now(),
-                    ]);
-
-                $results[] = [
-                    'tenant_id' => (int)$target->tenant_id,
-                    'ok' => false,
-                    'state' => 'failed',
-                    'message' => $error->getMessage(),
-                ];
+                $planned[]=['tenant_id'=>$tenantId,'label'=>(string)$targetSite->label,
+                    'expected_digest'=>PublicationRules::fingerprint($targetState),'existing'=>$targetState!==null];
             }
-        }
-
-        $failed = array_values(array_filter($results, static fn ($row) => empty($row['ok'])));
-
-        $this->store->central()->table('pmd_group_operations')
-            ->where('id', $operation->id)
-            ->update([
-                'state' => $failed ? 'partial' : 'complete',
-                'updated_at' => now(),
-            ]);
-
-        $this->store->audit(
-            'owner',
-            (int)$owner->id,
-            'publish_apply',
-            (int)$operation->group_id,
-            [
-                'operation' => $operationUuid,
-                'overwrite' => $overwrite,
-                'results' => $results,
-            ]
-        );
-
-        return [
-            'ok' => !$failed,
-            'operation' => $operationUuid,
-            'results' => $results,
-        ];
+            // No partial preview can be applied: metadata, every target and the
+            // audit entry are committed together, only after all checks pass.
+            $uuid=(string)Str::uuid(); $expires=now()->addMinutes(20);
+            $this->store->central()->transaction(function() use($owner,$source,$group,$type,$key,$payload,$uuid,$expires,$planned) {
+                $this->auth->owner(true);
+                $id=$this->store->central()->table('pmd_group_operations')->insertGetId([
+                    'uuid'=>$uuid,'group_id'=>(int)$group->id,'owner_id'=>(int)$owner->id,
+                    'source_tenant_id'=>$source,'entity_type'=>$type,'entity_key'=>$key,
+                    'payload'=>Policy::canonical($payload),'digest'=>Policy::digest($payload),
+                    'state'=>'preview','expires_at'=>$expires,'created_at'=>now(),'updated_at'=>now()]);
+                foreach($planned as $target) $this->store->central()->table('pmd_group_operation_targets')->insert([
+                    'operation_id'=>$id,'tenant_id'=>$target['tenant_id'],'expected_digest'=>$target['expected_digest'],
+                    'state'=>'pending','created_at'=>now(),'updated_at'=>now()]);
+                $this->store->audit('owner',(int)$owner->id,'publish_preview',(int)$group->id,['operation'=>$uuid,'targets'=>array_column($planned,'tenant_id')]);
+            });
+            return ['ok'=>true,'operation'=>$uuid,'entity_type'=>$type,'targets'=>$planned,'expires_at'=>$expires->toIso8601String()];
+        });
     }
 
-    private function type(string $type): string
+    public function apply(string $operationUuid,bool $overwrite=false): array
     {
-        $type = strtolower(trim($type));
-        if (!in_array($type, self::TYPES, true)) {
-            throw new \InvalidArgumentException('Only Menu, Discount and approved Settings can be shared.');
-        }
-        return $type;
-    }
-
-    private function entityKey($db, string $groupUuid, string $type, string $localId): string
-    {
-        if ($type === 'setting') return 'setting:'.$localId;
-
-        $existing = $db->table('pmd_group_entities')
-            ->where('group_uuid', $groupUuid)
-            ->where('entity_type', $type)
-            ->where('local_id', (int)$localId)
-            ->first();
-
-        if ($existing) return (string)$existing->entity_key;
-
-        $key = $type.':'.(string)Str::uuid();
-        $payload = $this->export($db, $type, $localId);
-
-        $db->table('pmd_group_entities')->insert([
-            'group_uuid' => $groupUuid,
-            'entity_key' => $key,
-            'entity_type' => $type,
-            'local_id' => (int)$localId,
-            'last_digest' => Policy::digest($payload),
-        ]);
-
-        return $key;
-    }
-
-    private function export($db, string $type, string $id): array
-    {
-        return match ($type) {
-            'menu' => $this->exportMenu($db, (int)$id),
-            'coupon' => $this->exportCoupon($db, (int)$id),
-            'setting' => $this->exportSetting($db, $id),
-            default => throw new \InvalidArgumentException('Unsupported publish type.'),
-        };
-    }
-
-    private function import(
-        $db,
-        string $type,
-        array $payload,
-        ?string $localId,
-        int $locationId
-    ): string {
-        return match ($type) {
-            'menu' => (string)$this->importMenu($db, $payload, $localId ? (int)$localId : null, $locationId),
-            'coupon' => (string)$this->importCoupon($db, $payload, $localId ? (int)$localId : null, $locationId),
-            'setting' => $this->importSetting($db, $payload),
-            default => throw new \InvalidArgumentException('Unsupported publish type.'),
-        };
-    }
-
-    private function exportMenu($db, int $id): array
-    {
-        return app(MenuReplicator::class)->export($db, $id);
-    }
-
-    private function importMenu($db, array $payload, ?int $id, int $locationId): int
-    {
-        return app(MenuReplicator::class)->import($db, $payload, $id, $locationId);
-    }
-
-    private function exportCoupon($db, int $id): array
-    {
-        $row = $db->table('igniter_coupons')->where('coupon_id', $id)->first();
-        if (!$row) throw new \DomainException('Discount not found.');
-
-        $data = (array)$row;
-        if (($data['card_type'] ?? 'coupon') === 'gift_card') {
-            throw new \DomainException(
-                'Gift-card balances are location-owned and cannot be published between restaurants.'
-            );
-        }
-
-        return ['coupon' => $this->only($data, [
-            'name', 'code', 'type', 'discount', 'min_total', 'redemptions',
-            'customer_redemptions', 'validity', 'fixed_date', 'fixed_from_time',
-            'fixed_to_time', 'period_start_date', 'period_end_date',
-            'recurring_every', 'recurring_from_time', 'recurring_to_time',
-            'order_restriction', 'status', 'card_type', 'max_discount_cap',
-        ])];
-    }
-
-    private function importCoupon($db, array $payload, ?int $id, int $locationId): int
-    {
-        $coupon = (array)($payload['coupon'] ?? []);
-        if (!$coupon || empty($coupon['code'])) throw new \RuntimeException('Discount payload is incomplete.');
-
-        $data = $this->columns($db, 'igniter_coupons', $coupon);
-        $now = now();
-
-        if ($id && $db->table('igniter_coupons')->where('coupon_id', $id)->exists()) {
-            if ($db->getSchemaBuilder()->hasColumn('igniter_coupons', 'updated_at')) $data['updated_at'] = $now;
-            $db->table('igniter_coupons')->where('coupon_id', $id)->update($data);
-        } else {
-            $conflict = $db->table('igniter_coupons')
-                ->whereRaw('LOWER(code) = ?', [strtolower((string)$coupon['code'])])
-                ->first();
-
-            if ($conflict) {
-                $id = (int)$conflict->coupon_id;
-                $db->table('igniter_coupons')->where('coupon_id', $id)->update($data);
-            } else {
-                if ($db->getSchemaBuilder()->hasColumn('igniter_coupons', 'created_at')) $data['created_at'] = $now;
-                if ($db->getSchemaBuilder()->hasColumn('igniter_coupons', 'updated_at')) $data['updated_at'] = $now;
-                $id = (int)$db->table('igniter_coupons')->insertGetId($data);
+        if($overwrite) throw new \DomainException('Stale-target overwrite is disabled. Create and review a new preview.');
+        $owner=$this->auth->owner(true); $central=$this->store->central();
+        return PublicationLock::run($central,'operation:'.$operationUuid,function() use($central,$owner,$operationUuid) {
+            $operation=$central->table('pmd_group_operations')->where('uuid',$operationUuid)->first();
+            if(!$operation || (int)$operation->owner_id!==(int)$owner->id) throw new \DomainException('Publication not found.');
+            $group=$this->store->group((int)$operation->group_id);
+            if((int)$group->owner_id!==(int)$owner->id || $group->status!=='active') throw new \DomainException('Business account access changed.');
+            $payload=json_decode((string)$operation->payload,true,512,JSON_THROW_ON_ERROR);
+            $item=PublicationRules::envelope($payload,$operation,$owner,$group);
+            $sourceSite=$this->authorized($owner,(int)$operation->source_tenant_id,(int)$group->id);
+            $targets=$central->table('pmd_group_operation_targets')->where('operation_id',$operation->id)->orderBy('tenant_id')->get();
+            if($targets->isEmpty() || $targets->count()>20) throw new \DomainException('Publication target list is invalid.');
+            if(!in_array($operation->state,['preview','partial','complete'],true)) throw new \DomainException('Publication state is invalid.');
+            if($operation->state!=='complete' && now()->greaterThan($operation->expires_at)) throw new \DomainException('The preview expired. Create a new preview.');
+            $sourceDb=$this->store->connection((int)$operation->source_tenant_id);
+            if($operation->state!=='complete') {
+                $state=$this->data()->state($sourceDb,(string)$operation->entity_type,(string)$payload['meta']['source_id'],(int)$sourceSite->location_id);
+                if(!$state || !hash_equals(Policy::digest($item),Policy::digest($state['data']))) throw new \DomainException('The source changed after preview. Create a new preview.');
             }
-        }
-
-        $this->bindLocation($db, 'coupons', $id, $locationId);
-        return $id;
+            $this->store->audit('owner',(int)$owner->id,'publish_started',(int)$group->id,['operation'=>$operationUuid]);
+            $results=[];
+            foreach($targets as $target) {
+                try {
+                    $site=$this->authorized($this->auth->owner(true),(int)$target->tenant_id,(int)$group->id);
+                    if((int)$target->tenant_id===(int)$operation->source_tenant_id) throw new \DomainException('Source cannot be a publication target.');
+                    $db=$this->store->connection((int)$target->tenant_id); $type=(string)$operation->entity_type;
+                    $this->data()->ready($db,$type);
+                    $result=PublicationLock::run($db,'entity:'.$group->uuid.':'.$operation->entity_key,function() use($db,$type,$operation,$target,$group,$site,$item,$payload,$owner) {
+                        return $db->transaction(function() use($db,$type,$operation,$target,$group,$site,$item,$payload,$owner) {
+                            $receipt=$db->table('pmd_group_receipts')->where('operation_uuid',$operation->uuid)->lockForUpdate()->first();
+                            if($receipt) {
+                                if(!hash_equals((string)$receipt->digest,(string)$operation->digest)) throw new \RuntimeException('Publication receipt does not match its payload.');
+                                return ['state'=>'already_applied'];
+                            }
+                            if($operation->state==='complete') throw new \RuntimeException('Completed publication is missing a target receipt.');
+                            $this->authorized($this->auth->owner(true),(int)$target->tenant_id,(int)$group->id);
+                            $this->authorized($owner,(int)$operation->source_tenant_id,(int)$group->id);
+                            if($type!=='setting' && ($payload['meta']['currency']!==$this->data()->currency($db)
+                                || $payload['meta']['currency']!==$this->data()->currency($this->store->connection((int)$operation->source_tenant_id)))) {
+                                throw new \DomainException('A configured currency changed after preview.');
+                            }
+                            $id=$this->mapped($db,(string)$group->uuid,(string)$operation->entity_key,$type,(string)$payload['meta']['source_id'],true);
+                            $current=$id===null?null:$this->data()->state($db,$type,$id,(int)$site->location_id,true);
+                            PublicationRules::unchanged($target->expected_digest,$current);
+                            // Receipt uniqueness and data writes share one transaction.
+                            $db->table('pmd_group_receipts')->insert(['operation_uuid'=>$operation->uuid,'digest'=>$operation->digest,'applied_at'=>now()]);
+                            $local=$this->data()->apply($db,$type,$item,$current===null?null:$id,(int)$site->location_id);
+                            $written=$this->data()->state($db,$type,$local,(int)$site->location_id,true);
+                            if(!$written || !hash_equals(Policy::digest($item),Policy::digest($written['data']))) {
+                                throw new \DomainException('The target did not preserve the reviewed definition. This target transaction was rolled back.');
+                            }
+                            if($type!=='setting') $db->table('pmd_group_entities')->updateOrInsert([
+                                'group_uuid'=>(string)$group->uuid,'entity_key'=>(string)$operation->entity_key],
+                                ['entity_type'=>$type,'local_id'=>(int)$local,'last_digest'=>Policy::digest($item)]);
+                            return ['state'=>'applied','local_id'=>$local];
+                        });
+                    });
+                    $this->data()->invalidate($db,$type);
+                    $central->table('pmd_group_operation_targets')->where('id',$target->id)->update(['state'=>'applied','last_error'=>null,'updated_at'=>now()]);
+                    $results[]=['tenant_id'=>(int)$target->tenant_id,'label'=>(string)$site->label,'ok'=>true]+$result;
+                } catch(\Throwable $error) {
+                    $message=$error instanceof \DomainException?$error->getMessage():'This target could not be confirmed. Retry the same operation; committed targets will not be applied twice.';
+                    logger()->error('PMD publication target failed',['operation'=>$operationUuid,'tenant_id'=>(int)$target->tenant_id,'exception'=>get_class($error)]);
+                    $central->table('pmd_group_operation_targets')->where('id',$target->id)->update(['state'=>'failed','last_error'=>$message,'updated_at'=>now()]);
+                    $results[]=['tenant_id'=>(int)$target->tenant_id,'ok'=>false,'state'=>'failed','message'=>$message];
+                }
+            }
+            $complete=!array_filter($results,fn($r)=>!$r['ok']);
+            $central->transaction(function() use($central,$operation,$owner,$group,$results,$complete) {
+                $central->table('pmd_group_operations')->where('id',$operation->id)->update(['state'=>$complete?'complete':'partial','updated_at'=>now()]);
+                $this->store->audit('owner',(int)$owner->id,'publish_finished',(int)$group->id,['operation'=>$operation->uuid,'results'=>$results]);
+            });
+            // Transport success is distinct from business success. Keep per-site
+            // failures visible to the existing client instead of throwing them away.
+            return ['ok'=>true,'complete'=>$complete,'operation'=>$operationUuid,'results'=>$results];
+        });
     }
 
-    private function exportSetting($db, string $key): array
+    private function authorized(object $owner,int $tenantId,?int $groupId): object
     {
-        if (!in_array($key, self::SAFE_SETTINGS, true)) {
-            throw new \DomainException('This setting is location-specific and cannot be shared.');
-        }
-
-        $row = $db->table('settings')->where('item', $key)->first();
-        if (!$row) throw new \DomainException('Setting not found.');
-
-        return ['key' => $key, 'value' => $row->value];
+        $this->store->access((int)$owner->id,$tenantId,true);
+        $site=$this->store->site($tenantId);
+        PublicationRules::member($site,$groupId??(int)$site->group_id);
+        return $site;
     }
-
-    private function importSetting($db, array $payload): string
+    private function mapped($db,string $uuid,string $key,string $type,string $settingId,bool $lock=false): ?string
     {
-        $key = (string)($payload['key'] ?? '');
-        if (!in_array($key, self::SAFE_SETTINGS, true)) {
-            throw new \DomainException('This setting is location-specific and cannot be shared.');
-        }
-
-        $db->table('settings')->updateOrInsert(
-            ['item' => $key],
-            ['value' => $payload['value'] ?? null]
-        );
-
-        return $key;
+        if($type==='setting') return $settingId;
+        $q=$db->table('pmd_group_entities')->where('group_uuid',$uuid)->where('entity_key',$key);
+        $row=($lock?$q->lockForUpdate():$q)->first();
+        if($row && $row->entity_type!==$type) throw new \DomainException('Publication mapping type changed.');
+        return $row?(string)$row->local_id:null;
     }
-
-    private function bindLocation($db, string $type, int $id, int $locationId): void
+    private function entityKey($db,string $uuid,string $type,string $id): string
     {
-        if (!$db->getSchemaBuilder()->hasTable('locationables')) return;
-
-        $exists = $db->table('locationables')
-            ->where('location_id', $locationId)
-            ->where('locationable_id', $id)
-            ->where('locationable_type', $type)
-            ->exists();
-
-        if (!$exists) {
-            $db->table('locationables')->insert([
-                'location_id' => $locationId,
-                'locationable_id' => $id,
-                'locationable_type' => $type,
-                'options' => serialize([]),
-            ]);
-        }
-    }
-
-    private function only(array $row, array $keys): array
-    {
-        $result = [];
-        foreach ($keys as $key) {
-            if (array_key_exists($key, $row)) $result[$key] = $row[$key];
-        }
-        return $result;
-    }
-
-    private function columns($db, string $table, array $data): array
-    {
-        $columns = array_flip($db->getSchemaBuilder()->getColumnListing($table));
-        return array_intersect_key($data, $columns);
-    }
-
-    private function tenantIdForConnection($db): int
-    {
-        $database = (string)$db->getDatabaseName();
-        return (int)$this->store->central()->table('tenants')
-            ->where('database', $database)
-            ->value('id');
+        if($type==='setting') return 'setting:'.$id;
+        $numeric=PublicationRules::numericId($id);
+        return $db->transaction(function() use($db,$uuid,$type,$numeric) {
+            $query=$db->table('pmd_group_entities')->where('group_uuid',$uuid)->where('entity_type',$type)->where('local_id',$numeric);
+            $existing=$query->lockForUpdate()->first();
+            if($existing) return (string)$existing->entity_key;
+            $key=$type.':'.(string)Str::uuid();
+            $db->table('pmd_group_entities')->insert(['group_uuid'=>$uuid,'entity_key'=>$key,'entity_type'=>$type,'local_id'=>$numeric,'last_digest'=>null]);
+            return $key;
+        });
     }
 }
