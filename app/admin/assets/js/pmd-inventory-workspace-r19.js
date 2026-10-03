@@ -1183,6 +1183,10 @@
       }).join('') : '<div class="pmd-inv-r19-empty">No purchase lines were detected. Use the catalogue or Custom item instead.</div>') +
       '</div>' +
       (review.lines.length ? '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-confirm-bulk>Confirm purchase</button></div>' : '');
+
+    if (window.PMDInventoryProR24 && typeof window.PMDInventoryProR24.decorateReceiptReview === 'function') {
+      window.PMDInventoryProR24.decorateReceiptReview();
+    }
   }
 
   function confirmBulkPurchase() {
