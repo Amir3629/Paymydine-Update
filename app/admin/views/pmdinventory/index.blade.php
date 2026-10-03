@@ -582,6 +582,9 @@
                         </div>
                     </div>
                     <section class="pmd-inv-r24-editor" data-r24-adjustment-editor hidden></section>
+                    <div class="pmd-inv-r24-subsection-head"><div><span>Purchase receipts</span><h3>Confirmed stock receipts and reversals</h3></div></div>
+                    <div class="pmd-inv-r24-list" data-r24-receipt-list></div>
+                    <div class="pmd-inv-r24-subsection-head"><div><span>Movement ledger</span><h3>Search every stock movement</h3></div></div>
                     <label class="pmd-inv-r19-search pmd-inv-r24-ledger-search"><input type="search" placeholder="Search item, type, reason or staff…" data-r24-ledger-search></label>
                     <div class="pmd-inv-r24-list" data-r24-ledger-list></div>
                 </section>
