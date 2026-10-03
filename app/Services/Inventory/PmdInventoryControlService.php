@@ -913,7 +913,29 @@ final class PmdInventoryControlService
                 $purchaseToBase = max(0.0001, (float)($item->purchase_to_base ?? 1));
                 $lineUnit = strtolower($unit);
 
-                if ($lineUnit === $baseUnit) {
+                // PMD_INVENTORY_IDENTIFIER_PACKAGES_R24
+                // A package barcode may represent a bottle, case, crate, keg,
+                // etc. independently from the item's single preferred purchase
+                // unit. Resolve its exact base quantity before the legacy unit
+                // conversion path.
+                $identifierId = max(0, (int)($line['identifier_id'] ?? 0));
+                $identifier = null;
+                if ($identifierId > 0 && Schema::hasTable('pmd_inventory_item_identifiers')) {
+                    $identifier = DB::table('pmd_inventory_item_identifiers')
+                        ->where('location_id', $locationId)
+                        ->where('id', $identifierId)
+                        ->where('item_id', $itemId)
+                        ->where('active', 1)
+                        ->first();
+
+                    if (!$identifier) {
+                        throw new InvalidArgumentException('The scanned package code is no longer linked to this stock item.');
+                    }
+                }
+
+                if ($identifier) {
+                    $factor = max(0.0001, (float)$identifier->base_quantity);
+                } elseif ($lineUnit === $baseUnit) {
                     $factor = 1.0;
                 } elseif ($lineUnit === $purchaseUnit) {
                     $factor = $purchaseToBase;
@@ -951,6 +973,101 @@ final class PmdInventoryControlService
                     $receiptId,
                     $purchasedAt.' '.now()->format('H:i:s')
                 );
+
+                // PMD_INVENTORY_PRO_PURCHASE_BRIDGE_R24
+                // Direct/manual/AI/barcode receiving is automatically allocated
+                // to the restaurant's default storage and gets a lot/price
+                // history row. Purchase-order receiving manages those records
+                // itself so it can preserve explicit storage/expiry metadata.
+                if (
+                    empty($data['pro_receiving_managed'])
+                    && Schema::hasTable('pmd_inventory_storage_locations')
+                    && Schema::hasTable('pmd_inventory_storage_movements')
+                ) {
+                    $storageId = (int)DB::table('pmd_inventory_storage_locations')
+                        ->where('location_id', $locationId)
+                        ->where('active', 1)
+                        ->orderByDesc('is_default')
+                        ->orderBy('id')
+                        ->value('id');
+
+                    if ($storageId > 0) {
+                        DB::table('pmd_inventory_storage_movements')->insert([
+                            'location_id' => $locationId,
+                            'storage_location_id' => $storageId,
+                            'item_id' => $itemId,
+                            'qty_delta' => round($baseQty, 4),
+                            'movement_type' => 'RECEIVE',
+                            'reference_type' => 'purchase_receipt',
+                            'reference_id' => $receiptId,
+                            'note' => null,
+                            'staff_id' => $staffId,
+                            'occurred_at' => $purchasedAt.' '.now()->format('H:i:s'),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+
+                        if (Schema::hasTable('pmd_inventory_lots')) {
+                            DB::table('pmd_inventory_lots')->insert([
+                                'location_id' => $locationId,
+                                'item_id' => $itemId,
+                                'supplier_id' => null,
+                                'identifier_id' => $identifierId > 0 ? $identifierId : null,
+                                'storage_location_id' => $storageId,
+                                'receipt_id' => $receiptId,
+                                'purchase_order_id' => null,
+                                'lot_code' => $this->nullableText($line['lot_code'] ?? null, 120),
+                                'expires_at' => $this->dateOrNull($line['expires_at'] ?? null),
+                                'received_at' => $purchasedAt,
+                                'qty_received' => round($baseQty, 4),
+                                'qty_remaining' => round($baseQty, 4),
+                                'unit_cost' => round($effectiveCost, 6),
+                                'active' => 1,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+                }
+
+                if (Schema::hasTable('pmd_inventory_price_history')) {
+                    $supplierIdR24 = null;
+                    if ($supplier !== '' && Schema::hasTable('pmd_inventory_suppliers')) {
+                        $supplierIdR24 = DB::table('pmd_inventory_suppliers')
+                            ->where('location_id', $locationId)
+                            ->whereRaw('LOWER(name) = ?', [mb_strtolower($supplier)])
+                            ->where('active', 1)
+                            ->value('id');
+                    }
+
+                    DB::table('pmd_inventory_price_history')->insert([
+                        'location_id' => $locationId,
+                        'item_id' => $itemId,
+                        'supplier_id' => $supplierIdR24 ?: null,
+                        'identifier_id' => $identifierId > 0 ? $identifierId : null,
+                        'purchase_unit' => $identifier
+                            ? (string)$identifier->package_unit
+                            : $unit,
+                        'base_quantity' => round($factor, 4),
+                        'unit_cost' => round($unitCost > 0 ? $unitCost : ($effectiveCost * $factor), 4),
+                        'currency' => 'EUR',
+                        'source' => $receiptId > 0 ? $source : 'manual',
+                        'recorded_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                if ($identifier && $unitCost > 0) {
+                    DB::table('pmd_inventory_item_identifiers')
+                        ->where('location_id', $locationId)
+                        ->where('id', $identifierId)
+                        ->update([
+                            'unit_price' => round($unitCost, 4),
+                            'verified_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                }
 
                 $total += $qty * ($unitCost > 0 ? $unitCost : ($effectiveCost * $factor));
             }
@@ -1559,6 +1676,20 @@ final class PmdInventoryControlService
     {
         $value = strtolower(trim((string)$value));
         return mb_substr($value !== '' ? $value : 'piece', 0, 30);
+    }
+
+    private function dateOrNull($value): ?string
+    {
+        $value = trim((string)($value ?? ''));
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($value)->toDateString();
+        } catch (\Throwable $error) {
+            return null;
+        }
     }
 
     private function date(string $value): string
