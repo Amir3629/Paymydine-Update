@@ -424,14 +424,30 @@
                         </div>
                         <div class="pmd-inv-r23-barcode__status" data-r19-barcode-status aria-live="polite"></div>
                         <div class="pmd-inv-r24-barcode-resolution" data-r24-barcode-resolution hidden></div>
-                        <div class="pmd-inv-r23-barcode__unknown" data-r19-barcode-unknown hidden>
+                        <div class="pmd-inv-r23-barcode__unknown pmd-inv-r24-barcode-unknown" data-r19-barcode-unknown hidden>
                             <div>
                                 <strong data-r19-barcode-unknown-code></strong>
-                                <span>This code is not linked yet.</span>
+                                <span>This product/package code is not linked yet.</span>
                             </div>
                             <label>
                                 <span>Link to existing stock</span>
                                 <select data-r19-barcode-link-select></select>
+                            </label>
+                            <label>
+                                <span>Package / scan unit</span>
+                                <input type="text" value="piece" placeholder="bottle, case, pack…" data-r24-barcode-package-unit>
+                            </label>
+                            <label>
+                                <span>Packages per scan</span>
+                                <input type="number" min="0.0001" step="0.0001" value="1" data-r24-barcode-package-qty>
+                            </label>
+                            <label>
+                                <span>Base quantity per package</span>
+                                <input type="number" min="0.0001" step="0.0001" value="1" data-r24-barcode-base-qty>
+                            </label>
+                            <label>
+                                <span>Supplier</span>
+                                <select data-r24-barcode-supplier><option value="">No supplier</option></select>
                             </label>
                             <button type="button" class="pmd-inv-r19-primary" data-r19-barcode-link>Link & add</button>
                             <button type="button" class="pmd-inv-r19-secondary" data-r19-barcode-new>New item</button>
