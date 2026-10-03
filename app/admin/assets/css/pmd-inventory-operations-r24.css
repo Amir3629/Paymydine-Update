@@ -435,7 +435,7 @@
 
 .pmd-inv-r24-receive-line {
   display:grid;
-  grid-template-columns:minmax(160px,1.2fr) repeat(3,minmax(130px,.7fr));
+  grid-template-columns:minmax(160px,1.2fr) repeat(4,minmax(120px,.7fr));
   align-items:end;
   gap:8px;
   padding:10px;
@@ -777,4 +777,42 @@ body.pmd-menu-manager-page .pmd-menu-inventory-r20-panel .pmd-inv-r24-card {
   .pmd-inv-r24-receipt-line {
     grid-template-columns:1fr !important;
   }
+}
+
+
+.pmd-inv-r24-order-actions {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:6px;
+}
+
+.pmd-inv-r24-order-actions button {
+  min-height:34px;
+  padding:0 10px;
+  border:1px solid #c9ddd8;
+  border-radius:9px;
+  background:#f8fbfa;
+  color:#214b41;
+  font:800 10px/1 system-ui,sans-serif;
+  cursor:pointer;
+}
+
+.pmd-inv-r24-order-actions .pmd-inv-r19-primary {
+  border-color:#08745d;
+  background:#08745d;
+  color:#fff;
+}
+
+.pmd-inv-r24-order-actions button.is-danger {
+  border-color:#e9c4cb;
+  background:#fff4f5;
+  color:#a42c43;
+}
+
+.pmd-inv-r24-import {
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
 }
