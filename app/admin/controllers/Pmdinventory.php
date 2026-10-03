@@ -377,6 +377,22 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onProAllocateExistingStock(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->allocateExistingStock(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return ['pro' => $service->snapshot($this->locationId())];
+        });
+    }
+
     public function onProTransferStock(): JsonResponse
     {
         $this->assertOwnerOrManager();
