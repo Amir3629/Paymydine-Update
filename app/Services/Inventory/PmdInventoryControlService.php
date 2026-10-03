@@ -273,6 +273,7 @@ final class PmdInventoryControlService
                 'name' => (string)$item->name,
                 'sku' => (string)($item->sku ?? ''),
                 'category' => (string)($item->category ?? ''),
+                'image_url' => (string)($item->image_url ?? ''),
                 'unit' => (string)$item->base_unit,
                 'purchase_unit' => (string)($item->purchase_unit ?? $item->base_unit),
                 'purchase_to_base' => round(max(0.0001, (float)($item->purchase_to_base ?? 1)), 4),
@@ -691,6 +692,7 @@ final class PmdInventoryControlService
                 4
             ),
             'supplier_name' => $this->nullableText($data['supplier_name'] ?? $item->supplier_name, 190),
+            'image_url' => $this->nullableText($data['image_url'] ?? ($item->image_url ?? null), 500),
             'updated_at' => now(),
         ];
 
@@ -813,6 +815,7 @@ final class PmdInventoryControlService
                 4
             ),
             'supplier_name' => $this->nullableText($data['supplier_name'] ?? null, 190),
+            'image_url' => $this->nullableText($data['image_url'] ?? null, 500),
             'active' => 1,
             'created_by' => $staffId,
             'created_at' => now(),
@@ -1076,6 +1079,7 @@ final class PmdInventoryControlService
                             'reorder_point' => 0,
                             'par_level' => 0,
                             'supplier_name' => $supplier ?: null,
+                            'image_url' => $this->nullableText($line['image_url'] ?? null, 500),
                             'active' => 1,
                             'created_by' => $staffId,
                             'created_at' => now(),
