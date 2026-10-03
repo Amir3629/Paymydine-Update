@@ -2599,6 +2599,15 @@ final class PmdInventoryOperationsService
         return ((10 - ($sum % 10)) % 10) === $check;
     }
 
+    private function assertReady(): void
+    {
+        if (!$this->ready()) {
+            throw new RuntimeException(
+                'Inventory Operations V2 is not installed for this restaurant yet. Run the R24 inventory migration first.'
+            );
+        }
+    }
+
     private function supplierExists(int $locationId, int $supplierId): bool
     {
         return $supplierId > 0 && DB::table('pmd_inventory_suppliers')
