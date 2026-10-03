@@ -550,9 +550,13 @@
                             <h2>Know where the stock physically is</h2>
                             <p>Allocate stock to main storage, kitchen, bar, fridge, freezer or cellar and record internal transfers without changing restaurant-wide stock.</p>
                         </div>
-                        <button type="button" class="pmd-inv-r19-secondary" data-r24-storage-new>Add location</button>
+                        <div class="pmd-inv-r19-head-actions">
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-allocation-new>Allocate existing stock</button>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-storage-new>Add location</button>
+                        </div>
                     </div>
                     <section class="pmd-inv-r24-editor" data-r24-storage-editor hidden></section>
+                    <section class="pmd-inv-r24-editor" data-r24-allocation-editor hidden></section>
                     <section class="pmd-inv-r24-editor" data-r24-transfer-editor></section>
                     <div class="pmd-inv-r24-alert-strip" data-r24-unallocated></div>
                     <div class="pmd-inv-r24-list" data-r24-storage-list></div>
