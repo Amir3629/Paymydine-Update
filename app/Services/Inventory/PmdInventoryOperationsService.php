@@ -1107,6 +1107,7 @@ final class PmdInventoryOperationsService
                     : (float)$line->unit_cost,
                 'base_quantity' => (float)$line->base_quantity,
                 'supplier_item_id' => (int)($line->supplier_item_id ?? 0),
+                'purchase_order_line_id' => (int)$line->id,
                 'storage_location_id' => (int)($input['storage_location_id'] ?? 0),
                 'lot_code' => (string)($input['lot_code'] ?? ''),
                 'expiry_date' => (string)($input['expiry_date'] ?? ''),
@@ -1311,6 +1312,69 @@ final class PmdInventoryOperationsService
                 );
             }
 
+            $poLineReturns = [];
+            foreach ($movements as $movement) {
+                $meta = [];
+                if (!empty($movement->metadata_json)) {
+                    $decoded = json_decode((string)$movement->metadata_json, true);
+                    $meta = is_array($decoded) ? $decoded : [];
+                }
+                $poLineId = max(0, (int)($meta['purchase_order_line_id'] ?? 0));
+                if ($poLineId < 1) {
+                    continue;
+                }
+                $purchaseQty = max(0, (float)($meta['purchase_quantity'] ?? 0));
+                if ($purchaseQty <= 0) {
+                    $basePerPackage = max(0.0001, (float)($meta['base_quantity'] ?? 1));
+                    $purchaseQty = abs((float)$movement->qty_delta) / $basePerPackage;
+                }
+                $poLineReturns[$poLineId] = ($poLineReturns[$poLineId] ?? 0) + $purchaseQty;
+            }
+
+            $purchaseOrderId = (int)($receipt->purchase_order_id ?? 0);
+            if ($purchaseOrderId > 0 && $poLineReturns) {
+                foreach ($poLineReturns as $lineId => $qty) {
+                    $line = DB::table('pmd_inventory_purchase_order_lines')
+                        ->where('purchase_order_id', $purchaseOrderId)
+                        ->where('id', $lineId)
+                        ->first();
+                    if (!$line) {
+                        continue;
+                    }
+                    DB::table('pmd_inventory_purchase_order_lines')
+                        ->where('id', $lineId)
+                        ->update([
+                            'quantity_received' => round(
+                                max(0, (float)$line->quantity_received - $qty),
+                                4
+                            ),
+                            'updated_at' => now(),
+                        ]);
+                }
+
+                $poLines = DB::table('pmd_inventory_purchase_order_lines')
+                    ->where('purchase_order_id', $purchaseOrderId)
+                    ->get(['quantity_ordered', 'quantity_received']);
+
+                $anyReceived = $poLines->contains(
+                    static fn ($line) => (float)$line->quantity_received > 0.00005
+                );
+                $complete = $poLines->isNotEmpty() && $poLines->every(
+                    static fn ($line) => (float)$line->quantity_received + 0.00005 >= (float)$line->quantity_ordered
+                );
+
+                DB::table('pmd_inventory_purchase_orders')
+                    ->where('location_id', $locationId)
+                    ->where('id', $purchaseOrderId)
+                    ->update([
+                        'status' => $complete
+                            ? 'received'
+                            : ($anyReceived ? 'partially_received' : 'sent'),
+                        'received_at' => $complete ? now() : null,
+                        'updated_at' => now(),
+                    ]);
+            }
+
             DB::table('pmd_inventory_batches')
                 ->where('location_id', $locationId)
                 ->where('receipt_id', $receiptId)
@@ -1477,6 +1541,10 @@ final class PmdInventoryOperationsService
                     'metadata_json' => json_encode([
                         'identifier_id' => max(0, (int)($line['identifier_id'] ?? 0)),
                         'supplier_item_id' => max(0, (int)($line['supplier_item_id'] ?? 0)),
+                        'purchase_order_line_id' => max(0, (int)($line['purchase_order_line_id'] ?? 0)),
+                        'purchase_quantity' => max(0, $this->number($line['quantity'] ?? 0, 0)),
+                        'package_unit' => (string)($line['unit'] ?? ''),
+                        'base_quantity' => max(0.0001, $this->number($line['base_quantity'] ?? 1, 1)),
                         'lot_code' => $lot ?: null,
                         'expiry_date' => $expiry,
                     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
