@@ -1855,6 +1855,18 @@
   workspace.addEventListener('change', function (event) {
     if (event.target.matches('[data-r19-receipt-input]')) {
       scanReceipt(event.target.files && event.target.files[0]);
+      return;
+    }
+
+    if (event.target.matches('[data-r19-barcode-link-select]')) {
+      var item = items().find(function (row) {
+        return Number(row.id) === Number(event.target.value || 0);
+      });
+      if (!item) return;
+      var unit = workspace.querySelector('[data-r19-barcode-package-unit]');
+      var base = workspace.querySelector('[data-r19-barcode-base-qty]');
+      if (unit) unit.value = String(item.purchase_unit || item.unit || 'piece');
+      if (base) base.value = String(item.purchase_to_base || 1);
     }
   });
 
