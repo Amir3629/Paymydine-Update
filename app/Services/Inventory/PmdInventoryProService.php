@@ -801,6 +801,146 @@ final class PmdInventoryProService
         );
     }
 
+    public function bulkImport(
+        int $locationId,
+        ?int $staffId,
+        array $rows
+    ): array {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        if (count($rows) > 1000) {
+            throw new InvalidArgumentException('Import at most 1000 rows at a time.');
+        }
+
+        $core = app(PmdInventoryControlService::class);
+        $created = 0;
+        $updated = 0;
+        $supplierProducts = 0;
+        $errors = [];
+
+        foreach (array_values($rows) as $index => $row) {
+            if (!is_array($row)) continue;
+
+            try {
+                $name = trim((string)($row['name'] ?? $row['item_name'] ?? ''));
+                if ($name === '') {
+                    throw new InvalidArgumentException('Item name is required.');
+                }
+
+                $existing = DB::table('pmd_inventory_items')
+                    ->where('location_id', $locationId)
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                    ->where('active', 1)
+                    ->first();
+
+                $unit = trim((string)($row['base_unit'] ?? $row['unit'] ?? 'piece')) ?: 'piece';
+                $purchaseUnit = trim((string)($row['purchase_unit'] ?? $unit)) ?: $unit;
+                $purchaseToBase = max(
+                    0.0001,
+                    $this->number($row['purchase_to_base'] ?? $row['base_quantity'] ?? 1, 1)
+                );
+                $purchaseCost = max(
+                    0,
+                    $this->number($row['purchase_cost'] ?? $row['unit_price'] ?? 0)
+                );
+
+                $itemData = [
+                    'name' => $name,
+                    'unit' => $unit,
+                    'sku' => trim((string)($row['sku'] ?? '')),
+                    'category' => trim((string)($row['category'] ?? '')),
+                    'purchase_unit' => $purchaseUnit,
+                    'purchase_to_base' => $purchaseToBase,
+                    'purchase_cost' => $purchaseCost,
+                    'reorder_point' => max(0, $this->number($row['reorder_point'] ?? 0)),
+                    'par_level' => max(0, $this->number($row['par_level'] ?? 0)),
+                    'supplier_name' => trim((string)($row['supplier_name'] ?? '')),
+                ];
+
+                if ($existing) {
+                    $itemData['item_id'] = (int)$existing->id;
+                    $itemId = $core->saveItem($locationId, $staffId, $itemData);
+                    $updated++;
+                } else {
+                    $openingQty = max(0, $this->number($row['opening_qty'] ?? 0));
+                    $itemData['opening_qty'] = $openingQty;
+                    $itemId = $core->addItem($locationId, $staffId, $itemData);
+                    $created++;
+
+                    if ($openingQty > 0) {
+                        $this->storageMovement(
+                            $locationId,
+                            $this->defaultStorageLocationId($locationId),
+                            $itemId,
+                            $openingQty * $purchaseToBase,
+                            'OPENING_ALLOCATION',
+                            $staffId,
+                            'bulk_import',
+                            null,
+                            'Opening stock from CSV import'
+                        );
+                    }
+                }
+
+                $supplierName = trim((string)($row['supplier_name'] ?? ''));
+                $hasSupplierProduct =
+                    $supplierName !== ''
+                    || trim((string)($row['supplier_sku'] ?? '')) !== ''
+                    || trim((string)($row['gtin'] ?? '')) !== '';
+
+                if ($hasSupplierProduct && $supplierName !== '') {
+                    $supplier = DB::table('pmd_inventory_suppliers')
+                        ->where('location_id', $locationId)
+                        ->whereRaw('LOWER(name) = ?', [mb_strtolower($supplierName)])
+                        ->where('active', 1)
+                        ->first();
+
+                    if (!$supplier) {
+                        $supplierId = $this->saveSupplier($locationId, $staffId, [
+                            'name' => $supplierName,
+                            'lead_time_days' => max(0, (int)($row['lead_time_days'] ?? 1)),
+                            'min_order_value' => max(0, $this->number($row['min_order_value'] ?? 0)),
+                            'currency' => $row['currency'] ?? 'EUR',
+                        ]);
+                    } else {
+                        $supplierId = (int)$supplier->id;
+                    }
+
+                    $this->saveSupplierItem($locationId, $staffId, [
+                        'supplier_id' => $supplierId,
+                        'item_id' => $itemId,
+                        'supplier_sku' => $row['supplier_sku'] ?? null,
+                        'gtin' => $row['gtin'] ?? null,
+                        'package_unit' => $row['package_unit'] ?? $purchaseUnit,
+                        'package_quantity' => $row['package_quantity'] ?? 1,
+                        'base_quantity' => $row['base_quantity'] ?? $purchaseToBase,
+                        'unit_price' => $row['unit_price'] ?? $purchaseCost,
+                        'min_order_qty' => $row['min_order_qty'] ?? 1,
+                        'order_multiple' => $row['order_multiple'] ?? 1,
+                        'currency' => $row['currency'] ?? 'EUR',
+                        'is_preferred' => !empty($row['is_preferred'])
+                            && !in_array(strtolower((string)$row['is_preferred']), ['0', 'false', 'no'], true),
+                    ]);
+                    $supplierProducts++;
+                }
+            } catch (\Throwable $error) {
+                $errors[] = [
+                    'row' => $index + 2,
+                    'name' => (string)($row['name'] ?? $row['item_name'] ?? ''),
+                    'message' => $error->getMessage(),
+                ];
+            }
+        }
+
+        return [
+            'created_items' => $created,
+            'updated_items' => $updated,
+            'supplier_products' => $supplierProducts,
+            'errors' => $errors,
+        ];
+    }
+
     public function savePreparation(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
