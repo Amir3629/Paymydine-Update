@@ -1021,6 +1021,115 @@ final class PmdInventoryOperationsService
         }
     }
 
+    public function bulkImportItems(int $locationId, ?int $staffId, array $data): array
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $rows = $this->arrayValue($data['rows'] ?? []);
+
+        if (!$rows) {
+            throw new InvalidArgumentException('Import file has no stock rows.');
+        }
+        if (count($rows) > 1000) {
+            throw new InvalidArgumentException('Import is limited to 1000 stock rows at a time.');
+        }
+
+        $control = app(PmdInventoryControlService::class);
+        $saved = 0;
+        $codes = 0;
+        $errors = [];
+
+        foreach ($rows as $index => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $name = trim((string)($row['name'] ?? $row['item_name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            try {
+                $existing = DB::table('pmd_inventory_items')
+                    ->where('location_id', $locationId)
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                    ->where('active', 1)
+                    ->first();
+
+                $baseUnit = $this->unit($row['base_unit'] ?? $row['unit'] ?? ($existing->base_unit ?? 'piece'));
+                $purchaseUnit = $this->unit($row['purchase_unit'] ?? ($existing->purchase_unit ?? $baseUnit));
+                $factor = max(0.0001, $this->number(
+                    $row['purchase_to_base'] ?? ($existing->purchase_to_base ?? 1),
+                    1
+                ));
+
+                $itemId = $control->saveItem(
+                    $locationId,
+                    $staffId,
+                    [
+                        'item_id' => (int)($existing->id ?? 0),
+                        'name' => $name,
+                        'category' => $row['category'] ?? ($existing->category ?? ''),
+                        'sku' => $row['sku'] ?? ($existing->sku ?? ''),
+                        'unit' => $baseUnit,
+                        'purchase_unit' => $purchaseUnit,
+                        'purchase_to_base' => $factor,
+                        'purchase_cost' => $this->number(
+                            $row['purchase_cost'] ?? $row['unit_cost'] ?? (
+                                (float)($existing->unit_cost ?? 0) * $factor
+                            ),
+                            0
+                        ),
+                        'reorder_point' => $this->number($row['reorder_point'] ?? 0, 0),
+                        'par_level' => $this->number($row['par_level'] ?? 0, 0),
+                        'safety_stock' => $this->number($row['safety_stock'] ?? 0, 0),
+                        'supplier_name' => $row['supplier_name'] ?? ($existing->supplier_name ?? ''),
+                        'yield_percent' => $this->number($row['yield_percent'] ?? 100, 100),
+                        'track_expiry' => !empty($row['track_expiry']),
+                        'default_storage_location_id' => (int)($row['default_storage_location_id'] ?? 0),
+                        'opening_qty' => $existing ? null : $this->number($row['opening_qty'] ?? 0, 0),
+                    ]
+                );
+
+                $saved++;
+
+                $code = trim((string)($row['barcode'] ?? $row['gtin'] ?? ''));
+                if ($code !== '') {
+                    $this->saveIdentifier(
+                        $locationId,
+                        $staffId,
+                        [
+                            'item_id' => $itemId,
+                            'code' => $code,
+                            'code_type' => 'auto',
+                            'package_unit' => $row['barcode_unit'] ?? $purchaseUnit,
+                            'package_quantity' => 1,
+                            'base_quantity' => $this->number(
+                                $row['barcode_base_quantity'] ?? $factor,
+                                $factor
+                            ),
+                            'source' => 'csv_import',
+                            'is_primary' => true,
+                        ]
+                    );
+                    $codes++;
+                }
+            } catch (\Throwable $error) {
+                $errors[] = [
+                    'row' => $index + 2,
+                    'name' => $name,
+                    'error' => $error->getMessage(),
+                ];
+            }
+        }
+
+        return [
+            'saved' => $saved,
+            'codes' => $codes,
+            'errors' => array_slice($errors, 0, 50),
+        ];
+    }
+
     public function createPurchaseOrder(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
