@@ -268,12 +268,15 @@
                     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
                 ) !!}</script>
 
-                <nav class="pmd-inv-r19-modes" aria-label="Inventory workspace">
+                <nav class="pmd-inv-r19-modes pmd-inv-r24-modes" aria-label="Inventory workspace">
                     <button type="button" class="is-active" data-r19-mode="overview">Overview</button>
                     <button type="button" data-r19-mode="stock">Stock</button>
                     <button type="button" data-r19-mode="purchases">Purchases</button>
+                    <button type="button" data-r19-mode="orders">Orders</button>
+                    <button type="button" data-r19-mode="suppliers">Suppliers</button>
                     <button type="button" data-r19-mode="waste">Waste</button>
                     <button type="button" data-r19-mode="shopping">Shopping</button>
+                    <button type="button" data-r19-mode="operations">Operations</button>
                 </nav>
 
                 <section class="pmd-inv-r19-pane is-active" data-r19-pane="overview">
@@ -373,8 +376,11 @@
                             </button>
                         </div>
                     </div>
-                    <div class="pmd-inv-r19-purchase-meta">
-                        <label>Supplier<input type="text" placeholder="Optional" data-r19-purchase-supplier></label>
+                    <div class="pmd-inv-r19-purchase-meta pmd-inv-r24-purchase-meta">
+                        <label>Supplier<select data-r19-purchase-supplier-id><option value="">Unassigned / other</option></select></label>
+                        <label>Supplier name<input type="text" placeholder="Optional · used for unlisted supplier" data-r19-purchase-supplier></label>
+                        <label>Invoice no.<input type="text" placeholder="Optional" data-r19-purchase-invoice></label>
+                        <label>Receive into<select data-r19-purchase-storage><option value="">Default storage</option></select></label>
                         <label>Purchase date<input type="date" value="{{ now()->toDateString() }}" data-r19-purchase-date></label>
                         <label class="pmd-inv-r19-search"><span>Search</span><input type="search" placeholder="Tomato, milk, vodka…" data-r19-purchase-search></label>
                     </div>
@@ -399,18 +405,55 @@
                                 placeholder="Scan now, or type a code and press Enter"
                                 data-r19-barcode-input>
                         </label>
-                        <small class="pmd-inv-r23-barcode__hint">Works with common USB/Bluetooth keyboard-mode scanners. The scanner should send Enter after each code.</small>
+                        <div class="pmd-inv-r24-barcode-tools">
+                            <small class="pmd-inv-r23-barcode__hint">USB/Bluetooth HID scanners work directly. Camera scanning uses the browser BarcodeDetector when the device supports it.</small>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-barcode-camera>Use camera</button>
+                        </div>
+                        <div class="pmd-inv-r24-camera" data-r24-barcode-camera-panel hidden>
+                            <video playsinline muted data-r24-barcode-video></video>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-barcode-camera-stop>Stop camera</button>
+                        </div>
                         <div class="pmd-inv-r23-barcode__status" data-r19-barcode-status aria-live="polite"></div>
-                        <div class="pmd-inv-r23-barcode__unknown" data-r19-barcode-unknown hidden>
+                        <div class="pmd-inv-r23-barcode__unknown pmd-inv-r24-barcode-map" data-r19-barcode-unknown hidden>
                             <div>
                                 <strong data-r19-barcode-unknown-code></strong>
-                                <span>This code is not linked yet.</span>
+                                <span data-r24-barcode-code-type>This code is not linked yet.</span>
                             </div>
                             <label>
                                 <span>Link to existing stock</span>
                                 <select data-r19-barcode-link-select></select>
                             </label>
-                            <button type="button" class="pmd-inv-r19-primary" data-r19-barcode-link>Link & add</button>
+                            <label>
+                                <span>Code type</span>
+                                <select data-r19-barcode-code-type-select>
+                                    <option value="auto">Auto detect</option>
+                                    <option value="internal">Supplier / internal code</option>
+                                    <option value="ean13">EAN-13</option>
+                                    <option value="upca">UPC-A</option>
+                                    <option value="gtin14">GTIN-14</option>
+                                    <option value="gtin8">GTIN-8</option>
+                                    <option value="qr">QR / URL</option>
+                                </select>
+                            </label>
+                            <label>
+                                <span>Package unit</span>
+                                <select data-r19-barcode-package-unit>
+                                    @foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                                </select>
+                            </label>
+                            <label>
+                                <span>1 scan equals · base quantity</span>
+                                <input type="number" min="0.0001" step="0.0001" value="1" data-r19-barcode-base-qty>
+                            </label>
+                            <label>
+                                <span>Supplier · optional</span>
+                                <select data-r19-barcode-supplier><option value="">No supplier</option></select>
+                            </label>
+                            <label class="pmd-inv-r24-check">
+                                <input type="checkbox" data-r19-barcode-primary>
+                                <span>Primary code for this item</span>
+                            </label>
+                            <button type="button" class="pmd-inv-r19-primary" data-r19-barcode-link>Link package & add</button>
                             <button type="button" class="pmd-inv-r19-secondary" data-r19-barcode-new>New item</button>
                         </div>
                     </section>
@@ -421,6 +464,86 @@
                     <button type="button" class="pmd-inv-r19-load-more" data-r19-purchase-more hidden>Show more</button>
                     <section class="pmd-inv-r19-inline-editor" data-r19-purchase-editor hidden></section>
                     <section class="pmd-inv-r19-receipt-review" data-r19-receipt-review hidden></section>
+                </section>
+
+                {{-- PMD_INVENTORY_OPERATIONS_V2_R24: supplier purchasing authority --}}
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="orders" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Purchase orders</span>
+                            <h2>Order, receive and reconcile supplier stock</h2>
+                            <p>Create supplier orders from smart demand, receive partial deliveries and keep ordered versus received quantity visible.</p>
+                        </div>
+                        <div class="pmd-inv-r19-head-actions">
+                            <button type="button" class="pmd-inv-r19-primary" data-r24-po-from-shopping>Create from smart order</button>
+                        </div>
+                    </div>
+                    <div class="pmd-inv-r24-orders" data-r24-orders-list></div>
+                    <section class="pmd-inv-r24-editor" data-r24-po-editor hidden></section>
+                    <section class="pmd-inv-r24-editor" data-r24-receive-editor hidden></section>
+                    <div class="pmd-inv-r24-receipts">
+                        <div class="pmd-inv-r19-history__head"><h3>Recent receipts</h3><span>Supplier · invoice · total · audit</span></div>
+                        <div data-r24-receipt-list></div>
+                    </div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="suppliers" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Supplier master</span>
+                            <h2>Products, package sizes and supplier prices</h2>
+                            <p>Keep supplier article codes, case conversion, MOQ, lead time and preferred pricing attached to the stock item.</p>
+                        </div>
+                        <div class="pmd-inv-r19-head-actions">
+                            <button type="button" class="pmd-inv-r19-primary" data-r24-new-supplier>Add supplier</button>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-new-offer>Add product offer</button>
+                        </div>
+                    </div>
+
+                    <section class="pmd-inv-r24-editor" data-r24-supplier-editor hidden>
+                        <div class="pmd-inv-r19-editor-head">
+                            <div><h3>Supplier</h3><small>Restaurant-specific supplier profile</small></div>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-close-editor>Close</button>
+                        </div>
+                        <div class="pmd-inv-r24-form-grid">
+                            <input type="hidden" data-r24-supplier-id>
+                            <label>Name<input type="text" data-r24-supplier-name placeholder="METRO, Transgourmet…"></label>
+                            <label>Account / customer no.<input type="text" data-r24-supplier-account></label>
+                            <label>Contact<input type="text" data-r24-supplier-contact></label>
+                            <label>Email<input type="email" data-r24-supplier-email></label>
+                            <label>Phone<input type="text" data-r24-supplier-phone></label>
+                            <label>Lead time · days<input type="number" min="0" step="1" value="1" data-r24-supplier-lead></label>
+                            <label>Minimum order value<input type="number" min="0" step="0.01" value="0" data-r24-supplier-min></label>
+                            <label class="is-wide">Notes<input type="text" data-r24-supplier-notes></label>
+                        </div>
+                        <div class="pmd-inv-r19-editor-actions">
+                            <button type="button" class="pmd-inv-r19-primary" data-r24-save-supplier>Save supplier</button>
+                        </div>
+                    </section>
+
+                    <section class="pmd-inv-r24-editor" data-r24-offer-editor hidden>
+                        <div class="pmd-inv-r19-editor-head">
+                            <div><h3>Supplier product offer</h3><small>One item can have several suppliers; one may be preferred.</small></div>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-close-editor>Close</button>
+                        </div>
+                        <div class="pmd-inv-r24-form-grid">
+                            <label>Supplier<select data-r24-offer-supplier></select></label>
+                            <label>Stock item<select data-r24-offer-item></select></label>
+                            <label>Supplier SKU<input type="text" data-r24-offer-sku></label>
+                            <label>Purchase unit<select data-r24-offer-unit>@foreach($units as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select></label>
+                            <label>Base qty / purchase unit<input type="number" min="0.0001" step="0.0001" value="1" data-r24-offer-factor></label>
+                            <label>Price / purchase unit<input type="number" min="0" step="0.01" value="0" data-r24-offer-cost></label>
+                            <label>MOQ<input type="number" min="0.0001" step="0.01" value="1" data-r24-offer-moq></label>
+                            <label>Order multiple<input type="number" min="0.0001" step="0.01" value="1" data-r24-offer-multiple></label>
+                            <label>Lead time · days<input type="number" min="0" step="1" data-r24-offer-lead placeholder="Supplier default"></label>
+                            <label class="pmd-inv-r24-check"><input type="checkbox" data-r24-offer-preferred><span>Preferred supplier for this item</span></label>
+                        </div>
+                        <div class="pmd-inv-r19-editor-actions">
+                            <button type="button" class="pmd-inv-r19-primary" data-r24-save-offer>Save product offer</button>
+                        </div>
+                    </section>
+
+                    <div class="pmd-inv-r24-supplier-grid" data-r24-supplier-list></div>
                 </section>
 
                 <section class="pmd-inv-r19-pane" data-r19-pane="waste" hidden>
@@ -462,6 +585,146 @@
                         <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-copy>Copy list</button>
                         <button type="button" class="pmd-inv-r19-secondary" data-r19-shopping-print>Print</button>
                         <button type="button" class="pmd-inv-r19-primary" data-r19-shopping-purchases>Open Purchases</button>
+                    </div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="operations" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Operations</span>
+                            <h2>Storage, expiry, transfers, corrections and prep</h2>
+                            <p>Operational controls stay auditable: no silent stock edits, and purchase/transfer/production movements remain in the ledger.</p>
+                        </div>
+                        <div class="pmd-inv-r19-head-actions">
+                            <label class="pmd-inv-r19-secondary pmd-inv-r24-import">
+                                <input type="file" accept=".csv,text/csv" data-r24-import-stock hidden>
+                                <span>Import stock CSV</span>
+                            </label>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-download-template>CSV template</button>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-export-stock>Export stock CSV</button>
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-export-purchases>Export purchases CSV</button>
+                        </div>
+                    </div>
+
+                    <div class="pmd-inv-r24-alerts" data-r24-alerts></div>
+                    <section class="pmd-inv-r24-analytics" data-r24-analytics></section>
+
+                    <div class="pmd-inv-r24-ops-grid">
+                        <section class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Storage</span><h3>Locations</h3></div><button type="button" data-r24-new-storage>+ Add</button></div>
+                            <div data-r24-storage-list></div>
+                            <div class="pmd-inv-r24-mini-form" data-r24-storage-editor hidden>
+                                <input type="text" placeholder="Bar, freezer, cellar…" data-r24-storage-name>
+                                <select data-r24-storage-type>
+                                    <option value="storage">Storage</option>
+                                    <option value="kitchen">Kitchen</option>
+                                    <option value="bar">Bar</option>
+                                    <option value="fridge">Fridge</option>
+                                    <option value="freezer">Freezer</option>
+                                    <option value="cellar">Cellar</option>
+                                </select>
+                                <label class="pmd-inv-r24-check"><input type="checkbox" data-r24-storage-default><span>Default</span></label>
+                                <button type="button" class="pmd-inv-r19-primary" data-r24-save-storage>Save</button>
+                            </div>
+                        </section>
+
+                        <section class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Expiry</span><h3>Lots to use first</h3></div></div>
+                            <div class="pmd-inv-r24-lot-list" data-r24-lot-list></div>
+                        </section>
+
+                        <section class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Transfer</span><h3>Move stock</h3></div></div>
+                            <div class="pmd-inv-r24-mini-form">
+                                <select data-r24-transfer-from></select>
+                                <select data-r24-transfer-to></select>
+                                <select data-r24-transfer-item></select>
+                                <select data-r24-transfer-lot><option value="">Lot · optional</option></select>
+                                <input type="number" min="0.0001" step="0.01" placeholder="Quantity in base unit" data-r24-transfer-qty>
+                                <input type="text" placeholder="Note · optional" data-r24-transfer-note>
+                                <button type="button" class="pmd-inv-r19-primary" data-r24-transfer-submit>Transfer</button>
+                            </div>
+                            <div class="pmd-inv-r24-activity" data-r24-transfer-history></div>
+                        </section>
+
+                        <section class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Supplier return</span><h3>Return delivered stock</h3></div></div>
+                            <div class="pmd-inv-r24-mini-form">
+                                <select data-r24-return-item></select>
+                                <select data-r24-return-supplier><option value="">Supplier · optional</option></select>
+                                <select data-r24-return-lot><option value="">Lot · optional</option></select>
+                                <select data-r24-return-storage></select>
+                                <input type="number" min="0.0001" step="0.01" placeholder="Quantity in base unit" data-r24-return-qty>
+                                <input type="text" placeholder="Reason" value="Return to supplier" data-r24-return-reason>
+                                <input type="text" placeholder="Note · optional" data-r24-return-note>
+                                <button type="button" class="pmd-inv-r19-primary" data-r24-return-submit>Record return</button>
+                            </div>
+                        </section>
+
+                        <section class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Correction</span><h3>Audited adjustment</h3></div></div>
+                            <div class="pmd-inv-r24-mini-form">
+                                <select data-r24-adjust-item></select>
+                                <input type="number" step="0.01" placeholder="+ / - base quantity" data-r24-adjust-qty>
+                                <input type="text" placeholder="Reason · required" data-r24-adjust-reason>
+                                <input type="text" placeholder="Note · optional" data-r24-adjust-note>
+                                <button type="button" class="pmd-inv-r19-primary" data-r24-adjust-submit>Record adjustment</button>
+                            </div>
+                        </section>
+
+                        <section class="pmd-inv-r24-card pmd-inv-r24-card--wide">
+                            <div class="pmd-inv-r24-card__head"><div><span>Settings</span><h3>Inventory behavior</h3></div></div>
+                            <div class="pmd-inv-r24-form-grid">
+                                <label>Recipe consumption<select data-r24-setting-trigger>
+                                    <option value="paid">Fully paid</option>
+                                    <option value="accepted">Order accepted</option>
+                                    <option value="kitchen">Kitchen / processing</option>
+                                    <option value="completed">Completed</option>
+                                </select></label>
+                                <label>Expiry warning · days<input type="number" min="1" max="90" step="1" value="7" data-r24-setting-expiry></label>
+                                <label>Default storage<select data-r24-setting-storage></select></label>
+                                <label class="pmd-inv-r24-check"><input type="checkbox" data-r24-setting-blind><span>Blind physical counts</span></label>
+                                <label class="pmd-inv-r24-check"><input type="checkbox" data-r24-setting-low><span>Low-stock alerts</span></label>
+                                <label class="pmd-inv-r24-check"><input type="checkbox" data-r24-setting-menu><span>Menu availability warnings</span></label>
+                            </div>
+                            <div class="pmd-inv-r19-editor-actions">
+                                <button type="button" class="pmd-inv-r19-primary" data-r24-save-settings>Save settings</button>
+                            </div>
+                        </section>
+
+                        <section class="pmd-inv-r24-card pmd-inv-r24-card--wide">
+                            <div class="pmd-inv-r24-card__head">
+                                <div><span>Prep production</span><h3>Sub-recipes & production batches</h3></div>
+                                <button type="button" data-r24-new-prep>+ New prep</button>
+                            </div>
+                            <div class="pmd-inv-r24-prep-list" data-r24-prep-list></div>
+                            <section class="pmd-inv-r24-editor" data-r24-prep-editor hidden>
+                                <div class="pmd-inv-r24-form-grid">
+                                    <input type="hidden" data-r24-prep-id>
+                                    <label>Preparation name<input type="text" placeholder="Tomato sauce" data-r24-prep-name></label>
+                                    <label>Output item<select data-r24-prep-output></select></label>
+                                    <label>Standard output qty<input type="number" min="0.0001" step="0.01" value="1" data-r24-prep-output-qty></label>
+                                </div>
+                                <div data-r24-prep-lines></div>
+                                <div class="pmd-inv-r19-editor-actions">
+                                    <button type="button" class="pmd-inv-r19-secondary" data-r24-prep-add-line>Add ingredient</button>
+                                    <button type="button" class="pmd-inv-r19-primary" data-r24-prep-save>Save preparation</button>
+                                </div>
+                            </section>
+                            <section class="pmd-inv-r24-editor" data-r24-produce-editor hidden>
+                                <div class="pmd-inv-r24-form-grid">
+                                    <input type="hidden" data-r24-produce-prep>
+                                    <label>Output quantity<input type="number" min="0.0001" step="0.01" data-r24-produce-qty></label>
+                                    <label>Storage<select data-r24-produce-storage></select></label>
+                                    <label>Lot / batch code<input type="text" data-r24-produce-lot></label>
+                                    <label>Expiry date<input type="date" data-r24-produce-expiry></label>
+                                    <label class="is-wide">Note<input type="text" data-r24-produce-note></label>
+                                </div>
+                                <div class="pmd-inv-r19-editor-actions">
+                                    <button type="button" class="pmd-inv-r19-primary" data-r24-produce-submit>Record production</button>
+                                </div>
+                            </section>
+                        </section>
                     </div>
                 </section>
             </section>

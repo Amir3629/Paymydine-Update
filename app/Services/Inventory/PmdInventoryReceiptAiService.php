@@ -72,21 +72,28 @@ final class PmdInventoryReceiptAiService
             'JSON shape:',
             '{',
             '  "supplier_name": string|null,',
+            '  "invoice_number": string|null,',
             '  "purchase_date": "YYYY-MM-DD"|null,',
             '  "currency": string|null,',
             '  "total_amount": number|null,',
             '  "lines": [',
             '    {',
             '      "item_name": string,',
+            '      "supplier_sku": string|null,',
+            '      "barcode": string|null,',
             '      "quantity": number|null,',
             '      "unit": string|null,',
+            '      "base_quantity_per_unit": number|null,',
             '      "unit_cost": number|null,',
-            '      "line_total": number|null',
+            '      "line_total": number|null,',
+            '      "lot_code": string|null,',
+            '      "expiry_date": "YYYY-MM-DD"|null',
             '    }',
             '  ]',
             '}',
             'Use practical stock units such as bottle, can, piece, pack, kg, g, l or ml when the document makes them clear.',
-            'If the document shows a pack count (for example 6 bottles), set quantity to the received stock quantity when it is clear.',
+            'If the document shows a pack/case conversion, keep quantity in the invoiced purchase unit and put the contained base quantity in base_quantity_per_unit when clear.',
+            'Extract supplier article/SKU, GTIN/EAN/barcode, lot and expiry only when visibly supported.',
             'Keep at most 80 line items.',
         ]);
 
@@ -199,15 +206,21 @@ final class PmdInventoryReceiptAiService
 
             $lines[] = [
                 'item_name' => mb_substr($name, 0, 190),
+                'supplier_sku' => $this->nullableText($line['supplier_sku'] ?? null, 120),
+                'barcode' => $this->nullableText($line['barcode'] ?? null, 160),
                 'quantity' => $quantity,
                 'unit' => $this->normalizeUnit($line['unit'] ?? null),
+                'base_quantity_per_unit' => $this->nullableNumber($line['base_quantity_per_unit'] ?? null),
                 'unit_cost' => $unitCost,
                 'line_total' => $lineTotal,
+                'lot_code' => $this->nullableText($line['lot_code'] ?? null, 120),
+                'expiry_date' => $this->normalizeDate($line['expiry_date'] ?? null),
             ];
         }
 
         return [
             'supplier_name' => $this->nullableText($decoded['supplier_name'] ?? null, 190),
+            'invoice_number' => $this->nullableText($decoded['invoice_number'] ?? null, 120),
             'purchase_date' => $this->normalizeDate($decoded['purchase_date'] ?? null),
             'currency' => $this->nullableText($decoded['currency'] ?? null, 12),
             'total_amount' => $this->nullableNumber($decoded['total_amount'] ?? null),
