@@ -1234,7 +1234,7 @@ final class PmdInventoryOperationsService
         if ($supplierId && $supplierId > 0) {
             $query->where('supplier_id', $supplierId);
         } elseif (trim((string)$supplierName) !== '') {
-            $query->whereRaw('LOWER(COALESCE(supplier_name, "")) = ?', [
+            $query->whereRaw("LOWER(COALESCE(supplier_name, '')) = ?", [
                 mb_strtolower(trim((string)$supplierName)),
             ]);
         }
