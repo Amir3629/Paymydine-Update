@@ -709,6 +709,16 @@
                             <div class="pmd-inv-r24-stack" data-r24-price-changes></div>
                         </div>
                     </div>
+                    <div class="pmd-inv-r24-grid pmd-inv-r24-grid--2">
+                        <div class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Waste · 30 days</span><h3>Reasons & cost</h3></div></div>
+                            <div class="pmd-inv-r24-stack" data-r24-waste-reasons></div>
+                        </div>
+                        <div class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Menu availability</span><h3>Recipe stock risks</h3></div></div>
+                            <div class="pmd-inv-r24-stack" data-r24-menu-risk></div>
+                        </div>
+                    </div>
                     <div class="pmd-inv-r24-card" style="margin-top:14px">
                         <div class="pmd-inv-r24-card__head"><div><span>Purchase controls</span><h3>Recent receipts & reversals</h3></div></div>
                         <div class="pmd-inv-r24-stack" data-r24-receipt-corrections></div>
