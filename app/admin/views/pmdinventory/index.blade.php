@@ -285,6 +285,7 @@
                     <button type="button" data-r19-mode="suppliers">Suppliers</button>
                     <button type="button" data-r19-mode="codes">Barcodes</button>
                     <button type="button" data-r19-mode="storage">Storage</button>
+                    <button type="button" data-r19-mode="prep">Prep</button>
                     <button type="button" data-r19-mode="expiry">Expiry</button>
                     <button type="button" data-r19-mode="ledger">Ledger</button>
                     <button type="button" data-r19-mode="analytics">Analytics</button>
@@ -555,6 +556,24 @@
                     <section class="pmd-inv-r24-editor" data-r24-transfer-editor></section>
                     <div class="pmd-inv-r24-alert-strip" data-r24-unallocated></div>
                     <div class="pmd-inv-r24-list" data-r24-storage-list></div>
+                </section>
+
+                <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="prep" hidden>
+                    <div class="pmd-inv-r19-section-head">
+                        <div>
+                            <span>Prepared stock & sub-recipes</span>
+                            <h2>Turn ingredients into sauces, dough, broth and prep batches</h2>
+                            <p>Define a preparation yield once, then record each batch so ingredient stock decreases and prepared stock increases with an auditable production cost.</p>
+                        </div>
+                        <button type="button" class="pmd-inv-r19-primary" data-r24-prep-new>Add prep recipe</button>
+                    </div>
+                    <section class="pmd-inv-r24-editor" data-r24-prep-editor hidden></section>
+                    <section class="pmd-inv-r24-editor" data-r24-produce-editor hidden></section>
+                    <div class="pmd-inv-r24-card-grid" data-r24-prep-list></div>
+                    <div class="pmd-inv-r24-subsection-head">
+                        <div><span>Production history</span><h3>Recently produced batches</h3></div>
+                    </div>
+                    <div class="pmd-inv-r24-list" data-r24-production-list></div>
                 </section>
 
                 <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="expiry" hidden>
