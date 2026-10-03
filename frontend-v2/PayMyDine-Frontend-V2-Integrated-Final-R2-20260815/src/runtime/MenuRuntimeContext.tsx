@@ -429,10 +429,14 @@ export function MenuRuntimeProvider({
     setSelectedItem(null)
   }, [])
   const openService = useCallback((mode: ServiceMode) => {
+    // PMD_KIOSK_SERVICE_RUNTIME_GUARD_V6_1
+    // Kiosk is deliberately table-less: waiter, valet and table-note actions
+    // must stay unavailable even if a theme accidentally renders a trigger.
+    if (isKiosk) return
     setServiceMode(mode)
     setRequestStatus({ kind: mode, state: 'idle', message: '' })
     setOverlay('service')
-  }, [])
+  }, [isKiosk])
   const closeOverlay = useCallback(() => {
     setOverlay(null)
     setSelectedItem(null)
@@ -739,6 +743,7 @@ export function MenuRuntimeProvider({
   }, [])
 
   const callWaiter = useCallback(async () => {
+    if (isKiosk) throw new Error('Waiter call is not available on a self-service kiosk.')
     const id = bootstrap.table.id || bootstrap.table.number
     if (!bootstrap.table.valid || !id) throw new Error(labels.scanTableQr)
     const cooldownKey = `pmd-v2:waiter:${bootstrap.tenant.id}:${id}`
@@ -760,10 +765,11 @@ export function MenuRuntimeProvider({
       setRequestStatus({ kind: 'waiter', state: 'error', message })
       throw error
     }
-  }, [bootstrap.table, bootstrap.tenant.id, isPreview, labels.callWaiter, labels.error, labels.scanTableQr, labels.success, notify])
+  }, [bootstrap.table, bootstrap.tenant.id, isKiosk, isPreview, labels.callWaiter, labels.error, labels.scanTableQr, labels.success, notify])
 
 
   const requestValet = useCallback(async (values: { name: string; licensePlate: string; carMake: string }) => {
+    if (isKiosk) throw new Error('Valet service is not available on a self-service kiosk.')
     if (!values.name.trim() || !values.licensePlate.trim()) throw new Error('Name and license plate are required.')
     if (!bootstrap.table.valid || (!bootstrap.table.id && !bootstrap.table.number)) throw new Error(labels.scanTableQr)
     setRequestStatus({ kind: 'valet', state: 'sending', message: '' })
@@ -777,9 +783,10 @@ export function MenuRuntimeProvider({
       setRequestStatus({ kind: 'valet', state: 'error', message })
       throw error
     }
-  }, [bootstrap.table, isPreview, labels.error, labels.requestValet, labels.scanTableQr, labels.success, notify])
+  }, [bootstrap.table, isKiosk, isPreview, labels.error, labels.requestValet, labels.scanTableQr, labels.success, notify])
 
   const sendTableNote = useCallback(async (note: string) => {
+    if (isKiosk) throw new Error('Table notes are not available on a self-service kiosk.')
     const value = note.trim()
     if (!value) throw new Error(labels.noteRequired)
     if (value.length > 1000) throw new Error(labels.noteTooLong)
@@ -795,7 +802,7 @@ export function MenuRuntimeProvider({
       setRequestStatus({ kind: 'note', state: 'error', message })
       throw error
     }
-  }, [bootstrap.table, isPreview, labels.error, labels.note, labels.noteRequired, labels.noteTooLong, labels.scanTableQr, labels.success, notify])
+  }, [bootstrap.table, isKiosk, isPreview, labels.error, labels.note, labels.noteRequired, labels.noteTooLong, labels.scanTableQr, labels.success, notify])
 
   const tableDisplay = bootstrap.table.number || bootstrap.table.name || bootstrap.table.id
 
