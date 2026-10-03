@@ -97,6 +97,20 @@ final class PmdInventoryControlService
             $now->toDateTimeString()
         );
 
+        // PMD_INVENTORY_FORECAST_R24
+        // Blend recent and medium-window recipe usage so shopping reacts to
+        // trend changes without letting a single day dominate the forecast.
+        $usage7 = $this->soldUsageByItem(
+            $locationId,
+            $now->copy()->subDays(7)->toDateTimeString(),
+            $now->toDateTimeString()
+        );
+        $usage28 = $this->soldUsageByItem(
+            $locationId,
+            $now->copy()->subDays(28)->toDateTimeString(),
+            $now->toDateTimeString()
+        );
+
         $recipeStarts = DB::table('pmd_inventory_recipes')
             ->where('location_id', $locationId)
             ->selectRaw('item_id, MIN(effective_from) as tracking_started_at')
@@ -130,6 +144,8 @@ final class PmdInventoryControlService
             'waste_cost_30d' => $this->movementCost($locationId, 'WASTE', 30),
             'purchases_cost_30d' => $this->movementCost($locationId, 'PURCHASE', 30),
             'unexplained_loss_value' => 0.0,
+            'theoretical_usage_cost_14d' => 0.0,
+            'forecast_usage_cost_7d' => 0.0,
             'critical_items' => 0,
             'low_items' => 0,
             'tracked_items' => count($items),
@@ -163,6 +179,7 @@ final class PmdInventoryControlService
             $expected = round($baselineQty + $movements - $usage, 4);
 
             $trackingDays = 14.0;
+            $trackingAgeDays = 28.0;
             $trackingStartedAt = (string)($recipeStarts[$id]->tracking_started_at ?? '');
             if ($trackingStartedAt !== '') {
                 try {
@@ -171,12 +188,14 @@ final class PmdInventoryControlService
                         \Carbon\Carbon::parse($trackingStartedAt)
                             ->diffInHours($now)
                     );
+                    $trackingAgeDays = max(1, $trackedHours / 24);
                     $trackingDays = max(
                         1,
-                        min(14, $trackedHours / 24)
+                        min(14, $trackingAgeDays)
                     );
                 } catch (\Throwable $ignored) {
                     $trackingDays = 14.0;
+                    $trackingAgeDays = 28.0;
                 }
             }
 
@@ -184,8 +203,18 @@ final class PmdInventoryControlService
                 ((float)($usage14[$id] ?? 0)) / $trackingDays,
                 4
             );
-            $daysLeft = $dailyUsage > 0
-                ? max(0, round(max(0, $expected) / $dailyUsage, 1))
+            $daily7 = ((float)($usage7[$id] ?? 0)) / max(1, min(7, $trackingAgeDays));
+            $daily28 = ((float)($usage28[$id] ?? 0)) / max(1, min(28, $trackingAgeDays));
+            $forecastDaily = round(
+                max(0, ($daily7 * 0.65) + ($daily28 * 0.35)),
+                4
+            );
+            if ($forecastDaily <= 0 && $dailyUsage > 0) {
+                $forecastDaily = $dailyUsage;
+            }
+
+            $daysLeft = $forecastDaily > 0
+                ? max(0, round(max(0, $expected) / $forecastDaily, 1))
                 : null;
 
             $par = max(0, (float)$item->par_level);
@@ -234,6 +263,10 @@ final class PmdInventoryControlService
 
             $value = max(0, $expected) * max(0, (float)$item->unit_cost);
             $summary['estimated_stock_value'] += $value;
+            $summary['theoretical_usage_cost_14d'] +=
+                max(0, (float)($usage14[$id] ?? 0)) * max(0, (float)$item->unit_cost);
+            $summary['forecast_usage_cost_7d'] +=
+                max(0, $forecastDaily * 7) * max(0, (float)$item->unit_cost);
 
             $rows[] = [
                 'id' => $id,
@@ -263,6 +296,7 @@ final class PmdInventoryControlService
                 'estimated_on_hand' => $expected,
                 'stock_value' => round($value, 2),
                 'avg_daily_usage' => $dailyUsage,
+                'forecast_daily_usage' => $forecastDaily,
                 'used_since_count' => round($usage, 4),
                 'tracking_days' => round($trackingDays, 2),
                 'days_left' => $daysLeft,
@@ -279,6 +313,8 @@ final class PmdInventoryControlService
             'waste_cost_30d',
             'purchases_cost_30d',
             'unexplained_loss_value',
+            'theoretical_usage_cost_14d',
+            'forecast_usage_cost_7d',
         ] as $key) {
             $summary[$key] = round((float)$summary[$key], 2);
         }
