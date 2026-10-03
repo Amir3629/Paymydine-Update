@@ -176,6 +176,96 @@
     state.loaded = Boolean(state.pro && state.pro.ready);
     state.error = '';
     renderCurrent();
+    decorateReceiptReview();
+  }
+
+  function decorateReceiptReview() {
+    var zones = workspace.querySelectorAll('[data-r24-reconcile-zone]');
+    if (!zones.length) return;
+
+    zones.forEach(function (zone) {
+      var receiptId = Number(zone.getAttribute('data-receipt-id') || 0);
+      if (!receiptId) {
+        zone.innerHTML = '';
+        return;
+      }
+
+      if (!state.loaded) {
+        zone.innerHTML = '<span class="pmd-inv-r24-reconcile-note">Loading open purchase orders…</span>';
+        return;
+      }
+
+      var orders = (state.pro.purchase_orders || []).filter(function (row) {
+        return ['draft','sent','partial'].indexOf(String(row.status || '')) !== -1;
+      });
+
+      if (!orders.length) {
+        zone.innerHTML = '<span class="pmd-inv-r24-reconcile-note">No open purchase order is available to compare with this invoice.</span>';
+        return;
+      }
+
+      var existing = (state.pro.purchase_receipts || []).find(function (row) {
+        return Number(row.id) === receiptId;
+      }) || null;
+      var selectedPo = existing ? Number(existing.purchase_order_id || 0) : 0;
+
+      zone.innerHTML =
+        '<div class="pmd-inv-r24-reconcile-controls">' +
+          '<div><strong>Compare invoice to purchase order</strong><small>Checks supplier, lines, quantity and package price before stock is confirmed.</small></div>' +
+          '<select data-r24-reconcile-po>' +
+            '<option value="">Choose open PO</option>' +
+            orders.map(function (row) {
+              return '<option value="' + esc(row.id) + '"' + (selectedPo === Number(row.id) ? ' selected' : '') + '>' +
+                esc(row.order_number + ' · ' + (row.supplier_name || 'Supplier') + ' · ' + money(row.estimated_total || 0, row.currency)) +
+              '</option>';
+            }).join('') +
+          '</select>' +
+          '<button type="button" class="pmd-inv-r19-secondary" data-r24-reconcile-run="' + esc(receiptId) + '">Compare</button>' +
+        '</div>' +
+        '<div class="pmd-inv-r24-reconcile-result" data-r24-reconcile-result></div>';
+
+      if (existing && existing.reconciliation_json) {
+        try {
+          var saved = typeof existing.reconciliation_json === 'string'
+            ? JSON.parse(existing.reconciliation_json)
+            : existing.reconciliation_json;
+          renderReconciliation(zone, saved);
+        } catch (ignore) {}
+      }
+    });
+  }
+
+  function renderReconciliation(zone, result) {
+    if (!zone || !result) return;
+    var host = zone.querySelector('[data-r24-reconcile-result]');
+    if (!host) return;
+    var summary = result.summary || {};
+    var matches = Array.isArray(result.matched_lines) ? result.matched_lines : [];
+    var clean = Boolean(summary.clean_match);
+
+    host.innerHTML =
+      '<div class="pmd-inv-r24-reconcile-summary ' + (clean ? 'is-clean' : 'has-issues') + '">' +
+        '<strong>' + esc(clean ? 'Clean PO match' : 'Review differences before confirming') + '</strong>' +
+        '<span>' + esc(
+          (summary.matched || 0) + ' matched · ' +
+          (summary.missing || 0) + ' missing · ' +
+          (summary.extra || 0) + ' extra · ' +
+          (summary.quantity_issues || 0) + ' quantity issues · ' +
+          (summary.price_issues || 0) + ' price issues'
+        ) + '</span>' +
+        (result.supplier_mismatch ? '<small>Supplier name does not match the selected PO.</small>' : '') +
+      '</div>' +
+      (matches.length ? '<div class="pmd-inv-r24-reconcile-lines">' + matches.map(function (row) {
+        var qtyIssue = row.qty_variance !== null && Math.abs(Number(row.qty_variance || 0)) > 0.00005;
+        var priceIssue = row.price_variance !== null && Math.abs(Number(row.price_variance || 0)) > 0.00005;
+        return '<div class="' + (qtyIssue || priceIssue ? 'has-issue' : 'is-match') + '">' +
+          '<strong>' + esc(row.item_name || row.invoice_item_name || 'Item') + '</strong>' +
+          '<span>PO ' + esc(num(row.remaining_qty || 0,2) + ' ' + (row.package_unit || '')) +
+          ' · Invoice ' + esc(row.invoice_qty === null ? '—' : num(row.invoice_qty,2)) + '</span>' +
+          '<span>PO ' + esc(money(row.po_unit_cost || 0)) +
+          ' · Invoice ' + esc(row.invoice_unit_cost === null ? '—' : money(row.invoice_unit_cost)) + '</span>' +
+        '</div>';
+      }).join('') + '</div>' : '');
   }
 
   function load(force) {
@@ -1674,6 +1764,32 @@
       return;
     }
 
+    var reconcileRun = target.closest('[data-r24-reconcile-run]');
+    if (reconcileRun) {
+      var zone = reconcileRun.closest('[data-r24-reconcile-zone]');
+      var select = zone && zone.querySelector('[data-r24-reconcile-po]');
+      var poId = Number(select && select.value || 0);
+      var receiptId = Number(reconcileRun.getAttribute('data-r24-reconcile-run') || 0);
+      if (!poId) return toast('Choose a purchase order to compare.', true);
+
+      reconcileRun.disabled = true;
+      request('onProReconcileReceipt', {
+        receipt_id:receiptId,
+        purchase_order_id:poId
+      }).then(function (json) {
+        applySnapshot(json.pro || {});
+        renderReconciliation(zone, json.reconciliation || {});
+        toast((json.reconciliation && json.reconciliation.summary && json.reconciliation.summary.clean_match)
+          ? 'Invoice matches the purchase order.'
+          : 'Invoice comparison completed. Review the highlighted differences.');
+      }).catch(function (error) {
+        toast(error.message || 'Could not compare this invoice to the purchase order.', true);
+      }).finally(function () {
+        reconcileRun.disabled = false;
+      });
+      return;
+    }
+
     if (target.closest('[data-r24-supplier-product-new]')) { openSupplierProductEditor(null); return; }
     var supplierProductEdit = target.closest('[data-r24-supplier-product-edit]');
     if (supplierProductEdit) {
@@ -1877,6 +1993,7 @@
     getSnapshot:function () { return state.pro; },
     getSettings:function () { return state.pro.settings || {}; },
     isReady:function () { return Boolean(state.loaded); },
+    decorateReceiptReview:decorateReceiptReview,
     resolveCodeLocal:function (code) {
       code = normalizeCode(code);
       if (!code) return null;
