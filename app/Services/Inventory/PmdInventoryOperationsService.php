@@ -1648,6 +1648,25 @@ final class PmdInventoryOperationsService
                 }
 
                 $item = DB::table('pmd_inventory_items')->where('id', $itemId)->first();
+                $lot = null;
+                if ($lotId > 0) {
+                    $lot = DB::table('pmd_inventory_lots')
+                        ->where('location_id', $locationId)
+                        ->where('id', $lotId)
+                        ->where('item_id', $itemId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$lot) {
+                        throw new InvalidArgumentException('Selected transfer lot was not found.');
+                    }
+                    if ((int)($lot->storage_location_id ?? 0) !== $from) {
+                        throw new InvalidArgumentException('Selected lot is not stored in the transfer source location.');
+                    }
+                    if ((float)$lot->qty_remaining + 0.00005 < $qty) {
+                        throw new InvalidArgumentException('Transfer quantity is larger than the selected lot balance.');
+                    }
+                }
 
                 DB::table('pmd_inventory_transfer_lines')->insert([
                     'transfer_id' => $transferId,
@@ -1682,43 +1701,32 @@ final class PmdInventoryOperationsService
                     ]);
                 }
 
-                if ($lotId > 0) {
-                    $lot = DB::table('pmd_inventory_lots')
-                        ->where('location_id', $locationId)
+                if ($lotId > 0 && $lot) {
+                    $remaining = max(0, (float)$lot->qty_remaining - $qty);
+                    DB::table('pmd_inventory_lots')
                         ->where('id', $lotId)
-                        ->where('item_id', $itemId)
-                        ->first();
+                        ->update([
+                            'qty_remaining' => round($remaining, 4),
+                            'status' => $remaining <= 0.00005 ? 'closed' : $lot->status,
+                            'updated_at' => now(),
+                        ]);
 
-                    if ($lot && (int)($lot->storage_location_id ?? 0) === $from) {
-                        $moveQty = min($qty, max(0, (float)$lot->qty_remaining));
-                        if ($moveQty > 0) {
-                            $remaining = max(0, (float)$lot->qty_remaining - $moveQty);
-                            DB::table('pmd_inventory_lots')
-                                ->where('id', $lotId)
-                                ->update([
-                                    'qty_remaining' => round($remaining, 4),
-                                    'status' => $remaining <= 0.00005 ? 'closed' : $lot->status,
-                                    'updated_at' => now(),
-                                ]);
-
-                            DB::table('pmd_inventory_lots')->insert([
-                                'location_id' => $locationId,
-                                'item_id' => $itemId,
-                                'storage_location_id' => $to,
-                                'receipt_id' => $lot->receipt_id,
-                                'lot_code' => $lot->lot_code,
-                                'expiry_date' => $lot->expiry_date,
-                                'received_at' => $lot->received_at,
-                                'qty_received' => round($moveQty, 4),
-                                'qty_remaining' => round($moveQty, 4),
-                                'unit_cost' => (float)$lot->unit_cost,
-                                'status' => 'open',
-                                'created_by' => $staffId,
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ]);
-                        }
-                    }
+                    DB::table('pmd_inventory_lots')->insert([
+                        'location_id' => $locationId,
+                        'item_id' => $itemId,
+                        'storage_location_id' => $to,
+                        'receipt_id' => $lot->receipt_id,
+                        'lot_code' => $lot->lot_code,
+                        'expiry_date' => $lot->expiry_date,
+                        'received_at' => $lot->received_at,
+                        'qty_received' => round($qty, 4),
+                        'qty_remaining' => round($qty, 4),
+                        'unit_cost' => (float)$lot->unit_cost,
+                        'status' => 'open',
+                        'created_by' => $staffId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
             }
 
