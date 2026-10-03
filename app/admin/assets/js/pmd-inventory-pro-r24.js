@@ -310,6 +310,135 @@
         '</dl>' +
       '</article>';
     }).join('') : '<div class="pmd-inv-r19-empty">No suppliers yet. Add the first supplier to start purchase-order and price tracking.</div>';
+
+    renderSupplierProducts();
+    renderPriceHistory();
+  }
+
+  function supplierItemById(id) {
+    id = Number(id || 0);
+    return (state.pro.supplier_items || []).find(function (row) {
+      return Number(row.id) === id;
+    }) || null;
+  }
+
+  function renderSupplierProducts() {
+    var host = workspace.querySelector('[data-r24-supplier-product-list]');
+    if (!host) return;
+    var rows = state.pro.supplier_items || [];
+
+    host.innerHTML = rows.length ? rows.map(function (row) {
+      var packageText = num(row.package_quantity || 1, 2) + ' ' + (row.package_unit || 'package') +
+        ' = ' + num(row.base_quantity || 1, 2) + ' ' + (row.base_unit || 'base');
+      var orderRule = 'MOQ ' + num(row.min_order_qty || 1, 2) +
+        ' · multiple ' + num(row.order_multiple || 1, 2);
+      return '<article class="pmd-inv-r24-row">' +
+        '<div class="pmd-inv-r24-row__main">' +
+          (Number(row.is_preferred || 0) ? '<span class="pmd-inv-r24-status">Preferred</span>' : '<span class="pmd-inv-r24-status">Supplier item</span>') +
+          '<strong>' + esc(row.item_name || 'Stock item') + '</strong>' +
+          '<small>' + esc((row.supplier_name || 'Supplier') + ' · ' + packageText + ' · ' + orderRule) + '</small>' +
+        '</div>' +
+        '<div class="pmd-inv-r24-row__meta">' +
+          '<span>' + esc(row.supplier_sku ? 'SKU ' + row.supplier_sku : (row.gtin ? 'GTIN ' + row.gtin : 'No supplier code')) + '</span>' +
+          '<strong>' + esc(money(row.unit_price || 0, row.currency)) + '</strong>' +
+          '<small>per ' + esc(row.package_unit || 'package') + '</small>' +
+        '</div>' +
+        '<div class="pmd-inv-r24-row__actions">' +
+          '<button type="button" class="pmd-inv-r19-secondary" data-r24-supplier-product-edit="' + esc(row.id) + '">Edit</button>' +
+          '<button type="button" class="pmd-inv-r19-secondary is-danger" data-r24-supplier-product-archive="' + esc(row.id) + '">Remove</button>' +
+        '</div>' +
+      '</article>';
+    }).join('') : '<div class="pmd-inv-r19-empty">No supplier products yet. Map the same stock item to one or more suppliers and packages.</div>';
+  }
+
+  function renderPriceHistory() {
+    var host = workspace.querySelector('[data-r24-price-history-list]');
+    if (!host) return;
+    var rows = (state.pro.price_history || []).slice(0, 30);
+
+    host.innerHTML = rows.length ? rows.map(function (row, index) {
+      var previous = null;
+      for (var i = index + 1; i < rows.length; i += 1) {
+        if (
+          Number(rows[i].item_id) === Number(row.item_id)
+          && Number(rows[i].supplier_id || 0) === Number(row.supplier_id || 0)
+        ) {
+          previous = rows[i];
+          break;
+        }
+      }
+      var delta = previous && Number(previous.unit_cost || 0) > 0
+        ? ((Number(row.unit_cost || 0) - Number(previous.unit_cost || 0)) / Number(previous.unit_cost || 0)) * 100
+        : null;
+      return '<article class="pmd-inv-r24-row">' +
+        '<div class="pmd-inv-r24-row__main"><span class="pmd-inv-r24-status">' + esc(row.source || 'purchase') + '</span>' +
+          '<strong>' + esc(row.item_name || 'Stock item') + '</strong>' +
+          '<small>' + esc((row.supplier_name || 'Supplier') + ' · ' + (row.purchase_unit || 'unit') + ' · ' + dateLabel(row.recorded_at)) + '</small></div>' +
+        '<div class="pmd-inv-r24-row__meta"><span>Package price</span><strong>' + esc(money(row.unit_cost || 0, row.currency)) + '</strong>' +
+          '<small>' + (delta === null ? 'First comparable price' : esc((delta > 0 ? '+' : '') + num(delta,1) + '% vs previous')) + '</small></div>' +
+      '</article>';
+    }).join('') : '<div class="pmd-inv-r19-empty">Price history appears automatically after purchases and purchase-order receiving.</div>';
+  }
+
+  function openSupplierProductEditor(row) {
+    var host = workspace.querySelector('[data-r24-supplier-product-editor]');
+    if (!host) return;
+    row = row || {};
+    var item = itemById(row.item_id);
+    host.hidden = false;
+    host.innerHTML =
+      '<div class="pmd-inv-r24-editor__head"><div><span>Supplier catalogue</span><h3>' + esc(row.id ? 'Edit supplier product' : 'Add supplier product') + '</h3></div>' +
+      '<button type="button" class="pmd-inv-r19-secondary" data-r24-editor-close>Close</button></div>' +
+      '<div class="pmd-inv-r24-fields">' +
+        '<label>Supplier<select data-r24-supplier-product-supplier>' + supplierOptions(row.supplier_id, false) + '</select></label>' +
+        '<label>Stock item<select data-r24-supplier-product-item>' + itemOptions(row.item_id) + '</select></label>' +
+        '<label>Supplier SKU<input type="text" data-r24-supplier-product-sku value="' + esc(row.supplier_sku || '') + '" placeholder="Article number"></label>' +
+        '<label>GTIN / package barcode<input type="text" data-r24-supplier-product-gtin value="' + esc(row.gtin || '') + '" placeholder="Optional"></label>' +
+        '<label>Package unit<select data-r24-supplier-product-unit>' + unitOptions(row.package_unit || (item && item.purchase_unit) || 'piece') + '</select></label>' +
+        '<label>Packages represented<input type="number" min="0.0001" step="0.01" data-r24-supplier-product-package-qty value="' + esc(row.package_quantity || 1) + '"></label>' +
+        '<label>Base quantity / package<input type="number" min="0.0001" step="0.0001" data-r24-supplier-product-base value="' + esc(row.base_quantity || (item && item.purchase_to_base) || 1) + '"></label>' +
+        '<label>Price / package<input type="number" min="0" step="0.01" data-r24-supplier-product-price value="' + esc(row.unit_price || 0) + '"></label>' +
+        '<label>Minimum order qty<input type="number" min="0.0001" step="0.01" data-r24-supplier-product-moq value="' + esc(row.min_order_qty || 1) + '"></label>' +
+        '<label>Order multiple<input type="number" min="0.0001" step="0.01" data-r24-supplier-product-multiple value="' + esc(row.order_multiple || 1) + '"></label>' +
+        '<label>Currency<input type="text" maxlength="3" data-r24-supplier-product-currency value="' + esc(row.currency || config.currency || 'EUR') + '"></label>' +
+        '<label class="pmd-inv-r24-check"><input type="checkbox" data-r24-supplier-product-preferred' + (Number(row.is_preferred || 0) ? ' checked' : '') + '><span>Preferred supplier/package for this stock item</span></label>' +
+      '</div>' +
+      '<div class="pmd-inv-r24-editor__actions"><button type="button" class="pmd-inv-r19-primary" data-r24-supplier-product-save data-id="' + esc(row.id || '') + '">Save supplier product</button></div>';
+    host.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  function saveSupplierProduct(button) {
+    var host = workspace.querySelector('[data-r24-supplier-product-editor]');
+    if (!host) return;
+    var supplierId = Number((host.querySelector('[data-r24-supplier-product-supplier]') || {}).value || 0);
+    var itemId = Number((host.querySelector('[data-r24-supplier-product-item]') || {}).value || 0);
+    if (!supplierId || !itemId) return toast('Choose a supplier and stock item.', true);
+
+    setBusy(host, true);
+    request('onProSaveSupplierItem', {
+      supplier_item_id:Number(button.getAttribute('data-id') || 0),
+      supplier_id:supplierId,
+      item_id:itemId,
+      supplier_sku:String((host.querySelector('[data-r24-supplier-product-sku]') || {}).value || ''),
+      gtin:normalizeCode((host.querySelector('[data-r24-supplier-product-gtin]') || {}).value || ''),
+      package_unit:String((host.querySelector('[data-r24-supplier-product-unit]') || {}).value || 'piece'),
+      package_quantity:Number((host.querySelector('[data-r24-supplier-product-package-qty]') || {}).value || 1),
+      base_quantity:Number((host.querySelector('[data-r24-supplier-product-base]') || {}).value || 1),
+      unit_price:Number((host.querySelector('[data-r24-supplier-product-price]') || {}).value || 0),
+      min_order_qty:Number((host.querySelector('[data-r24-supplier-product-moq]') || {}).value || 1),
+      order_multiple:Number((host.querySelector('[data-r24-supplier-product-multiple]') || {}).value || 1),
+      currency:String((host.querySelector('[data-r24-supplier-product-currency]') || {}).value || config.currency || 'EUR'),
+      is_preferred:Boolean((host.querySelector('[data-r24-supplier-product-preferred]') || {}).checked)
+    }).then(function (json) {
+      applyCoreSnapshot(json);
+      applySnapshot(json.pro || {});
+      host.hidden = true;
+      toast('Supplier product saved.');
+    }).catch(function (error) {
+      toast(error.message || 'Could not save supplier product.', true);
+    }).finally(function () {
+      setBusy(host, false);
+    });
   }
 
   function openSupplierEditor(row) {
