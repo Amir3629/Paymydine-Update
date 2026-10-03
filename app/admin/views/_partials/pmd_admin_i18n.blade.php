@@ -399,3 +399,19 @@
     defer
 ></script>
 @endif
+
+{{-- PMD_RESTAURANT_GROUPS_V1_LOADER --}}
+@php
+    $pmdGroupsCssPath = base_path('app/admin/assets/css/pmd-restaurant-groups-v1.css');
+    $pmdGroupsJsPath = base_path('app/admin/assets/js/pmd-restaurant-groups-v1.js');
+    $pmdGroupsCssVersion = is_file($pmdGroupsCssPath) ? (string)filemtime($pmdGroupsCssPath) : '1';
+    $pmdGroupsJsVersion = is_file($pmdGroupsJsPath) ? (string)filemtime($pmdGroupsJsPath) : '1';
+@endphp
+<link
+    rel="stylesheet"
+    href="/app/admin/assets/css/pmd-restaurant-groups-v1.css?v={{ $pmdGroupsCssVersion }}"
+>
+<script
+    src="/app/admin/assets/js/pmd-restaurant-groups-v1.js?v={{ $pmdGroupsJsVersion }}"
+    defer
+></script>
