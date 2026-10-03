@@ -1656,6 +1656,19 @@
     }
   }
 
+  function deferPersistVisualCacheR132(json) {
+    var write = function () {
+      persistVisualCache(json);
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(write, {timeout: 1500});
+      return;
+    }
+
+    window.setTimeout(write, 0);
+  }
+
   function hydrateInitialBootstrap() {
     var config = window.PMDQuickPOSConfig || {};
     var json = config.initialBootstrap;
@@ -1680,8 +1693,19 @@
     if (user) user.textContent = (json.user && json.user.name) || 'Staff';
 
     state.visualHydrated = true;
-    renderAll();
-    persistVisualCache(json);
+
+    /* PMD_QPOS_SERVER_FIRST_PAINT_R132
+     * Blade already rendered the initial floor/table/category/product DOM.
+     * Do not synchronously destroy and recreate hundreds of nodes on boot.
+     * Hydrate state, bind the existing server DOM, and only render the small
+     * dynamic surfaces that are not authoritative in the first HTML. */
+    renderContext();
+    bindRenderedTables();
+    bindRenderedCategories();
+    bindRenderedProducts();
+    renderCart();
+    renderFloorMap();
+    deferPersistVisualCacheR132(json);
 
     return true;
   }
@@ -2948,6 +2972,92 @@
       : '';
   }
 
+  function bindRenderedTables() {
+    var box = $('[data-qpos-tables]');
+    if (!box) return;
+
+    var directMove =
+      state.transfer.open &&
+      state.transfer.directSide;
+
+    var pickup = $('[data-qpos-pickup]', box);
+    if (pickup && !directMove) pickup.onclick = selectPickup;
+
+    Array.prototype.slice.call(box.querySelectorAll('[data-qpos-table]')).forEach(function (button) {
+      /* PMD_QPOS_TABLE_HOVER_PREFETCH_V41
+       * Warm only the table the pointer/focus is already heading toward. */
+      var prefetch = function () {
+        if (directMove || button.disabled) return;
+        var id = Number(button.getAttribute('data-qpos-table') || 0);
+        if (id) {
+          prefetchTableData(id);
+          prefetchHistoryForTableV83(id);
+        }
+      };
+
+      button.onpointerenter = prefetch;
+      button.onpointerdown = prefetch;
+      button.ontouchstart = prefetch;
+      button.onfocus = prefetch;
+
+      /* PMD_QPOS_TOUCH_PREFETCH_V42
+       * pointerdown/touchstart begins the table request before click release. */
+      button.onclick = function (event) {
+        var id = Number(button.getAttribute('data-qpos-table') || 0);
+        if (!id) return;
+
+        var attentionTarget =
+          event &&
+          event.target &&
+          event.target.closest
+            ? event.target.closest('[data-qpos-attention-kind]')
+            : null;
+
+        if (attentionTarget && !directMove) {
+          event.preventDefault();
+          event.stopPropagation();
+          openTableAttentionV57(
+            id,
+            attentionTarget.getAttribute('data-qpos-attention-kind')
+          );
+          return;
+        }
+
+        if (directMove) {
+          directMoveOrderToTable(id);
+          return;
+        }
+
+        var defaultAttentionKind = String(
+          button.getAttribute('data-qpos-attention-kind-default') || ''
+        );
+
+        if (defaultAttentionKind) {
+          openTableAttentionV57(id, defaultAttentionKind);
+          return;
+        }
+
+        selectTable(id);
+      };
+    });
+
+    renderHistoryTableRailV88();
+    renderHistoryTableWorkspaceV93();
+
+    /* PMD_QPOS_NO_BOOT_REQUEST_BURST_V131
+     * Do not prefetch up to ten occupied-table payloads during initial/render
+     * paint. Pointer/focus/touch prefetch above remains, so the table the
+     * operator is actually approaching is still warmed before click. */
+
+    // PMD_QPOS_TABLE_RAIL_RENDER_EVENT_R128
+    // Quick Reservations keeps the canonical rail and only reapplies its
+    // presentation-only table filter after the rail is rebuilt.
+    try {
+      window.dispatchEvent(new CustomEvent('pmd:qpos:tables-rendered'));
+    } catch (ignored) {
+    }
+  }
+
   function renderTables() {
     var box = $('[data-qpos-tables]');
     var count = $('[data-qpos-table-count]');
@@ -3141,83 +3251,7 @@
     });
 
     box.innerHTML = rows.join('');
-
-    var pickup = $('[data-qpos-pickup]', box);
-    if (pickup && !directMove) pickup.onclick = selectPickup;
-
-    Array.prototype.slice.call(box.querySelectorAll('[data-qpos-table]')).forEach(function (button) {
-      /* PMD_QPOS_TABLE_HOVER_PREFETCH_V41
-       * Warm only the table the pointer/focus is already heading toward. */
-      var prefetch = function () {
-        if (directMove || button.disabled) return;
-        var id = Number(button.getAttribute('data-qpos-table') || 0);
-        if (id) {
-          prefetchTableData(id);
-          prefetchHistoryForTableV83(id);
-        }
-      };
-
-      button.onpointerenter = prefetch;
-      button.onpointerdown = prefetch;
-      button.ontouchstart = prefetch;
-      button.onfocus = prefetch;
-
-      /* PMD_QPOS_TOUCH_PREFETCH_V42
-       * pointerdown/touchstart begins the table request before click release. */
-      button.onclick = function (event) {
-        var id = Number(button.getAttribute('data-qpos-table') || 0);
-        if (!id) return;
-
-        var attentionTarget =
-          event &&
-          event.target &&
-          event.target.closest
-            ? event.target.closest('[data-qpos-attention-kind]')
-            : null;
-
-        if (attentionTarget && !directMove) {
-          event.preventDefault();
-          event.stopPropagation();
-          openTableAttentionV57(
-            id,
-            attentionTarget.getAttribute('data-qpos-attention-kind')
-          );
-          return;
-        }
-
-        if (directMove) {
-          directMoveOrderToTable(id);
-          return;
-        }
-
-        var defaultAttentionKind = String(
-          button.getAttribute('data-qpos-attention-kind-default') || ''
-        );
-
-        if (defaultAttentionKind) {
-          openTableAttentionV57(id, defaultAttentionKind);
-          return;
-        }
-
-        selectTable(id);
-      };
-    });
-
-    renderHistoryTableRailV88();
-    renderHistoryTableWorkspaceV93();
-
-    /* PMD_QPOS_NO_BOOT_REQUEST_BURST_V131
-     * Do not prefetch up to ten occupied-table payloads during initial/render
-     * paint. Pointer/focus/touch prefetch above remains, so the table the
-     * operator is actually approaching is still warmed before click. */
-
-    // PMD_QPOS_TABLE_RAIL_RENDER_EVENT_R128
-    // Quick Reservations keeps the canonical rail and only reapplies its
-    // presentation-only table filter after the rail is rebuilt.
-    try {
-      window.dispatchEvent(new CustomEvent('pmd:qpos:tables-rendered'));
-    } catch (ignored) {
-    }
+    bindRenderedTables();
   }
 
   function setSelectedTablePaymentSignal(paymentState, dueAmount) {
@@ -3245,6 +3279,19 @@
     renderTables();
   }
 
+  function bindRenderedCategories() {
+    var box = $('[data-qpos-categories]');
+    if (!box) return;
+
+    $('[data-qpos-category]', box).forEach(function (button) {
+      button.onclick = function () {
+        state.category = button.getAttribute('data-qpos-category') || 'all';
+        renderCategories();
+        renderProducts();
+      };
+    });
+  }
+
   function renderCategories() {
     var box = $('[data-qpos-categories]');
     if (!box) return;
@@ -3260,13 +3307,7 @@
       );
     }).join('');
 
-    $$('[data-qpos-category]', box).forEach(function (button) {
-      button.onclick = function () {
-        state.category = button.getAttribute('data-qpos-category') || 'all';
-        renderCategories();
-        renderProducts();
-      };
-    });
+    bindRenderedCategories();
   }
 
   function cartQuantityForMenu(menuId) {
@@ -3363,6 +3404,56 @@
     );
   }
 
+  function bindRenderedProducts() {
+    var box = $('[data-qpos-products]');
+    if (!box) return;
+
+    $('[data-qpos-product]', box).forEach(function (button) {
+      button.onclick = function () {
+        if (!canOrderNow()) {
+          toast('Select table or Pickup.', true);
+          return;
+        }
+
+        if (
+          activeOrderStructuralLocked() &&
+          state.serviceMode === 'dine_in' &&
+          state.selectedTable
+        ) {
+          state.activeOrderId = null;
+          state.orderSelectionExplicitV72 = false;
+          state.forceNewCheck = true;
+          state.guestCount = 1;
+          state.note = '';
+          renderCart({orderSwitch: true});
+        } else if (activeOrderStructuralLocked()) {
+          var lockedPickupOrder = activeOrder();
+          toast(
+            lockedPickupOrder &&
+            lockedPickupOrder.item_mutation &&
+            lockedPickupOrder.item_mutation.reason
+              ? lockedPickupOrder.item_mutation.reason
+              : 'This Pickup order can no longer be changed.',
+            true
+          );
+          return;
+        }
+
+        var id = Number(button.getAttribute('data-qpos-product'));
+        var item = state.menu.find(function (row) {
+          return Number(row.id) === id;
+        });
+        if (!item) return;
+
+        if (item.has_options || (item.options || []).length) {
+          openModifier(item);
+        } else {
+          addCartLine(item, [], Math.max(1, num(item.minimum_qty, 1)), '');
+        }
+      };
+    });
+  }
+
   function renderProducts() {
     var box = $('[data-qpos-products]');
     var status = $('[data-qpos-catalog-status]');
@@ -3444,50 +3535,7 @@
       );
     }).join('');
 
-    $$('[data-qpos-product]', box).forEach(function (button) {
-      button.onclick = function () {
-        if (!canOrderNow()) {
-          toast('Select table or Pickup.', true);
-          return;
-        }
-
-        if (
-          activeOrderStructuralLocked() &&
-          state.serviceMode === 'dine_in' &&
-          state.selectedTable
-        ) {
-          state.activeOrderId = null;
-          state.orderSelectionExplicitV72 = false;
-          state.forceNewCheck = true;
-          state.guestCount = 1;
-          state.note = '';
-          renderCart({orderSwitch: true});
-        } else if (activeOrderStructuralLocked()) {
-          var lockedPickupOrder = activeOrder();
-          toast(
-            lockedPickupOrder &&
-            lockedPickupOrder.item_mutation &&
-            lockedPickupOrder.item_mutation.reason
-              ? lockedPickupOrder.item_mutation.reason
-              : 'This Pickup order can no longer be changed.',
-            true
-          );
-          return;
-        }
-
-        var id = Number(button.getAttribute('data-qpos-product'));
-        var item = state.menu.find(function (row) {
-          return Number(row.id) === id;
-        });
-        if (!item) return;
-
-        if (item.has_options || (item.options || []).length) {
-          openModifier(item);
-        } else {
-          addCartLine(item, [], Math.max(1, num(item.minimum_qty, 1)), '');
-        }
-      };
-    });
+    bindRenderedProducts();
   }
 
   function orderId(order) {
