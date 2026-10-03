@@ -952,6 +952,56 @@ final class PmdInventoryControlService
                     ? ($unitCost / $factor)
                     : max(0, (float)$item->unit_cost);
 
+                // If a new stock item was created directly from an unknown scan,
+                // promote that code into the normalized R24 identifier table so
+                // the next scan resolves the exact package immediately.
+                $scannedCode = trim((string)($line['barcode'] ?? ''));
+                if (
+                    !$identifier
+                    && $scannedCode !== ''
+                    && Schema::hasTable('pmd_inventory_item_identifiers')
+                ) {
+                    $existingIdentifier = DB::table('pmd_inventory_item_identifiers')
+                        ->where('location_id', $locationId)
+                        ->where('code', mb_substr($scannedCode, 0, 190))
+                        ->where('active', 1)
+                        ->first();
+
+                    if ($existingIdentifier && (int)$existingIdentifier->item_id !== $itemId) {
+                        throw new InvalidArgumentException('This scanned code is already linked to another stock item.');
+                    }
+
+                    if ($existingIdentifier) {
+                        $identifierId = (int)$existingIdentifier->id;
+                        $identifier = $existingIdentifier;
+                    } else {
+                        $identifierId = (int)DB::table('pmd_inventory_item_identifiers')->insertGetId([
+                            'location_id' => $locationId,
+                            'item_id' => $itemId,
+                            'supplier_id' => null,
+                            'supplier_item_id' => null,
+                            'code' => mb_substr($scannedCode, 0, 190),
+                            'code_type' => 'INTERNAL',
+                            'package_unit' => $unit,
+                            'package_quantity' => 1,
+                            'base_quantity' => round($factor, 4),
+                            'unit_price' => round($unitCost, 4),
+                            'currency' => null,
+                            'source' => 'scanner',
+                            'is_primary' => 0,
+                            'active' => 1,
+                            'verified_at' => now(),
+                            'created_by' => $staffId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+
+                        $identifier = DB::table('pmd_inventory_item_identifiers')
+                            ->where('id', $identifierId)
+                            ->first();
+                    }
+                }
+
                 DB::table('pmd_inventory_items')
                     ->where('id', $itemId)
                     ->update([
