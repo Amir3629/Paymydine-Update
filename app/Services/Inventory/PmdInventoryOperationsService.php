@@ -642,44 +642,57 @@ final class PmdInventoryOperationsService
         }
 
         DB::transaction(function () use ($locationId, $sourceItemId, $targetItemId, $target) {
-            // Recipe lines need conflict-aware merging because the table has a
-            // unique location/menu/item key.
+            // Recipe history is effective-dated evidence. Never collapse two
+            // recipe histories into one guessed timeline. Reassign the source
+            // history only when the kept item has no recipe history for the
+            // same menu; otherwise require explicit recipe cleanup first.
             $sourceRecipes = DB::table('pmd_inventory_recipes')
                 ->where('location_id', $locationId)
                 ->where('item_id', $sourceItemId)
+                ->orderBy('menu_id')
+                ->orderBy('effective_from')
                 ->get();
 
-            foreach ($sourceRecipes as $sourceRecipe) {
-                $targetRecipe = DB::table('pmd_inventory_recipes')
-                    ->where('location_id', $locationId)
-                    ->where('menu_id', (int)$sourceRecipe->menu_id)
-                    ->where('item_id', $targetItemId)
-                    ->first();
+            $sourceMenuIds = $sourceRecipes
+                ->pluck('menu_id')
+                ->map(static fn ($id) => (int)$id)
+                ->unique()
+                ->values()
+                ->all();
 
-                if ($targetRecipe) {
-                    DB::table('pmd_inventory_recipes')
-                        ->where('id', (int)$targetRecipe->id)
-                        ->update([
-                            'qty_per_sale' => round(
-                                (float)$targetRecipe->qty_per_sale + (float)$sourceRecipe->qty_per_sale,
-                                4
-                            ),
-                            'updated_at' => now(),
-                        ]);
-                    DB::table('pmd_inventory_recipes')
-                        ->where('id', (int)$sourceRecipe->id)
-                        ->update([
-                            'active' => 0,
-                            'updated_at' => now(),
-                        ]);
-                } else {
-                    DB::table('pmd_inventory_recipes')
-                        ->where('id', (int)$sourceRecipe->id)
-                        ->update([
-                            'item_id' => $targetItemId,
-                            'updated_at' => now(),
-                        ]);
+            if ($sourceMenuIds) {
+                $conflictingMenuIds = DB::table('pmd_inventory_recipes')
+                    ->where('location_id', $locationId)
+                    ->where('item_id', $targetItemId)
+                    ->whereIn('menu_id', $sourceMenuIds)
+                    ->pluck('menu_id')
+                    ->map(static fn ($id) => (int)$id)
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                if ($conflictingMenuIds) {
+                    $names = DB::table('menus')
+                        ->whereIn('menu_id', $conflictingMenuIds)
+                        ->pluck('menu_name')
+                        ->filter()
+                        ->values()
+                        ->all();
+
+                    throw new InvalidArgumentException(
+                        'These duplicates are both used in the same recipe history'
+                        .($names ? ': '.implode(', ', array_slice($names, 0, 5)) : '')
+                        .'. Remove the duplicate recipe line first so historical recipe evidence is not guessed.'
+                    );
                 }
+
+                DB::table('pmd_inventory_recipes')
+                    ->where('location_id', $locationId)
+                    ->where('item_id', $sourceItemId)
+                    ->update([
+                        'item_id' => $targetItemId,
+                        'updated_at' => now(),
+                    ]);
             }
 
             // Count lines also have a unique count/item key.
