@@ -1251,6 +1251,54 @@ final class PmdInventoryOperationsService
         });
     }
 
+    public function setPurchaseOrderStatus(int $locationId, int $orderId, string $status): void
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $orderId = max(0, $orderId);
+        $status = strtolower(trim($status));
+
+        if (!in_array($status, ['draft', 'sent', 'cancelled', 'closed'], true)) {
+            throw new InvalidArgumentException('Unsupported purchase-order status.');
+        }
+
+        $order = DB::table('pmd_inventory_purchase_orders')
+            ->where('location_id', $locationId)
+            ->where('id', $orderId)
+            ->first();
+        if (!$order) {
+            throw new InvalidArgumentException('Purchase order was not found.');
+        }
+        if (in_array((string)$order->status, ['received', 'closed', 'cancelled'], true)) {
+            throw new InvalidArgumentException('This purchase order is already final.');
+        }
+
+        if ($status === 'cancelled') {
+            $received = DB::table('pmd_inventory_purchase_order_lines')
+                ->where('purchase_order_id', $orderId)
+                ->where('received_qty', '>', 0)
+                ->exists();
+            if ($received) {
+                throw new InvalidArgumentException(
+                    'Partially received orders cannot be cancelled. Receive or close the remaining balance instead.'
+                );
+            }
+        }
+
+        DB::table('pmd_inventory_purchase_orders')
+            ->where('id', $orderId)
+            ->update([
+                'status' => $status,
+                'sent_at' => $status === 'sent'
+                    ? ($order->sent_at ?: now())
+                    : $order->sent_at,
+                'closed_at' => in_array($status, ['cancelled', 'closed'], true)
+                    ? now()
+                    : null,
+                'updated_at' => now(),
+            ]);
+    }
+
     public function receivePurchaseOrder(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
