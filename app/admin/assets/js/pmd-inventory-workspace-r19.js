@@ -248,6 +248,14 @@
     }) || null;
   }
 
+  function identifierForBarcode(code) {
+    code = normalizedBarcode(code);
+    if (!code || !window.PMDInventoryProR24 || typeof window.PMDInventoryProR24.resolveCodeLocal !== 'function') {
+      return null;
+    }
+    return window.PMDInventoryProR24.resolveCodeLocal(code);
+  }
+
   function ownerQuantity(item, baseQty) {
     item = item || {};
     var factor = purchaseFactor(item);
@@ -666,19 +674,27 @@
     if (editor) editor.hidden = true;
     if (grid) grid.hidden = true;
 
+    var proSettings = window.PMDInventoryProR24 && typeof window.PMDInventoryProR24.getSettings === 'function'
+      ? (window.PMDInventoryProR24.getSettings() || {})
+      : {};
+    var blindCount = Boolean(Number(proSettings.blind_counts || 0));
+
     host.hidden = false;
+    host.classList.toggle('is-blind-count', blindCount);
     host.innerHTML =
       '<div class="pmd-inv-r19-count-head"><div><h3>Physical count</h3>' +
-      '<small>Enter what is physically there now. Every active item is required so the new baseline stays complete.</small></div>' +
+      '<small>' + (blindCount
+        ? 'Blind count is on. Enter the physical quantity without seeing the expected stock.'
+        : 'Enter what is physically there now. Every active item is required so the new baseline stays complete.') + '</small></div>' +
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-cancel-count>Cancel</button></div>' +
       '<div class="pmd-inv-r19-count-list">' +
       items().map(function (item) {
         var owner = ownerQuantity(item, item.estimated_on_hand);
         return '<div class="pmd-inv-r19-count-row" data-r19-count-row="' + esc(item.id) + '">' +
           '<strong>' + esc(item.name) + '<span>' + esc(item.category || '') + '</span></strong>' +
-          '<span>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>' +
+          (blindCount ? '<span class="pmd-inv-r24-blind-label">Expected hidden</span>' : '<span>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>') +
           '<input type="number" min="0" step="0.01" placeholder="Actual ' + esc(owner.unit) + '" data-r19-count-input data-factor="' + esc(owner.factor) + '">' +
-          '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Variance —</span>' +
+          (blindCount ? '<span class="pmd-inv-r24-blind-label">Variance after submit</span>' : '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Variance —</span>') +
         '</div>';
       }).join('') +
       '</div>' +
@@ -694,6 +710,11 @@
   }
 
   function updateCountVariance(input) {
+    var proSettings = window.PMDInventoryProR24 && typeof window.PMDInventoryProR24.getSettings === 'function'
+      ? (window.PMDInventoryProR24.getSettings() || {})
+      : {};
+    if (Boolean(Number(proSettings.blind_counts || 0))) return;
+
     var row = input.closest('[data-r19-count-row]');
     if (!row) return;
     var item = items().find(function (entry) { return Number(entry.id) === Number(row.getAttribute('data-r19-count-row')); });
@@ -984,25 +1005,33 @@
     return state.bulkReview;
   }
 
-  function addBarcodeItemToDraft(item, code) {
+  function addBarcodeItemToDraft(item, code, identifier) {
     if (!item) return;
     var review = ensureBarcodeReview();
-    var unit = String(item.purchase_unit || item.unit || 'piece');
-    var cost = Number(item.purchase_unit_cost || 0);
+    var identifierId = Number(identifier && identifier.id || 0);
+    var unit = identifier
+      ? String(identifier.package_unit || item.purchase_unit || item.unit || 'piece')
+      : String(item.purchase_unit || item.unit || 'piece');
+    var cost = identifier
+      ? Number(identifier.unit_price || 0)
+      : Number(item.purchase_unit_cost || 0);
     var existing = review.lines.find(function (line) {
-      return Number(line.item_id || 0) === Number(item.id);
+      if (identifierId > 0) return Number(line.identifier_id || 0) === identifierId;
+      return Number(line.item_id || 0) === Number(item.id) && Number(line.identifier_id || 0) === 0;
     });
     if (existing) {
       existing.quantity = Number(existing.quantity || 0) + 1;
     } else {
       review.lines.push({
+        identifier_id:identifierId,
         item_id:Number(item.id),
         item_name:String(item.name || ''),
         category:String(item.category || ''),
         quantity:1,
         unit:unit,
         unit_cost:cost,
-        barcode:normalizedBarcode(code)
+        barcode:normalizedBarcode(code),
+        package_base_quantity:identifier ? Number(identifier.base_quantity || 1) : purchaseFactor(item)
       });
     }
     state.pendingBarcode = '';
@@ -1028,9 +1057,20 @@
       return;
     }
 
+    var identifier = identifierForBarcode(code);
+    if (identifier) {
+      var mappedItem = items().find(function (row) {
+        return Number(row.id) === Number(identifier.item_id);
+      });
+      if (mappedItem) {
+        addBarcodeItemToDraft(mappedItem, code, identifier);
+        return;
+      }
+    }
+
     var item = itemForBarcode(code);
     if (item) {
-      addBarcodeItemToDraft(item, code);
+      addBarcodeItemToDraft(item, code, null);
       return;
     }
 
@@ -1050,35 +1090,37 @@
     var item = items().find(function (row) { return Number(row.id) === itemId; });
     if (!code || !item || state.busy) return;
 
-    var codes = barcodeTokens(item);
-    if (codes.indexOf(code) === -1) codes.push(code);
     var factor = purchaseFactor(item);
-
     setBusy(true);
-    api.request('onSaveItem', {
+
+    api.request('onProSaveIdentifier', {
       item_id:Number(item.id),
-      name:String(item.name || ''),
-      category:String(item.category || ''),
-      sku:codes.join(','),
-      purchase_unit:String(item.purchase_unit || item.unit || 'piece'),
-      purchase_to_base:factor,
-      purchase_cost:Number(item.purchase_unit_cost || (Number(item.unit_cost || 0) * factor)),
-      reorder_point:Number(item.reorder_point || 0) / factor,
-      par_level:Number(item.par_level || 0) / factor,
-      supplier_name:String(item.supplier_name || '')
-    }).then(applyActionSnapshot)
-      .then(function () {
-        var refreshed = items().find(function (row) { return Number(row.id) === itemId; }) || item;
-        addBarcodeItemToDraft(refreshed, code);
-        toast('Barcode linked to ' + item.name + '.');
-      })
-      .catch(function (error) {
-        setBarcodeStatus(error.message || 'Could not link this barcode.', true);
-      })
-      .finally(function () {
-        setBusy(false);
-        focusBarcodeInput();
-      });
+      code:code,
+      code_type:'AUTO',
+      package_unit:String(item.purchase_unit || item.unit || 'piece'),
+      package_quantity:1,
+      base_quantity:factor,
+      unit_price:Number(item.purchase_unit_cost || (Number(item.unit_cost || 0) * factor)),
+      currency:String(config.currency || 'EUR'),
+      source:'scanner'
+    }).then(function (json) {
+      if (window.PMDInventoryProR24 && typeof window.PMDInventoryProR24.applySnapshot === 'function') {
+        window.PMDInventoryProR24.applySnapshot(json.pro || {});
+      }
+      var identifier = null;
+      if (json.pro && Array.isArray(json.pro.identifiers)) {
+        identifier = json.pro.identifiers.find(function (row) {
+          return normalizedBarcode(row.code) === code;
+        }) || null;
+      }
+      addBarcodeItemToDraft(item, code, identifier);
+      toast('Barcode package linked to ' + item.name + '.');
+    }).catch(function (error) {
+      setBarcodeStatus(error.message || 'Could not link this barcode package.', true);
+    }).finally(function () {
+      setBusy(false);
+      focusBarcodeInput();
+    });
   }
 
   function scanReceipt(file) {
@@ -1152,12 +1194,14 @@
         : findExistingByName(name);
       var template = catalogByKey[normalize(name)] || null;
       return {
+        identifier_id:sourceLine ? Number(sourceLine.identifier_id || 0) : 0,
         item_id:existing ? Number(existing.id) : 0,
         item_name:name,
         category:template ? (template.category || '') : '',
         quantity:qty,
         unit:unit,
-        unit_cost:cost
+        unit_cost:cost,
+        barcode:sourceLine ? normalizedBarcode(sourceLine.barcode || '') : ''
       };
     }).filter(function (line) { return line.item_name && line.quantity > 0; });
     if (!lines.length) return toast('Keep at least one purchase line with a quantity.', true);
@@ -1396,7 +1440,10 @@
   }
 
   function setMode(mode) {
-    mode = ['overview','stock','purchases','waste','shopping'].indexOf(mode) !== -1 ? mode : 'overview';
+    mode = [
+      'overview','stock','purchases','waste','shopping',
+      'orders','suppliers','codes','storage','expiry','ledger','settings'
+    ].indexOf(mode) !== -1 ? mode : 'overview';
     state.mode = mode;
     workspace.querySelectorAll('[data-r19-mode]').forEach(function (button) {
       button.classList.toggle('is-active', button.getAttribute('data-r19-mode') === mode);
@@ -1411,6 +1458,12 @@
     if (mode === 'purchases') renderPurchaseGrid(true);
     if (mode === 'waste') renderWaste();
     if (mode === 'shopping') renderShopping();
+
+    try {
+      workspace.dispatchEvent(new CustomEvent('pmd:inventory-mode', {
+        detail:{mode:mode}
+      }));
+    } catch (ignore) {}
 
     if (!embedded) {
       try {
@@ -1654,7 +1707,7 @@
   setMode(initialMode);
 
   window.PMDInventoryWorkspaceR19 = {
-    version:'23.0.0',
+    version:'24.0.0',
     setMode:setMode,
     refresh:function () {
       return api.refresh().then(function () {
