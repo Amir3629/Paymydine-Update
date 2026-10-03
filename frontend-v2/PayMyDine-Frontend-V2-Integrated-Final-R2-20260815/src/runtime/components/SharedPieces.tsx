@@ -71,6 +71,11 @@ export function LanguageSelect() {
 export function HeaderValetButton() {
   const { bootstrap, labels, openService, notify } = useMenuRuntime()
 
+  // PMD_KIOSK_SERVICE_CHROME_GUARD_V6_1
+  // A self-service kiosk is not a table device. Never expose table-only valet
+  // chrome even when valet is enabled for the ordinary customer menu.
+  if (bootstrap.runtime?.mode === 'kiosk') return null
+
   const hasTable = Boolean(
     bootstrap.table.valid &&
     (bootstrap.table.id || bootstrap.table.number || bootstrap.table.qr)
