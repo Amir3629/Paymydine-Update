@@ -898,6 +898,8 @@
         '<label>Quantity<input type="number" min="0.0001" step="0.01" value="1" data-r19-receive-qty></label>' +
         '<label>Unit<select data-r19-receive-unit>' + unitOptions(unit) + '</select></label>' +
         '<label>Cost / unit<input type="number" min="0" step="0.01" value="' + esc(cost) + '" data-r19-receive-cost></label>' +
+        '<label>Lot / batch<input type="text" placeholder="Optional" data-r19-receive-lot></label>' +
+        '<label>Expiry<input type="date" data-r19-receive-expiry></label>' +
       '</div>' +
       '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-submit-purchase>Add to stock</button></div>';
     host.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -927,7 +929,9 @@
         quantity:qty,
         unit:unit,
         unit_cost:cost,
-        barcode:custom ? normalizedBarcode(selection.barcode) : ''
+        barcode:custom ? normalizedBarcode(selection.barcode) : '',
+        lot_code:valueOf(host,'[data-r19-receive-lot]','').trim(),
+        expires_at:valueOf(host,'[data-r19-receive-expiry]','').trim()
       }]
     };
     setBusy(true);
@@ -1171,6 +1175,8 @@
           '<label>Qty<input type="number" min="0" step="0.01" value="' + esc(line.quantity == null ? '' : line.quantity) + '" data-r19-bulk-qty></label>' +
           '<label>Unit<select data-r19-bulk-unit>' + unitOptions(line.unit || 'piece') + '</select></label>' +
           '<label>Cost / unit<input type="number" min="0" step="0.01" value="' + esc(line.unit_cost == null ? 0 : line.unit_cost) + '" data-r19-bulk-cost></label>' +
+          '<label>Lot<input type="text" value="' + esc(line.lot_code || '') + '" data-r19-bulk-lot placeholder="Optional"></label>' +
+          '<label>Expiry<input type="date" value="' + esc(line.expires_at || '') + '" data-r19-bulk-expiry></label>' +
           '<button type="button" data-r19-remove-bulk-line="' + index + '" aria-label="Remove">×</button>' +
         '</div>';
       }).join('') : '<div class="pmd-inv-r19-empty">No purchase lines were detected. Use the catalogue or Custom item instead.</div>') +
@@ -1186,6 +1192,8 @@
       var qty = Number(valueOf(node,'[data-r19-bulk-qty]',0));
       var unit = valueOf(node,'[data-r19-bulk-unit]','piece');
       var cost = Number(valueOf(node,'[data-r19-bulk-cost]',0));
+      var lot = valueOf(node,'[data-r19-bulk-lot]','').trim();
+      var expiry = valueOf(node,'[data-r19-bulk-expiry]','').trim();
       var sourceLine = state.bulkReview && state.bulkReview.lines
         ? state.bulkReview.lines[Number(node.getAttribute('data-r19-bulk-line'))]
         : null;
@@ -1201,7 +1209,9 @@
         quantity:qty,
         unit:unit,
         unit_cost:cost,
-        barcode:sourceLine ? normalizedBarcode(sourceLine.barcode || '') : ''
+        barcode:sourceLine ? normalizedBarcode(sourceLine.barcode || '') : '',
+        lot_code:lot,
+        expires_at:expiry
       };
     }).filter(function (line) { return line.item_name && line.quantity > 0; });
     if (!lines.length) return toast('Keep at least one purchase line with a quantity.', true);
