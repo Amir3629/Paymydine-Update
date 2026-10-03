@@ -1424,7 +1424,7 @@
         currentSupplier = row.supplier;
         html += '<div class="pmd-inv-r19-shopping-supplier">' + esc(currentSupplier) + '</div>';
       }
-      html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) + '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) + '" data-supplier-id="' + esc(row.supplier_id || 0) + '" data-supplier-item-id="' + esc(row.supplier_item_id || 0) + '">' +
+      html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) + '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) + '" data-supplier-id="' + esc(row.supplier_id || 0) + '" data-supplier-item-id="' + esc(row.supplier_item_id || 0) + '" data-unit-cost="' + esc(row.qty > 0 ? (row.estimatedCost / row.qty) : 0) + '">' +
         '<div><strong>' + esc(row.item.name) + '</strong><small>' + esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand' + (row.safety_days > 0 ? ' · ' + number(row.safety_days,2) + ' safety days' : '')) + '</small></div>' +
         '<span>Need ' + esc(number(row.qty,2) + ' ' + row.unit) + (row.order_multiple > 0 ? ' · order multiple ' + number(row.order_multiple,2) : '') + '</span>' +
         '<input type="number" min="0" step="0.01" value="' + esc(Number(row.qty.toFixed(2))) + '" data-r19-shopping-qty>' +
@@ -1443,7 +1443,9 @@
         item:item,
         qty:qty,
         unit:String(node.getAttribute('data-unit') || item.purchase_unit || item.unit),
-        cost:Number(item.purchase_unit_cost || 0)
+        cost:Number(node.getAttribute('data-unit-cost') || item.purchase_unit_cost || 0),
+        supplier_id:Number(node.getAttribute('data-supplier-id') || 0),
+        supplier_item_id:Number(node.getAttribute('data-supplier-item-id') || 0)
       } : null;
     }).filter(Boolean);
   }
@@ -1483,10 +1485,13 @@
       label:'Shopping draft',
       lines:rows.map(function (row) {
         return {
+          item_id:Number(row.item.id),
           item_name:row.item.name,
           quantity:row.qty,
           unit:row.unit,
-          unit_cost:Number(row.item.purchase_unit_cost || 0)
+          unit_cost:Number(row.cost || 0),
+          supplier_id:Number(row.supplier_id || 0),
+          supplier_item_id:Number(row.supplier_item_id || 0)
         };
       })
     };
