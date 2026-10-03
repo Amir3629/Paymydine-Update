@@ -1181,19 +1181,61 @@ final class PmdInventoryControlService
             throw new InvalidArgumentException('Stock item was not found.');
         }
 
-        return $this->movement(
+        $storageId = max(0, (int)($data['storage_location_id'] ?? 0));
+        $lotId = max(0, (int)($data['lot_id'] ?? 0));
+
+        return DB::transaction(function () use (
             $locationId,
-            $itemId,
-            'WASTE',
-            -abs($qty),
-            (float)$item->unit_cost,
             $staffId,
-            $this->nullableText($data['reason'] ?? null, 160),
-            $this->nullableText($data['note'] ?? null, 2000),
-            'waste',
-            null,
-            now()->toDateTimeString()
-        );
+            $data,
+            $item,
+            $itemId,
+            $qty,
+            $storageId,
+            $lotId
+        ) {
+            if ($lotId > 0 && Schema::hasTable('pmd_inventory_lots')) {
+                $lot = DB::table('pmd_inventory_lots')
+                    ->where('location_id', $locationId)
+                    ->where('id', $lotId)
+                    ->where('item_id', $itemId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$lot) {
+                    throw new InvalidArgumentException('Selected lot was not found.');
+                }
+                if ((float)$lot->qty_remaining + 0.00005 < $qty) {
+                    throw new InvalidArgumentException('Waste quantity is larger than the selected lot balance.');
+                }
+
+                $remaining = max(0, (float)$lot->qty_remaining - $qty);
+                DB::table('pmd_inventory_lots')
+                    ->where('id', $lotId)
+                    ->update([
+                        'qty_remaining' => round($remaining, 4),
+                        'status' => $remaining <= 0.00005 ? 'closed' : $lot->status,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            return $this->movement(
+                $locationId,
+                $itemId,
+                'WASTE',
+                -abs($qty),
+                (float)$item->unit_cost,
+                $staffId,
+                $this->nullableText($data['reason'] ?? null, 160),
+                $this->nullableText($data['note'] ?? null, 2000),
+                'waste',
+                null,
+                now()->toDateTimeString(),
+                $storageId > 0 ? $storageId : null,
+                $lotId > 0 ? $lotId : null,
+                null
+            );
+        });
     }
 
     public function saveRecipe(int $locationId, ?int $staffId, array $data): void
