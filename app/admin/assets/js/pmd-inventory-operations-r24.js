@@ -860,6 +860,117 @@
     });
   }
 
+  function parseCsv(text) {
+    var rows = [];
+    var row = [];
+    var field = '';
+    var quoted = false;
+
+    for (var i = 0; i < text.length; i += 1) {
+      var ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else if (ch === '"') {
+          quoted = false;
+        } else {
+          field += ch;
+        }
+      } else if (ch === '"') {
+        quoted = true;
+      } else if (ch === ',') {
+        row.push(field);
+        field = '';
+      } else if (ch === '\n') {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+      } else if (ch !== '\r') {
+        field += ch;
+      }
+    }
+    row.push(field);
+    if (row.some(function (cell) { return String(cell).trim() !== ''; })) rows.push(row);
+    if (!rows.length) return [];
+
+    var headers = rows.shift().map(function (header) {
+      return String(header || '')
+        .replace(/^\uFEFF/, '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    });
+
+    return rows.map(function (values) {
+      var out = {};
+      headers.forEach(function (header, index) {
+        if (header) out[header] = String(values[index] == null ? '' : values[index]).trim();
+      });
+      return out;
+    }).filter(function (record) {
+      return String(record.name || record.item_name || '').trim() !== '';
+    });
+  }
+
+  function importStockCsv(file) {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast('CSV import must be 2 MB or smaller.', true);
+      return;
+    }
+
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var rows = parseCsv(String(reader.result || ''));
+        if (!rows.length) {
+          toast('CSV has no stock rows.', true);
+          return;
+        }
+
+        request('onBulkImportStock', {rows:rows})
+          .then(function (json) {
+            var result = json.import || {};
+            var errorCount = Array.isArray(result.errors) ? result.errors.length : 0;
+            toast(
+              number(result.saved || 0,0) + ' stock rows imported' +
+              (result.codes ? ' · ' + number(result.codes,0) + ' codes' : '') +
+              (errorCount ? ' · ' + errorCount + ' row errors' : ''),
+              errorCount > 0
+            );
+          })
+          .catch(function (error) {
+            toast(error.message || 'Could not import stock CSV.', true);
+          });
+      } catch (error) {
+        toast(error.message || 'Could not read CSV.', true);
+      }
+    };
+    reader.onerror = function () {
+      toast('Could not read CSV file.', true);
+    };
+    reader.readAsText(file);
+  }
+
+  function downloadImportTemplate() {
+    downloadCsv(
+      'paymydine-inventory-import-template.csv',
+      [
+        'name','category','base_unit','purchase_unit','purchase_to_base',
+        'purchase_cost','opening_qty','reorder_point','par_level','safety_stock',
+        'supplier_name','yield_percent','track_expiry','barcode','barcode_unit',
+        'barcode_base_quantity'
+      ],
+      [
+        ['Vodka 700ml','Spirits','ml','bottle','700','12.90','0','2','12','2','Supplier','100','0','4000000000000','bottle','700'],
+        ['Tomato','Produce','g','kg','1000','3.20','0','1000','5000','1000','Supplier','95','0','','kg','1000']
+      ]
+    );
+  }
+
   function csvCell(value) {
     var text = String(value == null ? '' : value);
     return '"' + text.replace(/"/g, '""') + '"';
@@ -1046,6 +1157,7 @@
     if (produce) { openProduce(produce.getAttribute('data-r24-produce-prep')); return; }
     if (target.closest('[data-r24-produce-submit]')) { submitProduction(); return; }
 
+    if (target.closest('[data-r24-download-template]')) { downloadImportTemplate(); return; }
     if (target.closest('[data-r24-export-stock]')) { exportStock(); return; }
     if (target.closest('[data-r24-export-purchases]')) { exportPurchases(); return; }
 
@@ -1062,6 +1174,13 @@
       var editor = target.closest('.pmd-inv-r24-editor');
       if (editor) editor.hidden = true;
     }
+  });
+
+  workspace.addEventListener('change', function (event) {
+    if (!event.target.matches('[data-r24-import-stock]')) return;
+    var file = event.target.files && event.target.files[0];
+    importStockCsv(file);
+    event.target.value = '';
   });
 
   root.addEventListener('pmd:inventory-snapshot', render);
