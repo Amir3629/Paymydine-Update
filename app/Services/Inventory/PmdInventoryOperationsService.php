@@ -1351,12 +1351,17 @@ final class PmdInventoryOperationsService
                 continue;
             }
 
+            $actualCost = max(0, $this->number(
+                $input['unit_cost'] ?? $line->unit_cost,
+                (float)$line->unit_cost
+            ));
+
             $purchaseLines[] = [
                 'item_id' => (int)$line->item_id,
                 'item_name' => (string)$item->name,
                 'quantity' => $qty,
                 'unit' => (string)$line->unit,
-                'unit_cost' => (float)$line->unit_cost,
+                'unit_cost' => $actualCost,
                 'base_quantity_per_unit' => (float)$line->base_quantity_per_unit,
                 'purchase_order_line_id' => (int)$line->id,
                 'lot_code' => $this->nullableText($input['lot_code'] ?? null, 120),
@@ -1381,6 +1386,7 @@ final class PmdInventoryOperationsService
                 'purchased_at' => $this->date((string)($data['purchased_at'] ?? now()->toDateString())),
                 'purchase_order_id' => $orderId,
                 'storage_location_id' => max(0, (int)($data['storage_location_id'] ?? 0)),
+                'invoice_number' => $this->nullableText($data['invoice_number'] ?? null, 120),
                 'source' => 'purchase_order',
                 'lines' => $purchaseLines,
             ]
