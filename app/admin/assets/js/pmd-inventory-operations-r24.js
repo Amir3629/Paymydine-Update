@@ -217,9 +217,18 @@
         '</div>' +
         '<div class="pmd-inv-r24-order-card__foot">' +
           '<strong>' + esc(money(order.subtotal || 0)) + '</strong>' +
-          (remaining > .00005 && ['cancelled','closed','received'].indexOf(String(order.status)) === -1
-            ? '<button type="button" class="pmd-inv-r19-primary" data-r24-receive-po="' + esc(order.id) + '">Receive delivery</button>'
-            : '') +
+          '<div class="pmd-inv-r24-order-actions">' +
+            '<button type="button" data-r24-export-po="' + esc(order.id) + '">Export PO</button>' +
+            (String(order.status) === 'draft'
+              ? '<button type="button" data-r24-po-status="' + esc(order.id) + '" data-status="sent">Mark sent</button>'
+              : '') +
+            (remaining > .00005 && ['cancelled','closed','received'].indexOf(String(order.status)) === -1
+              ? '<button type="button" class="pmd-inv-r19-primary" data-r24-receive-po="' + esc(order.id) + '">Receive delivery</button>'
+              : '') +
+            (['draft','sent'].indexOf(String(order.status)) !== -1
+              ? '<button type="button" class="is-danger" data-r24-po-status="' + esc(order.id) + '" data-status="cancelled">Cancel</button>'
+              : '') +
+          '</div>' +
         '</div>' +
       '</article>';
     }).join('') : '<div class="pmd-inv-r19-empty">No purchase orders yet. Build one from the smart order suggestions.</div>';
@@ -511,7 +520,7 @@
         var group = groups[key];
         return request('onCreatePurchaseOrder', {
           supplier_id:group.supplierId,
-          send:true,
+          send:false,
           lines:group.lines
         }).then(function () { created += 1; });
       });
@@ -522,6 +531,41 @@
     }).catch(function (error) {
       toast(error.message || 'Could not create purchase orders.', true);
     });
+  }
+
+  function setPurchaseOrderStatus(orderId, status) {
+    if (status === 'cancelled' && !window.confirm('Cancel this purchase order?')) return;
+    request('onSetPurchaseOrderStatus', {
+      purchase_order_id:Number(orderId),
+      status:String(status || '')
+    }).then(function () {
+      toast(status === 'sent' ? 'Purchase order marked as sent.' : 'Purchase order updated.');
+    }).catch(function (error) {
+      toast(error.message || 'Could not update purchase order.', true);
+    });
+  }
+
+  function exportPurchaseOrder(orderId) {
+    var order = (snap().purchase_orders || []).find(function (row) {
+      return Number(row.id) === Number(orderId);
+    });
+    if (!order) return;
+    downloadCsv(
+      String(order.order_number || 'purchase-order') + '.csv',
+      ['Purchase order','Supplier','Expected','Item','Ordered qty','Unit','Unit cost','Line total'],
+      (order.lines || []).map(function (line) {
+        return [
+          order.order_number || '',
+          order.supplier_name || '',
+          order.expected_at || '',
+          line.item_name || '',
+          line.ordered_qty || 0,
+          line.unit || '',
+          Number(line.unit_cost || 0).toFixed(2),
+          (Number(line.ordered_qty || 0) * Number(line.unit_cost || 0)).toFixed(2)
+        ];
+      })
+    );
   }
 
   function openReceiveOrder(orderId) {
@@ -1121,6 +1165,16 @@
     if (target.closest('[data-r24-save-offer]')) { saveOffer(); return; }
 
     if (target.closest('[data-r24-po-from-shopping]')) { buildPurchaseOrders(); return; }
+    var exportPo = target.closest('[data-r24-export-po]');
+    if (exportPo) { exportPurchaseOrder(exportPo.getAttribute('data-r24-export-po')); return; }
+    var poStatus = target.closest('[data-r24-po-status]');
+    if (poStatus) {
+      setPurchaseOrderStatus(
+        poStatus.getAttribute('data-r24-po-status'),
+        poStatus.getAttribute('data-status')
+      );
+      return;
+    }
     var receive = target.closest('[data-r24-receive-po]');
     if (receive) { openReceiveOrder(receive.getAttribute('data-r24-receive-po')); return; }
     var receiveSubmit = target.closest('[data-r24-receive-submit]');
