@@ -1240,11 +1240,14 @@
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-close-review>Close</button></div>' +
       '<div class="pmd-inv-r19-receipt-lines">' +
       (review.lines.length ? review.lines.map(function (line, index) {
-        return '<div class="pmd-inv-r19-receipt-line" data-r19-bulk-line="' + index + '">' +
+        return '<div class="pmd-inv-r19-receipt-line pmd-inv-r24-receipt-line" data-r19-bulk-line="' + index + '">' +
           '<label>Item<input type="text" value="' + esc(line.item_name || '') + '" data-r19-bulk-name></label>' +
           '<label>Qty<input type="number" min="0" step="0.01" value="' + esc(line.quantity == null ? '' : line.quantity) + '" data-r19-bulk-qty></label>' +
           '<label>Unit<select data-r19-bulk-unit>' + unitOptions(line.unit || 'piece') + '</select></label>' +
           '<label>Cost / unit<input type="number" min="0" step="0.01" value="' + esc(line.unit_cost == null ? 0 : line.unit_cost) + '" data-r19-bulk-cost></label>' +
+          '<label>Base qty / unit<input type="number" min="0" step="0.0001" value="' + esc(line.base_quantity_per_unit || '') + '" placeholder="Auto" data-r19-bulk-factor></label>' +
+          '<label>Lot<input type="text" value="' + esc(line.lot_code || '') + '" data-r19-bulk-lot></label>' +
+          '<label>Expiry<input type="date" value="' + esc(line.expiry_date || '') + '" data-r19-bulk-expiry></label>' +
           '<button type="button" data-r19-remove-bulk-line="' + index + '" aria-label="Remove">×</button>' +
         '</div>';
       }).join('') : '<div class="pmd-inv-r19-empty">No purchase lines were detected. Use the catalogue or Custom item instead.</div>') +
@@ -1275,11 +1278,11 @@
         quantity:qty,
         unit:unit,
         unit_cost:cost,
-        base_quantity_per_unit:Number(sourceLine && sourceLine.base_quantity_per_unit || 0),
+        base_quantity_per_unit:Number(valueOf(node,'[data-r19-bulk-factor]', sourceLine && sourceLine.base_quantity_per_unit || 0)),
         barcode:String(sourceLine && sourceLine.barcode || ''),
         purchase_order_line_id:Number(sourceLine && sourceLine.purchase_order_line_id || 0),
-        lot_code:String(sourceLine && sourceLine.lot_code || ''),
-        expiry_date:String(sourceLine && sourceLine.expiry_date || '')
+        lot_code:String(valueOf(node,'[data-r19-bulk-lot]', sourceLine && sourceLine.lot_code || '')),
+        expiry_date:String(valueOf(node,'[data-r19-bulk-expiry]', sourceLine && sourceLine.expiry_date || ''))
       };
     }).filter(function (line) { return line.item_name && line.quantity > 0; });
     if (!lines.length) return toast('Keep at least one purchase line with a quantity.', true);
