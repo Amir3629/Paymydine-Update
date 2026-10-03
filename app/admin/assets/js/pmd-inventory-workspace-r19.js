@@ -1387,6 +1387,19 @@
     var reasons = wasteReasonEntries().map(function (entry) {
       return '<option value="' + esc(entry.value) + '">' + esc(entry.label) + '</option>';
     }).join('');
+    var lots = Array.isArray(item.lots) ? item.lots : [];
+    var lotOptions = '<option value="">No specific lot</option>' + lots.map(function (lot) {
+      return '<option value="' + esc(lot.id) + '" data-storage="' + esc(lot.storage_location_id || '') + '">' +
+        esc((lot.lot_code ? 'Lot ' + lot.lot_code + ' · ' : '') +
+          number(lot.qty_remaining,2) + ' ' + item.unit +
+          (lot.expiry_date ? ' · ' + lot.expiry_date : '')) + '</option>';
+    }).join('');
+    var storageRows = Array.isArray(snapshot().storage_locations) ? snapshot().storage_locations : [];
+    var storageOptions = '<option value="">Unassigned / default</option>' + storageRows.map(function (row) {
+      return '<option value="' + esc(row.id) + '"' +
+        (Number(row.id) === Number(item.default_storage_location_id || 0) ? ' selected' : '') +
+        '>' + esc(row.name) + '</option>';
+    }).join('');
     host.hidden = false;
     host.innerHTML =
       '<div class="pmd-inv-r19-editor-head"><div><h3>' + esc(item.name) + '</h3><small>' +
@@ -1396,6 +1409,8 @@
         '<label>Quantity<input type="number" min="0.0001" step="0.01" data-r19-waste-qty></label>' +
         '<label>Unit<select data-r19-waste-unit>' + options + '</select></label>' +
         '<label>Reason<select data-r19-waste-reason>' + reasons + '</select></label>' +
+        '<label>Lot / expiry<select data-r19-waste-lot>' + lotOptions + '</select></label>' +
+        '<label>Storage<select data-r19-waste-storage>' + storageOptions + '</select></label>' +
         '<label class="is-wide">Note<input type="text" placeholder="Optional" data-r19-waste-note></label>' +
       '</div>' +
       '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-submit-waste>Record waste</button></div>';
@@ -1418,7 +1433,9 @@
       item_id:item.id,
       quantity:baseQty,
       reason:valueOf(host,'[data-r19-waste-reason]','other'),
-      note:valueOf(host,'[data-r19-waste-note]','')
+      note:valueOf(host,'[data-r19-waste-note]',''),
+      lot_id:Number(valueOf(host,'[data-r19-waste-lot]',0)),
+      storage_location_id:Number(valueOf(host,'[data-r19-waste-storage]',0))
     }).then(applyActionSnapshot)
       .then(function () {
         host.hidden = true;
@@ -1863,6 +1880,16 @@
   workspace.addEventListener('change', function (event) {
     if (event.target.matches('[data-r19-receipt-input]')) {
       scanReceipt(event.target.files && event.target.files[0]);
+      return;
+    }
+
+    if (event.target.matches('[data-r19-waste-lot]')) {
+      var selectedLot = event.target.options[event.target.selectedIndex];
+      var storage = workspace.querySelector('[data-r19-waste-editor] [data-r19-waste-storage]');
+      if (storage && selectedLot) {
+        var storageId = selectedLot.getAttribute('data-storage');
+        if (storageId) storage.value = storageId;
+      }
       return;
     }
 
