@@ -250,7 +250,11 @@ final class PmdInventoryControlService
                 ),
                 'reorder_point' => round((float)$item->reorder_point, 4),
                 'par_level' => round((float)$item->par_level, 4),
+                'safety_stock' => round((float)($item->safety_stock ?? 0), 4),
                 'supplier_name' => (string)($item->supplier_name ?? ''),
+                'default_storage_location_id' => (int)($item->default_storage_location_id ?? 0),
+                'yield_percent' => round((float)($item->yield_percent ?? 100), 2),
+                'track_expiry' => (bool)($item->track_expiry ?? false),
                 'estimated_on_hand' => $expected,
                 'stock_value' => round($value, 2),
                 'avg_daily_usage' => $dailyUsage,
@@ -423,7 +427,7 @@ final class PmdInventoryControlService
                 ->all()
             : [];
 
-        return [
+        $snapshot = [
             'ready' => true,
             'generated_at' => $now->toIso8601String(),
             'summary' => $summary,
@@ -443,6 +447,18 @@ final class PmdInventoryControlService
                 )),
             ] : null,
         ];
+
+        // PMD_INVENTORY_OPERATIONS_V2_R24
+        // Enrichment is additive. Older tenant schemas keep the R1 snapshot
+        // untouched until the V2 migration has been installed.
+        try {
+            return app(PmdInventoryOperationsService::class)
+                ->enrichSnapshot($locationId, $snapshot);
+        } catch (\Throwable $error) {
+            $snapshot['operations_ready'] = false;
+            $snapshot['operations_error'] = $error->getMessage();
+            return $snapshot;
+        }
     }
 
     /**
