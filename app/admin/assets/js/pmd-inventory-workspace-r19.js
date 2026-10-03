@@ -1264,10 +1264,16 @@
       return {
         item_id:existing ? Number(existing.id) : 0,
         item_name:name,
-        category:template ? (template.category || '') : '',
+        category:String((sourceLine && sourceLine.category) || (template ? (template.category || '') : '')),
+        identifier_id:Number(sourceLine && sourceLine.identifier_id || 0),
         quantity:qty,
         unit:unit,
-        unit_cost:cost
+        unit_cost:cost,
+        base_quantity_per_unit:Number(sourceLine && sourceLine.base_quantity_per_unit || 0),
+        barcode:String(sourceLine && sourceLine.barcode || ''),
+        purchase_order_line_id:Number(sourceLine && sourceLine.purchase_order_line_id || 0),
+        lot_code:String(sourceLine && sourceLine.lot_code || ''),
+        expiry_date:String(sourceLine && sourceLine.expiry_date || '')
       };
     }).filter(function (line) { return line.item_name && line.quantity > 0; });
     if (!lines.length) return toast('Keep at least one purchase line with a quantity.', true);
