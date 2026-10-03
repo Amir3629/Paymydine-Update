@@ -1,0 +1,142 @@
+name: Kiosk Android WebView Probe
+
+on:
+  push:
+    branches:
+      - diag/kiosk-v8-render-probe
+    paths:
+      - '.github/workflows/kiosk-v8-android-probe.yml'
+
+jobs:
+  android-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Install Android SDK and emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER"             'platform-tools'             'platforms;android-36'             'build-tools;35.0.0'             'emulator'             'system-images;android-35;google_apis;x86_64'
+
+      - name: Build diagnostic APK
+        working-directory: mobile/android
+        run: gradle --no-daemon assembleDebug
+
+      - name: Enable KVM access
+        shell: bash
+        run: |
+          if [[ -e /dev/kvm ]]; then
+            sudo chmod 666 /dev/kvm
+          fi
+
+      - name: Start Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          AVDMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager"
+          yes no | "$AVDMANAGER" create avd             --force             --name pmd_kiosk_probe             --package 'system-images;android-35;google_apis;x86_64'             --device pixel_6
+
+          nohup "$ANDROID_HOME/emulator/emulator"             -avd pmd_kiosk_probe             -no-window             -no-audio             -no-boot-anim             -no-snapshot             -gpu swiftshader_indirect             -camera-back none             -camera-front none             > /tmp/pmd-emulator.log 2>&1 &
+
+          adb wait-for-device
+          for i in $(seq 1 120); do
+            if [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              break
+            fi
+            sleep 2
+          done
+          test "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1"
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          adb shell input keyevent 82
+          adb shell wm size
+          adb shell wm density
+
+      - name: Install and launch dedicated Kiosk activity
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
+          adb install -r "$APK"
+
+          adb logcat -c
+          adb shell am force-stop com.paymydine.mobile.pospreview
+
+          adb shell am start -W             -n com.paymydine.mobile.pospreview/com.paymydine.mobile.KioskMenuActivity             --es pmd.kiosk.menu_url 'https://tomo.paymydine.com'             --es pmd.kiosk.service_mode 'pickup'             --es pmd.kiosk.restaurant_name 'tomo'             --es pmd.kiosk.restaurant_logo 'https://tomo.paymydine.com/api/media/pmd_restaurant_logo_20260824_090043_9fa6016032c7.jpg'             --es pmd.kiosk.background '#050508'             --es pmd.kiosk.text '#F7F7FB'             --es pmd.kiosk.muted '#B8B5C2'             --es pmd.kiosk.accent '#FF4F9A'             --es pmd.kiosk.surface '#0D0D14'             --el pmd.kiosk.idle_timeout_seconds 120
+
+          sleep 15
+          adb exec-out screencap -p > /tmp/kiosk-android-probe.png
+          adb shell dumpsys activity activities | grep -A8 -B3 KioskMenuActivity || true
+          adb logcat -d -v time |             grep -Ei 'KioskMenuActivity|chromium|WebView|AndroidRuntime|cr_'             | tail -n 500 > /tmp/kiosk-android-logcat.txt || true
+          cat /tmp/kiosk-android-logcat.txt
+
+      - name: Analyze Android screenshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet pillow
+          python3 <<'PY'
+          from PIL import Image
+          from collections import Counter
+
+          path = "/tmp/kiosk-android-probe.png"
+          im = Image.open(path).convert("RGB")
+          w, h = im.size
+          print("SCREENSHOT_SIZE", w, h)
+
+          # Ignore the small native header and inspect the actual WebView area.
+          top = max(1, int(h * 0.10))
+          crop = im.crop((0, top, w, h))
+
+          pixels = list(crop.getdata())[::64]
+          if not pixels:
+              raise SystemExit("No screenshot pixels")
+
+          near_white = sum(1 for r,g,b in pixels if r > 245 and g > 245 and b > 245)
+          near_flat_gray = sum(1 for r,g,b in pixels if abs(r-g) < 3 and abs(g-b) < 3 and r > 235)
+          quantized = {
+              ((r // 8), (g // 8), (b // 8))
+              for r,g,b in pixels
+          }
+          white_ratio = near_white / len(pixels)
+          pale_ratio = near_flat_gray / len(pixels)
+
+          print("WEBVIEW_SAMPLES", len(pixels))
+          print("WEBVIEW_QUANTIZED_COLORS", len(quantized))
+          print("WEBVIEW_NEAR_WHITE_RATIO", round(white_ratio, 5))
+          print("WEBVIEW_PALE_GRAY_RATIO", round(pale_ratio, 5))
+
+          # Blade kiosk contains colored imagery, text, gray background and accent.
+          if len(quantized) < 40 or white_ratio > 0.94:
+              raise SystemExit(
+                  "ANDROID_WEBVIEW_EFFECTIVELY_BLANK "
+                  f"colors={len(quantized)} white_ratio={white_ratio:.4f}"
+              )
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kiosk-android-webview-probe
+          path: |
+            /tmp/kiosk-android-probe.png
+            /tmp/kiosk-android-logcat.txt
+            /tmp/pmd-emulator.log
+          if-no-files-found: warn
