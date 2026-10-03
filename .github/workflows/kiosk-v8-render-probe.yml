@@ -1,0 +1,153 @@
+name: Kiosk V8 Render Probe
+
+on:
+  push:
+    branches:
+      - diag/kiosk-v8-render-probe
+    paths:
+      - '.github/workflows/kiosk-v8-render-probe.yml'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
+        run: |
+          npm --prefix /tmp/pmd-kiosk-probe init -y
+          npm --prefix /tmp/pmd-kiosk-probe install playwright@1.55.0 pngjs@7.0.0
+          cd /tmp/pmd-kiosk-probe
+          npx playwright install --with-deps chromium
+
+      - name: Render real TOMO kiosk with Android WebView UA
+        working-directory: /tmp/pmd-kiosk-probe
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const { PNG } = require('pngjs');
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              viewport: { width: 800, height: 1280 },
+              deviceScaleFactor: 1,
+              userAgent: 'Mozilla/5.0 (Linux; Android 17; sdk_gphone16k_arm64 Build/CP41.260828.004.A7; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/153.0.8010.36 Mobile Safari/537.36 PayMyDineKiosk/0.4.5-device-app-v5-debug',
+              isMobile: true,
+              hasTouch: true,
+            });
+            const page = await context.newPage();
+
+            const consoleRows = [];
+            const pageErrors = [];
+            page.on('console', msg => consoleRows.push(msg.type() + ': ' + msg.text()));
+            page.on('pageerror', err => pageErrors.push(String(err && err.stack || err)));
+
+            const url = 'https://tomo.paymydine.com/kiosk/?pmd_kiosk=1&kiosk_order_type=pickup&kiosk_session=gh-render-probe&kiosk_name=tomo';
+            const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            console.log('HTTP', response && response.status());
+
+            await page.waitForSelector('body[data-pmd-kiosk-terminal="blade-v8"]', { timeout: 30000 });
+            await page.waitForTimeout(6000);
+
+            const diag = await page.evaluate(() => {
+              const rect = el => {
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                const cs = getComputedStyle(el);
+                return {
+                  x: Math.round(r.x),
+                  y: Math.round(r.y),
+                  width: Math.round(r.width),
+                  height: Math.round(r.height),
+                  display: cs.display,
+                  visibility: cs.visibility,
+                  opacity: cs.opacity,
+                  background: cs.backgroundColor,
+                  color: cs.color,
+                };
+              };
+              const app = document.getElementById('pmd-kiosk-app');
+              const loading = document.getElementById('pmd-kiosk-loading');
+              const topbar = document.querySelector('.pmd-kiosk-topbar');
+              const workspace = document.querySelector('.pmd-kiosk-workspace');
+              const grid = document.getElementById('pmd-kiosk-menu-grid');
+              return {
+                href: location.href,
+                readyState: document.readyState,
+                viewport: {
+                  innerWidth: window.innerWidth,
+                  innerHeight: window.innerHeight,
+                  dpr: window.devicePixelRatio,
+                },
+                bodyTextLength: (document.body.innerText || '').trim().length,
+                app: rect(app),
+                topbar: rect(topbar),
+                workspace: rect(workspace),
+                loading: rect(loading),
+                loadingHidden: !!(loading && loading.hidden),
+                grid: rect(grid),
+                gridChildren: grid ? grid.children.length : -1,
+                ariaBusy: app ? app.getAttribute('aria-busy') : null,
+              };
+            });
+
+            console.log('DIAG', JSON.stringify(diag, null, 2));
+            console.log('PAGE_ERRORS', JSON.stringify(pageErrors, null, 2));
+            console.log('CONSOLE', JSON.stringify(consoleRows.slice(-50), null, 2));
+
+            const shot = await page.screenshot({ path: 'kiosk-render-probe.png', fullPage: false });
+            const png = PNG.sync.read(shot);
+            let samples = 0;
+            let nearWhite = 0;
+            const colors = new Set();
+            for (let y = 0; y < png.height; y += 8) {
+              for (let x = 0; x < png.width; x += 8) {
+                const idx = (png.width * y + x) << 2;
+                const r = png.data[idx];
+                const g = png.data[idx + 1];
+                const b = png.data[idx + 2];
+                const a = png.data[idx + 3];
+                if (a < 10) continue;
+                samples++;
+                if (r > 245 && g > 245 && b > 245) nearWhite++;
+                colors.add(((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3));
+              }
+            }
+            const whiteRatio = samples ? nearWhite / samples : 1;
+            console.log('PIXELS', JSON.stringify({
+              width: png.width,
+              height: png.height,
+              samples,
+              quantizedColors: colors.size,
+              whiteRatio,
+            }, null, 2));
+
+            if (!response || response.status() !== 200) throw new Error('Kiosk main document is not HTTP 200');
+            if (!diag.app || diag.app.width < 300 || diag.app.height < 500) throw new Error('Kiosk root has invalid dimensions');
+            if (!diag.topbar || diag.topbar.height < 40) throw new Error('Kiosk topbar is not laid out');
+            if (!diag.workspace || diag.workspace.height < 200) throw new Error('Kiosk workspace is not laid out');
+            if (diag.bodyTextLength < 100) throw new Error('Kiosk body text is unexpectedly empty');
+            if (diag.gridChildren < 1) throw new Error('Kiosk menu did not render any items');
+            if (diag.loadingHidden !== true) throw new Error('Kiosk loading overlay never completed');
+            if (pageErrors.length) throw new Error('Kiosk page has runtime errors: ' + pageErrors.join(' | '));
+            if (colors.size < 20 || whiteRatio > 0.97) throw new Error('Rendered screenshot is effectively blank/white');
+
+            await browser.close();
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kiosk-v8-render-probe
+          path: /tmp/pmd-kiosk-probe/kiosk-render-probe.png
+          if-no-files-found: warn
