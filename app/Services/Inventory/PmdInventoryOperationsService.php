@@ -527,6 +527,167 @@ final class PmdInventoryOperationsService
         return $id;
     }
 
+    public function mergeItems(int $locationId, ?int $staffId, int $sourceItemId, int $targetItemId): void
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        if ($sourceItemId < 1 || $targetItemId < 1 || $sourceItemId === $targetItemId) {
+            throw new InvalidArgumentException('Choose two different stock items to merge.');
+        }
+
+        $source = DB::table('pmd_inventory_items')
+            ->where('location_id', $locationId)
+            ->where('id', $sourceItemId)
+            ->where('active', 1)
+            ->first();
+        $target = DB::table('pmd_inventory_items')
+            ->where('location_id', $locationId)
+            ->where('id', $targetItemId)
+            ->where('active', 1)
+            ->first();
+
+        if (!$source || !$target) {
+            throw new InvalidArgumentException('Both stock items must be active.');
+        }
+        if (strtolower((string)$source->base_unit) !== strtolower((string)$target->base_unit)) {
+            throw new InvalidArgumentException(
+                'Duplicate items can only be merged when their base stock unit is the same.'
+            );
+        }
+
+        DB::transaction(function () use ($locationId, $sourceItemId, $targetItemId, $target) {
+            // Recipe lines need conflict-aware merging because the table has a
+            // unique location/menu/item key.
+            $sourceRecipes = DB::table('pmd_inventory_recipes')
+                ->where('location_id', $locationId)
+                ->where('item_id', $sourceItemId)
+                ->get();
+
+            foreach ($sourceRecipes as $sourceRecipe) {
+                $targetRecipe = DB::table('pmd_inventory_recipes')
+                    ->where('location_id', $locationId)
+                    ->where('menu_id', (int)$sourceRecipe->menu_id)
+                    ->where('item_id', $targetItemId)
+                    ->first();
+
+                if ($targetRecipe) {
+                    DB::table('pmd_inventory_recipes')
+                        ->where('id', (int)$targetRecipe->id)
+                        ->update([
+                            'qty_per_sale' => round(
+                                (float)$targetRecipe->qty_per_sale + (float)$sourceRecipe->qty_per_sale,
+                                4
+                            ),
+                            'updated_at' => now(),
+                        ]);
+                    DB::table('pmd_inventory_recipes')
+                        ->where('id', (int)$sourceRecipe->id)
+                        ->update([
+                            'active' => 0,
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('pmd_inventory_recipes')
+                        ->where('id', (int)$sourceRecipe->id)
+                        ->update([
+                            'item_id' => $targetItemId,
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
+
+            // Count lines also have a unique count/item key.
+            $sourceCountLines = DB::table('pmd_inventory_count_lines')
+                ->where('item_id', $sourceItemId)
+                ->get();
+
+            foreach ($sourceCountLines as $sourceLine) {
+                $targetLine = DB::table('pmd_inventory_count_lines')
+                    ->where('count_id', (int)$sourceLine->count_id)
+                    ->where('item_id', $targetItemId)
+                    ->first();
+
+                if ($targetLine) {
+                    $expected = (float)$targetLine->expected_qty + (float)$sourceLine->expected_qty;
+                    $counted = (float)$targetLine->counted_qty + (float)$sourceLine->counted_qty;
+                    $costWeightA = abs((float)$targetLine->expected_qty);
+                    $costWeightB = abs((float)$sourceLine->expected_qty);
+                    $denominator = $costWeightA + $costWeightB;
+                    $unitCost = $denominator > 0
+                        ? (
+                            ((float)$targetLine->unit_cost_snapshot * $costWeightA)
+                            + ((float)$sourceLine->unit_cost_snapshot * $costWeightB)
+                        ) / $denominator
+                        : (float)($target->unit_cost ?? 0);
+
+                    $payload = [
+                        'expected_qty' => round($expected, 4),
+                        'counted_qty' => round($counted, 4),
+                        'variance_qty' => round($counted - $expected, 4),
+                        'unit_cost_snapshot' => round($unitCost, 4),
+                        'updated_at' => now(),
+                    ];
+                    if (Schema::hasColumn('pmd_inventory_count_lines', 'is_counted')) {
+                        $payload['is_counted'] =
+                            (!empty($targetLine->is_counted) || !empty($sourceLine->is_counted)) ? 1 : 0;
+                    }
+
+                    DB::table('pmd_inventory_count_lines')
+                        ->where('id', (int)$targetLine->id)
+                        ->update($payload);
+                    DB::table('pmd_inventory_count_lines')
+                        ->where('id', (int)$sourceLine->id)
+                        ->delete();
+                } else {
+                    DB::table('pmd_inventory_count_lines')
+                        ->where('id', (int)$sourceLine->id)
+                        ->update([
+                            'item_id' => $targetItemId,
+                            'updated_at' => now(),
+                        ]);
+                }
+            }
+
+            $simpleTables = [
+                'pmd_inventory_movements',
+                'pmd_inventory_item_identifiers',
+                'pmd_inventory_supplier_items',
+                'pmd_inventory_batches',
+                'pmd_inventory_purchase_order_lines',
+                'pmd_inventory_transfers',
+                'pmd_inventory_production_inputs',
+            ];
+
+            foreach ($simpleTables as $table) {
+                if (Schema::hasTable($table) && Schema::hasColumn($table, 'item_id')) {
+                    DB::table($table)
+                        ->where('item_id', $sourceItemId)
+                        ->update(['item_id' => $targetItemId]);
+                }
+            }
+
+            if (Schema::hasTable('pmd_inventory_production_batches')) {
+                DB::table('pmd_inventory_production_batches')
+                    ->where('output_item_id', $sourceItemId)
+                    ->update([
+                        'output_item_id' => $targetItemId,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            DB::table('pmd_inventory_items')
+                ->where('location_id', $locationId)
+                ->where('id', $sourceItemId)
+                ->update([
+                    'active' => 0,
+                    'updated_at' => now(),
+                ]);
+
+            $this->syncLegacySku($locationId, $targetItemId);
+        });
+    }
+
     public function saveStorageLocation(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
