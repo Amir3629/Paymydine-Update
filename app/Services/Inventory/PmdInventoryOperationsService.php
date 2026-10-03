@@ -905,6 +905,56 @@ final class PmdInventoryOperationsService
         });
     }
 
+    public function returnToSupplier(int $locationId, ?int $staffId, array $data): int
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $itemId = max(0, (int)($data['item_id'] ?? 0));
+        $supplierId = max(0, (int)($data['supplier_id'] ?? 0));
+        $storageId = max(0, (int)($data['storage_location_id'] ?? 0));
+        $qty = max(0, $this->number($data['quantity_base'] ?? $data['quantity'] ?? 0, 0));
+
+        if (!$this->itemExists($locationId, $itemId)) {
+            throw new InvalidArgumentException('Choose a valid stock item.');
+        }
+        if ($supplierId > 0 && !$this->supplierExists($locationId, $supplierId)) {
+            throw new InvalidArgumentException('Supplier was not found.');
+        }
+        if ($storageId > 0 && !$this->storageExists($locationId, $storageId)) {
+            throw new InvalidArgumentException('Storage location was not found.');
+        }
+        if ($qty <= 0) {
+            throw new InvalidArgumentException('Enter the quantity being returned.');
+        }
+
+        $current = app(PmdInventoryControlService::class)->snapshot($locationId);
+        $stockRow = collect($current['items'] ?? [])->first(
+            static fn ($row) => (int)($row['id'] ?? 0) === $itemId
+        );
+        if (!$stockRow || $qty > max(0, (float)($stockRow['estimated_on_hand'] ?? 0)) + 0.00005) {
+            throw new InvalidArgumentException('Return quantity cannot exceed the expected stock on hand.');
+        }
+
+        $item = DB::table('pmd_inventory_items')->where('id', $itemId)->first();
+        $supplierName = $supplierId > 0
+            ? (string)DB::table('pmd_inventory_suppliers')->where('id', $supplierId)->value('name')
+            : '';
+
+        return $this->insertMovement(
+            $locationId,
+            $itemId,
+            'SUPPLIER_RETURN',
+            -$qty,
+            (float)($item->unit_cost ?? 0),
+            $staffId,
+            'Return to supplier'.($supplierName !== '' ? ': '.$supplierName : ''),
+            $this->nullableText($data['note'] ?? null, 2000),
+            'supplier_return',
+            $supplierId > 0 ? $supplierId : null,
+            $storageId
+        );
+    }
+
     public function reverseReceipt(int $locationId, ?int $staffId, int $receiptId): void
     {
         $this->assertReady();
