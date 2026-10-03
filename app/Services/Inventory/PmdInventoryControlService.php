@@ -1621,10 +1621,22 @@ final class PmdInventoryControlService
 
     private function movementCost(int $locationId, string $type, int $days): float
     {
-        $row = DB::table('pmd_inventory_movements')
+        $query = DB::table('pmd_inventory_movements')
             ->where('location_id', $locationId)
+            ->where('occurred_at', '>=', now()->subDays($days));
+
+        if ($type === 'PURCHASE') {
+            // Reversed receipts must not inflate net purchase spend.
+            $row = $query
+                ->whereIn('movement_type', ['PURCHASE', 'PURCHASE_REVERSAL'])
+                ->selectRaw('SUM(qty_delta * unit_cost) as total')
+                ->first();
+
+            return round(max(0, (float)($row->total ?? 0)), 2);
+        }
+
+        $row = $query
             ->where('movement_type', $type)
-            ->where('occurred_at', '>=', now()->subDays($days))
             ->selectRaw('SUM(ABS(qty_delta) * unit_cost) as total')
             ->first();
 
