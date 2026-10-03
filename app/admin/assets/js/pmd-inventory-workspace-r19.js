@@ -103,6 +103,43 @@
     return Array.isArray(rows) ? rows : [];
   }
 
+  function operations() {
+    var value = snapshot().operations;
+    return value && typeof value === 'object' ? value : {};
+  }
+
+  function operationRows(key) {
+    var rows = operations()[key];
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function supplierSelectOptions(selected, emptyLabel) {
+    var html = '<option value="">' + esc(emptyLabel || 'No supplier') + '</option>';
+    operationRows('suppliers').forEach(function (row) {
+      html += '<option value="' + esc(row.id) + '"' +
+        (String(selected || '') === String(row.id) ? ' selected' : '') + '>' +
+        esc(row.name || 'Supplier') + '</option>';
+    });
+    return html;
+  }
+
+  function storageSelectOptions(selected, emptyLabel) {
+    var html = '<option value="">' + esc(emptyLabel || 'Main / default storage') + '</option>';
+    operationRows('storage_locations').forEach(function (row) {
+      html += '<option value="' + esc(row.id) + '"' +
+        (String(selected || '') === String(row.id) ? ' selected' : '') + '>' +
+        esc(row.name || 'Storage') + '</option>';
+    });
+    return html;
+  }
+
+  function preferredSupplierItem(itemId) {
+    var rows = operationRows('supplier_items').filter(function (row) {
+      return Number(row.item_id || 0) === Number(itemId || 0);
+    });
+    return rows.find(function (row) { return Boolean(row.is_preferred); }) || rows[0] || null;
+  }
+
   function catalog() {
     return catalogRows;
   }
@@ -240,9 +277,24 @@
     return String(value == null ? '' : value).trim().replace(/[\r\n\t]+/g, '');
   }
 
-  function itemForBarcode(code) {
+  function identifierForBarcode(code) {
     code = normalizedBarcode(code);
     if (!code) return null;
+    return operationRows('identifiers').find(function (row) {
+      return normalizedBarcode(row.code) === code;
+    }) || null;
+  }
+
+  function itemForBarcode(code) {
+    var identifier = identifierForBarcode(code);
+    if (identifier) {
+      return items().find(function (item) {
+        return Number(item.id) === Number(identifier.item_id);
+      }) || null;
+    }
+
+    // Compatibility for tenants while R24 identifiers are being provisioned.
+    code = normalizedBarcode(code);
     return items().find(function (item) {
       return barcodeTokens(item).indexOf(code) !== -1;
     }) || null;
@@ -595,9 +647,17 @@
         '<div class="pmd-inv-r19-editor-fields" style="margin-top:10px">' +
           '<label class="is-wide">Item name<input type="text" value="' + esc(item.name) + '" data-r19-edit-name></label>' +
           '<label>Category<input type="text" value="' + esc(item.category || '') + '" data-r19-edit-category></label>' +
-          '<label>SKU / code<input type="text" value="' + esc(item.sku || '') + '" data-r19-edit-sku></label>' +
+          '<label>Legacy SKU / codes<input type="text" value="' + esc(item.sku || '') + '" data-r19-edit-sku></label>' +
           '<label>1 purchase unit contains<input type="number" min="0.0001" step="0.0001" value="' + esc(item.purchase_to_base || 1) + '" data-r19-edit-factor></label>' +
-          '<label class="is-wide">Supplier<input type="text" value="' + esc(item.supplier_name || '') + '" data-r19-edit-supplier></label>' +
+          '<label>Preferred supplier<select data-r19-edit-preferred-supplier>' + supplierSelectOptions(item.preferred_supplier_id || '', 'No preferred supplier') + '</select></label>' +
+          '<label>Default storage<select data-r19-edit-storage>' + storageSelectOptions(item.default_storage_location_id || '', 'Main / default storage') + '</select></label>' +
+          '<label>Safety stock<input type="number" min="0" step="0.01" value="' + esc(Number(item.safety_stock || 0) / factor) + '" data-r19-edit-safety></label>' +
+          '<label>Lead time · days<input type="number" min="0" step="1" value="' + esc(item.lead_time_days || 0) + '" data-r19-edit-lead></label>' +
+          '<label>Minimum order qty<input type="number" min="0" step="0.01" value="' + esc(item.minimum_order_qty || 0) + '" data-r19-edit-moq></label>' +
+          '<label>Order multiple<input type="number" min="0.0001" step="0.0001" value="' + esc(item.order_multiple || 1) + '" data-r19-edit-multiple></label>' +
+          '<label>Costing<select data-r19-edit-costing><option value="weighted_average"' + (String(item.costing_method || 'weighted_average') === 'weighted_average' ? ' selected' : '') + '>Weighted average</option><option value="last_cost"' + (String(item.costing_method || '') === 'last_cost' ? ' selected' : '') + '>Latest purchase cost</option></select></label>' +
+          '<label class="pmd-inv-r24-check"><input type="checkbox" data-r19-edit-expiry' + (item.expiry_tracking ? ' checked' : '') + '><span>Track lot / expiry</span></label>' +
+          '<label class="is-wide">Supplier name fallback<input type="text" value="' + esc(item.supplier_name || '') + '" data-r19-edit-supplier></label>' +
         '</div>' +
       '</details>' +
       '<div class="pmd-inv-r19-editor-actions">' +
@@ -622,7 +682,15 @@
       purchase_cost: Number(valueOf(host,'[data-r19-edit-cost]', item.purchase_unit_cost || 0)),
       reorder_point: Number(valueOf(host,'[data-r19-edit-reorder]', 0)),
       par_level: Number(valueOf(host,'[data-r19-edit-par]', 0)),
-      supplier_name: valueOf(host,'[data-r19-edit-supplier]', item.supplier_name || '')
+      supplier_name: valueOf(host,'[data-r19-edit-supplier]', item.supplier_name || ''),
+      preferred_supplier_id: Number(valueOf(host,'[data-r19-edit-preferred-supplier]', item.preferred_supplier_id || 0)),
+      default_storage_location_id: Number(valueOf(host,'[data-r19-edit-storage]', item.default_storage_location_id || 0)),
+      safety_stock: Number(valueOf(host,'[data-r19-edit-safety]', Number(item.safety_stock || 0) / purchaseFactor(item))),
+      lead_time_days: Number(valueOf(host,'[data-r19-edit-lead]', item.lead_time_days || 0)),
+      minimum_order_qty: Number(valueOf(host,'[data-r19-edit-moq]', item.minimum_order_qty || 0)),
+      order_multiple: Number(valueOf(host,'[data-r19-edit-multiple]', item.order_multiple || 1)),
+      expiry_tracking: Boolean((host.querySelector('[data-r19-edit-expiry]') || {}).checked),
+      costing_method: valueOf(host,'[data-r19-edit-costing]', item.costing_method || 'weighted_average')
     };
     if (!payload.name.trim()) return toast('Item name is required.', true);
     setBusy(true);
@@ -658,6 +726,17 @@
       .finally(function () { setBusy(false); });
   }
 
+  function currentCountScopeRows() {
+    var rows = filterByHierarchy(items().slice(), state.stockMain, state.stockSub);
+    if (state.stockSearch) {
+      var q = normalize(state.stockSearch);
+      rows = rows.filter(function (row) {
+        return normalize([row.name,row.category,row.supplier_name,row.sku].join(' ')).indexOf(q) !== -1;
+      });
+    }
+    return rows.length ? rows : items().slice();
+  }
+
   function startCount() {
     var host = workspace.querySelector('[data-r19-count]');
     var grid = workspace.querySelector('[data-r19-stock-grid]');
@@ -666,19 +745,25 @@
     if (editor) editor.hidden = true;
     if (grid) grid.hidden = true;
 
+    var scopeRows = currentCountScopeRows();
+    var scoped = scopeRows.length !== items().length;
+
     host.hidden = false;
     host.innerHTML =
       '<div class="pmd-inv-r19-count-head"><div><h3>Physical count</h3>' +
-      '<small>Enter what is physically there now. Every active item is required so the new baseline stays complete.</small></div>' +
+      '<small>' + esc(scoped ? 'Counting the current filtered view · ' + scopeRows.length + ' items.' : 'Counting all active stock · ' + scopeRows.length + ' items.') + '</small></div>' +
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-cancel-count>Cancel</button></div>' +
+      '<div class="pmd-inv-r24-count-controls">' +
+        '<label class="pmd-inv-r24-check"><input type="checkbox" checked data-r19-count-blind><span>Blind count · hide expected quantities until completion</span></label>' +
+      '</div>' +
       '<div class="pmd-inv-r19-count-list">' +
-      items().map(function (item) {
+      scopeRows.map(function (item) {
         var owner = ownerQuantity(item, item.estimated_on_hand);
         return '<div class="pmd-inv-r19-count-row" data-r19-count-row="' + esc(item.id) + '">' +
           '<strong>' + esc(item.name) + '<span>' + esc(item.category || '') + '</span></strong>' +
-          '<span>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>' +
+          '<span data-r19-count-expected-copy hidden>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>' +
           '<input type="number" min="0" step="0.01" placeholder="Actual ' + esc(owner.unit) + '" data-r19-count-input data-factor="' + esc(owner.factor) + '">' +
-          '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Variance —</span>' +
+          '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Count privately</span>' +
         '</div>';
       }).join('') +
       '</div>' +
@@ -693,12 +778,34 @@
     if (grid) grid.hidden = false;
   }
 
+  function countIsBlind() {
+    var blind = workspace.querySelector('[data-r19-count-blind]');
+    return !blind || blind.checked;
+  }
+
+  function refreshCountPrivacy() {
+    var blind = countIsBlind();
+    workspace.querySelectorAll('[data-r19-count-expected-copy]').forEach(function (node) {
+      node.hidden = blind;
+    });
+    workspace.querySelectorAll('[data-r19-count-input]').forEach(function (input) {
+      updateCountVariance(input);
+    });
+  }
+
   function updateCountVariance(input) {
     var row = input.closest('[data-r19-count-row]');
     if (!row) return;
     var item = items().find(function (entry) { return Number(entry.id) === Number(row.getAttribute('data-r19-count-row')); });
     var output = row.querySelector('[data-r19-count-variance]');
     if (!item || !output) return;
+
+    if (countIsBlind()) {
+      output.textContent = input.value === '' ? 'Count privately' : 'Recorded · hidden variance';
+      output.className = 'pmd-inv-r19-count-variance';
+      return;
+    }
+
     if (input.value === '') {
       output.textContent = 'Variance —';
       output.className = 'pmd-inv-r19-count-variance';
@@ -715,26 +822,31 @@
     if (state.busy) return;
     var rows = Array.prototype.slice.call(workspace.querySelectorAll('[data-r19-count-row]'));
     var lines = [];
+    var scopeIds = [];
     for (var i = 0; i < rows.length; i += 1) {
       var input = rows[i].querySelector('[data-r19-count-input]');
       if (!input || input.value === '') {
-        toast('Enter the physical quantity for every stock item.', true);
+        toast('Enter the physical quantity for every item in this count.', true);
         if (input) input.focus();
         return;
       }
+      var itemId = Number(rows[i].getAttribute('data-r19-count-row'));
+      scopeIds.push(itemId);
       lines.push({
-        item_id:Number(rows[i].getAttribute('data-r19-count-row')),
+        item_id:itemId,
         counted_qty:Number(input.value || 0) * Number(input.getAttribute('data-factor') || 1)
       });
     }
     setBusy(true);
     api.request('onCompleteCount', {
       lines:lines,
+      scope_item_ids:scopeIds,
+      blind_count:countIsBlind(),
       note:valueOf(workspace,'[data-r19-count-note]','')
     }).then(applyActionSnapshot)
       .then(function () {
         cancelCount();
-        toast('Physical count completed.');
+        toast('Physical count completed and variance saved to the audit trail.');
       })
       .catch(function (error) { toast(error.message || 'Could not complete count.', true); })
       .finally(function () { setBusy(false); });
@@ -851,11 +963,15 @@
     return items().find(function (item) { return keys.indexOf(normalize(item.name)) !== -1; }) || null;
   }
 
-  function openPurchaseEditor(index, custom, barcode) {
+  function openPurchaseEditor(index, custom, barcode, barcodeMeta) {
     var row = custom ? null : catalog()[Number(index)];
     var host = workspace.querySelector('[data-r19-purchase-editor]');
     if (!host) return;
-    state.purchaseSelection = custom ? {custom:true, barcode:normalizedBarcode(barcode)} : row;
+    state.purchaseSelection = custom ? {
+      custom:true,
+      barcode:normalizedBarcode(barcode),
+      barcodeMeta:barcodeMeta && typeof barcodeMeta === 'object' ? barcodeMeta : {}
+    } : row;
     var existing = row ? existingItemForCatalog(row) : null;
     var name = row ? row.name : '';
     var category = row ? (row.category || '') : '';
@@ -874,9 +990,14 @@
         (custom ? '<label class="is-wide">Item name<input type="text" placeholder="Item name" data-r19-receive-name></label>' : '') +
         (custom ? '<label>Category<input type="text" placeholder="Food, Cleaning…" data-r19-receive-category></label>' : '') +
         (custom && state.purchaseSelection.barcode ? '<label>Barcode / QR<input type="text" readonly value="' + esc(state.purchaseSelection.barcode) + '" data-r19-receive-barcode></label>' : '') +
-        '<label>Quantity<input type="number" min="0.0001" step="0.01" value="1" data-r19-receive-qty></label>' +
-        '<label>Unit<select data-r19-receive-unit>' + unitOptions(unit) + '</select></label>' +
+        (custom && state.purchaseSelection.barcode ? '<label>Base stock unit<select data-r19-receive-base-unit>' + unitOptions((state.purchaseSelection.barcodeMeta || {}).base_unit || 'piece') + '</select></label>' : '') +
+        '<label>Quantity<input type="number" min="0.0001" step="0.01" value="' + esc((state.purchaseSelection.barcodeMeta || {}).package_quantity || 1) + '" data-r19-receive-qty></label>' +
+        '<label>Unit<select data-r19-receive-unit>' + unitOptions((state.purchaseSelection.barcodeMeta || {}).package_unit || unit) + '</select></label>' +
+        '<label>Base qty / unit<input type="number" min="0.0001" step="0.0001" value="' + esc((state.purchaseSelection.barcodeMeta || {}).base_quantity || (existing ? purchaseFactor(existing) : 1)) + '" data-r19-receive-base-qty></label>' +
         '<label>Cost / unit<input type="number" min="0" step="0.01" value="' + esc(cost) + '" data-r19-receive-cost></label>' +
+        '<label>Storage<select data-r19-receive-storage>' + storageSelectOptions(existing ? (existing.default_storage_location_id || '') : '', 'Main / default') + '</select></label>' +
+        '<label>Lot / batch<input type="text" placeholder="Optional" data-r19-receive-lot></label>' +
+        '<label>Expiry<input type="date" data-r19-receive-expiry></label>' +
       '</div>' +
       '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-submit-purchase>Add to stock</button></div>';
     host.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -897,16 +1018,26 @@
     if (!(qty > 0)) return toast('Enter the received quantity.', true);
     var existing = row ? existingItemForCatalog(row) : null;
     var payload = {
+      supplier_id:Number(valueOf(workspace,'[data-r24-purchase-supplier-id]',0)),
       supplier_name:valueOf(workspace,'[data-r19-purchase-supplier]','').trim(),
+      invoice_number:valueOf(workspace,'[data-r24-purchase-invoice]','').trim(),
+      delivery_note_number:valueOf(workspace,'[data-r24-purchase-delivery-note]','').trim(),
       purchased_at:valueOf(workspace,'[data-r19-purchase-date]',todayKey()),
       lines:[{
         item_id:existing ? Number(existing.id) : 0,
         item_name:name,
         category:category,
+        base_unit:custom ? valueOf(host,'[data-r19-receive-base-unit]',unit) : String(existing && existing.unit || unit),
         quantity:qty,
         unit:unit,
+        base_quantity:Number(valueOf(host,'[data-r19-receive-base-qty]', existing ? purchaseFactor(existing) : 1)),
         unit_cost:cost,
-        barcode:custom ? normalizedBarcode(selection.barcode) : ''
+        barcode:custom ? normalizedBarcode(selection.barcode) : '',
+        supplier_item_id:Number((selection.barcodeMeta || {}).supplier_item_id || 0),
+        identifier_id:Number((selection.barcodeMeta || {}).identifier_id || 0),
+        storage_location_id:Number(valueOf(host,'[data-r19-receive-storage]',0)),
+        lot_code:valueOf(host,'[data-r19-receive-lot]','').trim(),
+        expiry_date:valueOf(host,'[data-r19-receive-expiry]','')
       }]
     };
     setBusy(true);
@@ -923,12 +1054,20 @@
 
   function renderBarcodeLinkOptions() {
     var select = workspace.querySelector('[data-r19-barcode-link-select]');
-    if (!select) return;
-    select.innerHTML = items().slice().sort(function (a, b) {
-      return String(a.name || '').localeCompare(String(b.name || ''));
-    }).map(function (item) {
-      return '<option value="' + esc(item.id) + '">' + esc(item.name + ' · ' + ownerQuantityLabel(item, item.estimated_on_hand, 2)) + '</option>';
-    }).join('');
+    if (select) {
+      select.innerHTML = items().slice().sort(function (a, b) {
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      }).map(function (item) {
+        return '<option value="' + esc(item.id) + '">' + esc(item.name + ' · ' + ownerQuantityLabel(item, item.estimated_on_hand, 2)) + '</option>';
+      }).join('');
+    }
+
+    var supplier = workspace.querySelector('[data-r24-barcode-supplier]');
+    if (supplier) {
+      var current = supplier.value;
+      supplier.innerHTML = supplierSelectOptions(current, 'No supplier');
+      if (current) supplier.value = current;
+    }
   }
 
   function setBarcodeStatus(message, error) {
@@ -937,6 +1076,21 @@
     status.textContent = String(message || '');
     status.classList.toggle('is-error', Boolean(error));
     status.classList.toggle('is-success', Boolean(message) && !error);
+  }
+
+  function setBarcodeResolution(identifier) {
+    var host = workspace.querySelector('[data-r24-barcode-resolution]');
+    if (!host) return;
+    if (!identifier || !identifier.matched) {
+      host.hidden = true;
+      host.innerHTML = '';
+      return;
+    }
+    host.hidden = false;
+    host.innerHTML = '<strong>' + esc(identifier.item_name || 'Stock item') + '</strong> · ' +
+      esc(num(identifier.package_quantity || 1,2) + ' ' + (identifier.package_unit || 'piece')) +
+      ' · ' + esc(num(identifier.base_quantity || 1,4) + ' ' + (identifier.base_unit || 'base')) +
+      (identifier.supplier_name ? ' · ' + esc(identifier.supplier_name) : '');
   }
 
   function focusBarcodeInput() {
@@ -956,7 +1110,8 @@
     panel.hidden = false;
     var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
     if (unknown) unknown.hidden = true;
-    setBarcodeStatus('Scanner ready. Scan the first item.', false);
+    setBarcodeResolution(null);
+    setBarcodeStatus('Scanner ready. Scan a product, bottle, case or package code.', false);
     renderBarcodeLinkOptions();
     panel.scrollIntoView({behavior:'smooth', block:'nearest'});
     focusBarcodeInput();
@@ -967,12 +1122,47 @@
     if (panel) panel.hidden = true;
     state.barcodeOpen = false;
     state.pendingBarcode = '';
+    setBarcodeResolution(null);
+  }
+
+  function barcodeDraftStorageKey() {
+    return 'pmd-inventory-r24-barcode-draft';
+  }
+
+  function persistBarcodeReview() {
+    try {
+      if (!state.bulkReview || state.bulkReview.label !== 'Barcode purchase') return;
+      localStorage.setItem(barcodeDraftStorageKey(), JSON.stringify({
+        saved_at:Date.now(),
+        review:state.bulkReview
+      }));
+    } catch (ignore) {}
+  }
+
+  function clearPersistedBarcodeReview() {
+    try { localStorage.removeItem(barcodeDraftStorageKey()); } catch (ignore) {}
+  }
+
+  function restoreBarcodeReview() {
+    if (state.bulkReview) return;
+    try {
+      var raw = localStorage.getItem(barcodeDraftStorageKey());
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !parsed.review || Date.now() - Number(parsed.saved_at || 0) > 86400000) {
+        clearPersistedBarcodeReview();
+        return;
+      }
+      if (Array.isArray(parsed.review.lines) && parsed.review.lines.length) {
+        state.bulkReview = parsed.review;
+        renderBulkReview();
+      }
+    } catch (ignore) {
+      clearPersistedBarcodeReview();
+    }
   }
 
   function ensureBarcodeReview() {
-    // Keep an existing AI/shopping review intact and append scans to it.
-    // This avoids throwing away reviewed purchase lines if the operator scans
-    // an extra case before confirming.
     if (!state.bulkReview) {
       state.bulkReview = {
         receiptId:0,
@@ -984,33 +1174,90 @@
     return state.bulkReview;
   }
 
-  function addBarcodeItemToDraft(item, code) {
+  function resolutionFromLocalIdentifier(identifier) {
+    if (!identifier) return null;
+    var item = items().find(function (row) {
+      return Number(row.id) === Number(identifier.item_id);
+    });
+    if (!item) return null;
+    return {
+      matched:true,
+      identifier_id:Number(identifier.id || 0),
+      item_id:Number(identifier.item_id || 0),
+      item_name:String(identifier.item_name || item.name || ''),
+      code:String(identifier.code || ''),
+      code_type:String(identifier.code_type || 'code'),
+      package_unit:String(identifier.package_unit || item.purchase_unit || item.unit || 'piece'),
+      package_quantity:Math.max(0.0001,Number(identifier.package_quantity || 1)),
+      base_quantity:Math.max(0.0001,Number(identifier.base_quantity || purchaseFactor(item))),
+      base_unit:String(identifier.base_unit || item.unit || 'piece'),
+      supplier_id:Number(identifier.supplier_id || 0),
+      supplier_name:String(identifier.supplier_name || ''),
+      estimated_package_cost:Number(item.unit_cost || 0) * Math.max(0.0001,Number(identifier.base_quantity || 1))
+    };
+  }
+
+  function addBarcodeItemToDraft(item, code, resolution) {
     if (!item) return;
     var review = ensureBarcodeReview();
-    var unit = String(item.purchase_unit || item.unit || 'piece');
-    var cost = Number(item.purchase_unit_cost || 0);
+    resolution = resolution || {};
+    var unit = String(resolution.package_unit || item.purchase_unit || item.unit || 'piece');
+    var packageQty = Math.max(0.0001,Number(resolution.package_quantity || 1));
+    var basePerUnit = Math.max(0.0001,Number(resolution.base_quantity || purchaseFactor(item)));
+    var cost = Number(resolution.estimated_package_cost || (Number(item.unit_cost || 0) * basePerUnit));
+    var identifierId = Number(resolution.identifier_id || 0);
+    var mergeKey = [
+      Number(item.id),
+      identifierId || normalizedBarcode(code),
+      unit,
+      basePerUnit
+    ].join('|');
+
     var existing = review.lines.find(function (line) {
-      return Number(line.item_id || 0) === Number(item.id);
+      return String(line._barcode_merge_key || '') === mergeKey;
     });
     if (existing) {
-      existing.quantity = Number(existing.quantity || 0) + 1;
+      existing.quantity = Number(existing.quantity || 0) + packageQty;
     } else {
       review.lines.push({
         item_id:Number(item.id),
         item_name:String(item.name || ''),
         category:String(item.category || ''),
-        quantity:1,
+        quantity:packageQty,
         unit:unit,
+        base_quantity:basePerUnit,
         unit_cost:cost,
-        barcode:normalizedBarcode(code)
+        barcode:normalizedBarcode(code),
+        identifier_id:identifierId,
+        supplier_id:Number(resolution.supplier_id || 0),
+        supplier_item_id:Number(resolution.supplier_item_id || 0),
+        storage_location_id:Number(item.default_storage_location_id || 0),
+        _barcode_merge_key:mergeKey
       });
     }
+
     state.pendingBarcode = '';
     var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
     if (unknown) unknown.hidden = true;
-    setBarcodeStatus('Scanned ' + item.name + ' · added 1 ' + unit + ' to the purchase draft.', false);
+    setBarcodeResolution(resolution);
+    setBarcodeStatus(
+      'Scanned ' + item.name + ' · added ' + num(packageQty,2) + ' ' + unit + ' to the purchase draft.',
+      false
+    );
+    persistBarcodeReview();
     renderBulkReview();
     focusBarcodeInput();
+  }
+
+  function showUnknownBarcode(code) {
+    state.pendingBarcode = code;
+    renderBarcodeLinkOptions();
+    var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
+    var unknownCode = workspace.querySelector('[data-r19-barcode-unknown-code]');
+    if (unknownCode) unknownCode.textContent = code;
+    if (unknown) unknown.hidden = false;
+    setBarcodeResolution(null);
+    setBarcodeStatus('Unknown code. Link its exact package once, or create a new stock item.', true);
   }
 
   function scanBarcode(code) {
@@ -1022,25 +1269,55 @@
       focusBarcodeInput();
       return;
     }
-    if (code.length > 120) {
+    if (code.length > 190) {
       setBarcodeStatus('The scanned code is too long to store.', true);
       focusBarcodeInput();
       return;
     }
 
-    var item = itemForBarcode(code);
-    if (item) {
-      addBarcodeItemToDraft(item, code);
+    var localIdentifier = identifierForBarcode(code);
+    if (localIdentifier) {
+      var localResolution = resolutionFromLocalIdentifier(localIdentifier);
+      var localItem = localResolution && items().find(function (row) {
+        return Number(row.id) === Number(localResolution.item_id);
+      });
+      if (localItem) {
+        addBarcodeItemToDraft(localItem, code, localResolution);
+        return;
+      }
+    }
+
+    // Legacy fallback if a pre-R24 SKU code has not migrated yet.
+    var legacyItem = itemForBarcode(code);
+    if (legacyItem && !operationRows('identifiers').length) {
+      addBarcodeItemToDraft(legacyItem, code, {
+        matched:true,
+        item_id:legacyItem.id,
+        item_name:legacyItem.name,
+        package_unit:legacyItem.purchase_unit || legacyItem.unit,
+        package_quantity:1,
+        base_quantity:purchaseFactor(legacyItem),
+        base_unit:legacyItem.unit,
+        estimated_package_cost:legacyItem.purchase_unit_cost || 0
+      });
       return;
     }
 
-    state.pendingBarcode = code;
-    renderBarcodeLinkOptions();
-    var unknown = workspace.querySelector('[data-r19-barcode-unknown]');
-    var unknownCode = workspace.querySelector('[data-r19-barcode-unknown-code]');
-    if (unknownCode) unknownCode.textContent = code;
-    if (unknown) unknown.hidden = false;
-    setBarcodeStatus('Unknown code. Link it once or create a new stock item.', true);
+    api.request('onResolveIdentifier', {code:code}).then(function (json) {
+      var resolution = json && json.resolution ? json.resolution : null;
+      if (resolution && resolution.matched) {
+        var item = items().find(function (row) {
+          return Number(row.id) === Number(resolution.item_id);
+        });
+        if (item) {
+          addBarcodeItemToDraft(item, code, resolution);
+          return;
+        }
+      }
+      showUnknownBarcode(code);
+    }).catch(function () {
+      showUnknownBarcode(code);
+    });
   }
 
   function linkPendingBarcode() {
@@ -1050,27 +1327,38 @@
     var item = items().find(function (row) { return Number(row.id) === itemId; });
     if (!code || !item || state.busy) return;
 
-    var codes = barcodeTokens(item);
-    if (codes.indexOf(code) === -1) codes.push(code);
-    var factor = purchaseFactor(item);
+    var packageUnit = valueOf(workspace,'[data-r24-barcode-package-unit]', item.purchase_unit || item.unit || 'piece').trim() || 'piece';
+    var packageQty = Math.max(0.0001,Number(valueOf(workspace,'[data-r24-barcode-package-qty]',1)));
+    var baseQty = Math.max(0.0001,Number(valueOf(workspace,'[data-r24-barcode-base-qty]',purchaseFactor(item))));
+    var supplierId = Number(valueOf(workspace,'[data-r24-barcode-supplier]',0));
 
     setBusy(true);
-    api.request('onSaveItem', {
+    api.request('onSaveIdentifier', {
       item_id:Number(item.id),
-      name:String(item.name || ''),
-      category:String(item.category || ''),
-      sku:codes.join(','),
-      purchase_unit:String(item.purchase_unit || item.unit || 'piece'),
-      purchase_to_base:factor,
-      purchase_cost:Number(item.purchase_unit_cost || (Number(item.unit_cost || 0) * factor)),
-      reorder_point:Number(item.reorder_point || 0) / factor,
-      par_level:Number(item.par_level || 0) / factor,
-      supplier_name:String(item.supplier_name || '')
+      supplier_id:supplierId,
+      code:code,
+      package_unit:packageUnit,
+      package_quantity:packageQty,
+      base_quantity:baseQty,
+      source:'scanner',
+      is_primary:false
     }).then(applyActionSnapshot)
       .then(function () {
-        var refreshed = items().find(function (row) { return Number(row.id) === itemId; }) || item;
-        addBarcodeItemToDraft(refreshed, code);
-        toast('Barcode linked to ' + item.name + '.');
+        var identifier = identifierForBarcode(code);
+        var resolution = resolutionFromLocalIdentifier(identifier) || {
+          matched:true,
+          item_id:item.id,
+          item_name:item.name,
+          code:code,
+          package_unit:packageUnit,
+          package_quantity:packageQty,
+          base_quantity:baseQty,
+          base_unit:item.unit,
+          supplier_id:supplierId,
+          estimated_package_cost:Number(item.unit_cost || 0) * baseQty
+        };
+        addBarcodeItemToDraft(item, code, resolution);
+        toast('Barcode package mapping saved for ' + item.name + '.');
       })
       .catch(function (error) {
         setBarcodeStatus(error.message || 'Could not link this barcode.', true);
@@ -1095,8 +1383,12 @@
       var extraction = json.extraction || {};
       var supplier = workspace.querySelector('[data-r19-purchase-supplier]');
       var date = workspace.querySelector('[data-r19-purchase-date]');
+      var invoice = workspace.querySelector('[data-r24-purchase-invoice]');
       if (supplier && extraction.supplier_name) supplier.value = extraction.supplier_name;
       if (date && extraction.purchase_date) date.value = extraction.purchase_date;
+      if (invoice && (extraction.invoice_number || extraction.invoice_no)) {
+        invoice.value = extraction.invoice_number || extraction.invoice_no;
+      }
       state.bulkReview = {
         receiptId:Number(json.receipt_id || 0),
         label:'Scanned supplier bill',
@@ -1113,6 +1405,21 @@
     });
   }
 
+  function lineBaseQuantity(line) {
+    var explicit = Number(line && line.base_quantity || 0);
+    if (explicit > 0) return explicit;
+    var item = null;
+    if (line && Number(line.item_id || 0) > 0) {
+      item = items().find(function (row) { return Number(row.id) === Number(line.item_id); });
+    }
+    if (!item && line) item = findExistingByName(line.item_name || '');
+    if (!item) return 1;
+    var unit = String(line.unit || item.purchase_unit || item.unit || 'piece');
+    return unit === String(item.purchase_unit || '') && unit !== String(item.unit || '')
+      ? purchaseFactor(item)
+      : 1;
+  }
+
   function renderBulkReview() {
     var host = workspace.querySelector('[data-r19-receipt-review]');
     var review = state.bulkReview;
@@ -1120,18 +1427,26 @@
     host.hidden = false;
     host.innerHTML =
       '<div class="pmd-inv-r19-editor-head"><div><h3>' + esc(review.label || 'Purchase review') + '</h3>' +
-      '<small>Review item, quantity, unit and cost before confirming.</small></div>' +
+      '<small>Review package quantity, conversion, storage, lot / expiry and cost before stock changes.</small></div>' +
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-close-review>Close</button></div>' +
-      '<div class="pmd-inv-r19-receipt-lines">' +
+      '<div class="pmd-inv-r19-receipt-lines pmd-inv-r24-receipt-lines">' +
       (review.lines.length ? review.lines.map(function (line, index) {
-        return '<div class="pmd-inv-r19-receipt-line" data-r19-bulk-line="' + index + '">' +
+        var existing = Number(line.item_id || 0) > 0
+          ? items().find(function (row) { return Number(row.id) === Number(line.item_id); })
+          : findExistingByName(line.item_name || '');
+        var defaultStorage = Number(line.storage_location_id || (existing && existing.default_storage_location_id) || 0);
+        return '<div class="pmd-inv-r19-receipt-line pmd-inv-r24-receipt-line" data-r19-bulk-line="' + index + '">' +
           '<label>Item<input type="text" value="' + esc(line.item_name || '') + '" data-r19-bulk-name></label>' +
           '<label>Qty<input type="number" min="0" step="0.01" value="' + esc(line.quantity == null ? '' : line.quantity) + '" data-r19-bulk-qty></label>' +
           '<label>Unit<select data-r19-bulk-unit>' + unitOptions(line.unit || 'piece') + '</select></label>' +
+          '<label>Base / unit<input type="number" min="0.0001" step="0.0001" value="' + esc(lineBaseQuantity(line)) + '" data-r19-bulk-base></label>' +
           '<label>Cost / unit<input type="number" min="0" step="0.01" value="' + esc(line.unit_cost == null ? 0 : line.unit_cost) + '" data-r19-bulk-cost></label>' +
+          '<label>Storage<select data-r19-bulk-storage>' + storageSelectOptions(defaultStorage, 'Main / default') + '</select></label>' +
+          '<label>Lot<input type="text" value="' + esc(line.lot_code || '') + '" placeholder="Optional" data-r19-bulk-lot></label>' +
+          '<label>Expiry<input type="date" value="' + esc(line.expiry_date || '') + '" data-r19-bulk-expiry></label>' +
           '<button type="button" data-r19-remove-bulk-line="' + index + '" aria-label="Remove">×</button>' +
         '</div>';
-      }).join('') : '<div class="pmd-inv-r19-empty">No purchase lines were detected. Use the catalogue or Custom item instead.</div>') +
+      }).join('') : '<div class="pmd-inv-r19-empty">No purchase lines were detected. Use the catalogue, scanner or Custom item instead.</div>') +
       '</div>' +
       (review.lines.length ? '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-confirm-bulk>Confirm purchase</button></div>' : '');
   }
@@ -1140,13 +1455,15 @@
     if (!state.bulkReview || state.busy) return;
     var lineNodes = Array.prototype.slice.call(workspace.querySelectorAll('[data-r19-bulk-line]'));
     var lines = lineNodes.map(function (node) {
+      var index = Number(node.getAttribute('data-r19-bulk-line'));
+      var sourceLine = state.bulkReview && state.bulkReview.lines
+        ? state.bulkReview.lines[index]
+        : null;
       var name = valueOf(node,'[data-r19-bulk-name]','').trim();
       var qty = Number(valueOf(node,'[data-r19-bulk-qty]',0));
       var unit = valueOf(node,'[data-r19-bulk-unit]','piece');
+      var baseQuantity = Math.max(0.0001,Number(valueOf(node,'[data-r19-bulk-base]',lineBaseQuantity(sourceLine || {}))));
       var cost = Number(valueOf(node,'[data-r19-bulk-cost]',0));
-      var sourceLine = state.bulkReview && state.bulkReview.lines
-        ? state.bulkReview.lines[Number(node.getAttribute('data-r19-bulk-line'))]
-        : null;
       var existing = sourceLine && Number(sourceLine.item_id || 0) > 0
         ? items().find(function (row) { return Number(row.id) === Number(sourceLine.item_id); })
         : findExistingByName(name);
@@ -1154,26 +1471,42 @@
       return {
         item_id:existing ? Number(existing.id) : 0,
         item_name:name,
-        category:template ? (template.category || '') : '',
+        category:template ? (template.category || '') : String(sourceLine && sourceLine.category || ''),
         quantity:qty,
         unit:unit,
-        unit_cost:cost
+        base_quantity:baseQuantity,
+        unit_cost:cost,
+        barcode:String(sourceLine && sourceLine.barcode || ''),
+        identifier_id:Number(sourceLine && sourceLine.identifier_id || 0),
+        supplier_item_id:Number(sourceLine && sourceLine.supplier_item_id || 0),
+        storage_location_id:Number(valueOf(node,'[data-r19-bulk-storage]',0)),
+        lot_code:valueOf(node,'[data-r19-bulk-lot]','').trim(),
+        expiry_date:valueOf(node,'[data-r19-bulk-expiry]','')
       };
     }).filter(function (line) { return line.item_name && line.quantity > 0; });
+
     if (!lines.length) return toast('Keep at least one purchase line with a quantity.', true);
+
     var payload = {
       receipt_id:Number(state.bulkReview.receiptId || 0),
+      supplier_id:Number(valueOf(workspace,'[data-r24-purchase-supplier-id]',0)),
       supplier_name:valueOf(workspace,'[data-r19-purchase-supplier]','').trim(),
+      invoice_number:valueOf(workspace,'[data-r24-purchase-invoice]','').trim(),
+      delivery_note_number:valueOf(workspace,'[data-r24-purchase-delivery-note]','').trim(),
       purchased_at:valueOf(workspace,'[data-r19-purchase-date]',todayKey()),
       lines:lines
     };
+
     setBusy(true);
     api.request('onSavePurchase', payload).then(applyActionSnapshot)
       .then(function () {
+        if (state.bulkReview && state.bulkReview.label === 'Barcode purchase') {
+          clearPersistedBarcodeReview();
+        }
         state.bulkReview = null;
         var host = workspace.querySelector('[data-r19-receipt-review]');
         if (host) host.hidden = true;
-        toast('Purchase added to stock.');
+        toast('Purchase added to stock with package, lot and storage details.');
         renderPurchaseGrid(true);
       })
       .catch(function (error) { toast(error.message || 'Could not confirm purchase.', true); })
@@ -1273,27 +1606,84 @@
     setText('[data-r19-waste-today]','Today · ' + money(summary.waste_cost_today || 0));
   }
 
+  function roundOrderQuantity(value, minimum, multiple) {
+    value = Math.max(0, Number(value || 0));
+    minimum = Math.max(0, Number(minimum || 0));
+    multiple = Math.max(0.0001, Number(multiple || 1));
+    if (value <= 0) return 0;
+    value = Math.max(value, minimum);
+    return Math.ceil((value - 0.0000001) / multiple) * multiple;
+  }
+
   function shoppingRows() {
     var days = Math.max(1, Number(state.shoppingDays || 1));
     return items().map(function (item) {
       var onHand = Math.max(0, Number(item.estimated_on_hand || 0));
       var par = Math.max(0, Number(item.par_level || 0));
-      var usageNeed = Math.max(0, Number(item.avg_daily_usage || 0) * days);
-      var desired = Math.max(par, usageNeed);
-      if (desired <= 0 && Number(item.reorder_point || 0) > 0 && onHand <= Number(item.reorder_point || 0)) {
-        desired = Number(item.reorder_point || 0);
+      var reorder = Math.max(0, Number(item.reorder_point || 0));
+      var safety = Math.max(0, Number(item.safety_stock || 0));
+      var supplierPackage = preferredSupplierItem(item.id);
+      var supplierLead = supplierPackage
+        ? (operationRows('suppliers').find(function (row) { return Number(row.id) === Number(supplierPackage.supplier_id); }) || {}).lead_time_days
+        : 0;
+      var lead = Math.max(0, Number(item.lead_time_days || supplierLead || 0));
+      var dailyUsage = Math.max(0, Number(item.avg_daily_usage || 0));
+      var demandWindow = dailyUsage * (days + lead);
+      var desired = Math.max(par, demandWindow + safety);
+
+      if (desired <= 0 && reorder > 0 && onHand <= reorder) {
+        desired = Math.max(reorder + safety, par);
       }
+
       var baseQty = Math.max(0, desired - onHand);
       if (baseQty <= .00005) return null;
-      var owner = ownerQuantity(item, baseQty);
-      var cost = owner.qty * Number(item.purchase_unit_cost || 0);
+
+      var qty;
+      var unit;
+      var factor;
+      var cost;
+      var supplier;
+      var supplierItemId = 0;
+
+      if (supplierPackage && Number(supplierPackage.base_quantity || 0) > 0) {
+        factor = Math.max(0.0001,Number(supplierPackage.base_quantity || 1));
+        qty = baseQty / factor;
+        var minimum = Math.max(
+          0,
+          Number(supplierPackage.minimum_order_qty || item.minimum_order_qty || 0)
+        );
+        var multiple = Math.max(
+          0.0001,
+          Number(supplierPackage.order_multiple || item.order_multiple || 1)
+        );
+        qty = roundOrderQuantity(qty, minimum, multiple);
+        unit = String(supplierPackage.package_unit || item.purchase_unit || item.unit || 'piece');
+        cost = qty * Number(supplierPackage.price || item.purchase_unit_cost || 0);
+        supplier = String(supplierPackage.supplier_name || item.supplier_name || 'Unassigned supplier');
+        supplierItemId = Number(supplierPackage.id || 0);
+      } else {
+        var owner = ownerQuantity(item, baseQty);
+        factor = owner.factor;
+        qty = roundOrderQuantity(
+          owner.qty,
+          Number(item.minimum_order_qty || 0),
+          Number(item.order_multiple || 1)
+        );
+        unit = owner.unit;
+        cost = qty * Number(item.purchase_unit_cost || 0);
+        supplier = String(item.supplier_name || 'Unassigned supplier');
+      }
+
       return {
         item:item,
-        qty:owner.qty,
-        unit:owner.unit,
-        factor:owner.factor,
+        qty:qty,
+        unit:unit,
+        factor:factor,
         estimatedCost:cost,
-        supplier:String(item.supplier_name || 'Unassigned supplier')
+        supplier:supplier,
+        supplierItemId:supplierItemId,
+        leadTime:lead,
+        safetyStock:safety
       };
     }).filter(Boolean).sort(function (a,b) {
       return a.supplier.localeCompare(b.supplier) || String(a.item.name).localeCompare(String(b.item.name));
@@ -1309,12 +1699,12 @@
     var summary = workspace.querySelector('[data-r19-shopping-summary]');
     if (summary) {
       summary.innerHTML = '<strong>' + esc(rows.length + ' item' + (rows.length === 1 ? '' : 's') + ' suggested') + '</strong>' +
-        '<span>Estimated purchase value ' + esc(money(total)) + ' · cover ' + esc(state.shoppingDays === 1 ? 'today' : state.shoppingDays + ' days') + '</span>';
+        '<span>Estimated purchase value ' + esc(money(total)) + ' · demand + lead time + safety stock · rounded to supplier packs</span>';
     }
     var host = workspace.querySelector('[data-r19-shopping-list]');
     if (!host) return;
     if (!rows.length) {
-      host.innerHTML = '<div class="pmd-inv-r19-empty">Current stock covers this period based on targets and recent usage.</div>';
+      host.innerHTML = '<div class="pmd-inv-r19-empty">Current stock covers this period based on targets, recent usage, lead time and safety stock.</div>';
       return;
     }
     var currentSupplier = null;
@@ -1324,9 +1714,15 @@
         currentSupplier = row.supplier;
         html += '<div class="pmd-inv-r19-shopping-supplier">' + esc(currentSupplier) + '</div>';
       }
-      html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) + '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) + '">' +
-        '<div><strong>' + esc(row.item.name) + '</strong><small>' + esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand') + '</small></div>' +
-        '<span>Need ' + esc(number(row.qty,2) + ' ' + row.unit) + '</span>' +
+      html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) +
+        '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) +
+        '" data-supplier-item="' + esc(row.supplierItemId) + '">' +
+        '<div><strong>' + esc(row.item.name) + '</strong><small>' +
+        esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand · ' +
+          (row.leadTime ? row.leadTime + 'd lead · ' : '') +
+          (row.safetyStock ? 'safety ' + num(row.safetyStock,2) + ' ' + row.item.unit : 'no safety target')) +
+        '</small></div>' +
+        '<span>Buy ' + esc(number(row.qty,2) + ' ' + row.unit) + '</span>' +
         '<input type="number" min="0" step="0.01" value="' + esc(Number(row.qty.toFixed(2))) + '" data-r19-shopping-qty>' +
         '<span>' + esc(money(row.estimatedCost)) + '</span>' +
       '</div>';
@@ -1339,11 +1735,17 @@
       var item = items().find(function (entry) { return Number(entry.id) === Number(node.getAttribute('data-r19-shopping-row')); });
       var qtyInput = node.querySelector('[data-r19-shopping-qty]');
       var qty = Number(qtyInput && qtyInput.value || 0);
+      var supplierItemId = Number(node.getAttribute('data-supplier-item') || 0);
+      var supplierPackage = operationRows('supplier_items').find(function (row) {
+        return Number(row.id) === supplierItemId;
+      });
       return item && qty > 0 ? {
         item:item,
         qty:qty,
         unit:String(node.getAttribute('data-unit') || item.purchase_unit || item.unit),
-        cost:Number(item.purchase_unit_cost || 0)
+        factor:Number(node.getAttribute('data-factor') || purchaseFactor(item)),
+        cost:Number(supplierPackage && supplierPackage.price || item.purchase_unit_cost || 0),
+        supplierItemId:supplierItemId
       } : null;
     }).filter(Boolean);
   }
@@ -1383,10 +1785,15 @@
       label:'Shopping draft',
       lines:rows.map(function (row) {
         return {
+          item_id:Number(row.item.id),
           item_name:row.item.name,
+          category:row.item.category || '',
           quantity:row.qty,
           unit:row.unit,
-          unit_cost:Number(row.item.purchase_unit_cost || 0)
+          base_quantity:row.factor,
+          unit_cost:row.cost,
+          supplier_item_id:row.supplierItemId,
+          storage_location_id:Number(row.item.default_storage_location_id || 0)
         };
       })
     };
@@ -1515,8 +1922,13 @@
     if (event.target.closest('[data-r19-barcode-new]')) {
       var pending = normalizedBarcode(state.pendingBarcode);
       if (pending) {
-        openPurchaseEditor(null, true, pending);
-        setBarcodeStatus('Create the item below; this code will be saved with it.', false);
+        openPurchaseEditor(null, true, pending, {
+          package_unit:valueOf(workspace,'[data-r24-barcode-package-unit]','piece'),
+          package_quantity:Number(valueOf(workspace,'[data-r24-barcode-package-qty]',1)),
+          base_quantity:Number(valueOf(workspace,'[data-r24-barcode-base-qty]',1)),
+          supplier_id:Number(valueOf(workspace,'[data-r24-barcode-supplier]',0))
+        });
+        setBarcodeStatus('Create the item below; its package conversion and code will be saved with it.', false);
       }
       return;
     }
@@ -1545,10 +1957,12 @@
     if (removeBulk && state.bulkReview) {
       var idx = Number(removeBulk.getAttribute('data-r19-remove-bulk-line'));
       state.bulkReview.lines.splice(idx,1);
+      if (state.bulkReview.label === 'Barcode purchase') persistBarcodeReview();
       renderBulkReview();
       return;
     }
     if (event.target.closest('[data-r19-close-review]')) {
+      if (state.bulkReview && state.bulkReview.label === 'Barcode purchase') clearPersistedBarcodeReview();
       state.bulkReview = null;
       var review = workspace.querySelector('[data-r19-receipt-review]');
       if (review) review.hidden = true;
@@ -1631,6 +2045,10 @@
   });
 
   workspace.addEventListener('change', function (event) {
+    if (event.target.matches('[data-r19-count-blind]')) {
+      refreshCountPrivacy();
+      return;
+    }
     if (event.target.matches('[data-r19-receipt-input]')) {
       scanReceipt(event.target.files && event.target.files[0]);
     }
@@ -1643,6 +2061,7 @@
 
   buildCatalogIndex();
   renderKpis();
+  restoreBarcodeReview();
 
   var initialMode = 'overview';
   if (!embedded) {
@@ -1654,7 +2073,7 @@
   setMode(initialMode);
 
   window.PMDInventoryWorkspaceR19 = {
-    version:'23.0.0',
+    version:'24.0.0',
     setMode:setMode,
     refresh:function () {
       return api.refresh().then(function () {
