@@ -527,6 +527,91 @@ final class PmdInventoryOperationsService
         return $id;
     }
 
+    public function bulkUpsertItems(int $locationId, ?int $staffId, array $rows): array
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $rows = array_slice($rows, 0, 500);
+
+        $created = 0;
+        $updated = 0;
+        $errors = [];
+        $control = app(PmdInventoryControlService::class);
+
+        foreach ($rows as $index => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $name = trim((string)($row['name'] ?? $row['item_name'] ?? ''));
+            if ($name === '') {
+                $errors[] = ['row' => $index + 2, 'message' => 'Item name is missing.'];
+                continue;
+            }
+
+            try {
+                $existingId = (int)DB::table('pmd_inventory_items')
+                    ->where('location_id', $locationId)
+                    ->where('active', 1)
+                    ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                    ->value('id');
+
+                $payload = [
+                    'item_id' => $existingId,
+                    'name' => $name,
+                    'sku' => (string)($row['sku'] ?? ''),
+                    'category' => (string)($row['category'] ?? ''),
+                    'base_unit' => (string)($row['base_unit'] ?? $row['unit'] ?? 'piece'),
+                    'purchase_unit' => (string)($row['purchase_unit'] ?? $row['unit'] ?? 'piece'),
+                    'purchase_to_base' => $row['purchase_to_base'] ?? $row['base_quantity'] ?? 1,
+                    'purchase_cost' => $row['purchase_cost'] ?? $row['unit_cost'] ?? 0,
+                    'reorder_point' => $row['reorder_point'] ?? 0,
+                    'par_level' => $row['par_level'] ?? 0,
+                    'safety_stock' => $row['safety_stock'] ?? 0,
+                    'lead_time_days' => $row['lead_time_days'] ?? 0,
+                    'minimum_order_qty' => $row['minimum_order_qty'] ?? 0,
+                    'order_multiple' => $row['order_multiple'] ?? 1,
+                    'supplier_name' => (string)($row['supplier_name'] ?? $row['supplier'] ?? ''),
+                    'image_url' => (string)($row['image_url'] ?? ''),
+                    'expiry_tracking' => !empty($row['expiry_tracking']) && !in_array(
+                        strtolower((string)$row['expiry_tracking']),
+                        ['0', 'false', 'no', 'off'],
+                        true
+                    ),
+                    'costing_method' => (string)($row['costing_method'] ?? 'weighted_average'),
+                ];
+
+                $itemId = $control->saveItem($locationId, $staffId, $payload);
+                $existingId > 0 ? $updated++ : $created++;
+
+                $barcode = trim((string)($row['barcode'] ?? $row['gtin'] ?? $row['ean'] ?? ''));
+                if ($barcode !== '') {
+                    $this->saveIdentifier($locationId, $staffId, [
+                        'item_id' => $itemId,
+                        'code' => $barcode,
+                        'package_unit' => (string)($row['package_unit'] ?? $payload['purchase_unit']),
+                        'package_quantity' => $row['package_quantity'] ?? 1,
+                        'base_quantity' => $row['base_quantity'] ?? $payload['purchase_to_base'],
+                        'source' => 'csv_import',
+                        'is_primary' => !empty($row['barcode_primary']),
+                    ]);
+                }
+            } catch (\Throwable $error) {
+                $errors[] = [
+                    'row' => $index + 2,
+                    'item' => $name,
+                    'message' => $error->getMessage(),
+                ];
+            }
+        }
+
+        return [
+            'created' => $created,
+            'updated' => $updated,
+            'errors' => $errors,
+        ];
+    }
+
     public function mergeItems(int $locationId, ?int $staffId, int $sourceItemId, int $targetItemId): void
     {
         $this->assertReady();
