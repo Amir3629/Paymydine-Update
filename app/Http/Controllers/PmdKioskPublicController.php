@@ -37,10 +37,18 @@ final class PmdKioskPublicController
             'resetUrl' => url('/kiosk-reset/'),
         ];
 
-        return response()
-            ->view('pmd.kiosk-terminal', [
+        // TastyIgniter's runtime view finder does not include resources/views
+        // on this deployment. Render the standalone kiosk Blade by absolute
+        // file path, matching the proven public-booking pattern.
+        $html = view()->file(
+            base_path('resources/views/pmd/kiosk-terminal.blade.php'),
+            [
                 'pmdKioskConfig' => $config,
-            ])
+            ]
+        )->render();
+
+        return response($html, 200)
+            ->header('Content-Type', 'text/html; charset=UTF-8')
             ->header('Cache-Control', 'private, no-store, max-age=0')
             ->header('Pragma', 'no-cache')
             ->header('X-PMD-Kiosk-Authority', 'blade-v8');
@@ -48,10 +56,15 @@ final class PmdKioskPublicController
 
     public function reset(Request $request)
     {
-        return response()
-            ->view('pmd.kiosk-reset', [
+        $html = view()->file(
+            base_path('resources/views/pmd/kiosk-reset.blade.php'),
+            [
                 'session' => trim((string)$request->query('kiosk_session', 'kiosk')),
-            ])
+            ]
+        )->render();
+
+        return response($html, 200)
+            ->header('Content-Type', 'text/html; charset=UTF-8')
             ->header('Cache-Control', 'private, no-store, max-age=0')
             ->header('Pragma', 'no-cache')
             ->header('X-PMD-Kiosk-Authority', 'blade-v8-reset');
