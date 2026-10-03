@@ -2,7 +2,7 @@ name: PayMyDine Device App V5
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
@@ -148,6 +148,9 @@ jobs:
           grep -Fq 'PMD_KIOSK_SERVICE_CHROME_GUARD_V6_1' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/SharedPieces.tsx
           grep -Fq 'PMD_KIOSK_SERVICE_RUNTIME_GUARD_V6_1' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/MenuRuntimeContext.tsx
           grep -Fq 'data-pmd-kiosk-checkout={isKiosk ? "v6.1" : undefined}' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/RuntimeOverlays.tsx
+          test -f frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/kiosk/KioskTerminal.tsx
+          grep -Fq 'data-pmd-kiosk-terminal="v7"' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/kiosk/KioskTerminal.tsx
+          grep -Fq '<KioskTerminal />' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/CustomerMenuRoute.tsx
           test -f frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/app/kiosk/page.tsx
           test -f frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/app/kiosk-reset/page.tsx
           grep -Fq "mode: 'kiosk'" frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/app/CustomerMenuRoute.tsx
@@ -155,6 +158,9 @@ jobs:
           grep -Fq 'PMD_KIOSK_SERVICE_RUNTIME_GUARD_V6_1' frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/src/runtime/MenuRuntimeContext.tsx
           grep -Fq 'PMD_KIOSK_SERVICE_CHROME_GUARD_V6_1' frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/src/runtime/components/SharedPieces.tsx
           grep -Fq 'data-pmd-kiosk-checkout={isKiosk ? "v6.1" : undefined}' frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/src/runtime/components/RuntimeOverlays.tsx
+          test -f frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/src/kiosk/KioskTerminal.tsx
+          grep -Fq 'data-pmd-kiosk-terminal="v7"' frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/src/kiosk/KioskTerminal.tsx
+          grep -Fq '<KioskTerminal />' frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/app/CustomerMenuRoute.tsx
 
   android:
     runs-on: ubuntu-latest
