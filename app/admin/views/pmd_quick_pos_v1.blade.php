@@ -1114,7 +1114,8 @@ window.PMD_RESERVATION_COMPOSER_V1 = Object.freeze({
     initialCreateBootstrap: null
 });
 </script>
-<script defer src="/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20260928-r129"></script>
+{{-- PMD_QPOS_MINIMAL_BOOT_R135
+     Reservation Composer is loaded only when Reservations is opened. --}}
 
 <script>
 window.PMDQuickPOSConfig = {
@@ -1143,21 +1144,157 @@ window.PMDQuickPOSConfig = {
      push and site-access runtimes parse after the core POS boot. --}}
 {{-- PMD_QPOS_LAZY_FLOOR_BOOT_R134
      Heavy Floor runtimes load only on the first explicit Map open. --}}
-{{-- PMD_QPOS_PUSH_NOTIFICATIONS_V57
-     Reuse the canonical Admin push stream for immediate notifications.
-     V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
-<script defer src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
 {{-- PMD_QPOS_OFFLINE_COMPLETE_CACHE_BUSTER_V94 --}}
 @if($pmdAndroidWebParityV112)
 {{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
      Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
      cannot substitute an older bundled runtime. --}}
-<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20261003-r134"></script>
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20261003-r135"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261003-r134"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261003-r135"></script>
 @endif
-<script defer src="/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261001-r2"></script>
-<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129"></script>
-<script defer src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
+
+{{-- PMD_QPOS_MINIMAL_BOOT_R135
+     Only the core POS runtime participates in initial document boot.
+     Reservation Composer/Reservations load on first Reservations click.
+     Table-device payment loads on first Pay click.
+     Push + Site Access load only after the document load event, so they can
+     never hold Safari's initial POS document in a loading state. --}}
+<script>
+(function () {
+    'use strict';
+
+    var loads = Object.create(null);
+
+    function loadScript(id, src, ready) {
+        if (typeof ready === 'function' && ready()) {
+            return Promise.resolve(true);
+        }
+
+        if (loads[id]) {
+            return loads[id];
+        }
+
+        loads[id] = new Promise(function (resolve, reject) {
+            var existing = document.getElementById(id);
+            if (existing) {
+                existing.addEventListener('load', function () { resolve(true); }, { once: true });
+                existing.addEventListener('error', reject, { once: true });
+                return;
+            }
+
+            var script = document.createElement('script');
+            script.id = id;
+            script.async = true;
+            script.src = src;
+            script.setAttribute('data-qpos-lazy-r135', '1');
+            script.onload = function () { resolve(true); };
+            script.onerror = function () {
+                delete loads[id];
+                reject(new Error('Failed to load ' + src));
+            };
+            (document.head || document.documentElement).appendChild(script);
+        });
+
+        return loads[id];
+    }
+
+    function loadReservations() {
+        return loadScript(
+            'pmd-qpos-composer-r135',
+            '/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20260928-r129',
+            function () { return !!window.PMDReservationComposerV1; }
+        ).then(function () {
+            return loadScript(
+                'pmd-qpos-reservations-r135',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129',
+                function () { return !!window.PMDQuickReservationsR136; }
+            );
+        });
+    }
+
+    function loadTablePayment() {
+        return loadScript(
+            'pmd-qpos-table-payment-r135',
+            '/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261001-r2',
+            function () { return !!window.PMDTableDisplayWaiterPaymentV1; }
+        );
+    }
+
+    function loadBackgroundExtras() {
+        loadScript(
+            'pmd-qpos-push-r135',
+            '/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59',
+            function () {
+                return window.PushNotificationManagerInitialized === true
+                    || window.PushNotificationManagerInitialized === 'claiming';
+            }
+        ).catch(function (error) {
+            console.warn('[PMD Quick POS R135] Push runtime deferred load failed', error);
+        });
+
+        loadScript(
+            'pmd-qpos-site-access-r135',
+            '/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16',
+            function () { return !!window.PMDSiteAccessHubV12Generation; }
+        ).catch(function (error) {
+            console.warn('[PMD Quick POS R135] Site Access runtime deferred load failed', error);
+        });
+    }
+
+    document.addEventListener('click', function (event) {
+        var target = event.target && event.target.closest
+            ? event.target.closest('[data-qpos-workspace-switch="reservations"], [data-qpos-pay]')
+            : null;
+
+        if (!target) return;
+
+        if (target.matches('[data-qpos-pay]')) {
+            loadTablePayment().catch(function (error) {
+                console.warn('[PMD Quick POS R135] Table payment runtime load failed', error);
+            });
+            return;
+        }
+
+        if (
+            target.matches('[data-qpos-workspace-switch="reservations"]')
+            && !window.PMDQuickReservationsR136
+            && target.getAttribute('data-qpos-r135-replay') !== '1'
+        ) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            target.disabled = true;
+
+            loadReservations().then(function () {
+                target.disabled = false;
+                target.setAttribute('data-qpos-r135-replay', '1');
+                target.click();
+                target.removeAttribute('data-qpos-r135-replay');
+            }).catch(function (error) {
+                target.disabled = false;
+                console.error('[PMD Quick POS R135] Reservations runtime load failed', error);
+            });
+        }
+    }, true);
+
+    var root = document.getElementById('pmd-quick-pos');
+    if (root && root.getAttribute('data-workspace') === 'reservations') {
+        loadReservations().catch(function (error) {
+            console.error('[PMD Quick POS R135] Initial Reservations runtime load failed', error);
+        });
+    }
+
+    window.addEventListener('load', function () {
+        window.setTimeout(loadBackgroundExtras, 1200);
+    }, { once: true });
+
+    window.PMDQuickPOSMinimalBootR135 = {
+        version: 'r135',
+        loadReservations: loadReservations,
+        loadTablePayment: loadTablePayment,
+        loadBackgroundExtras: loadBackgroundExtras
+    };
+})();
+</script>
 </body>
 </html>
