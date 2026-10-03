@@ -425,6 +425,13 @@ return new class extends Migration
                     $table->unsignedBigInteger('reversed_by')->nullable()->index();
                 });
             }
+
+            if (!$schema->hasColumn('pmd_inventory_receipts', 'purchase_order_id')) {
+                $schema->table('pmd_inventory_receipts', function (Blueprint $table): void {
+                    $table->unsignedBigInteger('purchase_order_id')->nullable()->index();
+                    $table->text('reconciliation_json')->nullable();
+                });
+            }
         }
     }
 };
