@@ -857,7 +857,10 @@
         (custom && state.purchaseSelection.barcode ? '<label>Barcode / QR<input type="text" readonly value="' + esc(state.purchaseSelection.barcode) + '" data-r19-receive-barcode></label>' : '') +
         '<label>Quantity<input type="number" min="0.0001" step="0.01" value="1" data-r19-receive-qty></label>' +
         '<label>Unit<select data-r19-receive-unit>' + unitOptions(unit) + '</select></label>' +
+        (custom && state.purchaseSelection.barcode ? '<label>1 scanned unit = base qty<input type="number" min="0.0001" step="0.0001" value="1" data-r19-receive-factor></label>' : '') +
         '<label>Cost / unit<input type="number" min="0" step="0.01" value="' + esc(cost) + '" data-r19-receive-cost></label>' +
+        '<label>Lot / batch code<input type="text" placeholder="Optional" data-r19-receive-lot></label>' +
+        '<label>Expiry date<input type="date" data-r19-receive-expiry></label>' +
       '</div>' +
       '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-submit-purchase>Add to stock</button></div>';
     host.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -887,7 +890,10 @@
         quantity:qty,
         unit:unit,
         unit_cost:cost,
-        barcode:custom ? normalizedBarcode(selection.barcode) : ''
+        barcode:custom ? normalizedBarcode(selection.barcode) : '',
+        base_quantity_per_unit:Number(valueOf(host,'[data-r19-receive-factor]',0)),
+        lot_code:valueOf(host,'[data-r19-receive-lot]',''),
+        expiry_date:valueOf(host,'[data-r19-receive-expiry]','')
       }]
     };
     setBusy(true);
