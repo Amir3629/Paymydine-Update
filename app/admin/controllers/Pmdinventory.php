@@ -252,6 +252,50 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onBulkImportInventory(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $rows = request()->input('rows', []);
+            if (is_string($rows)) {
+                $decoded = json_decode($rows, true);
+                $rows = is_array($decoded) ? $decoded : [];
+            }
+            if (!is_array($rows)) {
+                $rows = [];
+            }
+
+            $result = app(PmdInventoryOperationsService::class)
+                ->bulkUpsertItems($this->locationId(), $this->staffId(), $rows);
+
+            return [
+                'import' => $result,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onMergeInventoryItems(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryOperationsService::class)->mergeItems(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('source_item_id', 0),
+                (int)request()->input('target_item_id', 0)
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onSaveStorageLocation(): JsonResponse
     {
         $this->assertOwnerOrManager();
