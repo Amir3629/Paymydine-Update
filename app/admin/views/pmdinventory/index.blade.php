@@ -650,6 +650,7 @@
                                 <select data-r24-return-item></select>
                                 <select data-r24-return-supplier><option value="">Supplier · optional</option></select>
                                 <select data-r24-return-lot><option value="">Lot · optional</option></select>
+                                <select data-r24-return-storage></select>
                                 <input type="number" min="0.0001" step="0.01" placeholder="Quantity in base unit" data-r24-return-qty>
                                 <input type="text" placeholder="Reason" value="Return to supplier" data-r24-return-reason>
                                 <input type="text" placeholder="Note · optional" data-r24-return-note>
