@@ -185,6 +185,12 @@
     var itemSelect = workspace.querySelector('[data-r24-offer-item]');
     if (supplierSelect) supplierSelect.innerHTML = supplierOptions(supplierSelect.value, false);
     if (itemSelect) itemSelect.innerHTML = itemOptions(itemSelect.value);
+
+    var purchaseSupplier = workspace.querySelector('[data-r19-purchase-supplier-id]');
+    if (purchaseSupplier) {
+      var currentPurchaseSupplier = purchaseSupplier.value;
+      purchaseSupplier.innerHTML = supplierOptions(currentPurchaseSupplier, true);
+    }
   }
 
   function renderOrders() {
@@ -338,6 +344,13 @@
 
     renderLotPicker('[data-r24-transfer-item]', '[data-r24-transfer-lot]');
     renderLotPicker('[data-r24-return-item]', '[data-r24-return-lot]');
+
+    var purchaseStorage = workspace.querySelector('[data-r19-purchase-storage]');
+    if (purchaseStorage) {
+      var currentPurchaseStorage = purchaseStorage.value || String((snap().inventory_settings || {}).default_storage_id || '');
+      purchaseStorage.innerHTML = storageOptions(currentPurchaseStorage, true);
+      if (currentPurchaseStorage) purchaseStorage.value = currentPurchaseStorage;
+    }
   }
 
   function renderLotPicker(itemSelector, lotSelector) {
@@ -1309,6 +1322,14 @@
     }
     if (event.target.matches('[data-r24-return-item]')) {
       renderLotPicker('[data-r24-return-item]', '[data-r24-return-lot]');
+      return;
+    }
+    if (event.target.matches('[data-r19-purchase-supplier-id]')) {
+      var supplier = suppliers().find(function (row) {
+        return Number(row.id) === Number(event.target.value || 0);
+      });
+      var supplierName = workspace.querySelector('[data-r19-purchase-supplier]');
+      if (supplier && supplierName) supplierName.value = supplier.name;
     }
   });
 
