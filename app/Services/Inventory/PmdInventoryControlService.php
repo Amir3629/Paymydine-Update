@@ -1358,6 +1358,7 @@ final class PmdInventoryControlService
             $staffId,
             $data,
             $lines,
+            $activeItemIds,
             $expected,
             $costs
         ) {
@@ -1404,6 +1405,28 @@ final class PmdInventoryControlService
                     'expected_qty' => $expectedQty,
                     'counted_qty' => $counted,
                     'variance_qty' => round($counted - $expectedQty, 4),
+                    'unit_cost_snapshot' => (float)($costs[$itemId] ?? 0),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            // Partial counts still need a complete new baseline for the core
+            // inventory calculation. Carry uncounted items forward at their
+            // current expected quantity with zero variance; scope_json tells
+            // the audit UI which items were physically counted.
+            foreach ($activeItemIds as $itemId) {
+                if (isset($seen[$itemId]) || !array_key_exists($itemId, $expected)) {
+                    continue;
+                }
+
+                $expectedQty = max(0, (float)$expected[$itemId]);
+                DB::table('pmd_inventory_count_lines')->insert([
+                    'count_id' => $countId,
+                    'item_id' => $itemId,
+                    'expected_qty' => $expectedQty,
+                    'counted_qty' => $expectedQty,
+                    'variance_qty' => 0,
                     'unit_cost_snapshot' => (float)($costs[$itemId] ?? 0),
                     'created_at' => now(),
                     'updated_at' => now(),
