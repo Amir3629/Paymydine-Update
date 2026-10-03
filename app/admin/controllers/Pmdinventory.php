@@ -471,7 +471,28 @@ class Pmdinventory extends AdminController
                 request()->all()
             );
 
-            return ['count_id' => $id];
+            return [
+                'count_id' => $id,
+                'count_draft' => app(PmdInventoryControlService::class)
+                    ->countDraft($this->locationId(), $this->staffId(), $id),
+            ];
+        });
+    }
+
+    public function onSaveCountProgress(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryControlService::class)->saveCountProgress(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('count_id', 0),
+                (int)request()->input('item_id', 0),
+                (float)request()->input('counted_qty', 0)
+            );
+
+            return ['saved' => true];
         });
     }
 
