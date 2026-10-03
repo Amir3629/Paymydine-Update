@@ -466,6 +466,10 @@
                     <div class="pmd-inv-r24-orders" data-r24-orders-list></div>
                     <section class="pmd-inv-r24-editor" data-r24-po-editor hidden></section>
                     <section class="pmd-inv-r24-editor" data-r24-receive-editor hidden></section>
+                    <div class="pmd-inv-r24-receipts">
+                        <div class="pmd-inv-r19-history__head"><h3>Recent receipts</h3><span>Supplier · invoice · total · audit</span></div>
+                        <div data-r24-receipt-list></div>
+                    </div>
                 </section>
 
                 <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r19-pane="suppliers" hidden>
