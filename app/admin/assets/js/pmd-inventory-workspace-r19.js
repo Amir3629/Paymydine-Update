@@ -1669,7 +1669,7 @@
         ? (operationRows('suppliers').find(function (row) { return Number(row.id) === Number(supplierPackage.supplier_id); }) || {}).lead_time_days
         : 0;
       var lead = Math.max(0, Number(item.lead_time_days || supplierLead || 0));
-      var dailyUsage = Math.max(0, Number(item.avg_daily_usage || 0));
+      var dailyUsage = Math.max(0, Number(item.forecast_daily_usage || item.avg_daily_usage || 0));
       var demandWindow = dailyUsage * (days + lead);
       var desired = Math.max(par, demandWindow + safety);
 
