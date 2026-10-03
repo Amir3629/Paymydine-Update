@@ -281,6 +281,25 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onBulkImportStock(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $result = app(PmdInventoryOperationsService::class)->bulkImportItems(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'import' => $result,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onCreatePurchaseOrder(): JsonResponse
     {
         $this->assertOwnerOrManager();
