@@ -691,6 +691,52 @@ final class PmdInventoryOperationsService
         });
     }
 
+    public function updatePurchaseOrderStatus(
+        int $locationId,
+        ?int $staffId,
+        int $purchaseOrderId,
+        string $status
+    ): void {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $status = strtolower(trim($status));
+        $allowed = ['draft', 'sent', 'cancelled', 'closed'];
+
+        if (!in_array($status, $allowed, true)) {
+            throw new InvalidArgumentException('Unsupported purchase-order status.');
+        }
+
+        $po = DB::table('pmd_inventory_purchase_orders')
+            ->where('location_id', $locationId)
+            ->where('id', $purchaseOrderId)
+            ->first();
+
+        if (!$po) {
+            throw new InvalidArgumentException('Purchase order was not found.');
+        }
+        if (in_array((string)$po->status, ['received', 'closed', 'cancelled'], true)
+            && $status !== 'closed') {
+            throw new InvalidArgumentException('This purchase order can no longer change status.');
+        }
+
+        $payload = [
+            'status' => $status,
+            'updated_at' => now(),
+        ];
+
+        if ($status === 'sent') {
+            $payload['sent_at'] = now();
+            $payload['ordered_at'] = $po->ordered_at ?: now()->toDateString();
+        }
+        if ($status === 'closed') {
+            $payload['received_at'] = $po->received_at ?: now();
+        }
+
+        DB::table('pmd_inventory_purchase_orders')
+            ->where('id', $purchaseOrderId)
+            ->update($payload);
+    }
+
     public function receivePurchaseOrder(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
@@ -1100,6 +1146,46 @@ final class PmdInventoryOperationsService
         }
 
         return ['batch_id' => $batchId, 'storage_location_id' => $storageId];
+    }
+
+    public function assertInvoiceNumberUnique(
+        int $locationId,
+        ?int $supplierId,
+        ?string $supplierName,
+        ?string $invoiceNumber,
+        int $exceptReceiptId = 0
+    ): void {
+        if (!$this->ready()) {
+            return;
+        }
+
+        $invoiceNumber = trim((string)$invoiceNumber);
+        if ($invoiceNumber === '' || !Schema::hasColumn('pmd_inventory_receipts', 'invoice_number')) {
+            return;
+        }
+
+        $query = DB::table('pmd_inventory_receipts')
+            ->where('location_id', $locationId)
+            ->whereRaw('LOWER(invoice_number) = ?', [mb_strtolower($invoiceNumber)])
+            ->when($exceptReceiptId > 0, fn ($q) => $q->where('id', '<>', $exceptReceiptId))
+            ->where(function ($q) {
+                $q->whereNotNull('confirmed_at')
+                    ->orWhereIn('status', ['review', 'confirmed']);
+            });
+
+        if ($supplierId && $supplierId > 0) {
+            $query->where('supplier_id', $supplierId);
+        } elseif (trim((string)$supplierName) !== '') {
+            $query->whereRaw('LOWER(COALESCE(supplier_name, "")) = ?', [
+                mb_strtolower(trim((string)$supplierName)),
+            ]);
+        }
+
+        if ($query->exists()) {
+            throw new InvalidArgumentException(
+                'This supplier invoice number already exists. Open the existing receipt or reverse it instead of receiving it twice.'
+            );
+        }
     }
 
     public function assertReceiptHashUnique(int $locationId, ?string $hash, int $exceptReceiptId = 0): void
