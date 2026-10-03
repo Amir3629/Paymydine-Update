@@ -689,24 +689,47 @@
     if (editor) editor.hidden = true;
     if (grid) grid.hidden = true;
 
+    var settings = snapshot().inventory_settings || {};
+    var blind = Boolean(settings.blind_counts);
+    var countItems = items().slice();
+
+    // Count the operator's current Stock scope. Uncounted items are carried
+    // forward by the service, so a bar/fridge/category count is safe.
+    countItems = filterByHierarchy(countItems, state.stockMain, state.stockSub);
+    if (state.stockSearch) {
+      var q = normalize(state.stockSearch);
+      countItems = countItems.filter(function (item) {
+        return normalize([item.name,item.category,item.sku].join(' ')).indexOf(q) !== -1;
+      });
+    }
+    if (!countItems.length) countItems = items().slice();
+
     host.hidden = false;
+    host.setAttribute('data-r24-blind-count', blind ? '1' : '0');
     host.innerHTML =
       '<div class="pmd-inv-r19-count-head"><div><h3>Physical count</h3>' +
-      '<small>Enter what is physically there now. Every active item is required so the new baseline stays complete.</small></div>' +
+      '<small>' + (blind
+        ? 'Blind count is on. Enter only what you are checking; expected quantities stay hidden until completion.'
+        : 'Count this stock scope. Leave an item blank if it is outside today’s count; its current baseline will be carried forward.') +
+      '</small></div>' +
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-cancel-count>Cancel</button></div>' +
       '<div class="pmd-inv-r19-count-list">' +
-      items().map(function (item) {
+      countItems.map(function (item) {
         var owner = ownerQuantity(item, item.estimated_on_hand);
         return '<div class="pmd-inv-r19-count-row" data-r19-count-row="' + esc(item.id) + '">' +
           '<strong>' + esc(item.name) + '<span>' + esc(item.category || '') + '</span></strong>' +
-          '<span>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>' +
+          (blind
+            ? '<span class="pmd-inv-r24-blind-label">Expected hidden</span>'
+            : '<span>Expected ' + esc(number(owner.qty,2) + ' ' + owner.unit) + '</span>') +
           '<input type="number" min="0" step="0.01" placeholder="Actual ' + esc(owner.unit) + '" data-r19-count-input data-factor="' + esc(owner.factor) + '">' +
-          '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Variance —</span>' +
+          (blind
+            ? '<span class="pmd-inv-r19-count-variance">Variance hidden</span>'
+            : '<span class="pmd-inv-r19-count-variance" data-r19-count-variance>Variance —</span>') +
         '</div>';
       }).join('') +
       '</div>' +
-      '<div class="pmd-inv-r19-editor-fields" style="margin-top:10px"><label class="is-wide">Count note<input type="text" placeholder="Optional" data-r19-count-note></label></div>' +
-      '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-complete-count>Complete count</button></div>';
+      '<div class="pmd-inv-r19-editor-fields" style="margin-top:10px"><label class="is-wide">Count note<input type="text" placeholder="Optional · e.g. Bar close count" data-r19-count-note></label></div>' +
+      '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-complete-count>Complete scoped count</button></div>';
   }
 
   function cancelCount() {
@@ -719,6 +742,8 @@
   function updateCountVariance(input) {
     var row = input.closest('[data-r19-count-row]');
     if (!row) return;
+    var countHost = workspace.querySelector('[data-r19-count]');
+    if (countHost && countHost.getAttribute('data-r24-blind-count') === '1') return;
     var item = items().find(function (entry) { return Number(entry.id) === Number(row.getAttribute('data-r19-count-row')); });
     var output = row.querySelector('[data-r19-count-variance]');
     if (!item || !output) return;
@@ -740,16 +765,17 @@
     var lines = [];
     for (var i = 0; i < rows.length; i += 1) {
       var input = rows[i].querySelector('[data-r19-count-input]');
-      if (!input || input.value === '') {
-        toast('Enter the physical quantity for every stock item.', true);
-        if (input) input.focus();
-        return;
-      }
+      if (!input || input.value === '') continue;
       lines.push({
         item_id:Number(rows[i].getAttribute('data-r19-count-row')),
         counted_qty:Number(input.value || 0) * Number(input.getAttribute('data-factor') || 1)
       });
     }
+    if (!lines.length) {
+      toast('Enter at least one physical quantity for this count.', true);
+      return;
+    }
+
     setBusy(true);
     api.request('onCompleteCount', {
       lines:lines,
@@ -757,80 +783,12 @@
     }).then(applyActionSnapshot)
       .then(function () {
         cancelCount();
-        toast('Physical count completed.');
+        toast('Physical count completed. Uncounted stock kept its current baseline.');
       })
-      .catch(function (error) { toast(error.message || 'Could not complete count.', true); })
+      .catch(function (error) {
+        toast(error.message || 'Could not complete the physical count.', true);
+      })
       .finally(function () { setBusy(false); });
-  }
-
-  function catalogSearchScore(row, query) {
-    query = normalize(query);
-    if (!query) return 1;
-    var name = normalize(row.name);
-    var aliases = Array.isArray(row.aliases) ? row.aliases.map(normalize) : [];
-    var hay = normalize([row.name,row.category,(row.aliases || []).join(' ')].join(' '));
-    if (name === query) return 100;
-    if (name.indexOf(query) === 0) return 90;
-    if (aliases.indexOf(query) !== -1) return 95;
-    if (hay.indexOf(query) !== -1) return 70;
-    return 0;
-  }
-
-  function preloadRows(rows) {
-    var urls = [];
-    rows.forEach(function (row) {
-      var url = String(row.image_url || '');
-      if (url && urls.indexOf(url) === -1) urls.push(url);
-    });
-    if (!urls.length) return Promise.resolve();
-    return Promise.all(urls.map(function (url) {
-      return new Promise(function (resolve) {
-        var image = new Image();
-        var done = function () { resolve(); };
-        image.onload = done;
-        image.onerror = done;
-        image.decoding = 'async';
-        image.src = url;
-        if (image.complete) resolve();
-      });
-    }));
-  }
-
-  function purchaseRows() {
-    var rows = catalog().slice();
-    var query = state.purchaseSearch;
-    if (query) {
-      return rows.map(function (row) { return {row:row,score:catalogSearchScore(row,query)}; })
-        .filter(function (entry) { return entry.score > 0; })
-        .sort(function (a,b) { return b.score - a.score || String(a.row.name).localeCompare(String(b.row.name)); })
-        .map(function (entry) { return entry.row; });
-    }
-    rows = filterByHierarchy(rows, state.purchaseMain, state.purchaseSub);
-    rows.sort(function (a,b) { return String(a.name).localeCompare(String(b.name)); });
-    return rows;
-  }
-
-  function renderPurchaseCategories() {
-    var rows = catalog();
-    renderMainCategories(workspace.querySelector('[data-r19-purchase-main]'), rows, state.purchaseMain, 'data-r19-purchase-main-key');
-    renderSubcategories(workspace.querySelector('[data-r19-purchase-sub]'), rows, state.purchaseMain, state.purchaseSub, 'data-r19-purchase-sub-key');
-  }
-
-  function productCardHtml(row) {
-    var existing = existingItemForCatalog(row);
-    return '<button type="button" class="pmd-inv-r19-product-card" data-r19-purchase-item="' + esc(row._r19Index) + '">' +
-      '<span class="pmd-inv-r19-product-card__media">' +
-        (row.image_url ? '<img src="' + esc(row.image_url) + '" alt="" loading="lazy" decoding="async">' : '') +
-      '</span>' +
-      '<span class="pmd-inv-r19-product-card__copy"><strong>' + esc(row.name) + '</strong>' +
-      '<small>' + esc((existing ? 'In stock · ' : '') + (row.category || 'Stock item') + ' · buy ' + (row.purchase_unit || row.unit || 'piece')) + '</small></span>' +
-    '</button>';
-  }
-
-  function customCardHtml() {
-    return '<button type="button" class="pmd-inv-r19-custom-card" data-r19-custom-purchase>' +
-      '<div><span>+</span><strong>Custom item</strong><small>Receive something not in the catalogue</small></div>' +
-    '</button>';
   }
 
   function renderPurchaseGrid(reset) {
