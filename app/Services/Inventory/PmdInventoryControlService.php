@@ -729,7 +729,7 @@ final class PmdInventoryControlService
         );
         $cost = $purchaseCost / $purchaseToBase;
 
-        $id = (int)DB::table('pmd_inventory_items')->insertGetId([
+        $insert = [
             'location_id' => $locationId,
             'name' => mb_substr($name, 0, 190),
             'sku' => $this->nullableText($data['sku'] ?? null, 120),
@@ -751,7 +751,25 @@ final class PmdInventoryControlService
             'created_by' => $staffId,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        if (Schema::hasColumn('pmd_inventory_items', 'safety_stock')) {
+            $insert['safety_stock'] = round(
+                max(0, $this->number($data['safety_stock'] ?? 0, 0)) * $purchaseToBase,
+                4
+            );
+        }
+        if (Schema::hasColumn('pmd_inventory_items', 'default_storage_location_id')) {
+            $insert['default_storage_location_id'] = max(0, (int)($data['default_storage_location_id'] ?? 0)) ?: null;
+        }
+        if (Schema::hasColumn('pmd_inventory_items', 'yield_percent')) {
+            $insert['yield_percent'] = round(max(1, min(100, $this->number($data['yield_percent'] ?? 100, 100))), 2);
+        }
+        if (Schema::hasColumn('pmd_inventory_items', 'track_expiry')) {
+            $insert['track_expiry'] = !empty($data['track_expiry']);
+        }
+
+        $id = (int)DB::table('pmd_inventory_items')->insertGetId($insert);
 
         if ($openingQty > 0) {
             $this->movement(
