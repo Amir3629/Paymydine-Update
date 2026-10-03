@@ -334,6 +334,27 @@ class Pmdinventory extends AdminController
         });
     }
 
+    public function onProReversePurchaseReceipt(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $service = app(PmdInventoryProService::class);
+            $service->reversePurchaseReceipt(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('receipt_id', 0),
+                (string)request()->input('reason', '')
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+                'pro' => $service->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onProRecordAdjustment(): JsonResponse
     {
         $this->assertOwnerOrManager();
