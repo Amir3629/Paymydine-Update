@@ -867,7 +867,7 @@ body.pmd-inventory-r19-page .pmd-inv-r24-po-line--receive {
 body.pmd-menu-manager-page .pmd-inv-r24-receive-line-fields,
 body.pmd-inventory-r19-page .pmd-inv-r24-receive-line-fields {
   display:grid;
-  grid-template-columns:80px minmax(120px,1fr) minmax(100px,1fr) 125px;
+  grid-template-columns:80px 90px minmax(120px,1fr) minmax(100px,1fr) 125px;
   gap:6px;
 }
 
