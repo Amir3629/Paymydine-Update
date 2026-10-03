@@ -50,6 +50,7 @@
     bulkReview: null,
     barcodeOpen: false,
     pendingBarcode: '',
+    activeCountId: 0,
     busy: false
   };
 
@@ -737,7 +738,7 @@
     return rows.length ? rows : items().slice();
   }
 
-  function startCount() {
+  function renderCountForm(scopeRows) {
     var host = workspace.querySelector('[data-r19-count]');
     var grid = workspace.querySelector('[data-r19-stock-grid]');
     var editor = workspace.querySelector('[data-r19-stock-editor]');
@@ -745,9 +746,7 @@
     if (editor) editor.hidden = true;
     if (grid) grid.hidden = true;
 
-    var scopeRows = currentCountScopeRows();
     var scoped = scopeRows.length !== items().length;
-
     host.hidden = false;
     host.innerHTML =
       '<div class="pmd-inv-r19-count-head"><div><h3>Physical count</h3>' +
@@ -755,6 +754,7 @@
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-cancel-count>Cancel</button></div>' +
       '<div class="pmd-inv-r24-count-controls">' +
         '<label class="pmd-inv-r24-check"><input type="checkbox" checked data-r19-count-blind><span>Blind count · hide expected quantities until completion</span></label>' +
+        '<span>Count session #' + esc(state.activeCountId || '') + '</span>' +
       '</div>' +
       '<div class="pmd-inv-r19-count-list">' +
       scopeRows.map(function (item) {
@@ -771,11 +771,52 @@
       '<div class="pmd-inv-r19-editor-actions"><button type="button" class="pmd-inv-r19-primary" data-r19-complete-count>Complete count</button></div>';
   }
 
-  function cancelCount() {
+  function startCount() {
+    if (state.busy) return;
+    var scopeRows = currentCountScopeRows();
+    var scopeIds = scopeRows.map(function (row) { return Number(row.id); });
+
+    setBusy(true);
+    api.request('onStartCount', {
+      scope_item_ids:scopeIds,
+      blind_count:true
+    }).then(function (json) {
+      state.activeCountId = Number(json && json.count_id || 0);
+      renderCountForm(scopeRows);
+      toast('Physical count session started. Other count sessions are locked until this one is completed or cancelled.');
+    }).catch(function (error) {
+      toast(error.message || 'Could not start physical count.', true);
+    }).finally(function () {
+      setBusy(false);
+    });
+  }
+
+  function closeCountUi() {
     var host = workspace.querySelector('[data-r19-count]');
     var grid = workspace.querySelector('[data-r19-stock-grid]');
     if (host) host.hidden = true;
     if (grid) grid.hidden = false;
+    state.activeCountId = 0;
+  }
+
+  function cancelCount() {
+    var countId = Number(state.activeCountId || 0);
+    if (!countId) {
+      closeCountUi();
+      return;
+    }
+    if (state.busy) return;
+
+    setBusy(true);
+    api.request('onCancelCount', {count_id:countId})
+      .then(function () {
+        closeCountUi();
+        toast('Physical count cancelled.');
+      })
+      .catch(function (error) {
+        toast(error.message || 'Could not cancel physical count.', true);
+      })
+      .finally(function () { setBusy(false); });
   }
 
   function countIsBlind() {
@@ -839,13 +880,14 @@
     }
     setBusy(true);
     api.request('onCompleteCount', {
+      count_id:Number(state.activeCountId || 0),
       lines:lines,
       scope_item_ids:scopeIds,
       blind_count:countIsBlind(),
       note:valueOf(workspace,'[data-r19-count-note]','')
     }).then(applyActionSnapshot)
       .then(function () {
-        cancelCount();
+        closeCountUi();
         toast('Physical count completed and variance saved to the audit trail.');
       })
       .catch(function (error) { toast(error.message || 'Could not complete count.', true); })
