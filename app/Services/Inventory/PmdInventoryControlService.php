@@ -864,6 +864,9 @@ final class PmdInventoryControlService
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
+                if (Schema::hasColumn('pmd_inventory_receipts', 'supplier_id')) {
+                    $receiptInsert['supplier_id'] = $supplierId > 0 ? $supplierId : null;
+                }
                 if (Schema::hasColumn('pmd_inventory_receipts', 'purchase_order_id')) {
                     $receiptInsert['purchase_order_id'] = $purchaseOrderId > 0 ? $purchaseOrderId : null;
                 }
@@ -1139,6 +1142,9 @@ final class PmdInventoryControlService
                 'confirmed_at' => now(),
                 'updated_at' => now(),
             ];
+            if (Schema::hasColumn('pmd_inventory_receipts', 'supplier_id')) {
+                $receiptUpdate['supplier_id'] = $supplierId > 0 ? $supplierId : null;
+            }
             if (Schema::hasColumn('pmd_inventory_receipts', 'purchase_order_id')) {
                 $receiptUpdate['purchase_order_id'] = $purchaseOrderId > 0 ? $purchaseOrderId : null;
             }
