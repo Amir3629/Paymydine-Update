@@ -1218,6 +1218,10 @@
         '</select><small>Choose when recipe ingredients begin reducing theoretical stock.</small></label>' +
         '<label>Expiry warning · days<input type="number" min="1" max="90" step="1" data-r24-setting-expiry value="' + esc(settings.expiry_alert_days || 5) + '"></label>' +
         '<label>Safety stock · days<input type="number" min="0" max="30" step="0.25" data-r24-setting-safety value="' + esc(settings.safety_stock_days == null ? 1.5 : settings.safety_stock_days) + '"></label>' +
+        '<label>Stock costing<select data-r24-setting-costing>' +
+          '<option value="last_purchase"' + (settings.costing_method === 'last_purchase' || !settings.costing_method ? ' selected' : '') + '>Last purchase cost</option>' +
+          '<option value="weighted_average"' + (settings.costing_method === 'weighted_average' ? ' selected' : '') + '>Weighted average</option>' +
+        '</select><small>Movement history keeps the actual purchase price either way.</small></label>' +
         '<label class="pmd-inv-r24-check"><input type="checkbox" data-r24-setting-blind' + (Number(settings.blind_counts || 0) ? ' checked' : '') + '><span>Blind physical counts</span></label>' +
         '<label class="pmd-inv-r24-check"><input type="checkbox" data-r24-setting-negative' + (Number(settings.allow_negative_stock || 0) ? ' checked' : '') + '><span>Allow negative room allocations</span></label>' +
       '</div>' +
@@ -1241,6 +1245,7 @@
       consumption_event:String((host.querySelector('[data-r24-setting-consumption]') || {}).value || 'paid'),
       expiry_alert_days:Number((host.querySelector('[data-r24-setting-expiry]') || {}).value || 5),
       safety_stock_days:Number((host.querySelector('[data-r24-setting-safety]') || {}).value || 1.5),
+      costing_method:String((host.querySelector('[data-r24-setting-costing]') || {}).value || 'last_purchase'),
       blind_counts:Boolean((host.querySelector('[data-r24-setting-blind]') || {}).checked),
       allow_negative_stock:Boolean((host.querySelector('[data-r24-setting-negative]') || {}).checked)
     }).then(function (json) {
