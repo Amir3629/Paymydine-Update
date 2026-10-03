@@ -1168,6 +1168,7 @@
       '<div class="pmd-inv-r19-editor-head"><div><h3>' + esc(review.label || 'Purchase review') + '</h3>' +
       '<small>Review item, quantity, unit and cost before confirming.</small></div>' +
       '<button type="button" class="pmd-inv-r19-secondary" data-r19-close-review>Close</button></div>' +
+      (Number(review.receiptId || 0) > 0 ? '<div class="pmd-inv-r24-reconcile-zone" data-r24-reconcile-zone data-receipt-id="' + esc(review.receiptId) + '"></div>' : '') +
       '<div class="pmd-inv-r19-receipt-lines">' +
       (review.lines.length ? review.lines.map(function (line, index) {
         return '<div class="pmd-inv-r19-receipt-line" data-r19-bulk-line="' + index + '">' +
