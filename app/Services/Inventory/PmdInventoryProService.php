@@ -71,6 +71,9 @@ final class PmdInventoryProService
             ->get([
                 'si.*',
                 's.name as supplier_name',
+                's.lead_time_days as supplier_lead_time_days',
+                's.min_order_value as supplier_min_order_value',
+                's.currency as supplier_currency',
                 'i.name as item_name',
                 'i.base_unit as base_unit',
             ])
