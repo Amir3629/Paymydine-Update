@@ -19,6 +19,10 @@ on:
       - 'frontend/app/kiosk/**'
       - 'frontend/app/kiosk-reset/**'
       - 'frontend/features/kiosk/**'
+      - 'kiosk/**'
+      - 'kiosk-reset/**'
+      - 'resources/views/pmd/kiosk-*.blade.php'
+      - 'public/assets/pmd/kiosk-terminal-v8.*'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/app/**'
       - 'frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/**'
       - 'frontend-v2/releases/PayMyDine-V2-batch-20260912_013537/app/**'
@@ -103,6 +107,15 @@ jobs:
           php -l app/Services/PmdTableDisplayPairingService.php
           php -l app/Services/PmdKioskPairingService.php
           php -l app/Http/Controllers/PmdKioskPublicController.php
+          php -l kiosk/index.php
+          php -l kiosk-reset/index.php
+          node --check public/assets/pmd/kiosk-terminal-v8.js
+          test -f resources/views/pmd/kiosk-terminal.blade.php
+          test -f resources/views/pmd/kiosk-reset.blade.php
+          grep -Fq 'PMD_KIOSK_BLADE_TERMINAL_V8' app/Http/Controllers/PmdKioskPublicController.php
+          grep -Fq "Route::get('/kiosk'" routes/pmd-kiosk-v1.php
+          grep -Fq 'data-pmd-kiosk-terminal="blade-v8"' resources/views/pmd/kiosk-terminal.blade.php
+          grep -Fq 'PMD_KIOSK_BLADE_TERMINAL_V8' public/assets/pmd/kiosk-terminal-v8.js
           php -l app/Http/Controllers/Api/OrderController.php
           php -l app/Http/Controllers/PmdDevicePlatformController.php
           php -l app/admin/controllers/Pmddevices.php
