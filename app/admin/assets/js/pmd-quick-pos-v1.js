@@ -2781,6 +2781,83 @@
     }
   }
 
+  /* PMD_QPOS_LAZY_FLOOR_BOOT_R134
+   * Keep the heavy canonical Floor out of the initial POS document boot.
+   * Load it only when the operator explicitly opens Map. */
+  var qposFloorRuntimePromiseV134 = null;
+
+  function loadQposFloorRuntimeScriptV134(id, src, ready) {
+    if (typeof ready === 'function' && ready()) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise(function (resolve, reject) {
+      var old = document.getElementById(id);
+      if (old) old.remove();
+
+      var script = document.createElement('script');
+      script.id = id;
+      script.async = true;
+      script.src = src;
+      script.setAttribute('data-qpos-floor-runtime-r134', '1');
+
+      script.onload = function () {
+        if (typeof ready !== 'function' || ready()) {
+          resolve(true);
+          return;
+        }
+        reject(new Error('Floor runtime did not initialize: ' + src));
+      };
+
+      script.onerror = function () {
+        reject(new Error('Floor runtime failed to load: ' + src));
+      };
+
+      (document.head || document.documentElement).appendChild(script);
+    });
+  }
+
+  function ensureExactFloorRuntimeV134() {
+    if (exactFloorInstance() && window.PMDSharedFloorMultiFloorV1) {
+      return Promise.resolve(true);
+    }
+
+    if (qposFloorRuntimePromiseV134) {
+      return qposFloorRuntimePromiseV134;
+    }
+
+    qposFloorRuntimePromiseV134 = loadQposFloorRuntimeScriptV134(
+      'pmd-qpos-floor-core-r134',
+      '/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260927-floor-card-r35',
+      function () { return !!window.PMDDashboardLabExactFloorV1; }
+    ).then(function () {
+      return loadQposFloorRuntimeScriptV134(
+        'pmd-qpos-floor-multi-r134',
+        '/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260927-floor-card-r35',
+        function () { return !!window.PMDSharedFloorMultiFloorV1; }
+      );
+    }).then(function () {
+      if (
+        !exactFloorInstance() &&
+        window.PMDDashboardLabExactFloorV1 &&
+        typeof window.PMDDashboardLabExactFloorV1.mount === 'function'
+      ) {
+        window.PMDDashboardLabExactFloorV1.mount(document);
+      }
+
+      if (!exactFloorInstance()) {
+        throw new Error('Canonical Floor did not mount.');
+      }
+
+      return true;
+    }).catch(function (error) {
+      qposFloorRuntimePromiseV134 = null;
+      throw error;
+    });
+
+    return qposFloorRuntimePromiseV134;
+  }
+
   function closeFloorMap() {
     state.floorMapOpen = false;
 
@@ -2798,7 +2875,7 @@
     );
   }
 
-  function openFloorMap() {
+  async function openFloorMap() {
     if (state.payment.open) {
       toast('Close payment first.', true);
       return;
@@ -2807,6 +2884,14 @@
     closeHistory();
     closeTransfer();
     closeTextKeyboard();
+
+    try {
+      await ensureExactFloorRuntimeV134();
+    } catch (error) {
+      console.error('[PMD Quick POS R134] Floor runtime load failed', error);
+      toast('Floor map could not load. Please try again.', true);
+      return;
+    }
 
     state.floorMapOpen = true;
     root.classList.add('is-floor-map-open');
