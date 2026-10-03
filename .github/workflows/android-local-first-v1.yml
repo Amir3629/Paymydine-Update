@@ -2,7 +2,7 @@ name: PayMyDine Device App V5
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
@@ -127,6 +127,11 @@ jobs:
           grep -Fq 'submitKioskOrder' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/MenuRuntimeContext.tsx
           grep -Fq 'isKiosk' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/ThemeBottomToolBar.tsx
           grep -Fq 'PMD_KIOSK_DIRECT_ORDER_IDEMPOTENCY_V6' app/Http/Controllers/Api/OrderController.php
+          grep -Fq 'PMD_KIOSK_LEGACY_ROOT_COMPAT_V6_1' frontend/proxy.ts
+          grep -Fq 'url.pathname = isReset ? "/kiosk-reset" : "/kiosk"' frontend/proxy.ts
+          grep -Fq 'PMD_KIOSK_SERVICE_CHROME_GUARD_V6_1' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/SharedPieces.tsx
+          grep -Fq 'PMD_KIOSK_SERVICE_RUNTIME_GUARD_V6_1' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/MenuRuntimeContext.tsx
+          grep -Fq 'data-pmd-kiosk-checkout={isKiosk ? "v6.1" : undefined}' frontend-v2/PayMyDine-Frontend-V2-Integrated-Final-R2-20260815/src/runtime/components/RuntimeOverlays.tsx
 
   android:
     runs-on: ubuntu-latest
