@@ -9,6 +9,7 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdDefaultStaffRoleService;
 use App\Services\Inventory\PmdInventoryControlService;
+use App\Services\Inventory\PmdInventoryOperationsService;
 use App\Services\Inventory\PmdInventoryReceiptAiService;
 use App\Services\Inventory\PmdInventoryStockCatalog;
 use Illuminate\Http\JsonResponse;
@@ -57,6 +58,11 @@ class Pmdinventory extends AdminController
             asset('app/admin/assets/css/pmd-inventory-workspace-r19.css')
             .'?v='.(string)(@filemtime($workspaceCssPath) ?: 'r19')
         );
+        $operationsCssPath = base_path('app/admin/assets/css/pmd-inventory-operations-r24.css');
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-inventory-operations-r24.css')
+            .'?v='.(string)(@filemtime($operationsCssPath) ?: 'r24')
+        );
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-v1.js')
             .'?v='.(string)(@filemtime($inventoryJsPath) ?: 'r19')
@@ -65,6 +71,11 @@ class Pmdinventory extends AdminController
         $this->addJs(
             asset('app/admin/assets/js/pmd-inventory-workspace-r19.js')
             .'?v='.(string)(@filemtime($workspaceJsPath) ?: 'r19')
+        );
+        $operationsJsPath = base_path('app/admin/assets/js/pmd-inventory-operations-r24.js');
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-inventory-operations-r24.js')
+            .'?v='.(string)(@filemtime($operationsJsPath) ?: 'r24')
         );
         AdminMenu::setContext('dashboard');
     }
@@ -164,6 +175,298 @@ class Pmdinventory extends AdminController
         });
     }
 
+
+    // PMD_INVENTORY_OPERATIONS_R24
+    public function onResolveIdentifier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            return [
+                'resolution' => app(PmdInventoryOperationsService::class)
+                    ->resolveIdentifier(
+                        $this->locationId(),
+                        (string)request()->input('code', '')
+                    ),
+            ];
+        });
+    }
+
+    public function onSaveIdentifier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $ops = app(PmdInventoryOperationsService::class);
+            $id = $ops->saveIdentifier(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'identifier_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSaveSupplier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $ops = app(PmdInventoryOperationsService::class);
+            $id = $ops->saveSupplier(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'supplier_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSaveSupplierItem(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $ops = app(PmdInventoryOperationsService::class);
+            $id = $ops->saveSupplierItem(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'supplier_item_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onBulkImportInventory(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $rows = request()->input('rows', []);
+            if (is_string($rows)) {
+                $decoded = json_decode($rows, true);
+                $rows = is_array($decoded) ? $decoded : [];
+            }
+            if (!is_array($rows)) {
+                $rows = [];
+            }
+
+            $result = app(PmdInventoryOperationsService::class)
+                ->bulkUpsertItems($this->locationId(), $this->staffId(), $rows);
+
+            return [
+                'import' => $result,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onMergeInventoryItems(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryOperationsService::class)->mergeItems(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('source_item_id', 0),
+                (int)request()->input('target_item_id', 0)
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSaveStorageLocation(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $ops = app(PmdInventoryOperationsService::class);
+            $id = $ops->saveStorageLocation(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'storage_location_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSaveInventorySettings(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryOperationsService::class)->saveSettings(
+                $this->locationId(),
+                request()->all()
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onSavePurchaseOrder(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $ops = app(PmdInventoryOperationsService::class);
+            $id = $ops->savePurchaseOrder(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'purchase_order_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onUpdatePurchaseOrderStatus(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryOperationsService::class)->updatePurchaseOrderStatus(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('purchase_order_id', 0),
+                (string)request()->input('status', '')
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onReceivePurchaseOrder(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $ops = app(PmdInventoryOperationsService::class);
+            $receiptId = $ops->receivePurchaseOrder(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'receipt_id' => $receiptId,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onTransferStock(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->transferStock(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'transfer_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onReturnToSupplier(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $movementId = app(PmdInventoryOperationsService::class)->returnToSupplier(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'movement_id' => $movementId,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onReversePurchase(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryOperationsService::class)->reverseReceipt(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('receipt_id', 0)
+            );
+
+            return [
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
+    public function onRecordProduction(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryOperationsService::class)->recordProduction(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'production_batch_id' => $id,
+                'snapshot' => app(PmdInventoryControlService::class)
+                    ->snapshot($this->locationId()),
+            ];
+        });
+    }
+
     public function onRecordWaste(): JsonResponse
     {
         $this->assertOwnerOrManager();
@@ -198,6 +501,57 @@ class Pmdinventory extends AdminController
             return [
                 'snapshot' => $service->snapshot($this->locationId()),
             ];
+        });
+    }
+
+    public function onStartCount(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            $id = app(PmdInventoryControlService::class)->startCount(
+                $this->locationId(),
+                $this->staffId(),
+                request()->all()
+            );
+
+            return [
+                'count_id' => $id,
+                'count_draft' => app(PmdInventoryControlService::class)
+                    ->countDraft($this->locationId(), $this->staffId(), $id),
+            ];
+        });
+    }
+
+    public function onSaveCountProgress(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryControlService::class)->saveCountProgress(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('count_id', 0),
+                (int)request()->input('item_id', 0),
+                (float)request()->input('counted_qty', 0)
+            );
+
+            return ['saved' => true];
+        });
+    }
+
+    public function onCancelCount(): JsonResponse
+    {
+        $this->assertOwnerOrManager();
+
+        return $this->action(function () {
+            app(PmdInventoryControlService::class)->cancelCount(
+                $this->locationId(),
+                $this->staffId(),
+                (int)request()->input('count_id', 0)
+            );
+
+            return ['cancelled' => true];
         });
     }
 
@@ -283,6 +637,9 @@ class Pmdinventory extends AdminController
                     'path' => $relativePath,
                     'original_name' => mb_substr((string)$file->getClientOriginalName(), 0, 255),
                     'mime_type' => $mime,
+                    'invoice_hash' => is_file($absolutePath)
+                        ? hash_file('sha256', $absolutePath)
+                        : null,
                 ],
                 $aiPayload,
                 $aiError
