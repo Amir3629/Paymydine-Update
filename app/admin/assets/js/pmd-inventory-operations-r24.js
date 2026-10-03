@@ -310,13 +310,17 @@
     [
       '[data-r24-transfer-from]',
       '[data-r24-transfer-to]',
+      '[data-r24-return-storage]',
       '[data-r24-setting-storage]',
       '[data-r24-produce-storage]'
     ].forEach(function (selector) {
       var node = workspace.querySelector(selector);
       if (!node) return;
       var current = node.value;
-      node.innerHTML = storageOptions(current, selector.indexOf('setting') !== -1);
+      node.innerHTML = storageOptions(
+        current,
+        selector.indexOf('setting') !== -1 || selector.indexOf('return-storage') !== -1
+      );
     });
 
     ['[data-r24-transfer-item]','[data-r24-adjust-item]','[data-r24-return-item]','[data-r24-prep-output]'].forEach(function (selector) {
@@ -759,6 +763,7 @@
       item_id:itemId,
       supplier_id:supplierId,
       lot_id:Number((workspace.querySelector('[data-r24-return-lot]') || {}).value || 0),
+      storage_location_id:Number((workspace.querySelector('[data-r24-return-storage]') || {}).value || 0),
       quantity:qty,
       reason:reason || 'Return to supplier',
       note:String((workspace.querySelector('[data-r24-return-note]') || {}).value || '')
