@@ -7,6 +7,7 @@ import { ThemeTableBadge } from '@/src/runtime/components/ThemeTableBadge'
 import { loadCustomerBootstrap } from '@/src/server/bootstrap'
 import { getPageContext } from '@/src/server/page-context'
 import { ThemeRenderer } from '@/src/themes/ThemeRenderer'
+import { KioskTerminal } from '@/src/kiosk/KioskTerminal'
 
 type RawSearchParams = Record<string, string | string[] | undefined>
 
@@ -27,7 +28,7 @@ export async function CustomerMenuRoute({
   forceKiosk?: boolean
 }) {
   if (first(rawSearch.pmd_kiosk_reset).trim() === '1') {
-    return <main data-pmd-kiosk-reset="v6" style={{ minHeight: '100dvh', background: '#050508' }} />
+    return <main data-pmd-kiosk-reset="v7-terminal" style={{ minHeight: '100dvh', background: '#050508' }} />
   }
 
   const context = await getPageContext(rawSearch)
@@ -98,16 +99,18 @@ export async function CustomerMenuRoute({
 
   return (
     <MenuRuntimeProvider bootstrap={bootstrap}>
-      <main data-pmd-runtime-mode={isKiosk ? 'kiosk-v6' : 'customer'}>
-        <ThemeRenderer themeId={bootstrap.theme.id} />
-      </main>
-      {!isKiosk ? (
+      {isKiosk ? (
+        <KioskTerminal />
+      ) : (
         <>
+          <main data-pmd-runtime-mode="customer">
+            <ThemeRenderer themeId={bootstrap.theme.id} />
+          </main>
           <ThemeTableBadge />
           <ServiceOverlaySimplifier />
           <GuestAiConcierge themeId={bootstrap.theme.id} />
         </>
-      ) : null}
+      )}
     </MenuRuntimeProvider>
   )
 }
