@@ -516,6 +516,18 @@ class Pmdinventory extends AdminController
             $relativePath = $relativeDir.'/'.$fileName;
             $absolutePath = $absoluteDir.'/'.$fileName;
 
+            $documentFingerprint = (string)(@hash_file('sha256', $absolutePath) ?: '');
+            try {
+                app(PmdInventoryOperationsService::class)
+                    ->assertDocumentFingerprintAvailable(
+                        $this->locationId(),
+                        $documentFingerprint
+                    );
+            } catch (\Throwable $duplicate) {
+                @unlink($absolutePath);
+                throw $duplicate;
+            }
+
             $aiPayload = null;
             $aiError = null;
 
@@ -537,6 +549,7 @@ class Pmdinventory extends AdminController
                     'path' => $relativePath,
                     'original_name' => mb_substr((string)$file->getClientOriginalName(), 0, 255),
                     'mime_type' => $mime,
+                    'document_fingerprint' => $documentFingerprint,
                 ],
                 $aiPayload,
                 $aiError
