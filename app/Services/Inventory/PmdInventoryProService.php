@@ -25,6 +25,7 @@ final class PmdInventoryProService
         'pmd_inventory_purchase_orders',
         'pmd_inventory_purchase_order_lines',
         'pmd_inventory_price_history',
+        'pmd_inventory_alert_states',
         'pmd_inventory_settings',
     ];
 
@@ -262,6 +263,14 @@ final class PmdInventoryProService
             ['draft', 'sent', 'partial'],
             true
         )));
+
+        // Low-stock and expiry alerts are transition-based, never emitted on
+        // every page load. Alert state keeps the global notification bell calm.
+        $this->syncNotifications(
+            $locationId,
+            (array)($core['items'] ?? []),
+            $lots
+        );
 
         return [
             'ready' => true,
@@ -1095,6 +1104,179 @@ final class PmdInventoryProService
         }
 
         return $id;
+    }
+
+    private function syncNotifications(int $locationId, array $items, array $lots): void
+    {
+        if (
+            !Schema::hasTable('notifications')
+            || !Schema::hasTable('pmd_inventory_alert_states')
+        ) {
+            return;
+        }
+
+        try {
+            foreach ($items as $item) {
+                if (!is_array($item)) continue;
+
+                $itemId = (int)($item['id'] ?? 0);
+                if ($itemId < 1) continue;
+
+                $status = strtolower((string)($item['status'] ?? 'healthy'));
+                $newStatus = in_array($status, ['critical', 'low'], true)
+                    ? $status
+                    : 'clear';
+
+                $this->syncNotificationState(
+                    $locationId,
+                    'stock:'.$itemId,
+                    $newStatus,
+                    function (string $previous) use ($item, $newStatus): void {
+                        $name = (string)($item['name'] ?? 'Stock item');
+                        if ($newStatus === 'critical') {
+                            $this->insertInventoryNotification(
+                                'inventory_stock',
+                                $name.' needs stock now',
+                                [
+                                    'item_id' => (int)($item['id'] ?? 0),
+                                    'item_name' => $name,
+                                    'status' => 'critical',
+                                    'estimated_on_hand' => (float)($item['estimated_on_hand'] ?? 0),
+                                    'unit' => (string)($item['unit'] ?? ''),
+                                    'days_left' => $item['days_left'] ?? null,
+                                ]
+                            );
+                        } elseif ($newStatus === 'low') {
+                            $this->insertInventoryNotification(
+                                'inventory_stock',
+                                $name.' is running low',
+                                [
+                                    'item_id' => (int)($item['id'] ?? 0),
+                                    'item_name' => $name,
+                                    'status' => 'low',
+                                    'estimated_on_hand' => (float)($item['estimated_on_hand'] ?? 0),
+                                    'unit' => (string)($item['unit'] ?? ''),
+                                    'days_left' => $item['days_left'] ?? null,
+                                ]
+                            );
+                        } elseif (in_array($previous, ['critical', 'low'], true)) {
+                            $this->insertInventoryNotification(
+                                'inventory_stock',
+                                $name.' stock is healthy again',
+                                [
+                                    'item_id' => (int)($item['id'] ?? 0),
+                                    'item_name' => $name,
+                                    'status' => 'recovered',
+                                ]
+                            );
+                        }
+                    }
+                );
+            }
+
+            foreach ($lots as $lot) {
+                if (!is_array($lot)) continue;
+
+                $lotId = (int)($lot['id'] ?? 0);
+                if ($lotId < 1) continue;
+
+                $status = strtolower((string)($lot['expiry_status'] ?? 'none'));
+                $hasStock = (float)($lot['estimated_remaining'] ?? 0) > 0.00005;
+                $newStatus = $hasStock && in_array($status, ['soon', 'expired'], true)
+                    ? $status
+                    : 'clear';
+
+                $this->syncNotificationState(
+                    $locationId,
+                    'expiry:'.$lotId,
+                    $newStatus,
+                    function (string $previous) use ($lot, $newStatus): void {
+                        if (!in_array($newStatus, ['soon', 'expired'], true)) {
+                            return;
+                        }
+
+                        $name = (string)($lot['item_name'] ?? 'Stock item');
+                        $this->insertInventoryNotification(
+                            'inventory_expiry',
+                            $newStatus === 'expired'
+                                ? $name.' has expired stock'
+                                : $name.' expires soon',
+                            [
+                                'lot_id' => (int)($lot['id'] ?? 0),
+                                'item_id' => (int)($lot['item_id'] ?? 0),
+                                'item_name' => $name,
+                                'status' => $newStatus,
+                                'lot_code' => $lot['lot_code'] ?? null,
+                                'expires_at' => $lot['expires_at'] ?? null,
+                                'estimated_remaining' => (float)($lot['estimated_remaining'] ?? 0),
+                                'unit' => (string)($lot['unit'] ?? ''),
+                                'storage_name' => $lot['storage_name'] ?? null,
+                            ]
+                        );
+                    }
+                );
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('Inventory R24 notification sync skipped', [
+                'location_id' => $locationId,
+                'message' => $error->getMessage(),
+            ]);
+        }
+    }
+
+    private function syncNotificationState(
+        int $locationId,
+        string $key,
+        string $newStatus,
+        callable $onTransition
+    ): void {
+        $existing = DB::table('pmd_inventory_alert_states')
+            ->where('location_id', $locationId)
+            ->where('alert_key', $key)
+            ->first();
+
+        $previous = $existing ? (string)$existing->status : 'clear';
+        if ($previous === $newStatus) {
+            return;
+        }
+
+        $onTransition($previous);
+
+        DB::table('pmd_inventory_alert_states')->updateOrInsert(
+            [
+                'location_id' => $locationId,
+                'alert_key' => mb_substr($key, 0, 190),
+            ],
+            [
+                'status' => mb_substr($newStatus, 0, 40),
+                'last_notified_at' => $newStatus === 'clear'
+                    ? ($existing->last_notified_at ?? null)
+                    : now(),
+                'resolved_at' => $newStatus === 'clear' ? now() : null,
+                'updated_at' => now(),
+                'created_at' => $existing->created_at ?? now(),
+            ]
+        );
+    }
+
+    private function insertInventoryNotification(
+        string $type,
+        string $title,
+        array $payload
+    ): void {
+        DB::table('notifications')->insert([
+            'type' => mb_substr($type, 0, 80),
+            'title' => mb_substr($title, 0, 255),
+            'table_id' => null,
+            'table_name' => null,
+            'payload' => json_encode(
+                $payload + ['timestamp' => now()->toIso8601String()],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ),
+            'status' => 'new',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     private function ensureDefaults(int $locationId): void
