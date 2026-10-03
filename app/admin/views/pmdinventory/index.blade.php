@@ -376,8 +376,11 @@
                             </button>
                         </div>
                     </div>
-                    <div class="pmd-inv-r19-purchase-meta">
-                        <label>Supplier<input type="text" placeholder="Optional" data-r19-purchase-supplier></label>
+                    <div class="pmd-inv-r19-purchase-meta pmd-inv-r24-purchase-meta">
+                        <label>Supplier<select data-r19-purchase-supplier-id><option value="">Unassigned / other</option></select></label>
+                        <label>Supplier name<input type="text" placeholder="Optional · used for unlisted supplier" data-r19-purchase-supplier></label>
+                        <label>Invoice no.<input type="text" placeholder="Optional" data-r19-purchase-invoice></label>
+                        <label>Receive into<select data-r19-purchase-storage><option value="">Default storage</option></select></label>
                         <label>Purchase date<input type="date" value="{{ now()->toDateString() }}" data-r19-purchase-date></label>
                         <label class="pmd-inv-r19-search"><span>Search</span><input type="search" placeholder="Tomato, milk, vodka…" data-r19-purchase-search></label>
                     </div>
