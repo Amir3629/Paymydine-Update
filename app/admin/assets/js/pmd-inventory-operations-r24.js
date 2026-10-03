@@ -161,6 +161,8 @@
           (supplier.email ? '<span>' + esc(supplier.email) + '</span>' : '') +
           (supplier.phone ? '<span>' + esc(supplier.phone) + '</span>' : '') +
           '<span>Minimum ' + esc(money(supplier.min_order_value || 0)) + '</span>' +
+          '<span>90d spend ' + esc(money(supplier.spend_90d || 0)) + '</span>' +
+          '<span>' + esc(number(supplier.receipt_count_90d || 0,0) + ' receipts') + '</span>' +
         '</div>' +
         '<div class="pmd-inv-r24-offer-list">' +
           (offers.length ? offers.map(function (entry) {
@@ -255,6 +257,35 @@
         '<span>' + esc(row.detail || '') + '</span>' +
       '</div>';
     }).join('') : '<div class="pmd-inv-r24-alert is-good"><strong>No urgent operational alerts</strong><span>Stock, expiry and supplier-order checks are clear.</span></div>';
+  }
+
+  function renderAnalytics() {
+    var host = workspace.querySelector('[data-r24-analytics]');
+    if (!host) return;
+    var analytics = snap().analytics || {};
+    var waste = Array.isArray(analytics.waste_by_reason_30d) ? analytics.waste_by_reason_30d : [];
+    var variance = Array.isArray(analytics.variance_top) ? analytics.variance_top : [];
+    var summary = snap().summary || {};
+
+    host.innerHTML =
+      '<article class="pmd-inv-r24-analytics-card">' +
+        '<span>Estimated ingredient usage · 30d</span><strong>' + esc(money(analytics.estimated_food_cost_30d || 0)) + '</strong>' +
+        '<small>Theoretical recipe consumption at current average unit cost.</small>' +
+      '</article>' +
+      '<article class="pmd-inv-r24-analytics-card">' +
+        '<span>Waste · 30d</span><strong>' + esc(money(summary.waste_cost_30d || 0)) + '</strong>' +
+        '<small>' + esc(waste.slice(0,3).map(function (row) { return row.reason + ' ' + money(row.cost); }).join(' · ') || 'No recorded waste') + '</small>' +
+      '</article>' +
+      '<article class="pmd-inv-r24-analytics-card">' +
+        '<span>Latest count variance</span><strong>' + esc(money(summary.unexplained_loss_value || 0)) + '</strong>' +
+        '<small>' + esc(variance.slice(0,3).map(function (row) {
+          return row.item_name + ' ' + (row.variance_qty > 0 ? '+' : '') + number(row.variance_qty,2) + ' ' + row.unit;
+        }).join(' · ') || 'No count variance') + '</small>' +
+      '</article>' +
+      '<article class="pmd-inv-r24-analytics-card">' +
+        '<span>Operations readiness</span><strong>' + esc(number(summary.barcode_mapped_items || 0,0) + ' / ' + number(summary.tracked_items || 0,0)) + '</strong>' +
+        '<small>Stock items with normalized package/barcode mappings.</small>' +
+      '</article>';
   }
 
   function renderStorage() {
@@ -359,6 +390,7 @@
     renderSuppliers();
     renderOrders();
     renderAlerts();
+    renderAnalytics();
     renderStorage();
     renderLots();
     renderTransfers();
