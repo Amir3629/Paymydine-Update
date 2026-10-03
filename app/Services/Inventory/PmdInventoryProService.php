@@ -343,6 +343,121 @@ final class PmdInventoryProService
         return (int)DB::table('pmd_inventory_suppliers')->insertGetId($row);
     }
 
+    public function saveSupplierItem(int $locationId, ?int $staffId, array $data): int
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+        $id = max(0, (int)($data['supplier_item_id'] ?? 0));
+        $supplierId = max(0, (int)($data['supplier_id'] ?? 0));
+        $itemId = max(0, (int)($data['item_id'] ?? 0));
+        $supplier = $this->supplier($locationId, $supplierId);
+        $item = $this->item($locationId, $itemId);
+
+        $packageUnit = $this->unit($data['package_unit'] ?? $item->purchase_unit ?? $item->base_unit);
+        $packageQuantity = max(0.0001, $this->number($data['package_quantity'] ?? 1, 1));
+        $baseQuantity = max(0.0001, $this->number($data['base_quantity'] ?? $item->purchase_to_base ?? 1, 1));
+        $unitPrice = round(max(0, $this->number($data['unit_price'] ?? 0)), 4);
+        $currency = $this->currency($data['currency'] ?? $supplier->currency ?? 'EUR');
+        $supplierSku = $this->nullableText($data['supplier_sku'] ?? null, 120);
+        $gtin = $this->nullableText($data['gtin'] ?? null, 190);
+        $isPreferred = !empty($data['is_preferred']);
+
+        if ($isPreferred) {
+            DB::table('pmd_inventory_supplier_items')
+                ->where('location_id', $locationId)
+                ->where('item_id', $itemId)
+                ->update(['is_preferred' => 0, 'updated_at' => now()]);
+        }
+
+        $row = [
+            'location_id' => $locationId,
+            'supplier_id' => $supplierId,
+            'item_id' => $itemId,
+            'supplier_sku' => $supplierSku,
+            'gtin' => $gtin,
+            'package_unit' => $packageUnit,
+            'package_quantity' => round($packageQuantity, 4),
+            'base_quantity' => round($baseQuantity, 4),
+            'unit_price' => $unitPrice,
+            'currency' => $currency,
+            'is_preferred' => $isPreferred ? 1 : 0,
+            'active' => 1,
+            'updated_at' => now(),
+        ];
+
+        if ($id > 0) {
+            DB::table('pmd_inventory_supplier_items')
+                ->where('location_id', $locationId)
+                ->where('id', $id)
+                ->update($row);
+        } else {
+            $row['created_at'] = now();
+            $id = (int)DB::table('pmd_inventory_supplier_items')->insertGetId($row);
+        }
+
+        if ($gtin) {
+            $identifierId = $this->saveIdentifier($locationId, $staffId, [
+                'item_id' => $itemId,
+                'supplier_id' => $supplierId,
+                'code' => $gtin,
+                'code_type' => 'AUTO',
+                'package_unit' => $packageUnit,
+                'package_quantity' => $packageQuantity,
+                'base_quantity' => $baseQuantity,
+                'unit_price' => $unitPrice,
+                'currency' => $currency,
+                'source' => 'supplier',
+                'is_primary' => $isPreferred,
+            ]);
+
+            DB::table('pmd_inventory_item_identifiers')
+                ->where('location_id', $locationId)
+                ->where('id', $identifierId)
+                ->update([
+                    'supplier_item_id' => $id,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        if ($isPreferred) {
+            DB::table('pmd_inventory_items')
+                ->where('location_id', $locationId)
+                ->where('id', $itemId)
+                ->update([
+                    'supplier_name' => (string)$supplier->name,
+                    'purchase_unit' => $packageUnit,
+                    'purchase_to_base' => round($baseQuantity, 4),
+                    'unit_cost' => $baseQuantity > 0 ? round($unitPrice / $baseQuantity, 6) : (float)$item->unit_cost,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        return $id;
+    }
+
+    public function archiveSupplierItem(int $locationId, int $supplierItemId): void
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        DB::table('pmd_inventory_supplier_items')
+            ->where('location_id', $locationId)
+            ->where('id', $supplierItemId)
+            ->update([
+                'active' => 0,
+                'is_preferred' => 0,
+                'updated_at' => now(),
+            ]);
+
+        DB::table('pmd_inventory_item_identifiers')
+            ->where('location_id', $locationId)
+            ->where('supplier_item_id', $supplierItemId)
+            ->update([
+                'active' => 0,
+                'updated_at' => now(),
+            ]);
+    }
+
     public function archiveSupplier(int $locationId, int $supplierId): void
     {
         $this->assertReady();
