@@ -62,12 +62,12 @@ jobs:
                 app: r ? { width: r.width, height: r.height } : null,
                 gridChildren: grid ? grid.children.length : -1,
                 textLength: (document.body.innerText || '').length,
-                ariaBusy: app ? app.getAttribute('aria-busy') : null,
-                errors
+                ariaBusy: app ? app.getAttribute('aria-busy') : null
               };
             });
             console.log('HTTP', response && response.status());
             console.log('DIAG', JSON.stringify(diag));
+            console.log('PAGE_ERRORS', JSON.stringify(errors));
 
             const shot = await page.screenshot();
             const png = PNG.sync.read(shot);
