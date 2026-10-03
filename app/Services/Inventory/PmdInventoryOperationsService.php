@@ -788,7 +788,9 @@ final class PmdInventoryOperationsService
                 'item_name' => (string)$line->description,
                 'quantity' => $qty,
                 'unit' => (string)$line->package_unit,
-                'unit_cost' => (float)$line->unit_cost,
+                'unit_cost' => $input && array_key_exists('unit_cost', $input)
+                    ? max(0, $this->number($input['unit_cost'], (float)$line->unit_cost))
+                    : (float)$line->unit_cost,
                 'base_quantity' => (float)$line->base_quantity,
                 'supplier_item_id' => (int)($line->supplier_item_id ?? 0),
                 'storage_location_id' => (int)($input['storage_location_id'] ?? 0),
