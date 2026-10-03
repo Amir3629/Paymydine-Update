@@ -19,6 +19,7 @@ on:
       - 'frontend/app/kiosk/**'
       - 'frontend/app/kiosk-reset/**'
       - 'frontend/features/kiosk/**'
+      - 'frontend/proxy.ts'
       - 'routes/admin-app-before.php'
       - 'routes/pmd-kiosk-v1.php'
       - 'routes.php'
@@ -105,6 +106,8 @@ jobs:
           grep -Fq 'data-pmd-kiosk-menu="v5"' frontend/features/kiosk/KioskMenuPage.tsx
           test -f frontend/app/kiosk/page.tsx
           test -f frontend/app/kiosk-reset/page.tsx
+          grep -Fq 'PMD_KIOSK_LEGACY_ROOT_COMPAT_V5' frontend/proxy.ts
+          grep -Fq 'url.pathname = isReset ? "/kiosk-reset" : "/kiosk"' frontend/proxy.ts
 
   android:
     runs-on: ubuntu-latest
