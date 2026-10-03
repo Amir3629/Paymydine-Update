@@ -1663,9 +1663,12 @@ final class PmdInventoryControlService
         ?string $note,
         ?string $referenceType,
         ?int $referenceId,
-        ?string $occurredAt
+        ?string $occurredAt,
+        ?int $storageLocationId = null,
+        ?int $lotId = null,
+        ?int $purchaseOrderLineId = null
     ): int {
-        return (int)DB::table('pmd_inventory_movements')->insertGetId([
+        $values = [
             'location_id' => $locationId,
             'item_id' => $itemId,
             'movement_type' => $type,
@@ -1679,7 +1682,23 @@ final class PmdInventoryControlService
             'occurred_at' => $occurredAt ?: now(),
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        if (Schema::hasColumn('pmd_inventory_movements', 'storage_location_id')) {
+            $values['storage_location_id'] = $storageLocationId && $storageLocationId > 0
+                ? $storageLocationId
+                : null;
+        }
+        if (Schema::hasColumn('pmd_inventory_movements', 'lot_id')) {
+            $values['lot_id'] = $lotId && $lotId > 0 ? $lotId : null;
+        }
+        if (Schema::hasColumn('pmd_inventory_movements', 'purchase_order_line_id')) {
+            $values['purchase_order_line_id'] = $purchaseOrderLineId && $purchaseOrderLineId > 0
+                ? $purchaseOrderLineId
+                : null;
+        }
+
+        return (int)DB::table('pmd_inventory_movements')->insertGetId($values);
     }
 
     private function earliestItemDate($items): ?string
