@@ -753,6 +753,7 @@
         '<button type="button" class="pmd-inv-r19-secondary" data-r24-close-floating>Close</button></div>' +
       '<div class="pmd-inv-r24-form-grid">' +
         '<label>Barcode / GTIN / supplier code<input type="text" data-r24-code-value placeholder="Scan or type code"></label>' +
+        '<label>Code type<select data-r24-code-type><option value="auto">Auto detect</option><option value="internal">Supplier / internal</option><option value="ean13">EAN-13</option><option value="upca">UPC-A</option><option value="gtin14">GTIN-14</option><option value="gtin8">GTIN-8</option><option value="qr">QR / URL</option></select></label>' +
         '<label>Package unit<select data-r24-code-unit>' + unitOptions(item.purchase_unit || item.unit) + '</select></label>' +
         '<label>1 scan equals · base quantity<input type="number" min="0.0001" step="0.0001" value="' + esc(item.purchase_to_base || 1) + '" data-r24-code-factor></label>' +
         '<label>Supplier<select data-r24-code-supplier>' + supplierOptions(0, true) + '</select></label>' +
@@ -774,7 +775,7 @@
     request('onSaveIdentifier', {
       item_id:itemId,
       code:code,
-      code_type:'auto',
+      code_type:String((panel.querySelector('[data-r24-code-type]') || {}).value || 'auto'),
       package_unit:String((panel.querySelector('[data-r24-code-unit]') || {}).value || 'piece'),
       package_quantity:1,
       base_quantity:Number((panel.querySelector('[data-r24-code-factor]') || {}).value || 1),
