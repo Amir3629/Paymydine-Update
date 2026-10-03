@@ -72,6 +72,12 @@
             android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden" />
 
         <activity
+            android:name=".KioskMenuActivity"
+            android:exported="false"
+            android:screenOrientation="fullSensor"
+            android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden" />
+
+        <activity
             android:name=".TableDisplayActivity"
             android:exported="false"
             android:screenOrientation="fullSensor"
