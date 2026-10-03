@@ -729,6 +729,17 @@ final class PmdInventoryProService
                 $identifierId = max(0, (int)($line['identifier_id'] ?? 0)) ?: null;
                 $identifier = $identifierId ? $this->identifier($locationId, $identifierId, $itemId) : null;
 
+                if (
+                    $identifier
+                    && !empty($identifier->supplier_id)
+                    && $supplierId !== null
+                    && (int)$identifier->supplier_id !== (int)$supplierId
+                ) {
+                    throw new InvalidArgumentException(
+                        'A selected package code belongs to a different supplier.'
+                    );
+                }
+
                 $qty = max(0, $this->number($line['quantity'] ?? 0));
                 if ($qty <= 0) {
                     continue;
