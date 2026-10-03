@@ -869,6 +869,64 @@
       '<div class="pmd-inv-r24-editor__actions"><button type="button" class="pmd-inv-r19-primary" data-r24-transfer-save>Transfer stock</button></div>';
   }
 
+  function openAllocationEditor() {
+    var host = workspace.querySelector('[data-r24-allocation-editor]');
+    if (!host) return;
+    var unallocated = (state.pro.unallocated_stock || []).filter(function (row) {
+      return Number(row.qty || 0) > 0.00005;
+    });
+    host.hidden = false;
+    host.innerHTML =
+      '<div class="pmd-inv-r24-editor__head"><div><span>Opening allocation</span><h3>Put existing stock into a room</h3>' +
+      '<small>This does not change restaurant-wide stock. It only assigns previously unallocated quantity to a physical storage location.</small></div>' +
+      '<button type="button" class="pmd-inv-r19-secondary" data-r24-editor-close>Close</button></div>' +
+      '<div class="pmd-inv-r24-fields">' +
+        '<label>Unallocated item<select data-r24-allocation-item><option value="">Choose item</option>' +
+          unallocated.map(function (row) {
+            return '<option value="' + esc(row.item_id) + '" data-max="' + esc(row.qty) + '">' +
+              esc(row.item_name + ' · ' + num(row.qty,2) + ' ' + (row.unit || '')) +
+            '</option>';
+          }).join('') +
+        '</select></label>' +
+        '<label>Storage location<select data-r24-allocation-storage>' + storageOptions(defaultStorageId()) + '</select></label>' +
+        '<label>Base quantity<input type="number" min="0.0001" step="0.01" data-r24-allocation-qty></label>' +
+        '<label class="is-wide">Note<input type="text" data-r24-allocation-note value="Opening storage allocation"></label>' +
+      '</div>' +
+      '<div class="pmd-inv-r24-editor__actions"><button type="button" class="pmd-inv-r19-primary" data-r24-allocation-save>Allocate stock</button></div>';
+    host.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  function saveAllocation() {
+    var host = workspace.querySelector('[data-r24-allocation-editor]');
+    if (!host) return;
+    var itemSelect = host.querySelector('[data-r24-allocation-item]');
+    var selected = itemSelect && itemSelect.options[itemSelect.selectedIndex];
+    var maxQty = Number(selected && selected.getAttribute('data-max') || 0);
+    var payload = {
+      item_id:Number(itemSelect && itemSelect.value || 0),
+      storage_location_id:Number((host.querySelector('[data-r24-allocation-storage]') || {}).value || 0),
+      quantity:Number((host.querySelector('[data-r24-allocation-qty]') || {}).value || 0),
+      note:String((host.querySelector('[data-r24-allocation-note]') || {}).value || '')
+    };
+    if (!payload.item_id || !payload.storage_location_id || !(payload.quantity > 0)) {
+      return toast('Choose an unallocated item, storage location and quantity.', true);
+    }
+    if (maxQty > 0 && payload.quantity > maxQty + 0.00005) {
+      return toast('The allocation is larger than the currently unallocated quantity.', true);
+    }
+
+    setBusy(host, true);
+    request('onProAllocateExistingStock', payload).then(function (json) {
+      applySnapshot(json.pro || {});
+      host.hidden = true;
+      toast('Existing stock allocated to storage.');
+    }).catch(function (error) {
+      toast(error.message || 'Could not allocate existing stock.', true);
+    }).finally(function () {
+      setBusy(host, false);
+    });
+  }
+
   function openStorageEditor(row) {
     var host = workspace.querySelector('[data-r24-storage-editor]');
     if (!host) return;
@@ -1577,6 +1635,14 @@
       refreshPoLinePackages(event.target.closest('[data-r24-po-line]'));
       return;
     }
+    if (event.target.matches('[data-r24-allocation-item]')) {
+      var allocationHost = workspace.querySelector('[data-r24-allocation-editor]');
+      var allocationQty = allocationHost && allocationHost.querySelector('[data-r24-allocation-qty]');
+      var opt = event.target.options[event.target.selectedIndex];
+      if (allocationQty && opt) allocationQty.value = String(opt.getAttribute('data-max') || '');
+      return;
+    }
+
     if (event.target.matches('[data-r24-po-package]')) {
       var line = event.target.closest('[data-r24-po-line]');
       var identifier = identifierById(event.target.value);
@@ -1747,6 +1813,8 @@
     var produceSave = target.closest('[data-r24-produce-save]');
     if (produceSave) { saveProduction(produceSave); return; }
 
+    if (target.closest('[data-r24-allocation-new]')) { openAllocationEditor(); return; }
+    if (target.closest('[data-r24-allocation-save]')) { saveAllocation(); return; }
     if (target.closest('[data-r24-storage-new]')) { openStorageEditor(null); return; }
     var storageSave = target.closest('[data-r24-storage-save]');
     if (storageSave) { saveStorage(storageSave); return; }
