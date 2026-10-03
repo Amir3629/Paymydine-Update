@@ -644,6 +644,18 @@
                         </section>
 
                         <section class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Supplier return</span><h3>Return delivered stock</h3></div></div>
+                            <div class="pmd-inv-r24-mini-form">
+                                <select data-r24-return-item></select>
+                                <select data-r24-return-supplier><option value="">Supplier · optional</option></select>
+                                <input type="number" min="0.0001" step="0.01" placeholder="Quantity in base unit" data-r24-return-qty>
+                                <input type="text" placeholder="Reason" value="Return to supplier" data-r24-return-reason>
+                                <input type="text" placeholder="Note · optional" data-r24-return-note>
+                                <button type="button" class="pmd-inv-r19-primary" data-r24-return-submit>Record return</button>
+                            </div>
+                        </section>
+
+                        <section class="pmd-inv-r24-card">
                             <div class="pmd-inv-r24-card__head"><div><span>Correction</span><h3>Audited adjustment</h3></div></div>
                             <div class="pmd-inv-r24-mini-form">
                                 <select data-r24-adjust-item></select>
