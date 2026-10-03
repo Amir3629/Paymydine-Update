@@ -331,6 +331,26 @@
       var currentSupplier = returnSupplier.value;
       returnSupplier.innerHTML = '<option value="">Supplier · optional</option>' + supplierOptions(currentSupplier, false);
     }
+
+    renderLotPicker('[data-r24-transfer-item]', '[data-r24-transfer-lot]');
+    renderLotPicker('[data-r24-return-item]', '[data-r24-return-lot]');
+  }
+
+  function renderLotPicker(itemSelector, lotSelector) {
+    var itemNode = workspace.querySelector(itemSelector);
+    var lotNode = workspace.querySelector(lotSelector);
+    if (!itemNode || !lotNode) return;
+    var current = lotNode.value;
+    var item = items().find(function (row) {
+      return Number(row.id) === Number(itemNode.value || 0);
+    });
+    var lots = item && Array.isArray(item.lots) ? item.lots : [];
+    lotNode.innerHTML = '<option value="">Lot · optional</option>' + lots.map(function (lot) {
+      return '<option value="' + esc(lot.id) + '"' + (String(current) === String(lot.id) ? ' selected' : '') + '>' +
+        esc((lot.lot_code ? 'Lot ' + lot.lot_code + ' · ' : '') +
+          number(lot.qty_remaining,2) + ' ' + item.unit +
+          (lot.expiry_date ? ' · ' + lot.expiry_date : '')) + '</option>';
+    }).join('');
   }
 
   function renderLots() {
@@ -689,7 +709,11 @@
       from_storage_id:from,
       to_storage_id:to,
       note:String((workspace.querySelector('[data-r24-transfer-note]') || {}).value || ''),
-      lines:[{item_id:itemId, quantity:qty}]
+      lines:[{
+        item_id:itemId,
+        lot_id:Number((workspace.querySelector('[data-r24-transfer-lot]') || {}).value || 0),
+        quantity:qty
+      }]
     }).then(function () {
       var q = workspace.querySelector('[data-r24-transfer-qty]');
       if (q) q.value = '';
@@ -734,6 +758,7 @@
     request('onReturnToSupplier', {
       item_id:itemId,
       supplier_id:supplierId,
+      lot_id:Number((workspace.querySelector('[data-r24-return-lot]') || {}).value || 0),
       quantity:qty,
       reason:reason || 'Return to supplier',
       note:String((workspace.querySelector('[data-r24-return-note]') || {}).value || '')
@@ -1267,10 +1292,19 @@
   });
 
   workspace.addEventListener('change', function (event) {
-    if (!event.target.matches('[data-r24-import-stock]')) return;
-    var file = event.target.files && event.target.files[0];
-    importStockCsv(file);
-    event.target.value = '';
+    if (event.target.matches('[data-r24-import-stock]')) {
+      var file = event.target.files && event.target.files[0];
+      importStockCsv(file);
+      event.target.value = '';
+      return;
+    }
+    if (event.target.matches('[data-r24-transfer-item]')) {
+      renderLotPicker('[data-r24-transfer-item]', '[data-r24-transfer-lot]');
+      return;
+    }
+    if (event.target.matches('[data-r24-return-item]')) {
+      renderLotPicker('[data-r24-return-item]', '[data-r24-return-lot]');
+    }
   });
 
   root.addEventListener('pmd:inventory-snapshot', render);
