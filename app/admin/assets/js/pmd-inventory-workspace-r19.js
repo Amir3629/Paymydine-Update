@@ -1340,10 +1340,16 @@
       var onHand = Math.max(0, Number(item.estimated_on_hand || 0));
       var par = Math.max(0, Number(item.par_level || 0));
       var dailyUsage = Math.max(0, Number(item.avg_daily_usage || 0));
+      var preferred = supplierItems.find(function (row) {
+        return Number(row.item_id) === Number(item.id) && Number(row.is_preferred || 0) === 1;
+      }) || null;
+      var leadTimeDays = preferred
+        ? Math.max(0, Number(preferred.supplier_lead_time_days || 0))
+        : 0;
 
-      // R24 forecasting: cover the requested period plus the restaurant's
-      // safety-stock buffer. Par remains an independent minimum target.
-      var usageNeed = Math.max(0, dailyUsage * (days + safetyDays));
+      // R24 forecasting: cover the requested period, supplier lead time and
+      // restaurant safety-stock buffer. Par remains an independent minimum.
+      var usageNeed = Math.max(0, dailyUsage * (days + leadTimeDays + safetyDays));
       var desired = Math.max(par, usageNeed);
       if (desired <= 0 && Number(item.reorder_point || 0) > 0 && onHand <= Number(item.reorder_point || 0)) {
         desired = Number(item.reorder_point || 0);
@@ -1351,10 +1357,6 @@
 
       var baseQty = Math.max(0, desired - onHand);
       if (baseQty <= .00005) return null;
-
-      var preferred = supplierItems.find(function (row) {
-        return Number(row.item_id) === Number(item.id) && Number(row.is_preferred || 0) === 1;
-      }) || null;
 
       if (preferred) {
         var factor = Math.max(.0001, Number(preferred.base_quantity || item.purchase_to_base || 1));
@@ -1376,7 +1378,9 @@
           supplier_item_id:Number(preferred.id || 0),
           min_order_qty:minimum,
           order_multiple:multiple,
-          safety_days:safetyDays
+          safety_days:safetyDays,
+          lead_time_days:leadTimeDays,
+          supplier_min_order_value:Number(preferred.supplier_min_order_value || 0)
         };
       }
 
@@ -1393,7 +1397,9 @@
         supplier_item_id:0,
         min_order_qty:0,
         order_multiple:0,
-        safety_days:safetyDays
+        safety_days:safetyDays,
+        lead_time_days:0,
+        supplier_min_order_value:0
       };
     }).filter(Boolean).sort(function (a,b) {
       return a.supplier.localeCompare(b.supplier) || String(a.item.name).localeCompare(String(b.item.name));
@@ -1425,7 +1431,7 @@
         html += '<div class="pmd-inv-r19-shopping-supplier">' + esc(currentSupplier) + '</div>';
       }
       html += '<div class="pmd-inv-r19-shopping-row" data-r19-shopping-row="' + esc(row.item.id) + '" data-unit="' + esc(row.unit) + '" data-factor="' + esc(row.factor) + '" data-supplier-id="' + esc(row.supplier_id || 0) + '" data-supplier-item-id="' + esc(row.supplier_item_id || 0) + '" data-unit-cost="' + esc(row.qty > 0 ? (row.estimatedCost / row.qty) : 0) + '">' +
-        '<div><strong>' + esc(row.item.name) + '</strong><small>' + esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand' + (row.safety_days > 0 ? ' · ' + number(row.safety_days,2) + ' safety days' : '')) + '</small></div>' +
+        '<div><strong>' + esc(row.item.name) + '</strong><small>' + esc(ownerQuantityLabel(row.item,row.item.estimated_on_hand,2) + ' on hand' + (row.lead_time_days > 0 ? ' · ' + number(row.lead_time_days,0) + 'd supplier lead time' : '') + (row.safety_days > 0 ? ' · ' + number(row.safety_days,2) + ' safety days' : '')) + '</small></div>' +
         '<span>Need ' + esc(number(row.qty,2) + ' ' + row.unit) + (row.order_multiple > 0 ? ' · order multiple ' + number(row.order_multiple,2) : '') + '</span>' +
         '<input type="number" min="0" step="0.01" value="' + esc(Number(row.qty.toFixed(2))) + '" data-r19-shopping-qty>' +
         '<span>' + esc(money(row.estimatedCost)) + '</span>' +
