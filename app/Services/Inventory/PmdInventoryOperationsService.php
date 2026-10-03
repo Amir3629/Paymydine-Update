@@ -43,6 +43,21 @@ final class PmdInventoryOperationsService
                 return false;
             }
         }
+
+        foreach ([
+            ['pmd_inventory_items', 'safety_stock'],
+            ['pmd_inventory_items', 'track_expiry'],
+            ['pmd_inventory_receipts', 'supplier_id'],
+            ['pmd_inventory_receipts', 'reversed_at'],
+            ['pmd_inventory_movements', 'storage_location_id'],
+            ['pmd_inventory_movements', 'lot_id'],
+            ['pmd_inventory_movements', 'purchase_order_line_id'],
+        ] as [$table, $column]) {
+            if (!Schema::hasColumn($table, $column)) {
+                return false;
+            }
+        }
+
         return true;
     }
 
