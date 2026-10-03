@@ -32,10 +32,14 @@ final class FoodCourtQueue
                 $query = $db->table('orders')
                     ->where('location_id', (int)$site->location_id);
 
-                if (in_array('processed', $columns, true)) {
-                    $query->where(function ($q) {
-                        $q->whereNull('processed')->orWhere('processed', 0);
-                    });
+                // Pickup is an operational view. Limit it to recent orders so
+                // completed historical tickets cannot reappear on a venue display.
+                if (in_array('created_at', $columns, true)) {
+                    $query->where(
+                        'orders.created_at',
+                        '>=',
+                        now()->subHours(18)->format('Y-m-d H:i:s')
+                    );
                 }
 
                 if (in_array('status_id', $columns, true) && $db->getSchemaBuilder()->hasTable('statuses')) {
@@ -51,7 +55,7 @@ final class FoodCourtQueue
                     $select[] = 'pmd_queue_status.status_name';
                 }
 
-                foreach ($query->orderBy('orders.order_id')->limit(100)->get($select) as $order) {
+                foreach ($query->orderByDesc('orders.order_id')->limit(100)->get($select) as $order) {
                     $status = strtolower(trim((string)($order->status_name ?? $order->order_status ?? 'preparing')));
                     $displayStatus = str_contains($status, 'ready')
                         || str_contains($status, 'complete')
