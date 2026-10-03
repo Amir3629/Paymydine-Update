@@ -1135,24 +1135,30 @@ window.PMDQuickPOSConfig = {
     );
 })();
 </script>
+{{-- PMD_QPOS_COLLECTION_BINDINGS_R133
+     Safari boot fix: collection bindings use $(), not $().
+     Keeps the R132 fast first-paint path intact. --}}
+{{-- PMD_QPOS_FAST_FIRST_PAINT_R132
+     Server-rendered POS content stays visible while non-critical Floor,
+     push and site-access runtimes parse after the core POS boot. --}}
 {{-- Canonical Floor runtime mounts after the Quick POS endpoint override. --}}
-<script src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260927-floor-card-r35"></script>
-<script src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260927-floor-card-r35"></script>
+<script defer src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js?v=20260927-floor-card-r35"></script>
+<script defer src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js?v=20260927-floor-card-r35"></script>
 {{-- PMD_QPOS_PUSH_NOTIFICATIONS_V57
      Reuse the canonical Admin push stream for immediate notifications.
      V73 also runs one lean operational-state heartbeat for table/KDS sync. --}}
-<script src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
+<script defer src="/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59"></script>
 {{-- PMD_QPOS_OFFLINE_COMPLETE_CACHE_BUSTER_V94 --}}
 @if($pmdAndroidWebParityV112)
 {{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
      Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
      cannot substitute an older bundled runtime. --}}
-<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20260930-r131"></script>
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20261003-r133"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20260930-r131"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261003-r133"></script>
 @endif
 <script defer src="/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261001-r2"></script>
 <script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129"></script>
-<script src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
+<script defer src="/app/admin/assets/js/pmd-site-access-hub-v13.js?v=20260921-androidpair-v16"></script>
 </body>
 </html>
