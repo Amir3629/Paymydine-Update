@@ -645,6 +645,23 @@
                         </div>
                     </div>
                     <section class="pmd-inv-r24-settings" data-r24-settings-form></section>
+                    <div class="pmd-inv-r24-subsection-head">
+                        <div><span>Bulk onboarding</span><h3>Import stock and supplier products from CSV</h3></div>
+                    </div>
+                    <section class="pmd-inv-r24-import">
+                        <div>
+                            <strong>CSV inventory import</strong>
+                            <span>Up to 1000 rows. Existing active items are updated by exact item name; new names create new stock items.</span>
+                        </div>
+                        <div class="pmd-inv-r24-import__actions">
+                            <button type="button" class="pmd-inv-r19-secondary" data-r24-import-template>Download template</button>
+                            <label class="pmd-inv-r19-secondary pmd-inv-r24-import-file">
+                                <input type="file" accept=".csv,text/csv" data-r24-import-file>
+                                <span>Choose CSV</span>
+                            </label>
+                        </div>
+                        <div class="pmd-inv-r24-import__result" data-r24-import-result></div>
+                    </section>
                     <section class="pmd-inv-r24-health" data-r24-system-health></section>
                 </section>
             </section>
