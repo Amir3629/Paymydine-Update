@@ -457,6 +457,46 @@ final class PmdInventoryControlService
             ->values()
             ->all();
 
+        $itemStateById = [];
+        foreach ($rows as $row) {
+            $itemStateById[(int)$row['id']] = $row;
+        }
+
+        $menuAvailabilityAlerts = [];
+        foreach ($recipes as $recipe) {
+            $blocking = [];
+            $warning = [];
+            foreach ((array)($recipe['lines'] ?? []) as $line) {
+                $state = $itemStateById[(int)($line['item_id'] ?? 0)] ?? null;
+                if (!$state) {
+                    continue;
+                }
+
+                if ((float)($state['estimated_on_hand'] ?? 0) <= 0.00005) {
+                    $blocking[] = (string)($state['name'] ?? $line['item_name'] ?? '');
+                } elseif (
+                    (string)($state['status'] ?? '') === 'critical'
+                    || (
+                        $state['days_left'] !== null
+                        && (float)$state['days_left'] <= 1.5
+                    )
+                ) {
+                    $warning[] = (string)($state['name'] ?? $line['item_name'] ?? '');
+                }
+            }
+
+            if ($blocking || $warning) {
+                $menuAvailabilityAlerts[] = [
+                    'menu_id' => (int)($recipe['menu_id'] ?? 0),
+                    'menu_name' => (string)($recipe['menu_name'] ?? ''),
+                    'level' => $blocking ? 'out' : 'risk',
+                    'blocking_items' => array_values(array_unique(array_filter($blocking))),
+                    'warning_items' => array_values(array_unique(array_filter($warning))),
+                ];
+            }
+        }
+        $summary['menu_items_at_risk'] = count($menuAvailabilityAlerts);
+
         $locationMenuIds = $this->locationMenuIds($locationId);
         $menus = Schema::hasTable('menus')
             ? DB::table('menus')
@@ -483,6 +523,7 @@ final class PmdInventoryControlService
             'recipes' => $recipes,
             'recent_purchases' => $recentPurchases,
             'recent_waste' => $recentWaste,
+            'menu_availability_alerts' => $menuAvailabilityAlerts,
             'last_count' => $lastCount ? [
                 'id' => (int)$lastCount->id,
                 'counted_at' => (string)$lastCount->counted_at,
