@@ -1304,6 +1304,98 @@ final class PmdInventoryControlService
         });
     }
 
+    public function startCount(int $locationId, ?int $staffId, array $data = []): int
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        // Expire abandoned locks rather than blocking a restaurant forever.
+        DB::table('pmd_inventory_counts')
+            ->where('location_id', $locationId)
+            ->where('status', 'in_progress')
+            ->where('counted_at', '<', now()->subHours(12))
+            ->update([
+                'status' => 'cancelled',
+                'updated_at' => now(),
+            ]);
+
+        $existing = DB::table('pmd_inventory_counts')
+            ->where('location_id', $locationId)
+            ->where('status', 'in_progress')
+            ->orderByDesc('id')
+            ->first();
+
+        $scope = $this->arrayValue($data['scope_item_ids'] ?? []);
+        $blind = array_key_exists('blind_count', $data)
+            ? (!empty($data['blind_count']) ? 1 : 0)
+            : 1;
+
+        if ($existing) {
+            if ($staffId && (int)($existing->staff_id ?? 0) === (int)$staffId) {
+                $payload = ['updated_at' => now()];
+                if (Schema::hasColumn('pmd_inventory_counts', 'scope_json')) {
+                    $payload['scope_json'] = json_encode(
+                        $scope,
+                        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                    );
+                    $payload['blind_count'] = $blind;
+                }
+                DB::table('pmd_inventory_counts')->where('id', (int)$existing->id)->update($payload);
+                return (int)$existing->id;
+            }
+
+            throw new InvalidArgumentException(
+                'A physical count is already in progress. Finish or cancel it before starting another count.'
+            );
+        }
+
+        $payload = [
+            'location_id' => $locationId,
+            'status' => 'in_progress',
+            'staff_id' => $staffId,
+            'counted_at' => now(),
+            'note' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+        if (Schema::hasColumn('pmd_inventory_counts', 'scope_json')) {
+            $payload['scope_json'] = json_encode(
+                $scope,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
+            $payload['blind_count'] = $blind;
+        }
+
+        return (int)DB::table('pmd_inventory_counts')->insertGetId($payload);
+    }
+
+    public function cancelCount(int $locationId, ?int $staffId, int $countId): void
+    {
+        $this->assertReady();
+        $locationId = $this->location($locationId);
+
+        $count = DB::table('pmd_inventory_counts')
+            ->where('location_id', $locationId)
+            ->where('id', $countId)
+            ->where('status', 'in_progress')
+            ->first();
+
+        if (!$count) {
+            return;
+        }
+
+        if ($staffId && (int)($count->staff_id ?? 0) > 0 && (int)$count->staff_id !== (int)$staffId) {
+            throw new InvalidArgumentException('Only the staff member who started this count can cancel it.');
+        }
+
+        DB::table('pmd_inventory_counts')
+            ->where('id', $countId)
+            ->update([
+                'status' => 'cancelled',
+                'updated_at' => now(),
+            ]);
+    }
+
     public function completeCount(int $locationId, ?int $staffId, array $data): int
     {
         $this->assertReady();
@@ -1362,6 +1454,7 @@ final class PmdInventoryControlService
             $expected,
             $costs
         ) {
+            $requestedCountId = max(0, (int)($data['count_id'] ?? 0));
             $countPayload = [
                 'location_id' => $locationId,
                 'status' => 'completed',
@@ -1382,7 +1475,33 @@ final class PmdInventoryControlService
                 $countPayload['approved_by'] = $staffId;
                 $countPayload['approved_at'] = now();
             }
-            $countId = (int)DB::table('pmd_inventory_counts')->insertGetId($countPayload);
+            if ($requestedCountId > 0) {
+                $inProgress = DB::table('pmd_inventory_counts')
+                    ->where('location_id', $locationId)
+                    ->where('id', $requestedCountId)
+                    ->where('status', 'in_progress')
+                    ->first();
+
+                if (!$inProgress) {
+                    throw new InvalidArgumentException('This physical-count session is no longer active.');
+                }
+                if ($staffId && (int)($inProgress->staff_id ?? 0) > 0 && (int)$inProgress->staff_id !== (int)$staffId) {
+                    throw new InvalidArgumentException('This physical count belongs to another staff member.');
+                }
+
+                $countPayload['status'] = 'completed';
+                $countPayload['counted_at'] = now();
+                unset($countPayload['created_at']);
+                DB::table('pmd_inventory_counts')
+                    ->where('id', $requestedCountId)
+                    ->update($countPayload);
+                DB::table('pmd_inventory_count_lines')
+                    ->where('count_id', $requestedCountId)
+                    ->delete();
+                $countId = $requestedCountId;
+            } else {
+                $countId = (int)DB::table('pmd_inventory_counts')->insertGetId($countPayload);
+            }
 
             $seen = [];
             foreach ($lines as $line) {
