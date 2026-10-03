@@ -597,6 +597,25 @@ class KioskMenuActivity : ComponentActivity() {
         }
     }
 
+    private fun injectKioskGuestUi(
+        view: WebView,
+        secret: String,
+    ) {
+        val script =
+            """
+            (function () {
+              document.documentElement.setAttribute('data-pmd-kiosk', '1');
+              window.__PMD_KIOSK_BRIDGE_SECRET__ =
+                __PMD_KIOSK_BRIDGE_SECRET__;
+            })();
+            """.trimIndent()
+                .replace(
+                    "__PMD_KIOSK_BRIDGE_SECRET__",
+                    org.json.JSONObject.quote(secret),
+                )
+        view.evaluateJavascript(script, null)
+    }
+
     private fun buildTargetUrl(): String {
         val base = menuUrl.trimEnd('/')
         return base +
