@@ -17,6 +17,12 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/admin/assets/js/pmd-quick-pos-v1.js
+            app/admin/assets/js/pmd-qpos-web-parity-v112.js
+            app/admin/views/pmd_quick_pos_v1.blade.php
+          sparse-checkout-cone-mode: false
 
       - name: Validate Quick POS JavaScript
         run: |
