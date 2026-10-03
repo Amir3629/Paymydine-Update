@@ -1,0 +1,48 @@
+name: Quick POS First Paint Guard
+
+on:
+  push:
+    branches:
+      - fix/qpos-fast-first-paint-r132
+      - main
+    paths:
+      - 'app/admin/assets/js/pmd-quick-pos-v1.js'
+      - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
+      - 'app/admin/views/pmd_quick_pos_v1.blade.php'
+      - '.github/workflows/qpos-first-paint-guard.yml'
+
+jobs:
+  qpos-first-paint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Quick POS JavaScript
+        run: |
+          node --check app/admin/assets/js/pmd-quick-pos-v1.js
+          node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
+
+      - name: Guard fast first paint contract
+        run: |
+          set -euo pipefail
+
+          grep -Fq 'PMD_QPOS_SERVER_FIRST_PAINT_R132'             app/admin/assets/js/pmd-quick-pos-v1.js
+
+          grep -Fq 'PMD_QPOS_SERVER_FIRST_PAINT_R132'             app/admin/assets/js/pmd-qpos-web-parity-v112.js
+
+          grep -Fq 'bindRenderedTables();'             app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -Fq 'bindRenderedCategories();'             app/admin/assets/js/pmd-quick-pos-v1.js
+          grep -Fq 'bindRenderedProducts();'             app/admin/assets/js/pmd-quick-pos-v1.js
+
+          ! grep -Fq $'state.visualHydrated = true;\n    renderAll();\n    persistVisualCache(json);'             app/admin/assets/js/pmd-quick-pos-v1.js
+
+          grep -Fq 'PMD_QPOS_FAST_FIRST_PAINT_R132'             app/admin/views/pmd_quick_pos_v1.blade.php
+
+          grep -Fq 'defer src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js'             app/admin/views/pmd_quick_pos_v1.blade.php
+
+          grep -Fq 'defer src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js'             app/admin/views/pmd_quick_pos_v1.blade.php
+
+          grep -Fq 'defer src="/app/admin/assets/js/push-notifications.js'             app/admin/views/pmd_quick_pos_v1.blade.php
+
+          grep -Fq 'pmd-quick-pos-v1.js?v=20261003-r132'             app/admin/views/pmd_quick_pos_v1.blade.php
