@@ -1336,7 +1336,7 @@ final class PmdInventoryControlService
         $this->assertReady();
         $locationId = $this->location($locationId);
 
-        return (int)DB::table('pmd_inventory_receipts')->insertGetId([
+        $row = [
             'location_id' => $locationId,
             'supplier_name' => $aiPayload['supplier_name'] ?? null,
             'purchased_at' => $aiPayload['purchase_date'] ?? now()->toDateString(),
@@ -1353,7 +1353,16 @@ final class PmdInventoryControlService
             'created_by' => $staffId,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        if (Schema::hasColumn('pmd_inventory_receipts', 'document_hash')) {
+            $row['document_hash'] = $this->nullableText($fileMeta['document_hash'] ?? null, 64);
+        }
+        if (Schema::hasColumn('pmd_inventory_receipts', 'invoice_number')) {
+            $row['invoice_number'] = $this->nullableText($aiPayload['invoice_number'] ?? null, 120);
+        }
+
+        return (int)DB::table('pmd_inventory_receipts')->insertGetId($row);
     }
 
     private function soldUsageByItem(
