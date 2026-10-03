@@ -319,12 +319,18 @@
       node.innerHTML = storageOptions(current, selector.indexOf('setting') !== -1);
     });
 
-    ['[data-r24-transfer-item]','[data-r24-adjust-item]','[data-r24-prep-output]'].forEach(function (selector) {
+    ['[data-r24-transfer-item]','[data-r24-adjust-item]','[data-r24-return-item]','[data-r24-prep-output]'].forEach(function (selector) {
       var node = workspace.querySelector(selector);
       if (!node) return;
       var current = node.value;
       node.innerHTML = itemOptions(current);
     });
+
+    var returnSupplier = workspace.querySelector('[data-r24-return-supplier]');
+    if (returnSupplier) {
+      var currentSupplier = returnSupplier.value;
+      returnSupplier.innerHTML = '<option value="">Supplier · optional</option>' + supplierOptions(currentSupplier, false);
+    }
   }
 
   function renderLots() {
@@ -713,6 +719,30 @@
       toast('Audited stock correction recorded.');
     }).catch(function (error) {
       toast(error.message || 'Could not record correction.', true);
+    });
+  }
+
+  function submitSupplierReturn() {
+    var itemId = Number((workspace.querySelector('[data-r24-return-item]') || {}).value || 0);
+    var supplierId = Number((workspace.querySelector('[data-r24-return-supplier]') || {}).value || 0);
+    var qty = Number((workspace.querySelector('[data-r24-return-qty]') || {}).value || 0);
+    var reason = String((workspace.querySelector('[data-r24-return-reason]') || {}).value || '').trim();
+    if (!itemId || !(qty > 0)) {
+      return toast('Choose an item and return quantity.', true);
+    }
+
+    request('onReturnToSupplier', {
+      item_id:itemId,
+      supplier_id:supplierId,
+      quantity:qty,
+      reason:reason || 'Return to supplier',
+      note:String((workspace.querySelector('[data-r24-return-note]') || {}).value || '')
+    }).then(function () {
+      workspace.querySelector('[data-r24-return-qty]').value = '';
+      workspace.querySelector('[data-r24-return-note]').value = '';
+      toast('Supplier return recorded.');
+    }).catch(function (error) {
+      toast(error.message || 'Could not record supplier return.', true);
     });
   }
 
@@ -1196,6 +1226,7 @@
     if (target.closest('[data-r24-save-settings]')) { saveSettings(); return; }
     if (target.closest('[data-r24-transfer-submit]')) { submitTransfer(); return; }
     if (target.closest('[data-r24-adjust-submit]')) { submitAdjustment(); return; }
+    if (target.closest('[data-r24-return-submit]')) { submitSupplierReturn(); return; }
 
     var identifier = target.closest('[data-r24-item-identifier]');
     if (identifier) { openIdentifierEditor(identifier.getAttribute('data-r24-item-identifier')); return; }
