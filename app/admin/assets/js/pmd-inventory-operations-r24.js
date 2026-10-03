@@ -587,6 +587,7 @@
       '<div class="pmd-inv-r24-form-grid">' +
         '<label>Receive into<select data-r24-receive-storage>' + storageOptions((snap().inventory_settings || {}).default_storage_id, false) + '</select></label>' +
         '<label>Delivery date<input type="date" data-r24-receive-date value="' + esc(new Date().toISOString().slice(0,10)) + '"></label>' +
+        '<label>Supplier invoice no.<input type="text" data-r24-receive-invoice placeholder="Optional"></label>' +
       '</div>' +
       '<div class="pmd-inv-r24-receive-lines">' +
         remaining.map(function (line) {
@@ -595,6 +596,7 @@
             '<div><strong>' + esc(line.item_name) + '</strong><small>' +
               esc(number(line.remaining_qty,2) + ' ' + line.unit + ' remaining') + '</small></div>' +
             '<label>Received<input type="number" min="0" max="' + esc(line.remaining_qty) + '" step="0.01" value="' + esc(line.remaining_qty) + '" data-r24-receive-qty></label>' +
+            '<label>Actual cost / ' + esc(line.unit) + '<input type="number" min="0" step="0.01" value="' + esc(line.unit_cost || 0) + '" data-r24-receive-cost></label>' +
             '<label>Lot / batch<input type="text" data-r24-receive-lot placeholder="Optional"></label>' +
             '<label>Expiry<input type="date" data-r24-receive-expiry' + (item.track_expiry ? ' required' : '') + '></label>' +
           '</div>';
@@ -612,6 +614,7 @@
       return {
         line_id:Number(row.getAttribute('data-r24-receive-line') || 0),
         quantity:Number((row.querySelector('[data-r24-receive-qty]') || {}).value || 0),
+        unit_cost:Number((row.querySelector('[data-r24-receive-cost]') || {}).value || 0),
         lot_code:String((row.querySelector('[data-r24-receive-lot]') || {}).value || ''),
         expiry_date:String((row.querySelector('[data-r24-receive-expiry]') || {}).value || '')
       };
@@ -623,6 +626,7 @@
       purchase_order_id:Number(orderId),
       storage_location_id:Number((panel.querySelector('[data-r24-receive-storage]') || {}).value || 0),
       purchased_at:String((panel.querySelector('[data-r24-receive-date]') || {}).value || ''),
+      invoice_number:String((panel.querySelector('[data-r24-receive-invoice]') || {}).value || ''),
       lines:lines
     }).then(function () {
       panel.hidden = true;
