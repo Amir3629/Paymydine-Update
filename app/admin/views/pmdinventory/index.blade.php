@@ -584,6 +584,30 @@
                             <div class="pmd-inv-r24-stack" data-r24-identifier-list></div>
                         </div>
                     </div>
+                    <div class="pmd-inv-r24-grid pmd-inv-r24-grid--2">
+                        <div class="pmd-inv-r24-card">
+                            <div class="pmd-inv-r24-card__head"><div><span>Bulk import / edit</span><h3>Inventory CSV</h3></div></div>
+                            <p class="pmd-inv-r24-help">Import up to 500 rows. Exact item names update existing stock; new names create items. Package barcodes can be included without duplicating products.</p>
+                            <label class="pmd-inv-r24-file">
+                                <input type="file" accept=".csv,text/csv" data-r24-import-file>
+                                <span>Choose CSV</span>
+                            </label>
+                            <div class="pmd-inv-r24-actions">
+                                <button type="button" class="pmd-inv-r19-secondary" data-r24-download-template>Download template</button>
+                                <button type="button" class="pmd-inv-r19-primary" data-r24-run-import disabled>Import / update</button>
+                            </div>
+                            <div class="pmd-inv-r24-import-status" data-r24-import-status></div>
+                        </div>
+                        <form class="pmd-inv-r24-card" data-r24-merge-form>
+                            <div class="pmd-inv-r24-card__head"><div><span>Duplicate cleanup</span><h3>Merge stock items</h3></div></div>
+                            <p class="pmd-inv-r24-help">Use only for true duplicates with the same base unit. Movements, recipes, counts, product codes, supplier mappings, lots and PO history are reassigned to the item you keep.</p>
+                            <div class="pmd-inv-r24-fields">
+                                <label>Keep item<select data-r24-merge-target required></select></label>
+                                <label>Merge & archive<select data-r24-merge-source required></select></label>
+                            </div>
+                            <div class="pmd-inv-r24-actions"><button type="submit" class="pmd-inv-r24-danger-action">Merge duplicates</button></div>
+                        </form>
+                    </div>
                 </section>
 
                 <section class="pmd-inv-r19-pane pmd-inv-r24-pane" data-r24-pane="storage" hidden>
