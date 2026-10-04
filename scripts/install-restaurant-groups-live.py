@@ -26,7 +26,6 @@ EXACT = {
     'app/Console/Commands/RestaurantGroupsCommand.php',
     'app/admin/classes/User.php', 'config/app.php', 'config/pmd_groups.php',
     'routes/pmd-groups.php',
-    'routes/pmd-superadmin-r2.php',
     'app/admin/views/_partials/pmd_admin_i18n.blade.php',
     'app/admin/views/superadmin_r2/side_menu.blade.php',
     'app/admin/assets/css/pmd-restaurant-groups-v1.css',

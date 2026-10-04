@@ -3,7 +3,6 @@
 use Admin\Controllers\SuperAdminR2Controller;
 use Admin\Controllers\SuperAdminR2DashboardController;
 use App\Http\Middleware\ApplySuperAdminTenantCountryProfile;
-use App\Http\Controllers\RestaurantGroups\SuperAdminController as RestaurantGroupsSuperAdminController;
 use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\SuperAdminCanonicalHost;
 use Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware;
@@ -87,17 +86,6 @@ Route::middleware(['web', SuperAdminCanonicalHost::class])
                 ->name('pmd.superadmin.dashboard');
             Route::get('/superadmin/new', [SuperAdminR2Controller::class, 'restaurants'])
                 ->name('pmd.superadmin.restaurants');
-
-            // PMD_RESTAURANT_GROUPS_SUPERADMIN_R1
-            // Keep Business Accounts under the same canonical Super Admin
-            // authority as /superadmin/new so Nginx, session and DB isolation
-            // behavior are identical.
-            Route::get('/superadmin/groups', [RestaurantGroupsSuperAdminController::class, 'index'])
-                ->name('pmd.superadmin.groups');
-            Route::post('/superadmin/groups/store', [RestaurantGroupsSuperAdminController::class, 'store'])
-                ->name('pmd.superadmin.groups.store');
-            Route::post('/superadmin/groups/retry', [RestaurantGroupsSuperAdminController::class, 'retry'])
-                ->name('pmd.superadmin.groups.retry');
             Route::post('/superadmin/new/store', [SuperAdminR2Controller::class, 'store'])
                 ->middleware(ApplySuperAdminTenantCountryProfile::class)
                 ->name('pmd.superadmin.store');
