@@ -90,6 +90,17 @@ try {
         throw new RuntimeException('Route cache is still active during health bootstrap: '.basename($cached));
     }
     $routes = $app['router']->getRoutes();
+
+    // Laravel 8 adds a route to RouteCollection before a fluent ->name()
+    // mutation is applied. Refresh both lookup tables before health assertions;
+    // this mirrors the framework's own end-of-route-loading behavior.
+    if (method_exists($routes, 'refreshNameLookups')) {
+        $routes->refreshNameLookups();
+    }
+    if (method_exists($routes, 'refreshActionLookups')) {
+        $routes->refreshActionLookups();
+    }
+
     foreach (['pmd.superadmin.groups','pmd.superadmin.groups.store','pmd.superadmin.groups.retry',
         'pmd.group.context','pmd.group.snapshot','pmd.group.catalog','pmd.group.publish.preview','pmd.group.publish.apply'] as $name) {
         if (!$routes->getByName($name)) throw new RuntimeException('Missing route: '.$name);

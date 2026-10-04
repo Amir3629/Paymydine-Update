@@ -15,12 +15,18 @@ Route::middleware(['web', SuperAdminCanonicalHost::class])
         // both the normal Admin HTTP bootstrap and the CLI health bootstrap.
         // The middleware is identical to the existing Super Admin R2 authority.
         Route::middleware(SuperAdminAuth::class)->group(function () {
-            Route::get('/superadmin/groups', [SuperAdminController::class, 'index'])
-                ->name('pmd.superadmin.groups');
-            Route::post('/superadmin/groups/store', [SuperAdminController::class, 'store'])
-                ->name('pmd.superadmin.groups.store');
-            Route::post('/superadmin/groups/retry', [SuperAdminController::class, 'retry'])
-                ->name('pmd.superadmin.groups.retry');
+            Route::get('/superadmin/groups', [
+                'as' => 'pmd.superadmin.groups',
+                'uses' => SuperAdminController::class.'@index',
+            ]);
+            Route::post('/superadmin/groups/store', [
+                'as' => 'pmd.superadmin.groups.store',
+                'uses' => SuperAdminController::class.'@store',
+            ]);
+            Route::post('/superadmin/groups/retry', [
+                'as' => 'pmd.superadmin.groups.retry',
+                'uses' => SuperAdminController::class.'@retry',
+            ]);
         });
 
         Route::get('/pmd-foodcourt/{token}', [DisplayController::class, 'page'])
@@ -36,16 +42,26 @@ Route::middleware(['web', SuperAdminCanonicalHost::class])
 Route::middleware(['web', 'tenant.database'])
     ->prefix(trim((string)config('system.adminUri', 'admin'), '/'))
     ->group(function () {
-        Route::get('/group/context', [AdminController::class, 'context'])
-            ->name('pmd.group.context');
-        Route::get('/group/snapshot', [AdminController::class, 'snapshot'])
-            ->name('pmd.group.snapshot');
-        Route::get('/group/catalog', [AdminController::class, 'catalog'])
-            ->name('pmd.group.catalog');
-        Route::post('/group/publish/preview', [AdminController::class, 'preview'])
-            ->name('pmd.group.publish.preview');
-        Route::post('/group/publish/apply', [AdminController::class, 'apply'])
-            ->name('pmd.group.publish.apply');
+        Route::get('/group/context', [
+            'as' => 'pmd.group.context',
+            'uses' => AdminController::class.'@context',
+        ]);
+        Route::get('/group/snapshot', [
+            'as' => 'pmd.group.snapshot',
+            'uses' => AdminController::class.'@snapshot',
+        ]);
+        Route::get('/group/catalog', [
+            'as' => 'pmd.group.catalog',
+            'uses' => AdminController::class.'@catalog',
+        ]);
+        Route::post('/group/publish/preview', [
+            'as' => 'pmd.group.publish.preview',
+            'uses' => AdminController::class.'@preview',
+        ]);
+        Route::post('/group/publish/apply', [
+            'as' => 'pmd.group.publish.apply',
+            'uses' => AdminController::class.'@apply',
+        ]);
         Route::post('/group/password', [AdminController::class, 'changePassword'])
             ->name('pmd.group.password');
         Route::post('/group/foodcourt/display', [AdminController::class, 'createDisplay'])
