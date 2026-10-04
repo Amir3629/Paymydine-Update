@@ -435,7 +435,14 @@
         enabled: row.enabled === undefined && row.status === undefined ? true : boolish(first(row, ["enabled", "status"], true), true),
         priority: number(first(row, ["priority", "sort_order"], index + 1), index + 1)
       };
-    }).filter(function (method) { return method.enabled && method.code; })
+    }).filter(function (method) {
+      // PMD_KIOSK_PAY_FIRST_V10
+      // Kiosk checkout is prepaid. Cash/COD and qr_pay_later are not customer
+      // choices here; split/payment-later remains available only in QR/staff UI.
+      return method.enabled &&
+        method.code &&
+        ["cash", "cod", "qr_pay_later"].indexOf(method.code) < 0;
+    })
       .sort(function (a, b) { return a.priority - b.priority; });
   }
 
@@ -945,30 +952,20 @@
       ? '<div class="pmd-kiosk-payment-status' + (isError ? " is-error" : "") + '">' + escapeHtml(message) + "</div>"
       : "";
     var body = reviewLinesHtml() + checkoutTotalsHtml();
-
-    if (!order) {
-      openModal(
-        '<header class="pmd-kiosk-modal__head"><div><p>' + escapeHtml(copy().review) + "</p><h2>" + escapeHtml(copy().review) +
-        '</h2></div><button type="button" class="pmd-kiosk-modal__close" data-pmd-close-modal aria-label="Close">×</button></header>' +
-        '<div class="pmd-kiosk-modal__body">' + body + status + "</div>" +
-        '<footer class="pmd-kiosk-modal__foot"><button type="button" class="pmd-kiosk-secondary" data-pmd-close-modal>' +
-        escapeHtml(copy().continueMenu) + '</button><button type="button" class="pmd-kiosk-primary" data-submit-order' + (state.busy ? " disabled" : "") + ">" +
-        "<span>" + escapeHtml(state.busy ? copy().creating : copy().placeOrder) + "</span><span>›</span></button></footer>",
-        true
-      );
-      return;
-    }
-
     var methods = state.payments.map(function (method) {
       return '<button type="button" class="pmd-kiosk-payment" data-payment-method="' + escapeHtml(method.code) +
-        '" data-payment-provider="' + escapeHtml(method.providerCode || "") + '">' +
+        '" data-payment-provider="' + escapeHtml(method.providerCode || "") + '"' + (state.busy ? " disabled" : "") + '>' +
         '<span class="pmd-kiosk-payment__mark">' + escapeHtml(paymentMark(method)) + '</span><span><strong>' +
         escapeHtml(paymentLabel(method)) + "</strong><small>" + escapeHtml(method.providerCode ? method.providerCode.replace(/_/g, " ") : "PayMyDine") +
         "</small></span></button>";
     }).join("");
 
+    var kicker = order
+      ? (escapeHtml(copy().orderNumber) + " #" + escapeHtml(order.orderNumber || order.orderId))
+      : escapeHtml(copy().review);
+
     openModal(
-      '<header class="pmd-kiosk-modal__head"><div><p>' + escapeHtml(copy().orderNumber) + " #" + escapeHtml(order.orderNumber || order.orderId) +
+      '<header class="pmd-kiosk-modal__head"><div><p>' + kicker +
       "</p><h2>" + escapeHtml(copy().choosePayment) +
       '</h2></div><button type="button" class="pmd-kiosk-modal__close" data-pmd-close-modal aria-label="Close">×</button></header>' +
       '<div class="pmd-kiosk-modal__body">' + body + tipOptionsHtml() + couponHtml() +
@@ -978,10 +975,15 @@
     );
   }
 
-  function submitOrder() {
-    if (state.busy || state.order || !state.cart.length) return Promise.resolve(state.order);
+  function submitOrder(options) {
+    var opts = options || {};
+    if (state.order) return Promise.resolve(state.order);
+    if (!state.cart.length) return Promise.reject(new Error("Your order is empty."));
+    if (state.busy && !opts.allowWhileBusy) return Promise.reject(new Error(copy().processing));
+
+    var previousBusy = state.busy;
     state.busy = true;
-    renderCheckout();
+    if (!opts.silent) renderCheckout(copy().creating, false);
 
     var totals = calculateTotals();
     var payload = {
@@ -994,6 +996,7 @@
       service_mode: config.serviceMode === "pickup" ? "pickup" : "kiosk",
       kiosk_session: String(config.session || "kiosk"),
       guest_session_id: String(config.session || "kiosk"),
+      kiosk_prepaid: true,
       items: state.cart.map(function (line) {
         var options = {};
         (line.selections || []).forEach(function (entry) { options[entry.groupName] = entry.valueId; });
@@ -1014,10 +1017,9 @@
       tip_amount: 0,
       coupon_code: null,
       coupon_discount: 0,
-      // PMD_KIOSK_QR_PAY_LATER_V9
-      // Create an unpaid canonical order first. Provider payment is started only
-      // after the order exists, then /pay-existing performs authoritative
-      // server-side settlement/verification.
+      // PMD_KIOSK_PAY_FIRST_V10
+      // Provider payment succeeds before this short-lived canonical order is
+      // committed. qr_pay_later is only the settlement bridge for pay-existing.
       payment_method: "qr_pay_later",
       payment_method_raw: "qr_pay_later",
       payment_provider: null,
@@ -1035,28 +1037,29 @@
           createdAt: Date.now()
         };
         persistOrder();
-        state.busy = false;
-        renderCheckout();
+        state.busy = previousBusy;
+        if (!opts.silent) renderCheckout();
         return state.order;
       })
       .catch(function (error) {
-        state.busy = false;
-        renderCheckout(error.message || "The order could not be created.", true);
+        state.busy = previousBusy;
+        if (!opts.silent) renderCheckout(error.message || "The order could not be created.", true);
         throw error;
       });
   }
 
   function validateCoupon() {
-    if (!state.order || state.busy) return;
+    if (state.busy) return;
     var input = $("pmd-kiosk-coupon-input");
     var code = cleanText(input ? input.value : state.couponCode, "");
     if (!code) return;
+    var couponBase = state.order ? state.order.baseTotal : calculateTotals().base;
     state.busy = true;
-    requestJson("/validate-coupon", { method: "POST", body: { code: code, subtotal: state.order.baseTotal, amount: state.order.baseTotal } })
+    requestJson("/validate-coupon", { method: "POST", body: { code: code, subtotal: couponBase, amount: couponBase } })
       .then(function (data) {
         var payload = object(data.data || data);
         state.couponCode = code;
-        state.couponDiscount = Math.min(state.order.baseTotal, Math.max(0, number(first(payload, ["discount_amount", "discount", "amount"], 0))));
+        state.couponDiscount = Math.min(couponBase, Math.max(0, number(first(payload, ["discount_amount", "discount", "amount"], 0))));
         state.busy = false;
         renderCheckout(data.message || copy().couponApplied, false);
       })
@@ -1795,11 +1798,6 @@
       } catch (error) {
         showToast(error.message || "Choose the required options.", true);
       }
-      return;
-    }
-
-    if (event.target.closest("[data-submit-order]")) {
-      submitOrder().catch(function () {});
       return;
     }
 
