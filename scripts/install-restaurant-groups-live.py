@@ -327,15 +327,82 @@ def main():
         for full in info['cache_paths']:
             p = Path(full)
             if within(p, root): caches.append(str(p.relative_to(root)))
-        records = save_originals(root, sorted(set(changes)|set(caches)), directory)
+        maintenance_files = ['storage/framework/down', 'storage/framework/maintenance.php']
+        records = save_originals(root, sorted(set(changes)|set(caches)|set(maintenance_files)), directory)
         manifest = {'commit':args.commit,'previous_head':git(root,'rev-parse','HEAD').decode().strip(),'files':records}
         (directory/'manifest.json').write_text(json.dumps(manifest, indent=2))
         (directory/'manifest.json').chmod(0o600)
         down = False
         replaced = False
+
+        def restore_maintenance_markers():
+            for name in maintenance_files:
+                rec = records[name]
+                target = safe_path(root, name)
+                if rec['present']:
+                    atomic_write(
+                        target,
+                        (directory/'files'/name).read_bytes(),
+                        rec['mode'],
+                        rec['uid'],
+                        rec['gid']
+                    )
+                elif target.exists():
+                    target.unlink()
+
+        def enter_maintenance():
+            framework = safe_path(root, 'storage/framework')
+            stub = safe_path(
+                root,
+                'vendor/laravel/framework/src/Illuminate/Foundation/Console/stubs/maintenance-mode.stub'
+            )
+            if not stub.is_file():
+                raise DeployError('Laravel maintenance-mode stub is missing.')
+            down_path = safe_path(root, 'storage/framework/down')
+            maintenance_path = safe_path(root, 'storage/framework/maintenance.php')
+            if down_path.exists():
+                raise DeployError('Application entered maintenance mode during preflight; stop and review.')
+            owner = framework.stat()
+            payload = json.dumps({
+                'except': [],
+                'redirect': None,
+                'retry': None,
+                'refresh': None,
+                'secret': None,
+                'status': 503,
+                'template': None,
+            }, indent=4).encode()
+            atomic_write(down_path, payload, 0o644, owner.st_uid, owner.st_gid)
+            try:
+                atomic_write(
+                    maintenance_path,
+                    stub.read_bytes(),
+                    0o644,
+                    owner.st_uid,
+                    owner.st_gid
+                )
+            except BaseException:
+                restore_maintenance_markers()
+                raise
+
+        def clear_framework_caches():
+            for name in caches:
+                target = safe_path(root, name)
+                if target.exists():
+                    if not target.is_file():
+                        raise DeployError('Unexpected cache object: '+name)
+                    target.unlink()
+            views = safe_path(root, 'storage/framework/views')
+            if views.is_dir():
+                for compiled in views.glob('*.php'):
+                    if compiled.is_symlink():
+                        raise DeployError('Compiled-view cache contains a symlink; review before deployment.')
+                    compiled.unlink()
+
         try:
-            logged(appcmd(str(root/'artisan'),'down'), 'artisan down')
+            enter_maintenance()
             down = True
+            print('[PMD] Maintenance mode enabled without Artisan.', flush=True)
             # No tenant backup or migration: installation only adds central tables.
             dump_path = directory/'central-before.sql'
             with dump_path.open('wb') as dump:
@@ -356,19 +423,21 @@ def main():
                 rec = records[name]
                 atomic_write(safe_path(root,name), content, rec.get('mode',0o644), rec.get('uid',default.st_uid), rec.get('gid',default.st_gid))
             # App namespace is PSR-4 loaded from app/, so these classes do not
-            # require Composer regeneration. Avoid changing vendor ownership.
-            for action in ('config:clear','route:clear','view:clear'):
-                logged(appcmd(str(root/'artisan'),action), 'artisan '+action)
+            # require Composer regeneration. Clear Laravel's known generated
+            # caches directly instead of depending on this deployment's Artisan CLI.
+            clear_framework_caches()
             # The helper validates the central DB and installs additive group tables.
             logged(appcmd(str(root/'scripts/pmd-groups-live-tool.php'),'install',str(root)), 'Restaurant Groups schema install')
             # Before reopening, resolve the actual routes, auth bindings and render
             # the real Blade form (not a regex-only route-list success check).
             logged(appcmd(str(root/'scripts/pmd-groups-live-tool.php'),'health',str(root)), 'Restaurant Groups health check')
-            # Health renders Blade; clear compiled views once more so PHP-FPM
+            # Health renders Blade. Remove compiled views once more so PHP-FPM
             # recreates them under its normal runtime identity.
-            logged(appcmd(str(root/'artisan'),'view:clear'), 'artisan view:clear')
-            for service in services: logged(['systemctl','reload',service], 'PHP-FPM reload')
-            logged(appcmd(str(root/'artisan'),'up'), 'artisan up'); down = False
+            clear_framework_caches()
+            for service in services:
+                logged(['systemctl','reload',service], 'PHP-FPM reload')
+            restore_maintenance_markers()
+            down = False
             (directory/'INSTALLED').write_text(args.commit+'\n')
             print('[PMD] INSTALLED: '+args.commit, flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/groups', flush=True)
@@ -379,8 +448,11 @@ def main():
                 print('[PMD] Installation failed. Restoring previous runtime files; central additive tables are retained.', file=sys.stderr, flush=True)
                 restore(root, directory, records)
             if down:
-                result = subprocess.run(appcmd(str(root/'artisan'),'up'), cwd=root, stdout=log, stderr=log)
-                if result.returncode:
+                try:
+                    restore_maintenance_markers()
+                except BaseException as recovery_error:
+                    log.write(('Maintenance marker recovery failed: '+str(recovery_error)+'\\n').encode())
+                    log.flush()
                     print('[PMD] WARNING: application may still be in maintenance mode; inspect the private deployment log.', file=sys.stderr)
             for service in services:
                 subprocess.run(['systemctl','reload',service], stdout=log, stderr=log)
