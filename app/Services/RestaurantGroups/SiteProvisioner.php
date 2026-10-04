@@ -19,6 +19,17 @@ final class SiteProvisioner
         // legacy creator temporarily repoints while cloning the template.
         return PublicationLock::run($central, 'provision-site:'.$siteId, function () use ($siteId, $central) {
             [$site, $group, $owner] = $this->state($central, $siteId);
+
+            if ($site->state !== 'ready' && !empty($site->tenant_id)) {
+                $central->table('tenants')
+                    ->where('id', (int)$site->tenant_id)
+                    ->where('status', '!=', 'removed')
+                    ->update([
+                        'status' => 'disabled',
+                        'updated_at' => now(),
+                    ]);
+            }
+
             if ($site->state === 'ready') {
                 $tenant = $this->store->tenant((int)$site->tenant_id, false);
                 ProvisioningRules::tenant($site, $tenant, true);

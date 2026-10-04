@@ -412,7 +412,7 @@
         ],
         true
     ) || preg_match(
-        '#^admin/(?:menus|discounts|coupons|settings|pmdsettings)(?:/|$)#',
+        '#^admin/(?:menu|menus|pmdmenus|discounts|coupons|settings|pmdsettings)(?:/|$)#',
         $pmdGroupsRoute
     );
 

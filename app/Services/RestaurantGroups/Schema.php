@@ -6,7 +6,7 @@ use Illuminate\Database\Schema\Blueprint;
 
 final class Schema
 {
-    public const VERSION = 2;
+    public const VERSION = 3;
 
     public function installCentral(Store $store): void
     {
@@ -146,10 +146,46 @@ final class Schema
             });
         }
 
+        $this->disableIncompleteGroupTenants($store);
+
         $store->central()->table('pmd_group_schema')->updateOrInsert(
             ['name' => 'restaurant-groups'],
             ['version' => self::VERSION, 'updated_at' => now()]
         );
+    }
+
+    private function disableIncompleteGroupTenants(Store $store): void
+    {
+        $db = $store->central();
+
+        if (
+            !$db->getSchemaBuilder()->hasTable('pmd_group_sites')
+            || !$db->getSchemaBuilder()->hasTable('tenants')
+        ) {
+            return;
+        }
+
+        $tenantIds = $db->table('pmd_group_sites')
+            ->whereNotNull('tenant_id')
+            ->where('state', '!=', 'ready')
+            ->pluck('tenant_id')
+            ->map(static fn ($id) => (int)$id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (!$tenantIds) {
+            return;
+        }
+
+        $db->table('tenants')
+            ->whereIn('id', $tenantIds)
+            ->where('status', '!=', 'removed')
+            ->update([
+                'status' => 'disabled',
+                'updated_at' => now(),
+            ]);
     }
 
     private function ensureCentralTenantRegistryIsTransactional(Store $store): void

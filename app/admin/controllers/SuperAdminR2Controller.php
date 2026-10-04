@@ -440,6 +440,37 @@ class SuperAdminR2Controller extends AdminController
         $expired = !empty($tenant->end) && \Carbon\Carbon::parse($tenant->end)->isPast();
         if ($expired) $issues[] = 'subscription end date has passed';
 
+        try {
+            $groups = app(RestaurantGroupStore::class);
+
+            if ($groups->installed()) {
+                $site = $groups->central()
+                    ->table('pmd_group_sites')
+                    ->where('tenant_id', (int)$tenant->id)
+                    ->first();
+
+                if ($site) {
+                    if ((string)$site->state !== 'ready') {
+                        $issues[] = 'business account provisioning is '.(string)$site->state.'; use Retry provisioning first';
+                    } elseif ((int)($site->location_id ?? 0) < 1) {
+                        $issues[] = 'business account Owner location is not linked';
+                    } else {
+                        $access = $groups->central()
+                            ->table('pmd_group_access')
+                            ->where('tenant_id', (int)$tenant->id)
+                            ->whereNull('revoked_at')
+                            ->first();
+
+                        if (!$access) {
+                            $issues[] = 'business account Owner access is not linked';
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            $issues[] = 'business account readiness could not be verified';
+        }
+
         return ['ok'=>count($issues) === 0, 'issues'=>$issues];
     }
 

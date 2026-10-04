@@ -166,7 +166,17 @@ try {
         throw new RuntimeException('Standalone Business Accounts navigation is still present.');
     }
 
-    echo "PASS integrated Create Restaurant modal rendered\n";
+    $ownerLinkerSource = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/OwnerLinker.php');
+    if (strpos($ownerLinkerSource, 'normalizePreparedTemplate') === false) {
+        throw new RuntimeException('Prepared-template repair path is missing.');
+    }
+
+    $dashboardSource = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-restaurant-groups-v1.js');
+    if (strpos($dashboardSource, "scope.value=String(context.current_tenant_id)") === false) {
+        throw new RuntimeException('Multi-location dashboard does not default to the current location.');
+    }
+
+    echo "PASS integrated Create Restaurant modal and R7 group dashboard rendered\n";
     echo "PASS routes, Super Admin authentication middleware and native security bindings resolved\n";
     echo "PASS central feature storage enabled\n";
     echo "NOTE HTTP sign-in, native template/TLS creation, full menu/media and Food Court acceptance are separate checks.\n";

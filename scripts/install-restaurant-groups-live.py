@@ -504,8 +504,9 @@ def main():
             print('[PMD] INSTALLED: '+args.commit, flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/new', flush=True)
             print('[PMD] The existing Create restaurant modal now contains Normal, Multi-location and Food Court choices.', flush=True)
-            print('[PMD] Pending/failed group locations are shown on Restaurants with Retry provisioning.', flush=True)
-            print('[PMD] This installed the current feature; domain/TLS still depends on the existing privileged tenant provisioner.', flush=True)
+            print('[PMD] Pending/failed group locations stay disabled until Retry provisioning reaches ready.', flush=True)
+            print('[PMD] Owner Dashboard opens on the current restaurant; All locations is an explicit selector, not an automatic fan-out.', flush=True)
+            print('[PMD] Existing prepared group tenants can repair historical extra template Owners/locations during Retry.', flush=True)
         except BaseException:
             if replaced:
                 print('[PMD] Installation failed. Restoring previous runtime files; central additive tables are retained.', file=sys.stderr, flush=True)

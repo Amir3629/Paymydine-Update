@@ -22,6 +22,7 @@ final class Snapshot
     public function snapshot(string $scope='all',string $period='today'): array
     {
         $context=$this->context();$allowed=array_map('intval',array_column($context['sites'],'tenant_id'));
+        $ownerId=(int)$context['owner']['id'];
         if($scope==='all') $ids=$allowed;
         else {$id=PublicationRules::numericId($scope);if(!in_array($id,$allowed,true))throw new \DomainException('Location access denied.');$ids=[$id];}
         if(!in_array($period,['today','week','month','last30'],true)) throw new \InvalidArgumentException('Unsupported reporting period.');
@@ -33,11 +34,9 @@ final class Snapshot
             try {
                 // Revalidate each site. An unavailable site is never counted as
                 // an empty restaurant and never inherits another site's result.
-                $owner=$this->auth->owner(true);
-                $this->store->access((int)$owner->id,$id);
+                $this->store->access($ownerId,$id);
                 $site=$this->store->site($id);PublicationRules::member($site,(int)$context['group']['id']);
                 $row=$this->siteReport($id,$site,$period,$epoch);
-                $this->store->access((int)$owner->id,$id);
                 $rows[]=$row+['label'=>$label];
             } catch(\Throwable $e) {
                 $rows[]=['tenant_id'=>$id,'label'=>$label,'available'=>false,
@@ -53,10 +52,16 @@ final class Snapshot
     {
         $db=$this->store->connection($id);$schema=$db->getSchemaBuilder();
         $profile=app(ReportingProfile::class)->resolve($db,$this->store->tenant($id),(int)$site->location_id);
+
+        $orderColumns=array_flip($schema->getColumnListing('orders'));
         foreach(['order_id','location_id','settled_at','settled_amount','settlement_status','processed'] as $column) {
-            if(!$schema->hasColumn('orders',$column)) throw new \DomainException('Settlement reporting schema is incomplete.');
+            if(!isset($orderColumns[$column])) throw new \DomainException('Settlement reporting schema is incomplete.');
         }
-        foreach(['order_id','code','value'] as $column) if(!$schema->hasColumn('order_totals',$column)) throw new \DomainException('Order-total reporting schema is incomplete.');
+
+        $totalColumns=array_flip($schema->getColumnListing('order_totals'));
+        foreach(['order_id','code','value'] as $column) {
+            if(!isset($totalColumns[$column])) throw new \DomainException('Order-total reporting schema is incomplete.');
+        }
         $range=ReportingProfile::range($period,$profile['timezone'],$profile['storage_timezone'],$epoch);
         $result=['tenant_id'=>$id,'available'=>true,'orders'=>0,'revenue_minor'=>0,'tips_minor'=>0]+$profile+$range;
         $db->table('orders')->where('location_id',(int)$site->location_id)->where('processed',1)

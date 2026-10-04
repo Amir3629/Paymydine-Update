@@ -1,4 +1,4 @@
-/* PMD Restaurant Groups R3: isolate reporting UI from operational controls. */
+/* PMD Restaurant Groups R7: isolate reporting UI from operational controls. */
 .pmd-group-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 0;margin-bottom:12px;font:inherit;color:#17372f}
 .pmd-group-toolbar>strong{margin-right:auto}
 .pmd-group-btn{border:1px solid #d8e5e0;border-radius:9px;min-height:40px;padding:9px 13px;background:#123d32;color:#fff;font:700 13px/1.3 system-ui,sans-serif;cursor:pointer}
@@ -21,3 +21,27 @@
 .pmd-group-overview .is-error,.pmd-group-dialog .is-error{color:#a92018}
 .pmd-group-dialog [hidden],.pmd-group-overview[hidden]{display:none!important}
 @media(max-width:600px){.pmd-group-toolbar>strong{width:100%}.pmd-group-toolbar select{max-width:100%}}
+
+.pmd-group-dashboard-toolbar{margin:0 0 16px;padding:12px 14px;border:1px solid #dce8e4;border-radius:14px;background:#fff;box-shadow:0 8px 24px rgba(17,57,47,.05)}
+.pmd-group-toolbar-field{display:grid;gap:4px;min-width:155px}
+.pmd-group-toolbar-field>span{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#6d817a}
+.pmd-group-dashboard-toolbar>strong{font-size:14px}
+.pmd-group-dashboard-toolbar .pmd-group-refresh:disabled{display:none}
+.pmd-group-overview{background:#fff;border:1px solid #dce8e4;border-radius:16px;padding:18px;margin:0 0 20px;color:#17372f;box-shadow:0 10px 28px rgba(17,57,47,.045)}
+.pmd-group-overview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
+.pmd-group-overview-head h3{margin:2px 0 0;font-size:20px}
+.pmd-group-eyebrow{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#71857e}
+.pmd-group-warning{display:inline-flex;padding:6px 9px;border-radius:999px;background:#fff4e6;color:#a64a00;font-weight:800;font-size:12px}
+.pmd-group-currency-block{display:grid;gap:10px;margin-top:12px}
+.pmd-group-currency{font-size:12px;font-weight:900;color:#49655d}
+.pmd-group-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.pmd-group-metric{min-height:96px;border:1px solid #e1ebe7;border-radius:13px;padding:13px;background:#f8fbfa}
+.pmd-group-metric-label,.pmd-group-metric-meta{display:block;color:#71857e;font-size:11px;line-height:1.35}
+.pmd-group-metric-value{display:block;margin:8px 0 3px;font-size:22px;line-height:1.1;color:#143b31}
+.pmd-group-location-results{display:grid;gap:8px;margin-top:16px}
+.pmd-group-location-result{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #edf2f0;padding:10px 0}
+.pmd-group-location-result strong{font-size:13px}.pmd-group-location-result span{font-size:12px;color:#647a72;text-align:right}
+.pmd-group-location-result.is-error span{color:#a92018}
+.pmd-group-note,.pmd-group-empty,.pmd-group-loading{margin:14px 0 0!important;color:#6c8179;font-size:12px!important}
+@media(max-width:900px){.pmd-group-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.pmd-group-dashboard-toolbar{align-items:stretch}.pmd-group-toolbar-field{width:100%}.pmd-group-metrics{grid-template-columns:1fr}.pmd-group-location-result{align-items:flex-start;flex-direction:column}.pmd-group-location-result span{text-align:left}}
