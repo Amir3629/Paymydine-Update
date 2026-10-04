@@ -41,40 +41,44 @@ final class PmdKioskPublicController
             return preg_match('/^#[0-9a-fA-F]{6}$/', $value) ? strtoupper($value) : $fallback;
         };
 
+        // Server settings are authoritative so saving Customer Menu settings
+        // changes the next kiosk session without re-pairing/reinstalling Android.
+        // The Android query palette is only a fallback during a temporary server
+        // settings gap.
         $theme = [
             'id' => trim((string)($serverTheme['id'] ?? 'kazen_japanese')) ?: 'kazen_japanese',
             'background' => $validColor(
-                $request->query('kiosk_bg'),
-                (string)($serverTheme['background'] ?? '#F5F1EB')
+                $serverTheme['background'] ?? null,
+                $validColor($request->query('kiosk_bg'), '#F5F1EB')
             ),
             'text' => $validColor(
-                $request->query('kiosk_text'),
-                (string)($serverTheme['text'] ?? '#25231F')
+                $serverTheme['text'] ?? null,
+                $validColor($request->query('kiosk_text'), '#25231F')
             ),
             'muted' => $validColor(
-                $request->query('kiosk_muted'),
-                (string)($serverTheme['muted'] ?? '#777168')
+                $serverTheme['muted'] ?? null,
+                $validColor($request->query('kiosk_muted'), '#777168')
             ),
             'accent' => $validColor(
-                $request->query('kiosk_accent'),
-                (string)($serverTheme['accent'] ?? '#B5413F')
+                $serverTheme['accent'] ?? null,
+                $validColor($request->query('kiosk_accent'), '#B5413F')
             ),
             'surface' => $validColor(
-                $request->query('kiosk_surface'),
-                (string)($serverTheme['surface'] ?? '#FBF8F3')
+                $serverTheme['surface'] ?? null,
+                $validColor($request->query('kiosk_surface'), '#FBF8F3')
             ),
             'is_dark' => (bool)($serverTheme['is_dark'] ?? false),
         ];
 
-        $restaurantName = trim((string)$request->query('kiosk_name', ''));
+        $restaurantName = trim((string)($serverRestaurant['name'] ?? ''));
         if ($restaurantName === '') {
-            $restaurantName = trim((string)($serverRestaurant['name'] ?? 'PayMyDine'));
+            $restaurantName = trim((string)$request->query('kiosk_name', 'PayMyDine'));
         }
         $restaurantName = mb_substr($restaurantName ?: 'PayMyDine', 0, 120);
 
-        $restaurantLogo = trim((string)$request->query('kiosk_logo', ''));
+        $restaurantLogo = trim((string)($serverRestaurant['logo'] ?? ''));
         if ($restaurantLogo === '') {
-            $restaurantLogo = trim((string)($serverRestaurant['logo'] ?? ''));
+            $restaurantLogo = trim((string)$request->query('kiosk_logo', ''));
         }
         if (strlen($restaurantLogo) > 2048) {
             $restaurantLogo = '';
