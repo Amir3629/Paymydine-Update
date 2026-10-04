@@ -36,11 +36,12 @@ import java.util.UUID
 
 /**
  * PMD_KIOSK_DEDICATED_WEB_ACTIVITY_V58
+ * PMD_KIOSK_SOFTWARE_RENDER_V59
  *
  * Kiosk menu intentionally uses a classic Android view hierarchy instead of a
- * Compose AndroidView. PayMyDine POS already uses this architecture because
- * some tablet Chromium builds can have a healthy DOM/network while the
- * Compose-hosted WebView surface remains visually blank.
+ * Compose AndroidView. V59 also forces the kiosk WebView onto Android's
+ * software paint path. Some emulator/tablet WebView GPU surfaces report a
+ * healthy DOM/page-finished state while compositing a visually blank surface.
  */
 class KioskMenuActivity : ComponentActivity() {
     private lateinit var root: LinearLayout
@@ -282,7 +283,10 @@ class KioskMenuActivity : ComponentActivity() {
         val view = WebView(this).apply {
             setInitialScale(100)
             setBackgroundColor(Color.rgb(243, 245, 247))
-            setLayerType(View.LAYER_TYPE_NONE, null)
+            // PMD_KIOSK_SOFTWARE_RENDER_V59
+            // Bypass Chromium/GPU surface composition for the kiosk menu.
+            // This is deliberately scoped to this dedicated activity only.
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
 
@@ -294,7 +298,7 @@ class KioskMenuActivity : ComponentActivity() {
                 allowContentAccess = false
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 cacheMode = WebSettings.LOAD_DEFAULT
-                offscreenPreRaster = true
+                offscreenPreRaster = false
                 useWideViewPort = true
                 loadWithOverviewMode = false
                 textZoom = 100
@@ -409,6 +413,7 @@ class KioskMenuActivity : ComponentActivity() {
                             if (result == "true" && webView === view) {
                                 pageReady = true
                                 loadingView.visibility = View.GONE
+                                presentReadyWebView(view)
                                 synchronizeVisibleFrame(view)
                             } else {
                                 loadingView.text =
@@ -512,11 +517,52 @@ class KioskMenuActivity : ComponentActivity() {
         )
     }
 
+    private fun presentReadyWebView(view: WebView) {
+        if (webView !== view || isFinishing) return
+
+        view.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+        view.visibility = View.VISIBLE
+        view.alpha = 1f
+        view.bringToFront()
+        view.requestLayout()
+        view.invalidate()
+
+        view.evaluateJavascript(
+            """
+            (function(){
+              document.documentElement.style.visibility = 'visible';
+              document.documentElement.style.opacity = '1';
+              document.body.style.visibility = 'visible';
+              document.body.style.opacity = '1';
+              var app = document.getElementById('pmd-kiosk-app');
+              if (app) {
+                app.style.visibility = 'visible';
+                app.style.opacity = '1';
+              }
+              return !!app;
+            })()
+            """.trimIndent(),
+            null,
+        )
+
+        view.postDelayed(
+            {
+                if (webView === view && !isFinishing) {
+                    view.requestLayout()
+                    view.invalidate()
+                }
+            },
+            120L,
+        )
+    }
+
     private fun synchronizeVisibleFrame(view: WebView) {
         view.post {
             if (webView !== view || isFinishing) return@post
 
-            view.setLayerType(View.LAYER_TYPE_NONE, null)
+            view.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+            view.visibility = View.VISIBLE
+            view.alpha = 1f
             view.requestLayout()
             view.invalidate()
 

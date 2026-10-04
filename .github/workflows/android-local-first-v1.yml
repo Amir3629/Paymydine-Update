@@ -2,7 +2,7 @@ name: PayMyDine Device App V5
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
@@ -119,7 +119,10 @@ jobs:
           grep -Fq 'PMD_KIOSK_BLADE_TERMINAL_V8' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_BLADE_V8_NGINX_NO_REDIRECT' ops/nginx/pmd-kiosk-blade-v8-location.conf
           grep -Fq 'PMD_KIOSK_DEDICATED_WEB_ACTIVITY_V58' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
-          grep -Fq 'setLayerType(View.LAYER_TYPE_NONE, null)' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          grep -Fq 'PMD_KIOSK_SOFTWARE_RENDER_V59' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          grep -Fq 'setLayerType(View.LAYER_TYPE_SOFTWARE, null)' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          ! grep -Fq 'setLayerType(View.LAYER_TYPE_NONE, null)' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          grep -Fq 'android:hardwareAccelerated="false"' mobile/android/app/src/main/AndroidManifest.xml
           grep -Fq 'document.getElementById' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'KioskMenuActivity.intent' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           php -l app/Http/Controllers/Api/OrderController.php
@@ -145,8 +148,8 @@ jobs:
           grep -Fq "kiosk_order_type" frontend/features/customer-menu/checkout/paymentModalPaymentFlow.ts
           grep -Fq 'devicePurpose() == "table_display"' mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
           grep -Fq 'UnifiedFirstRun' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
-          grep -Fq 'versionCode = 58' mobile/android/app/build.gradle.kts
-          grep -Fq 'versionName = "0.4.5-device-app-v5"' mobile/android/app/build.gradle.kts
+          grep -Fq 'versionCode = 59' mobile/android/app/build.gradle.kts
+          grep -Fq 'versionName = "0.4.6-device-app-v5"' mobile/android/app/build.gradle.kts
           grep -Fq 'PayMyDine Device App · Android' app/admin/views/pmdsettings/index.blade.php
           grep -Fq 'customerMenuTheme' app/Services/PmdTableDisplayService.php
           grep -Fq 'Crossfade' mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/TableDisplayApp.kt
@@ -241,7 +244,7 @@ jobs:
         run: |
           set -euo pipefail
           APK_IN="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
-          APK_OUT="mobile/android/PayMyDine-Device-App-0.4.5.apk"
+          APK_OUT="mobile/android/PayMyDine-Device-App-0.4.6.apk"
           test -f "$APK_IN"
           cp "$APK_IN" "$APK_OUT"
           sha256sum "$APK_OUT" > "$APK_OUT.sha256"
@@ -250,14 +253,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK="mobile/android/PayMyDine-Device-App-0.4.5.apk"
+          APK="mobile/android/PayMyDine-Device-App-0.4.6.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='58'" <<<"$BADGING"
-          grep -Fq "versionName='0.4.5-device-app-v5-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='59'" <<<"$BADGING"
+          grep -Fq "versionName='0.4.6-device-app-v5-debug'" <<<"$BADGING"
           "$APKSIGNER" verify "$APK"
           sha256sum "$APK"
 
@@ -265,8 +268,8 @@ jobs:
         with:
           name: paymydine-device-app-v5
           path: |
-            mobile/android/PayMyDine-Device-App-0.4.5.apk
-            mobile/android/PayMyDine-Device-App-0.4.5.apk.sha256
+            mobile/android/PayMyDine-Device-App-0.4.6.apk
+            mobile/android/PayMyDine-Device-App-0.4.6.apk.sha256
           if-no-files-found: error
 
       - name: Publish Device App preview
@@ -280,4 +283,4 @@ jobs:
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "PayMyDine Device App Preview"               --notes "Unified Android app for PayMyDine restaurant devices."               --prerelease
           fi
-          gh release upload "$TAG"             mobile/android/PayMyDine-Device-App-0.4.5.apk             mobile/android/PayMyDine-Device-App-0.4.5.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
+          gh release upload "$TAG"             mobile/android/PayMyDine-Device-App-0.4.6.apk             mobile/android/PayMyDine-Device-App-0.4.6.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
