@@ -150,7 +150,7 @@ try {
     }
 
     $restaurantsSource = (string)@file_get_contents($root.'/app/admin/views/superadmin_r2/restaurants.blade.php');
-    foreach (['data-pmd-create-kind="independent"', 'data-pmd-create-kind="multi_location"', 'data-pmd-create-kind="food_court"', 'name="owner_username"', 'name="owner_password"', 'name="owner_password_confirmation"', "@include('pmd-groups::create-panel')"] as $needle) {
+    foreach (['data-pmd-create-chooser', 'data-pmd-create-selection', 'data-pmd-change-create-kind', 'data-pmd-create-kind="independent"', 'data-pmd-create-kind="multi_location"', 'data-pmd-create-kind="food_court"', 'name="owner_username"', 'name="owner_password"', 'name="owner_password_confirmation"', "@include('pmd-groups::create-panel')"] as $needle) {
         if (strpos($restaurantsSource, $needle) === false) {
             throw new RuntimeException('Restaurants modal is missing the integrated type selector.');
         }
@@ -182,7 +182,7 @@ try {
         throw new RuntimeException('Multi-location dashboard does not default to the current location.');
     }
 
-    echo "PASS integrated Create Restaurant modal and R7 group dashboard rendered\n";
+    echo "PASS two-step Create Restaurant flow and group dashboard rendered\n";
     echo "PASS routes, Super Admin authentication middleware and native security bindings resolved\n";
     echo "PASS central feature storage enabled\n";
     echo "NOTE HTTP sign-in, native template/TLS creation, full menu/media and Food Court acceptance are separate checks.\n";

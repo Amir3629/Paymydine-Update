@@ -42,14 +42,20 @@
     .pmd-market-preview{grid-column:1/-1;border:1px solid #dfeae6;border-radius:16px;background:#f8fbfa;padding:16px 17px}
     .pmd-market-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.pmd-market-preview-head strong{font-size:15px}.pmd-market-code{font-size:12px;font-weight:800;color:#2d6655;background:#e7f2ee;border-radius:999px;padding:5px 9px}
     .pmd-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pmd-market-item{padding:10px 11px;border:1px solid #e8efec;border-radius:11px;background:#fff}.pmd-market-item b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#73857f;margin-bottom:4px}.pmd-market-item span{font-size:13px;color:#24443a;line-height:1.45}
-    .pmd-create-mode{margin:0 0 20px}
-    .pmd-create-mode-label{display:block;margin:0 0 8px;color:#60756e;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
-    .pmd-create-type-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;margin:0;border:1px solid #d8e5e0;border-radius:12px;background:#f3f7f5}
-    .pmd-create-type{appearance:none;min-height:56px;padding:8px 12px;border:0!important;border-radius:8px!important;background:transparent!important;color:#456159!important;text-align:left;cursor:pointer;box-shadow:none!important;outline:0;transition:background .15s ease,color .15s ease,box-shadow .15s ease}
-    .pmd-create-type strong{display:block;margin:0;font-size:13px;line-height:1.25;color:inherit}.pmd-create-type span{display:block;margin-top:3px;color:#778983;font-size:11px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .pmd-create-type:hover{background:#e8f0ed!important;color:#214b3f!important}.pmd-create-type.is-active{background:#0d3f32!important;color:#fff!important;box-shadow:0 2px 8px rgba(13,63,50,.18)!important}.pmd-create-type.is-active span{color:#dceae5}
-    .pmd-create-type:focus-visible{box-shadow:0 0 0 3px rgba(45,116,92,.22)!important}
-    .pmd-create-panel[hidden]{display:none!important}.pmd-field-help{display:block;margin-top:6px;color:#71857e;font-size:12px;line-height:1.45}
+    .pmd-create-chooser{max-width:720px;margin:0 auto;padding:2px 0 6px}
+    .pmd-create-chooser[hidden],.pmd-create-selection[hidden],.pmd-create-panel[hidden]{display:none!important}
+    .pmd-create-chooser-intro{margin:0 0 15px}.pmd-create-chooser-intro strong{display:block;font-size:18px;line-height:1.3;color:#17372f}.pmd-create-chooser-intro span{display:block;margin-top:4px;color:#6f837c;font-size:13px;line-height:1.5}
+    .pmd-create-type-list{border-top:1px solid #dfe9e5}
+    .pmd-create-type{appearance:none;width:100%;min-height:72px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:14px 4px;border:0!important;border-bottom:1px solid #dfe9e5!important;border-radius:0!important;background:#fff!important;color:#17372f!important;text-align:left;cursor:pointer;box-shadow:none!important;outline:0}
+    .pmd-create-type-main strong{display:block;font-size:15px;line-height:1.3;color:#17372f}.pmd-create-type-main span{display:block;margin-top:3px;color:#71857e;font-size:12px;line-height:1.4}
+    .pmd-create-type-arrow{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#eff5f2;color:#31594e;font-size:18px;font-weight:700;transition:transform .15s ease,background .15s ease}
+    .pmd-create-type:hover{background:#f8fbfa!important}.pmd-create-type:hover .pmd-create-type-arrow{background:#e3efea;transform:translateX(2px)}
+    .pmd-create-type:focus-visible{outline:3px solid rgba(45,116,92,.20)!important;outline-offset:3px}
+    .pmd-create-selection{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:0 0 13px;border-bottom:1px solid #e5ece9}
+    .pmd-create-change{appearance:none;border:0;background:transparent;color:#2b6756;font-size:12px;font-weight:850;padding:0;cursor:pointer;white-space:nowrap}
+    .pmd-create-change:hover{text-decoration:underline}
+    .pmd-create-selected-copy{min-width:0;padding-left:12px;border-left:1px solid #dfe8e5}.pmd-create-selected-copy strong{display:block;font-size:13px;color:#18382f}.pmd-create-selected-copy span{display:block;margin-top:2px;color:#73867f;font-size:11px;line-height:1.35}
+    .pmd-field-help{display:block;margin-top:6px;color:#71857e;font-size:12px;line-height:1.45}
     .pmd-form-section{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:7px 0 -2px;padding-top:13px;border-top:1px solid #e8efec}
     .pmd-form-section:first-child{padding-top:0;border-top:0}.pmd-form-section strong{display:block;font-size:14px;color:#17372f}.pmd-form-section span{display:block;margin-top:3px;color:#71857e;font-size:11px;line-height:1.35}
     .pmd-owner-security-note{grid-column:1/-1;margin:-2px 0 2px;padding:9px 11px;border-left:3px solid #2d755f;background:#f5f9f7;color:#526a62;font-size:11px;line-height:1.45}
@@ -67,7 +73,7 @@
     .pmd-provisioning-state{display:inline-flex!important;width:max-content;padding:4px 8px;border-radius:999px;background:#fff0d8;color:#a4470b!important;font-weight:800;text-transform:capitalize}
         body.pmd-modal-open{overflow:hidden}
     @media(max-width:1000px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}.tenant-actions{min-width:300px}}
-    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview,.pmd-form-section,.pmd-owner-security-note{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}.pmd-create-type span{display:none}.pmd-create-type{min-height:44px;text-align:center;padding:8px 6px}.pmd-business-site-fields{grid-template-columns:1fr}.pmd-business-locations-head{align-items:stretch;flex-direction:column}.pmd-provisioning-row{grid-template-columns:1fr}.pmd-provisioning-row form .btn{width:100%}}
+    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview,.pmd-form-section,.pmd-owner-security-note{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}.pmd-create-type{min-height:66px;padding:12px 2px}.pmd-create-selection{align-items:flex-start}.pmd-business-site-fields{grid-template-columns:1fr}.pmd-business-locations-head{align-items:stretch;flex-direction:column}.pmd-provisioning-row{grid-template-columns:1fr}.pmd-provisioning-row form .btn{width:100%}}
     @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}.pmd-pagination{align-items:flex-start;flex-direction:column}.pmd-domain-suffix{font-size:13px;padding-right:10px}}
 </style>
 @endpush
@@ -217,25 +223,36 @@
             <button class="pmd-modal-close" type="button" data-pmd-close-create aria-label="Close">×</button>
         </div>
         <div class="pmd-modal-body">
-            <div class="pmd-create-mode">
-                <span class="pmd-create-mode-label">Restaurant setup</span>
-                <div class="pmd-create-type-grid" role="group" aria-label="Restaurant setup">
-                    <button class="pmd-create-type is-active" type="button" data-pmd-create-kind="independent" aria-pressed="true">
-                        <strong>Normal</strong>
-                        <span>Single restaurant</span>
+            <div class="pmd-create-chooser" data-pmd-create-chooser>
+                <div class="pmd-create-chooser-intro">
+                    <strong>What are you creating?</strong>
+                    <span>Choose the account structure first. The next screen only shows fields for that setup.</span>
+                </div>
+                <div class="pmd-create-type-list" role="group" aria-label="Restaurant setup">
+                    <button class="pmd-create-type" type="button" data-pmd-create-kind="independent">
+                        <span class="pmd-create-type-main"><strong>Normal restaurant</strong><span>One restaurant, one Owner, one tenant.</span></span>
+                        <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
                     </button>
-                    <button class="pmd-create-type" type="button" data-pmd-create-kind="multi_location" aria-pressed="false">
-                        <strong>Multi-location</strong>
-                        <span>One Owner, several tenants</span>
+                    <button class="pmd-create-type" type="button" data-pmd-create-kind="multi_location">
+                        <span class="pmd-create-type-main"><strong>Multi-location restaurant</strong><span>One shared Owner across several isolated restaurant tenants.</span></span>
+                        <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
                     </button>
-                    <button class="pmd-create-type" type="button" data-pmd-create-kind="food_court" aria-pressed="false">
-                        <strong>Food court</strong>
-                        <span>Venue and vendor tenants</span>
+                    <button class="pmd-create-type" type="button" data-pmd-create-kind="food_court">
+                        <span class="pmd-create-type-main"><strong>Food court / venue</strong><span>Venue ownership with isolated vendor restaurant tenants.</span></span>
+                        <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
                     </button>
                 </div>
             </div>
 
-            <div class="pmd-create-panel" data-pmd-create-panel="independent">
+            <div class="pmd-create-selection" data-pmd-create-selection hidden>
+                <button class="pmd-create-change" type="button" data-pmd-change-create-kind>← Change setup</button>
+                <div class="pmd-create-selected-copy">
+                    <strong data-pmd-selected-kind-title>Normal restaurant</strong>
+                    <span data-pmd-selected-kind-copy>One restaurant, one Owner, one tenant.</span>
+                </div>
+            </div>
+
+            <div class="pmd-create-panel" data-pmd-create-panel="independent" hidden>
                 <form method="POST" action="/superadmin/new/store" data-pmd-create-form>
                     @csrf
                     <input type="hidden" name="_pmd_form" value="create">
@@ -362,6 +379,10 @@
     var businessType=businessForm&&businessForm.querySelector('[data-pmd-business-type]');
     var independentPanel=createModal&&createModal.querySelector('[data-pmd-create-panel="independent"]');
     var businessPanel=createModal&&createModal.querySelector('[data-pmd-create-panel="business"]');
+    var createChooser=createModal&&createModal.querySelector('[data-pmd-create-chooser]');
+    var createSelection=createModal&&createModal.querySelector('[data-pmd-create-selection]');
+    var selectedKindTitle=createModal&&createModal.querySelector('[data-pmd-selected-kind-title]');
+    var selectedKindCopy=createModal&&createModal.querySelector('[data-pmd-selected-kind-copy]');
     var nameInput=createModal&&createModal.querySelector('[data-pmd-restaurant-name]');
     var databaseInput=createModal&&createModal.querySelector('[data-pmd-database]');
     var domainInput=createModal&&createModal.querySelector('[data-pmd-domain]');
@@ -447,20 +468,40 @@
         if(slug)slug.value=domainFromSlug(slug.value);
     }
 
-    function setCreateKind(kind){
+    function kindMeta(kind){
+        if(kind==='food_court')return {title:'Food court / venue',copy:'Venue ownership with isolated vendor restaurant tenants.'};
+        if(kind==='multi_location')return {title:'Multi-location restaurant',copy:'One shared Owner across several isolated restaurant tenants.'};
+        return {title:'Normal restaurant',copy:'One restaurant, one Owner, one tenant.'};
+    }
+
+    function showCreateChooser(){
+        if(!createModal)return;
+        if(createChooser)createChooser.hidden=false;
+        if(createSelection)createSelection.hidden=true;
+        if(independentPanel)independentPanel.hidden=true;
+        if(businessPanel)businessPanel.hidden=true;
+        var title=createModal.querySelector('#pmd-create-title');
+        if(title)title.textContent='Create a new restaurant';
+        var first=createChooser&&createChooser.querySelector('[data-pmd-create-kind]');
+        setTimeout(function(){if(first)first.focus();},0);
+    }
+
+    function setCreateKind(kind,focusForm){
         if(!createModal)return;
         if(['independent','multi_location','food_court'].indexOf(kind)===-1)kind='independent';
-        createModal.querySelectorAll('[data-pmd-create-kind]').forEach(function(button){
-            var active=button.getAttribute('data-pmd-create-kind')===kind;
-            button.classList.toggle('is-active',active);
-            button.setAttribute('aria-pressed',active?'true':'false');
-        });
+
+        if(createChooser)createChooser.hidden=true;
+        if(createSelection)createSelection.hidden=false;
         if(independentPanel)independentPanel.hidden=kind!=='independent';
         if(businessPanel)businessPanel.hidden=kind==='independent';
         if(businessType&&kind!=='independent')businessType.value=kind;
 
+        var meta=kindMeta(kind);
+        if(selectedKindTitle)selectedKindTitle.textContent=meta.title;
+        if(selectedKindCopy)selectedKindCopy.textContent=meta.copy;
+
         var title=createModal.querySelector('#pmd-create-title');
-        if(title)title.textContent=kind==='independent'?'Create a new restaurant':(kind==='food_court'?'Create a food court / venue':'Create a multi-location restaurant');
+        if(title)title.textContent='Create restaurant';
 
         if(businessForm&&kind!=='independent'){
             var heading=businessForm.querySelector('[data-pmd-sites-heading]');
@@ -486,6 +527,11 @@
         }else{
             renderMarket(createForm);
         }
+
+        if(focusForm!==false){
+            var target=kind==='independent'?nameInput:(businessForm&&businessForm.querySelector('[data-pmd-business-name]'));
+            setTimeout(function(){if(target)target.focus();},0);
+        }
     }
 
     if(nameInput)nameInput.addEventListener('input',syncDatabase);
@@ -509,13 +555,15 @@
 
     document.addEventListener('click',function(e){
         var createKind=e.target.closest('[data-pmd-create-kind]');
-        if(createKind){e.preventDefault();setCreateKind(createKind.getAttribute('data-pmd-create-kind'));return}
+        if(createKind){e.preventDefault();setCreateKind(createKind.getAttribute('data-pmd-create-kind'),true);return}
+
+        if(e.target.closest('[data-pmd-change-create-kind]')){e.preventDefault();showCreateChooser();return}
 
         var remove=e.target.closest('[data-pmd-remove-business-site]');
         if(remove&&!remove.disabled){e.preventDefault();remove.closest('.pmd-business-site').remove();normalizeBusinessSites();return}
 
         var createOpen=e.target.closest('[data-pmd-open-create]');
-        if(createOpen){e.preventDefault();setCreateKind(initialKind);openModal(createModal,initialKind==='independent'?nameInput:(businessForm&&businessForm.querySelector('[data-pmd-business-name]')));return}
+        if(createOpen){e.preventDefault();openModal(createModal,null);showCreateChooser();return}
         if(e.target.closest('[data-pmd-close-create]')){e.preventDefault();closeModal(createModal);return}
 
         var editOpen=e.target.closest('[data-pmd-open-edit]');
@@ -526,20 +574,20 @@
 
     document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(createModal&&!createModal.hidden)closeModal(createModal);if(editModal&&!editModal.hidden)closeModal(editModal)});
     syncDomain();
-    setCreateKind(initialKind);
+    showCreateChooser();
     renderMarket(createModal);
 
     @if(old('_pmd_form') === 'create')
-        setCreateKind('independent');openModal(createModal,nameInput);
+        setCreateKind('independent',false);openModal(createModal,nameInput);
     @elseif(old('_pmd_form') === 'business')
-        setCreateKind(@json(old('organization_type','multi_location')));openModal(createModal,businessForm&&businessForm.querySelector('[data-pmd-business-name]'));
+        setCreateKind(@json(old('organization_type','multi_location')),false);openModal(createModal,businessForm&&businessForm.querySelector('[data-pmd-business-name]'));
     @elseif(old('_pmd_form') === 'edit')
         @php
             $pmdOldEdit = ['id'=>old('id'),'name'=>old('name'),'domain'=>old('domain'),'email'=>old('email'),'phone'=>old('phone'),'country'=>old('country'),'start'=>old('start'),'end'=>old('end'),'type'=>old('type','People'),'description'=>old('description')];
         @endphp
         fillEdit(@json($pmdOldEdit));openModal(editModal,editField('[data-pmd-edit-name]'));
     @elseif(request()->query('create') === 'business')
-        setCreateKind('multi_location');openModal(createModal,businessForm&&businessForm.querySelector('[data-pmd-business-name]'));
+        setCreateKind('multi_location',false);openModal(createModal,businessForm&&businessForm.querySelector('[data-pmd-business-name]'));
     @endif
 })();
 </script>

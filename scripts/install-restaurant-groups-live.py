@@ -503,7 +503,7 @@ def main():
             (directory/'INSTALLED').write_text(args.commit+'\n')
             print('[PMD] INSTALLED: '+args.commit, flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/new', flush=True)
-            print('[PMD] Create restaurant now uses the compact Normal / Multi-location / Food court selector.', flush=True)
+            print('[PMD] Create restaurant now opens with a setup-choice step; only the chosen form is then shown.', flush=True)
             print('[PMD] Normal restaurants require a chosen Owner username/password; inherited template credentials are rotated before activation.', flush=True)
             print('[PMD] Pending/failed group locations stay disabled until Retry provisioning reaches ready.', flush=True)
             print('[PMD] Owner Dashboard opens on the current restaurant; All locations is an explicit selector, not an automatic fan-out.', flush=True)
