@@ -70,7 +70,17 @@ final class SiteProvisioner
                 ProvisioningRules::tenant($site, $tenant);
                 if ($mark['phase'] === 'prepared') {
                     $result = app(SuperAdminTenantDomainProvisioner::class)->provision((string)$tenant->domain);
-                    if (empty($result['ok'])) throw new \DomainException('Domain or TLS setup failed. The location remains disabled; retry after correcting the domain setup.');
+                    if (empty($result['ok'])) {
+                        $detail = trim((string)($result['message'] ?? ''));
+                        $detail = preg_replace('/[\x00-\x1f\x7f]+/', ' ', $detail) ?: '';
+                        $detail = trim(preg_replace('/\s+/', ' ', $detail) ?: '');
+
+                        throw new \DomainException(
+                            $detail !== ''
+                                ? 'Domain or TLS setup failed: '.substr($detail, 0, 260)
+                                : 'Domain or TLS setup failed. The location remains disabled.'
+                        );
+                    }
                     $this->checkpoint($central, $siteId, $token, 'domain_ready', (int)$tenant->id);
                     $mark['phase'] = 'domain_ready';
                 }
@@ -130,16 +140,42 @@ final class SiteProvisioner
                 return ['ok' => true, 'site_id' => $siteId, 'tenant_id' => (int)$tenant->id, 'domain' => (string)$tenant->domain];
             } catch (\Throwable $error) {
                 $reference = 'rg-'.bin2hex(random_bytes(6));
+                $publicMessage = $error instanceof \DomainException || $error instanceof \InvalidArgumentException
+                    ? trim((string)$error->getMessage())
+                    : '';
+
+                if ($publicMessage === '') {
+                    $publicMessage = 'Provisioning stopped. Check server log reference '.$reference.'.';
+                }
+
+                $publicMessage = preg_replace('/[\x00-\x1f\x7f]+/', ' ', $publicMessage) ?: '';
+                $publicMessage = trim(preg_replace('/\s+/', ' ', $publicMessage) ?: '');
+                $storedMessage = substr($publicMessage, 0, 430).' · Ref '.$reference;
+
                 logger()->error('PMD group location provisioning stopped', [
-                    'reference' => $reference, 'site_id' => $siteId, 'exception' => get_class($error), 'message' => $error->getMessage(),
+                    'reference' => $reference,
+                    'site_id' => $siteId,
+                    'exception' => get_class($error),
+                    'message' => $error->getMessage(),
                 ]);
+
                 // Keep the last completed phase; never disable an already-ready
                 // tenant and never delete a database to make a retry pass.
-                $central->table('pmd_group_sites')->where('id', $siteId)->where('state', '!=', 'ready')->update([
-                    'state' => 'failed', 'last_error' => 'Provisioning stopped. Check server log reference '.$reference.'.', 'updated_at' => now(),
-                ]);
-                return ['ok' => false, 'site_id' => $siteId, 'reference' => $reference,
-                    'message' => 'Location remains disabled. Check server log reference '.$reference.'.'];
+                $central->table('pmd_group_sites')
+                    ->where('id', $siteId)
+                    ->where('state', '!=', 'ready')
+                    ->update([
+                        'state' => 'failed',
+                        'last_error' => substr($storedMessage, 0, 500),
+                        'updated_at' => now(),
+                    ]);
+
+                return [
+                    'ok' => false,
+                    'site_id' => $siteId,
+                    'reference' => $reference,
+                    'message' => $publicMessage,
+                ];
             }
         });
     }

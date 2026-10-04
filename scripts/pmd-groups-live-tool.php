@@ -160,6 +160,12 @@ try {
         throw new RuntimeException('Deprecated standalone Business Accounts entry is still injected.');
     }
 
+    $sideMenuSource = (string)@file_get_contents($root.'/app/admin/views/superadmin_r2/side_menu.blade.php');
+    if (strpos($sideMenuSource, 'href="/superadmin/groups"') !== false
+        || strpos($sideMenuSource, '>Business Accounts<') !== false) {
+        throw new RuntimeException('Standalone Business Accounts navigation is still present.');
+    }
+
     echo "PASS integrated Create Restaurant modal rendered\n";
     echo "PASS routes, Super Admin authentication middleware and native security bindings resolved\n";
     echo "PASS central feature storage enabled\n";

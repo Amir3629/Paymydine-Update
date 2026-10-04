@@ -472,9 +472,10 @@ def main():
             down = False
             (directory/'INSTALLED').write_text(args.commit+'\n')
             print('[PMD] INSTALLED: '+args.commit, flush=True)
-            print('[PMD] Open https://paymydine.com/superadmin/groups', flush=True)
-            print('[PMD] Restaurants also has a Create multi-location account entry.', flush=True)
-            print('[PMD] This installed the current feature; it is not a claim of full menu/media, TLS or browser acceptance.', flush=True)
+            print('[PMD] Open https://paymydine.com/superadmin/new', flush=True)
+            print('[PMD] The existing Create restaurant modal now contains Normal, Multi-location and Food Court choices.', flush=True)
+            print('[PMD] Pending/failed group locations are shown on Restaurants with Retry provisioning.', flush=True)
+            print('[PMD] This installed the current feature; domain/TLS still depends on the existing privileged tenant provisioner.', flush=True)
         except BaseException:
             if replaced:
                 print('[PMD] Installation failed. Restoring previous runtime files; central additive tables are retained.', file=sys.stderr, flush=True)
