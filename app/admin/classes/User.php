@@ -30,9 +30,17 @@ class User extends Manager
         $result = app(\App\Services\RestaurantGroups\Auth::class)
             ->attempt($this, $credentials, (bool)$login);
 
-        return $result === null
-            ? parent::authenticate($credentials, $remember, $login)
-            : $result;
+        if ($result !== null) {
+            return $result;
+        }
+
+        $legacy = parent::authenticate($credentials, $remember, $login);
+
+        if ($login && $legacy) {
+            app(\App\Services\RestaurantGroups\Auth::class)->rememberLegacy($legacy);
+        }
+
+        return $legacy;
     }
 
     public function check()

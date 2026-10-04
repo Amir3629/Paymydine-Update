@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Session;
 final class Auth
 {
     public const SESSION = 'pmd_group_owner_v1';
+    public const MODE_SESSION = 'pmd_group_auth_mode_v1';
 
     /** @var array<string,bool> Request-local only; never survives PHP request end. */
     private array $sessionAllowedCache = [];
@@ -28,7 +29,9 @@ final class Auth
     {
         $this->resetRequestValidation();
 
-        if ($login) session()->forget(self::SESSION);
+        if ($login) {
+            session()->forget([self::SESSION, self::MODE_SESSION]);
+        }
         $username = strtolower(trim((string)($credentials['username'] ?? '')));
         $password = (string)($credentials['password'] ?? '');
         if ($username === '' || $password === '') return false;
@@ -63,6 +66,11 @@ final class Auth
                 'user_id' => (int)$user->getKey(), 'auth_version' => (int)$owner->auth_version,
                 'password_at' => time(), 'mfa_at' => 0, 'session_id' => null,
             ]);
+            session()->put(self::MODE_SESSION, [
+                'mode' => 'group',
+                'tenant_id' => $tenantId,
+                'user_id' => (int)$user->getKey(),
+            ]);
             $manager->login($user, false);
             return $user;
         } catch (\Throwable $error) {
@@ -81,6 +89,22 @@ final class Auth
 
         $userId = (int)$user->getKey();
         $proof = (array)session()->get(self::SESSION, []);
+        $mode = (array)session()->get(self::MODE_SESSION, []);
+
+        // A legacy login marker is bound to both tenant and user. Once present,
+        // ordinary restaurants incur zero Restaurant Groups DB/schema queries
+        // during AdminAuth::check(). Existing sessions without a marker are
+        // classified once below and then become equally cheap.
+        if (
+            !$proof
+            && ($mode['mode'] ?? '') === 'legacy'
+            && (int)($mode['user_id'] ?? 0) === $userId
+            && (int)($mode['tenant_id'] ?? 0) > 0
+            && (int)($mode['tenant_id'] ?? 0) === $this->store->currentTenantId()
+        ) {
+            return true;
+        }
+
         $proofKey = implode(':', [
             (int)($proof['owner_id'] ?? 0),
             (int)($proof['tenant_id'] ?? 0),
@@ -97,9 +121,8 @@ final class Auth
         }
 
         try {
-            // Legacy restaurants pay at most one identity lookup per PHP request.
-            // A managed shadow without a central proof remains fail-closed.
-            if (!ManagedIdentity::isManaged($userId) && !$proof) {
+            if (!$proof && !ManagedIdentity::isManaged($userId)) {
+                $this->rememberLegacy($user);
                 return $this->sessionAllowedCache[$cacheKey] = true;
             }
 
@@ -109,6 +132,26 @@ final class Auth
         } catch (\Throwable $error) {
             return $this->sessionAllowedCache[$cacheKey] = false;
         }
+    }
+
+    public function rememberLegacy($user): void
+    {
+        if (!$user) {
+            return;
+        }
+
+        $tenantId = $this->store->currentTenantId();
+        $userId = (int)$user->getKey();
+
+        if ($tenantId < 1 || $userId < 1) {
+            return;
+        }
+
+        session()->put(self::MODE_SESSION, [
+            'mode' => 'legacy',
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
+        ]);
     }
 
     public function owner(bool $requireMfa = true, $user = null): object
@@ -157,7 +200,7 @@ final class Auth
     public function logout(): void
     {
         $this->resetRequestValidation();
-        session()->forget([self::SESSION, \App\Services\PmdOwnerTotpService::SESSION_VERIFIED,
+        session()->forget([self::SESSION, self::MODE_SESSION, \App\Services\PmdOwnerTotpService::SESSION_VERIFIED,
             \App\Services\PmdOwnerTotpService::SESSION_ENROLLMENT]);
     }
 
