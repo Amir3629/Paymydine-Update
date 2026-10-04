@@ -1581,7 +1581,7 @@
         provider_reference: pending.providerReference || "",
         merchant_reference: pending.merchantReference || ""
       };
-    } else if (provider === "wero") {
+    } else if (provider === "wero" || String(pending.methodCode || "").toLowerCase() === "wero") {
       endpoint = "/api/v1/payments/wero/checkout-status";
       payload = { session_id: pending.sessionId || "" };
     } else if (provider === "stripe" || provider === "card") {
@@ -1597,7 +1597,7 @@
         pending.couponCode,
         pending.couponDiscount
       ).then(function () {
-        return { paid: true, pending: false, cancelled: false, reference: piReference };
+        return { paid: true, pending: false, cancelled: false, reference: piReference, settled: true };
       });
     }
     if (!endpoint) return Promise.resolve({ paid: false, pending: true, reference: pending.providerReference || null });
@@ -1629,6 +1629,10 @@
       attempts += 1;
       verifyPendingOnce(pending).then(function (result) {
         if (result.paid) {
+          if (result.settled) {
+            finishOrder(copy().paidHint);
+            return;
+          }
           return settleExisting(
             pending.methodCode,
             pending.providerCode || pending.provider,
