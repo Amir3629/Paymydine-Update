@@ -5879,7 +5879,10 @@ return response()->json([
                 'total_amount' => 'required|numeric|min:0',
                 'tip_amount' => 'nullable|numeric|min:0',
                 'coupon_discount' => 'nullable|numeric|min:0',
-                'payment_method' => 'required|in:cash,cod,card,paypal,stripe,apple_pay,google_pay,wero',
+                // PMD_KIOSK_QR_PAY_LATER_V9
+                // Create a canonical unpaid kiosk order before starting any
+                // provider flow. Settlement happens only after confirmation.
+                'payment_method' => 'required|in:cash,cod,card,paypal,stripe,apple_pay,google_pay,wero,qr_pay_later',
                 'stripe_payment_intent_id' => 'nullable|string|max:255',
             ];
 
@@ -5892,7 +5895,7 @@ return response()->json([
             }
 
             $validationRules['payment_provider'] = 'nullable|string|in:stripe,paypal,worldline,sumup,square,vr_payment';
-            $validationRules['payment_method_raw'] = 'nullable|string|in:card,apple_pay,google_pay,wero,paypal,cod,cash,stripe';
+            $validationRules['payment_method_raw'] = 'nullable|string|in:card,apple_pay,google_pay,wero,paypal,cod,cash,stripe,qr_pay_later';
             $validationRules['payment_reference'] = 'nullable|string|max:255';
 
             $request->validate($validationRules);
@@ -5913,6 +5916,7 @@ return response()->json([
                 'cod' => 'cash',
                 'cash' => 'cash',
                 'card' => 'card',
+                'qr_pay_later' => 'qr_pay_later',
                 default => 'card',
             };
 
