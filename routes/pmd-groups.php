@@ -2,8 +2,6 @@
 
 use App\Http\Controllers\RestaurantGroups\AdminController;
 use App\Http\Controllers\RestaurantGroups\DisplayController;
-use App\Http\Controllers\RestaurantGroups\SuperAdminController;
-use App\Http\Middleware\SuperAdminAuth;
 use App\Http\Middleware\SuperAdminCanonicalHost;
 use Igniter\Flame\Foundation\Http\Middleware\TenantDatabaseMiddleware;
 use Illuminate\Support\Facades\Route;
@@ -11,15 +9,6 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['web', SuperAdminCanonicalHost::class])
     ->withoutMiddleware([TenantDatabaseMiddleware::class])
     ->group(function () {
-        Route::middleware(SuperAdminAuth::class)->group(function () {
-            Route::get('/superadmin/groups', [SuperAdminController::class, 'index'])
-                ->name('pmd.superadmin.groups');
-            Route::post('/superadmin/groups/store', [SuperAdminController::class, 'store'])
-                ->name('pmd.superadmin.groups.store');
-            Route::post('/superadmin/groups/retry', [SuperAdminController::class, 'retry'])
-                ->name('pmd.superadmin.groups.retry');
-        });
-
         Route::get('/pmd-foodcourt/{token}', [DisplayController::class, 'page'])
             ->where('token', '[a-f0-9]{64}')
             ->name('pmd.foodcourt.display');

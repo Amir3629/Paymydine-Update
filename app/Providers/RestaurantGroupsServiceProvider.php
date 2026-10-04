@@ -26,8 +26,11 @@ final class RestaurantGroupsServiceProvider extends ServiceProvider
     public function boot()
     {
         // Module registration can replace the canonical service bindings. Bind
-        // again after registration, preserving the request-local singleton cache.
+        // now and once more after every provider/module has fully booted.
         $this->bindSecurityServices();
+        $this->app->booted(function () {
+            $this->bindSecurityServices(true);
+        });
         $this->loadRoutesFrom(base_path('routes/pmd-groups.php'));
         $this->loadViewsFrom(resource_path('views/pmd-groups'), 'pmd-groups');
         if ($this->app->runningInConsole()) {
@@ -35,10 +38,19 @@ final class RestaurantGroupsServiceProvider extends ServiceProvider
         }
     }
 
-    private function bindSecurityServices(): void
+    private function bindSecurityServices(bool $forgetResolved = false): void
     {
-        $this->app->singleton(\App\Services\PmdOwnerTotpService::class, Totp::class);
-        $this->app->singleton(\App\Services\PmdTrustedLoginDeviceService::class, TrustedLogin::class);
-        $this->app->singleton(\App\Services\PmdSuperAdminOwnerMfaResetService::class, SupportMfaReset::class);
+        $bindings = [
+            \App\Services\PmdOwnerTotpService::class => Totp::class,
+            \App\Services\PmdTrustedLoginDeviceService::class => TrustedLogin::class,
+            \App\Services\PmdSuperAdminOwnerMfaResetService::class => SupportMfaReset::class,
+        ];
+
+        foreach ($bindings as $abstract => $implementation) {
+            if ($forgetResolved) {
+                $this->app->forgetInstance($abstract);
+            }
+            $this->app->singleton($abstract, $implementation);
+        }
     }
 }

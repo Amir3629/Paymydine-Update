@@ -9,6 +9,7 @@ if (!$root || !in_array($action, ['info', 'backup', 'install', 'health'], true))
 }
 // Suppress accidental bootstrap output. SQL backup stdout must contain SQL only.
 ob_start();
+$stage = 'bootstrap';
 try {
     chdir($root);
     require $root.'/vendor/autoload.php';
@@ -57,6 +58,7 @@ try {
         echo "SET FOREIGN_KEY_CHECKS=1;\n-- PMD BACKUP COMPLETE\n";
         exit;
     }
+    $stage = 'group-store';
     $store = $app->make(\App\Services\RestaurantGroups\Store::class);
     if ((string)$store->central()->getDatabaseName() !== $expected) {
         throw new RuntimeException('Restaurant Groups registry is not on the central database.');
@@ -68,18 +70,22 @@ try {
         echo "PASS central Restaurant Groups schema installed and feature enabled\n";
         exit;
     }
+    $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
+    $stage = 'routes';
     $routes = $app['router']->getRoutes();
     foreach (['pmd.superadmin.groups','pmd.superadmin.groups.store','pmd.superadmin.groups.retry',
         'pmd.group.context','pmd.group.snapshot','pmd.group.catalog','pmd.group.publish.preview','pmd.group.publish.apply'] as $name) {
         if (!$routes->getByName($name)) throw new RuntimeException('Missing route: '.$name);
     }
+    $stage = 'superadmin-route-match';
     $request = \Illuminate\Http\Request::create('https://paymydine.com/superadmin/groups', 'GET');
     $matched = $routes->match($request);
     if ($matched->getName() !== 'pmd.superadmin.groups'
         || !in_array(\App\Http\Middleware\SuperAdminAuth::class, $matched->gatherMiddleware(), true)) {
         throw new RuntimeException('Super Admin page route/authentication wiring is not correct.');
     }
+    $stage = 'security-bindings';
     foreach ([
         \App\Services\PmdOwnerTotpService::class => \App\Services\RestaurantGroups\Totp::class,
         \App\Services\PmdTrustedLoginDeviceService::class => \App\Services\RestaurantGroups\TrustedLogin::class,
@@ -89,12 +95,14 @@ try {
             throw new RuntimeException('A native module replaced a Restaurant Groups security binding.');
         }
     }
+    $stage = 'admin-auth-source';
     $method = new ReflectionMethod(\Admin\Classes\User::class, 'authenticate');
     if (realpath($method->getFileName()) !== realpath($root.'/app/admin/classes/User.php')) {
         throw new RuntimeException('Admin authentication is loading a different source file.');
     }
     // Render the real page with a transient, in-memory session. This is not a
     // real sign-in and does not bypass or exercise HTTP authentication.
+    $stage = 'blade-render';
     $session = new \Illuminate\Session\Store('pmd-install-render', new \Illuminate\Session\ArraySessionHandler(30));
     $session->start();
     $request->setLaravelSession($session);
@@ -120,6 +128,6 @@ try {
     // bindings and control characters; do not dump env/config/session values.
     $message = preg_replace('/\(SQL:.*$/s', '(SQL omitted)', $error->getMessage());
     $message = preg_replace('/[\x00-\x1f\x7f]/', ' ', (string)$message);
-    fwrite(STDERR, 'PMD '.$action.' failed ['.get_class($error).']: '.substr($message, 0, 400).PHP_EOL);
+    fwrite(STDERR, 'PMD '.$action.' failed at ['.$stage.'] ['.get_class($error).']: '.substr($message, 0, 400).PHP_EOL);
     exit(1);
 }

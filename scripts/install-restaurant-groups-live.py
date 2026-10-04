@@ -26,6 +26,7 @@ EXACT = {
     'app/Console/Commands/RestaurantGroupsCommand.php',
     'app/admin/classes/User.php', 'config/app.php', 'config/pmd_groups.php',
     'routes/pmd-groups.php',
+    'routes/pmd-superadmin-r2.php',
     'app/admin/views/_partials/pmd_admin_i18n.blade.php',
     'app/admin/views/superadmin_r2/side_menu.blade.php',
     'app/admin/assets/css/pmd-restaurant-groups-v1.css',
@@ -430,7 +431,18 @@ def main():
             logged(appcmd(str(root/'scripts/pmd-groups-live-tool.php'),'install',str(root)), 'Restaurant Groups schema install')
             # Before reopening, resolve the actual routes, auth bindings and render
             # the real Blade form (not a regex-only route-list success check).
-            logged(appcmd(str(root/'scripts/pmd-groups-live-tool.php'),'health',str(root)), 'Restaurant Groups health check')
+            try:
+                logged(appcmd(str(root/'scripts/pmd-groups-live-tool.php'),'health',str(root)), 'Restaurant Groups health check')
+            except DeployError:
+                log.flush()
+                try:
+                    lines = (directory/'deployment.log').read_text(errors='replace').splitlines()
+                    safe = [line for line in lines[-80:] if line.startswith('PMD health failed at [')]
+                    if safe:
+                        print('[PMD] '+safe[-1], file=sys.stderr, flush=True)
+                except Exception:
+                    pass
+                raise
             # Health renders Blade. Remove compiled views once more so PHP-FPM
             # recreates them under its normal runtime identity.
             clear_framework_caches()
