@@ -91,6 +91,25 @@ def merge_bytes(current: bytes, before: bytes, after: bytes, name: str) -> bytes
             raise DeployError(f'Merge conflict: {name}. No live files were changed; keep your local version for review.')
         return r.stdout
 
+def known_feature_version(root: Path, ref: str, base: str, name: str, current: bytes | None) -> bool:
+    """Accept only an exact file blob from this feature's first-parent history.
+
+    This makes an installed R1-R4 release upgradeable without treating arbitrary
+    local edits as trusted. Unknown content still stops the deployment.
+    """
+    if current is None:
+        return False
+
+    history = git(root, 'rev-list', '--first-parent', ref, '^'+base).decode().splitlines()
+    for sha in history:
+        if sha == ref:
+            continue
+        candidate = blob(root, sha, name)
+        if candidate is not None and candidate == current:
+            return True
+
+    return False
+
 def plan(root: Path, ref: str, base: str = BASE) -> dict[str, bytes]:
     if not re.fullmatch(r'[a-f0-9]{40}', ref):
         raise DeployError('A complete pinned commit SHA is required.')
@@ -105,7 +124,15 @@ def plan(root: Path, ref: str, base: str = BASE) -> dict[str, bytes]:
         if after is None:
             raise DeployError(f'Deleting a runtime file is not supported: {name}')
         current = dest.read_bytes() if dest.is_file() else None
-        if before is None:
+
+        # A previous pinned Restaurant Groups release may already be installed
+        # even when the original feature base did not contain this file. Accept
+        # only exact blobs from this branch's first-parent history. This also
+        # avoids unnecessary three-way conflicts when upgrading a file that is
+        # byte-for-byte identical to R1-R4.
+        if current is not None and current != after and known_feature_version(root, ref, base, name, current):
+            replacement = after
+        elif before is None:
             if current is not None and current != after:
                 raise DeployError(f'Existing unmerged feature file: {name}. No live files were changed.')
             replacement = after
