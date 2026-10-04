@@ -485,7 +485,10 @@
     return fetch(url, {
       method: configOptions.method || "GET",
       credentials: "same-origin",
-      cache: configOptions.method === "POST" ? "no-store" : "no-store",
+      // PMD_KIOSK_FAST_WEBVIEW_V10: GETs may use/revalidate the WebView HTTP
+      // cache; mutations remain no-store. The old code forced every menu open
+      // to redownload the entire bootstrap payload.
+      cache: configOptions.method === "POST" ? "no-store" : "default",
       headers: headers,
       body: configOptions.body === undefined
         ? undefined
