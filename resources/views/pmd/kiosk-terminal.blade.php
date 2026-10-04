@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex,nofollow">
-    <meta name="theme-color" content="#f3f5f7">
+    <meta name="theme-color" id="pmd-kiosk-theme-color" content="#f3f5f7">
     <title>Self-service ordering · PayMyDine</title>
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=8">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=9-theme-payment">
 </head>
-<body class="pmd-kiosk-v8" data-pmd-kiosk-terminal="blade-v8">
+<body class="pmd-kiosk-v8" data-pmd-kiosk-terminal="blade-v8" data-pmd-kiosk-theme="kazen_japanese">
 <div id="pmd-kiosk-app" class="pmd-kiosk-shell" aria-busy="true">
     <header class="pmd-kiosk-topbar">
         <div class="pmd-kiosk-brand" aria-label="Restaurant">
@@ -108,6 +108,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=8" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=9-theme-payment" defer></script>
 </body>
 </html>
