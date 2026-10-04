@@ -339,6 +339,10 @@ private fun KioskApp(
                             serviceMode = "eat_in",
                         ),
                     )
+                    if (context is KioskActivity) {
+                        @Suppress("DEPRECATION")
+                        context.overridePendingTransition(0, 0)
+                    }
                 },
                 onTakeAway = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
@@ -349,6 +353,10 @@ private fun KioskApp(
                             serviceMode = "pickup",
                         ),
                     )
+                    if (context is KioskActivity) {
+                        @Suppress("DEPRECATION")
+                        context.overridePendingTransition(0, 0)
+                    }
                 },
             )
         }
