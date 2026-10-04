@@ -400,13 +400,29 @@
 ></script>
 @endif
 
-{{-- PMD_RESTAURANT_GROUPS_V1_LOADER --}}
+{{-- PMD_RESTAURANT_GROUPS_R6_ROUTE_SCOPED_LOADER --}}
 @php
+    $pmdGroupsRoute = trim((string)request()->path(), '/');
+    $pmdGroupsAssetsActive = in_array(
+        $pmdGroupsRoute,
+        [
+            'admin/ownerdashboard',
+            'admin/dashboardlab',
+            'admin/ownerboard',
+        ],
+        true
+    ) || preg_match(
+        '#^admin/(?:menus|discounts|coupons|settings|pmdsettings)(?:/|$)#',
+        $pmdGroupsRoute
+    );
+
     $pmdGroupsCssPath = base_path('app/admin/assets/css/pmd-restaurant-groups-v1.css');
     $pmdGroupsJsPath = base_path('app/admin/assets/js/pmd-restaurant-groups-v1.js');
     $pmdGroupsCssVersion = is_file($pmdGroupsCssPath) ? (string)filemtime($pmdGroupsCssPath) : '1';
     $pmdGroupsJsVersion = is_file($pmdGroupsJsPath) ? (string)filemtime($pmdGroupsJsPath) : '1';
 @endphp
+
+@if($pmdGroupsAssetsActive)
 <link
     rel="stylesheet"
     href="/app/admin/assets/css/pmd-restaurant-groups-v1.css?v={{ $pmdGroupsCssVersion }}"
@@ -418,3 +434,4 @@
     src="/app/admin/assets/js/pmd-restaurant-groups-v1.js?v={{ $pmdGroupsJsVersion }}"
     defer
 ></script>
+@endif

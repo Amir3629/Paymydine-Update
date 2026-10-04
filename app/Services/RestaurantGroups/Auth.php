@@ -11,13 +11,23 @@ final class Auth
 {
     public const SESSION = 'pmd_group_owner_v1';
 
+    /** @var array<string,bool> Request-local only; never survives PHP request end. */
+    private array $sessionAllowedCache = [];
+
     public function __construct(private Store $store)
     {
+    }
+
+    private function resetRequestValidation(): void
+    {
+        $this->sessionAllowedCache = [];
     }
 
     /** null means positively identified legacy login; false means rejected. */
     public function attempt($manager, array $credentials, bool $login = true)
     {
+        $this->resetRequestValidation();
+
         if ($login) session()->forget(self::SESSION);
         $username = strtolower(trim((string)($credentials['username'] ?? '')));
         $password = (string)($credentials['password'] ?? '');
@@ -65,14 +75,39 @@ final class Auth
 
     public function sessionAllowed($user): bool
     {
-        if (!$user) return false;
-        try {
-            $proof = (array)session()->get(self::SESSION, []);
-            if (!ManagedIdentity::isManaged((int)$user->getKey()) && !$proof) return true;
-            $this->owner(false, $user);
-            return true;
-        } catch (\Throwable $error) {
+        if (!$user) {
             return false;
+        }
+
+        $userId = (int)$user->getKey();
+        $proof = (array)session()->get(self::SESSION, []);
+        $proofKey = implode(':', [
+            (int)($proof['owner_id'] ?? 0),
+            (int)($proof['tenant_id'] ?? 0),
+            (int)($proof['user_id'] ?? 0),
+            (int)($proof['auth_version'] ?? 0),
+            (int)($proof['password_at'] ?? 0),
+            (int)($proof['mfa_at'] ?? 0),
+            (string)($proof['session_id'] ?? ''),
+        ]);
+        $cacheKey = $userId.'|'.(string)session()->getId().'|'.hash('sha256', $proofKey);
+
+        if (array_key_exists($cacheKey, $this->sessionAllowedCache)) {
+            return $this->sessionAllowedCache[$cacheKey];
+        }
+
+        try {
+            // Legacy restaurants pay at most one identity lookup per PHP request.
+            // A managed shadow without a central proof remains fail-closed.
+            if (!ManagedIdentity::isManaged($userId) && !$proof) {
+                return $this->sessionAllowedCache[$cacheKey] = true;
+            }
+
+            $this->owner(false, $user);
+
+            return $this->sessionAllowedCache[$cacheKey] = true;
+        } catch (\Throwable $error) {
+            return $this->sessionAllowedCache[$cacheKey] = false;
         }
     }
 
@@ -102,6 +137,7 @@ final class Auth
 
     public function verified(int $userId, int $locationId): void
     {
+        $this->resetRequestValidation();
         $owner = $this->owner(false);
         $proof = (array)session()->get(self::SESSION, []);
         $site = $this->store->site((int)$proof['tenant_id']);
@@ -120,12 +156,14 @@ final class Auth
 
     public function logout(): void
     {
+        $this->resetRequestValidation();
         session()->forget([self::SESSION, \App\Services\PmdOwnerTotpService::SESSION_VERIFIED,
             \App\Services\PmdOwnerTotpService::SESSION_ENROLLMENT]);
     }
 
     public function changePassword(string $current, string $next): void
     {
+        $this->resetRequestValidation();
         $owner = $this->owner(true);
         if (strlen($next) < 14 || strlen($next) > 128 || !Hash::check($current, (string)$owner->password)) {
             throw new \DomainException('Check the current password. The new password needs at least 14 characters.');

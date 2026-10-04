@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 final class Store
 {
+    private ?bool $installedCache = null;
+    private ?int $currentTenantCache = null;
+
     public function central()
     {
         return DB::connection('pmd_groups_central');
@@ -15,14 +18,21 @@ final class Store
 
     public function installed(): bool
     {
+        if ($this->installedCache !== null) {
+            return $this->installedCache;
+        }
+
         try {
             $schema = $this->central()->getSchemaBuilder();
-            return $schema->hasTable('pmd_group_schema')
+
+            return $this->installedCache = (
+                $schema->hasTable('pmd_group_schema')
                 && (int)$this->central()->table('pmd_group_schema')
                     ->where('name', 'restaurant-groups')
-                    ->value('version') === Schema::VERSION;
+                    ->value('version') === Schema::VERSION
+            );
         } catch (\Throwable $error) {
-            return false;
+            return $this->installedCache = false;
         }
     }
 
@@ -33,21 +43,29 @@ final class Store
 
     public function currentTenantId(): int
     {
+        if ($this->currentTenantCache !== null) {
+            return $this->currentTenantCache;
+        }
+
         $tenant = request()->attributes->get('tenant');
+
         if ($tenant && !empty($tenant->id)) {
-            return (int)$tenant->id;
+            return $this->currentTenantCache = (int)$tenant->id;
         }
 
         $host = strtolower(trim((string)request()->getHost()));
-        if ($host === '') return 0;
+
+        if ($host === '') {
+            return $this->currentTenantCache = 0;
+        }
 
         try {
-            return (int)$this->central()
+            return $this->currentTenantCache = (int)$this->central()
                 ->table('tenants')
                 ->whereRaw('LOWER(domain) = ?', [$host])
                 ->value('id');
         } catch (\Throwable $error) {
-            return 0;
+            return $this->currentTenantCache = 0;
         }
     }
 
@@ -116,12 +134,8 @@ final class Store
 
     public function managedLocalUser(int $userId): bool
     {
-        if ($userId < 1) return false;
-
         try {
-            $db = DB::connection('tenant');
-            return $db->getSchemaBuilder()->hasTable('pmd_group_identity')
-                && $db->table('pmd_group_identity')->where('user_id', $userId)->exists();
+            return ManagedIdentity::isManaged($userId);
         } catch (\Throwable $error) {
             return false;
         }
