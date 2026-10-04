@@ -1657,7 +1657,9 @@ ${ROOT} [${BUTTON_ATTR}][aria-disabled="true"] {
                     'input[type="button"]'
                 ].join(',')
             )
-        );
+        ).filter(function (candidate) {
+            return !candidate.closest('[data-pmd-modal-chrome-skip]');
+        });
     }
 
 
@@ -1758,6 +1760,11 @@ ${ROOT} [${BUTTON_ATTR}][aria-disabled="true"] {
 
         buttonCandidates(card)
             .forEach(btn => {
+
+                if (btn.closest('[data-pmd-modal-chrome-skip]')) {
+                    btn.removeAttribute(BUTTON_ATTR);
+                    return;
+                }
 
                 if (
                     isClose(

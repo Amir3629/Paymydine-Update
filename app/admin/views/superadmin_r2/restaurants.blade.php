@@ -47,11 +47,12 @@
     .pmd-create-chooser[hidden],.pmd-create-selection[hidden],.pmd-create-panel[hidden]{display:none!important}
     .pmd-create-chooser-intro{margin:0 0 15px}.pmd-create-chooser-intro strong{display:block;font-size:18px;line-height:1.3;color:#17372f}.pmd-create-chooser-intro span{display:block;margin-top:4px;color:#6f837c;font-size:13px;line-height:1.5}
     .pmd-create-type-list{border-top:1px solid #dfe9e5}
-    button.pmd-create-type{appearance:none;width:100%;min-height:72px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:14px 4px!important;border:0!important;border-bottom:1px solid #dfe9e5!important;border-radius:0!important;background:#fff!important;background-image:none!important;color:#17372f!important;text-align:left;cursor:pointer;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important;outline:0}
+    .pmd-create-type{appearance:none;width:100%;min-height:72px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:14px 4px!important;border:0!important;border-bottom:1px solid #dfe9e5!important;border-radius:0!important;background:#fff!important;background-image:none!important;color:#17372f!important;text-align:left;cursor:pointer;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important;outline:0}
     .pmd-create-type-main strong{display:block;font-size:15px;line-height:1.3;color:#17372f}.pmd-create-type-main span{display:block;margin-top:3px;color:#71857e;font-size:12px;line-height:1.4}
     .pmd-create-type-arrow{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#eff5f2;color:#31594e;font-size:18px;font-weight:700;transition:transform .15s ease,background .15s ease}
-    button.pmd-create-type:hover{background:#f8fbfa!important;background-image:none!important;color:#17372f!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important}.pmd-create-type:hover .pmd-create-type-arrow{background:#e3efea;transform:translateX(2px)}
+    .pmd-create-type:hover{background:#f8fbfa!important;background-image:none!important;color:#17372f!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important}.pmd-create-type:hover .pmd-create-type-arrow{background:#e3efea;transform:translateX(2px)}
     .pmd-create-type:focus-visible{outline:3px solid rgba(45,116,92,.20)!important;outline-offset:3px}
+    .pmd-create-type[data-pmd-modal-ui-button]{background:#fff!important;background-image:none!important;color:#17372f!important;border-radius:0!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important}
     .pmd-create-selection{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:0 0 13px;border-bottom:1px solid #e5ece9}
     .pmd-create-change{appearance:none;border:0;background:transparent;color:#2b6756;font-size:12px;font-weight:850;padding:0;cursor:pointer;white-space:nowrap}
     .pmd-create-change:hover{text-decoration:underline}
@@ -212,18 +213,18 @@
                     <span>Choose the account structure first. The next screen only shows fields for that setup.</span>
                 </div>
                 <div class="pmd-create-type-list" role="group" aria-label="Restaurant setup">
-                    <button class="pmd-create-type" type="button" data-pmd-create-kind="independent">
+                    <div class="pmd-create-type" role="button" tabindex="0" data-pmd-create-kind="independent">
                         <span class="pmd-create-type-main"><strong>Normal restaurant</strong><span>One restaurant, one Owner, one tenant.</span></span>
                         <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
-                    </button>
-                    <button class="pmd-create-type" type="button" data-pmd-create-kind="multi_location">
+                    </div>
+                    <div class="pmd-create-type" role="button" tabindex="0" data-pmd-create-kind="multi_location">
                         <span class="pmd-create-type-main"><strong>Multi-location restaurant</strong><span>One shared Owner across several isolated restaurant tenants.</span></span>
                         <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
-                    </button>
-                    <button class="pmd-create-type" type="button" data-pmd-create-kind="food_court">
+                    </div>
+                    <div class="pmd-create-type" role="button" tabindex="0" data-pmd-create-kind="food_court">
                         <span class="pmd-create-type-main"><strong>Food court / venue</strong><span>Venue ownership with isolated vendor restaurant tenants.</span></span>
                         <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
-                    </button>
+                    </div>
                 </div>
             </div>
 
@@ -555,7 +556,13 @@
         if(e.target===createModal)closeModal(createModal);if(e.target===editModal)closeModal(editModal);
     });
 
-    document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(createModal&&!createModal.hidden)closeModal(createModal);if(editModal&&!editModal.hidden)closeModal(editModal)});
+    document.addEventListener('keydown',function(e){
+        var createKind=e.target.closest&&e.target.closest('[data-pmd-create-kind]');
+        if(createKind&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setCreateKind(createKind.getAttribute('data-pmd-create-kind'),true);return}
+        if(e.key!=='Escape')return;
+        if(createModal&&!createModal.hidden)closeModal(createModal);
+        if(editModal&&!editModal.hidden)closeModal(editModal);
+    });
     syncDomain();
     showCreateChooser();
     renderMarket(createModal);

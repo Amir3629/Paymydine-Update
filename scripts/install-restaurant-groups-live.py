@@ -505,7 +505,7 @@ def main():
             (directory/'INSTALLED').write_text(args.commit+'\n')
             print('[PMD] INSTALLED: '+args.commit, flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/new', flush=True)
-            print('[PMD] Create restaurant chooser is page-owned and excluded from global modal-button repainting.', flush=True)
+            print('[PMD] Create chooser uses non-button interactive rows, scanner hard-exclusion and a fresh browser cache key.', flush=True)
             print('[PMD] Provisioning issues no longer render as a top-page attention card; Retry setup lives in the affected restaurant row.', flush=True)
             print('[PMD] Normal restaurants require a chosen Owner username/password; inherited template credentials are rotated before activation.', flush=True)
             print('[PMD] Pending/failed group locations stay disabled until Retry provisioning reaches ready.', flush=True)

@@ -159,8 +159,18 @@ try {
     }
 
     if (strpos($restaurantsSource, 'data-pmd-modal-chrome-skip') === false
-        || strpos($overlaySource, '[data-pmd-modal-chrome-skip]') === false) {
+        || strpos($overlaySource, "candidate.closest('[data-pmd-modal-chrome-skip]')") === false
+        || strpos($overlaySource, "btn.closest('[data-pmd-modal-chrome-skip]')") === false) {
         throw new RuntimeException('Create chooser is still exposed to global modal button repainting.');
+    }
+
+    if (strpos($restaurantsSource, '<button class="pmd-create-type"') !== false
+        || substr_count($restaurantsSource, 'role="button" tabindex="0" data-pmd-create-kind=') !== 3) {
+        throw new RuntimeException('Create chooser still uses button elements claimed by modal chrome.');
+    }
+
+    if (strpos($layoutSource, 'pmd-overlay-single-visual-plane-v4.js?v=20261004-superadmin-create-r11') === false) {
+        throw new RuntimeException('Modal runtime cache key was not advanced for R11.');
     }
 
     if (strpos($restaurantsSource, 'Location provisioning needs attention') !== false
