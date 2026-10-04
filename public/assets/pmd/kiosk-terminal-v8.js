@@ -1193,13 +1193,13 @@
   }
 
   function startHostedPayment(method) {
-    if (!state.order || state.busy) return;
+    if (state.busy) return;
     state.busy = true;
     renderCheckout(copy().processing, false);
 
     var totals = calculateTotals();
     var provider = providerCode(method);
-    var merchantReference = "PMD-KIOSK-" + state.order.orderId + "-" + Date.now();
+    var merchantReference = "PMD-KIOSK-" + String(config.session || "kiosk") + "-" + Date.now();
     var payload = {
       amount: totals.payable,
       currency: String(state.restaurant.currency || "EUR").toUpperCase(),
@@ -1207,8 +1207,8 @@
       cancel_url: window.location.href,
       customer_email: "",
       merchant_reference: merchantReference,
-      order_id: state.order.orderId,
-      description: "PayMyDine kiosk order #" + state.order.orderId,
+      order_id: state.order ? state.order.orderId : null,
+      description: "PayMyDine kiosk checkout " + String(config.session || "kiosk"),
       payment_method: method.code,
       provider: provider,
       guest_session_id: String(config.session || "kiosk"),
@@ -1253,9 +1253,14 @@
         }
 
         if (reference) {
-          settleExisting(method.code, pending.providerCode, reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount)
+          submitOrder({ silent: true, allowWhileBusy: true })
+            .then(function () {
+              return settleExisting(method.code, pending.providerCode, reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount);
+            })
             .then(function () { finishOrder(copy().paidHint); })
-            .catch(function (error) { renderCheckout(error.message || copy().paymentFailed, true); });
+            .catch(function (error) {
+              renderCheckout("Payment was received. Do not pay again. " + (error.message || "Order finalization is pending."), true);
+            });
           return;
         }
 
