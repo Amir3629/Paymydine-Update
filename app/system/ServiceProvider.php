@@ -355,6 +355,12 @@ class ServiceProvider extends AppServiceProvider
         $this->app->register(ActivityLogServiceProvider::class);
         $this->app->register(CurrencyServiceProvider::class);
         $this->app->register(GeoliteServiceProvider::class);
+
+        // PMD_RESTAURANT_GROUPS_PROVIDER_R1
+        // System\ServiceProvider is a guaranteed bootstrap authority in both
+        // HTTP and console contexts. Register Restaurant Groups here instead of
+        // relying on app.providers/config cache behavior.
+        $this->app->register(\App\Providers\RestaurantGroupsServiceProvider::class);
     }
 
     protected function defineQueryMacro()

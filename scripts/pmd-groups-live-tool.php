@@ -72,6 +72,12 @@ try {
     }
     $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
+
+    $stage = 'provider-registration';
+    if (!$app->getProvider(\App\Providers\RestaurantGroupsServiceProvider::class)) {
+        throw new RuntimeException('RestaurantGroupsServiceProvider is not registered by the System bootstrap authority.');
+    }
+
     $stage = 'routes';
     if (method_exists($app, 'routesAreCached') && $app->routesAreCached()) {
         $cached = method_exists($app, 'getCachedRoutesPath')

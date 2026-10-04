@@ -136,7 +136,6 @@ return [
 
     'providers' => array_merge(include(app_path('system/providers.php')), [
         System\ServiceProvider::class,
-        App\Providers\RestaurantGroupsServiceProvider::class,
     ]),
 
     /*

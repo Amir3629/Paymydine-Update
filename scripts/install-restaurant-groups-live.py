@@ -23,6 +23,7 @@ BASE = 'abc1df6082474cd8d1d2bc1be5e66cc4d03ce677'
 EXACT = {
     'app/Services/SuperAdminTenantLifecycleService.php',
     'app/Providers/RestaurantGroupsServiceProvider.php',
+    'app/system/ServiceProvider.php',
     'app/Console/Commands/RestaurantGroupsCommand.php',
     'app/admin/classes/User.php', 'config/app.php', 'config/pmd_groups.php',
     'routes/pmd-groups.php',
