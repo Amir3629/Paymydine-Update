@@ -150,7 +150,7 @@ try {
     }
 
     $restaurantsSource = (string)@file_get_contents($root.'/app/admin/views/superadmin_r2/restaurants.blade.php');
-    foreach (['data-pmd-create-kind="independent"', 'data-pmd-create-kind="multi_location"', 'data-pmd-create-kind="food_court"', "@include('pmd-groups::create-panel')"] as $needle) {
+    foreach (['data-pmd-create-kind="independent"', 'data-pmd-create-kind="multi_location"', 'data-pmd-create-kind="food_court"', 'name="owner_username"', 'name="owner_password"', 'name="owner_password_confirmation"', "@include('pmd-groups::create-panel')"] as $needle) {
         if (strpos($restaurantsSource, $needle) === false) {
             throw new RuntimeException('Restaurants modal is missing the integrated type selector.');
         }
@@ -164,6 +164,12 @@ try {
     if (strpos($sideMenuSource, 'href="/superadmin/groups"') !== false
         || strpos($sideMenuSource, '>Business Accounts<') !== false) {
         throw new RuntimeException('Standalone Business Accounts navigation is still present.');
+    }
+
+    $tenantLifecycleSource = (string)@file_get_contents($root.'/app/Services/SuperAdminTenantLifecycleService.php');
+    if (strpos($tenantLifecycleSource, 'applyIndependentOwnerAccess') === false
+        || strpos($tenantLifecycleSource, 'Hash::check($password') === false) {
+        throw new RuntimeException('Standalone restaurant Owner credential replacement is missing.');
     }
 
     $ownerLinkerSource = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/OwnerLinker.php');

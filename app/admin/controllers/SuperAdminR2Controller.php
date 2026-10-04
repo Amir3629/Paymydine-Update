@@ -163,6 +163,8 @@ class SuperAdminR2Controller extends AdminController
                 'type'=>'required|string|max:100',
                 'country'=>'required|string|max:100',
                 'description'=>'nullable|string|max:1000',
+                'owner_username'=>['required','string','min:3','max:100','regex:/^[A-Za-z0-9._@-]+$/'],
+                'owner_password'=>'required|string|min:14|max:128|confirmed',
             ]);
             if ($validator->fails()) return redirect('/superadmin/new')->withErrors($validator)->withInput();
 

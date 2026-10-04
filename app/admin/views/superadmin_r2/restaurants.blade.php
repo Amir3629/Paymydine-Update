@@ -42,11 +42,17 @@
     .pmd-market-preview{grid-column:1/-1;border:1px solid #dfeae6;border-radius:16px;background:#f8fbfa;padding:16px 17px}
     .pmd-market-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.pmd-market-preview-head strong{font-size:15px}.pmd-market-code{font-size:12px;font-weight:800;color:#2d6655;background:#e7f2ee;border-radius:999px;padding:5px 9px}
     .pmd-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pmd-market-item{padding:10px 11px;border:1px solid #e8efec;border-radius:11px;background:#fff}.pmd-market-item b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#73857f;margin-bottom:4px}.pmd-market-item span{font-size:13px;color:#24443a;line-height:1.45}
-    .pmd-create-type-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 20px}
-    .pmd-create-type{min-height:92px;padding:14px 15px;border:1px solid #dce8e4;border-radius:15px;background:#fff;color:#17372f;text-align:left;cursor:pointer;transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
-    .pmd-create-type strong{display:block;font-size:14px;line-height:1.3;margin-bottom:5px}.pmd-create-type span{display:block;color:#71857e;font-size:12px;line-height:1.45}
-    .pmd-create-type:hover{background:#f8fbfa}.pmd-create-type.is-active{border-color:#174d3e;box-shadow:0 0 0 3px rgba(23,77,62,.09);background:#fbfdfc}
+    .pmd-create-mode{margin:0 0 20px}
+    .pmd-create-mode-label{display:block;margin:0 0 8px;color:#60756e;font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+    .pmd-create-type-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;margin:0;border:1px solid #d8e5e0;border-radius:12px;background:#f3f7f5}
+    .pmd-create-type{appearance:none;min-height:56px;padding:8px 12px;border:0!important;border-radius:8px!important;background:transparent!important;color:#456159!important;text-align:left;cursor:pointer;box-shadow:none!important;outline:0;transition:background .15s ease,color .15s ease,box-shadow .15s ease}
+    .pmd-create-type strong{display:block;margin:0;font-size:13px;line-height:1.25;color:inherit}.pmd-create-type span{display:block;margin-top:3px;color:#778983;font-size:11px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .pmd-create-type:hover{background:#e8f0ed!important;color:#214b3f!important}.pmd-create-type.is-active{background:#0d3f32!important;color:#fff!important;box-shadow:0 2px 8px rgba(13,63,50,.18)!important}.pmd-create-type.is-active span{color:#dceae5}
+    .pmd-create-type:focus-visible{box-shadow:0 0 0 3px rgba(45,116,92,.22)!important}
     .pmd-create-panel[hidden]{display:none!important}.pmd-field-help{display:block;margin-top:6px;color:#71857e;font-size:12px;line-height:1.45}
+    .pmd-form-section{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:7px 0 -2px;padding-top:13px;border-top:1px solid #e8efec}
+    .pmd-form-section:first-child{padding-top:0;border-top:0}.pmd-form-section strong{display:block;font-size:14px;color:#17372f}.pmd-form-section span{display:block;margin-top:3px;color:#71857e;font-size:11px;line-height:1.35}
+    .pmd-owner-security-note{grid-column:1/-1;margin:-2px 0 2px;padding:9px 11px;border-left:3px solid #2d755f;background:#f5f9f7;color:#526a62;font-size:11px;line-height:1.45}
     .pmd-business-locations{margin-top:20px;padding-top:18px;border-top:1px solid #e8efec}
     .pmd-business-locations-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
     .pmd-business-locations-head strong{display:block;font-size:15px}.pmd-business-locations-head span{display:block;margin-top:4px;color:#71857e;font-size:12px;line-height:1.45}
@@ -61,7 +67,7 @@
     .pmd-provisioning-state{display:inline-flex!important;width:max-content;padding:4px 8px;border-radius:999px;background:#fff0d8;color:#a4470b!important;font-weight:800;text-transform:capitalize}
         body.pmd-modal-open{overflow:hidden}
     @media(max-width:1000px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}.tenant-actions{min-width:300px}}
-    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}.pmd-create-type-grid{grid-template-columns:1fr}.pmd-business-site-fields{grid-template-columns:1fr}.pmd-business-locations-head{align-items:stretch;flex-direction:column}.pmd-provisioning-row{grid-template-columns:1fr}.pmd-provisioning-row form .btn{width:100%}}
+    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview,.pmd-form-section,.pmd-owner-security-note{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}.pmd-create-type span{display:none}.pmd-create-type{min-height:44px;text-align:center;padding:8px 6px}.pmd-business-site-fields{grid-template-columns:1fr}.pmd-business-locations-head{align-items:stretch;flex-direction:column}.pmd-provisioning-row{grid-template-columns:1fr}.pmd-provisioning-row form .btn{width:100%}}
     @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}.pmd-pagination{align-items:flex-start;flex-direction:column}.pmd-domain-suffix{font-size:13px;padding-right:10px}}
 </style>
 @endpush
@@ -211,19 +217,22 @@
             <button class="pmd-modal-close" type="button" data-pmd-close-create aria-label="Close">×</button>
         </div>
         <div class="pmd-modal-body">
-            <div class="pmd-create-type-grid" role="group" aria-label="Restaurant type">
-                <button class="pmd-create-type is-active" type="button" data-pmd-create-kind="independent" aria-pressed="true">
-                    <strong>Normal restaurant</strong>
-                    <span>One restaurant, one subdomain and its existing Owner workflow.</span>
-                </button>
-                <button class="pmd-create-type" type="button" data-pmd-create-kind="multi_location" aria-pressed="false">
-                    <strong>Multi-location</strong>
-                    <span>Several isolated restaurant tenants controlled by one shared Owner account.</span>
-                </button>
-                <button class="pmd-create-type" type="button" data-pmd-create-kind="food_court" aria-pressed="false">
-                    <strong>Food court / venue</strong>
-                    <span>Independent vendor tenants plus venue-wide Owner and pickup capabilities.</span>
-                </button>
+            <div class="pmd-create-mode">
+                <span class="pmd-create-mode-label">Restaurant setup</span>
+                <div class="pmd-create-type-grid" role="group" aria-label="Restaurant setup">
+                    <button class="pmd-create-type is-active" type="button" data-pmd-create-kind="independent" aria-pressed="true">
+                        <strong>Normal</strong>
+                        <span>Single restaurant</span>
+                    </button>
+                    <button class="pmd-create-type" type="button" data-pmd-create-kind="multi_location" aria-pressed="false">
+                        <strong>Multi-location</strong>
+                        <span>One Owner, several tenants</span>
+                    </button>
+                    <button class="pmd-create-type" type="button" data-pmd-create-kind="food_court" aria-pressed="false">
+                        <strong>Food court</strong>
+                        <span>Venue and vendor tenants</span>
+                    </button>
+                </div>
             </div>
 
             <div class="pmd-create-panel" data-pmd-create-panel="independent">
@@ -235,6 +244,9 @@
                     <input type="hidden" name="type" value="{{ old('type','People') }}">
 
                     <div class="field-grid">
+                        <div class="pmd-form-section">
+                            <div><strong>Restaurant</strong><span>Tenant identity and customer-facing contact details.</span></div>
+                        </div>
                         <div class="field"><label>Restaurant name</label><input name="name" value="{{ old('_pmd_form') === 'create' ? old('name') : '' }}" required data-pmd-restaurant-name></div>
                         <div class="field">
                             <label>Restaurant subdomain</label>
@@ -245,6 +257,35 @@
                         </div>
                         <div class="field"><label>Email</label><input type="email" name="email" value="{{ old('_pmd_form') === 'create' ? old('email') : '' }}" required></div>
                         <div class="field"><label>Phone</label><input name="phone" value="{{ old('_pmd_form') === 'create' ? old('phone') : '' }}" required></div>
+                        <div class="pmd-form-section">
+                            <div><strong>Owner sign-in</strong><span>These credentials replace the template admin login for this restaurant.</span></div>
+                        </div>
+                        <div class="field">
+                            <label>Owner username</label>
+                            <input
+                                name="owner_username"
+                                value="{{ old('_pmd_form') === 'create' ? old('owner_username') : '' }}"
+                                maxlength="100"
+                                autocomplete="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                required
+                            >
+                        </div>
+                        <div class="field">
+                            <label>Owner password</label>
+                            <input type="password" name="owner_password" minlength="14" maxlength="128" autocomplete="new-password" required>
+                        </div>
+                        <div class="field">
+                            <label>Confirm password</label>
+                            <input type="password" name="owner_password_confirmation" minlength="14" maxlength="128" autocomplete="new-password" required>
+                        </div>
+                        <div class="pmd-owner-security-note">
+                            The template <strong>admin / password</strong> login is removed. Only the Owner credentials entered here remain usable.
+                        </div>
+                        <div class="pmd-form-section">
+                            <div><strong>Subscription & market</strong><span>Platform profile, service dates and restaurant notes.</span></div>
+                        </div>
                         <div class="field">
                             <label>Country / platform market</label>
                             <select name="country" required data-pmd-market-country>

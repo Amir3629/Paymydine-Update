@@ -10,6 +10,9 @@
     <input type="hidden" name="organization_type" value="{{ $pmdBusinessType }}" data-pmd-business-type>
 
     <div class="field-grid">
+        <div class="pmd-form-section">
+            <div><strong>Business account</strong><span>Shared ownership and sign-in for the restaurants in this account.</span></div>
+        </div>
         <div class="field full">
             <label data-pmd-business-name-label>Business account name</label>
             <input
@@ -60,6 +63,10 @@
         <div class="field">
             <label>Confirm password</label>
             <input type="password" name="owner_password_confirmation" minlength="14" maxlength="128" autocomplete="new-password" required>
+        </div>
+
+        <div class="pmd-form-section">
+            <div><strong>Subscription & market</strong><span>Defaults applied to the restaurants created below.</span></div>
         </div>
 
         <div class="field">

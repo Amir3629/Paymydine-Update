@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use System\Models\Themes_model;
 
@@ -62,6 +63,22 @@ class SuperAdminTenantLifecycleService
         if (!$this->isValidTenantDomain($domain)) {
             return ['ok' => false, 'stage' => 'validation', 'message' => 'Domain must be a tenant subdomain of paymydine.com.'];
         }
+
+        if ($checkpoint === null) {
+            $ownerUsername = strtolower(trim((string)($data['owner_username'] ?? '')));
+            $ownerPassword = (string)($data['owner_password'] ?? '');
+
+            if (!preg_match('/^[a-z0-9._@-]{3,100}$/D', $ownerUsername)) {
+                return ['ok' => false, 'stage' => 'validation', 'message' => 'Choose a valid Owner username using letters, numbers, dot, dash, underscore or @.'];
+            }
+
+            if (strlen($ownerPassword) < 14 || strlen($ownerPassword) > 128) {
+                return ['ok' => false, 'stage' => 'validation', 'message' => 'Owner password must contain 14 to 128 characters.'];
+            }
+
+            $data['owner_username'] = $ownerUsername;
+        }
+
         if ($this->schemaExists($database)) {
             return ['ok' => false, 'stage' => 'validation', 'message' => 'Database already exists.'];
         }
@@ -175,6 +192,11 @@ class SuperAdminTenantLifecycleService
             $this->ensureWorkplaceSecuritySchema();
             $this->ensureMobileSyncSchema();
             $this->sanitizeTenantBusinessData($group);
+
+            if (!$group) {
+                $this->applyIndependentOwnerAccess($data);
+            }
+
             // Do not create a default Cashier or floor table.
             try {
                 Themes_model::syncAll();
@@ -249,6 +271,121 @@ class SuperAdminTenantLifecycleService
             }
         } finally {
             DB::connection('mysql')->statement('SET FOREIGN_KEY_CHECKS=1');
+        }
+    }
+
+    /**
+     * Replace every credential inherited from newtenantdb before a standalone
+     * restaurant can be activated. The selected super-user remains the only
+     * Owner login; all other inherited users are made non-super and receive
+     * random passwords.
+     */
+    private function applyIndependentOwnerAccess(array $data): void
+    {
+        $db = DB::connection('mysql');
+        $schema = Schema::connection('mysql');
+
+        foreach (['users', 'staffs'] as $table) {
+            if (!$schema->hasTable($table)) {
+                throw new \RuntimeException('Owner login could not be prepared because '.$table.' is missing.');
+            }
+        }
+
+        $username = strtolower(trim((string)($data['owner_username'] ?? '')));
+        $password = (string)($data['owner_password'] ?? '');
+
+        if (!preg_match('/^[a-z0-9._@-]{3,100}$/D', $username) || strlen($password) < 14 || strlen($password) > 128) {
+            throw new \DomainException('Owner credentials are invalid.');
+        }
+
+        $users = $db->table('users')->orderBy('user_id')->lockForUpdate()->get();
+        $selected = null;
+
+        foreach ($users as $candidate) {
+            if ((int)($candidate->super_user ?? 0) !== 1) continue;
+            if (!$db->table('staffs')->where('staff_id', (int)$candidate->staff_id)->exists()) continue;
+            $selected = $candidate;
+            break;
+        }
+
+        if (!$selected) {
+            throw new \RuntimeException('The tenant template has no usable Owner account.');
+        }
+
+        $ownerUserId = (int)$selected->user_id;
+        $ownerStaffId = (int)$selected->staff_id;
+
+        foreach ($users as $inherited) {
+            $changes = ['password' => Hash::make(Str::random(64))];
+
+            foreach (['reset_code', 'reset_password_code', 'remember_token', 'persist_code', 'activation_code'] as $column) {
+                if ($schema->hasColumn('users', $column)) {
+                    $changes[$column] = '';
+                }
+            }
+
+            if ($schema->hasColumn('users', 'super_user')) {
+                $changes['super_user'] = 0;
+            }
+
+            $db->table('users')->where('user_id', (int)$inherited->user_id)->update($changes);
+        }
+
+        foreach ($db->table('users')->whereRaw('LOWER(username) = ?', [$username])->get() as $conflict) {
+            if ((int)$conflict->user_id === $ownerUserId) continue;
+
+            $db->table('users')->where('user_id', (int)$conflict->user_id)->update([
+                'username' => 'pmd-disabled-'.(int)$conflict->user_id.'-'.substr(hash('sha256', $username.'|'.(int)$conflict->user_id), 0, 8),
+                'super_user' => 0,
+            ]);
+        }
+
+        $ownerUpdate = [
+            'username' => $username,
+            'password' => Hash::make($password),
+            'super_user' => 1,
+        ];
+
+        if ($schema->hasColumn('users', 'is_activated')) {
+            $ownerUpdate['is_activated'] = 1;
+        }
+
+        if ($schema->hasColumn('users', 'date_activated')) {
+            $ownerUpdate['date_activated'] = now()->toDateString();
+        }
+
+        $db->table('users')->where('user_id', $ownerUserId)->update($ownerUpdate);
+
+        if ($schema->hasColumn('staffs', 'staff_status')) {
+            $db->table('staffs')->update(['staff_status' => 0]);
+            $db->table('staffs')->where('staff_id', $ownerStaffId)->update(['staff_status' => 1]);
+        }
+
+        $staffUpdate = [];
+        if ($schema->hasColumn('staffs', 'staff_email') && !empty($data['email'])) {
+            $staffUpdate['staff_email'] = (string)$data['email'];
+        }
+        if ($schema->hasColumn('staffs', 'staff_name')) {
+            $staffUpdate['staff_name'] = trim((string)($data['name'] ?? '')) ?: $username;
+        }
+
+        if ($staffUpdate) {
+            $db->table('staffs')->where('staff_id', $ownerStaffId)->update($staffUpdate);
+        }
+
+        $saved = $db->table('users')->where('user_id', $ownerUserId)->first();
+
+        if (
+            !$saved
+            || strtolower((string)$saved->username) !== $username
+            || (int)($saved->super_user ?? 0) !== 1
+            || !Hash::check($password, (string)$saved->password)
+        ) {
+            throw new \RuntimeException('Owner credential verification failed.');
+        }
+
+        if ($db->table('users')->where('user_id', '!=', $ownerUserId)->where('super_user', 1)->exists()) {
+            throw new \RuntimeException('An inherited super-user remained enabled.');
         }
     }
 
