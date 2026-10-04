@@ -15,16 +15,24 @@ if (!in_array('--allow-create-test-databases', $argv, true)) {
     fwrite(STDERR, "Usage: php mysql-provisioning-r4.php /var/www/paymydine --allow-create-test-databases\nCreates/drops up to five fresh test databases. Does not install the application.\n");
     exit(2);
 }
-$root=realpath($argv[1]??'');$bundle=dirname(__DIR__,2);$created=[];$admin=null;$capsule=null;$tests=0;$failures=0;
-function verifyR4Sql(string $name,callable $fn):void {
-    global $tests,$failures;$tests++;
-    try{$fn();echo 'PASS '.$name.PHP_EOL;}catch(Throwable $e){$failures++;echo 'FAIL '.$name.' ['.get_class($e).']'.PHP_EOL;}
+require __DIR__.'/mysql-r4-support.inc';
+$root=realpath($argv[1]??'');$bundle=dirname(__DIR__,2);$created=[];$admin=null;$capsule=null;$failures=0;
+$checks=new R4SqlChecks();
+function verifyR4Sql(string $key,string $name,callable $fn,array $requires=[]):void {
+    $GLOBALS['checks']->run($key,$name,$fn,$requires);
 }
 function equalR4Sql($a,$b):void {if($a!==$b)throw new RuntimeException('Assertion mismatch');}
 try {
     if(!$root||!is_file($root.'/vendor/autoload.php')||!is_file($root.'/.env'))throw new RuntimeException('Application root, vendor and .env are required.');
     if(!extension_loaded('pdo_mysql'))throw new RuntimeException('pdo_mysql is required.');
     $loader=require $root.'/vendor/autoload.php';
+    // Keep caught service errors available to a failing assertion. Do not expose
+    // raw SQL, credentials, or unrelated context when diagnostics are printed.
+    class R4SqlDiagnosticLogger extends Psr\Log\AbstractLogger {
+        public function log($level,$message,array $context=[]):void {
+            $GLOBALS['checks']->log($level,$message,$context);
+        }
+    }
     $classMap=[SuperAdminTenantLifecycleService::class=>$bundle.'/app/Services/SuperAdminTenantLifecycleService.php'];
     foreach(glob($bundle.'/app/Services/RestaurantGroups/*.php') as $file)$classMap['App\\Services\\RestaurantGroups\\'.basename($file,'.php')]=$file;
     foreach($classMap as $class=>$file) {
@@ -35,6 +43,7 @@ try {
     $env=static fn($key,$fallback=null)=>$_ENV[$key]??$_SERVER[$key]??$fallback;
     $host=(string)$env('DB_HOST','127.0.0.1');$port=(int)$env('DB_PORT',3306);$socket=(string)$env('DB_SOCKET','');
     $user=(string)$env('DB_USERNAME','');$password=(string)$env('DB_PASSWORD','');
+    $checks->redact([$password,$user,$host,$socket,(string)$env('APP_KEY','')]);
     if($user==='')throw new RuntimeException('DB_USERNAME is not configured.');
     $dsn=$socket!==''?'mysql:unix_socket='.$socket.';charset=utf8mb4':'mysql:host='.$host.';port='.$port.';charset=utf8mb4';
     $admin=new PDO($dsn,$user,$password,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
@@ -51,12 +60,17 @@ try {
     $centralConfig=$base+['database'=>$names[0]];
     $container->instance('config',new Illuminate\Config\Repository(['database'=>['default'=>'mysql','connections'=>[
         'mysql'=>$centralConfig,'pmd_groups_central'=>$centralConfig]],'pmd_groups'=>['enabled'=>true,'tenant_template'=>$base]]));
-    $container->instance('log',new Psr\Log\NullLogger());
+    $container->instance('log',new R4SqlDiagnosticLogger());
     $container->instance('hash',new Illuminate\Hashing\BcryptHasher(['rounds'=>4]));
     $session=new Illuminate\Session\Store('rgtest-r4',new Illuminate\Session\ArraySessionHandler(120));$session->start();$session->put('superadmin_id',1);
     $container->instance('session',$session);
     $container->instance('request',Illuminate\Http\Request::create('https://paymydine.com/superadmin/groups'));
-    $capsule=new Capsule($container);$capsule->addConnection($centralConfig,'mysql');$capsule->addConnection($centralConfig,'pmd_groups_central');
+    $capsule=new Capsule($container);
+    // Capsule's constructor overwrites database.default with 'default'. Restore
+    // the named CENTRAL TEST connection after construction. The production
+    // createDeferred() central-context guard is intentionally unchanged.
+    $capsule->getDatabaseManager()->setDefaultConnection('mysql');
+    $capsule->addConnection($centralConfig,'mysql');$capsule->addConnection($centralConfig,'pmd_groups_central');
     $capsule->addConnection($base+['database'=>$names[1]],'r4_template');$capsule->setAsGlobal();$container->instance('db',$capsule->getDatabaseManager());
     $store=new Store();$schema=new Schema();$central=$store->central();$sb=$central->getSchemaBuilder();
     $sb->create('tenants',function($t){$t->engine='InnoDB';$t->bigIncrements('id');foreach(['name','email','phone','type','country','status'] as $k)$t->string($k);$t->string('domain')->unique();$t->string('database')->unique();$t->text('description')->nullable();$t->date('start');$t->date('end');$t->timestamps();});
@@ -107,19 +121,41 @@ try {
     $container->instance(SuperAdminTenantLifecycleService::class,$creator);$container->instance(SuperAdminTenantDomainProvisioner::class,$domain);$container->instance(SuperAdminTenantMarketService::class,$market);
     $linker=new OwnerLinker($store,$schema);$workflow=new SiteProvisioner($store,$linker);
     $site=fn($i)=>$central->table('pmd_group_sites')->where('id',$siteIds[$i])->first();
-    verifyR4Sql('real disabled allocation, owner linking and atomic activation',function()use($workflow,$siteIds,$site,$store,$ownerId){equalR4Sql($workflow->run($siteIds[2])['ok'],true);equalR4Sql($site(2)->state,'ready');equalR4Sql((int)$store->access($ownerId,(int)$site(2)->tenant_id)->user_id,10);});
-    verifyR4Sql('real template clone excludes foreign group identity and sync tokens',function()use($site,$store){$db=$store->connection((int)$site(2)->tenant_id);equalR4Sql($db->table('pmd_sync_events')->count(),0);equalR4Sql($db->table('pmd_group_identity')->value('owner_uuid'),'11111111-1111-4111-8111-111111111111');});
-    verifyR4Sql('real local template credentials are rotated and extra staff disabled',function()use($site,$store){$db=$store->connection((int)$site(2)->tenant_id);equalR4Sql($db->table('users')->where('password','template-password')->count(),0);equalR4Sql($db->table('users')->where('reset_code','template-code')->count(),0);equalR4Sql((int)$db->table('staffs')->where('staff_id',21)->value('staff_status'),0);});
-    verifyR4Sql('real ready replay has no TLS or password changes',function()use($workflow,$siteIds,$site,$store,$domain){$db=$store->connection((int)$site(2)->tenant_id);$before=$db->table('users')->where('user_id',10)->value('password');$calls=$domain->calls;equalR4Sql($workflow->run($siteIds[2])['state'],'already_ready');equalR4Sql($domain->calls,$calls);equalR4Sql($db->table('users')->where('user_id',10)->value('password'),$before);});
-    verifyR4Sql('real TLS failure preserves prepared database and active sibling',function()use($workflow,$siteIds,$site,$store,$domain,$central){$domain->fail=true;equalR4Sql($workflow->run($siteIds[3])['ok'],false);equalR4Sql($store->tenant((int)$site(3)->tenant_id,false)->status,'disabled');equalR4Sql($store->tenant((int)$site(2)->tenant_id,false)->status,'active');equalR4Sql($central->table('pmd_group_access')->where('tenant_id',$site(3)->tenant_id)->count(),0);});
-    verifyR4Sql('real failed Owner write rolls back local credentials and access',function()use($workflow,$siteIds,$site,$store,$domain,$central){$domain->fail=false;$db=$store->connection((int)$site(3)->tenant_id,false);$db->statement('ALTER TABLE `ti_staffs` MODIFY `staff_name` VARCHAR(3) NOT NULL');equalR4Sql($workflow->run($siteIds[3])['ok'],false);equalR4Sql($db->table('users')->where('user_id',10)->value('password'),'template-password');equalR4Sql($db->table('pmd_group_identity')->count(),0);equalR4Sql($central->table('pmd_group_access')->where('tenant_id',$site(3)->tenant_id)->count(),0);$db->statement('ALTER TABLE `ti_staffs` MODIFY `staff_name` VARCHAR(191) NOT NULL');});
-    verifyR4Sql('real activation audit failure rolls back central state only',function()use($workflow,$siteIds,$site,$store,$central){$central->table('pmd_group_audit')->delete();$central->statement('ALTER TABLE `ti_pmd_group_audit` MODIFY `details` VARCHAR(1) NOT NULL');try{equalR4Sql($workflow->run($siteIds[3])['ok'],false);equalR4Sql($store->tenant((int)$site(3)->tenant_id,false)->status,'disabled');equalR4Sql($central->table('pmd_group_access')->where('tenant_id',$site(3)->tenant_id)->count(),0);equalR4Sql($store->connection((int)$site(3)->tenant_id,false)->table('pmd_group_identity')->count(),1);}finally{$central->statement('ALTER TABLE `ti_pmd_group_audit` MODIFY `details` LONGTEXT NOT NULL');}});
-    verifyR4Sql('real retry after audit failure reuses local identity without recloning',function()use($workflow,$siteIds,$site,$store,$creator,$domain){$db=$store->connection((int)$site(3)->tenant_id,false);$before=$db->table('users')->where('user_id',10)->value('password');$clones=$creator->clones;$calls=$domain->calls;equalR4Sql($workflow->run($siteIds[3])['ok'],true);equalR4Sql($db->table('users')->where('user_id',10)->value('password'),$before);equalR4Sql($creator->clones,$clones);equalR4Sql($domain->calls,$calls);});
-    verifyR4Sql('real interrupted preparation cannot be automatically recloned',function()use($workflow,$siteIds,$site,$store,$creator){$creator->interrupt=true;equalR4Sql($workflow->run($siteIds[4])['ok'],false);$clones=$creator->clones;$creator->interrupt=false;equalR4Sql($workflow->run($siteIds[4])['ok'],false);equalR4Sql($creator->clones,$clones);equalR4Sql($store->tenant((int)$site(4)->tenant_id,false)->status,'disabled');});
-    verifyR4Sql('real retry cannot reactivate a manually disabled ready restaurant',function()use($central,$workflow,$siteIds,$site,$store){$id=(int)$site(2)->tenant_id;$central->table('tenants')->where('id',$id)->update(['status'=>'disabled']);$workflow->run($siteIds[2]);equalR4Sql($store->tenant($id,false)->status,'disabled');});
-    echo "$tests MySQL provisioning tests, $failures failed. TLS, native migrations and HTTP authentication were not executed.".PHP_EOL;
+    verifyR4Sql('context','Capsule default and live selection point to the central test database',function()use($capsule,$central,$names){
+        $manager=$capsule->getDatabaseManager();
+        equalR4Sql($manager->getDefaultConnection(),'mysql');
+        equalR4Sql($manager->connection()->getDatabaseName(),$names[0]);
+        equalR4Sql($manager->connection()->selectOne('SELECT DATABASE() AS selected')->selected,$names[0]);
+        equalR4Sql($central->getDatabaseName(),$names[0]);
+        equalR4Sql($central->selectOne('SELECT DATABASE() AS selected')->selected,$names[0]);
+    });
+    verifyR4Sql('guard','production guard still refuses a noncentral default before allocation',function()use($capsule,$creator,$central){
+        $manager=$capsule->getDatabaseManager();
+        $before=$central->table('tenants')->count();$clones=$creator->clones;$refused=false;
+        $manager->setDefaultConnection('r4_template');
+        try {
+            $creator->createDeferred([],static function(){throw new RuntimeException('Unexpected checkpoint.');});
+        } catch(DomainException $error) {
+            $refused=$error->getMessage()==='Group provisioning must start in the central database context.';
+        } finally { $manager->setDefaultConnection('mysql'); }
+        equalR4Sql($refused,true);
+        equalR4Sql($central->table('tenants')->count(),$before);
+        equalR4Sql($creator->clones,$clones);
+    },['context']);
+    verifyR4Sql('allocation','real disabled allocation, owner linking and atomic activation',function()use($workflow,$siteIds,$site,$store,$ownerId){equalR4Sql($workflow->run($siteIds[2])['ok'],true);equalR4Sql($site(2)->state,'ready');equalR4Sql((int)$store->access($ownerId,(int)$site(2)->tenant_id)->user_id,10);},['context','guard']);
+    verifyR4Sql('clone','real template clone excludes foreign group identity and sync tokens',function()use($site,$store){$db=$store->connection((int)$site(2)->tenant_id);equalR4Sql($db->table('pmd_sync_events')->count(),0);equalR4Sql($db->table('pmd_group_identity')->value('owner_uuid'),'11111111-1111-4111-8111-111111111111');},['allocation']);
+    verifyR4Sql('credentials','real local template credentials are rotated and extra staff disabled',function()use($site,$store){$db=$store->connection((int)$site(2)->tenant_id);equalR4Sql($db->table('users')->where('password','template-password')->count(),0);equalR4Sql($db->table('users')->where('reset_code','template-code')->count(),0);equalR4Sql((int)$db->table('staffs')->where('staff_id',21)->value('staff_status'),0);},['allocation']);
+    verifyR4Sql('replay','real ready replay has no TLS or password changes',function()use($workflow,$siteIds,$site,$store,$domain){$db=$store->connection((int)$site(2)->tenant_id);$before=$db->table('users')->where('user_id',10)->value('password');$calls=$domain->calls;equalR4Sql($workflow->run($siteIds[2])['state'],'already_ready');equalR4Sql($domain->calls,$calls);equalR4Sql($db->table('users')->where('user_id',10)->value('password'),$before);},['allocation']);
+    verifyR4Sql('tls','real TLS failure preserves prepared database and active sibling',function()use($workflow,$siteIds,$site,$store,$domain,$central){$domain->fail=true;equalR4Sql($workflow->run($siteIds[3])['ok'],false);equalR4Sql($store->tenant((int)$site(3)->tenant_id,false)->status,'disabled');equalR4Sql($store->tenant((int)$site(2)->tenant_id,false)->status,'active');equalR4Sql($central->table('pmd_group_access')->where('tenant_id',$site(3)->tenant_id)->count(),0);},['allocation']);
+    verifyR4Sql('owner_rollback','real failed Owner write rolls back local credentials and access',function()use($workflow,$siteIds,$site,$store,$domain,$central){$domain->fail=false;$db=$store->connection((int)$site(3)->tenant_id,false);$db->statement('ALTER TABLE `ti_staffs` MODIFY `staff_name` VARCHAR(3) NOT NULL');equalR4Sql($workflow->run($siteIds[3])['ok'],false);equalR4Sql($db->table('users')->where('user_id',10)->value('password'),'template-password');equalR4Sql($db->table('pmd_group_identity')->count(),0);equalR4Sql($central->table('pmd_group_access')->where('tenant_id',$site(3)->tenant_id)->count(),0);$db->statement('ALTER TABLE `ti_staffs` MODIFY `staff_name` VARCHAR(191) NOT NULL');},['tls']);
+    verifyR4Sql('audit_rollback','real activation audit failure rolls back central state only',function()use($workflow,$siteIds,$site,$store,$central){$central->table('pmd_group_audit')->delete();$central->statement('ALTER TABLE `ti_pmd_group_audit` MODIFY `details` VARCHAR(1) NOT NULL');try{equalR4Sql($workflow->run($siteIds[3])['ok'],false);equalR4Sql($store->tenant((int)$site(3)->tenant_id,false)->status,'disabled');equalR4Sql($central->table('pmd_group_access')->where('tenant_id',$site(3)->tenant_id)->count(),0);equalR4Sql($store->connection((int)$site(3)->tenant_id,false)->table('pmd_group_identity')->count(),1);}finally{$central->statement('ALTER TABLE `ti_pmd_group_audit` MODIFY `details` LONGTEXT NOT NULL');}},['owner_rollback']);
+    verifyR4Sql('retry','real retry after audit failure reuses local identity without recloning',function()use($workflow,$siteIds,$site,$store,$creator,$domain){$db=$store->connection((int)$site(3)->tenant_id,false);$before=$db->table('users')->where('user_id',10)->value('password');$clones=$creator->clones;$calls=$domain->calls;equalR4Sql($workflow->run($siteIds[3])['ok'],true);equalR4Sql($db->table('users')->where('user_id',10)->value('password'),$before);equalR4Sql($creator->clones,$clones);equalR4Sql($domain->calls,$calls);},['audit_rollback']);
+    verifyR4Sql('interruption','real interrupted preparation cannot be automatically recloned',function()use($workflow,$siteIds,$site,$store,$creator){$creator->interrupt=true;equalR4Sql($workflow->run($siteIds[4])['ok'],false);$clones=$creator->clones;$creator->interrupt=false;equalR4Sql($workflow->run($siteIds[4])['ok'],false);equalR4Sql($creator->clones,$clones);equalR4Sql($store->tenant((int)$site(4)->tenant_id,false)->status,'disabled');},['context','guard']);
+    verifyR4Sql('disabled','real retry cannot reactivate a manually disabled ready restaurant',function()use($central,$workflow,$siteIds,$site,$store){$id=(int)$site(2)->tenant_id;$central->table('tenants')->where('id',$id)->update(['status'=>'disabled']);$workflow->run($siteIds[2]);equalR4Sql($store->tenant($id,false)->status,'disabled');},['allocation']);
+    echo ($checks->passed+$checks->failed+$checks->skipped)." MySQL provisioning checks: {$checks->passed} passed, {$checks->failed} failed, {$checks->skipped} skipped. TLS, native migrations and HTTP authentication were not executed.".PHP_EOL;
 } catch(Throwable $e) {
-    $failures++;fwrite(STDERR,'Test setup stopped ['.get_class($e).']. Verify dependencies and permission to create disposable databases; no production installation was performed.'.PHP_EOL);
+    $failures++;$checks->setupFailure($e);
+    fwrite(STDERR,'No production installation was performed. Do not increase production DB privileges to run this test.'.PHP_EOL);
 } finally {
     if($capsule){foreach(array_keys($capsule->getDatabaseManager()->getConnections()) as $connection){try{$capsule->getDatabaseManager()->purge($connection);}catch(Throwable $e){$failures++;fwrite(STDERR,'Test connection disconnect failed; database cleanup will still be attempted.'.PHP_EOL);}}}
     if($admin){foreach(array_reverse(array_unique($created)) as $name){
@@ -128,4 +164,4 @@ try {
         catch(Throwable $e){$failures++;fwrite(STDERR,'Could not remove owned test database: '.$name.PHP_EOL);}
     }}
 }
-exit($failures?1:0);
+exit(($failures || $checks->failed || $checks->skipped)?1:0);
