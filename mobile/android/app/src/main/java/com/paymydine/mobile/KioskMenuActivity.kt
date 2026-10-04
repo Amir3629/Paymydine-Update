@@ -97,7 +97,7 @@ class KioskMenuActivity : ComponentActivity() {
 
     private val idleRunnable = Runnable {
         if (!isFinishing) {
-            finish()
+            finishWithoutTransition()
         }
     }
 
@@ -187,7 +187,7 @@ class KioskMenuActivity : ComponentActivity() {
             textSize = 16f
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), 0, dp(12), 0)
-            setOnClickListener { finish() }
+            setOnClickListener { finishWithoutTransition() }
         }
 
         val mode = TextView(this).apply {
@@ -735,7 +735,7 @@ class KioskMenuActivity : ComponentActivity() {
 
             mainHandler.postDelayed(
                 {
-                    if (!isFinishing) finish()
+                    if (!isFinishing) finishWithoutTransition()
                 },
                 10_000L,
             )
@@ -745,6 +745,15 @@ class KioskMenuActivity : ComponentActivity() {
     private fun showFatal(message: String) {
         loadingView.visibility = View.VISIBLE
         loadingView.text = message
+    }
+
+    // PMD_KIOSK_SEAMLESS_ACTIVITY_V10
+    // The dedicated WebView activity remains isolated for blank-surface safety,
+    // but it must feel like the same kiosk surface to the guest.
+    private fun finishWithoutTransition() {
+        finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(0, 0)
     }
 
     private fun destroyWebView() {
@@ -812,6 +821,7 @@ class KioskMenuActivity : ComponentActivity() {
             serviceMode: String,
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
                 putExtra(EXTRA_MENU_URL, profile.menuUrl)
                 putExtra(EXTRA_SERVICE_MODE, serviceMode)
                 putExtra(EXTRA_RESTAURANT_NAME, profile.restaurantName)
