@@ -403,17 +403,31 @@
 {{-- PMD_RESTAURANT_GROUPS_R6_ROUTE_SCOPED_LOADER --}}
 @php
     $pmdGroupsRoute = trim((string)request()->path(), '/');
-    $pmdGroupsAssetsActive = in_array(
-        $pmdGroupsRoute,
-        [
-            'admin/ownerdashboard',
-            'admin/dashboardlab',
-            'admin/ownerboard',
-        ],
-        true
-    ) || preg_match(
-        '#^admin/(?:menu|menus|pmdmenus|discounts|coupons|settings|pmdsettings)(?:/|$)#',
-        $pmdGroupsRoute
+    $pmdGroupsMode = (array)session()->get(
+        \App\Services\RestaurantGroups\Auth::MODE_SESSION,
+        []
+    );
+    $pmdGroupsProof = (array)session()->get(
+        \App\Services\RestaurantGroups\Auth::SESSION,
+        []
+    );
+    $pmdGroupsSessionActive =
+        ($pmdGroupsMode['mode'] ?? '') === 'group'
+        || !empty($pmdGroupsProof['owner_id']);
+
+    $pmdGroupsAssetsActive = $pmdGroupsSessionActive && (
+        in_array(
+            $pmdGroupsRoute,
+            [
+                'admin/ownerdashboard',
+                'admin/dashboardlab',
+                'admin/ownerboard',
+            ],
+            true
+        ) || preg_match(
+            '#^admin/(?:menu|menus|pmdmenus|discounts|coupons|settings|pmdsettings)(?:/|$)#',
+            $pmdGroupsRoute
+        )
     );
 
     $pmdGroupsCssPath = base_path('app/admin/assets/css/pmd-restaurant-groups-v1.css');

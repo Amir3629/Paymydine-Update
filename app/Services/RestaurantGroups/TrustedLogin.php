@@ -12,8 +12,15 @@ final class TrustedLogin extends PmdTrustedLoginDeviceService
     private function groupOwner(): ?object
     {
         $user = AdminAuth::getUser();
-        if (!$user || !ManagedIdentity::isManaged((int)$user->getKey())) return null;
-        return app(Auth::class)->owner(false, $user);
+        if (!$user) return null;
+
+        $auth = app(Auth::class);
+        $userId = (int)$user->getKey();
+
+        if ($auth->isLegacySessionForUserId($userId)) return null;
+        if (!ManagedIdentity::isManaged($userId)) return null;
+
+        return $auth->owner(false, $user);
     }
 
     /** Enforce reset cutoffs for every caller, not just the resume endpoint. */

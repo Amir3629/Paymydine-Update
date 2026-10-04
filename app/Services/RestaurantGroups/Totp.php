@@ -12,8 +12,10 @@ final class Totp extends PmdOwnerTotpService
     /** null is reserved for a positively identified unmanaged identity. */
     private function ownerForUser(int $userId): ?object
     {
+        $auth = app(Auth::class);
+        if ($auth->isLegacySessionForUserId($userId)) return null;
         if (!ManagedIdentity::isManaged($userId)) return null;
-        $owner = app(Auth::class)->owner(false);
+        $owner = $auth->owner(false);
         $proof = (array)session()->get(Auth::SESSION, []);
         if ((int)($proof['user_id'] ?? 0) !== $userId) {
             throw new \DomainException('Sign in with the business account.');
@@ -36,9 +38,11 @@ final class Totp extends PmdOwnerTotpService
     {
         try {
             $user = AdminAuth::getUser();
-            if (!$user || !ManagedIdentity::isManaged((int)$user->getKey())) return parent::ready();
-            $this->ownerForUser((int)$user->getKey());
-            return true;
+            if (!$user) return parent::ready();
+
+            $owner = $this->ownerForUser((int)$user->getKey());
+
+            return $owner ? true : parent::ready();
         } catch (\Throwable $error) {
             return false;
         }

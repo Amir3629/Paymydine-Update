@@ -81,6 +81,20 @@ final class Auth
         }
     }
 
+    public function isLegacySessionForUserId(int $userId): bool
+    {
+        if ($userId < 1 || session()->has(self::SESSION)) {
+            return false;
+        }
+
+        $mode = (array)session()->get(self::MODE_SESSION, []);
+
+        return ($mode['mode'] ?? '') === 'legacy'
+            && (int)($mode['user_id'] ?? 0) === $userId
+            && (int)($mode['tenant_id'] ?? 0) > 0
+            && (int)($mode['tenant_id'] ?? 0) === $this->store->currentTenantId();
+    }
+
     public function sessionAllowed($user): bool
     {
         if (!$user) {
@@ -89,19 +103,12 @@ final class Auth
 
         $userId = (int)$user->getKey();
         $proof = (array)session()->get(self::SESSION, []);
-        $mode = (array)session()->get(self::MODE_SESSION, []);
 
         // A legacy login marker is bound to both tenant and user. Once present,
         // ordinary restaurants incur zero Restaurant Groups DB/schema queries
         // during AdminAuth::check(). Existing sessions without a marker are
         // classified once below and then become equally cheap.
-        if (
-            !$proof
-            && ($mode['mode'] ?? '') === 'legacy'
-            && (int)($mode['user_id'] ?? 0) === $userId
-            && (int)($mode['tenant_id'] ?? 0) > 0
-            && (int)($mode['tenant_id'] ?? 0) === $this->store->currentTenantId()
-        ) {
+        if (!$proof && $this->isLegacySessionForUserId($userId)) {
             return true;
         }
 
