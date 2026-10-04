@@ -1408,7 +1408,7 @@
   }
 
   function startStripePayment(method) {
-    if (!method || !state.order || state.busy) return;
+    if (!method || state.busy) return;
 
     var slot = $("pmd-kiosk-provider-slot");
     if (!slot) return;
@@ -1426,7 +1426,7 @@
     var confirmButton = $("pmd-kiosk-stripe-confirm");
     var message = $("pmd-kiosk-stripe-message");
     var totals = calculateTotals();
-    var attemptKey = "kiosk-" + String(state.order.orderId) + "-" + String(Date.now());
+    var attemptKey = "kiosk-" + String(config.session || "kiosk") + "-" + String(Date.now());
 
     Promise.all([
       requestJson("/api/v1/payments/stripe/config"),
@@ -1438,7 +1438,7 @@
           preferredMethod: String(method.code || "card").toLowerCase(),
           restaurantId: "1",
           tableNumber: null,
-          orderId: state.order.orderId,
+          orderId: state.order ? state.order.orderId : null,
           paymentAttemptKey: attemptKey,
           customerInfo: { name: "PayMyDine Kiosk", email: "" },
           items: paymentItems()
@@ -1512,19 +1512,26 @@
             var reference = String(pi && pi.id || pending.paymentIntentId || "");
             if (!reference) throw new Error("Stripe payment reference is missing.");
 
-            // Server re-verifies the PaymentIntent before any settlement record.
-            return settleExisting(
-              method.code,
-              "stripe",
-              reference,
-              totals.payable,
-              totals.tip,
-              state.couponCode,
-              state.couponDiscount
-            ).then(function () {
-              state.busy = false;
-              finishOrder(copy().paidHint);
-            });
+            // PMD_KIOSK_PAY_FIRST_V10
+            // Stripe confirms the payment before the canonical order exists.
+            // Only after success do we commit the order and ask the server to
+            // re-verify the PaymentIntent during settlement.
+            return submitOrder({ silent: true, allowWhileBusy: true })
+              .then(function () {
+                return settleExisting(
+                  method.code,
+                  "stripe",
+                  reference,
+                  totals.payable,
+                  totals.tip,
+                  state.couponCode,
+                  state.couponDiscount
+                );
+              })
+              .then(function () {
+                state.busy = false;
+                finishOrder(copy().paidHint);
+              });
           }).catch(function (error) {
             state.busy = false;
             confirmButton.disabled = false;
@@ -1549,7 +1556,7 @@
   }
 
   function startPayment(method) {
-    if (!method || !state.order || state.busy) return;
+    if (!method || state.busy) return;
     var code = String(method.code || "").toLowerCase();
     var provider = providerCode(method);
     if (code === "cash" || code === "cod") { startCashPayment(); return; }
