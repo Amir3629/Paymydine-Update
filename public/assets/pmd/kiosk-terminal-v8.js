@@ -1226,7 +1226,6 @@
       tip_amount: totals.tip,
       coupon_code: state.couponCode || null,
       coupon_discount: state.couponDiscount,
-      selected_items: null,
       payer_label: "PayMyDine Kiosk",
       items: paymentItems(),
       integration_preference: provider === "vr_payment" || provider === "vrpayment" ? "lightbox" : undefined
@@ -1345,8 +1344,7 @@
                 tableNumber: null,
                 table_id: null,
                 table_no: null,
-                qr: null,
-                payment_intent_token: null
+                qr: null
               }
             }).then(function (data) {
               var id = String(data.orderID || data.orderId || data.id || (data.paypal && data.paypal.id) || "");
@@ -1372,8 +1370,7 @@
                   tableNumber: null,
                   table_id: null,
                   table_no: null,
-                  qr: null,
-                  payment_intent_token: null
+                  qr: null
                 }
               }
             }).then(function (capture) {
