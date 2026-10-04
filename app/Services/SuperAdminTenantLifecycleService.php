@@ -57,7 +57,7 @@ class SuperAdminTenantLifecycleService
 
         $rows = $db->select(
             'SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME IN (?,?,?,?)',
-            [$database, ...$required]
+            array_merge([$database], $required)
         );
 
         $present = array_map(
