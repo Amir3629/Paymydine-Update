@@ -1594,7 +1594,8 @@ ${ROOT} [${BUTTON_ATTR}][aria-disabled="true"] {
                     '[class*="counter"]',
 
                     '[data-qty]',
-                    '[data-quantity]'
+                    '[data-quantity]',
+                    '[data-pmd-modal-chrome-skip]'
                 ].join(',')
             )
         ) {

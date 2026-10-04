@@ -2,12 +2,17 @@
 namespace App\Services\RestaurantGroups;
 
 use App\Services\Platform\CountryPlatformProfileRegistry;
+use App\Services\SuperAdminTenantLifecycleService;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 final class Provisioner
 {
-    public function __construct(private Store $store, private OwnerLinker $linker) {}
+    public function __construct(
+        private Store $store,
+        private OwnerLinker $linker,
+        private SuperAdminTenantLifecycleService $tenantLifecycle
+    ) {}
 
     public function create(array $input): array
     {
@@ -73,6 +78,10 @@ final class Provisioner
                 'description' => trim((string)($input['description'] ?? '')),
             ]];
         }
+        // Structural template failures are predictable. Refuse them before
+        // creating a central Owner, group draft, site reservation or tenant DB.
+        $this->tenantLifecycle->assertGroupTemplateReady();
+
         PublicationLock::transactional($central, ['pmd_group_owners', 'pmd_groups', 'pmd_group_sites', 'pmd_group_audit']);
         [$ownerId, $groupId] = $central->transaction(function () use ($central, $username, $email, $ownerName, $password, $name, $type, $prepared) {
             if ($central->table('pmd_group_owners')->whereRaw('LOWER(username) = ?', [$username])->exists()) {
@@ -136,7 +145,7 @@ final class Provisioner
         }
         $failed = count(array_filter($results, static fn ($row) => empty($row['ok'])));
         return ['ok' => $failed === 0, 'group_id' => $groupId, 'owner_id' => $ownerId, 'results' => $results,
-            'message' => $failed ? 'Business account saved. '.$failed.' location(s) need provisioning review or Retry.' : 'Business account and all locations are ready.'];
+            'message' => $failed ? 'Business account setup did not finish. Incomplete restaurants remain disabled; use Retry setup from the restaurant row.' : 'Business account and all locations are ready.'];
     }
 
     public function provisionSite(int $siteId): array

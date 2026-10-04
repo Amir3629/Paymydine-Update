@@ -150,6 +150,23 @@ try {
     }
 
     $restaurantsSource = (string)@file_get_contents($root.'/app/admin/views/superadmin_r2/restaurants.blade.php');
+    $layoutSource = (string)@file_get_contents($root.'/app/admin/views/superadmin_r2/layout.blade.php');
+    $overlaySource = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js');
+
+    if (strpos($layoutSource, "@stack('page-head')") === false
+        || strpos($restaurantsSource, "@push('page-head')") === false) {
+        throw new RuntimeException('Restaurants paint authority is not loaded after global styles.');
+    }
+
+    if (strpos($restaurantsSource, 'data-pmd-modal-chrome-skip') === false
+        || strpos($overlaySource, '[data-pmd-modal-chrome-skip]') === false) {
+        throw new RuntimeException('Create chooser is still exposed to global modal button repainting.');
+    }
+
+    if (strpos($restaurantsSource, 'Location provisioning needs attention') !== false
+        || strpos($restaurantsSource, 'pmdGroupAttention') !== false) {
+        throw new RuntimeException('Deprecated top-page provisioning attention UI is still present.');
+    }
     foreach (['data-pmd-create-chooser', 'data-pmd-create-selection', 'data-pmd-change-create-kind', 'data-pmd-create-kind="independent"', 'data-pmd-create-kind="multi_location"', 'data-pmd-create-kind="food_court"', 'name="owner_username"', 'name="owner_password"', 'name="owner_password_confirmation"', "@include('pmd-groups::create-panel')"] as $needle) {
         if (strpos($restaurantsSource, $needle) === false) {
             throw new RuntimeException('Restaurants modal is missing the integrated type selector.');
@@ -167,6 +184,10 @@ try {
     }
 
     $tenantLifecycleSource = (string)@file_get_contents($root.'/app/Services/SuperAdminTenantLifecycleService.php');
+    if (strpos($tenantLifecycleSource, 'assertGroupTemplateReady') === false) {
+        throw new RuntimeException('Business Account template preflight is missing.');
+    }
+
     if (strpos($tenantLifecycleSource, 'applyIndependentOwnerAccess') === false
         || strpos($tenantLifecycleSource, 'Hash::check($password') === false) {
         throw new RuntimeException('Standalone restaurant Owner credential replacement is missing.');

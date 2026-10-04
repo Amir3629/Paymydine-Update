@@ -110,6 +110,9 @@
     data-pmd-platform-card-system-v2="1"
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
+
+{{-- Page-specific paint authority must come after every global stylesheet. --}}
+@stack('page-head')
 </head>
 <body>
 @include('admin::superadmin_r2.side_menu')

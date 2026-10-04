@@ -109,43 +109,34 @@ class SuperAdminR2Controller extends AdminController
         }
 
         $tenants = $query->paginate(20)->appends($request->query());
-        $pmdGroupAttention = collect();
+        $pmdGroupSites = collect();
 
         try {
             $groups = app(RestaurantGroupStore::class);
+            $tenantIds = collect($tenants->items())
+                ->pluck('id')
+                ->map(static fn ($id) => (int)$id)
+                ->filter()
+                ->values()
+                ->all();
 
-            if ($groups->installed()) {
-                $pmdGroupAttention = $groups->central()
-                    ->table('pmd_group_sites as s')
-                    ->join('pmd_groups as g', 'g.id', '=', 's.group_id')
-                    ->leftJoin('tenants as t', 't.id', '=', 's.tenant_id')
-                    ->whereIn('s.state', ['pending', 'provisioning', 'failed'])
-                    ->orderByDesc('s.updated_at')
-                    ->limit(100)
-                    ->get([
-                        's.id',
-                        's.group_id',
-                        's.tenant_id',
-                        's.label',
-                        's.slug',
-                        's.state',
-                        's.last_error',
-                        's.updated_at',
-                        'g.name as group_name',
-                        'g.type as group_type',
-                        'g.status as group_status',
-                        't.domain as tenant_domain',
-                    ]);
+            if ($tenantIds && $groups->installed()) {
+                $pmdGroupSites = $groups->central()
+                    ->table('pmd_group_sites')
+                    ->whereIn('tenant_id', $tenantIds)
+                    ->where('state', '!=', 'ready')
+                    ->get(['id', 'tenant_id', 'state', 'last_error'])
+                    ->keyBy(static fn ($site) => (int)$site->tenant_id);
             }
         } catch (\Throwable $error) {
-            Log::warning('pmd_superadmin_group_attention_unavailable', [
+            Log::warning('pmd_superadmin_group_row_state_unavailable', [
                 'exception' => get_class($error),
             ]);
         }
 
         return $this->html(
             'admin::superadmin_r2.restaurants',
-            compact('tenants', 'search', 'status', 'pmdGroupAttention')
+            compact('tenants', 'search', 'status', 'pmdGroupSites')
         );
     }
 

@@ -26,6 +26,8 @@ EXACT = {
     'app/system/ServiceProvider.php',
     'app/Console/Commands/RestaurantGroupsCommand.php',
     'app/admin/classes/User.php', 'app/admin/routes.php',
+    'app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js',
+    'app/admin/views/superadmin_r2/layout.blade.php',
     'app/Services/RestaurantGroups/Store.php',
     'app/Services/RestaurantGroups/Auth.php',
     'app/Services/RestaurantGroups/ManagedIdentity.php',
@@ -503,7 +505,8 @@ def main():
             (directory/'INSTALLED').write_text(args.commit+'\n')
             print('[PMD] INSTALLED: '+args.commit, flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/new', flush=True)
-            print('[PMD] Create restaurant now opens with a setup-choice step; only the chosen form is then shown.', flush=True)
+            print('[PMD] Create restaurant chooser is page-owned and excluded from global modal-button repainting.', flush=True)
+            print('[PMD] Provisioning issues no longer render as a top-page attention card; Retry setup lives in the affected restaurant row.', flush=True)
             print('[PMD] Normal restaurants require a chosen Owner username/password; inherited template credentials are rotated before activation.', flush=True)
             print('[PMD] Pending/failed group locations stay disabled until Retry provisioning reaches ready.', flush=True)
             print('[PMD] Owner Dashboard opens on the current restaurant; All locations is an explicit selector, not an automatic fan-out.', flush=True)

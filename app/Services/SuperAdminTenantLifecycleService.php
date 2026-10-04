@@ -41,6 +41,70 @@ class SuperAdminTenantLifecycleService
      * central connection). Registered is called INSIDE the registry transaction.
      * This path never activates a tenant and never deletes a partial database.
      */
+    /**
+     * Fail before reserving a Business Account when the PayMyDine template is
+     * structurally incapable of producing a managed Owner tenant.
+     *
+     * Multiplicity is allowed here: OwnerLinker normalizes historical extra
+     * super-users/locations on the unpublished clone. We only require at least
+     * one usable candidate, one location, and one usable role path.
+     */
+    public function assertGroupTemplateReady(): void
+    {
+        $db = DB::connection('mysql');
+        $database = self::TEMPLATE_DB;
+        $required = ['users', 'staffs', 'staff_roles', 'locations'];
+
+        $rows = $db->select(
+            'SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME IN (?,?,?,?)',
+            [$database, ...$required]
+        );
+
+        $present = array_map(
+            static fn ($row) => strtolower((string)($row->TABLE_NAME ?? '')),
+            $rows
+        );
+
+        foreach ($required as $table) {
+            if (!in_array($table, $present, true)) {
+                throw new \DomainException('Restaurant template is missing required table: '.$table.'.');
+            }
+        }
+
+        $q = fn (string $table) => $this->quoteIdentifier($database).'.'.$this->quoteIdentifier($table);
+
+        $candidate = $db->selectOne(
+            'SELECT u.user_id, u.staff_id, s.staff_role_id, r.staff_role_id AS role_exists, r.code '
+            .'FROM '.$q('users').' u '
+            .'INNER JOIN '.$q('staffs').' s ON s.staff_id = u.staff_id '
+            .'LEFT JOIN '.$q('staff_roles').' r ON r.staff_role_id = s.staff_role_id '
+            .'WHERE u.super_user = 1 ORDER BY u.user_id ASC LIMIT 1'
+        );
+
+        if (!$candidate) {
+            throw new \DomainException('Restaurant template has no usable Owner candidate.');
+        }
+
+        $fallbackOwnerRole = $db->selectOne(
+            'SELECT staff_role_id FROM '.$q('staff_roles')
+            .' WHERE LOWER(TRIM(COALESCE(code, \'\'))) = ? ORDER BY staff_role_id ASC LIMIT 1',
+            ['pmd-owner']
+        );
+
+        if (empty($candidate->role_exists) && !$fallbackOwnerRole) {
+            throw new \DomainException('Restaurant template has no usable Owner role.');
+        }
+
+        $location = $db->selectOne(
+            'SELECT location_id FROM '.$q('locations')
+            .' ORDER BY (location_status = 1) DESC, location_id ASC LIMIT 1'
+        );
+
+        if (!$location) {
+            throw new \DomainException('Restaurant template has no usable restaurant location.');
+        }
+    }
+
     public function createDeferred(array $data, callable $checkpoint): array
     {
         if (DB::getDefaultConnection() !== 'mysql') {

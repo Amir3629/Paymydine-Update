@@ -9,7 +9,7 @@
     if (!isset($pmdCountryOptions[$pmdCreateCountry])) $pmdCreateCountry = 'DE';
 @endphp
 
-@push('head')
+@push('page-head')
 <style>
     .pmd-tenant-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px}
     .pmd-tenant-hero h2{font-size:32px;line-height:1.08;margin:0}
@@ -39,6 +39,7 @@
     .pmd-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:17px;border-top:1px solid #edf2f0}.pmd-modal-actions .btn{min-width:132px}
     .pmd-edit-domain{display:flex;align-items:center;height:50px;padding:0 14px;border:1px solid #e0ebe7;border-radius:12px;background:#f7faf9;color:#667a73;font-size:14px;font-weight:700}
     .pmd-market-cell{display:flex;flex-direction:column;gap:3px}.pmd-market-cell strong{font-size:14px}.pmd-market-cell span{font-size:12px;color:var(--muted);white-space:nowrap}
+    .pmd-setup-inline{display:block;margin-top:5px;color:#9a4b08;font-size:11px;font-weight:800;white-space:nowrap}
     .pmd-market-preview{grid-column:1/-1;border:1px solid #dfeae6;border-radius:16px;background:#f8fbfa;padding:16px 17px}
     .pmd-market-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.pmd-market-preview-head strong{font-size:15px}.pmd-market-code{font-size:12px;font-weight:800;color:#2d6655;background:#e7f2ee;border-radius:999px;padding:5px 9px}
     .pmd-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pmd-market-item{padding:10px 11px;border:1px solid #e8efec;border-radius:11px;background:#fff}.pmd-market-item b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#73857f;margin-bottom:4px}.pmd-market-item span{font-size:13px;color:#24443a;line-height:1.45}
@@ -46,10 +47,10 @@
     .pmd-create-chooser[hidden],.pmd-create-selection[hidden],.pmd-create-panel[hidden]{display:none!important}
     .pmd-create-chooser-intro{margin:0 0 15px}.pmd-create-chooser-intro strong{display:block;font-size:18px;line-height:1.3;color:#17372f}.pmd-create-chooser-intro span{display:block;margin-top:4px;color:#6f837c;font-size:13px;line-height:1.5}
     .pmd-create-type-list{border-top:1px solid #dfe9e5}
-    .pmd-create-type{appearance:none;width:100%;min-height:72px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:14px 4px;border:0!important;border-bottom:1px solid #dfe9e5!important;border-radius:0!important;background:#fff!important;color:#17372f!important;text-align:left;cursor:pointer;box-shadow:none!important;outline:0}
+    button.pmd-create-type{appearance:none;width:100%;min-height:72px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:14px 4px!important;border:0!important;border-bottom:1px solid #dfe9e5!important;border-radius:0!important;background:#fff!important;background-image:none!important;color:#17372f!important;text-align:left;cursor:pointer;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important;outline:0}
     .pmd-create-type-main strong{display:block;font-size:15px;line-height:1.3;color:#17372f}.pmd-create-type-main span{display:block;margin-top:3px;color:#71857e;font-size:12px;line-height:1.4}
     .pmd-create-type-arrow{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#eff5f2;color:#31594e;font-size:18px;font-weight:700;transition:transform .15s ease,background .15s ease}
-    .pmd-create-type:hover{background:#f8fbfa!important}.pmd-create-type:hover .pmd-create-type-arrow{background:#e3efea;transform:translateX(2px)}
+    button.pmd-create-type:hover{background:#f8fbfa!important;background-image:none!important;color:#17372f!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important}.pmd-create-type:hover .pmd-create-type-arrow{background:#e3efea;transform:translateX(2px)}
     .pmd-create-type:focus-visible{outline:3px solid rgba(45,116,92,.20)!important;outline-offset:3px}
     .pmd-create-selection{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:0 0 13px;border-bottom:1px solid #e5ece9}
     .pmd-create-change{appearance:none;border:0;background:transparent;color:#2b6756;font-size:12px;font-weight:850;padding:0;cursor:pointer;white-space:nowrap}
@@ -66,14 +67,9 @@
     .pmd-business-site-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.pmd-business-site-head strong{font-size:13px}
     .pmd-business-site-remove{border:0;background:transparent;color:#b42318;font-weight:800;cursor:pointer}.pmd-business-site-remove:disabled{opacity:.35;cursor:not-allowed}
     .pmd-business-site-fields{display:grid;grid-template-columns:1.05fr 1fr;gap:12px}.pmd-business-site-fields .field{margin:0}
-    .pmd-provisioning-attention{margin-bottom:18px;padding:18px}.pmd-provisioning-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
-    .pmd-provisioning-head h3{margin:0;font-size:18px}.pmd-provisioning-head p{margin:4px 0 0;color:var(--muted);font-size:13px}
-    .pmd-provisioning-list{display:grid;gap:8px}.pmd-provisioning-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 13px;border:1px solid #eadfca;border-radius:12px;background:#fffaf3}
-    .pmd-provisioning-row strong{display:block;font-size:14px}.pmd-provisioning-row span,.pmd-provisioning-row small{display:block;color:#6c7e77;font-size:12px;line-height:1.45;margin-top:2px}.pmd-provisioning-row small{color:#9a4b08}
-    .pmd-provisioning-state{display:inline-flex!important;width:max-content;padding:4px 8px;border-radius:999px;background:#fff0d8;color:#a4470b!important;font-weight:800;text-transform:capitalize}
         body.pmd-modal-open{overflow:hidden}
     @media(max-width:1000px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}.tenant-actions{min-width:300px}}
-    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview,.pmd-form-section,.pmd-owner-security-note{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}.pmd-create-type{min-height:66px;padding:12px 2px}.pmd-create-selection{align-items:flex-start}.pmd-business-site-fields{grid-template-columns:1fr}.pmd-business-locations-head{align-items:stretch;flex-direction:column}.pmd-provisioning-row{grid-template-columns:1fr}.pmd-provisioning-row form .btn{width:100%}}
+    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview,.pmd-form-section,.pmd-owner-security-note{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}.pmd-create-type{min-height:66px;padding:12px 2px}.pmd-create-selection{align-items:flex-start}.pmd-business-site-fields{grid-template-columns:1fr}.pmd-business-locations-head{align-items:stretch;flex-direction:column}}
     @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}.pmd-pagination{align-items:flex-start;flex-direction:column}.pmd-domain-suffix{font-size:13px;padding-right:10px}}
 </style>
 @endpush
@@ -83,35 +79,6 @@
     <h2>Restaurants</h2>
     <button class="btn btn-primary" type="button" data-pmd-open-create>+ Create restaurant</button>
 </div>
-
-@if(isset($pmdGroupAttention) && $pmdGroupAttention->isNotEmpty())
-<div class="card pmd-provisioning-attention">
-    <div class="pmd-provisioning-head">
-        <div>
-            <h3>Location provisioning needs attention</h3>
-            <p>These restaurants were reserved but are not active yet. Retry continues from the last safe checkpoint.</p>
-        </div>
-        <span class="badge warn">{{ $pmdGroupAttention->count() }} waiting</span>
-    </div>
-    <div class="pmd-provisioning-list">
-        @foreach($pmdGroupAttention as $site)
-            <div class="pmd-provisioning-row">
-                <div>
-                    <strong>{{ $site->label }}</strong>
-                    <span>{{ $site->group_name }} · {{ $site->tenant_domain ?: $site->slug.'.paymydine.com' }}</span>
-                    <span class="pmd-provisioning-state">{{ $site->state }}</span>
-                    <small>{{ $site->last_error ?: 'Provisioning has not started yet. Retry this location.' }}</small>
-                </div>
-                <form method="POST" action="/superadmin/groups/retry">
-                    @csrf
-                    <input type="hidden" name="site_id" value="{{ $site->id }}">
-                    <button class="btn btn-soft" type="submit">Retry provisioning</button>
-                </form>
-            </div>
-        @endforeach
-    </div>
-</div>
-@endif
 
 <div class="card pmd-registry-card">
     <div class="pmd-registry-toolbar">
@@ -133,7 +100,10 @@
             <thead><tr><th>Restaurant</th><th>Domain</th><th>Market</th><th>From</th><th>To</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
             @forelse($tenants as $tenant)
-                @php $pmdTenantProfile = $pmdPlatformProfiles->profile($tenant->country ?? ''); @endphp
+                @php
+                    $pmdTenantProfile = $pmdPlatformProfiles->profile($tenant->country ?? '');
+                    $pmdGroupSite = isset($pmdGroupSites) ? $pmdGroupSites->get((int)$tenant->id) : null;
+                @endphp
                 <tr>
                     <td><span class="tenant-name">{{ $tenant->name }}</span><span class="sub">{{ $tenant->email }}</span></td>
                     <td>{{ $tenant->domain }}</td>
@@ -149,7 +119,12 @@
                     </td>
                     <td>{{ $tenant->start }}</td>
                     <td>{{ $tenant->end }}</td>
-                    <td><span class="badge {{ $tenant->status==='active'?'ok':($tenant->status==='removed'?'warn':'bad') }}">{{ $tenant->status }}</span></td>
+                    <td>
+                        <span class="badge {{ $tenant->status==='active'?'ok':($tenant->status==='removed'?'warn':'bad') }}">{{ $tenant->status }}</span>
+                        @if($pmdGroupSite)
+                            <span class="pmd-setup-inline">Setup incomplete</span>
+                        @endif
+                    </td>
                     <td>
                         <div class="tenant-actions">
                             @if($tenant->status==='removed')
@@ -181,11 +156,19 @@
                                     <input type="hidden" name="confirmation" value="reset-owner-portal-mfa">
                                     <button class="btn btn-soft" type="submit" title="Support emergency recovery only">Reset Owner MFA</button>
                                 </form>
-                                <form class="tenant-status-form" method="POST" action="/superadmin/tenants/status">
-                                    @csrf<input type="hidden" name="id" value="{{ $tenant->id }}">
-                                    <select name="status" aria-label="Restaurant status"><option value="active" {{ $tenant->status==='active'?'selected':'' }}>Active</option><option value="disabled" {{ $tenant->status==='disabled'?'selected':'' }}>Disabled</option></select>
-                                    <button class="btn btn-soft" type="submit">Save</button>
-                                </form>
+                                @if($pmdGroupSite)
+                                    <form method="POST" action="/superadmin/groups/retry">
+                                        @csrf
+                                        <input type="hidden" name="site_id" value="{{ $pmdGroupSite->id }}">
+                                        <button class="btn btn-soft" type="submit">Retry setup</button>
+                                    </form>
+                                @else
+                                    <form class="tenant-status-form" method="POST" action="/superadmin/tenants/status">
+                                        @csrf<input type="hidden" name="id" value="{{ $tenant->id }}">
+                                        <select name="status" aria-label="Restaurant status"><option value="active" {{ $tenant->status==='active'?'selected':'' }}>Active</option><option value="disabled" {{ $tenant->status==='disabled'?'selected':'' }}>Disabled</option></select>
+                                        <button class="btn btn-soft" type="submit">Save</button>
+                                    </form>
+                                @endif
                                 @if($tenant->status==='disabled')
                                     <form method="POST" action="/superadmin/tenants/remove" onsubmit="return confirm('Remove {{ addslashes($tenant->name) }} from service? The restaurant stays offline and its database is retained for recovery.')">@csrf<input type="hidden" name="id" value="{{ $tenant->id }}"><button class="btn btn-danger" type="submit">Remove</button></form>
                                 @endif
@@ -223,7 +206,7 @@
             <button class="pmd-modal-close" type="button" data-pmd-close-create aria-label="Close">×</button>
         </div>
         <div class="pmd-modal-body">
-            <div class="pmd-create-chooser" data-pmd-create-chooser>
+            <div class="pmd-create-chooser" data-pmd-create-chooser data-pmd-modal-chrome-skip>
                 <div class="pmd-create-chooser-intro">
                     <strong>What are you creating?</strong>
                     <span>Choose the account structure first. The next screen only shows fields for that setup.</span>
