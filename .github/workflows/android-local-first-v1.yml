@@ -34,6 +34,7 @@ on:
       - 'routes/admin-app-before.php'
       - 'routes/pmd-kiosk-v1.php'
       - 'routes/qr-pay.php'
+      - 'routes/worldline-probe.php'
       - 'routes.php'
       - 'app/admin/routes.php'
       - 'app/main/routes.php'
@@ -125,6 +126,7 @@ jobs:
           grep -Fq 'PMD_KIOSK_PAY_FIRST_V10' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_NO_SPLIT_V10' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_NO_SPLIT_V10' routes/qr-pay.php
+          grep -Fq 'PMD_KIOSK_WORLDLINE_PAY_FIRST_V10' routes/worldline-probe.php
           grep -Fq 'PMD_KIOSK_NATIVE_SCROLL_V10' public/assets/pmd/kiosk-terminal-v8.css
           grep -Fq 'PMD_KIOSK_PAY_FIRST_V10' routes/admin-app-before.php
           grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
@@ -147,6 +149,7 @@ jobs:
           php -l app/admin/controllers/Pmddevices.php
           php -l routes/pmd-kiosk-v1.php
           php -l routes/qr-pay.php
+          php -l routes/worldline-probe.php
           php -l routes/admin-app-before.php
           php -l routes.php
           php -l app/Services/PmdMobileSync/PmdMobilePairingService.php
