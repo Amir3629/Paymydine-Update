@@ -73,6 +73,12 @@ try {
     $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
     $stage = 'routes';
+    if (method_exists($app, 'routesAreCached') && $app->routesAreCached()) {
+        $cached = method_exists($app, 'getCachedRoutesPath')
+            ? (string)$app->getCachedRoutesPath()
+            : 'unknown';
+        throw new RuntimeException('Route cache is still active during health bootstrap: '.basename($cached));
+    }
     $routes = $app['router']->getRoutes();
     foreach (['pmd.superadmin.groups','pmd.superadmin.groups.store','pmd.superadmin.groups.retry',
         'pmd.group.context','pmd.group.snapshot','pmd.group.catalog','pmd.group.publish.preview','pmd.group.publish.apply'] as $name) {

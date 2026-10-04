@@ -326,7 +326,23 @@ def main():
         caches = []
         for full in info['cache_paths']:
             p = Path(full)
-            if within(p, root): caches.append(str(p.relative_to(root)))
+            if within(p, root):
+                caches.append(str(p.relative_to(root)))
+
+        # TastyIgniter/Laravel deployments may retain versioned cache files
+        # (for example routes-v7.php) that are not represented by the process
+        # that performed the initial probe. Back up and clear every generated
+        # PHP file in bootstrap/cache so the next bootstrap must read the newly
+        # installed provider and routes. .gitignore and non-PHP files are kept.
+        bootstrap_cache = safe_path(root, 'bootstrap/cache')
+        if bootstrap_cache.is_dir():
+            for cached in bootstrap_cache.glob('*.php'):
+                if cached.is_symlink():
+                    raise DeployError('bootstrap/cache contains a symlink; review before deployment.')
+                if cached.is_file():
+                    caches.append(str(cached.relative_to(root)))
+
+        caches = sorted(set(caches))
         maintenance_files = ['storage/framework/down', 'storage/framework/maintenance.php']
         records = save_originals(root, sorted(set(changes)|set(caches)|set(maintenance_files)), directory)
         manifest = {'commit':args.commit,'previous_head':git(root,'rev-parse','HEAD').decode().strip(),'files':records}
