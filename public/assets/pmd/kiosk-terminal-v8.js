@@ -125,7 +125,10 @@
     busy: false,
     paymentStatus: "",
     currentModal: null,
-    paypalButtons: null
+    paypalButtons: null,
+    stripeElements: null,
+    stripePaymentElement: null,
+    themeId: "kazen_japanese"
   };
 
   var sessionKey = "pmd-kiosk-v8-session";
@@ -179,6 +182,137 @@
       if (row[keys[i]] !== undefined && row[keys[i]] !== null && row[keys[i]] !== "") return row[keys[i]];
     }
     return fallback;
+  }
+
+  // PMD_KIOSK_CUSTOMER_THEME_SYNC_V9
+  // Keep the kiosk interaction model purpose-built for a touch terminal, but
+  // derive its visual identity from the same Customer Menu theme selection.
+  function validHex(value, fallback) {
+    var raw = String(value || "").trim();
+    return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toUpperCase() : fallback;
+  }
+
+  function hexRgb(value) {
+    var raw = validHex(value, "#000000").slice(1);
+    return {
+      r: parseInt(raw.slice(0, 2), 16),
+      g: parseInt(raw.slice(2, 4), 16),
+      b: parseInt(raw.slice(4, 6), 16)
+    };
+  }
+
+  function rgbHex(rgb) {
+    function part(value) {
+      var n = Math.max(0, Math.min(255, Math.round(value))).toString(16).toUpperCase();
+      return n.length === 1 ? "0" + n : n;
+    }
+    return "#" + part(rgb.r) + part(rgb.g) + part(rgb.b);
+  }
+
+  function mixHex(a, b, ratio) {
+    var left = hexRgb(a);
+    var right = hexRgb(b);
+    var t = Math.max(0, Math.min(1, Number(ratio) || 0));
+    return rgbHex({
+      r: left.r + (right.r - left.r) * t,
+      g: left.g + (right.g - left.g) * t,
+      b: left.b + (right.b - left.b) * t
+    });
+  }
+
+  function relativeLuminance(hex) {
+    var rgb = hexRgb(hex);
+    var values = [rgb.r, rgb.g, rgb.b].map(function (value) {
+      var c = value / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+  }
+
+  function normalizeThemeId(value) {
+    var key = String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+    var aliases = {
+      modern_dark: "noir_editorial",
+      black_luxury: "noir_editorial",
+      modern_green: "verdant_modern",
+      green: "verdant_modern",
+      gold_luxury: "lumiere_fine_dining",
+      gold: "lumiere_fine_dining",
+      organic_botanical_paper: "lumiere_fine_dining",
+      organic: "lumiere_fine_dining",
+      kazen: "kazen_japanese",
+      japanese: "kazen_japanese",
+      coastal: "azzurra_coastal",
+      mediterranean: "azzurra_coastal",
+      seafood: "azzurra_coastal",
+      vibrant_colors: "neon_cocktail_bar",
+      cyber_futuristic: "neon_cocktail_bar",
+      bar: "neon_cocktail_bar",
+      art_deco: "art_deco_speakeasy",
+      speakeasy: "art_deco_speakeasy",
+      gatsby: "art_deco_speakeasy",
+      persian: "shahrazad_persian",
+      persian_luxury: "shahrazad_persian",
+      velvet_terracotta: "anatolia_turkish",
+      velvet: "anatolia_turkish",
+      turkish: "anatolia_turkish",
+      steakhouse: "ember_steakhouse",
+      charcoal: "ember_steakhouse",
+      grill_house: "ember_steakhouse"
+    };
+    return aliases[key] || key || "kazen_japanese";
+  }
+
+  function applyCustomerMenuTheme(settings, bootstrapTheme) {
+    var configured = object(config.theme);
+    var remote = object(bootstrapTheme);
+    var rawId = first(
+      configured,
+      ["id"],
+      first(remote, ["id", "theme_id", "frontend_theme", "pmd_v2_theme_id"],
+        first(settings || {}, ["pmd_v2_theme_id", "frontend_theme", "theme_id"], "kazen_japanese"))
+    );
+    var id = normalizeThemeId(rawId);
+
+    var background = validHex(first(configured, ["background"], first(remote, ["background"], "#F5F1EB")), "#F5F1EB");
+    var text = validHex(first(configured, ["text"], first(remote, ["text"], "#25231F")), "#25231F");
+    var muted = validHex(first(configured, ["muted"], first(remote, ["muted"], mixHex(text, background, 0.52))), mixHex(text, background, 0.52));
+    var accent = validHex(first(configured, ["accent"], first(remote, ["accent"], "#B5413F")), "#B5413F");
+    var surface = validHex(first(configured, ["surface"], first(remote, ["surface"], mixHex(background, "#FFFFFF", 0.72))), mixHex(background, "#FFFFFF", 0.72));
+    var dark = configured.is_dark !== undefined
+      ? boolish(configured.is_dark, false)
+      : (remote.is_dark !== undefined ? boolish(remote.is_dark, false) : relativeLuminance(background) < 0.36);
+
+    var rootStyle = document.documentElement.style;
+    rootStyle.setProperty("--pmd-k-bg", background);
+    rootStyle.setProperty("--pmd-k-panel", surface);
+    rootStyle.setProperty("--pmd-k-panel-soft", mixHex(surface, background, dark ? 0.22 : 0.34));
+    rootStyle.setProperty("--pmd-k-ink", text);
+    rootStyle.setProperty("--pmd-k-muted", muted);
+    rootStyle.setProperty("--pmd-k-line", mixHex(text, background, dark ? 0.76 : 0.84));
+    rootStyle.setProperty("--pmd-k-line-strong", mixHex(text, background, dark ? 0.62 : 0.72));
+    rootStyle.setProperty("--pmd-k-accent", accent);
+    rootStyle.setProperty("--pmd-k-accent-dark", mixHex(accent, "#000000", dark ? 0.08 : 0.22));
+    rootStyle.setProperty("--pmd-k-accent-soft", mixHex(accent, background, dark ? 0.72 : 0.84));
+    rootStyle.setProperty("--pmd-k-accent-contrast", relativeLuminance(accent) > 0.56 ? "#101418" : "#FFFFFF");
+    rootStyle.setProperty("--pmd-k-danger", dark ? "#FF8A82" : "#A93A32");
+
+    state.themeId = id;
+    document.body.setAttribute("data-pmd-kiosk-theme", id);
+    document.body.setAttribute("data-pmd-kiosk-dark", dark ? "1" : "0");
+
+    var meta = document.getElementById("pmd-kiosk-theme-color");
+    if (meta) meta.setAttribute("content", surface);
+
+    state.theme = Object.assign({}, remote, configured, {
+      id: id,
+      background: background,
+      text: text,
+      muted: muted,
+      accent: accent,
+      surface: surface,
+      is_dark: dark
+    });
   }
 
   function normalizeAsset(value) {
@@ -650,6 +784,11 @@
       try { state.paypalButtons.close(); } catch (error) {}
     }
     state.paypalButtons = null;
+    if (state.stripePaymentElement && state.stripePaymentElement.destroy) {
+      try { state.stripePaymentElement.destroy(); } catch (error) {}
+    }
+    state.stripePaymentElement = null;
+    state.stripeElements = null;
     state.currentModal = null;
     modalLayer.hidden = true;
     modal.innerHTML = "";
@@ -875,7 +1014,13 @@
       tip_amount: 0,
       coupon_code: null,
       coupon_discount: 0,
-      payment_method: "card",
+      // PMD_KIOSK_QR_PAY_LATER_V9
+      // Create an unpaid canonical order first. Provider payment is started only
+      // after the order exists, then /pay-existing performs authoritative
+      // server-side settlement/verification.
+      payment_method: "qr_pay_later",
+      payment_method_raw: "qr_pay_later",
+      payment_provider: null,
       special_instructions: ""
     };
 
@@ -982,6 +1127,9 @@
       transactionId: response.transaction_id ? String(response.transaction_id) : null,
       providerReference: response.provider_reference ? String(response.provider_reference) : null,
       merchantReference: response.merchant_reference ? String(response.merchant_reference) : null,
+      paymentIntentId: response.payment_intent_id
+        ? String(response.payment_intent_id)
+        : (response.paymentIntentId ? String(response.paymentIntentId) : null),
       createdAt: Date.now()
     };
     try { sessionStorage.setItem(paymentKey, JSON.stringify(pending)); } catch (error) {}
@@ -1004,7 +1152,8 @@
         coupon_discount: couponDiscount || 0,
         selected_items: null,
         payer_label: "PayMyDine Kiosk",
-        payment_intent_token: reference || null,
+        // PMD_KIOSK_QR_PAY_LATER_V9: provider references are not split-intent tokens.
+        payment_intent_token: null,
         idempotency_key: reference || null,
         split_mode: null,
         split_people: null,
@@ -1128,6 +1277,7 @@
         prior.addEventListener("error", function () { reject(new Error("Payment script could not be loaded.")); }, { once: true });
         if (marker === "pmd-kiosk-paypal" && window.paypal) resolve();
         if (marker === "pmd-kiosk-vr-payment" && window.LightboxCheckoutHandler) resolve();
+        if (marker === "pmd-kiosk-stripe" && window.Stripe) resolve();
         return;
       }
       var script = document.createElement("script");
@@ -1251,12 +1401,157 @@
     window.setTimeout(function () { notifyNativeOrderComplete(state.order.orderId); }, 280);
   }
 
+  function startStripePayment(method) {
+    if (!method || !state.order || state.busy) return;
+
+    var slot = $("pmd-kiosk-provider-slot");
+    if (!slot) return;
+
+    state.busy = true;
+    slot.innerHTML =
+      '<div class="pmd-kiosk-stripe-box">' +
+        '<div id="pmd-kiosk-stripe-element"></div>' +
+        '<button type="button" id="pmd-kiosk-stripe-confirm" class="pmd-kiosk-primary pmd-kiosk-stripe-confirm" disabled>' +
+          '<span>' + escapeHtml(copy().processing) + '</span><span>›</span>' +
+        '</button>' +
+        '<div id="pmd-kiosk-stripe-message" class="pmd-kiosk-payment-status" hidden></div>' +
+      '</div>';
+
+    var confirmButton = $("pmd-kiosk-stripe-confirm");
+    var message = $("pmd-kiosk-stripe-message");
+    var totals = calculateTotals();
+    var attemptKey = "kiosk-" + String(state.order.orderId) + "-" + String(Date.now());
+
+    Promise.all([
+      requestJson("/api/v1/payments/stripe/config"),
+      requestJson("/api/v1/payments/stripe/create-intent", {
+        method: "POST",
+        body: {
+          amount: totals.payable,
+          currency: String(state.restaurant.currency || "EUR").toUpperCase(),
+          preferredMethod: String(method.code || "card").toLowerCase(),
+          restaurantId: "1",
+          tableNumber: null,
+          orderId: state.order.orderId,
+          paymentAttemptKey: attemptKey,
+          customerInfo: { name: "PayMyDine Kiosk", email: "" },
+          items: paymentItems()
+        }
+      }),
+      loadScript("https://js.stripe.com/v3/", "pmd-kiosk-stripe")
+    ]).then(function (results) {
+      var publicConfig = results[0] || {};
+      var intent = results[1] || {};
+      if (!window.Stripe) throw new Error("Stripe checkout could not be loaded.");
+
+      var publishableKey = String(publicConfig.publishableKey || "");
+      var clientSecret = String(intent.clientSecret || intent.client_secret || "");
+      var paymentIntentId = String(intent.paymentIntentId || intent.payment_intent_id || "");
+      if (!publishableKey || !clientSecret || !paymentIntentId) {
+        throw new Error("Stripe checkout is not ready.");
+      }
+
+      var pending = savePendingPayment(method, {
+        provider: "stripe",
+        provider_code: "stripe",
+        payment_intent_id: paymentIntentId,
+        paymentIntentId: paymentIntentId
+      });
+
+      var stripe = window.Stripe(publishableKey);
+      var appearance = {
+        theme: document.body.getAttribute("data-pmd-kiosk-dark") === "1" ? "night" : "stripe",
+        variables: {
+          colorPrimary: getComputedStyle(document.documentElement).getPropertyValue("--pmd-k-accent").trim() || "#0A6B57",
+          colorBackground: getComputedStyle(document.documentElement).getPropertyValue("--pmd-k-panel").trim() || "#FFFFFF",
+          colorText: getComputedStyle(document.documentElement).getPropertyValue("--pmd-k-ink").trim() || "#17212B",
+          borderRadius: "12px",
+          fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+        }
+      };
+
+      var elements = stripe.elements({ clientSecret: clientSecret, appearance: appearance });
+      var paymentElement = elements.create("payment", {
+        layout: { type: "tabs", defaultCollapsed: false }
+      });
+      state.stripeElements = elements;
+      state.stripePaymentElement = paymentElement;
+      paymentElement.mount("#pmd-kiosk-stripe-element");
+
+      state.busy = false;
+      if (confirmButton) {
+        confirmButton.disabled = false;
+        confirmButton.innerHTML = '<span>' + escapeHtml(paymentLabel(method)) + " · " + escapeHtml(money(totals.payable)) + '</span><span>›</span>';
+      }
+
+      if (confirmButton) {
+        confirmButton.onclick = function () {
+          if (state.busy) return;
+          state.busy = true;
+          confirmButton.disabled = true;
+          if (message) {
+            message.hidden = false;
+            message.classList.remove("is-error");
+            message.textContent = copy().processing;
+          }
+
+          stripe.confirmPayment({
+            elements: elements,
+            confirmParams: { return_url: returnUrl() },
+            redirect: "if_required"
+          }).then(function (result) {
+            if (result.error) throw new Error(result.error.message || copy().paymentFailed);
+
+            var pi = result.paymentIntent || null;
+            var reference = String(pi && pi.id || pending.paymentIntentId || "");
+            if (!reference) throw new Error("Stripe payment reference is missing.");
+
+            // Server re-verifies the PaymentIntent before any settlement record.
+            return settleExisting(
+              method.code,
+              "stripe",
+              reference,
+              totals.payable,
+              totals.tip,
+              state.couponCode,
+              state.couponDiscount
+            ).then(function () {
+              state.busy = false;
+              finishOrder(copy().paidHint);
+            });
+          }).catch(function (error) {
+            state.busy = false;
+            confirmButton.disabled = false;
+            if (message) {
+              message.hidden = false;
+              message.classList.add("is-error");
+              message.textContent = error.message || copy().paymentFailed;
+            }
+          });
+        };
+      }
+    }).catch(function (error) {
+      state.busy = false;
+      if (message) {
+        message.hidden = false;
+        message.classList.add("is-error");
+        message.textContent = error.message || copy().paymentFailed;
+      } else {
+        renderCheckout(error.message || copy().paymentFailed, true);
+      }
+    });
+  }
+
   function startPayment(method) {
     if (!method || !state.order || state.busy) return;
     var code = String(method.code || "").toLowerCase();
     var provider = providerCode(method);
     if (code === "cash" || code === "cod") { startCashPayment(); return; }
     if (code === "paypal" && (!provider || provider === "paypal")) { startPayPal(method); return; }
+    if (provider === "stripe" && ["card", "apple_pay", "google_pay"].indexOf(code) >= 0) {
+      startStripePayment(method);
+      return;
+    }
     startHostedPayment(method);
   }
 
@@ -1286,9 +1581,24 @@
         provider_reference: pending.providerReference || "",
         merchant_reference: pending.merchantReference || ""
       };
-    } else if (provider === "wero" || provider === "stripe" || provider === "card") {
+    } else if (provider === "wero" || String(pending.methodCode || "").toLowerCase() === "wero") {
       endpoint = "/api/v1/payments/wero/checkout-status";
       payload = { session_id: pending.sessionId || "" };
+    } else if (provider === "stripe" || provider === "card") {
+      // pay-existing is the authoritative Stripe status/settlement verifier.
+      var piReference = String(pending.paymentIntentId || pending.providerReference || "");
+      if (!piReference) return Promise.resolve({ paid: false, pending: true, reference: null });
+      return settleExisting(
+        pending.methodCode || "card",
+        "stripe",
+        piReference,
+        pending.amount,
+        pending.tipAmount,
+        pending.couponCode,
+        pending.couponDiscount
+      ).then(function () {
+        return { paid: true, pending: false, cancelled: false, reference: piReference, settled: true };
+      });
     }
     if (!endpoint) return Promise.resolve({ paid: false, pending: true, reference: pending.providerReference || null });
     return requestJson(endpoint, { method: "POST", body: payload }).then(function (data) {
@@ -1319,6 +1629,10 @@
       attempts += 1;
       verifyPendingOnce(pending).then(function (result) {
         if (result.paid) {
+          if (result.settled) {
+            finishOrder(copy().paidHint);
+            return;
+          }
           return settleExisting(
             pending.methodCode,
             pending.providerCode || pending.provider,
@@ -1359,15 +1673,17 @@
         var normalizedMenu = normalizeMenu(data.menu);
 
         state.settings = settings;
-        state.theme = theme;
+        applyCustomerMenuTheme(settings, theme);
         state.items = normalizedMenu.items;
         state.categories = normalizedMenu.categories;
         state.payments = normalizePayments(data.payments);
 
         state.restaurant = {
-          name: cleanText(first(settings, ["pmd_restaurant_identity_name", "site_name", "business_name", "restaurant_name"],
-            first(restaurant, ["name", "restaurant_name"], "PayMyDine")), "PayMyDine"),
-          logo: normalizeAsset(first(settings, ["pmd_restaurant_identity_logo", "site_logo_url", "logo_url", "site_logo", "logo"], "")),
+          name: cleanText(first(config.restaurant || {}, ["name"],
+            first(settings, ["pmd_restaurant_identity_name", "site_name", "business_name", "restaurant_name"],
+              first(restaurant, ["name", "restaurant_name"], "PayMyDine"))), "PayMyDine"),
+          logo: normalizeAsset(first(config.restaurant || {}, ["logo"],
+            first(settings, ["pmd_restaurant_identity_logo", "site_logo_url", "logo_url", "site_logo", "logo"], ""))),
           currency: String(first(restaurant, ["currency", "location_currency"], first(settings, ["default_currency", "currency"], "EUR")) || "EUR").toUpperCase()
         };
 
@@ -1510,6 +1826,7 @@
     }
   });
 
+  applyCustomerMenuTheme({}, config.theme || {});
   restoreSession();
   loadBootstrap().then(finishBoot).catch(failBoot);
 })();

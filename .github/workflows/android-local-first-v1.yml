@@ -2,7 +2,7 @@ name: PayMyDine Device App V5
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, fix/kiosk-v9-theme-payment-sync, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
@@ -117,6 +117,16 @@ jobs:
           grep -Fq "Route::get('/kiosk'" routes/pmd-kiosk-v1.php
           grep -Fq 'data-pmd-kiosk-terminal="blade-v8"' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_BLADE_TERMINAL_V8' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' app/Http/Controllers/PmdKioskPublicController.php
+          grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.css
+          grep -Fq 'v=9-theme-payment' resources/views/pmd/kiosk-terminal.blade.php
+          grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
+          grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'payment_intent_token: null' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'https://js.stripe.com/v3/' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_BLADE_V8_NGINX_NO_REDIRECT' ops/nginx/pmd-kiosk-blade-v8-location.conf
           grep -Fq 'PMD_KIOSK_DEDICATED_WEB_ACTIVITY_V58' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'PMD_KIOSK_SOFTWARE_RENDER_V59' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
