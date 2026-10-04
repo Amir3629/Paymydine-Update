@@ -31,7 +31,8 @@ final class RestaurantGroupsServiceProvider extends ServiceProvider
         $this->app->booted(function () {
             $this->bindSecurityServices(true);
         });
-        $this->loadRoutesFrom(base_path('routes/pmd-groups.php'));
+        // Routes are loaded from app/admin/routes.php. Admin\ServiceProvider is
+        // the existing PayMyDine route authority in both HTTP and Console boot.
         $this->loadViewsFrom(resource_path('views/pmd-groups'), 'pmd-groups');
         if ($this->app->runningInConsole()) {
             $this->commands([\App\Console\Commands\RestaurantGroupsCommand::class]);

@@ -79,6 +79,10 @@ try {
     }
 
     $stage = 'routes';
+    $adminRoutesSource = (string)@file_get_contents($root.'/app/admin/routes.php');
+    if (strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1') === false) {
+        throw new RuntimeException('Admin route authority is missing the Restaurant Groups loader.');
+    }
     if (method_exists($app, 'routesAreCached') && $app->routesAreCached()) {
         $cached = method_exists($app, 'getCachedRoutesPath')
             ? (string)$app->getCachedRoutesPath()
