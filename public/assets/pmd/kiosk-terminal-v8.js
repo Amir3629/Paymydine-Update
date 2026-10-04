@@ -1598,19 +1598,19 @@
       endpoint = "/api/v1/payments/wero/checkout-status";
       payload = { session_id: pending.sessionId || "" };
     } else if (provider === "stripe" || provider === "card") {
-      // pay-existing is the authoritative Stripe status/settlement verifier.
       var piReference = String(pending.paymentIntentId || pending.providerReference || "");
       if (!piReference) return Promise.resolve({ paid: false, pending: true, reference: null });
-      return settleExisting(
-        pending.methodCode || "card",
-        "stripe",
-        piReference,
-        pending.amount,
-        pending.tipAmount,
-        pending.couponCode,
-        pending.couponDiscount
-      ).then(function () {
-        return { paid: true, pending: false, cancelled: false, reference: piReference, settled: true };
+      return requestJson("/api/v1/payments/stripe/status", {
+        method: "POST",
+        body: { payment_intent_id: piReference }
+      }).then(function (data) {
+        var stripeStatus = String(data.status || data.payment_status || "").toLowerCase();
+        return {
+          paid: Boolean(data.is_paid || stripeStatus === "succeeded" || stripeStatus === "paid"),
+          pending: ["requires_payment_method", "requires_confirmation", "requires_action", "processing"].indexOf(stripeStatus) >= 0,
+          cancelled: ["canceled", "cancelled", "failed"].indexOf(stripeStatus) >= 0,
+          reference: piReference
+        };
       });
     }
     if (!endpoint) return Promise.resolve({ paid: false, pending: true, reference: pending.providerReference || null });
@@ -1628,7 +1628,7 @@
 
   function handlePaymentReturn() {
     var pending = pendingPayment();
-    if (!pending || !state.order) {
+    if (!pending) {
       openCheckout();
       renderCheckout(copy().paymentFailed, true);
       return;
@@ -1642,19 +1642,26 @@
       attempts += 1;
       verifyPendingOnce(pending).then(function (result) {
         if (result.paid) {
-          if (result.settled) {
-            finishOrder(copy().paidHint);
-            return;
-          }
-          return settleExisting(
-            pending.methodCode,
-            pending.providerCode || pending.provider,
-            result.reference,
-            pending.amount,
-            pending.tipAmount,
-            pending.couponCode,
-            pending.couponDiscount
-          ).then(function () { finishOrder(copy().paidHint); });
+          return submitOrder({ silent: true, allowWhileBusy: true })
+            .then(function () {
+              return settleExisting(
+                pending.methodCode,
+                pending.providerCode || pending.provider,
+                result.reference,
+                pending.amount,
+                pending.tipAmount,
+                pending.couponCode,
+                pending.couponDiscount
+              );
+            })
+            .then(function () { finishOrder(copy().paidHint); })
+            .catch(function (error) {
+              renderCheckout(
+                "Payment was received. Do not pay again. " +
+                  (error.message || "Order finalization is pending."),
+                true
+              );
+            });
         }
         if (result.cancelled) {
           renderCheckout(copy().paymentFailed, true);
