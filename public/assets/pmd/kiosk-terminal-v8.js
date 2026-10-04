@@ -1133,8 +1133,16 @@
       paymentIntentId: response.payment_intent_id
         ? String(response.payment_intent_id)
         : (response.paymentIntentId ? String(response.paymentIntentId) : null),
+      confirmed: Boolean(response.confirmed || response.is_paid || response.paid),
       createdAt: Date.now()
     };
+    try { sessionStorage.setItem(paymentKey, JSON.stringify(pending)); } catch (error) {}
+    return pending;
+  }
+
+  function updatePendingPayment(patch) {
+    var pending = pendingPayment() || {};
+    Object.keys(patch || {}).forEach(function (key) { pending[key] = patch[key]; });
     try { sessionStorage.setItem(paymentKey, JSON.stringify(pending)); } catch (error) {}
     return pending;
   }
@@ -1302,6 +1310,7 @@
       escapeHtml(copy().processing) + "</div></div>";
     var message = $("pmd-kiosk-paypal-message");
     var totals = calculateTotals();
+    var paypalCaptured = false;
 
     requestJson(config.paypalConfigUrl || "/api/v1/payments/config-public")
       .then(function (publicConfig) {
@@ -1370,6 +1379,14 @@
             }).then(function (capture) {
               var reference = String(capture.transactionId || capture.captureID || capture.orderID || data.orderID || "");
               if (!reference) throw new Error("PayPal capture reference is missing.");
+              paypalCaptured = true;
+              savePendingPayment(method, {
+                provider: "paypal",
+                provider_code: "paypal",
+                provider_reference: reference,
+                transaction_id: reference,
+                confirmed: true
+              });
               return submitOrder({ silent: true, allowWhileBusy: true }).then(function () {
                 return settleExisting(method.code, "paypal", reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount);
               });
@@ -1379,7 +1396,15 @@
             }).catch(function (error) {
               state.busy = false;
               message.classList.add("is-error");
-              message.textContent = error.message || copy().paymentFailed;
+              if (paypalCaptured) {
+                var paypalRoot = document.getElementById("pmd-kiosk-paypal-buttons");
+                if (paypalRoot) paypalRoot.innerHTML = "";
+                message.textContent =
+                  "Payment was received. Do not pay again. " +
+                  (error.message || "Order finalization is pending.");
+              } else {
+                message.textContent = error.message || copy().paymentFailed;
+              }
             });
           },
           onCancel: function () {
@@ -1463,6 +1488,7 @@
         payment_intent_id: paymentIntentId,
         paymentIntentId: paymentIntentId
       });
+      var paymentConfirmed = false;
 
       var stripe = window.Stripe(publishableKey);
       var appearance = {
@@ -1511,6 +1537,14 @@
             var pi = result.paymentIntent || null;
             var reference = String(pi && pi.id || pending.paymentIntentId || "");
             if (!reference) throw new Error("Stripe payment reference is missing.");
+            paymentConfirmed = true;
+            pending = updatePendingPayment({
+              confirmed: true,
+              provider: "stripe",
+              providerCode: "stripe",
+              providerReference: reference,
+              paymentIntentId: reference
+            });
 
             // PMD_KIOSK_PAY_FIRST_V10
             // Stripe confirms the payment before the canonical order exists.
@@ -1534,11 +1568,18 @@
               });
           }).catch(function (error) {
             state.busy = false;
-            confirmButton.disabled = false;
             if (message) {
               message.hidden = false;
               message.classList.add("is-error");
-              message.textContent = error.message || copy().paymentFailed;
+              if (paymentConfirmed) {
+                confirmButton.disabled = true;
+                message.textContent =
+                  "Payment was received. Do not pay again. " +
+                  (error.message || "Order finalization is pending.");
+              } else {
+                confirmButton.disabled = false;
+                message.textContent = error.message || copy().paymentFailed;
+              }
             }
           });
         };
@@ -1577,6 +1618,14 @@
     var provider = String(pending.provider || pending.providerCode || "").toLowerCase().replace(/-/g, "_");
     var endpoint = "";
     var payload = {};
+    if (provider === "paypal" && pending.confirmed) {
+      return Promise.resolve({
+        paid: true,
+        pending: false,
+        cancelled: false,
+        reference: String(pending.providerReference || pending.transactionId || "")
+      });
+    }
     if (provider === "worldline") {
       endpoint = "/api/v1/payments/worldline/runtime/status";
       payload = { hosted_checkout_id: pending.hostedCheckoutId || "", order_id: pending.orderId || "" };
