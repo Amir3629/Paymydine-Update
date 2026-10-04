@@ -1295,7 +1295,7 @@
   }
 
   function startPayPal(method) {
-    if (!state.order || state.busy) return;
+    if (state.busy) return;
     var slot = $("pmd-kiosk-provider-slot");
     if (!slot) return;
     slot.innerHTML = '<div class="pmd-kiosk-paypal-box"><div id="pmd-kiosk-paypal-buttons"></div><div id="pmd-kiosk-paypal-message" class="pmd-kiosk-payment-status">' +
@@ -1331,7 +1331,7 @@
                 amount: totals.payable,
                 currency: String(state.restaurant.currency || "EUR").toUpperCase(),
                 payment_method: method.code,
-                order_id: state.order.orderId,
+                order_id: state.order ? state.order.orderId : null,
                 items: paymentItems(),
                 tableNumber: null,
                 table_id: null,
@@ -1358,7 +1358,7 @@
                   amount: totals.payable,
                   currency: String(state.restaurant.currency || "EUR").toUpperCase(),
                   payment_method: method.code,
-                  order_id: state.order.orderId,
+                  order_id: state.order ? state.order.orderId : null,
                   items: paymentItems(),
                   tableNumber: null,
                   table_id: null,
@@ -1370,7 +1370,9 @@
             }).then(function (capture) {
               var reference = String(capture.transactionId || capture.captureID || capture.orderID || data.orderID || "");
               if (!reference) throw new Error("PayPal capture reference is missing.");
-              return settleExisting(method.code, "paypal", reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount);
+              return submitOrder({ silent: true, allowWhileBusy: true }).then(function () {
+                return settleExisting(method.code, "paypal", reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount);
+              });
             }).then(function () {
               state.busy = false;
               finishOrder(copy().paidHint);
