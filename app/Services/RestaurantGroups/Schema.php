@@ -6,11 +6,13 @@ use Illuminate\Database\Schema\Blueprint;
 
 final class Schema
 {
-    public const VERSION = 1;
+    public const VERSION = 2;
 
     public function installCentral(Store $store): void
     {
         $schema = $store->central()->getSchemaBuilder();
+
+        $this->ensureCentralTenantRegistryIsTransactional($store);
 
         if (!$schema->hasTable('pmd_group_schema')) {
             $schema->create('pmd_group_schema', function (Blueprint $table) {
@@ -149,6 +151,41 @@ final class Schema
             ['version' => self::VERSION, 'updated_at' => now()]
         );
     }
+
+    private function ensureCentralTenantRegistryIsTransactional(Store $store): void
+    {
+        $db = $store->central();
+        $physical = $db->getTablePrefix().'tenants';
+
+        if (!preg_match('/^[A-Za-z0-9_]+$/D', $physical)) {
+            throw new \RuntimeException('Central tenant registry table name is invalid.');
+        }
+
+        $row = $db->selectOne(
+            'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?',
+            [$db->getDatabaseName(), $physical]
+        );
+
+        if (!$row) {
+            throw new \RuntimeException('Central tenants table is missing.');
+        }
+
+        if (strtolower((string)$row->ENGINE) !== 'innodb') {
+            $db->statement('ALTER TABLE `'.$physical.'` ENGINE=InnoDB');
+
+            $row = $db->selectOne(
+                'SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?',
+                [$db->getDatabaseName(), $physical]
+            );
+        }
+
+        if (!$row || strtolower((string)$row->ENGINE) !== 'innodb') {
+            throw new \RuntimeException(
+                'Central tenants table must use InnoDB before multi-location provisioning can run.'
+            );
+        }
+    }
+
 
     public function installTenant($db): void
     {

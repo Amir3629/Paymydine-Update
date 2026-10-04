@@ -46,6 +46,9 @@ final class Provisioner
             $label = trim((string)($site['label'] ?? ''));
             $slug = Policy::slug((string)($site['slug'] ?? ''));
             $database = trim(str_replace([' ', '-'], '_', (string)($site['database'] ?? '')));
+            if ($database === '') {
+                $database = substr('pmd_'.str_replace('-', '_', $slug), 0, 64);
+            }
             if ($label === '' || strlen($label) > 191 || !preg_match('/^[A-Za-z0-9_]{1,64}$/D', $database)) {
                 throw new \InvalidArgumentException('Each location needs a name, subdomain and valid database name.');
             }
@@ -102,8 +105,33 @@ final class Provisioner
         foreach ($central->table('pmd_group_sites')->where('group_id', $groupId)->orderBy('id')->get() as $site) {
             try { $results[] = $this->provisionSite((int)$site->id); }
             catch (\Throwable $error) {
-                logger()->error('PMD group location could not start', ['site_id' => (int)$site->id, 'exception' => get_class($error)]);
-                $results[] = ['ok' => false, 'site_id' => (int)$site->id];
+                $reference = 'rg-'.bin2hex(random_bytes(6));
+                $message = $error instanceof \DomainException || $error instanceof \InvalidArgumentException
+                    ? $error->getMessage()
+                    : 'Provisioning could not start. Check server log reference '.$reference.'.';
+
+                logger()->error('PMD group location could not start', [
+                    'reference' => $reference,
+                    'site_id' => (int)$site->id,
+                    'exception' => get_class($error),
+                    'message' => $error->getMessage(),
+                ]);
+
+                $central->table('pmd_group_sites')
+                    ->where('id', (int)$site->id)
+                    ->where('state', '!=', 'ready')
+                    ->update([
+                        'state' => 'failed',
+                        'last_error' => substr($message, 0, 500),
+                        'updated_at' => now(),
+                    ]);
+
+                $results[] = [
+                    'ok' => false,
+                    'site_id' => (int)$site->id,
+                    'reference' => $reference,
+                    'message' => $message,
+                ];
             }
         }
         $failed = count(array_filter($results, static fn ($row) => empty($row['ok'])));

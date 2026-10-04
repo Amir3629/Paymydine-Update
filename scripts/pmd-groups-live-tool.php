@@ -136,16 +136,31 @@ try {
     $app->instance('request', $request);
     $app->instance('session', $session);
     \Illuminate\Support\Facades\Session::clearResolvedInstance('session');
-    $view = $app->make(\App\Http\Controllers\RestaurantGroups\SuperAdminController::class)
-        ->index($store, $app->make(\App\Services\Platform\CountryPlatformProfileRegistry::class));
-    $view->with('errors', new \Illuminate\Support\ViewErrorBag());
-    $html = $view->render();
-    foreach (['organization_type', 'multi_location', 'food_court', 'owner_username', '/superadmin/groups/store'] as $needle) {
-        if (strpos($html, $needle) === false) throw new RuntimeException('Business Account form did not render its required controls.');
+
+    $profiles = $app->make(\App\Services\Platform\CountryPlatformProfileRegistry::class);
+    $panel = $app['view']->make('pmd-groups::create-panel', [
+        'pmdCountryOptions' => $profiles->countryOptions(),
+        'pmdCreateCountry' => 'DE',
+    ])->with('errors', new \Illuminate\Support\ViewErrorBag())->render();
+
+    foreach (['organization_type', 'owner_username', 'sites[', '/superadmin/groups/store'] as $needle) {
+        if (strpos($panel, $needle) === false && $needle !== 'sites[') {
+            throw new RuntimeException('Integrated Business Account form did not render its required controls.');
+        }
     }
-    $entry = $app['view']->make('pmd-groups::entry')->render();
-    if (strpos($entry, '/superadmin/groups') === false) throw new RuntimeException('Missing Restaurants entry.');
-    echo "PASS real Business Account Blade form rendered\n";
+
+    $restaurantsSource = (string)@file_get_contents($root.'/app/admin/views/superadmin_r2/restaurants.blade.php');
+    foreach (['data-pmd-create-kind="independent"', 'data-pmd-create-kind="multi_location"', 'data-pmd-create-kind="food_court"', "@include('pmd-groups::create-panel')"] as $needle) {
+        if (strpos($restaurantsSource, $needle) === false) {
+            throw new RuntimeException('Restaurants modal is missing the integrated type selector.');
+        }
+    }
+
+    if (strpos($restaurantsSource, "@includeIf('pmd-groups::entry')") !== false) {
+        throw new RuntimeException('Deprecated standalone Business Accounts entry is still injected.');
+    }
+
+    echo "PASS integrated Create Restaurant modal rendered\n";
     echo "PASS routes, Super Admin authentication middleware and native security bindings resolved\n";
     echo "PASS central feature storage enabled\n";
     echo "NOTE HTTP sign-in, native template/TLS creation, full menu/media and Food Court acceptance are separate checks.\n";

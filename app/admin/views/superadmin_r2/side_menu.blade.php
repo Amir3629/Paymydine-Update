@@ -29,10 +29,6 @@
             <span class="pmd-sm2__label">Restaurants</span>
         </a>
 
-        <a class="pmd-sm2__item {{ $pmdSuperActive(['superadmin/groups']) ? 'is-active' : '' }}" href="/superadmin/groups">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20v-9l5-3l5 3v9"/><path d="M14 13l3-2l3 2v7"/><path d="M2 20h20"/><path d="M8 14h2M8 17h2M17 15h1"/></svg>
-            <span class="pmd-sm2__label">Business Accounts</span>
-        </a>
 
         <a class="pmd-sm2__item {{ $pmdSuperActive(['superadmin/health']) ? 'is-active' : '' }}" href="/superadmin/health">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h4l2-6 4 12 2-6h4"/></svg>

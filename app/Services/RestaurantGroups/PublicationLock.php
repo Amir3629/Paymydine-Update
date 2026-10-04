@@ -26,10 +26,18 @@ final class PublicationLock
         $rows = $db->select('SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME IN ('.$marks.')', array_merge([$db->getDatabaseName()], $names));
         $engines = [];
         foreach ($rows as $row) $engines[$row->TABLE_NAME] = strtolower((string)$row->ENGINE);
+        $invalid = [];
+
         foreach ($names as $table) {
             if (($engines[$table] ?? '') !== 'innodb') {
-                throw new \DomainException('Publication requires all affected tables to use InnoDB.');
+                $invalid[] = $table.'('.($engines[$table] ?? 'missing').')';
             }
+        }
+
+        if ($invalid) {
+            throw new \DomainException(
+                'Provisioning requires InnoDB central tables: '.implode(', ', $invalid).'.'
+            );
         }
     }
 }

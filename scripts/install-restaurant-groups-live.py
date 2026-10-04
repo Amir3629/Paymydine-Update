@@ -26,6 +26,8 @@ EXACT = {
     'app/system/ServiceProvider.php',
     'app/Console/Commands/RestaurantGroupsCommand.php',
     'app/admin/classes/User.php', 'app/admin/routes.php',
+    'app/admin/controllers/SuperAdminR2Controller.php',
+    'app/admin/views/superadmin_r2/restaurants.blade.php',
     'config/app.php', 'config/pmd_groups.php',
     'routes/pmd-groups.php',
     'app/admin/views/_partials/pmd_admin_i18n.blade.php',
@@ -113,14 +115,15 @@ def plan(root: Path, ref: str, base: str = BASE) -> dict[str, bytes]:
             replacement = merge_bytes(current, before, after, name)
         if replacement != current:
             changes[name] = replacement
+    # R5 integrates all Restaurant Groups creation controls into the canonical
+    # Restaurants modal. Remove the previous standalone-page entry marker from
+    # live checkouts that installed R1-R4.
     page = safe_path(root, ENTRY)
-    current = page.read_bytes()
+    current = changes.get(ENTRY, page.read_bytes())
     text = current.decode('utf-8')
-    if MARKER not in text:
-        anchor = "@section('content')"
-        if text.count(anchor) != 1:
-            raise DeployError('Restaurants view changed: entry-point placement requires review.')
-        changes[ENTRY] = text.replace(anchor, anchor + '\n' + MARKER, 1).encode()
+    cleaned = text.replace(MARKER+'\n', '').replace('\n'+MARKER, '').replace(MARKER, '')
+    if cleaned.encode() != page.read_bytes():
+        changes[ENTRY] = cleaned.encode()
     # Explicit opt-in is part of this installer. Preserve every other env setting.
     env_path = safe_path(root, '.env')
     env = env_path.read_text()

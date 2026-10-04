@@ -6,6 +6,7 @@ use Admin\Classes\AdminController;
 use App\Services\SuperAdminTenantDomainProvisioner;
 use App\Services\SuperAdminTenantLifecycleService;
 use App\Services\PmdSuperAdminOwnerMfaResetService;
+use App\Services\RestaurantGroups\Store as RestaurantGroupStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -93,6 +94,7 @@ class SuperAdminR2Controller extends AdminController
         $search = trim((string)$request->input('q', ''));
         $status = trim((string)$request->input('status', ''));
         $query = DB::connection('mysql')->table('tenants')->orderByDesc('id');
+
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('name','like','%'.$search.'%')
@@ -101,9 +103,50 @@ class SuperAdminR2Controller extends AdminController
                     ->orWhere('email','like','%'.$search.'%');
             });
         }
-        if ($status !== '') $query->where('status', $status);
+
+        if ($status !== '') {
+            $query->where('status', $status);
+        }
+
         $tenants = $query->paginate(20)->appends($request->query());
-        return $this->html('admin::superadmin_r2.restaurants', compact('tenants','search','status'));
+        $pmdGroupAttention = collect();
+
+        try {
+            $groups = app(RestaurantGroupStore::class);
+
+            if ($groups->installed()) {
+                $pmdGroupAttention = $groups->central()
+                    ->table('pmd_group_sites as s')
+                    ->join('pmd_groups as g', 'g.id', '=', 's.group_id')
+                    ->leftJoin('tenants as t', 't.id', '=', 's.tenant_id')
+                    ->whereIn('s.state', ['pending', 'provisioning', 'failed'])
+                    ->orderByDesc('s.updated_at')
+                    ->limit(100)
+                    ->get([
+                        's.id',
+                        's.group_id',
+                        's.tenant_id',
+                        's.label',
+                        's.slug',
+                        's.state',
+                        's.last_error',
+                        's.updated_at',
+                        'g.name as group_name',
+                        'g.type as group_type',
+                        'g.status as group_status',
+                        't.domain as tenant_domain',
+                    ]);
+            }
+        } catch (\Throwable $error) {
+            Log::warning('pmd_superadmin_group_attention_unavailable', [
+                'exception' => get_class($error),
+            ]);
+        }
+
+        return $this->html(
+            'admin::superadmin_r2.restaurants',
+            compact('tenants', 'search', 'status', 'pmdGroupAttention')
+        );
     }
 
     public function store(Request $request, SuperAdminTenantLifecycleService $lifecycle)
