@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\PmdKioskPairingService;
+use App\Services\PmdTableDisplayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,8 +23,65 @@ final class PmdKioskPublicController
             $session = 'kiosk';
         }
 
+        /*
+         * PMD_KIOSK_CUSTOMER_THEME_SYNC_V9
+         *
+         * The physical kiosk has its own touch-first layout, but the restaurant
+         * identity and visual theme come from the same canonical Customer Menu
+         * settings as QR ordering and Table Display. Android also sends the
+         * currently paired palette in the query string; those values are used
+         * only when they are valid colors and therefore cannot inject CSS.
+         */
+        $surfaceProfile = app(PmdTableDisplayService::class)->customerSurfaceProfile();
+        $serverTheme = (array)($surfaceProfile['theme'] ?? []);
+        $serverRestaurant = (array)($surfaceProfile['restaurant'] ?? []);
+
+        $validColor = static function ($value, string $fallback): string {
+            $value = trim((string)$value);
+            return preg_match('/^#[0-9a-fA-F]{6}$/', $value) ? strtoupper($value) : $fallback;
+        };
+
+        $theme = [
+            'id' => trim((string)($serverTheme['id'] ?? 'kazen_japanese')) ?: 'kazen_japanese',
+            'background' => $validColor(
+                $request->query('kiosk_bg'),
+                (string)($serverTheme['background'] ?? '#F5F1EB')
+            ),
+            'text' => $validColor(
+                $request->query('kiosk_text'),
+                (string)($serverTheme['text'] ?? '#25231F')
+            ),
+            'muted' => $validColor(
+                $request->query('kiosk_muted'),
+                (string)($serverTheme['muted'] ?? '#777168')
+            ),
+            'accent' => $validColor(
+                $request->query('kiosk_accent'),
+                (string)($serverTheme['accent'] ?? '#B5413F')
+            ),
+            'surface' => $validColor(
+                $request->query('kiosk_surface'),
+                (string)($serverTheme['surface'] ?? '#FBF8F3')
+            ),
+            'is_dark' => (bool)($serverTheme['is_dark'] ?? false),
+        ];
+
+        $restaurantName = trim((string)$request->query('kiosk_name', ''));
+        if ($restaurantName === '') {
+            $restaurantName = trim((string)($serverRestaurant['name'] ?? 'PayMyDine'));
+        }
+        $restaurantName = mb_substr($restaurantName ?: 'PayMyDine', 0, 120);
+
+        $restaurantLogo = trim((string)$request->query('kiosk_logo', ''));
+        if ($restaurantLogo === '') {
+            $restaurantLogo = trim((string)($serverRestaurant['logo'] ?? ''));
+        }
+        if (strlen($restaurantLogo) > 2048) {
+            $restaurantLogo = '';
+        }
+
         $config = [
-            'version' => 'blade-v8',
+            'version' => 'blade-v8-theme-v9',
             'session' => $session,
             'serviceMode' => $serviceMode,
             'paymentReturn' => $request->boolean('pmd_payment_return'),
@@ -35,6 +93,11 @@ final class PmdKioskPublicController
             'paypalCaptureUrl' => url('/api/v1/payments/paypal/capture-order'),
             'returnUrl' => url('/kiosk/'),
             'resetUrl' => url('/kiosk-reset/'),
+            'restaurant' => [
+                'name' => $restaurantName,
+                'logo' => $restaurantLogo,
+            ],
+            'theme' => $theme,
         ];
 
         // TastyIgniter's runtime view finder does not include resources/views
