@@ -2,7 +2,7 @@ name: PayMyDine Device App V5
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
