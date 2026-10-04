@@ -1222,6 +1222,7 @@
       description: "PayMyDine kiosk checkout " + String(config.session || "kiosk"),
       payment_method: method.code,
       provider: provider,
+      kiosk_checkout: true,
       guest_session_id: String(config.session || "kiosk"),
       table_id: null,
       table_no: null,
@@ -1628,7 +1629,11 @@
     }
     if (provider === "worldline") {
       endpoint = "/api/v1/payments/worldline/runtime/status";
-      payload = { hosted_checkout_id: pending.hostedCheckoutId || "", order_id: pending.orderId || "" };
+      payload = {
+        hosted_checkout_id: pending.hostedCheckoutId || "",
+        order_id: pending.orderId || "",
+        kiosk_checkout: true
+      };
     } else if (provider === "sumup") {
       endpoint = "/api/v1/payments/sumup/checkout-status";
       payload = { checkout_id: pending.checkoutId || "" };
