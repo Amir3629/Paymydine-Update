@@ -181,6 +181,7 @@ def main():
     parser.add_argument('commit')
     parser.add_argument('--apply', action='store_true', help='Install runtime files and central schema; enable the feature.')
     parser.add_argument('--web-user', default='www-data')
+    parser.add_argument('--app-user', help='CLI user for Artisan/helper commands. Auto-detected when omitted.')
     parser.add_argument('--fpm-service', help='Required when multiple PHP-FPM services are active.')
     args = parser.parse_args()
     def interrupted(signum, frame):
@@ -192,15 +193,21 @@ def main():
         raise DeployError('Pass --apply to install. This program is not the isolated test runner.')
     if os.geteuid() != 0:
         raise DeployError('Run this installer with sudo so backups, file ownership and PHP-FPM reload can be handled consistently.')
-    for name in ('git','php','composer','runuser','systemctl'):
+    for name in ('git','php','runuser','systemctl'):
         if not shutil.which(name): raise DeployError(f'Required executable not found: {name}')
     if not (root/'artisan').is_file() or not (root/'vendor/autoload.php').is_file():
         raise DeployError('Use the existing application checkout with its installed dependencies.')
-    pwd.getpwnam(args.web_user)
+    try:
+        pwd.getpwnam(args.web_user)
+    except KeyError:
+        raise DeployError(f'Configured web user does not exist: {args.web_user}')
+    if args.app_user:
+        try:
+            pwd.getpwnam(args.app_user)
+        except KeyError:
+            raise DeployError(f'Requested application CLI user does not exist: {args.app_user}')
     os.umask(0o022)
-    os.environ['COMPOSER_ALLOW_SUPERUSER'] = '1'
     php = shutil.which('php')
-    webcmd = ['runuser','-u',args.web_user,'--',php]
     backup_root = Path('/var/backups/paymydine-groups')
     if backup_root.is_symlink(): raise DeployError('Backup directory must not be a symlink.')
     backup_root.mkdir(mode=0o700, parents=True, exist_ok=True); backup_root.chmod(0o700)
@@ -222,18 +229,49 @@ def main():
     php = shutil.which('php'+version) or php
     actual = run([php,'-r','echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;']).decode()
     if actual != version: raise DeployError('PHP CLI and selected PHP-FPM versions differ.')
-    webcmd = ['runuser','-u',args.web_user,'--',php]
+    # The repository may be maintained by the SSH/deploy user while PHP-FPM
+    # runs as www-data. Artisan maintenance/cache commands need write access to
+    # storage/framework and bootstrap/cache, so do not force the FPM user.
+    def user_command(user, *tail):
+        prefix = [php] if user == 'root' else ['runuser','-u',user,'--',php]
+        return prefix + [str(x) for x in tail]
+
+    def add_candidate(items, value):
+        if not value or value in items:
+            return
+        try:
+            pwd.getpwnam(value)
+        except KeyError:
+            return
+        items.append(value)
+
+    candidates = []
+    if args.app_user:
+        add_candidate(candidates, args.app_user)
+    else:
+        sudo_user = os.environ.get('SUDO_USER', '')
+        if sudo_user and sudo_user != 'root':
+            add_candidate(candidates, sudo_user)
+        for owned in (root/'artisan', root, root/'storage', root/'bootstrap'/'cache'):
+            try:
+                add_candidate(candidates, pwd.getpwuid(owned.stat().st_uid).pw_name)
+            except (FileNotFoundError, KeyError):
+                pass
+        add_candidate(candidates, args.web_user)
+        add_candidate(candidates, 'root')
+
     # Backups and diagnostic output stay OUTSIDE the public application directory.
     directory = backup_root / (datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')+'-'+args.commit[:12])
     directory.mkdir(parents=True, mode=0o700, exist_ok=False)
     directory.chmod(0o700)
     print(f'[PMD] Private backup directory: {directory}', flush=True)
     log = (directory/'deployment.log').open('ab')
-    def logged(command):
+    def logged(command, label=None):
         result = subprocess.run(command, cwd=root, stdout=log, stderr=subprocess.STDOUT)
         log.flush()
         if result.returncode:
-            raise DeployError(f'{Path(str(command[0])).name} failed; inspect {directory}/deployment.log locally (do not share credentials).')
+            name = label or Path(str(command[0])).name
+            raise DeployError(f'{name} failed; inspect {directory}/deployment.log locally (do not share credentials).')
     with tempfile.TemporaryDirectory(prefix='pmd-live-tool-') as tool_dir:
         Path(tool_dir).chmod(0o755)
         helper = Path(tool_dir)/'tool.php'
@@ -244,28 +282,64 @@ def main():
         for name, content in changes.items():
             if name.endswith('.php') and not name.endswith('.blade.php'):
                 run([php,'-l'], data=content)
-        probe = subprocess.run(webcmd+[str(helper),'info',str(root)], cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        log.write(probe.stderr); log.flush()
-        if probe.returncode: raise DeployError(f'Native application preflight failed before any live replacement. Inspect {directory}/deployment.log locally.')
-        info = json.loads(probe.stdout)
+        runtime_probe = (
+            '$root=$argv[1];'
+            '$paths=[$root."/storage/framework",$root."/storage/logs",$root."/bootstrap/cache"];'
+            'foreach($paths as $p){if(!is_dir($p)||!is_writable($p)){fwrite(STDERR,basename($p)." not writable\\n");exit(3);}}'
+        )
+        app_user = None
+        info = None
+        attempted = []
+        for candidate in candidates:
+            attempted.append(candidate)
+            writable = subprocess.run(
+                user_command(candidate, '-r', runtime_probe, str(root)),
+                cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            if writable.returncode:
+                log.write(('CLI user '+candidate+' runtime-writability probe failed.\\n').encode())
+                log.write(writable.stderr[:1000]); log.flush()
+                continue
+            probe = subprocess.run(
+                user_command(candidate, str(helper), 'info', str(root)),
+                cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            if probe.returncode:
+                log.write(('CLI user '+candidate+' Laravel bootstrap probe failed.\\n').encode())
+                log.write(probe.stderr[:2000]); log.flush()
+                continue
+            try:
+                parsed = json.loads(probe.stdout)
+            except Exception:
+                log.write(('CLI user '+candidate+' returned invalid preflight JSON.\\n').encode()); log.flush()
+                continue
+            app_user = candidate
+            info = parsed
+            break
+        if not app_user:
+            raise DeployError(
+                'No application CLI user could bootstrap Laravel and write runtime directories. '
+                +'Tried: '+', '.join(attempted)+'. Inspect the private deployment log.'
+            )
+        appcmd = lambda *tail: user_command(app_user, *tail)
+        print(f'[PMD] Application CLI user: {app_user}', flush=True)
         caches = []
         for full in info['cache_paths']:
             p = Path(full)
             if within(p, root): caches.append(str(p.relative_to(root)))
-        runtime_generated = ['vendor/autoload.php'] + [str(p.relative_to(root)) for p in (root/'vendor/composer').glob('autoload*.php')]
-        records = save_originals(root, sorted(set(changes)|set(caches)|set(runtime_generated)), directory)
+        records = save_originals(root, sorted(set(changes)|set(caches)), directory)
         manifest = {'commit':args.commit,'previous_head':git(root,'rev-parse','HEAD').decode().strip(),'files':records}
         (directory/'manifest.json').write_text(json.dumps(manifest, indent=2))
         (directory/'manifest.json').chmod(0o600)
         down = False
         replaced = False
         try:
-            logged(webcmd+[str(root/'artisan'),'down'])
+            logged(appcmd(str(root/'artisan'),'down'), 'artisan down')
             down = True
             # No tenant backup or migration: installation only adds central tables.
             dump_path = directory/'central-before.sql'
             with dump_path.open('wb') as dump:
-                result = subprocess.run(webcmd+[str(helper),'backup',str(root)], cwd=root, stdout=dump, stderr=log)
+                result = subprocess.run(appcmd(str(helper),'backup',str(root)), cwd=root, stdout=dump, stderr=log)
             dump_path.chmod(0o600)
             if result.returncode or dump_path.stat().st_size < 100 or not dump_path.read_bytes().endswith(b'-- PMD BACKUP COMPLETE\n'):
                 raise DeployError('Central backup failed; live files were not replaced.')
@@ -281,17 +355,20 @@ def main():
             for name, content in changes.items():
                 rec = records[name]
                 atomic_write(safe_path(root,name), content, rec.get('mode',0o644), rec.get('uid',default.st_uid), rec.get('gid',default.st_gid))
-            # Do not run dependency installation, update scripts, or plugins.
-            logged(['composer','dump-autoload','--optimize','--no-interaction','--no-scripts','--no-plugins'])
+            # App namespace is PSR-4 loaded from app/, so these classes do not
+            # require Composer regeneration. Avoid changing vendor ownership.
             for action in ('config:clear','route:clear','view:clear'):
-                logged(webcmd+[str(root/'artisan'),action])
+                logged(appcmd(str(root/'artisan'),action), 'artisan '+action)
             # The helper validates the central DB and installs additive group tables.
-            logged(webcmd+[str(root/'scripts/pmd-groups-live-tool.php'),'install',str(root)])
+            logged(appcmd(str(root/'scripts/pmd-groups-live-tool.php'),'install',str(root)), 'Restaurant Groups schema install')
             # Before reopening, resolve the actual routes, auth bindings and render
             # the real Blade form (not a regex-only route-list success check).
-            logged(webcmd+[str(root/'scripts/pmd-groups-live-tool.php'),'health',str(root)])
-            for service in services: logged(['systemctl','reload',service])
-            logged(webcmd+[str(root/'artisan'),'up']); down = False
+            logged(appcmd(str(root/'scripts/pmd-groups-live-tool.php'),'health',str(root)), 'Restaurant Groups health check')
+            # Health renders Blade; clear compiled views once more so PHP-FPM
+            # recreates them under its normal runtime identity.
+            logged(appcmd(str(root/'artisan'),'view:clear'), 'artisan view:clear')
+            for service in services: logged(['systemctl','reload',service], 'PHP-FPM reload')
+            logged(appcmd(str(root/'artisan'),'up'), 'artisan up'); down = False
             (directory/'INSTALLED').write_text(args.commit+'\n')
             print('[PMD] INSTALLED: '+args.commit, flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/groups', flush=True)
@@ -302,7 +379,7 @@ def main():
                 print('[PMD] Installation failed. Restoring previous runtime files; central additive tables are retained.', file=sys.stderr, flush=True)
                 restore(root, directory, records)
             if down:
-                result = subprocess.run(webcmd+[str(root/'artisan'),'up'], cwd=root, stdout=log, stderr=log)
+                result = subprocess.run(appcmd(str(root/'artisan'),'up'), cwd=root, stdout=log, stderr=log)
                 if result.returncode:
                     print('[PMD] WARNING: application may still be in maintenance mode; inspect the private deployment log.', file=sys.stderr)
             for service in services:
