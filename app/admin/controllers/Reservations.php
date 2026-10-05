@@ -243,7 +243,25 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         }
 
         $service = app(PmdReservationGuaranteeService::class);
-        $result = $service->chargeNoShow($reservation);
+        $maximum = $service->adminPayloadForReservation($reservationId);
+        $requestedAmountCents = (int)post(
+            'amount_cents',
+            (int)($maximum['amount_cents'] ?? 0)
+        );
+
+        if (
+            $requestedAmountCents < 1
+            || $requestedAmountCents > (int)($maximum['amount_cents'] ?? 0)
+        ) {
+            throw ValidationException::withMessages([
+                'amount_cents' => 'Enter an amount between 0.01 and the maximum accepted by the guest.',
+            ]);
+        }
+
+        $result = $service->chargeNoShow(
+            $reservation,
+            $requestedAmountCents
+        );
 
         if (!empty($result['success'])) {
             $amount = number_format(
@@ -349,9 +367,19 @@ class Reservations extends PmdCleanWorkspaceControllerV1
             ]);
         }
 
+        $releaseMessage = 'Card guarantee released. No no-show charge was made.';
+
+        $this->pmdReservationGuaranteeNotification(
+            $reservation,
+            'reservation_guarantee_released',
+            'Card guarantee released',
+            $releaseMessage,
+            'medium'
+        );
+
         return [
             'success' => true,
-            'message' => 'Card guarantee released. No no-show charge was made.',
+            'message' => $releaseMessage,
             'guarantee' => $service->adminPayloadForReservation($reservationId),
         ];
     }
@@ -415,8 +443,18 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         if (!$model || !$status)
             return;
 
-        if ($record = $model->addStatusHistory($status))
+        if ($record = $model->addStatusHistory($status)) {
             StatusUpdated::log($record, $this->getUser());
+
+            $model->refresh();
+            if ($model->isCanceled()) {
+                app(PmdReservationGuaranteeService::class)
+                    ->releaseGuarantee(
+                        $model,
+                        'reservation_canceled_by_admin'
+                    );
+            }
+        }
 
         flash()->success(sprintf(lang('admin::lang.alert_success'), lang('admin::lang.statuses.text_form_name').' updated'))->now();
 
