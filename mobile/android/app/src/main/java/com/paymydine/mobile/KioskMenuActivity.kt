@@ -37,6 +37,7 @@ import androidx.lifecycle.lifecycleScope
 import com.paymydine.mobile.kiosk.KioskApiClient
 import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskProfile
+import com.paymydine.mobile.hardware.ReceiptPrinterManager
 import com.paymydine.mobile.tabledisplay.SecureStore
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -434,6 +435,9 @@ class KioskMenuActivity : ComponentActivity() {
 
     // PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V17
     private val kioskApi = KioskApiClient()
+    private val receiptPrinter: ReceiptPrinterManager by lazy {
+        ReceiptPrinterManager(this)
+    }
     private val kioskStore: SecureStore by lazy {
         SecureStore(
             context = this,
@@ -823,6 +827,7 @@ class KioskMenuActivity : ComponentActivity() {
                 onOrderComplete = ::showComplete,
                 onTerminalPayment = ::requestTerminalPayment,
                 onTerminalStatus = ::requestTerminalStatus,
+                onPrintReceipt = ::printReceipt,
             )
 
         fun setBridgeEnabled(enabled: Boolean) {
@@ -1228,6 +1233,15 @@ class KioskMenuActivity : ComponentActivity() {
         }
     }
 
+    private fun printReceipt(receiptText: String) {
+        if (receiptText.isBlank()) return
+        lifecycleScope.launch {
+            // Printing is intentionally non-blocking for the guest. A printer
+            // outage never turns a successful terminal payment into a failed order.
+            receiptPrinter.printReceipt(receiptText)
+        }
+    }
+
     private fun showComplete(orderId: String) {
         runOnUiThread {
             destroyWebView()
@@ -1331,6 +1345,7 @@ class KioskMenuActivity : ComponentActivity() {
         private val onOrderComplete: (String) -> Unit,
         private val onTerminalPayment: (String, String) -> Unit,
         private val onTerminalStatus: (String, String) -> Unit,
+        private val onPrintReceipt: (String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
 
