@@ -179,4 +179,29 @@ final class PmdKioskPublicController
             app(PmdKioskPairingService::class)->stateForDevice($request)
         );
     }
+
+    // PMD_KIOSK_TERMINAL_PAYMENT_V18
+    public function terminalPayment(
+        Request $request,
+        $order
+    ): JsonResponse {
+        return response()->json(
+            app(PmdKioskPairingService::class)->startTerminalPayment(
+                $request,
+                (int)$order
+            )
+        );
+    }
+
+    public function terminalPaymentRefresh(
+        Request $request,
+        $attempt
+    ): JsonResponse {
+        return response()->json(
+            app(PmdKioskPairingService::class)->refreshTerminalPayment(
+                $request,
+                (int)$attempt
+            )
+        );
+    }
 }
