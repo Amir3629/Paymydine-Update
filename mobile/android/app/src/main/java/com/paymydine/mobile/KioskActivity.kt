@@ -213,6 +213,8 @@ private fun KioskApp(
     }
     var profile by remember { mutableStateOf<KioskProfile?>(null) }
     var heroImages by remember { mutableStateOf<List<String>>(emptyList()) }
+    var menuBootstrapReady by remember { mutableStateOf(false) }
+    var menuOpening by remember { mutableStateOf(false) }
     var serviceMode by remember { mutableStateOf("eat_in") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
@@ -242,7 +244,13 @@ private fun KioskApp(
                 // independently on the next suspension.
                 screen = KioskScreen.WELCOME
             }
-            heroImages = runCatching { api.heroImages(host) }.getOrDefault(emptyList())
+            val heroResult = runCatching { api.heroImages(host) }
+            if (heroResult.isSuccess) {
+                heroImages = heroResult.getOrDefault(emptyList())
+                menuBootstrapReady = true
+            } else {
+                menuBootstrapReady = false
+            }
         } catch (t: Throwable) {
             error = t.message ?: "Kiosk connection is unavailable."
             if (profile == null) {
@@ -275,16 +283,21 @@ private fun KioskApp(
         }
     }
 
-    LaunchedEffect(screen, profile, heroImages) {
+    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady) {
         val current = profile
-        if (screen != KioskScreen.WELCOME || current == null) {
+        if (
+            screen != KioskScreen.WELCOME ||
+            current == null ||
+            !menuBootstrapReady
+        ) {
             return@LaunchedEffect
         }
 
         // PMD_KIOSK_EXACT_WEBVIEW_PREWARM_V15
         // V12 only opened about:blank and destroyed it 220ms later, which
         // warmed Chromium itself but still left the real menu HTML/JS/render
-        // work for the guest's tap. V15 renders both exact service-mode pages
+        // work for the guest's tap. V15 waits until the native bootstrap is in
+        // memory, then renders both exact service-mode pages
         // behind the welcome screen and hands the selected ready WebView to the
         // next Activity.
         val hero = heroImages.firstOrNull().orEmpty()
@@ -336,6 +349,44 @@ private fun KioskApp(
         return
     }
 
+    suspend fun openPreparedMenu(
+        current: KioskProfile,
+        mode: String,
+    ) {
+        if (menuOpening) return
+        menuOpening = true
+        try {
+            // PMD_KIOSK_READY_BEFORE_SWITCH_V15
+            // On an unusually fast tap, keep the already-perfect welcome frame
+            // visible for at most ~320 ms while the off-screen page finishes.
+            // This is preferable to switching Activities early and exposing a
+            // partial Chromium paint. Normal taps pass this loop immediately.
+            var waits = 0
+            while (
+                !KioskMenuWarmPool.isReady(current.menuUrl, mode) &&
+                waits < 20
+            ) {
+                delay(16L)
+                waits += 1
+            }
+
+            context.startActivity(
+                KioskMenuActivity.intent(
+                    context = context,
+                    profile = current,
+                    serviceMode = mode,
+                    heroImage = heroImages.firstOrNull().orEmpty(),
+                ),
+            )
+            (context as? Activity)?.overridePendingTransition(0, 0)
+
+            // Block accidental double taps during the zero-animation handoff.
+            delay(450L)
+        } finally {
+            menuOpening = false
+        }
+    }
+
     when (screen) {
         KioskScreen.SETUP ->
             KioskSetupScreen(
@@ -384,27 +435,15 @@ private fun KioskApp(
                 heroImages = heroImages,
                 onEatHere = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
-                    context.startActivity(
-                        KioskMenuActivity.intent(
-                            context = context,
-                            profile = current,
-                            serviceMode = "eat_in",
-                            heroImage = heroImages.firstOrNull().orEmpty(),
-                        ),
-                    )
-                    (context as? Activity)?.overridePendingTransition(0, 0)
+                    scope.launch {
+                        openPreparedMenu(current, "eat_in")
+                    }
                 },
                 onTakeAway = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
-                    context.startActivity(
-                        KioskMenuActivity.intent(
-                            context = context,
-                            profile = current,
-                            serviceMode = "pickup",
-                            heroImage = heroImages.firstOrNull().orEmpty(),
-                        ),
-                    )
-                    (context as? Activity)?.overridePendingTransition(0, 0)
+                    scope.launch {
+                        openPreparedMenu(current, "pickup")
+                    }
                 },
             )
         }
