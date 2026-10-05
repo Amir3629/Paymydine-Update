@@ -3,6 +3,7 @@
 namespace Admin\Services;
 
 use Admin\Classes\PmdPlatformI18n;
+use Admin\Facades\AdminAuth;
 use Admin\Models\Reservations_model;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,7 @@ final class PmdReservationsScheduleV1
         }
 
         $reservations = [];
+        $canManageGuarantees = $this->canManageGuarantees();
 
         if ($locationId > 0) {
             try {
@@ -77,7 +79,7 @@ final class PmdReservationsScheduleV1
                 $nowUtc = Carbon::now('UTC');
 
                 $reservations = $rows
-                    ->map(static function ($reservation) use ($guarantees, $nowUtc): array {
+                    ->map(static function ($reservation) use ($guarantees, $nowUtc, $canManageGuarantees): array {
                         $date = '';
                         try {
                             $date = $reservation->reserve_date
@@ -189,14 +191,14 @@ final class PmdReservationsScheduleV1
 'guarantee_currency' => $guarantee
                                 ? (string)$guarantee->currency
                                 : 'EUR',
-                            'guarantee_can_charge' => $guaranteeCanCharge,
-                            'guarantee_can_release' => $guarantee
-                                ? !in_array(
+                            'guarantee_can_charge' => $canManageGuarantees && $guaranteeCanCharge,
+                            'guarantee_can_release' => $canManageGuarantees
+                                && $guarantee
+                                && !in_array(
                                     $guaranteeStatus,
                                     ['released', 'charged'],
                                     true
-                                )
-                                : false,
+                                ),
                             'guarantee_charge_eligible_at' => $guaranteeEligibleAt,
                         ];
                     })
@@ -317,8 +319,9 @@ final class PmdReservationsScheduleV1
             }
 
             $nowUtc = Carbon::now('UTC');
+            $canManageGuarantees = $this->canManageGuarantees();
 
-            return $rows->map(static function ($reservation) use ($guarantees, $nowUtc): array {
+            return $rows->map(static function ($reservation) use ($guarantees, $nowUtc, $canManageGuarantees): array {
                 $date = '';
                 try {
                     $date = $reservation->reserve_date
@@ -434,20 +437,33 @@ final class PmdReservationsScheduleV1
 'guarantee_currency' => $guarantee
                         ? (string)$guarantee->currency
                         : 'EUR',
-                    'guarantee_can_charge' => $guaranteeCanCharge,
-                    'guarantee_can_release' => $guarantee
-                        ? !in_array(
+                    'guarantee_can_charge' => $canManageGuarantees && $guaranteeCanCharge,
+                    'guarantee_can_release' => $canManageGuarantees
+                        && $guarantee
+                        && !in_array(
                             $guaranteeStatus,
                             ['released', 'charged'],
                             true
-                        )
-                        : false,
+                        ),
                     'guarantee_charge_eligible_at' => $guaranteeEligibleAt,
                 ];
             })->values()->all();
         } catch (Throwable $error) {
             report($error);
             return [];
+        }
+    }
+
+    private function canManageGuarantees(): bool
+    {
+        try {
+            $user = AdminAuth::getUser();
+
+            return $user
+                && $user->hasPermission('Admin.Reservations')
+                && $user->hasPermission('Admin.Payments');
+        } catch (Throwable $error) {
+            return false;
         }
     }
 
