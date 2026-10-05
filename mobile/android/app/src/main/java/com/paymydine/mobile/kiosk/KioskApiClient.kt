@@ -30,6 +30,7 @@ data class KioskProfile(
     val theme: DisplayTheme,
     val menuUrl: String,
     val idleTimeoutSeconds: Long,
+    val paymentTerminalReady: Boolean = false,
     val receiptPrinter: KioskReceiptPrinter? = null,
 )
 
@@ -151,6 +152,7 @@ class KioskApiClient {
         val restaurant = json.optJSONObject("restaurant") ?: JSONObject()
         val theme = json.optJSONObject("theme") ?: JSONObject()
         val printer = json.optJSONObject("receipt_printer") ?: JSONObject()
+        val paymentTerminal = json.optJSONObject("payment_terminal")
         val restaurantLogo = restaurant.optString("logo", "").trim()
         val printerConnection = printer.optString("connection_type", "").trim().lowercase()
         val printerHost = printer.optString("host", "").trim()
@@ -178,6 +180,10 @@ class KioskApiClient {
             ),
             idleTimeoutSeconds = json.optLong("idle_timeout_seconds", 120L)
                 .coerceIn(45L, 600L),
+            paymentTerminalReady =
+                paymentTerminal != null &&
+                    paymentTerminal.optLong("terminal_device_id", 0L) > 0L &&
+                    paymentTerminal.optBoolean("ready", true),
             receiptPrinter =
                 if (printerConnection == "network" && printerHost.isNotBlank()) {
                     KioskReceiptPrinter(
