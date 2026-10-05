@@ -2,6 +2,8 @@
     $copy = [
         'en' => [
             'reservations' => 'Reservations',
+            'language' => 'Language',
+            'table_request' => 'Table request',
             'find_table' => 'Find your table',
             'intro' => 'Choose a date, party size and an available time. Your reservation goes directly to the restaurant.',
             'date_party' => 'Date & party',
@@ -66,6 +68,8 @@
         ],
         'de' => [
             'reservations' => 'Reservierungen',
+            'language' => 'Sprache',
+            'table_request' => 'Tischanfrage',
             'find_table' => 'Tisch reservieren',
             'intro' => 'Datum, Personenzahl und verfügbare Uhrzeit wählen. Die Reservierung geht direkt an das Restaurant.',
             'date_party' => 'Datum & Personen',
@@ -130,6 +134,8 @@
         ],
         'tr' => [
             'reservations' => 'Rezervasyon',
+            'language' => 'Dil',
+            'table_request' => 'Masa talebi',
             'find_table' => 'Masanızı ayırtın',
             'intro' => 'Tarih, kişi sayısı ve uygun bir saat seçin. Rezervasyon doğrudan restorana ulaşır.',
             'date_party' => 'Tarih ve kişi',
@@ -194,6 +200,8 @@
         ],
         'ar' => [
             'reservations' => 'الحجوزات',
+            'language' => 'اللغة',
+            'table_request' => 'طلب طاولة',
             'find_table' => 'احجز طاولتك',
             'intro' => 'اختر التاريخ وعدد الأشخاص والوقت المتاح. يصل حجزك مباشرة إلى المطعم.',
             'date_party' => 'التاريخ والأشخاص',
@@ -259,6 +267,27 @@
     ];
 
     $t = $copy[$bookingLocale] ?? $copy['en'];
+
+    $eligibleCopy = [];
+    foreach ($bookingLanguages as $code) {
+        if (isset($copy[$code])) {
+            $eligibleCopy[$code] = $copy[$code];
+        }
+    }
+
+    $localeTags = [
+        'en' => 'en-GB',
+        'de' => 'de-DE',
+        'tr' => 'tr-TR',
+        'ar' => 'ar-OM',
+    ];
+    $localeDirections = [
+        'en' => 'ltr',
+        'de' => 'ltr',
+        'tr' => 'ltr',
+        'ar' => 'rtl',
+    ];
+
     $bookingConfig = [
         'locale' => $bookingLocale,
         'localeTag' => $bookingLocaleTag,
@@ -276,6 +305,9 @@
         'restaurantName' => $bookingProfile['name'],
         'restaurantAddress' => $bookingProfile['address'],
         'labels' => $t,
+        'labelsByLocale' => $eligibleCopy,
+        'localeTags' => $localeTags,
+        'localeDirections' => $localeDirections,
     ];
 @endphp
 <!doctype html>
@@ -288,7 +320,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r11">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r13">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -305,11 +337,12 @@
                 </span>
             </a>
 
-            <nav class="pmd-booking-language" aria-label="Language">
+            <nav class="pmd-booking-language" aria-label="{{ $t['language'] }}" data-pmd-i18n-aria="language">
                 @foreach($bookingLanguages as $code)
                     @php($label = strtoupper($code))
                     <a
                         href="{{ url('/book') }}?lang={{ $code }}"
+                        data-pmd-language="{{ $code }}"
                         class="{{ $bookingLocale === $code ? 'is-active' : '' }}"
                         @if($bookingLocale === $code) aria-current="page" @endif
                     >{{ $label }}</a>
@@ -321,9 +354,9 @@
             <section class="pmd-booking-intro" aria-labelledby="pmd-booking-title">
                 <div class="pmd-booking-intro__index" aria-hidden="true">01</div>
                 <div class="pmd-booking-intro__copy">
-                    <p class="pmd-booking-kicker">{{ $t['reservations'] }}</p>
-                    <h1 id="pmd-booking-title">{{ $t['find_table'] }}<span>{{ $t['at'] }} {{ $bookingProfile['name'] }}</span></h1>
-                    <p>{{ $t['intro'] }}</p>
+                    <p class="pmd-booking-kicker" data-pmd-i18n="reservations">{{ $t['reservations'] }}</p>
+                    <h1 id="pmd-booking-title"><b id="pmd-booking-title-main">{{ $t['find_table'] }}</b><span id="pmd-booking-title-sub">{{ $t['at'] }} {{ $bookingProfile['name'] }}</span></h1>
+                    <p data-pmd-i18n="intro">{{ $t['intro'] }}</p>
                 </div>
 
                 <div class="pmd-booking-intro__details">
@@ -349,12 +382,12 @@
                         <div class="pmd-booking-step__body">
                             <div class="pmd-booking-step__heading">
                                 <div>
-                                    <p>{{ $t['date_party'] }}</p>
-                                    <h2 id="pmd-booking-step-date">{{ $t['choose_date'] }}</h2>
+                                    <p data-pmd-i18n="date_party">{{ $t['date_party'] }}</p>
+                                    <h2 id="pmd-booking-step-date" data-pmd-i18n="choose_date">{{ $t['choose_date'] }}</h2>
                                 </div>
                                 <label class="pmd-booking-native-date">
                                     <span aria-hidden="true">＋</span>
-                                    <span>{{ $t['choose_date'] }}</span>
+                                    <span data-pmd-i18n="choose_date">{{ $t['choose_date'] }}</span>
                                     <input
                                         id="pmd-booking-date"
                                         name="reserve_date"
@@ -367,22 +400,22 @@
                             </div>
 
                             <div class="pmd-booking-date-browser">
-                                <button type="button" class="pmd-booking-date-nav" data-pmd-date-prev aria-label="{{ $t['previous_dates'] }}">
+                                <button type="button" class="pmd-booking-date-nav" data-pmd-date-prev aria-label="{{ $t['previous_dates'] }}" data-pmd-i18n-aria="previous_dates">
                                     <span aria-hidden="true">←</span>
                                 </button>
-                                <div id="pmd-booking-date-strip" class="pmd-booking-date-strip" role="list" aria-label="{{ $t['choose_date'] }}"></div>
-                                <button type="button" class="pmd-booking-date-nav" data-pmd-date-next aria-label="{{ $t['next_dates'] }}">
+                                <div id="pmd-booking-date-strip" class="pmd-booking-date-strip" role="list" aria-label="{{ $t['choose_date'] }}" data-pmd-i18n-aria="choose_date"></div>
+                                <button type="button" class="pmd-booking-date-nav" data-pmd-date-next aria-label="{{ $t['next_dates'] }}" data-pmd-i18n-aria="next_dates">
                                     <span aria-hidden="true">→</span>
                                 </button>
                             </div>
 
                             <div class="pmd-booking-party-row">
                                 <div>
-                                    <span class="pmd-booking-field-label">{{ $t['party_size'] }}</span>
+                                    <span class="pmd-booking-field-label" data-pmd-i18n="party_size">{{ $t['party_size'] }}</span>
                                     <strong id="pmd-booking-party-copy">2 {{ $t['guests'] }}</strong>
                                 </div>
-                                <div class="pmd-booking-stepper" role="group" aria-label="{{ $t['party_size'] }}">
-                                    <button type="button" data-pmd-party-minus aria-label="{{ $t['decrease_party'] }}">−</button>
+                                <div class="pmd-booking-stepper" role="group" aria-label="{{ $t['party_size'] }}" data-pmd-i18n-aria="party_size">
+                                    <button type="button" data-pmd-party-minus aria-label="{{ $t['decrease_party'] }}" data-pmd-i18n-aria="decrease_party">−</button>
                                     <input
                                         id="pmd-booking-guests"
                                         name="guest_num"
@@ -392,8 +425,9 @@
                                         value="2"
                                         inputmode="numeric"
                                         aria-label="{{ $t['party_size'] }}"
+                                        data-pmd-i18n-aria="party_size"
                                     >
-                                    <button type="button" data-pmd-party-plus aria-label="{{ $t['increase_party'] }}">＋</button>
+                                    <button type="button" data-pmd-party-plus aria-label="{{ $t['increase_party'] }}" data-pmd-i18n-aria="increase_party">＋</button>
                                 </div>
                             </div>
                         </div>
@@ -407,8 +441,8 @@
                         <div class="pmd-booking-step__body">
                             <div class="pmd-booking-step__heading">
                                 <div>
-                                    <p>{{ $t['reservations'] }}</p>
-                                    <h2 id="pmd-booking-step-time">{{ $t['available_times'] }}</h2>
+                                    <p data-pmd-i18n="reservations">{{ $t['reservations'] }}</p>
+                                    <h2 id="pmd-booking-step-time" data-pmd-i18n="available_times">{{ $t['available_times'] }}</h2>
                                 </div>
                                 <div id="pmd-booking-opening" class="pmd-booking-opening" aria-live="polite"></div>
                             </div>
@@ -428,54 +462,90 @@
                         <div class="pmd-booking-step__body">
                             <div class="pmd-booking-step__heading">
                                 <div>
-                                    <p>{{ $t['reservations'] }}</p>
-                                    <h2 id="pmd-booking-step-details">{{ $t['your_details'] }}</h2>
+                                    <p data-pmd-i18n="reservations">{{ $t['reservations'] }}</p>
+                                    <h2 id="pmd-booking-step-details" data-pmd-i18n="your_details">{{ $t['your_details'] }}</h2>
                                 </div>
                             </div>
 
                             <div class="pmd-booking-fields">
                                 <label>
-                                    <span>{{ $t['first_name'] }}</span>
+                                    <span data-pmd-i18n="first_name">{{ $t['first_name'] }}</span>
                                     <input name="first_name" type="text" autocomplete="given-name" maxlength="48" required>
                                 </label>
                                 <label>
-                                    <span>{{ $t['last_name'] }}</span>
+                                    <span data-pmd-i18n="last_name">{{ $t['last_name'] }}</span>
                                     <input name="last_name" type="text" autocomplete="family-name" maxlength="48" required>
                                 </label>
                                 <label>
-                                    <span>{{ $t['email'] }}</span>
+                                    <span data-pmd-i18n="email">{{ $t['email'] }}</span>
                                     <input name="email" type="email" autocomplete="email" maxlength="96" required>
                                 </label>
                                 <label>
-                                    <span>{{ $t['phone'] }}</span>
+                                    <span data-pmd-i18n="phone">{{ $t['phone'] }}</span>
                                     <input name="telephone" type="tel" autocomplete="tel" maxlength="64" required>
                                 </label>
+                                <fieldset class="pmd-booking-occasion pmd-booking-field--wide">
+                                    <legend data-pmd-i18n="occasion">{{ $t['occasion'] }}</legend>
+                                    <div class="pmd-booking-occasion-grid">
+                                        <label class="pmd-booking-occasion-card">
+                                            <input type="radio" name="occasion_id" value="0" checked>
+                                            <span class="pmd-booking-occasion-card__surface">
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"/><path d="M10 22 22 10"/></svg>
+                                                <strong data-pmd-i18n="occasion_none">{{ $t['occasion_none'] }}</strong>
+                                            </span>
+                                        </label>
+                                        <label class="pmd-booking-occasion-card">
+                                            <input type="radio" name="occasion_id" value="1">
+                                            <span class="pmd-booking-occasion-card__surface">
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M8 14h16v11H8zM10 10h12v4H10zM16 5v5M13 7h6"/><path d="M8 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2"/></svg>
+                                                <strong data-pmd-i18n="birthday">{{ $t['birthday'] }}</strong>
+                                            </span>
+                                        </label>
+                                        <label class="pmd-booking-occasion-card">
+                                            <input type="radio" name="occasion_id" value="2">
+                                            <span class="pmd-booking-occasion-card__surface">
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 26S6 20 6 12.5C6 8.5 9 6 12.5 6c2 0 3.2 1 3.5 2 .3-1 1.5-2 3.5-2C23 6 26 8.5 26 12.5 26 20 16 26 16 26Z"/></svg>
+                                                <strong data-pmd-i18n="anniversary">{{ $t['anniversary'] }}</strong>
+                                            </span>
+                                        </label>
+                                        <label class="pmd-booking-occasion-card">
+                                            <input type="radio" name="occasion_id" value="3">
+                                            <span class="pmd-booking-occasion-card__surface">
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 5 2.5 6.5L25 14l-6.5 2.5L16 23l-2.5-6.5L7 14l6.5-2.5L16 5Z"/><path d="m25 5 .8 2.2L28 8l-2.2.8L25 11l-.8-2.2L22 8l2.2-.8L25 5ZM7 21l1 2.5 2.5 1L8 25.5 7 28l-1-2.5-2.5-1 2.5-1L7 21Z"/></svg>
+                                                <strong data-pmd-i18n="celebration">{{ $t['celebration'] }}</strong>
+                                            </span>
+                                        </label>
+                                        <label class="pmd-booking-occasion-card">
+                                            <input type="radio" name="occasion_id" value="4">
+                                            <span class="pmd-booking-occasion-card__surface">
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 24c3-8 5-12 7-12s4 4 7 12M12 24h8M11 10c1.5-3 3.2-4.5 5-4.5S19.5 7 21 10"/><circle cx="16" cy="12" r="2"/></svg>
+                                                <strong data-pmd-i18n="hen_party">{{ $t['hen_party'] }}</strong>
+                                            </span>
+                                        </label>
+                                        <label class="pmd-booking-occasion-card">
+                                            <input type="radio" name="occasion_id" value="5">
+                                            <span class="pmd-booking-occasion-card__surface">
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 24h18M10 24l2-11h8l2 11M13 9h6M14 5h4v4h-4z"/><path d="M12 17h8"/></svg>
+                                                <strong data-pmd-i18n="stag_party">{{ $t['stag_party'] }}</strong>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </fieldset>
                                 <label class="pmd-booking-field--wide">
-                                    <span>{{ $t['occasion'] }}</span>
-                                    <select name="occasion_id">
-                                        <option value="0">{{ $t['occasion_none'] }}</option>
-                                        <option value="1">{{ $t['birthday'] }}</option>
-                                        <option value="2">{{ $t['anniversary'] }}</option>
-                                        <option value="3">{{ $t['celebration'] }}</option>
-                                        <option value="4">{{ $t['hen_party'] }}</option>
-                                        <option value="5">{{ $t['stag_party'] }}</option>
-                                    </select>
-                                </label>
-                                <label class="pmd-booking-field--wide">
-                                    <span>{{ $t['notes'] }}</span>
-                                    <textarea name="comment" rows="3" maxlength="1000" placeholder="{{ $t['notes_hint'] }}"></textarea>
+                                    <span data-pmd-i18n="notes">{{ $t['notes'] }}</span>
+                                    <textarea name="comment" rows="3" maxlength="1000" placeholder="{{ $t['notes_hint'] }}" data-pmd-i18n-placeholder="notes_hint"></textarea>
                                 </label>
                             </div>
 
                             <label class="pmd-booking-consent">
                                 <input name="consent" type="checkbox" value="1" required>
-                                <span>{{ $t['consent'] }}</span>
+                                <span data-pmd-i18n="consent">{{ $t['consent'] }}</span>
                             </label>
 
                             <div id="pmd-booking-errors" class="pmd-booking-errors" role="alert" aria-live="assertive"></div>
 
                             <button id="pmd-booking-submit" class="pmd-booking-submit" type="submit" disabled>
-                                <span>{{ $t['book_table'] }}</span>
+                                <span data-pmd-i18n="book_table">{{ $t['book_table'] }}</span>
                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M14 7l5 5-5 5"/></svg>
                             </button>
                         </div>
@@ -483,25 +553,25 @@
                 </form>
 
                 <aside class="pmd-booking-summary" aria-labelledby="pmd-booking-summary-title">
-                    <div class="pmd-booking-summary__folio">TABLE REQUEST</div>
-                    <h2 id="pmd-booking-summary-title">{{ $t['summary'] }}</h2>
+                    <div class="pmd-booking-summary__folio" data-pmd-i18n="table_request">{{ strtoupper($t['table_request']) }}</div>
+                    <h2 id="pmd-booking-summary-title" data-pmd-i18n="summary">{{ $t['summary'] }}</h2>
 
                     <dl>
                         <div>
-                            <dt>{{ $t['date'] }}</dt>
+                            <dt data-pmd-i18n="date">{{ $t['date'] }}</dt>
                             <dd id="pmd-booking-summary-date">{{ $t['not_selected'] }}</dd>
                         </div>
                         <div>
-                            <dt>{{ $t['time'] }}</dt>
+                            <dt data-pmd-i18n="time">{{ $t['time'] }}</dt>
                             <dd id="pmd-booking-summary-time">{{ $t['not_selected'] }}</dd>
                         </div>
                         <div>
-                            <dt>{{ $t['party'] }}</dt>
+                            <dt data-pmd-i18n="party">{{ $t['party'] }}</dt>
                             <dd id="pmd-booking-summary-party">2 {{ $t['guests'] }}</dd>
                         </div>
                         <div>
-                            <dt>{{ $t['stay'] }}</dt>
-                            <dd>{{ $bookingStayMinutes }} {{ $t['minutes'] }}</dd>
+                            <dt data-pmd-i18n="stay">{{ $t['stay'] }}</dt>
+                            <dd><span>{{ $bookingStayMinutes }}</span> <span data-pmd-i18n="minutes">{{ $t['minutes'] }}</span></dd>
                         </div>
                     </dl>
 
@@ -519,12 +589,12 @@
 
                     @if($bookingProfile['telephone'] || $bookingProfile['email'])
                         <div class="pmd-booking-summary__contact">
-                            <span>{{ $t['contact'] }}</span>
+                            <span data-pmd-i18n="contact">{{ $t['contact'] }}</span>
                             @if($bookingProfile['telephone'])
-                                <a href="tel:{{ preg_replace('/\s+/', '', $bookingProfile['telephone']) }}">{{ $t['call'] }}</a>
+                                <a href="tel:{{ preg_replace('/\s+/', '', $bookingProfile['telephone']) }}" data-pmd-i18n="call">{{ $t['call'] }}</a>
                             @endif
                             @if($bookingProfile['email'])
-                                <a href="mailto:{{ $bookingProfile['email'] }}">{{ $t['email_restaurant'] }}</a>
+                                <a href="mailto:{{ $bookingProfile['email'] }}" data-pmd-i18n="email_restaurant">{{ $t['email_restaurant'] }}</a>
                             @endif
                         </div>
                     @endif
@@ -534,11 +604,11 @@
             <section id="pmd-booking-success" class="pmd-booking-success" hidden aria-live="polite">
                 <div class="pmd-booking-success__mark" aria-hidden="true">✓</div>
                 <p class="pmd-booking-kicker">{{ $bookingProfile['name'] }}</p>
-                <h2>{{ $t['success_title'] }}</h2>
+                <h2 data-pmd-i18n="success_title">{{ $t['success_title'] }}</h2>
                 <p id="pmd-booking-success-message">{{ $t['success_received'] }}</p>
 
                 <div class="pmd-booking-success__ticket">
-                    <span>{{ $t['reference'] }}</span>
+                    <span data-pmd-i18n="reference">{{ $t['reference'] }}</span>
                     <strong id="pmd-booking-reference">—</strong>
                     <div>
                         <b id="pmd-booking-success-date">—</b>
@@ -548,14 +618,14 @@
                 </div>
 
                 <div class="pmd-booking-success__actions">
-                    <a id="pmd-booking-calendar" href="#" download="reservation.ics">{{ $t['add_calendar'] }}</a>
-                    <button type="button" data-pmd-new-booking>{{ $t['new_booking'] }}</button>
+                    <a id="pmd-booking-calendar" href="#" download="reservation.ics" data-pmd-i18n="add_calendar">{{ $t['add_calendar'] }}</a>
+                    <button type="button" data-pmd-new-booking data-pmd-i18n="new_booking">{{ $t['new_booking'] }}</button>
                 </div>
             </section>
         </main>
 
         <footer class="pmd-booking-footer">
-            <span>{{ $t['powered'] }}</span>
+            <span data-pmd-i18n="powered">{{ $t['powered'] }}</span>
             <div>
                 @if($bookingProfile['website_url'])
                     <a href="{{ $bookingProfile['website_url'] }}" rel="noopener noreferrer">Website</a>
@@ -571,6 +641,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r11" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r13" defer></script>
 </body>
 </html>
