@@ -72,11 +72,10 @@ final class PmdMobileWorkspaceSessionController extends Controller
 
         // PMD_MOBILE_RESERVATIONS_ROUTE_V123
         // PMD_ANDROID_CLOUD_REENTRY_V129
-        // PMD_RESERVATIONS_CANONICAL_ROUTE_V131
-        // /admin/reservations is the canonical clean Reservations workspace;
-        // /admin/reservations is served directly by the canonical Reservations controller.
-        // Cashier owns the visible Reservations side-menu
-        // entry, so mobile bootstrap must target that public canonical URL.
+        // PMD_ANDROID_RESERVATIONS_IN_POS_V17
+        // Mobile Reservations now opens the combined Quick POS shell directly
+        // with workspace=reservations so the Android surface matches the
+        // canonical /admin/pos?workspace=reservations experience.
         $cashierMayUseReservationsV129 = in_array(
             strtolower($roleCode),
             [
@@ -96,7 +95,7 @@ final class PmdMobileWorkspaceSessionController extends Controller
             ) {
                 abort(403, 'This paired account cannot use PayMyDine Reservations.');
             }
-            $route = 'reservations';
+            $route = 'pos?workspace=reservations';
         } elseif (
             $effectiveSurface !== ''
             && $effectiveSurface !== 'auto'
