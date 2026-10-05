@@ -37,6 +37,7 @@ import java.util.UUID
  * PMD_KIOSK_DEDICATED_WEB_ACTIVITY_V58
  * PMD_KIOSK_FAST_WEBVIEW_V10
  * PMD_KIOSK_PREMIUM_UI_V11
+ * PMD_KIOSK_INSTANT_MENU_V12
  * PMD_KIOSK_RENDER_FALLBACK_V10
  *
  * Kiosk menu intentionally uses a classic Android view hierarchy instead of a
@@ -108,18 +109,10 @@ class KioskMenuActivity : ComponentActivity() {
         enterKioskMode()
         buildNativeShell()
 
-        // PMD_KIOSK_FAST_WEBVIEW_V10
-        // Start WebView creation as soon as the native shell has dimensions.
-        // Do not wait for focus or throw away browser caches on every order.
-        root.post { createWebViewWhenReady() }
-        root.postDelayed(
-            {
-                if (webView == null && !isFinishing) {
-                    createWebViewWhenReady()
-                }
-            },
-            250L,
-        )
+        // PMD_KIOSK_INSTANT_MENU_V12
+        // WebView does not need to wait for a measured container. Attach and
+        // navigate immediately so the guest never sees an intermediate page.
+        createCanonicalKioskWebView()
         resetIdleTimer()
     }
 
@@ -215,15 +208,18 @@ class KioskMenuActivity : ComponentActivity() {
         )
 
         webContainer = FrameLayout(this).apply {
-            setBackgroundColor(Color.rgb(243, 245, 247))
+            setBackgroundColor(surfaceColor)
         }
 
+        // Error-only overlay. V12 deliberately has no "Opening menu" screen.
         loadingView = TextView(this).apply {
-            text = "Opening menu…"
-            textSize = 17f
+            text = ""
+            textSize = 15f
             gravity = Gravity.CENTER
-            setTextColor(Color.rgb(64, 74, 84))
-            setBackgroundColor(Color.rgb(243, 245, 247))
+            setTextColor(textColor)
+            setBackgroundColor(surfaceColor)
+            visibility = View.GONE
+            setPadding(dp(28), dp(28), dp(28), dp(28))
         }
 
         webContainer.addView(
@@ -295,7 +291,7 @@ class KioskMenuActivity : ComponentActivity() {
 
         val view = WebView(this).apply {
             setInitialScale(100)
-            setBackgroundColor(Color.rgb(243, 245, 247))
+            setBackgroundColor(surfaceColor)
             // PMD_KIOSK_RENDER_FALLBACK_V10
             // Hardware rendering keeps real kiosk devices fast. The software
             // path is retained only for emulator-like devices that previously
@@ -459,12 +455,11 @@ class KioskMenuActivity : ComponentActivity() {
                             webContainer.removeView(view)
                             runCatching { view.destroy() }
                             webView = null
-                            loadingView.visibility = View.VISIBLE
-                            loadingView.text = "Restarting kiosk…"
-                            webContainer.postDelayed(
-                                { createWebViewWhenReady() },
-                                250L,
-                            )
+                            loadingView.visibility = View.GONE
+                            loadingView.text = ""
+                            webContainer.post {
+                                if (!isFinishing) createCanonicalKioskWebView()
+                            }
                         }
                         return true
                     }
@@ -523,12 +518,9 @@ class KioskMenuActivity : ComponentActivity() {
             {
                 if (!pageReady && webView === view && !isFinishing) {
                     synchronizeVisibleFrame(view)
-                    if (loadingView.visibility != View.GONE) {
-                        loadingView.text = "Still opening menu…"
-                    }
                 }
             },
-            2_500L,
+            1_200L,
         )
     }
 

@@ -1,3 +1,11 @@
+@php
+    $initialRestaurant = (array)($pmdKioskConfig['restaurant'] ?? []);
+    $initialTheme = (array)($pmdKioskConfig['theme'] ?? []);
+    $initialRestaurantName = trim((string)($initialRestaurant['name'] ?? 'PayMyDine')) ?: 'PayMyDine';
+    $initialRestaurantLogo = trim((string)($initialRestaurant['logo'] ?? ''));
+    $initialRestaurantLetter = mb_strtoupper(mb_substr($initialRestaurantName, 0, 1));
+    $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Eat here';
+@endphp
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,17 +15,26 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="theme-color" id="pmd-kiosk-theme-color" content="#f3f5f7">
     <title>Self-service ordering · PayMyDine</title>
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=11-premium-ui">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=12-instant-menu-hero">
 </head>
-<body class="pmd-kiosk-v8" data-pmd-kiosk-terminal="blade-v8" data-pmd-kiosk-theme="kazen_japanese">
+<body
+    class="pmd-kiosk-v8"
+    data-pmd-kiosk-terminal="blade-v8"
+    data-pmd-kiosk-theme="{{ e((string)($initialTheme['id'] ?? 'kazen_japanese')) }}"
+    style="--pmd-k-bg: {{ e((string)($initialTheme['background'] ?? '#f3f5f7')) }}; --pmd-k-panel: {{ e((string)($initialTheme['surface'] ?? '#ffffff')) }}; --pmd-k-ink: {{ e((string)($initialTheme['text'] ?? '#17212b')) }}; --pmd-k-muted: {{ e((string)($initialTheme['muted'] ?? '#6d7985')) }}; --pmd-k-accent: {{ e((string)($initialTheme['accent'] ?? '#0a6b57')) }};"
+>
 <div id="pmd-kiosk-app" class="pmd-kiosk-shell" aria-busy="true">
     <header class="pmd-kiosk-topbar">
         <div class="pmd-kiosk-brand" aria-label="Restaurant">
             <span class="pmd-kiosk-brand__mark" id="pmd-kiosk-brand-mark">
-                <span id="pmd-kiosk-brand-letter">P</span>
+                @if ($initialRestaurantLogo !== '')
+                    <img src="{{ e($initialRestaurantLogo) }}" alt="" fetchpriority="high">
+                @else
+                    <span id="pmd-kiosk-brand-letter">{{ e($initialRestaurantLetter) }}</span>
+                @endif
             </span>
             <span class="pmd-kiosk-brand__copy">
-                <strong id="pmd-kiosk-restaurant-name">PayMyDine</strong>
+                <strong id="pmd-kiosk-restaurant-name">{{ e($initialRestaurantName) }}</strong>
                 <small id="pmd-kiosk-product-label">Self-service ordering</small>
             </span>
         </div>
@@ -26,9 +43,11 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4zM8 7h8M8 11h8M8 15h5"/></svg>
             <span>
                 <small id="pmd-kiosk-order-mode-kicker">Order type</small>
-                <strong id="pmd-kiosk-order-mode-label">Eat here</strong>
+                <strong id="pmd-kiosk-order-mode-label">{{ e($initialServiceMode) }}</strong>
             </span>
         </div>
+
+        <div id="pmd-kiosk-menu-hero" class="pmd-kiosk-menu-hero" aria-hidden="true"></div>
 
         <label class="pmd-kiosk-search">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
@@ -102,7 +121,7 @@
 
     <div id="pmd-kiosk-toast" class="pmd-kiosk-toast" role="status" hidden></div>
 
-    <div id="pmd-kiosk-loading" class="pmd-kiosk-loading" role="status">
+    <div id="pmd-kiosk-loading" class="pmd-kiosk-loading" role="status" hidden>
         <div class="pmd-kiosk-loading__mark">P</div>
         <strong>Loading menu</strong>
         <span>Please wait…</span>
@@ -110,6 +129,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=11-premium-ui" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=12-instant-menu-hero" defer></script>
 </body>
 </html>

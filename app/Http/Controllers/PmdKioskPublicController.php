@@ -11,6 +11,7 @@ final class PmdKioskPublicController
 {
 
     // PMD_KIOSK_BLADE_TERMINAL_V8
+    // PMD_KIOSK_INSTANT_MENU_V12
     // Kiosk web authority deliberately lives in Laravel/Blade, like the native
     // PayMyDine admin/public pages. Customer Next.js is not involved.
     public function screen(Request $request)
@@ -85,7 +86,7 @@ final class PmdKioskPublicController
         }
 
         $config = [
-            'version' => 'blade-v8-theme-v11',
+            'version' => 'blade-v8-theme-v12',
             'session' => $session,
             'serviceMode' => $serviceMode,
             'paymentReturn' => $request->boolean('pmd_payment_return'),

@@ -1638,3 +1638,94 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
     padding: 9px 11px;
   }
 }
+
+
+/* PMD_KIOSK_INSTANT_HERO_V12
+ * A real portrait hero strip replaces the tiny decorative crop from V11.
+ * The shell itself is visible immediately; photography hydrates from the
+ * restaurant's own menu once the bootstrap response arrives.
+ */
+.pmd-kiosk-menu-hero {
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--pmd-k-accent) 24%, var(--pmd-k-line));
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--pmd-k-panel) 22%, transparent),
+      color-mix(in srgb, var(--pmd-k-panel) 2%, transparent)),
+    var(--pmd-k-hero-image),
+    var(--pmd-k-panel-soft);
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 12px 30px rgba(0,0,0,.13);
+}
+
+@media (max-width: 930px) {
+  .pmd-kiosk-topbar {
+    height: 286px;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "brand mode language"
+      "hero hero hero"
+      "search search search";
+    grid-template-rows: 54px 136px 56px;
+    gap: 8px 10px;
+    padding: 8px 12px 12px;
+  }
+
+  .pmd-kiosk-topbar::after {
+    display: none;
+  }
+
+  .pmd-kiosk-brand { grid-area: brand; }
+  .pmd-kiosk-order-mode { grid-area: mode; }
+  .pmd-kiosk-language { grid-area: language; }
+  .pmd-kiosk-menu-hero {
+    grid-area: hero;
+    display: block;
+    width: 100%;
+    height: 136px;
+  }
+  .pmd-kiosk-search { grid-area: search; }
+
+  .pmd-kiosk-workspace {
+    height: calc(100% - 286px);
+    min-height: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .pmd-kiosk-topbar {
+    height: 290px;
+    grid-template-rows: 54px 140px 56px;
+    padding: 8px 12px 12px;
+  }
+
+  .pmd-kiosk-menu-hero {
+    height: 140px;
+    border-radius: 16px;
+  }
+
+  .pmd-kiosk-workspace {
+    height: calc(100% - 290px);
+  }
+
+  .pmd-kiosk-brand__mark {
+    width: 50px;
+    height: 50px;
+    flex-basis: 50px;
+  }
+
+  .pmd-kiosk-search {
+    min-height: 56px;
+  }
+}
+
+/* Normal startup has no blocking loading screen. The same node is retained
+ * solely as an error surface if bootstrap genuinely fails.
+ */
+.pmd-kiosk-loading[hidden] {
+  display: none !important;
+}

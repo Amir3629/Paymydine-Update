@@ -77,13 +77,16 @@ class KioskApiClient {
         )
         val restaurant = json.optJSONObject("restaurant") ?: JSONObject()
         val theme = json.optJSONObject("theme") ?: JSONObject()
+        val restaurantLogo = restaurant.optString("logo", "").trim()
 
         KioskProfile(
             restaurantName = restaurant.optString("name", "PayMyDine"),
-            restaurantLogoUrl = absoluteUrl(
-                host,
-                restaurant.optString("logo", "/brand/paymydine-logo.svg"),
-            ),
+            restaurantLogoUrl =
+                if (restaurantLogo.isBlank()) {
+                    ""
+                } else {
+                    absoluteUrl(host, restaurantLogo)
+                },
             theme = DisplayTheme(
                 id = theme.optString("id", "kazen_japanese"),
                 background = theme.optString("background", "#F5F1EB"),

@@ -574,21 +574,42 @@ final class PmdTableDisplayService
             catch (\Throwable $ignored) { return null; }
         };
 
-        $name = trim((string)($get('pmd_restaurant_identity_name') ?: $get('site_name') ?: ''));
+        $name = trim((string)(
+            $get('pmd_restaurant_identity_name')
+            ?: $get('site_name')
+            ?: $get('business_name')
+            ?: $get('restaurant_name')
+            ?: ''
+        ));
         if ($name === '' && $locationId && Schema::hasTable('locations')) {
             try { $name = trim((string)DB::table('locations')->where('location_id', $locationId)->value('location_name')); }
             catch (\Throwable $ignored) {}
         }
 
         /*
+         * PMD_KIOSK_RESTAURANT_IDENTITY_V12
+         * Keep native kiosk identity in lock-step with the Customer Menu
+         * bootstrap. Older code only checked site_logo and could fall back to
+         * the PayMyDine mark while the web menu correctly showed the restaurant.
+         *
          * PMD_TABLE_DISPLAY_RESTAURANT_IDENTITY_V3
          * Use the restaurant's canonical uploaded identity logo. Tenant
          * settings may store either a full URL, /uploads/... or a bare media
          * filename, so normalize it exactly like the table QR studio does.
          */
-        $logo = trim((string)($get('pmd_restaurant_identity_logo') ?: $get('site_logo') ?: ''));
+        $logo = trim((string)(
+            $get('pmd_restaurant_identity_logo')
+            ?: $get('site_logo_url')
+            ?: $get('logo_url')
+            ?: $get('site_logo')
+            ?: $get('logo')
+            ?: ''
+        ));
         if ($logo === '') {
-            $logo = '/brand/paymydine-logo.svg';
+            // Guest surfaces must never substitute the PayMyDine mark for a
+            // missing restaurant logo. Native/web clients render a neutral
+            // restaurant initial instead; PayMyDine stays in the small footer.
+            $logo = '';
         } elseif (!preg_match('#^https?://#i', $logo)) {
             $logoPath = '/'.ltrim(
                 str_replace('\\\\', '/', (string)(parse_url($logo, PHP_URL_PATH) ?: $logo)),

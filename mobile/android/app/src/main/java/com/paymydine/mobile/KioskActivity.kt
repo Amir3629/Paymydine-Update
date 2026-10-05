@@ -1,8 +1,11 @@
 package com.paymydine.mobile
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -59,6 +62,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -77,9 +81,14 @@ import com.paymydine.mobile.kiosk.KioskProfile
 import com.paymydine.mobile.tabledisplay.DevicePlatformClient
 import com.paymydine.mobile.tabledisplay.DeviceShellController
 import com.paymydine.mobile.tabledisplay.SecureStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Dedicated customer-facing self-service kiosk inside the PayMyDine Device App.
@@ -203,6 +212,7 @@ private fun KioskApp(
     var loading by remember { mutableStateOf(false) }
     var completedOrderId by remember { mutableStateOf<String?>(null) }
     var sessionNonce by remember { mutableStateOf(UUID.randomUUID().toString()) }
+    var browserPrewarmed by remember { mutableStateOf(false) }
     var lastInteractionMs by remember {
         mutableLongStateOf(SystemClock.elapsedRealtime())
     }
@@ -219,11 +229,15 @@ private fun KioskApp(
 
         try {
             profile = api.state(host, token)
-            heroImages = runCatching { api.heroImages(host) }.getOrDefault(emptyList())
             error = null
             if (screen == KioskScreen.LOADING) {
+                // PMD_KIOSK_INSTANT_WELCOME_V12
+                // Never block the first guest screen on decorative photography.
+                // Restaurant identity/theme arrives first; hero images hydrate
+                // independently on the next suspension.
                 screen = KioskScreen.WELCOME
             }
+            heroImages = runCatching { api.heroImages(host) }.getOrDefault(emptyList())
         } catch (t: Throwable) {
             error = t.message ?: "Kiosk connection is unavailable."
             if (profile == null) {
@@ -255,6 +269,35 @@ private fun KioskApp(
             delay(10_000L)
         }
     }
+
+    LaunchedEffect(screen, profile) {
+        if (
+            screen != KioskScreen.WELCOME ||
+            profile == null ||
+            browserPrewarmed
+        ) {
+            return@LaunchedEffect
+        }
+
+        // PMD_KIOSK_WEBVIEW_PREWARM_V12
+        // Warm Chromium after the welcome frame is already on screen. This
+        // happens while the guest is deciding between Eat Here / Take Away,
+        // so the menu tap does not pay the WebView process cold-start cost.
+        browserPrewarmed = true
+        val warmView =
+            runCatching {
+                WebView(context).apply {
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    settings.javaScriptEnabled = false
+                    settings.domStorageEnabled = true
+                    settings.cacheMode = WebSettings.LOAD_DEFAULT
+                    loadUrl("about:blank")
+                }
+            }.getOrNull()
+        delay(220L)
+        runCatching { warmView?.destroy() }
+    }
+
 
     LaunchedEffect(screen, profile?.idleTimeoutSeconds) {
         if (screen != KioskScreen.MENU) return@LaunchedEffect
@@ -344,6 +387,7 @@ private fun KioskApp(
                             serviceMode = "eat_in",
                         ),
                     )
+                    (context as? Activity)?.overridePendingTransition(0, 0)
                 },
                 onTakeAway = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
@@ -354,6 +398,7 @@ private fun KioskApp(
                             serviceMode = "pickup",
                         ),
                     )
+                    (context as? Activity)?.overridePendingTransition(0, 0)
                 },
             )
         }
@@ -588,7 +633,8 @@ private fun KioskWelcomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 28.dp, vertical = 24.dp),
+                .padding(horizontal = 28.dp)
+                .padding(top = 52.dp, bottom = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // PMD_KIOSK_PREMIUM_WELCOME_V11
@@ -599,21 +645,38 @@ private fun KioskWelcomeScreen(
                     contentDescription = profile.restaurantName,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(214.dp)
+                        .height(258.dp)
                         .clip(RoundedCornerShape(28.dp)),
                     background = surface,
                 )
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(20.dp))
             }
 
-            KioskRemoteImage(
-                url = profile.restaurantLogoUrl,
-                contentDescription = profile.restaurantName,
-                modifier = Modifier
-                    .size(82.dp)
-                    .clip(RoundedCornerShape(20.dp)),
-                background = surface,
-            )
+            if (profile.restaurantLogoUrl.isNotBlank()) {
+                KioskRemoteImage(
+                    url = profile.restaurantLogoUrl,
+                    contentDescription = profile.restaurantName,
+                    modifier = Modifier
+                        .size(82.dp)
+                        .clip(RoundedCornerShape(20.dp)),
+                    background = surface,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(82.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(surface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        profile.restaurantName.take(1).uppercase(),
+                        color = accent,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+            }
             Text(
                 profile.restaurantName,
                 modifier = Modifier.padding(top = 12.dp),
@@ -766,7 +829,10 @@ private fun KioskModeButton(
     }
 }
 
-@SuppressLint("SetJavaScriptEnabled")
+private object KioskGuestImageCache {
+    val bitmaps = ConcurrentHashMap<String, Bitmap>()
+}
+
 @Composable
 private fun KioskRemoteImage(
     url: String,
@@ -774,57 +840,55 @@ private fun KioskRemoteImage(
     modifier: Modifier,
     background: Color,
 ) {
-    val bg = String.format("#%06X", 0xFFFFFF and background.toArgb())
-    AndroidView(
-        modifier = modifier,
-        factory = { context ->
-            WebView(context).apply {
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                isClickable = false
-                isFocusable = false
-                isVerticalScrollBarEnabled = false
-                isHorizontalScrollBarEnabled = false
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = false
-                settings.allowFileAccess = false
-                settings.allowContentAccess = false
-                settings.cacheMode = WebSettings.LOAD_DEFAULT
-            }
-        },
-        update = { view ->
-            val safeUrl = org.json.JSONObject.quote(url.ifBlank { "about:blank" })
-            val safeAlt = org.json.JSONObject.quote(contentDescription)
-            val html =
-                """
-                <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-                <style>
-                html,body{margin:0;width:100%;height:100%;overflow:hidden;background:$bg}
-                img{width:100%;height:100%;object-fit:cover;display:block}
-                </style></head><body>
-                <img id="image" alt="" />
-                <script>
-                document.getElementById('image').src=$safeUrl;
-                document.getElementById('image').alt=$safeAlt;
-                </script>
-                </body></html>
-                """.trimIndent()
-            view.loadDataWithBaseURL(
-                profileBaseUrl(url),
-                html,
-                "text/html",
-                "UTF-8",
-                null,
-            )
-        },
-    )
-}
+    var bitmap by remember(url) {
+        mutableStateOf(
+            url.takeIf { it.isNotBlank() }
+                ?.let(KioskGuestImageCache.bitmaps::get),
+        )
+    }
 
-private fun profileBaseUrl(url: String): String? =
-    runCatching {
-        val uri = Uri.parse(url)
-        if (uri.scheme.isNullOrBlank() || uri.host.isNullOrBlank()) null
-        else uri.scheme + "://" + uri.host + "/"
-    }.getOrNull()
+    LaunchedEffect(url) {
+        if (url.isBlank() || bitmap != null) return@LaunchedEffect
+        val loaded =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val connection =
+                        (URL(url).openConnection() as HttpURLConnection).apply {
+                            connectTimeout = 4_500
+                            readTimeout = 4_500
+                            instanceFollowRedirects = true
+                            useCaches = true
+                            setRequestProperty("Accept", "image/*")
+                        }
+                    try {
+                        if (connection.responseCode !in 200..299) return@runCatching null
+                        connection.inputStream.use { input -> BitmapFactory.decodeStream(input) }
+                    } finally {
+                        connection.disconnect()
+                    }
+                }.getOrNull()
+            }
+
+        if (loaded != null) {
+            KioskGuestImageCache.bitmaps[url] = loaded
+            bitmap = loaded
+        }
+    }
+
+    Box(
+        modifier = modifier.background(background),
+        contentAlignment = Alignment.Center,
+    ) {
+        bitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        }
+    }
+}
 
 @Composable
 private fun KioskMenuScreen(
