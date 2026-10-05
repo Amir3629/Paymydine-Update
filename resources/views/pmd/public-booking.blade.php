@@ -372,7 +372,7 @@
                 </div>
 
                 <div class="pmd-booking-intro__details">
-                    <a class="pmd-booking-manage-entry" href="{{ url('/book') }}?manage=1&lang={{ $bookingLocale }}" data-pmd-i18n="manage_existing">{{ $t['manage_existing'] }}</a>
+                    <a id="pmd-booking-manage-top" class="pmd-booking-manage-entry" href="{{ url('/book') }}?manage=1&lang={{ $bookingLocale }}" data-pmd-i18n="manage_existing">{{ $t['manage_existing'] }}</a>
                     @if($bookingProfile['description'])
                         <p class="pmd-booking-restaurant-note">{{ $bookingProfile['description'] }}</p>
                     @endif
