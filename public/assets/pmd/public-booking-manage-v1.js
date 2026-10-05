@@ -69,6 +69,12 @@
       currentParty.textContent = partyLabel(Number(config.reservation.guests || state.guests));
     }
 
+    if (statusNode) {
+      statusNode.textContent = statusNode.classList.contains("is-canceled")
+        ? (labels.status_canceled || "Canceled")
+        : (labels.status_active || "Active");
+    }
+
     document.title = (labels.manage_booking || "Manage booking") + " · " + (config.restaurantName || "");
   }
 
