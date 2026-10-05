@@ -33,8 +33,17 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.paymydine.mobile.hardware.printing.PrinterManager
+import com.paymydine.mobile.kiosk.KioskApiClient
 import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskProfile
+import com.paymydine.mobile.tabledisplay.SecureStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.util.UUID
 
@@ -417,6 +426,12 @@ class KioskMenuActivity : ComponentActivity() {
     private val heroImage: String by lazy {
         intent.getStringExtra(EXTRA_HERO_IMAGE).orEmpty()
     }
+    private val selectedLocale: String by lazy {
+        intent.getStringExtra(EXTRA_LOCALE)
+            ?.lowercase()
+            ?.takeIf { it in setOf("en", "de", "tr", "fa") }
+            ?: "en"
+    }
     private val surfaceColor: Int by lazy {
         parseColor(intent.getStringExtra(EXTRA_SURFACE), Color.rgb(244, 246, 248))
     }
@@ -756,6 +771,7 @@ class KioskMenuActivity : ComponentActivity() {
         )
 
         injectKioskGuestUi(view, bridgeSecret)
+        applySelectedLocale(view)
         loadingView.visibility = View.GONE
         view.onResume()
         view.resumeTimers()
@@ -770,6 +786,8 @@ class KioskMenuActivity : ComponentActivity() {
         val bridge =
             KioskJavascriptBridge(
                 secret = bridgeSecret,
+                activity = this,
+                view = view,
                 onOrderComplete = ::showComplete,
             )
 
@@ -872,6 +890,7 @@ class KioskMenuActivity : ComponentActivity() {
 
                     setBridgeEnabled(true)
                     injectKioskGuestUi(current, bridgeSecret)
+                    applySelectedLocale(current)
                     synchronizeVisibleFrame(current)
 
                     current.evaluateJavascript(
@@ -1042,7 +1061,26 @@ class KioskMenuActivity : ComponentActivity() {
             accent = intent.getStringExtra(EXTRA_ACCENT).orEmpty(),
             surface = intent.getStringExtra(EXTRA_SURFACE).orEmpty(),
             heroImage = heroImage,
+        ) + "&lang=" + Uri.encode(selectedLocale)
+
+    private fun applySelectedLocale(view: WebView) {
+        val locale = JSONObject.quote(selectedLocale)
+        view.evaluateJavascript(
+            """
+            (function(){
+              var locale = $locale;
+              var select = document.getElementById('pmd-kiosk-language');
+              if (!select) return false;
+              if (select.value !== locale) {
+                select.value = locale;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+              return true;
+            })()
+            """.trimIndent(),
+            null,
         )
+    }
 
     private fun applyKioskRenderLayer(view: WebView) {
         view.setLayerType(
@@ -1157,22 +1195,199 @@ class KioskMenuActivity : ComponentActivity() {
             Color.parseColor(value?.trim().orEmpty())
         }.getOrDefault(fallback)
 
+    /**
+     * PMD_KIOSK_NATIVE_HARDWARE_BRIDGE_V18
+     *
+     * Web checkout owns basket/order presentation. Sensitive hardware actions
+     * stay native: the paired kiosk token starts the server-authorized linked
+     * terminal, and receipt bytes go only to the printer configured in the
+     * unified Device App.
+     */
     private class KioskJavascriptBridge(
         private val secret: String,
+        private val activity: KioskMenuActivity,
+        private val view: WebView,
         private val onOrderComplete: (String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        private val api = KioskApiClient()
+        private val printer = PrinterManager(activity.applicationContext)
+        private val store =
+            SecureStore(
+                context = activity.applicationContext,
+                storeName = "pmd-kiosk-v1",
+                keyAlias = "pmd-kiosk-v1",
+            )
 
         @JavascriptInterface
         fun orderComplete(
             orderId: String,
             providedSecret: String,
         ) {
-            if (providedSecret.isBlank() || providedSecret != secret) {
-                return
-            }
+            if (!valid(providedSecret)) return
             handler.post {
                 onOrderComplete(orderId.trim())
+            }
+        }
+
+        @JavascriptInterface
+        fun terminalPay(
+            orderId: String,
+            providedSecret: String,
+        ) {
+            if (!valid(providedSecret)) return
+            val parsedOrderId = orderId.trim().toLongOrNull()
+            if (parsedOrderId == null || parsedOrderId < 1L) {
+                paymentResult(
+                    ok = false,
+                    paid = false,
+                    status = "failed",
+                    message = "The kiosk order is invalid.",
+                )
+                return
+            }
+
+            val host = store.host().orEmpty()
+            val token = store.token().orEmpty()
+            if (host.isBlank() || token.isBlank()) {
+                paymentResult(
+                    ok = false,
+                    paid = false,
+                    status = "failed",
+                    message = "This kiosk must be paired before terminal payment.",
+                )
+                return
+            }
+
+            scope.launch {
+                try {
+                    val started =
+                        api.startTerminalPayment(
+                            host = host,
+                            token = token,
+                            orderId = parsedOrderId,
+                        )
+
+                    if (started.paid) {
+                        paymentResult(
+                            ok = true,
+                            paid = true,
+                            status = "paid",
+                            message = started.message,
+                        )
+                        return@launch
+                    }
+
+                    val attemptId = started.attemptId
+                    if (attemptId == null) {
+                        paymentResult(
+                            ok = false,
+                            paid = false,
+                            status = started.status,
+                            message =
+                                started.message.ifBlank {
+                                    "The connected terminal did not create a payment attempt."
+                                },
+                        )
+                        return@launch
+                    }
+
+                    // Give real countertop terminals enough time for tap/insert
+                    // and provider confirmation without ever fabricating success.
+                    repeat(120) {
+                        delay(1_000L)
+                        val refreshed =
+                            runCatching {
+                                api.refreshTerminalPayment(
+                                    host = host,
+                                    token = token,
+                                    attemptId = attemptId,
+                                )
+                            }.getOrNull() ?: return@repeat
+
+                        if (refreshed.paid) {
+                            paymentResult(
+                                ok = true,
+                                paid = true,
+                                status = "paid",
+                                message = refreshed.message,
+                            )
+                            return@launch
+                        }
+
+                        if (refreshed.failed) {
+                            paymentResult(
+                                ok = false,
+                                paid = false,
+                                status = refreshed.status,
+                                message = refreshed.message,
+                            )
+                            return@launch
+                        }
+                    }
+
+                    paymentResult(
+                        ok = false,
+                        paid = false,
+                        status = "pending",
+                        message =
+                            "Payment is still pending on the connected terminal. Do not pay twice.",
+                    )
+                } catch (t: Throwable) {
+                    paymentResult(
+                        ok = false,
+                        paid = false,
+                        status = "failed",
+                        message =
+                            t.message
+                                ?: "The connected payment terminal is unavailable.",
+                    )
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun printReceipt(
+            receiptJson: String,
+            providedSecret: String,
+        ) {
+            if (!valid(providedSecret)) return
+            if (!printer.config().enabled) return
+            scope.launch {
+                // Printing is best-effort after provider-approved payment. A
+                // printer fault must never reverse or duplicate the payment.
+                printer.printReceipt(receiptJson)
+            }
+        }
+
+        private fun valid(providedSecret: String): Boolean =
+            providedSecret.isNotBlank() && providedSecret == secret
+
+        private fun paymentResult(
+            ok: Boolean,
+            paid: Boolean,
+            status: String,
+            message: String,
+        ) {
+            val payload =
+                JSONObject()
+                    .put("ok", ok)
+                    .put("paid", paid)
+                    .put("status", status)
+                    .put("message", message)
+                    .toString()
+
+            handler.post {
+                if (activity.isFinishing || activity.webView !== view) {
+                    return@post
+                }
+                view.evaluateJavascript(
+                    "window.__PMD_KIOSK_TERMINAL_RESULT__(" +
+                        JSONObject.quote(payload) +
+                        ");",
+                    null,
+                )
             }
         }
     }
@@ -1189,12 +1404,14 @@ class KioskMenuActivity : ComponentActivity() {
         private const val EXTRA_ACCENT = "pmd.kiosk.accent"
         private const val EXTRA_SURFACE = "pmd.kiosk.surface"
         private const val EXTRA_IDLE_TIMEOUT_SECONDS = "pmd.kiosk.idle_timeout_seconds"
+        private const val EXTRA_LOCALE = "pmd.kiosk.locale"
 
         fun intent(
             context: Context,
             profile: KioskProfile,
             serviceMode: String,
             heroImage: String = "",
+            locale: String = "en",
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -1203,6 +1420,7 @@ class KioskMenuActivity : ComponentActivity() {
                 putExtra(EXTRA_RESTAURANT_NAME, profile.restaurantName)
                 putExtra(EXTRA_RESTAURANT_LOGO, profile.restaurantLogoUrl)
                 putExtra(EXTRA_HERO_IMAGE, heroImage)
+                putExtra(EXTRA_LOCALE, locale)
                 putExtra(EXTRA_BACKGROUND, profile.theme.background)
                 putExtra(EXTRA_TEXT, profile.theme.text)
                 putExtra(EXTRA_MUTED, profile.theme.muted)
