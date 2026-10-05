@@ -54,6 +54,7 @@
   var dateStatusAbort = null;
   var dateStatuses = {};
   var availabilityCache = Object.create(null);
+  var dateStatusRefreshTimer = null;
 
   function availabilityKey(date, guests) {
     return String(guests) + "|" + String(date);
@@ -73,6 +74,15 @@
     return availabilityCache[availabilityKey(date, guests)] || null;
   }
 
+  function availabilityStatus(payload) {
+    var openingData = payload && payload.opening ? payload.opening : {};
+    var slots = payload && Array.isArray(payload.slots) ? payload.slots : [];
+
+    if (!openingData.enabled) return "closed";
+    if (!slots.length) return "full";
+    return "available";
+  }
+
   function dateWindowIsCached(startValue, guests, count) {
     var start = dateFromIso(startValue);
     for (var index = 0; index < count; index += 1) {
@@ -83,6 +93,77 @@
       if (!cachedAvailability(value, guests)) return false;
     }
     return true;
+  }
+
+  function syncDateStatusesFromCache(guests) {
+    var start = dateFromIso(state.dateWindowStart || config.today);
+
+    for (var index = 0; index < 7; index += 1) {
+      var date = new Date(start);
+      date.setDate(start.getDate() + index);
+      var value = isoDate(date);
+      var payload = cachedAvailability(value, guests);
+
+      if (payload) {
+        dateStatuses[value] = availabilityStatus(payload);
+      }
+    }
+  }
+
+  function setTimesRefreshing(refreshing) {
+    if (!times) return;
+
+    times.classList.toggle("is-refreshing", Boolean(refreshing));
+    times.setAttribute("aria-busy", refreshing ? "true" : "false");
+
+    Array.prototype.forEach.call(times.querySelectorAll("button"), function (button) {
+      button.disabled = Boolean(refreshing);
+    });
+  }
+
+  function scheduleDateStatusRefresh() {
+    if (dateStatusRefreshTimer) {
+      window.clearTimeout(dateStatusRefreshTimer);
+    }
+
+    dateStatusRefreshTimer = window.setTimeout(function () {
+      dateStatusRefreshTimer = null;
+      loadDateStatuses(true);
+    }, 450);
+  }
+
+  function prefetchGuestAvailability(date, guests) {
+    guests = clampGuests(guests);
+    if (!date || guests < 1 || guests > Number(config.maxGuests || 20)) return;
+    if (cachedAvailability(date, guests)) return;
+
+    var url = new URL(config.availabilityUrl, window.location.origin);
+    url.searchParams.set("date", date);
+    url.searchParams.set("guests", String(guests));
+
+    fetch(url.toString(), {
+      method: "GET",
+      credentials: "same-origin",
+      headers: { "Accept": "application/json" }
+    }).then(function (response) {
+      if (!response.ok) return null;
+      return response.json();
+    }).then(function (payload) {
+      if (!payload) return;
+      cacheAvailability(date, guests, payload);
+    }).catch(function () {
+      // Neighbor prefetch is best-effort only.
+    });
+  }
+
+  function prefetchNeighborGuests() {
+    var date = state.date;
+    var guests = state.guests;
+
+    window.setTimeout(function () {
+      if (guests > 1) prefetchGuestAvailability(date, guests - 1);
+      if (guests < Number(config.maxGuests || guests)) prefetchGuestAvailability(date, guests + 1);
+    }, 80);
   }
 
   function hydrateAvailabilitySeed(rows, guests) {
@@ -240,16 +321,21 @@
       rows.forEach(function (row) {
         if (!row || !row.date) return;
 
-        dateStatuses[row.date] = row.status || "available";
         cacheAvailability(row.date, requestGuests, {
           opening: row.opening || {},
           duration: row.duration,
           interval: row.interval,
           slots: row.slots
         });
+
+        if (requestGuests === state.guests) {
+          dateStatuses[row.date] = row.status || "available";
+        }
       });
 
-      renderDateStrip();
+      if (requestGuests === state.guests) {
+        renderDateStrip();
+      }
 
       var instant = cachedAvailability(state.date, state.guests);
       if (state.loading && instant) {
@@ -355,6 +441,7 @@
 
   function renderTimes(payload) {
     state.loading = false;
+    setTimesRefreshing(false);
     state.duration = Number(payload.duration || config.stayMinutes || 90);
     var slots = Array.isArray(payload.slots) ? payload.slots : [];
     state.slots = slots;
@@ -409,23 +496,34 @@
   }
 
   function loadAvailability(options) {
-    if (!state.date || !state.guests) return;
+    if (!state.date || !state.guests) return Promise.resolve(null);
 
     options = options || {};
     var silent = Boolean(options.silent);
+    var preserve = Boolean(options.preserve);
     var requestDate = state.date;
     var requestGuests = state.guests;
 
     if (availabilityAbort) availabilityAbort.abort();
     availabilityAbort = typeof AbortController !== "undefined" ? new AbortController() : null;
 
-    if (!silent) loadingState();
+    if (preserve) {
+      state.loading = true;
+      state.time = "";
+      timeInput.value = "";
+      submit.disabled = true;
+      setErrors([]);
+      setTimesRefreshing(true);
+      renderSummary();
+    } else if (!silent) {
+      loadingState();
+    }
 
     var url = new URL(config.availabilityUrl, window.location.origin);
     url.searchParams.set("date", requestDate);
     url.searchParams.set("guests", String(requestGuests));
 
-    fetch(url.toString(), {
+    return fetch(url.toString(), {
       method: "GET",
       credentials: "same-origin",
       headers: { "Accept": "application/json" },
@@ -443,14 +541,19 @@
 
       if (state.date === requestDate && state.guests === requestGuests) {
         renderTimes(payload);
+        prefetchNeighborGuests();
       }
+
+      return payload;
     }).catch(function (error) {
-      if (error && error.name === "AbortError") return;
-      if (silent || state.date !== requestDate || state.guests !== requestGuests) return;
+      if (error && error.name === "AbortError") return null;
+      if (silent || state.date !== requestDate || state.guests !== requestGuests) return null;
 
       state.loading = false;
+      setTimesRefreshing(false);
       emptyState(error && error.message ? error.message : (labels.no_times || "No times available."), false);
       renderSummary();
+      return null;
     });
   }
 
@@ -481,6 +584,7 @@
        * The final booking POST remains authoritative and revalidates the slot.
        */
       renderTimes(instant);
+      prefetchNeighborGuests();
     } else {
       loadAvailability();
     }
@@ -499,18 +603,41 @@
     setErrors([]);
   }
 
-  function adjustGuests(delta) {
-    var next = clampGuests(state.guests + delta);
+  function applyGuestCount(next) {
+    next = clampGuests(next);
     if (next === state.guests) return;
+
     state.guests = next;
     state.time = "";
     state.period = "";
     dateStatuses = {};
-    availabilityCache = Object.create(null);
+
+    syncDateStatusesFromCache(state.guests);
     renderSummary();
     renderDateStrip();
-    loadDateStatuses();
-    loadAvailability();
+
+    var instant = cachedAvailability(state.date, state.guests);
+    if (instant) {
+      renderTimes(instant);
+      prefetchNeighborGuests();
+      scheduleDateStatusRefresh();
+      return;
+    }
+
+    /*
+     * PMD_PUBLIC_BOOKING_GUEST_SPEED_R6
+     *
+     * Never put the expensive 14-day status request in front of the current
+     * day's times. Fetch the selected day first, keep the layout stable while
+     * it updates, then refresh date badges after the customer stops tapping.
+     */
+    loadAvailability({ preserve: true }).then(function () {
+      scheduleDateStatusRefresh();
+    });
+  }
+
+  function adjustGuests(delta) {
+    applyGuestCount(state.guests + delta);
   }
 
   function nextDate() {
@@ -718,15 +845,7 @@
   });
 
   guestInput.addEventListener("change", function () {
-    state.guests = clampGuests(guestInput.value);
-    state.time = "";
-    state.period = "";
-    dateStatuses = {};
-    availabilityCache = Object.create(null);
-    renderSummary();
-    renderDateStrip();
-    loadDateStatuses();
-    loadAvailability();
+    applyGuestCount(guestInput.value);
   });
 
   var minus = form.querySelector("[data-pmd-party-minus]");
@@ -747,6 +866,7 @@
   var initialAvailability = cachedAvailability(state.date, state.guests);
   if (initialAvailability) {
     renderTimes(initialAvailability);
+    prefetchNeighborGuests();
   } else {
     loadAvailability();
   }
