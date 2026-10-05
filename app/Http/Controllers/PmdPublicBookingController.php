@@ -533,6 +533,21 @@ class PmdPublicBookingController extends Controller
 
         try {
             $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight) {
+                $allTableIds = $location->tables
+                    ->pluck('table_id')
+                    ->map(static fn ($id) => (int)$id)
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if ($allTableIds) {
+                    DB::table('tables')
+                        ->whereIn('table_id', $allTableIds)
+                        ->orderBy('table_id')
+                        ->lockForUpdate()
+                        ->get(['table_id']);
+                }
+
                 $locked = Reservations_model::query()
                     ->where('location_id', (int)$location->getKey())
                     ->where('reservation_id', (int)$reservation->getKey())
@@ -548,21 +563,6 @@ class PmdPublicBookingController extends Controller
                     throw ValidationException::withMessages([
                         'reservation' => ['This reservation can no longer be changed online.'],
                     ]);
-                }
-
-                $allTableIds = $location->tables
-                    ->pluck('table_id')
-                    ->map(static fn ($id) => (int)$id)
-                    ->filter()
-                    ->values()
-                    ->all();
-
-                if ($allTableIds) {
-                    DB::table('tables')
-                        ->whereIn('table_id', $allTableIds)
-                        ->orderBy('table_id')
-                        ->lockForUpdate()
-                        ->get(['table_id']);
                 }
 
                 $start = Carbon::parse($date->toDateString().' '.$time, $timezone);
