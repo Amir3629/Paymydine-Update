@@ -386,7 +386,10 @@
                                         </select>
                                         <button type="submit">{{ $pmdSettingsText(!empty($device['assignment']) ? 'Reassign' : 'Assign') }}</button>
                                     </form>
+                                @endif
 
+                                {{-- PMD_KIOSK_TERMINAL_BINDING_V18 --}}
+                                @if(in_array(($device['kind'] ?? ''), ['table_display', 'kiosk'], true))
                                     <form
                                         class="pmd-device-platform-assign pmd-device-platform-terminal-assign"
                                         data-request="onAssignPmdTableDisplayTerminal"
