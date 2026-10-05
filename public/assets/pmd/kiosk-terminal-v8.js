@@ -1081,6 +1081,27 @@
       return;
     }
 
+    try {
+      if (
+        typeof nativeBridge.bridge.terminalReady === "function" &&
+        nativeBridge.bridge.terminalReady() !== true
+      ) {
+        renderCheckout(copy().terminalMissing, true);
+        return;
+      }
+    } catch (error) {
+      renderCheckout(copy().terminalMissing, true);
+      return;
+    }
+
+    var prior = pendingPayment();
+    if (prior && prior.nativeTerminal && Number(prior.attemptId || 0) > 0) {
+      state.busy = true;
+      renderCheckout(copy().terminalWaiting, false);
+      scheduleTerminalPoll(Number(prior.attemptId));
+      return;
+    }
+
     state.busy = true;
     renderCheckout(copy().processing, false);
     submitOrder({ silent: true, allowWhileBusy: true })
@@ -1125,6 +1146,7 @@
     var attemptId = Number(result.attempt_id || 0);
 
     if (!result.ok) {
+      try { sessionStorage.removeItem(paymentKey); } catch (error) {}
       state.busy = false;
       renderCheckout(result.message || copy().paymentFailed, true);
       return;
@@ -1135,6 +1157,7 @@
       return;
     }
     if (["failed", "declined", "cancelled", "canceled", "expired", "reconciliation_required"].indexOf(status) >= 0) {
+      try { sessionStorage.removeItem(paymentKey); } catch (error) {}
       state.busy = false;
       renderCheckout(result.message || copy().paymentFailed, true);
       return;
