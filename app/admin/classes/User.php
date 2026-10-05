@@ -14,9 +14,50 @@ class User extends Manager
     // The new cookie is created host-only by PmdAdminSessionIsolation.
     protected $sessionKey = 'pmd_admin_auth_v3';
 
-    protected $model = 'Admin\Models\Users_model';
+    protected $model = 'Admin\\Models\\Users_model';
 
     protected $isSuperUser = false;
+
+    /**
+     * PMD_RESTAURANT_GROUP_AUTH_V1
+     *
+     * Group owners authenticate against one central credential. The resolver
+     * returns null only for an unmanaged identity, which preserves the exact
+     * legacy tenant authentication path for every existing restaurant.
+     */
+    public function authenticate(array $credentials = [], $remember = false, $login = true)
+    {
+        $result = app(\App\Services\RestaurantGroups\Auth::class)
+            ->attempt($this, $credentials, (bool)$login);
+
+        if ($result !== null) {
+            return $result;
+        }
+
+        $legacy = parent::authenticate($credentials, $remember, $login);
+
+        if ($login && $legacy) {
+            app(\App\Services\RestaurantGroups\Auth::class)->rememberLegacy($legacy);
+        }
+
+        return $legacy;
+    }
+
+    public function check()
+    {
+        if (!parent::check()) return false;
+
+        if (!app(\App\Services\RestaurantGroups\Auth::class)->sessionAllowed($this->user)) {
+            $this->user = null;
+            \Illuminate\Support\Facades\Session::forget($this->sessionKey);
+            \Illuminate\Support\Facades\Cookie::queue(
+                \Illuminate\Support\Facades\Cookie::forget($this->sessionKey)
+            );
+            return false;
+        }
+
+        return true;
+    }
 
     public function isLogged()
     {
@@ -44,10 +85,6 @@ class User extends Manager
         return optional($this->staff())->locations;
     }
 
-    //
-    //
-    //
-
     public function extendUserQuery($query)
     {
         $query
@@ -56,10 +93,6 @@ class User extends Manager
                 $query->where('staff_status', true);
             });
     }
-
-    //
-    //
-    //
 
     public function getId()
     {
@@ -104,11 +137,11 @@ class User extends Manager
         ];
 
         $staff->save();
-
         $staff->groups()->attach($attributes['groups']);
 
-        if (array_key_exists('locations', $attributes))
+        if (array_key_exists('locations', $attributes)) {
             $staff->locations()->attach($attributes['locations']);
+        }
 
         return $staff->reload()->user;
     }

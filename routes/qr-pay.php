@@ -1003,6 +1003,7 @@ Route::group([
             'split_people' => 'nullable|integer|min:2|max:20',
             'share_percent' => 'nullable|numeric|min:1|max:100',
             'guest_session_id' => 'nullable|string|max:191',
+            'kiosk_checkout' => 'nullable|boolean',
         ]);
 
         $order = \Admin\Models\Orders_model::query()->where('order_id', $request->order_id)->first();
@@ -1011,6 +1012,20 @@ Route::group([
         }
         if (strtolower((string)$order->payment) !== 'qr_pay_later') {
             return response()->json(['success' => false, 'error' => 'Only qr_pay_later orders can be paid through this endpoint'], 422);
+        }
+
+        // PMD_KIOSK_NO_SPLIT_V10
+        // Self-service kiosk checkout always settles the whole basket in one
+        // payment. Split-bill inputs remain available only to QR/table flows.
+        if ($request->boolean('kiosk_checkout')) {
+            $request->merge([
+                'selected_items' => null,
+                'payment_intent_token' => null,
+                'split_mode' => null,
+                'split_people' => null,
+                'share_percent' => null,
+                'payer_label' => 'PayMyDine Kiosk',
+            ]);
         }
 
         $r35IntentId = null;

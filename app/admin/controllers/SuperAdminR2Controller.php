@@ -6,6 +6,7 @@ use Admin\Classes\AdminController;
 use App\Services\SuperAdminTenantDomainProvisioner;
 use App\Services\SuperAdminTenantLifecycleService;
 use App\Services\PmdSuperAdminOwnerMfaResetService;
+use App\Services\RestaurantGroups\Store as RestaurantGroupStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -93,6 +94,7 @@ class SuperAdminR2Controller extends AdminController
         $search = trim((string)$request->input('q', ''));
         $status = trim((string)$request->input('status', ''));
         $query = DB::connection('mysql')->table('tenants')->orderByDesc('id');
+
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('name','like','%'.$search.'%')
@@ -101,9 +103,41 @@ class SuperAdminR2Controller extends AdminController
                     ->orWhere('email','like','%'.$search.'%');
             });
         }
-        if ($status !== '') $query->where('status', $status);
+
+        if ($status !== '') {
+            $query->where('status', $status);
+        }
+
         $tenants = $query->paginate(20)->appends($request->query());
-        return $this->html('admin::superadmin_r2.restaurants', compact('tenants','search','status'));
+        $pmdGroupSites = collect();
+
+        try {
+            $groups = app(RestaurantGroupStore::class);
+            $tenantIds = collect($tenants->items())
+                ->pluck('id')
+                ->map(static fn ($id) => (int)$id)
+                ->filter()
+                ->values()
+                ->all();
+
+            if ($tenantIds && $groups->installed()) {
+                $pmdGroupSites = $groups->central()
+                    ->table('pmd_group_sites')
+                    ->whereIn('tenant_id', $tenantIds)
+                    ->where('state', '!=', 'ready')
+                    ->get(['id', 'tenant_id', 'state', 'last_error'])
+                    ->keyBy(static fn ($site) => (int)$site->tenant_id);
+            }
+        } catch (\Throwable $error) {
+            Log::warning('pmd_superadmin_group_row_state_unavailable', [
+                'exception' => get_class($error),
+            ]);
+        }
+
+        return $this->html(
+            'admin::superadmin_r2.restaurants',
+            compact('tenants', 'search', 'status', 'pmdGroupSites')
+        );
     }
 
     public function store(Request $request, SuperAdminTenantLifecycleService $lifecycle)
@@ -120,6 +154,8 @@ class SuperAdminR2Controller extends AdminController
                 'type'=>'required|string|max:100',
                 'country'=>'required|string|max:100',
                 'description'=>'nullable|string|max:1000',
+                'owner_username'=>['required','string','min:3','max:100','regex:/^[A-Za-z0-9._@-]+$/'],
+                'owner_password'=>'required|string|min:14|max:128|confirmed',
             ]);
             if ($validator->fails()) return redirect('/superadmin/new')->withErrors($validator)->withInput();
 
@@ -396,6 +432,37 @@ class SuperAdminR2Controller extends AdminController
 
         $expired = !empty($tenant->end) && \Carbon\Carbon::parse($tenant->end)->isPast();
         if ($expired) $issues[] = 'subscription end date has passed';
+
+        try {
+            $groups = app(RestaurantGroupStore::class);
+
+            if ($groups->installed()) {
+                $site = $groups->central()
+                    ->table('pmd_group_sites')
+                    ->where('tenant_id', (int)$tenant->id)
+                    ->first();
+
+                if ($site) {
+                    if ((string)$site->state !== 'ready') {
+                        $issues[] = 'business account provisioning is '.(string)$site->state.'; use Retry provisioning first';
+                    } elseif ((int)($site->location_id ?? 0) < 1) {
+                        $issues[] = 'business account Owner location is not linked';
+                    } else {
+                        $access = $groups->central()
+                            ->table('pmd_group_access')
+                            ->where('tenant_id', (int)$tenant->id)
+                            ->whereNull('revoked_at')
+                            ->first();
+
+                        if (!$access) {
+                            $issues[] = 'business account Owner access is not linked';
+                        }
+                    }
+                }
+            }
+        } catch (\Throwable $error) {
+            $issues[] = 'business account readiness could not be verified';
+        }
 
         return ['ok'=>count($issues) === 0, 'issues'=>$issues];
     }

@@ -125,7 +125,10 @@
     busy: false,
     paymentStatus: "",
     currentModal: null,
-    paypalButtons: null
+    paypalButtons: null,
+    stripeElements: null,
+    stripePaymentElement: null,
+    themeId: "kazen_japanese"
   };
 
   var sessionKey = "pmd-kiosk-v8-session";
@@ -179,6 +182,137 @@
       if (row[keys[i]] !== undefined && row[keys[i]] !== null && row[keys[i]] !== "") return row[keys[i]];
     }
     return fallback;
+  }
+
+  // PMD_KIOSK_CUSTOMER_THEME_SYNC_V9
+  // Keep the kiosk interaction model purpose-built for a touch terminal, but
+  // derive its visual identity from the same Customer Menu theme selection.
+  function validHex(value, fallback) {
+    var raw = String(value || "").trim();
+    return /^#[0-9a-f]{6}$/i.test(raw) ? raw.toUpperCase() : fallback;
+  }
+
+  function hexRgb(value) {
+    var raw = validHex(value, "#000000").slice(1);
+    return {
+      r: parseInt(raw.slice(0, 2), 16),
+      g: parseInt(raw.slice(2, 4), 16),
+      b: parseInt(raw.slice(4, 6), 16)
+    };
+  }
+
+  function rgbHex(rgb) {
+    function part(value) {
+      var n = Math.max(0, Math.min(255, Math.round(value))).toString(16).toUpperCase();
+      return n.length === 1 ? "0" + n : n;
+    }
+    return "#" + part(rgb.r) + part(rgb.g) + part(rgb.b);
+  }
+
+  function mixHex(a, b, ratio) {
+    var left = hexRgb(a);
+    var right = hexRgb(b);
+    var t = Math.max(0, Math.min(1, Number(ratio) || 0));
+    return rgbHex({
+      r: left.r + (right.r - left.r) * t,
+      g: left.g + (right.g - left.g) * t,
+      b: left.b + (right.b - left.b) * t
+    });
+  }
+
+  function relativeLuminance(hex) {
+    var rgb = hexRgb(hex);
+    var values = [rgb.r, rgb.g, rgb.b].map(function (value) {
+      var c = value / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return values[0] * 0.2126 + values[1] * 0.7152 + values[2] * 0.0722;
+  }
+
+  function normalizeThemeId(value) {
+    var key = String(value || "").trim().toLowerCase().replace(/[\s-]+/g, "_");
+    var aliases = {
+      modern_dark: "noir_editorial",
+      black_luxury: "noir_editorial",
+      modern_green: "verdant_modern",
+      green: "verdant_modern",
+      gold_luxury: "lumiere_fine_dining",
+      gold: "lumiere_fine_dining",
+      organic_botanical_paper: "lumiere_fine_dining",
+      organic: "lumiere_fine_dining",
+      kazen: "kazen_japanese",
+      japanese: "kazen_japanese",
+      coastal: "azzurra_coastal",
+      mediterranean: "azzurra_coastal",
+      seafood: "azzurra_coastal",
+      vibrant_colors: "neon_cocktail_bar",
+      cyber_futuristic: "neon_cocktail_bar",
+      bar: "neon_cocktail_bar",
+      art_deco: "art_deco_speakeasy",
+      speakeasy: "art_deco_speakeasy",
+      gatsby: "art_deco_speakeasy",
+      persian: "shahrazad_persian",
+      persian_luxury: "shahrazad_persian",
+      velvet_terracotta: "anatolia_turkish",
+      velvet: "anatolia_turkish",
+      turkish: "anatolia_turkish",
+      steakhouse: "ember_steakhouse",
+      charcoal: "ember_steakhouse",
+      grill_house: "ember_steakhouse"
+    };
+    return aliases[key] || key || "kazen_japanese";
+  }
+
+  function applyCustomerMenuTheme(settings, bootstrapTheme) {
+    var configured = object(config.theme);
+    var remote = object(bootstrapTheme);
+    var rawId = first(
+      configured,
+      ["id"],
+      first(remote, ["id", "theme_id", "frontend_theme", "pmd_v2_theme_id"],
+        first(settings || {}, ["pmd_v2_theme_id", "frontend_theme", "theme_id"], "kazen_japanese"))
+    );
+    var id = normalizeThemeId(rawId);
+
+    var background = validHex(first(configured, ["background"], first(remote, ["background"], "#F5F1EB")), "#F5F1EB");
+    var text = validHex(first(configured, ["text"], first(remote, ["text"], "#25231F")), "#25231F");
+    var muted = validHex(first(configured, ["muted"], first(remote, ["muted"], mixHex(text, background, 0.52))), mixHex(text, background, 0.52));
+    var accent = validHex(first(configured, ["accent"], first(remote, ["accent"], "#B5413F")), "#B5413F");
+    var surface = validHex(first(configured, ["surface"], first(remote, ["surface"], mixHex(background, "#FFFFFF", 0.72))), mixHex(background, "#FFFFFF", 0.72));
+    var dark = configured.is_dark !== undefined
+      ? boolish(configured.is_dark, false)
+      : (remote.is_dark !== undefined ? boolish(remote.is_dark, false) : relativeLuminance(background) < 0.36);
+
+    var rootStyle = document.documentElement.style;
+    rootStyle.setProperty("--pmd-k-bg", background);
+    rootStyle.setProperty("--pmd-k-panel", surface);
+    rootStyle.setProperty("--pmd-k-panel-soft", mixHex(surface, background, dark ? 0.22 : 0.34));
+    rootStyle.setProperty("--pmd-k-ink", text);
+    rootStyle.setProperty("--pmd-k-muted", muted);
+    rootStyle.setProperty("--pmd-k-line", mixHex(text, background, dark ? 0.76 : 0.84));
+    rootStyle.setProperty("--pmd-k-line-strong", mixHex(text, background, dark ? 0.62 : 0.72));
+    rootStyle.setProperty("--pmd-k-accent", accent);
+    rootStyle.setProperty("--pmd-k-accent-dark", mixHex(accent, "#000000", dark ? 0.08 : 0.22));
+    rootStyle.setProperty("--pmd-k-accent-soft", mixHex(accent, background, dark ? 0.72 : 0.84));
+    rootStyle.setProperty("--pmd-k-accent-contrast", relativeLuminance(accent) > 0.56 ? "#101418" : "#FFFFFF");
+    rootStyle.setProperty("--pmd-k-danger", dark ? "#FF8A82" : "#A93A32");
+
+    state.themeId = id;
+    document.body.setAttribute("data-pmd-kiosk-theme", id);
+    document.body.setAttribute("data-pmd-kiosk-dark", dark ? "1" : "0");
+
+    var meta = document.getElementById("pmd-kiosk-theme-color");
+    if (meta) meta.setAttribute("content", surface);
+
+    state.theme = Object.assign({}, remote, configured, {
+      id: id,
+      background: background,
+      text: text,
+      muted: muted,
+      accent: accent,
+      surface: surface,
+      is_dark: dark
+    });
   }
 
   function normalizeAsset(value) {
@@ -301,7 +435,14 @@
         enabled: row.enabled === undefined && row.status === undefined ? true : boolish(first(row, ["enabled", "status"], true), true),
         priority: number(first(row, ["priority", "sort_order"], index + 1), index + 1)
       };
-    }).filter(function (method) { return method.enabled && method.code; })
+    }).filter(function (method) {
+      // PMD_KIOSK_PAY_FIRST_V10
+      // Kiosk checkout is prepaid. Cash/COD and qr_pay_later are not customer
+      // choices here; split/payment-later remains available only in QR/staff UI.
+      return method.enabled &&
+        method.code &&
+        ["cash", "cod", "qr_pay_later"].indexOf(method.code) < 0;
+    })
       .sort(function (a, b) { return a.priority - b.priority; });
   }
 
@@ -344,7 +485,10 @@
     return fetch(url, {
       method: configOptions.method || "GET",
       credentials: "same-origin",
-      cache: configOptions.method === "POST" ? "no-store" : "no-store",
+      // PMD_KIOSK_FAST_WEBVIEW_V10: GETs may use/revalidate the WebView HTTP
+      // cache; mutations remain no-store. The old code forced every menu open
+      // to redownload the entire bootstrap payload.
+      cache: configOptions.method === "POST" ? "no-store" : "default",
       headers: headers,
       body: configOptions.body === undefined
         ? undefined
@@ -650,6 +794,11 @@
       try { state.paypalButtons.close(); } catch (error) {}
     }
     state.paypalButtons = null;
+    if (state.stripePaymentElement && state.stripePaymentElement.destroy) {
+      try { state.stripePaymentElement.destroy(); } catch (error) {}
+    }
+    state.stripePaymentElement = null;
+    state.stripeElements = null;
     state.currentModal = null;
     modalLayer.hidden = true;
     modal.innerHTML = "";
@@ -806,30 +955,20 @@
       ? '<div class="pmd-kiosk-payment-status' + (isError ? " is-error" : "") + '">' + escapeHtml(message) + "</div>"
       : "";
     var body = reviewLinesHtml() + checkoutTotalsHtml();
-
-    if (!order) {
-      openModal(
-        '<header class="pmd-kiosk-modal__head"><div><p>' + escapeHtml(copy().review) + "</p><h2>" + escapeHtml(copy().review) +
-        '</h2></div><button type="button" class="pmd-kiosk-modal__close" data-pmd-close-modal aria-label="Close">×</button></header>' +
-        '<div class="pmd-kiosk-modal__body">' + body + status + "</div>" +
-        '<footer class="pmd-kiosk-modal__foot"><button type="button" class="pmd-kiosk-secondary" data-pmd-close-modal>' +
-        escapeHtml(copy().continueMenu) + '</button><button type="button" class="pmd-kiosk-primary" data-submit-order' + (state.busy ? " disabled" : "") + ">" +
-        "<span>" + escapeHtml(state.busy ? copy().creating : copy().placeOrder) + "</span><span>›</span></button></footer>",
-        true
-      );
-      return;
-    }
-
     var methods = state.payments.map(function (method) {
       return '<button type="button" class="pmd-kiosk-payment" data-payment-method="' + escapeHtml(method.code) +
-        '" data-payment-provider="' + escapeHtml(method.providerCode || "") + '">' +
+        '" data-payment-provider="' + escapeHtml(method.providerCode || "") + '"' + (state.busy ? " disabled" : "") + '>' +
         '<span class="pmd-kiosk-payment__mark">' + escapeHtml(paymentMark(method)) + '</span><span><strong>' +
         escapeHtml(paymentLabel(method)) + "</strong><small>" + escapeHtml(method.providerCode ? method.providerCode.replace(/_/g, " ") : "PayMyDine") +
         "</small></span></button>";
     }).join("");
 
+    var kicker = order
+      ? (escapeHtml(copy().orderNumber) + " #" + escapeHtml(order.orderNumber || order.orderId))
+      : escapeHtml(copy().review);
+
     openModal(
-      '<header class="pmd-kiosk-modal__head"><div><p>' + escapeHtml(copy().orderNumber) + " #" + escapeHtml(order.orderNumber || order.orderId) +
+      '<header class="pmd-kiosk-modal__head"><div><p>' + kicker +
       "</p><h2>" + escapeHtml(copy().choosePayment) +
       '</h2></div><button type="button" class="pmd-kiosk-modal__close" data-pmd-close-modal aria-label="Close">×</button></header>' +
       '<div class="pmd-kiosk-modal__body">' + body + tipOptionsHtml() + couponHtml() +
@@ -839,10 +978,15 @@
     );
   }
 
-  function submitOrder() {
-    if (state.busy || state.order || !state.cart.length) return Promise.resolve(state.order);
+  function submitOrder(options) {
+    var opts = options || {};
+    if (state.order) return Promise.resolve(state.order);
+    if (!state.cart.length) return Promise.reject(new Error("Your order is empty."));
+    if (state.busy && !opts.allowWhileBusy) return Promise.reject(new Error(copy().processing));
+
+    var previousBusy = state.busy;
     state.busy = true;
-    renderCheckout();
+    if (!opts.silent) renderCheckout(copy().creating, false);
 
     var totals = calculateTotals();
     var payload = {
@@ -855,6 +999,7 @@
       service_mode: config.serviceMode === "pickup" ? "pickup" : "kiosk",
       kiosk_session: String(config.session || "kiosk"),
       guest_session_id: String(config.session || "kiosk"),
+      kiosk_prepaid: true,
       items: state.cart.map(function (line) {
         var options = {};
         (line.selections || []).forEach(function (entry) { options[entry.groupName] = entry.valueId; });
@@ -875,7 +1020,12 @@
       tip_amount: 0,
       coupon_code: null,
       coupon_discount: 0,
-      payment_method: "card",
+      // PMD_KIOSK_PAY_FIRST_V10
+      // Provider payment succeeds before this short-lived canonical order is
+      // committed. qr_pay_later is only the settlement bridge for pay-existing.
+      payment_method: "qr_pay_later",
+      payment_method_raw: "qr_pay_later",
+      payment_provider: null,
       special_instructions: ""
     };
 
@@ -890,28 +1040,29 @@
           createdAt: Date.now()
         };
         persistOrder();
-        state.busy = false;
-        renderCheckout();
+        state.busy = previousBusy;
+        if (!opts.silent) renderCheckout();
         return state.order;
       })
       .catch(function (error) {
-        state.busy = false;
-        renderCheckout(error.message || "The order could not be created.", true);
+        state.busy = previousBusy;
+        if (!opts.silent) renderCheckout(error.message || "The order could not be created.", true);
         throw error;
       });
   }
 
   function validateCoupon() {
-    if (!state.order || state.busy) return;
+    if (state.busy) return;
     var input = $("pmd-kiosk-coupon-input");
     var code = cleanText(input ? input.value : state.couponCode, "");
     if (!code) return;
+    var couponBase = state.order ? state.order.baseTotal : calculateTotals().base;
     state.busy = true;
-    requestJson("/validate-coupon", { method: "POST", body: { code: code, subtotal: state.order.baseTotal, amount: state.order.baseTotal } })
+    requestJson("/validate-coupon", { method: "POST", body: { code: code, subtotal: couponBase, amount: couponBase } })
       .then(function (data) {
         var payload = object(data.data || data);
         state.couponCode = code;
-        state.couponDiscount = Math.min(state.order.baseTotal, Math.max(0, number(first(payload, ["discount_amount", "discount", "amount"], 0))));
+        state.couponDiscount = Math.min(couponBase, Math.max(0, number(first(payload, ["discount_amount", "discount", "amount"], 0))));
         state.busy = false;
         renderCheckout(data.message || copy().couponApplied, false);
       })
@@ -970,7 +1121,7 @@
       provider: String(response.provider || response.provider_code || providerCode(method) || ""),
       providerCode: providerCode(method),
       methodCode: method.code,
-      orderId: state.order.orderId,
+      orderId: state.order ? state.order.orderId : null,
       amount: calculateTotals().payable,
       tipAmount: calculateTotals().tip,
       couponCode: state.couponCode || null,
@@ -982,8 +1133,19 @@
       transactionId: response.transaction_id ? String(response.transaction_id) : null,
       providerReference: response.provider_reference ? String(response.provider_reference) : null,
       merchantReference: response.merchant_reference ? String(response.merchant_reference) : null,
+      paymentIntentId: response.payment_intent_id
+        ? String(response.payment_intent_id)
+        : (response.paymentIntentId ? String(response.paymentIntentId) : null),
+      confirmed: Boolean(response.confirmed || response.is_paid || response.paid),
       createdAt: Date.now()
     };
+    try { sessionStorage.setItem(paymentKey, JSON.stringify(pending)); } catch (error) {}
+    return pending;
+  }
+
+  function updatePendingPayment(patch) {
+    var pending = pendingPayment() || {};
+    Object.keys(patch || {}).forEach(function (key) { pending[key] = patch[key]; });
     try { sessionStorage.setItem(paymentKey, JSON.stringify(pending)); } catch (error) {}
     return pending;
   }
@@ -1002,13 +1164,10 @@
         tip_amount: tip || 0,
         coupon_code: couponCode || null,
         coupon_discount: couponDiscount || 0,
-        selected_items: null,
         payer_label: "PayMyDine Kiosk",
-        payment_intent_token: reference || null,
+        // PMD_KIOSK_NO_SPLIT_V10: kiosk always settles the full basket.
+        kiosk_checkout: true,
         idempotency_key: reference || null,
-        split_mode: null,
-        split_people: null,
-        share_percent: null,
         guest_session_id: String(config.session || "kiosk"),
         location_id: null,
         table_id: null,
@@ -1045,13 +1204,13 @@
   }
 
   function startHostedPayment(method) {
-    if (!state.order || state.busy) return;
+    if (state.busy) return;
     state.busy = true;
     renderCheckout(copy().processing, false);
 
     var totals = calculateTotals();
     var provider = providerCode(method);
-    var merchantReference = "PMD-KIOSK-" + state.order.orderId + "-" + Date.now();
+    var merchantReference = "PMD-KIOSK-" + String(config.session || "kiosk") + "-" + Date.now();
     var payload = {
       amount: totals.payable,
       currency: String(state.restaurant.currency || "EUR").toUpperCase(),
@@ -1059,10 +1218,11 @@
       cancel_url: window.location.href,
       customer_email: "",
       merchant_reference: merchantReference,
-      order_id: state.order.orderId,
-      description: "PayMyDine kiosk order #" + state.order.orderId,
+      order_id: state.order ? state.order.orderId : null,
+      description: "PayMyDine kiosk checkout " + String(config.session || "kiosk"),
       payment_method: method.code,
       provider: provider,
+      kiosk_checkout: true,
       guest_session_id: String(config.session || "kiosk"),
       table_id: null,
       table_no: null,
@@ -1070,7 +1230,6 @@
       tip_amount: totals.tip,
       coupon_code: state.couponCode || null,
       coupon_discount: state.couponDiscount,
-      selected_items: null,
       payer_label: "PayMyDine Kiosk",
       items: paymentItems(),
       integration_preference: provider === "vr_payment" || provider === "vrpayment" ? "lightbox" : undefined
@@ -1105,9 +1264,14 @@
         }
 
         if (reference) {
-          settleExisting(method.code, pending.providerCode, reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount)
+          submitOrder({ silent: true, allowWhileBusy: true })
+            .then(function () {
+              return settleExisting(method.code, pending.providerCode, reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount);
+            })
             .then(function () { finishOrder(copy().paidHint); })
-            .catch(function (error) { renderCheckout(error.message || copy().paymentFailed, true); });
+            .catch(function (error) {
+              renderCheckout("Payment was received. Do not pay again. " + (error.message || "Order finalization is pending."), true);
+            });
           return;
         }
 
@@ -1128,6 +1292,7 @@
         prior.addEventListener("error", function () { reject(new Error("Payment script could not be loaded.")); }, { once: true });
         if (marker === "pmd-kiosk-paypal" && window.paypal) resolve();
         if (marker === "pmd-kiosk-vr-payment" && window.LightboxCheckoutHandler) resolve();
+        if (marker === "pmd-kiosk-stripe" && window.Stripe) resolve();
         return;
       }
       var script = document.createElement("script");
@@ -1141,13 +1306,14 @@
   }
 
   function startPayPal(method) {
-    if (!state.order || state.busy) return;
+    if (state.busy) return;
     var slot = $("pmd-kiosk-provider-slot");
     if (!slot) return;
     slot.innerHTML = '<div class="pmd-kiosk-paypal-box"><div id="pmd-kiosk-paypal-buttons"></div><div id="pmd-kiosk-paypal-message" class="pmd-kiosk-payment-status">' +
       escapeHtml(copy().processing) + "</div></div>";
     var message = $("pmd-kiosk-paypal-message");
     var totals = calculateTotals();
+    var paypalCaptured = false;
 
     requestJson(config.paypalConfigUrl || "/api/v1/payments/config-public")
       .then(function (publicConfig) {
@@ -1177,13 +1343,12 @@
                 amount: totals.payable,
                 currency: String(state.restaurant.currency || "EUR").toUpperCase(),
                 payment_method: method.code,
-                order_id: state.order.orderId,
+                order_id: state.order ? state.order.orderId : null,
                 items: paymentItems(),
                 tableNumber: null,
                 table_id: null,
                 table_no: null,
-                qr: null,
-                payment_intent_token: null
+                qr: null
               }
             }).then(function (data) {
               var id = String(data.orderID || data.orderId || data.id || (data.paypal && data.paypal.id) || "");
@@ -1204,26 +1369,43 @@
                   amount: totals.payable,
                   currency: String(state.restaurant.currency || "EUR").toUpperCase(),
                   payment_method: method.code,
-                  order_id: state.order.orderId,
+                  order_id: state.order ? state.order.orderId : null,
                   items: paymentItems(),
                   tableNumber: null,
                   table_id: null,
                   table_no: null,
-                  qr: null,
-                  payment_intent_token: null
+                  qr: null
                 }
               }
             }).then(function (capture) {
               var reference = String(capture.transactionId || capture.captureID || capture.orderID || data.orderID || "");
               if (!reference) throw new Error("PayPal capture reference is missing.");
-              return settleExisting(method.code, "paypal", reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount);
+              paypalCaptured = true;
+              savePendingPayment(method, {
+                provider: "paypal",
+                provider_code: "paypal",
+                provider_reference: reference,
+                transaction_id: reference,
+                confirmed: true
+              });
+              return submitOrder({ silent: true, allowWhileBusy: true }).then(function () {
+                return settleExisting(method.code, "paypal", reference, totals.payable, totals.tip, state.couponCode, state.couponDiscount);
+              });
             }).then(function () {
               state.busy = false;
               finishOrder(copy().paidHint);
             }).catch(function (error) {
               state.busy = false;
               message.classList.add("is-error");
-              message.textContent = error.message || copy().paymentFailed;
+              if (paypalCaptured) {
+                var paypalRoot = document.getElementById("pmd-kiosk-paypal-buttons");
+                if (paypalRoot) paypalRoot.innerHTML = "";
+                message.textContent =
+                  "Payment was received. Do not pay again. " +
+                  (error.message || "Order finalization is pending.");
+              } else {
+                message.textContent = error.message || copy().paymentFailed;
+              }
             });
           },
           onCancel: function () {
@@ -1251,12 +1433,180 @@
     window.setTimeout(function () { notifyNativeOrderComplete(state.order.orderId); }, 280);
   }
 
+  function startStripePayment(method) {
+    if (!method || state.busy) return;
+
+    var slot = $("pmd-kiosk-provider-slot");
+    if (!slot) return;
+
+    state.busy = true;
+    slot.innerHTML =
+      '<div class="pmd-kiosk-stripe-box">' +
+        '<div id="pmd-kiosk-stripe-element"></div>' +
+        '<button type="button" id="pmd-kiosk-stripe-confirm" class="pmd-kiosk-primary pmd-kiosk-stripe-confirm" disabled>' +
+          '<span>' + escapeHtml(copy().processing) + '</span><span>›</span>' +
+        '</button>' +
+        '<div id="pmd-kiosk-stripe-message" class="pmd-kiosk-payment-status" hidden></div>' +
+      '</div>';
+
+    var confirmButton = $("pmd-kiosk-stripe-confirm");
+    var message = $("pmd-kiosk-stripe-message");
+    var totals = calculateTotals();
+    var attemptKey = "kiosk-" + String(config.session || "kiosk") + "-" + String(Date.now());
+
+    Promise.all([
+      requestJson("/api/v1/payments/stripe/config"),
+      requestJson("/api/v1/payments/stripe/create-intent", {
+        method: "POST",
+        body: {
+          amount: totals.payable,
+          currency: String(state.restaurant.currency || "EUR").toUpperCase(),
+          preferredMethod: String(method.code || "card").toLowerCase(),
+          restaurantId: "1",
+          tableNumber: null,
+          orderId: state.order ? state.order.orderId : null,
+          paymentAttemptKey: attemptKey,
+          customerInfo: { name: "PayMyDine Kiosk", email: "" },
+          items: paymentItems()
+        }
+      }),
+      loadScript("https://js.stripe.com/v3/", "pmd-kiosk-stripe")
+    ]).then(function (results) {
+      var publicConfig = results[0] || {};
+      var intent = results[1] || {};
+      if (!window.Stripe) throw new Error("Stripe checkout could not be loaded.");
+
+      var publishableKey = String(publicConfig.publishableKey || "");
+      var clientSecret = String(intent.clientSecret || intent.client_secret || "");
+      var paymentIntentId = String(intent.paymentIntentId || intent.payment_intent_id || "");
+      if (!publishableKey || !clientSecret || !paymentIntentId) {
+        throw new Error("Stripe checkout is not ready.");
+      }
+
+      var pending = savePendingPayment(method, {
+        provider: "stripe",
+        provider_code: "stripe",
+        payment_intent_id: paymentIntentId,
+        paymentIntentId: paymentIntentId
+      });
+      var paymentConfirmed = false;
+
+      var stripe = window.Stripe(publishableKey);
+      var appearance = {
+        theme: document.body.getAttribute("data-pmd-kiosk-dark") === "1" ? "night" : "stripe",
+        variables: {
+          colorPrimary: getComputedStyle(document.documentElement).getPropertyValue("--pmd-k-accent").trim() || "#0A6B57",
+          colorBackground: getComputedStyle(document.documentElement).getPropertyValue("--pmd-k-panel").trim() || "#FFFFFF",
+          colorText: getComputedStyle(document.documentElement).getPropertyValue("--pmd-k-ink").trim() || "#17212B",
+          borderRadius: "12px",
+          fontFamily: '"Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif'
+        }
+      };
+
+      var elements = stripe.elements({ clientSecret: clientSecret, appearance: appearance });
+      var paymentElement = elements.create("payment", {
+        layout: { type: "tabs", defaultCollapsed: false }
+      });
+      state.stripeElements = elements;
+      state.stripePaymentElement = paymentElement;
+      paymentElement.mount("#pmd-kiosk-stripe-element");
+
+      state.busy = false;
+      if (confirmButton) {
+        confirmButton.disabled = false;
+        confirmButton.innerHTML = '<span>' + escapeHtml(paymentLabel(method)) + " · " + escapeHtml(money(totals.payable)) + '</span><span>›</span>';
+      }
+
+      if (confirmButton) {
+        confirmButton.onclick = function () {
+          if (state.busy) return;
+          state.busy = true;
+          confirmButton.disabled = true;
+          if (message) {
+            message.hidden = false;
+            message.classList.remove("is-error");
+            message.textContent = copy().processing;
+          }
+
+          stripe.confirmPayment({
+            elements: elements,
+            confirmParams: { return_url: returnUrl() },
+            redirect: "if_required"
+          }).then(function (result) {
+            if (result.error) throw new Error(result.error.message || copy().paymentFailed);
+
+            var pi = result.paymentIntent || null;
+            var reference = String(pi && pi.id || pending.paymentIntentId || "");
+            if (!reference) throw new Error("Stripe payment reference is missing.");
+            paymentConfirmed = true;
+            pending = updatePendingPayment({
+              confirmed: true,
+              provider: "stripe",
+              providerCode: "stripe",
+              providerReference: reference,
+              paymentIntentId: reference
+            });
+
+            // PMD_KIOSK_PAY_FIRST_V10
+            // Stripe confirms the payment before the canonical order exists.
+            // Only after success do we commit the order and ask the server to
+            // re-verify the PaymentIntent during settlement.
+            return submitOrder({ silent: true, allowWhileBusy: true })
+              .then(function () {
+                return settleExisting(
+                  method.code,
+                  "stripe",
+                  reference,
+                  totals.payable,
+                  totals.tip,
+                  state.couponCode,
+                  state.couponDiscount
+                );
+              })
+              .then(function () {
+                state.busy = false;
+                finishOrder(copy().paidHint);
+              });
+          }).catch(function (error) {
+            state.busy = false;
+            if (message) {
+              message.hidden = false;
+              message.classList.add("is-error");
+              if (paymentConfirmed) {
+                confirmButton.disabled = true;
+                message.textContent =
+                  "Payment was received. Do not pay again. " +
+                  (error.message || "Order finalization is pending.");
+              } else {
+                confirmButton.disabled = false;
+                message.textContent = error.message || copy().paymentFailed;
+              }
+            }
+          });
+        };
+      }
+    }).catch(function (error) {
+      state.busy = false;
+      if (message) {
+        message.hidden = false;
+        message.classList.add("is-error");
+        message.textContent = error.message || copy().paymentFailed;
+      } else {
+        renderCheckout(error.message || copy().paymentFailed, true);
+      }
+    });
+  }
+
   function startPayment(method) {
-    if (!method || !state.order || state.busy) return;
+    if (!method || state.busy) return;
     var code = String(method.code || "").toLowerCase();
     var provider = providerCode(method);
     if (code === "cash" || code === "cod") { startCashPayment(); return; }
     if (code === "paypal" && (!provider || provider === "paypal")) { startPayPal(method); return; }
+    if (provider === "stripe" && ["card", "apple_pay", "google_pay"].indexOf(code) >= 0) {
+      startStripePayment(method);
+      return;
+    }
     startHostedPayment(method);
   }
 
@@ -1269,9 +1619,21 @@
     var provider = String(pending.provider || pending.providerCode || "").toLowerCase().replace(/-/g, "_");
     var endpoint = "";
     var payload = {};
+    if (provider === "paypal" && pending.confirmed) {
+      return Promise.resolve({
+        paid: true,
+        pending: false,
+        cancelled: false,
+        reference: String(pending.providerReference || pending.transactionId || "")
+      });
+    }
     if (provider === "worldline") {
       endpoint = "/api/v1/payments/worldline/runtime/status";
-      payload = { hosted_checkout_id: pending.hostedCheckoutId || "", order_id: pending.orderId || "" };
+      payload = {
+        hosted_checkout_id: pending.hostedCheckoutId || "",
+        order_id: pending.orderId || "",
+        kiosk_checkout: true
+      };
     } else if (provider === "sumup") {
       endpoint = "/api/v1/payments/sumup/checkout-status";
       payload = { checkout_id: pending.checkoutId || "" };
@@ -1286,9 +1648,24 @@
         provider_reference: pending.providerReference || "",
         merchant_reference: pending.merchantReference || ""
       };
-    } else if (provider === "wero" || provider === "stripe" || provider === "card") {
+    } else if (provider === "wero" || String(pending.methodCode || "").toLowerCase() === "wero") {
       endpoint = "/api/v1/payments/wero/checkout-status";
       payload = { session_id: pending.sessionId || "" };
+    } else if (provider === "stripe" || provider === "card") {
+      var piReference = String(pending.paymentIntentId || pending.providerReference || "");
+      if (!piReference) return Promise.resolve({ paid: false, pending: true, reference: null });
+      return requestJson("/api/v1/payments/stripe/status", {
+        method: "POST",
+        body: { payment_intent_id: piReference }
+      }).then(function (data) {
+        var stripeStatus = String(data.status || data.payment_status || "").toLowerCase();
+        return {
+          paid: Boolean(data.is_paid || stripeStatus === "succeeded" || stripeStatus === "paid"),
+          pending: ["requires_payment_method", "requires_confirmation", "requires_action", "processing"].indexOf(stripeStatus) >= 0,
+          cancelled: ["canceled", "cancelled", "failed"].indexOf(stripeStatus) >= 0,
+          reference: piReference
+        };
+      });
     }
     if (!endpoint) return Promise.resolve({ paid: false, pending: true, reference: pending.providerReference || null });
     return requestJson(endpoint, { method: "POST", body: payload }).then(function (data) {
@@ -1305,7 +1682,7 @@
 
   function handlePaymentReturn() {
     var pending = pendingPayment();
-    if (!pending || !state.order) {
+    if (!pending) {
       openCheckout();
       renderCheckout(copy().paymentFailed, true);
       return;
@@ -1319,15 +1696,26 @@
       attempts += 1;
       verifyPendingOnce(pending).then(function (result) {
         if (result.paid) {
-          return settleExisting(
-            pending.methodCode,
-            pending.providerCode || pending.provider,
-            result.reference,
-            pending.amount,
-            pending.tipAmount,
-            pending.couponCode,
-            pending.couponDiscount
-          ).then(function () { finishOrder(copy().paidHint); });
+          return submitOrder({ silent: true, allowWhileBusy: true })
+            .then(function () {
+              return settleExisting(
+                pending.methodCode,
+                pending.providerCode || pending.provider,
+                result.reference,
+                pending.amount,
+                pending.tipAmount,
+                pending.couponCode,
+                pending.couponDiscount
+              );
+            })
+            .then(function () { finishOrder(copy().paidHint); })
+            .catch(function (error) {
+              renderCheckout(
+                "Payment was received. Do not pay again. " +
+                  (error.message || "Order finalization is pending."),
+                true
+              );
+            });
         }
         if (result.cancelled) {
           renderCheckout(copy().paymentFailed, true);
@@ -1359,15 +1747,17 @@
         var normalizedMenu = normalizeMenu(data.menu);
 
         state.settings = settings;
-        state.theme = theme;
+        applyCustomerMenuTheme(settings, theme);
         state.items = normalizedMenu.items;
         state.categories = normalizedMenu.categories;
         state.payments = normalizePayments(data.payments);
 
         state.restaurant = {
-          name: cleanText(first(settings, ["pmd_restaurant_identity_name", "site_name", "business_name", "restaurant_name"],
-            first(restaurant, ["name", "restaurant_name"], "PayMyDine")), "PayMyDine"),
-          logo: normalizeAsset(first(settings, ["pmd_restaurant_identity_logo", "site_logo_url", "logo_url", "site_logo", "logo"], "")),
+          name: cleanText(first(config.restaurant || {}, ["name"],
+            first(settings, ["pmd_restaurant_identity_name", "site_name", "business_name", "restaurant_name"],
+              first(restaurant, ["name", "restaurant_name"], "PayMyDine"))), "PayMyDine"),
+          logo: normalizeAsset(first(config.restaurant || {}, ["logo"],
+            first(settings, ["pmd_restaurant_identity_logo", "site_logo_url", "logo_url", "site_logo", "logo"], ""))),
           currency: String(first(restaurant, ["currency", "location_currency"], first(settings, ["default_currency", "currency"], "EUR")) || "EUR").toUpperCase()
         };
 
@@ -1482,11 +1872,6 @@
       return;
     }
 
-    if (event.target.closest("[data-submit-order]")) {
-      submitOrder().catch(function () {});
-      return;
-    }
-
     var tipButton = event.target.closest("[data-tip]");
     if (tipButton) {
       state.tipPercent = Math.max(0, number(tipButton.getAttribute("data-tip")));
@@ -1510,6 +1895,7 @@
     }
   });
 
+  applyCustomerMenuTheme({}, config.theme || {});
   restoreSession();
   loadBootstrap().then(finishBoot).catch(failBoot);
 })();

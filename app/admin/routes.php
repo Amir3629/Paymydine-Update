@@ -3843,3 +3843,10 @@ if (file_exists(base_path('routes/pmd-tenant-runtime-guard-r1.php'))) {
 // PMD_SUPERADMIN_R2_ROUTE_LOADER
 require_once base_path('routes/pmd-superadmin-r2.php');
 
+// PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1
+// Admin\ServiceProvider loads this file in HTTP and Console bootstrap.
+// Keep Restaurant Groups routes on the same proven route authority as the
+// existing Super Admin and Admin route packs.
+require_once base_path('routes/pmd-groups.php');
+// PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1_END
+

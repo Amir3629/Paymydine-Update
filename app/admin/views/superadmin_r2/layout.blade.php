@@ -110,6 +110,9 @@
     data-pmd-platform-card-system-v2="1"
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
+
+{{-- Page-specific paint authority must come after every global stylesheet. --}}
+@stack('page-head')
 </head>
 <body>
 @include('admin::superadmin_r2.side_menu')
@@ -154,7 +157,7 @@
 
 
 <!-- PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
-<script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20260826-console-proven-modal-chrome-dark-green-v1"></script>
+<script id="pmd-overlay-single-visual-plane-v4-script" src="/app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js?v=20261004-superadmin-create-r11"></script>
 <!-- /PMD_OVERLAY_SINGLE_VISUAL_PLANE_V4 -->
 </body>
 </html>

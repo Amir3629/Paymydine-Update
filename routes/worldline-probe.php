@@ -223,25 +223,37 @@ $worldlineAdminAuthorize = static function () {
             return $denied;
         }
 
+        // PMD_KIOSK_WORLDLINE_PAY_FIRST_V10
+        // Normal QR/table Worldline checkout still requires a submitted order.
+        // Kiosk is different: provider payment must happen first, so an
+        // orderless hosted checkout is allowed only with kiosk_checkout=true.
+        $kioskCheckout = $request->boolean('kiosk_checkout');
         $orderId = (int)$request->input('order_id', 0);
-        if ($orderId <= 0) {
+        $order = null;
+        if ($orderId > 0) {
+            $order = \Illuminate\Support\Facades\DB::table('orders')->where('order_id', $orderId)->first();
+            if (!$order) {
+                return response()->json(['success' => false, 'error' => 'Order not found.'], 404);
+            }
+        } elseif (!$kioskCheckout) {
             return response()->json([
                 'success' => false,
                 'error_code' => 'worldline_order_required',
                 'error' => 'Submit the order before starting a Worldline payment.',
             ], 422);
         }
-        $order = \Illuminate\Support\Facades\DB::table('orders')->where('order_id', $orderId)->first();
-        if (!$order) {
-            return response()->json(['success' => false, 'error' => 'Order not found.'], 404);
-        }
 
-        $orderTotal = round((float)($order->order_total ?? $order->total ?? 0), 4);
-        $settledAmount = max(0.0, round((float)($order->settled_amount ?? 0), 4));
-        $remainingAmount = max(0.0, round($orderTotal - $settledAmount, 4));
-        $principalAmount = $remainingAmount;
         $tipAmount = max(0.0, round((float)$request->input('tip_amount', 0), 4));
-        $payableAmount = round($principalAmount + $tipAmount, 4);
+        if ($order) {
+            $orderTotal = round((float)($order->order_total ?? $order->total ?? 0), 4);
+            $settledAmount = max(0.0, round((float)($order->settled_amount ?? 0), 4));
+            $remainingAmount = max(0.0, round($orderTotal - $settledAmount, 4));
+            $principalAmount = $remainingAmount;
+            $payableAmount = round($principalAmount + $tipAmount, 4);
+        } else {
+            $payableAmount = round((float)$request->input('amount', 0), 4);
+            $principalAmount = max(0.0, round($payableAmount - $tipAmount, 4));
+        }
 
         $allocations = $request->input('order_allocations', []);
         if (is_array($allocations) && count(array_filter($allocations)) > 1) {
@@ -307,7 +319,7 @@ $worldlineAdminAuthorize = static function () {
 
         $couponCode = trim((string)$request->input('coupon_code', ''));
         $couponDiscount = max(0.0, round((float)$request->input('coupon_discount', 0), 4));
-        if ($intentToken === '' && ($couponCode !== '' || $couponDiscount > 0.0001)) {
+        if (!$kioskCheckout && $intentToken === '' && ($couponCode !== '' || $couponDiscount > 0.0001)) {
             return response()->json([
                 'success' => false,
                 'error_code' => 'worldline_coupon_intent_required',
@@ -334,11 +346,14 @@ $worldlineAdminAuthorize = static function () {
                 'amount_minor' => (int)round($payableAmount * 100),
                 'principal_amount_minor' => (int)round($principalAmount * 100),
                 'tip_amount_minor' => (int)round($tipAmount * 100),
-                'currency' => 'EUR',
-                'country_code' => 'DE',
+                'currency' => strtoupper((string)$request->input('currency', 'EUR')),
+                'country_code' => strtoupper((string)$request->input('country_code', 'DE')),
                 'locale' => (string)$request->input('locale', 'de_DE'),
                 'return_url' => $returnUrl,
-                'merchant_reference' => 'PMD-ORDER-'.$orderId,
+                'merchant_reference' => trim((string)$request->input(
+                    'merchant_reference',
+                    $orderId > 0 ? 'PMD-ORDER-'.$orderId : ''
+                )),
             ]);
             return response()->json(array_merge(['success' => true], $result));
         } catch (\Throwable $e) {
@@ -360,12 +375,16 @@ $worldlineAdminAuthorize = static function () {
     \Illuminate\Support\Facades\Route::post('/payments/worldline/runtime/status', function (\Illuminate\Http\Request $request) {
         $checkoutId = trim((string)$request->input('hosted_checkout_id', ''));
         $orderId = (int)$request->input('order_id', 0);
-        if ($checkoutId === '' || $orderId <= 0) {
-            return response()->json(['success' => false, 'error' => 'hosted_checkout_id and order_id are required.'], 422);
+        $kioskCheckout = $request->boolean('kiosk_checkout');
+        if ($checkoutId === '' || ($orderId <= 0 && !$kioskCheckout)) {
+            return response()->json([
+                'success' => false,
+                'error' => 'hosted_checkout_id and order_id are required unless kiosk_checkout=true.',
+            ], 422);
         }
         try {
             $result = app(\App\Services\Payments\WorldlineConnectRuntimeService::class)->verifiedStatus($checkoutId);
-            if ((int)($result['order_id'] ?? 0) !== $orderId) {
+            if (!$kioskCheckout && (int)($result['order_id'] ?? 0) !== $orderId) {
                 return response()->json([
                     'success' => false,
                     'is_paid' => false,

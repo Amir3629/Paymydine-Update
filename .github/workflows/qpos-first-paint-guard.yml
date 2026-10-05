@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - fix/qpos-fast-first-paint-r132
+      - fix/qpos-r134-lazy-floor-boot
+      - fix/qpos-r135-minimal-boot
       - main
     paths:
       - 'app/admin/assets/js/pmd-quick-pos-v1.js'
@@ -45,10 +47,16 @@ jobs:
 
           grep -Fq 'PMD_QPOS_FAST_FIRST_PAINT_R132'             app/admin/views/pmd_quick_pos_v1.blade.php
 
-          grep -Fq 'defer src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js'             app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'PMD_QPOS_LAZY_FLOOR_BOOT_R134' app/admin/views/pmd_quick_pos_v1.blade.php
+          ! grep -Fq '<script defer src="/app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js' app/admin/views/pmd_quick_pos_v1.blade.php
+          ! grep -Fq '<script defer src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js' app/admin/views/pmd_quick_pos_v1.blade.php
 
-          grep -Fq 'defer src="/app/admin/assets/js/pmd-shared-floor-multi-floor-v1.js'             app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'PMD_QPOS_MINIMAL_BOOT_R135' app/admin/views/pmd_quick_pos_v1.blade.php
+          ! grep -Fq '<script defer src="/app/admin/assets/js/pmd-reservation-composer-v1.js' app/admin/views/pmd_quick_pos_v1.blade.php
+          ! grep -Fq '<script defer src="/app/admin/assets/js/push-notifications.js' app/admin/views/pmd_quick_pos_v1.blade.php
+          ! grep -Fq '<script defer src="/app/admin/assets/js/pmd-quick-reservations-v1.js' app/admin/views/pmd_quick_pos_v1.blade.php
+          ! grep -Fq '<script defer src="/app/admin/assets/js/pmd-site-access-hub-v13.js' app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'window.PMDQuickPOSMinimalBootR135' app/admin/views/pmd_quick_pos_v1.blade.php
 
-          grep -Fq 'defer src="/app/admin/assets/js/push-notifications.js'             app/admin/views/pmd_quick_pos_v1.blade.php
-
-          grep -Fq 'pmd-quick-pos-v1.js?v=20261003-r132'             app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'pmd-quick-pos-v1.js?v=20261003-r135'             app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'pmd-qpos-web-parity-v112.js?v=20261003-r135'      app/admin/views/pmd_quick_pos_v1.blade.php

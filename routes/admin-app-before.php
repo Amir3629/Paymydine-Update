@@ -5564,6 +5564,78 @@ return response()->json([
         }
     });
 
+    // PMD_KIOSK_PAY_FIRST_V10
+    // Kiosk may return from 3DS/provider redirect before a canonical order
+    // exists. This endpoint verifies only the tenant-owned PaymentIntent status;
+    // settlement still happens later through /orders/pay-existing.
+    Route::post('/payments/stripe/status', function (\Illuminate\Http\Request $request) {
+        $payload = $request->validate([
+            'payment_intent_id' => 'required|string|max:191',
+        ]);
+
+        $paymentIntentId = trim((string)$payload['payment_intent_id']);
+        if (!str_starts_with($paymentIntentId, 'pi_')) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Invalid Stripe payment reference.',
+            ], 422);
+        }
+
+        $payment = \Admin\Models\Payments_model::isEnabled()
+            ->where('code', 'stripe')
+            ->first();
+
+        if (!$payment) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Stripe not configured',
+            ], 404);
+        }
+
+        $data = (array)$payment->data;
+        $mode = (string)($data['transaction_mode'] ?? 'test');
+        $secretKey = $mode === 'live'
+            ? (string)($data['live_secret_key'] ?? '')
+            : (string)($data['test_secret_key'] ?? '');
+
+        if ($secretKey === '') {
+            return response()->json([
+                'success' => false,
+                'error' => 'Stripe secret key not configured',
+            ], 503);
+        }
+
+        try {
+            \Stripe\Stripe::setApiKey($secretKey);
+            $stripeCurl = new \Stripe\HttpClient\CurlClient();
+            $stripeCurl->setConnectTimeout(5);
+            $stripeCurl->setTimeout(10);
+            \Stripe\ApiRequestor::setHttpClient($stripeCurl);
+
+            $intent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
+            $status = strtolower((string)($intent->status ?? ''));
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'stripe',
+                'payment_intent_id' => $paymentIntentId,
+                'status' => $status,
+                'payment_status' => $status,
+                'is_paid' => $status === 'succeeded',
+            ], 200);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('PMD_KIOSK_STRIPE_STATUS_V10_FAILED', [
+                'payment_intent_id' => $paymentIntentId,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Unable to verify Stripe payment status.',
+            ], 422);
+        }
+    });
+
     // Menu endpoints
     Route::get('/menu', function () {
                     require_once base_path('app/main/routes/menu-highlight-response.php');
@@ -5879,7 +5951,10 @@ return response()->json([
                 'total_amount' => 'required|numeric|min:0',
                 'tip_amount' => 'nullable|numeric|min:0',
                 'coupon_discount' => 'nullable|numeric|min:0',
-                'payment_method' => 'required|in:cash,cod,card,paypal,stripe,apple_pay,google_pay,wero',
+                // PMD_KIOSK_QR_PAY_LATER_V9
+                // Create a canonical unpaid kiosk order before starting any
+                // provider flow. Settlement happens only after confirmation.
+                'payment_method' => 'required|in:cash,cod,card,paypal,stripe,apple_pay,google_pay,wero,qr_pay_later',
                 'stripe_payment_intent_id' => 'nullable|string|max:255',
             ];
 
@@ -5892,7 +5967,7 @@ return response()->json([
             }
 
             $validationRules['payment_provider'] = 'nullable|string|in:stripe,paypal,worldline,sumup,square,vr_payment';
-            $validationRules['payment_method_raw'] = 'nullable|string|in:card,apple_pay,google_pay,wero,paypal,cod,cash,stripe';
+            $validationRules['payment_method_raw'] = 'nullable|string|in:card,apple_pay,google_pay,wero,paypal,cod,cash,stripe,qr_pay_later';
             $validationRules['payment_reference'] = 'nullable|string|max:255';
 
             $request->validate($validationRules);
@@ -5913,6 +5988,7 @@ return response()->json([
                 'cod' => 'cash',
                 'cash' => 'cash',
                 'card' => 'card',
+                'qr_pay_later' => 'qr_pay_later',
                 default => 'card',
             };
 

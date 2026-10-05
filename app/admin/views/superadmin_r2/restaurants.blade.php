@@ -9,7 +9,7 @@
     if (!isset($pmdCountryOptions[$pmdCreateCountry])) $pmdCreateCountry = 'DE';
 @endphp
 
-@push('head')
+@push('page-head')
 <style>
     .pmd-tenant-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 18px}
     .pmd-tenant-hero h2{font-size:32px;line-height:1.08;margin:0}
@@ -27,7 +27,7 @@
     .pmd-page-summary{font-size:13px;color:var(--muted);font-weight:700}
     .pmd-page-links{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.pmd-page-link{min-width:40px;height:40px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;background:#fff;color:#36534b;font-size:13px;font-weight:800}.pmd-page-link:hover{background:#eef5f2}.pmd-page-link.active{border-color:#123d32;background:#123d32;color:#fff}.pmd-page-link.disabled{opacity:.45;pointer-events:none}
     .pmd-modal[hidden]{display:none!important}.pmd-modal{position:fixed;inset:0;z-index:13050;display:grid;place-items:center;padding:22px;background:rgba(4,20,17,.32);backdrop-filter:blur(7px)}
-    .pmd-modal-card{width:min(820px,calc(100vw - 32px));max-height:min(92vh,900px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 24px 70px rgba(5,32,27,.2)}
+    .pmd-modal-card{width:min(940px,calc(100vw - 32px));max-height:min(92vh,900px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:0 24px 70px rgba(5,32,27,.2)}
     .pmd-modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 22px;background:#fff;border-bottom:1px solid #edf2f0}
     .pmd-modal-head h3{margin:0;font-size:22px}.pmd-modal-close{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer;font-size:24px;line-height:1}
     .pmd-modal-body{padding:22px}.pmd-modal-body .field-grid{gap:15px 16px;align-items:start}.pmd-modal-body .field{align-content:start}.pmd-modal-body .field input,.pmd-modal-body .field select{height:50px;min-height:50px}.pmd-modal-body .field textarea{min-height:105px}
@@ -39,12 +39,38 @@
     .pmd-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;padding-top:17px;border-top:1px solid #edf2f0}.pmd-modal-actions .btn{min-width:132px}
     .pmd-edit-domain{display:flex;align-items:center;height:50px;padding:0 14px;border:1px solid #e0ebe7;border-radius:12px;background:#f7faf9;color:#667a73;font-size:14px;font-weight:700}
     .pmd-market-cell{display:flex;flex-direction:column;gap:3px}.pmd-market-cell strong{font-size:14px}.pmd-market-cell span{font-size:12px;color:var(--muted);white-space:nowrap}
+    .pmd-setup-inline{display:block;margin-top:5px;color:#9a4b08;font-size:11px;font-weight:800;white-space:nowrap}
     .pmd-market-preview{grid-column:1/-1;border:1px solid #dfeae6;border-radius:16px;background:#f8fbfa;padding:16px 17px}
     .pmd-market-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.pmd-market-preview-head strong{font-size:15px}.pmd-market-code{font-size:12px;font-weight:800;color:#2d6655;background:#e7f2ee;border-radius:999px;padding:5px 9px}
     .pmd-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pmd-market-item{padding:10px 11px;border:1px solid #e8efec;border-radius:11px;background:#fff}.pmd-market-item b{display:block;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#73857f;margin-bottom:4px}.pmd-market-item span{font-size:13px;color:#24443a;line-height:1.45}
-    body.pmd-modal-open{overflow:hidden}
+    .pmd-create-chooser{max-width:720px;margin:0 auto;padding:2px 0 6px}
+    .pmd-create-chooser[hidden],.pmd-create-selection[hidden],.pmd-create-panel[hidden]{display:none!important}
+    .pmd-create-chooser-intro{margin:0 0 15px}.pmd-create-chooser-intro strong{display:block;font-size:18px;line-height:1.3;color:#17372f}.pmd-create-chooser-intro span{display:block;margin-top:4px;color:#6f837c;font-size:13px;line-height:1.5}
+    .pmd-create-type-list{border-top:1px solid #dfe9e5}
+    .pmd-create-type{appearance:none;width:100%;min-height:72px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;padding:14px 4px!important;border:0!important;border-bottom:1px solid #dfe9e5!important;border-radius:0!important;background:#fff!important;background-image:none!important;color:#17372f!important;text-align:left;cursor:pointer;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important;outline:0}
+    .pmd-create-type-main strong{display:block;font-size:15px;line-height:1.3;color:#17372f}.pmd-create-type-main span{display:block;margin-top:3px;color:#71857e;font-size:12px;line-height:1.4}
+    .pmd-create-type-arrow{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#eff5f2;color:#31594e;font-size:18px;font-weight:700;transition:transform .15s ease,background .15s ease}
+    .pmd-create-type:hover{background:#f8fbfa!important;background-image:none!important;color:#17372f!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important}.pmd-create-type:hover .pmd-create-type-arrow{background:#e3efea;transform:translateX(2px)}
+    .pmd-create-type:focus-visible{outline:3px solid rgba(45,116,92,.20)!important;outline-offset:3px}
+    .pmd-create-type[data-pmd-modal-ui-button]{background:#fff!important;background-image:none!important;color:#17372f!important;border-radius:0!important;box-shadow:none!important;text-shadow:none!important;filter:none!important;transform:none!important}
+    .pmd-create-selection{display:flex;align-items:center;gap:12px;margin:0 0 18px;padding:0 0 13px;border-bottom:1px solid #e5ece9}
+    .pmd-create-change{appearance:none;border:0;background:transparent;color:#2b6756;font-size:12px;font-weight:850;padding:0;cursor:pointer;white-space:nowrap}
+    .pmd-create-change:hover{text-decoration:underline}
+    .pmd-create-selected-copy{min-width:0;padding-left:12px;border-left:1px solid #dfe8e5}.pmd-create-selected-copy strong{display:block;font-size:13px;color:#18382f}.pmd-create-selected-copy span{display:block;margin-top:2px;color:#73867f;font-size:11px;line-height:1.35}
+    .pmd-field-help{display:block;margin-top:6px;color:#71857e;font-size:12px;line-height:1.45}
+    .pmd-form-section{grid-column:1/-1;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:7px 0 -2px;padding-top:13px;border-top:1px solid #e8efec}
+    .pmd-form-section:first-child{padding-top:0;border-top:0}.pmd-form-section strong{display:block;font-size:14px;color:#17372f}.pmd-form-section span{display:block;margin-top:3px;color:#71857e;font-size:11px;line-height:1.35}
+    .pmd-owner-security-note{grid-column:1/-1;margin:-2px 0 2px;padding:9px 11px;border-left:3px solid #2d755f;background:#f5f9f7;color:#526a62;font-size:11px;line-height:1.45}
+    .pmd-business-locations{margin-top:20px;padding-top:18px;border-top:1px solid #e8efec}
+    .pmd-business-locations-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+    .pmd-business-locations-head strong{display:block;font-size:15px}.pmd-business-locations-head span{display:block;margin-top:4px;color:#71857e;font-size:12px;line-height:1.45}
+    .pmd-business-site-list{display:grid;gap:10px}.pmd-business-site{border:1px solid #dfe9e5;border-radius:14px;background:#fbfdfc;padding:13px}
+    .pmd-business-site-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.pmd-business-site-head strong{font-size:13px}
+    .pmd-business-site-remove{border:0;background:transparent;color:#b42318;font-weight:800;cursor:pointer}.pmd-business-site-remove:disabled{opacity:.35;cursor:not-allowed}
+    .pmd-business-site-fields{display:grid;grid-template-columns:1.05fr 1fr;gap:12px}.pmd-business-site-fields .field{margin:0}
+        body.pmd-modal-open{overflow:hidden}
     @media(max-width:1000px){.pmd-registry-toolbar{align-items:flex-start;flex-direction:column}.pmd-registry-toolbar .filters{justify-content:flex-start}.tenant-actions{min-width:300px}}
-    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}}
+    @media(max-width:820px){.pmd-tenant-hero{align-items:flex-start}.pmd-modal{padding:10px}.pmd-modal-card{width:100%;max-height:94vh;border-radius:20px}.pmd-modal-body .field-grid{grid-template-columns:1fr}.pmd-modal-body .field.full,.pmd-market-preview,.pmd-form-section,.pmd-owner-security-note{grid-column:auto}.pmd-market-grid{grid-template-columns:1fr}.pmd-create-type{min-height:66px;padding:12px 2px}.pmd-create-selection{align-items:flex-start}.pmd-business-site-fields{grid-template-columns:1fr}.pmd-business-locations-head{align-items:stretch;flex-direction:column}}
     @media(max-width:560px){.pmd-tenant-hero{flex-direction:column}.pmd-tenant-hero .btn{width:100%}.pmd-registry-toolbar .filters{width:100%}.pmd-registry-toolbar .filters input{flex:1;min-width:160px}.pmd-pagination{align-items:flex-start;flex-direction:column}.pmd-domain-suffix{font-size:13px;padding-right:10px}}
 </style>
 @endpush
@@ -75,7 +101,10 @@
             <thead><tr><th>Restaurant</th><th>Domain</th><th>Market</th><th>From</th><th>To</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
             @forelse($tenants as $tenant)
-                @php $pmdTenantProfile = $pmdPlatformProfiles->profile($tenant->country ?? ''); @endphp
+                @php
+                    $pmdTenantProfile = $pmdPlatformProfiles->profile($tenant->country ?? '');
+                    $pmdGroupSite = isset($pmdGroupSites) ? $pmdGroupSites->get((int)$tenant->id) : null;
+                @endphp
                 <tr>
                     <td><span class="tenant-name">{{ $tenant->name }}</span><span class="sub">{{ $tenant->email }}</span></td>
                     <td>{{ $tenant->domain }}</td>
@@ -91,7 +120,12 @@
                     </td>
                     <td>{{ $tenant->start }}</td>
                     <td>{{ $tenant->end }}</td>
-                    <td><span class="badge {{ $tenant->status==='active'?'ok':($tenant->status==='removed'?'warn':'bad') }}">{{ $tenant->status }}</span></td>
+                    <td>
+                        <span class="badge {{ $tenant->status==='active'?'ok':($tenant->status==='removed'?'warn':'bad') }}">{{ $tenant->status }}</span>
+                        @if($pmdGroupSite)
+                            <span class="pmd-setup-inline">Setup incomplete</span>
+                        @endif
+                    </td>
                     <td>
                         <div class="tenant-actions">
                             @if($tenant->status==='removed')
@@ -123,11 +157,19 @@
                                     <input type="hidden" name="confirmation" value="reset-owner-portal-mfa">
                                     <button class="btn btn-soft" type="submit" title="Support emergency recovery only">Reset Owner MFA</button>
                                 </form>
-                                <form class="tenant-status-form" method="POST" action="/superadmin/tenants/status">
-                                    @csrf<input type="hidden" name="id" value="{{ $tenant->id }}">
-                                    <select name="status" aria-label="Restaurant status"><option value="active" {{ $tenant->status==='active'?'selected':'' }}>Active</option><option value="disabled" {{ $tenant->status==='disabled'?'selected':'' }}>Disabled</option></select>
-                                    <button class="btn btn-soft" type="submit">Save</button>
-                                </form>
+                                @if($pmdGroupSite)
+                                    <form method="POST" action="/superadmin/groups/retry">
+                                        @csrf
+                                        <input type="hidden" name="site_id" value="{{ $pmdGroupSite->id }}">
+                                        <button class="btn btn-soft" type="submit">Retry setup</button>
+                                    </form>
+                                @else
+                                    <form class="tenant-status-form" method="POST" action="/superadmin/tenants/status">
+                                        @csrf<input type="hidden" name="id" value="{{ $tenant->id }}">
+                                        <select name="status" aria-label="Restaurant status"><option value="active" {{ $tenant->status==='active'?'selected':'' }}>Active</option><option value="disabled" {{ $tenant->status==='disabled'?'selected':'' }}>Disabled</option></select>
+                                        <button class="btn btn-soft" type="submit">Save</button>
+                                    </form>
+                                @endif
                                 @if($tenant->status==='disabled')
                                     <form method="POST" action="/superadmin/tenants/remove" onsubmit="return confirm('Remove {{ addslashes($tenant->name) }} from service? The restaurant stays offline and its database is retained for recovery.')">@csrf<input type="hidden" name="id" value="{{ $tenant->id }}"><button class="btn btn-danger" type="submit">Remove</button></form>
                                 @endif
@@ -165,38 +207,110 @@
             <button class="pmd-modal-close" type="button" data-pmd-close-create aria-label="Close">×</button>
         </div>
         <div class="pmd-modal-body">
-            <form method="POST" action="/superadmin/new/store" data-pmd-create-form>
-                @csrf
-                <input type="hidden" name="_pmd_form" value="create">
-                <input type="hidden" name="database" value="{{ old('database') }}" data-pmd-database>
-                <input type="hidden" name="domain" value="{{ old('domain') }}" data-pmd-domain>
-                <input type="hidden" name="type" value="{{ old('type','People') }}">
-                <div class="field-grid">
-                    <div class="field"><label>Restaurant name</label><input name="name" value="{{ old('_pmd_form') === 'create' ? old('name') : '' }}" required data-pmd-restaurant-name></div>
-                    <div class="field">
-                        <label>Restaurant subdomain</label>
-                        <div class="pmd-domain-control">
-                            <input type="text" value="{{ old('_pmd_form') === 'create' ? preg_replace('/\.paymydine\.com$/i', '', old('domain','')) : '' }}" placeholder="restaurant" autocomplete="off" autocapitalize="none" spellcheck="false" required data-pmd-domain-slug aria-label="Restaurant subdomain">
-                            <span class="pmd-domain-suffix">.paymydine.com</span>
-                        </div>
-                    </div>
-                    <div class="field"><label>Email</label><input type="email" name="email" value="{{ old('_pmd_form') === 'create' ? old('email') : '' }}" required></div>
-                    <div class="field"><label>Phone</label><input name="phone" value="{{ old('_pmd_form') === 'create' ? old('phone') : '' }}" required></div>
-                    <div class="field">
-                        <label>Country / platform market</label>
-                        <select name="country" required data-pmd-market-country>
-                            @foreach($pmdCountryOptions as $code => $label)
-                                <option value="{{ $code }}" {{ $pmdCreateCountry === $code ? 'selected' : '' }}>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="field"><label>Start date</label><input type="date" name="start" value="{{ old('_pmd_form') === 'create' ? old('start',now()->toDateString()) : now()->toDateString() }}" required></div>
-                    <div class="field"><label>End date</label><input type="date" name="end" value="{{ old('_pmd_form') === 'create' ? old('end',now()->addYear()->toDateString()) : now()->addYear()->toDateString() }}" required></div>
-                    <div class="field full"><label>Description</label><textarea name="description">{{ old('_pmd_form') === 'create' ? old('description') : '' }}</textarea></div>
-                    <div class="pmd-market-preview" data-pmd-market-preview></div>
+            <div class="pmd-create-chooser" data-pmd-create-chooser data-pmd-modal-chrome-skip>
+                <div class="pmd-create-chooser-intro">
+                    <strong>What are you creating?</strong>
+                    <span>Choose the account structure first. The next screen only shows fields for that setup.</span>
                 </div>
-                <div class="pmd-modal-actions"><button class="btn btn-soft" type="button" data-pmd-close-create>Cancel</button><button class="btn btn-primary" type="submit">Create restaurant</button></div>
-            </form>
+                <div class="pmd-create-type-list" role="group" aria-label="Restaurant setup">
+                    <div class="pmd-create-type" role="button" tabindex="0" data-pmd-create-kind="independent">
+                        <span class="pmd-create-type-main"><strong>Normal restaurant</strong><span>One restaurant, one Owner, one tenant.</span></span>
+                        <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
+                    </div>
+                    <div class="pmd-create-type" role="button" tabindex="0" data-pmd-create-kind="multi_location">
+                        <span class="pmd-create-type-main"><strong>Multi-location restaurant</strong><span>One shared Owner across several isolated restaurant tenants.</span></span>
+                        <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
+                    </div>
+                    <div class="pmd-create-type" role="button" tabindex="0" data-pmd-create-kind="food_court">
+                        <span class="pmd-create-type-main"><strong>Food court / venue</strong><span>Venue ownership with isolated vendor restaurant tenants.</span></span>
+                        <span class="pmd-create-type-arrow" aria-hidden="true">→</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pmd-create-selection" data-pmd-create-selection hidden>
+                <button class="pmd-create-change" type="button" data-pmd-change-create-kind>← Change setup</button>
+                <div class="pmd-create-selected-copy">
+                    <strong data-pmd-selected-kind-title>Normal restaurant</strong>
+                    <span data-pmd-selected-kind-copy>One restaurant, one Owner, one tenant.</span>
+                </div>
+            </div>
+
+            <div class="pmd-create-panel" data-pmd-create-panel="independent" hidden>
+                <form method="POST" action="/superadmin/new/store" data-pmd-create-form>
+                    @csrf
+                    <input type="hidden" name="_pmd_form" value="create">
+                    <input type="hidden" name="database" value="{{ old('database') }}" data-pmd-database>
+                    <input type="hidden" name="domain" value="{{ old('domain') }}" data-pmd-domain>
+                    <input type="hidden" name="type" value="{{ old('type','People') }}">
+
+                    <div class="field-grid">
+                        <div class="pmd-form-section">
+                            <div><strong>Restaurant</strong><span>Tenant identity and customer-facing contact details.</span></div>
+                        </div>
+                        <div class="field"><label>Restaurant name</label><input name="name" value="{{ old('_pmd_form') === 'create' ? old('name') : '' }}" required data-pmd-restaurant-name></div>
+                        <div class="field">
+                            <label>Restaurant subdomain</label>
+                            <div class="pmd-domain-control">
+                                <input type="text" value="{{ old('_pmd_form') === 'create' ? preg_replace('/\.paymydine\.com$/i', '', old('domain','')) : '' }}" placeholder="restaurant" autocomplete="off" autocapitalize="none" spellcheck="false" required data-pmd-domain-slug aria-label="Restaurant subdomain">
+                                <span class="pmd-domain-suffix">.paymydine.com</span>
+                            </div>
+                        </div>
+                        <div class="field"><label>Email</label><input type="email" name="email" value="{{ old('_pmd_form') === 'create' ? old('email') : '' }}" required></div>
+                        <div class="field"><label>Phone</label><input name="phone" value="{{ old('_pmd_form') === 'create' ? old('phone') : '' }}" required></div>
+                        <div class="pmd-form-section">
+                            <div><strong>Owner sign-in</strong><span>These credentials replace the template admin login for this restaurant.</span></div>
+                        </div>
+                        <div class="field">
+                            <label>Owner username</label>
+                            <input
+                                name="owner_username"
+                                value="{{ old('_pmd_form') === 'create' ? old('owner_username') : '' }}"
+                                maxlength="100"
+                                autocomplete="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                required
+                            >
+                        </div>
+                        <div class="field">
+                            <label>Owner password</label>
+                            <input type="password" name="owner_password" minlength="14" maxlength="128" autocomplete="new-password" required>
+                        </div>
+                        <div class="field">
+                            <label>Confirm password</label>
+                            <input type="password" name="owner_password_confirmation" minlength="14" maxlength="128" autocomplete="new-password" required>
+                        </div>
+                        <div class="pmd-owner-security-note">
+                            The template <strong>admin / password</strong> login is removed. Only the Owner credentials entered here remain usable.
+                        </div>
+                        <div class="pmd-form-section">
+                            <div><strong>Subscription & market</strong><span>Platform profile, service dates and restaurant notes.</span></div>
+                        </div>
+                        <div class="field">
+                            <label>Country / platform market</label>
+                            <select name="country" required data-pmd-market-country>
+                                @foreach($pmdCountryOptions as $code => $label)
+                                    <option value="{{ $code }}" {{ $pmdCreateCountry === $code ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="field"><label>Start date</label><input type="date" name="start" value="{{ old('_pmd_form') === 'create' ? old('start',now()->toDateString()) : now()->toDateString() }}" required></div>
+                        <div class="field"><label>End date</label><input type="date" name="end" value="{{ old('_pmd_form') === 'create' ? old('end',now()->addYear()->toDateString()) : now()->addYear()->toDateString() }}" required></div>
+                        <div class="field full"><label>Description</label><textarea name="description">{{ old('_pmd_form') === 'create' ? old('description') : '' }}</textarea></div>
+                        <div class="pmd-market-preview" data-pmd-market-preview></div>
+                    </div>
+
+                    <div class="pmd-modal-actions">
+                        <button class="btn btn-soft" type="button" data-pmd-close-create>Cancel</button>
+                        <button class="btn btn-primary" type="submit">Create restaurant</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="pmd-create-panel" data-pmd-create-panel="business" hidden>
+                @include('pmd-groups::create-panel')
+            </div>
         </div>
     </div>
 </div>
@@ -245,10 +359,22 @@
     var createModal=document.querySelector('[data-pmd-create-modal]');
     var editModal=document.querySelector('[data-pmd-edit-modal]');
     var createForm=createModal&&createModal.querySelector('[data-pmd-create-form]');
+    var businessForm=createModal&&createModal.querySelector('[data-pmd-business-form]');
+    var businessType=businessForm&&businessForm.querySelector('[data-pmd-business-type]');
+    var independentPanel=createModal&&createModal.querySelector('[data-pmd-create-panel="independent"]');
+    var businessPanel=createModal&&createModal.querySelector('[data-pmd-create-panel="business"]');
+    var createChooser=createModal&&createModal.querySelector('[data-pmd-create-chooser]');
+    var createSelection=createModal&&createModal.querySelector('[data-pmd-create-selection]');
+    var selectedKindTitle=createModal&&createModal.querySelector('[data-pmd-selected-kind-title]');
+    var selectedKindCopy=createModal&&createModal.querySelector('[data-pmd-selected-kind-copy]');
     var nameInput=createModal&&createModal.querySelector('[data-pmd-restaurant-name]');
     var databaseInput=createModal&&createModal.querySelector('[data-pmd-database]');
     var domainInput=createModal&&createModal.querySelector('[data-pmd-domain]');
     var domainSlugInput=createModal&&createModal.querySelector('[data-pmd-domain-slug]');
+    var businessSites=businessForm&&businessForm.querySelector('[data-pmd-business-sites]');
+    var addBusinessSite=businessForm&&businessForm.querySelector('[data-pmd-add-business-site]');
+    var oldBusinessSites=@json(old('_pmd_form') === 'business' ? array_values(old('sites', [])) : []);
+    var initialKind=@json(old('_pmd_form') === 'business' ? old('organization_type', 'multi_location') : (request()->query('create') === 'business' ? 'multi_location' : 'independent'));
 
     function databaseFromName(value){return String(value||'').trim().replace(/[^A-Za-z0-9_]+/g,'_').replace(/^_+|_+$/g,'').slice(0,64)}
     function domainFromSlug(value){return String(value||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'').replace(/\.paymydine\.com$/,'').replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-+|-+$/g,'').slice(0,63)}
@@ -289,29 +415,169 @@
         renderMarket(editModal);
     }
 
+    function siteRow(data){
+        if(!businessSites)return;
+        var row=document.createElement('div');
+        row.className='pmd-business-site';
+        row.innerHTML='<div class="pmd-business-site-head"><strong data-pmd-site-number>Location</strong><button class="pmd-business-site-remove" type="button" data-pmd-remove-business-site>Remove</button></div>'+
+            '<div class="pmd-business-site-fields">'+
+            '<div class="field"><label data-pmd-site-name-label>Location name</label><input data-pmd-site-label required maxlength="191"></div>'+
+            '<div class="field"><label>Subdomain</label><div class="pmd-domain-control"><input data-pmd-site-slug required maxlength="63" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="berlin-mitte"><span class="pmd-domain-suffix">.paymydine.com</span></div></div>'+
+            '</div>';
+        row.querySelector('[data-pmd-site-label]').value=data&&data.label?data.label:'';
+        row.querySelector('[data-pmd-site-slug]').value=data&&data.slug?domainFromSlug(data.slug):'';
+        businessSites.appendChild(row);
+        normalizeBusinessSites();
+    }
+
+    function normalizeBusinessSites(){
+        if(!businessSites)return;
+        Array.prototype.forEach.call(businessSites.children,function(row,index){
+            var label=row.querySelector('[data-pmd-site-label]');
+            var slug=row.querySelector('[data-pmd-site-slug]');
+            var number=row.querySelector('[data-pmd-site-number]');
+            var nameLabel=row.querySelector('[data-pmd-site-name-label]');
+            var food=businessType&&businessType.value==='food_court';
+            label.name='sites['+index+'][label]';
+            slug.name='sites['+index+'][slug]';
+            if(number)number.textContent=(food?'Vendor ':'Location ')+(index+1);
+            if(nameLabel)nameLabel.textContent=food?'Vendor / restaurant name':'Location name';
+            var remove=row.querySelector('[data-pmd-remove-business-site]');
+            if(remove)remove.disabled=businessSites.children.length<=2;
+        });
+    }
+
+    function syncBusinessSite(row){
+        var slug=row.querySelector('[data-pmd-site-slug]');
+        if(slug)slug.value=domainFromSlug(slug.value);
+    }
+
+    function kindMeta(kind){
+        if(kind==='food_court')return {title:'Food court / venue',copy:'Venue ownership with isolated vendor restaurant tenants.'};
+        if(kind==='multi_location')return {title:'Multi-location restaurant',copy:'One shared Owner across several isolated restaurant tenants.'};
+        return {title:'Normal restaurant',copy:'One restaurant, one Owner, one tenant.'};
+    }
+
+    function showCreateChooser(){
+        if(!createModal)return;
+        if(createChooser)createChooser.hidden=false;
+        if(createSelection)createSelection.hidden=true;
+        if(independentPanel)independentPanel.hidden=true;
+        if(businessPanel)businessPanel.hidden=true;
+        var title=createModal.querySelector('#pmd-create-title');
+        if(title)title.textContent='Create a new restaurant';
+        var first=createChooser&&createChooser.querySelector('[data-pmd-create-kind]');
+        setTimeout(function(){if(first)first.focus();},0);
+    }
+
+    function setCreateKind(kind,focusForm){
+        if(!createModal)return;
+        if(['independent','multi_location','food_court'].indexOf(kind)===-1)kind='independent';
+
+        if(createChooser)createChooser.hidden=true;
+        if(createSelection)createSelection.hidden=false;
+        if(independentPanel)independentPanel.hidden=kind!=='independent';
+        if(businessPanel)businessPanel.hidden=kind==='independent';
+        if(businessType&&kind!=='independent')businessType.value=kind;
+
+        var meta=kindMeta(kind);
+        if(selectedKindTitle)selectedKindTitle.textContent=meta.title;
+        if(selectedKindCopy)selectedKindCopy.textContent=meta.copy;
+
+        var title=createModal.querySelector('#pmd-create-title');
+        if(title)title.textContent='Create restaurant';
+
+        if(businessForm&&kind!=='independent'){
+            var heading=businessForm.querySelector('[data-pmd-sites-heading]');
+            var copy=businessForm.querySelector('[data-pmd-sites-copy]');
+            var submit=businessForm.querySelector('[data-pmd-business-submit]');
+            var nameLabel=businessForm.querySelector('[data-pmd-business-name-label]');
+            var nameHelp=businessForm.querySelector('[data-pmd-business-name-help]');
+            if(kind==='food_court'){
+                if(heading)heading.textContent='Food court vendors';
+                if(copy)copy.textContent='Each vendor remains an isolated tenant with its own subdomain and database.';
+                if(submit)submit.textContent='Create food court';
+                if(nameLabel)nameLabel.textContent='Food court / venue name';
+                if(nameHelp)nameHelp.textContent='The venue Owner can oversee the approved vendor restaurants.';
+            }else{
+                if(heading)heading.textContent='Restaurant locations';
+                if(copy)copy.textContent='Each location gets its own subdomain and isolated tenant database.';
+                if(submit)submit.textContent='Create multi-location restaurant';
+                if(nameLabel)nameLabel.textContent='Business account name';
+                if(nameHelp)nameHelp.textContent='One Owner account will control the restaurants below.';
+            }
+            normalizeBusinessSites();
+            renderMarket(businessForm);
+        }else{
+            renderMarket(createForm);
+        }
+
+        if(focusForm!==false){
+            var target=kind==='independent'?nameInput:(businessForm&&businessForm.querySelector('[data-pmd-business-name]'));
+            setTimeout(function(){if(target)target.focus();},0);
+        }
+    }
+
     if(nameInput)nameInput.addEventListener('input',syncDatabase);
     if(domainSlugInput){domainSlugInput.addEventListener('input',syncDomain);domainSlugInput.addEventListener('blur',syncDomain)}
     if(createForm)createForm.addEventListener('submit',function(){syncDatabase();syncDomain()});
-    document.querySelectorAll('[data-pmd-market-country]').forEach(function(select){select.addEventListener('change',function(){renderMarket(select.closest('.pmd-modal'))})});
+    if(businessForm)businessForm.addEventListener('submit',function(){
+        Array.prototype.forEach.call(businessSites?businessSites.children:[],syncBusinessSite);
+    });
+
+    document.querySelectorAll('[data-pmd-market-country]').forEach(function(select){
+        select.addEventListener('change',function(){renderMarket(select.closest('form')||select.closest('.pmd-modal'))});
+    });
+
+    if(businessSites){
+        if(oldBusinessSites.length){oldBusinessSites.forEach(siteRow)}else{siteRow({});siteRow({})}
+        businessSites.addEventListener('input',function(e){
+            if(e.target.matches('[data-pmd-site-slug]'))e.target.value=domainFromSlug(e.target.value);
+        });
+    }
+    if(addBusinessSite)addBusinessSite.addEventListener('click',function(){siteRow({})});
 
     document.addEventListener('click',function(e){
-        var createOpen=e.target.closest('[data-pmd-open-create]');if(createOpen){e.preventDefault();openModal(createModal,nameInput);return}
+        var createKind=e.target.closest('[data-pmd-create-kind]');
+        if(createKind){e.preventDefault();setCreateKind(createKind.getAttribute('data-pmd-create-kind'),true);return}
+
+        if(e.target.closest('[data-pmd-change-create-kind]')){e.preventDefault();showCreateChooser();return}
+
+        var remove=e.target.closest('[data-pmd-remove-business-site]');
+        if(remove&&!remove.disabled){e.preventDefault();remove.closest('.pmd-business-site').remove();normalizeBusinessSites();return}
+
+        var createOpen=e.target.closest('[data-pmd-open-create]');
+        if(createOpen){e.preventDefault();openModal(createModal,null);showCreateChooser();return}
         if(e.target.closest('[data-pmd-close-create]')){e.preventDefault();closeModal(createModal);return}
+
         var editOpen=e.target.closest('[data-pmd-open-edit]');
         if(editOpen){e.preventDefault();fillEdit({id:editOpen.dataset.id,name:editOpen.dataset.name,domain:editOpen.dataset.domain,email:editOpen.dataset.email,phone:editOpen.dataset.phone,country:editOpen.dataset.country,start:editOpen.dataset.start,end:editOpen.dataset.end,type:editOpen.dataset.type,description:editOpen.dataset.description});openModal(editModal,editField('[data-pmd-edit-name]'));return}
         if(e.target.closest('[data-pmd-close-edit]')){e.preventDefault();closeModal(editModal);return}
         if(e.target===createModal)closeModal(createModal);if(e.target===editModal)closeModal(editModal);
     });
-    document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;if(createModal&&!createModal.hidden)closeModal(createModal);if(editModal&&!editModal.hidden)closeModal(editModal)});
-    syncDomain();renderMarket(createModal);
+
+    document.addEventListener('keydown',function(e){
+        var createKind=e.target.closest&&e.target.closest('[data-pmd-create-kind]');
+        if(createKind&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setCreateKind(createKind.getAttribute('data-pmd-create-kind'),true);return}
+        if(e.key!=='Escape')return;
+        if(createModal&&!createModal.hidden)closeModal(createModal);
+        if(editModal&&!editModal.hidden)closeModal(editModal);
+    });
+    syncDomain();
+    showCreateChooser();
+    renderMarket(createModal);
 
     @if(old('_pmd_form') === 'create')
-        openModal(createModal,nameInput);
+        setCreateKind('independent',false);openModal(createModal,nameInput);
+    @elseif(old('_pmd_form') === 'business')
+        setCreateKind(@json(old('organization_type','multi_location')),false);openModal(createModal,businessForm&&businessForm.querySelector('[data-pmd-business-name]'));
     @elseif(old('_pmd_form') === 'edit')
         @php
             $pmdOldEdit = ['id'=>old('id'),'name'=>old('name'),'domain'=>old('domain'),'email'=>old('email'),'phone'=>old('phone'),'country'=>old('country'),'start'=>old('start'),'end'=>old('end'),'type'=>old('type','People'),'description'=>old('description')];
         @endphp
         fillEdit(@json($pmdOldEdit));openModal(editModal,editField('[data-pmd-edit-name]'));
+    @elseif(request()->query('create') === 'business')
+        setCreateKind('multi_location',false);openModal(createModal,businessForm&&businessForm.querySelector('[data-pmd-business-name]'));
     @endif
 })();
 </script>
