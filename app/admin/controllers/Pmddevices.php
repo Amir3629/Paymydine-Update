@@ -395,16 +395,22 @@ class Pmddevices extends AdminController
     /** PMD_DEVICE_PLATFORM_V1 */
     public function onAssignPmdTableDisplayTerminal()
     {
+        return $this->onAssignPmdDeviceTerminal();
+    }
+
+    /** PMD_DEVICE_TERMINAL_BINDING_V18 */
+    public function onAssignPmdDeviceTerminal()
+    {
         $this->assertDevicePlatformManager();
 
         $deviceId = max(0, (int)post('device_id', 0));
         $terminalId = max(0, (int)post('terminal_device_id', 0));
         if ($deviceId < 1) {
-            throw new \RuntimeException('Choose a Table Companion device.');
+            throw new \RuntimeException('Choose a PayMyDine Android device.');
         }
 
         $result = app(PmdDevicePlatformService::class)
-            ->assignTableDisplayTerminal(
+            ->assignDeviceTerminal(
                 $this->devicePlatformLocationId(),
                 $deviceId,
                 $terminalId > 0 ? $terminalId : null,
@@ -413,12 +419,12 @@ class Pmddevices extends AdminController
 
         if (!empty($result['terminal_device_id'])) {
             flash()->success(
-                'Contactless terminal linked to device #'.$deviceId.': '.
+                'Payment terminal linked to device #'.$deviceId.': '.
                 (string)($result['terminal_name'] ?? 'Payment terminal').'.'
             );
         } else {
             flash()->success(
-                'Contactless terminal link removed from device #'.$deviceId.'.'
+                'Payment terminal link removed from device #'.$deviceId.'.'
             );
         }
     }
