@@ -23,8 +23,10 @@ import java.net.URI
 
 /**
  * PMD_ANDROID_RESERVATIONS_ACTIVITY_V1
+ * PMD_ANDROID_RESERVATIONS_POS_WORKSPACE_V17
  *
- * Reservations uses the canonical authenticated PayMyDine Cloud workspace.
+ * Reservations uses the canonical authenticated PayMyDine Quick POS
+ * Reservations workspace (/admin/pos?workspace=reservations).
  * Unlike POS/KDS, reservation mutations are not yet part of pmd-sync-v1, so the
  * Android app fails closed instead of pretending an offline booking succeeded.
  */
@@ -185,10 +187,15 @@ class ReservationsActivity : ComponentActivity() {
 
                 override fun onPageFinished(current: WebView, url: String) {
                     val parsed = runCatching { URI(url) }.getOrNull()
-                    if (
+                    val androidUri = runCatching { Uri.parse(url) }.getOrNull()
+                    val isReservationsPos =
                         parsed?.host.equals(host, ignoreCase = true) &&
-                        parsed?.path?.startsWith("/admin/reservations") == true
-                    ) {
+                            parsed?.path == "/admin/pos" &&
+                            androidUri
+                                ?.getQueryParameter("workspace")
+                                ?.equals("reservations", ignoreCase = true) == true
+
+                    if (isReservationsPos) {
                         current.visibility = View.VISIBLE
                         status.visibility = View.GONE
                     }
