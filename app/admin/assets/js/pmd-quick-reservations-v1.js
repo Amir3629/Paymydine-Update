@@ -2504,7 +2504,8 @@
       type !== 'reservation_updated' &&
       type !== 'reservation_canceled' &&
       type !== 'reservation_no_show_charged' &&
-      type !== 'reservation_no_show_charge_failed'
+      type !== 'reservation_no_show_charge_failed' &&
+      type !== 'reservation_guarantee_released'
     ) {
       return;
     }
