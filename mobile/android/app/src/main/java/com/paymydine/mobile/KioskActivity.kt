@@ -212,6 +212,7 @@ private fun KioskApp(
     var loading by remember { mutableStateOf(false) }
     var completedOrderId by remember { mutableStateOf<String?>(null) }
     var sessionNonce by remember { mutableStateOf(UUID.randomUUID().toString()) }
+    var browserPrewarmed by remember { mutableStateOf(false) }
     var lastInteractionMs by remember {
         mutableLongStateOf(SystemClock.elapsedRealtime())
     }
@@ -268,6 +269,35 @@ private fun KioskApp(
             delay(10_000L)
         }
     }
+
+    LaunchedEffect(screen, profile) {
+        if (
+            screen != KioskScreen.WELCOME ||
+            profile == null ||
+            browserPrewarmed
+        ) {
+            return@LaunchedEffect
+        }
+
+        // PMD_KIOSK_WEBVIEW_PREWARM_V12
+        // Warm Chromium after the welcome frame is already on screen. This
+        // happens while the guest is deciding between Eat Here / Take Away,
+        // so the menu tap does not pay the WebView process cold-start cost.
+        browserPrewarmed = true
+        val warmView =
+            runCatching {
+                WebView(context).apply {
+                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    settings.javaScriptEnabled = false
+                    settings.domStorageEnabled = true
+                    settings.cacheMode = WebSettings.LOAD_DEFAULT
+                    loadUrl("about:blank")
+                }
+            }.getOrNull()
+        delay(220L)
+        runCatching { warmView?.destroy() }
+    }
+
 
     LaunchedEffect(screen, profile?.idleTimeoutSeconds) {
         if (screen != KioskScreen.MENU) return@LaunchedEffect
