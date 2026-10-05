@@ -30,6 +30,14 @@ data class KioskLocaleProfile(
     val defaultLocale: String,
 )
 
+data class KioskTerminalPaymentResult(
+    val ok: Boolean,
+    val attemptId: Long,
+    val status: String,
+    val message: String,
+    val paymentRecorded: Boolean,
+)
+
 /**
  * PMD_KIOSK_BOOTSTRAP_HANDOFF_V13
  * PMD_KIOSK_MULTI_WARM_BOOTSTRAP_V15
@@ -162,6 +170,61 @@ class KioskApiClient {
         )
     }
 
+
+    /**
+     * PMD_KIOSK_CARD_PRESENT_PAYMENT_V18
+     * Terminal credentials and provider routing stay on the server. Android
+     * supplies only its kiosk bearer token, order id and current kiosk session.
+     */
+    suspend fun terminalPaymentStart(
+        host: String,
+        token: String,
+        orderId: Long,
+        kioskSession: String,
+    ): KioskTerminalPaymentResult = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "payment/start",
+            method = "POST",
+            body = JSONObject()
+                .put("order_id", orderId)
+                .put("kiosk_session", kioskSession),
+            token = token,
+        )
+        parseTerminalPayment(json)
+    }
+
+    suspend fun terminalPaymentStatus(
+        host: String,
+        token: String,
+        attemptId: Long,
+        kioskSession: String,
+    ): KioskTerminalPaymentResult = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "payment/status",
+            method = "POST",
+            body = JSONObject()
+                .put("attempt_id", attemptId)
+                .put("kiosk_session", kioskSession),
+            token = token,
+        )
+        parseTerminalPayment(json)
+    }
+
+    private fun parseTerminalPayment(json: JSONObject): KioskTerminalPaymentResult {
+        val payment = json.optJSONObject("payment") ?: JSONObject()
+        return KioskTerminalPaymentResult(
+            ok = json.optBoolean("ok", false) || payment.optBoolean("success", false),
+            attemptId = payment.optLong("attempt_id", 0L),
+            status = payment.optString("status", "").trim().lowercase(),
+            message = payment.optString(
+                "message",
+                json.optString("message", ""),
+            ).trim(),
+            paymentRecorded = payment.optBoolean("payment_recorded", false),
+        )
+    }
 
     /**
      * PMD_KIOSK_WELCOME_LANGUAGE_V18
