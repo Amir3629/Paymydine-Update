@@ -306,7 +306,10 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
                 $history = $reservation->addStatusHistory(
                     $status ? (int)$status->status_id : (int)$reservation->status_id,
-                    ['comment' => $historyComment]
+                    [
+                        'comment' => $historyComment,
+                        'staff_id' => (int)$user->getKey(),
+                    ]
                 );
 
                 if ($history) {
@@ -403,10 +406,17 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         }
 
         try {
-            $reservation->addStatusHistory(
+            $history = $reservation->addStatusHistory(
                 (int)$reservation->status_id,
-                ['comment' => 'Card guarantee released by staff. No no-show charge was made.']
+                [
+                    'comment' => 'Card guarantee released by staff. No no-show charge was made.',
+                    'staff_id' => (int)$user->getKey(),
+                ]
             );
+
+            if (is_object($history)) {
+                StatusUpdated::log($history, $user);
+            }
         } catch (Throwable $historyError) {
             logger()->warning('PMD guarantee release history failed', [
                 'reservation_id' => $reservationId,
