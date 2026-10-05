@@ -95,7 +95,7 @@ final class PmdMobileWorkspaceSessionController extends Controller
             ) {
                 abort(403, 'This paired account cannot use PayMyDine Reservations.');
             }
-            $route = 'pos?workspace=reservations';
+            $route = 'pos';
         } elseif (
             $effectiveSurface !== ''
             && $effectiveSurface !== 'auto'
@@ -132,6 +132,13 @@ final class PmdMobileWorkspaceSessionController extends Controller
             $roleCode,
             $destination
         );
+
+        // PMD_ANDROID_RESERVATIONS_POS_TARGET_V17
+        // Build the Reservations query after admin_url() so the redirect
+        // remains a normal canonical Admin path with an explicit workspace.
+        $canonicalRouteTargetV17 = $effectiveSurface === 'reservations'
+            ? admin_url('pos').'?workspace=reservations'
+            : admin_url($route);
 
         $location = Locations_model::query()->find($locationId);
         if (!$location) {
@@ -249,7 +256,7 @@ final class PmdMobileWorkspaceSessionController extends Controller
             ]);
             session()->put(
                 'pmd_owner_totp_after_v1',
-                $nextTargetV129 ?: admin_url($route)
+                $nextTargetV129 ?: $canonicalRouteTargetV17
             );
         } else {
             $site->markWorkspaceVerified(
@@ -286,7 +293,7 @@ final class PmdMobileWorkspaceSessionController extends Controller
         return redirect(
             $isOwner
                 ? admin_url('login')
-                : ($nextTargetV129 ?: admin_url($route))
+                : ($nextTargetV129 ?: $canonicalRouteTargetV17)
         )->header('Cache-Control', 'no-store, private');
     }
 
