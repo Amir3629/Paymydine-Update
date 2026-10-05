@@ -60,6 +60,42 @@
                 return app(\App\Http\Controllers\PmdPublicBookingController::class)->store(request());
             }
 
+            if ($pmdBookingPath === '/book/manage' && $pmdBookingMethod === 'GET') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->manageLookupPage(request());
+            }
+
+            if ($pmdBookingPath === '/book/manage' && $pmdBookingMethod === 'POST') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->manageLookup(request());
+            }
+
+            if (preg_match('#^/book/manage/([a-f0-9]{32})$#i', $pmdBookingPath, $pmdManageMatch)) {
+                if ($pmdBookingMethod === 'GET') {
+                    return app(\App\Http\Controllers\PmdPublicBookingController::class)
+                        ->manageShow(request(), $pmdManageMatch[1]);
+                }
+
+                if ($pmdBookingMethod === 'POST') {
+                    return app(\App\Http\Controllers\PmdPublicBookingController::class)
+                        ->manageUpdate(request(), $pmdManageMatch[1]);
+                }
+            }
+
+            if (
+                $pmdBookingMethod === 'GET'
+                && preg_match('#^/book/manage/([a-f0-9]{32})/availability$#i', $pmdBookingPath, $pmdManageAvailabilityMatch)
+            ) {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)
+                    ->manageAvailability(request(), $pmdManageAvailabilityMatch[1]);
+            }
+
+            if (
+                $pmdBookingMethod === 'POST'
+                && preg_match('#^/book/manage/([a-f0-9]{32})/cancel$#i', $pmdBookingPath, $pmdManageCancelMatch)
+            ) {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)
+                    ->manageCancel(request(), $pmdManageCancelMatch[1]);
+            }
+
             // PMD_INJECT_PUBLIC_COMPAT_IN_ACTIVE_CATCHALL_20260606
             require_once base_path('routes/pmd-public-compat-handler.php');
             if (function_exists('pmd_public_compat_response_20260606')) {

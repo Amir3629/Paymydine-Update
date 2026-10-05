@@ -59,6 +59,8 @@
             'success_received' => 'Your request was sent to the restaurant.',
             'reference' => 'Booking reference',
             'add_calendar' => 'Add to calendar',
+            'manage_booking' => 'Manage booking',
+            'manage_existing' => 'Manage an existing booking',
             'new_booking' => 'Make another booking',
             'error_title' => 'We could not complete the booking.',
             'powered' => 'Online reservations by PayMyDine',
@@ -126,6 +128,8 @@
             'success_received' => 'Ihre Anfrage wurde an das Restaurant gesendet.',
             'reference' => 'Reservierungsnummer',
             'add_calendar' => 'Zum Kalender hinzufügen',
+            'manage_booking' => 'Reservierung verwalten',
+            'manage_existing' => 'Bestehende Reservierung verwalten',
             'new_booking' => 'Weitere Reservierung',
             'error_title' => 'Die Reservierung konnte nicht abgeschlossen werden.',
             'powered' => 'Online-Reservierungen mit PayMyDine',
@@ -193,6 +197,8 @@
             'success_received' => 'Talebiniz restorana gönderildi.',
             'reference' => 'Rezervasyon kodu',
             'add_calendar' => 'Takvime ekle',
+            'manage_booking' => 'Rezervasyonu yönet',
+            'manage_existing' => 'Mevcut rezervasyonu yönet',
             'new_booking' => 'Yeni rezervasyon',
             'error_title' => 'Rezervasyon tamamlanamadı.',
             'powered' => 'PayMyDine online rezervasyon',
@@ -260,6 +266,8 @@
             'success_received' => 'تم إرسال طلبك إلى المطعم.',
             'reference' => 'رقم الحجز',
             'add_calendar' => 'أضف إلى التقويم',
+            'manage_booking' => 'إدارة الحجز',
+            'manage_existing' => 'إدارة حجز موجود',
             'new_booking' => 'حجز جديد',
             'error_title' => 'تعذر إكمال الحجز.',
             'powered' => 'حجوزات عبر الإنترنت بواسطة PayMyDine',
@@ -324,7 +332,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r15">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r16">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -602,6 +610,7 @@
 
                 <div class="pmd-booking-success__actions">
                     <a id="pmd-booking-calendar" href="#" download="reservation.ics" data-pmd-i18n="add_calendar">{{ $t['add_calendar'] }}</a>
+                    <a id="pmd-booking-manage-link" href="/book/manage?lang={{ $bookingLocale }}" data-pmd-i18n="manage_booking">{{ $t['manage_booking'] }}</a>
                     <button type="button" data-pmd-new-booking data-pmd-i18n="new_booking">{{ $t['new_booking'] }}</button>
                 </div>
             </section>
@@ -610,6 +619,7 @@
         <footer class="pmd-booking-footer">
             <span data-pmd-i18n="powered">{{ $t['powered'] }}</span>
             <div>
+                <a id="pmd-booking-manage-existing" href="/book/manage?lang={{ $bookingLocale }}" data-pmd-i18n="manage_existing">{{ $t['manage_existing'] }}</a>
                 @if($bookingProfile['website_url'])
                     <a href="{{ $bookingProfile['website_url'] }}" rel="noopener noreferrer">Website</a>
                 @endif
@@ -624,6 +634,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r15" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r16" defer></script>
 </body>
 </html>

@@ -367,6 +367,7 @@ class PmdPublicBookingController extends Controller
                 'message' => $isConfirmed
                     ? 'Your table is confirmed.'
                     : 'Your reservation request has been received.',
+                'manage_url' => url('/book/manage/'.rawurlencode((string)$reservation->hash)),
                 'reservation' => [
                     'date' => $date->toDateString(),
                     'time' => $time,
@@ -389,6 +390,470 @@ class PmdPublicBookingController extends Controller
                 'message' => 'We could not save the reservation. Please try again or contact the restaurant.',
             ], 500);
         }
+    }
+
+    public function manageLookupPage(Request $request)
+    {
+        return $this->renderManagePage($request, null, null);
+    }
+
+    public function manageLookup(Request $request)
+    {
+        $location = $this->location();
+
+        $data = validator($request->all(), [
+            'reference' => ['required', 'string', 'max:32'],
+            'email' => ['required', 'email:filter', 'max:96'],
+        ])->validate();
+
+        $reference = strtoupper(trim((string)$data['reference']));
+        $reservationId = (int)preg_replace('/\D+/', '', $reference);
+
+        $reservation = $reservationId > 0
+            ? Reservations_model::query()
+                ->where('location_id', (int)$location->getKey())
+                ->where('reservation_id', $reservationId)
+                ->whereRaw('LOWER(email) = ?', [strtolower(trim((string)$data['email']))])
+                ->first()
+            : null;
+
+        if (!$reservation || trim((string)$reservation->hash) === '') {
+            return $this->renderManagePage(
+                $request,
+                null,
+                'We could not find that reservation. Check the booking reference and email address.'
+            );
+        }
+
+        $languageContext = $this->languageContext($location);
+        $requestedLocale = strtolower(substr((string)$request->input('lang', ''), 0, 2));
+        $locale = in_array($requestedLocale, (array)$languageContext['eligible'], true)
+            ? $requestedLocale
+            : $this->locale($request, $languageContext);
+
+        return redirect('/book/manage/'.rawurlencode((string)$reservation->hash).'?lang='.rawurlencode($locale), 302);
+    }
+
+    public function manageShow(Request $request, string $hash)
+    {
+        $location = $this->location();
+        $reservation = $this->reservationByPublicHash($location, $hash);
+
+        if (!$reservation) {
+            abort(404);
+        }
+
+        return $this->renderManagePage($request, $reservation, null);
+    }
+
+    public function manageAvailability(Request $request, string $hash): JsonResponse
+    {
+        $location = $this->location();
+        $reservation = $this->reservationByPublicHash($location, $hash);
+
+        if (!$reservation) {
+            abort(404);
+        }
+
+        $maxGuests = $this->maxBookableGuests($location);
+        $timezone = $this->timezone();
+
+        $data = validator($request->all(), [
+            'date' => ['required', 'date_format:Y-m-d'],
+            'guests' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
+        ])->validate();
+
+        $date = Carbon::createFromFormat('Y-m-d', (string)$data['date'], $timezone)->startOfDay();
+        $this->guardBookableDate($date, $timezone);
+
+        $payload = $this->availabilityPayloadExcludingReservation(
+            $location,
+            $date,
+            (int)$data['guests'],
+            (int)$reservation->getKey()
+        );
+
+        return response()->json([
+            'success' => true,
+            'date' => $date->toDateString(),
+            'guest_num' => (int)$data['guests'],
+            'duration' => (int)$payload['duration'],
+            'opening' => $payload['opening'],
+            'slots' => $payload['slots'],
+        ]);
+    }
+
+    public function manageUpdate(Request $request, string $hash): JsonResponse
+    {
+        $location = $this->location();
+        $reservation = $this->reservationByPublicHash($location, $hash);
+
+        if (!$reservation) {
+            abort(404);
+        }
+
+        if (!$this->reservationCanBeManaged($reservation)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This reservation can no longer be changed online. Please contact the restaurant.',
+            ], 422);
+        }
+
+        $timezone = $this->timezone();
+        $maxGuests = $this->maxBookableGuests($location);
+        $data = validator($request->all(), [
+            'first_name' => ['required', 'string', 'min:1', 'max:48'],
+            'last_name' => ['required', 'string', 'min:1', 'max:48'],
+            'email' => ['required', 'email:filter', 'max:96'],
+            'telephone' => ['required', 'string', 'min:5', 'max:64'],
+            'reserve_date' => ['required', 'date_format:Y-m-d'],
+            'reserve_time' => ['required', 'date_format:H:i'],
+            'guest_num' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
+            'occasion_id' => ['nullable', 'integer', 'in:0,3,6'],
+            'comment' => ['nullable', 'string', 'max:1000'],
+        ])->validate();
+
+        $date = Carbon::createFromFormat('Y-m-d', (string)$data['reserve_date'], $timezone)->startOfDay();
+        $this->guardBookableDate($date, $timezone);
+        $guests = (int)$data['guest_num'];
+        $time = (string)$data['reserve_time'];
+
+        $preflight = $this->availabilityPayloadExcludingReservation(
+            $location,
+            $date,
+            $guests,
+            (int)$reservation->getKey()
+        );
+
+        if (!collect($preflight['slots'])->firstWhere('value', $time)) {
+            throw ValidationException::withMessages([
+                'reserve_time' => ['That time is no longer available. Please choose another time.'],
+            ]);
+        }
+
+        try {
+            $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight) {
+                $allTableIds = $location->tables
+                    ->pluck('table_id')
+                    ->map(static fn ($id) => (int)$id)
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if ($allTableIds) {
+                    DB::table('tables')
+                        ->whereIn('table_id', $allTableIds)
+                        ->orderBy('table_id')
+                        ->lockForUpdate()
+                        ->get(['table_id']);
+                }
+
+                $locked = Reservations_model::query()
+                    ->where('location_id', (int)$location->getKey())
+                    ->where('reservation_id', (int)$reservation->getKey())
+                    ->where('hash', $hash)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$locked) {
+                    abort(404);
+                }
+
+                if (!$this->reservationCanBeManaged($locked)) {
+                    throw ValidationException::withMessages([
+                        'reservation' => ['This reservation can no longer be changed online.'],
+                    ]);
+                }
+
+                $start = Carbon::parse($date->toDateString().' '.$time, $timezone);
+                $duration = (int)$preflight['duration'];
+                $end = $start->copy()->addMinutes($duration);
+                $active = $this->activeReservations($location, $start, $end)
+                    ->reject(static fn ($item) => (int)$item->getKey() === (int)$locked->getKey())
+                    ->values();
+
+                $tableIds = $this->selectTableIds($location, $start, $end, $guests, $active);
+                if (!$tableIds) {
+                    throw ValidationException::withMessages([
+                        'reserve_time' => ['That time was just taken. Please choose another available time.'],
+                    ]);
+                }
+
+                $locked->skipAutoTableAllocation = true;
+                $locked->first_name = trim((string)$data['first_name']);
+                $locked->last_name = trim((string)$data['last_name']);
+                $locked->email = strtolower(trim((string)$data['email']));
+                $locked->telephone = trim((string)$data['telephone']);
+                $locked->reserve_date = $date->toDateString();
+                $locked->reserve_time = $time;
+                $locked->guest_num = $guests;
+                $locked->duration = $duration;
+                $locked->occasion_id = (int)($data['occasion_id'] ?? 0);
+                $locked->comment = trim((string)($data['comment'] ?? ''));
+                $locked->save();
+                $locked->addReservationTables($tableIds);
+
+                try {
+                    $locked->addStatusHistory((int)$locked->status_id, [
+                        'comment' => 'Updated by guest via public booking manager',
+                    ]);
+                } catch (Throwable $historyError) {
+                    Log::warning('PMD public booking update history failed', [
+                        'reservation_id' => (int)$locked->getKey(),
+                        'message' => $historyError->getMessage(),
+                    ]);
+                }
+
+                return $locked->fresh(['tables', 'status', 'location']);
+            }, 3);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Your reservation has been updated.',
+                'reservation' => $this->publicReservationPayload($updated),
+            ]);
+        } catch (ValidationException $error) {
+            throw $error;
+        } catch (Throwable $error) {
+            Log::error('PMD public booking update failed', [
+                'reservation_id' => (int)$reservation->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'We could not update the reservation. Please try again or contact the restaurant.',
+            ], 500);
+        }
+    }
+
+    public function manageCancel(Request $request, string $hash): JsonResponse
+    {
+        $location = $this->location();
+        $reservation = $this->reservationByPublicHash($location, $hash);
+
+        if (!$reservation) {
+            abort(404);
+        }
+
+        if ($reservation->isCanceled()) {
+            return response()->json([
+                'success' => true,
+                'canceled' => true,
+                'message' => 'This reservation is already canceled.',
+            ]);
+        }
+
+        if (!$reservation->isCancelable()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This reservation can no longer be canceled online. Please contact the restaurant.',
+            ], 422);
+        }
+
+        try {
+            $ok = DB::transaction(function () use ($location, $reservation, $hash) {
+                $locked = Reservations_model::query()
+                    ->where('location_id', (int)$location->getKey())
+                    ->where('reservation_id', (int)$reservation->getKey())
+                    ->where('hash', $hash)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$locked) {
+                    abort(404);
+                }
+
+                if ($locked->isCanceled()) {
+                    return true;
+                }
+
+                if (!$locked->isCancelable()) {
+                    throw ValidationException::withMessages([
+                        'reservation' => ['This reservation can no longer be canceled online.'],
+                    ]);
+                }
+
+                return $locked->markAsCanceled([
+                    'comment' => 'Canceled by guest via public booking manager',
+                ]);
+            }, 3);
+
+            if (!$ok) {
+                throw new \RuntimeException('Cancellation could not be recorded.');
+            }
+
+            return response()->json([
+                'success' => true,
+                'canceled' => true,
+                'message' => 'Your reservation has been canceled.',
+            ]);
+        } catch (ValidationException $error) {
+            throw $error;
+        } catch (Throwable $error) {
+            Log::error('PMD public booking cancel failed', [
+                'reservation_id' => (int)$reservation->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'We could not cancel the reservation. Please contact the restaurant.',
+            ], 500);
+        }
+    }
+
+    private function renderManagePage(Request $request, ?Reservations_model $reservation, ?string $lookupError)
+    {
+        $location = $this->location();
+        $languageContext = $this->languageContext($location);
+        $locale = $this->locale($request, $languageContext);
+        $timezone = $this->timezone();
+        $today = Carbon::now($timezone)->startOfDay();
+
+        $reservationPayload = null;
+        $initialAvailability = null;
+        if ($reservation) {
+            $reservation->loadMissing(['tables', 'status', 'location']);
+            $reservationPayload = $this->publicReservationPayload($reservation);
+
+            if (!$reservation->isCanceled() && $reservation->reservation_datetime->isFuture()) {
+                $reservationDate = Carbon::parse($reservationPayload['date'], $timezone)->startOfDay();
+                $initialAvailability = $this->availabilityPayloadExcludingReservation(
+                    $location,
+                    $reservationDate,
+                    (int)$reservation->guest_num,
+                    (int)$reservation->getKey()
+                );
+            }
+        }
+
+        $html = view()->file(
+            base_path('resources/views/pmd/public-booking-manage.blade.php'),
+            [
+                'bookingProfile' => $this->profile($location),
+                'bookingLocale' => $locale,
+                'bookingLocaleTag' => $languageContext['locale_tags'][$locale] ?? $this->defaultLocaleTag($locale),
+                'bookingDirection' => $this->localeDirection($locale),
+                'bookingLanguages' => $languageContext['eligible'],
+                'bookingTimezone' => $timezone,
+                'bookingToday' => $today->toDateString(),
+                'bookingMaxDate' => $today->copy()->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
+                'bookingMaxGuests' => $this->maxBookableGuests($location),
+                'bookingStayMinutes' => $this->stayMinutes($location),
+                'reservation' => $reservation,
+                'reservationPayload' => $reservationPayload,
+                'initialAvailability' => $initialAvailability,
+                'lookupError' => $lookupError,
+                'canManage' => $reservation ? $this->reservationCanBeManaged($reservation) : false,
+                'canCancel' => $reservation ? (!$reservation->isCanceled() && $reservation->isCancelable()) : false,
+            ]
+        )->render();
+
+        return response($html, 200)
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Cache-Control', 'private, no-store, max-age=0')
+            ->header('Pragma', 'no-cache');
+    }
+
+    private function reservationByPublicHash(Locations_model $location, string $hash): ?Reservations_model
+    {
+        if (!preg_match('/^[a-f0-9]{32}$/i', $hash)) {
+            return null;
+        }
+
+        return Reservations_model::query()
+            ->with(['tables', 'status', 'location'])
+            ->where('location_id', (int)$location->getKey())
+            ->where('hash', strtolower($hash))
+            ->first();
+    }
+
+    private function reservationCanBeManaged(Reservations_model $reservation): bool
+    {
+        if ($reservation->isCanceled()) {
+            return false;
+        }
+
+        try {
+            if (!$reservation->reservation_datetime->isFuture()) {
+                return false;
+            }
+        } catch (Throwable $error) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function publicReservationPayload(Reservations_model $reservation): array
+    {
+        $dateValue = $reservation->reserve_date;
+        $timeValue = $reservation->reserve_time;
+
+        return [
+            'id' => (int)$reservation->getKey(),
+            'reference' => 'R'.str_pad((string)$reservation->getKey(), 6, '0', STR_PAD_LEFT),
+            'hash' => (string)$reservation->hash,
+            'date' => $dateValue instanceof DateTimeInterface
+                ? $dateValue->format('Y-m-d')
+                : substr((string)$dateValue, 0, 10),
+            'time' => $timeValue instanceof DateTimeInterface
+                ? $timeValue->format('H:i')
+                : substr((string)$timeValue, 0, 5),
+            'guests' => (int)$reservation->guest_num,
+            'duration' => (int)$reservation->duration,
+            'first_name' => (string)$reservation->first_name,
+            'last_name' => (string)$reservation->last_name,
+            'email' => (string)$reservation->email,
+            'telephone' => (string)$reservation->telephone,
+            'occasion_id' => (int)$reservation->occasion_id,
+            'comment' => (string)$reservation->comment,
+            'canceled' => $reservation->isCanceled(),
+            'can_manage' => $this->reservationCanBeManaged($reservation),
+            'can_cancel' => !$reservation->isCanceled() && $reservation->isCancelable(),
+        ];
+    }
+
+    private function availabilityPayloadExcludingReservation(
+        Locations_model $location,
+        Carbon $date,
+        int $guests,
+        int $excludeReservationId
+    ): array {
+        $opening = $this->hoursForDate($location, $date);
+        $duration = $this->stayMinutes($location);
+        $interval = $this->slotInterval($location);
+
+        if (!$opening['enabled'] || !$opening['opening_time'] || !$opening['closing_time']) {
+            return [
+                'opening' => $opening,
+                'duration' => $duration,
+                'interval' => $interval,
+                'slots' => [],
+            ];
+        }
+
+        $timezone = $this->timezone();
+        $opensAt = Carbon::parse($date->toDateString().' '.$opening['opening_time'], $timezone);
+        $closesAt = Carbon::parse($date->toDateString().' '.$opening['closing_time'], $timezone);
+        if ($closesAt->lessThanOrEqualTo($opensAt)) {
+            $closesAt->addDay();
+        }
+
+        $active = $this->activeReservations($location, $opensAt, $closesAt)
+            ->reject(static fn ($item) => (int)$item->getKey() === $excludeReservationId)
+            ->values();
+
+        return $this->availabilityPayload(
+            $location,
+            $date,
+            $guests,
+            $opening,
+            $duration,
+            $interval,
+            $active
+        );
     }
 
     private function location(): Locations_model
