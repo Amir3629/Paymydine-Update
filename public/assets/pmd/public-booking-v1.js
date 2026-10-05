@@ -474,8 +474,13 @@
 
     var instant = cachedAvailability(value, state.guests);
     if (instant) {
+      /*
+       * PMD_PUBLIC_BOOKING_ZERO_WAIT_R5
+       *
+       * Date changes inside the seeded window are intentionally 100% local.
+       * The final booking POST remains authoritative and revalidates the slot.
+       */
       renderTimes(instant);
-      loadAvailability({ silent: true });
     } else {
       loadAvailability();
     }
