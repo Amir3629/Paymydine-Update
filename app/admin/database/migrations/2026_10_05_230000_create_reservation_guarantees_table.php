@@ -27,7 +27,10 @@ return new class extends Migration
             $table->string('setup_intent_reference', 191)->nullable();
             $table->string('charge_intent_reference', 191)->nullable();
             $table->string('terms_version', 64)->nullable();
+            $table->string('locale', 8)->nullable();
             $table->text('terms_text')->nullable();
+            $table->string('terms_hash', 64)->nullable();
+            $table->text('consent_text')->nullable();
             $table->string('consent_text_hash', 64)->nullable();
             $table->dateTime('consent_at')->nullable();
             $table->dateTime('cancellation_deadline_at')->nullable()->index();
