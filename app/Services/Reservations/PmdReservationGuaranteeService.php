@@ -270,6 +270,7 @@ final class PmdReservationGuaranteeService
                 'status' => 'active',
                 'amount_per_guest_cents' => max(0, (int)($policy['amount_per_guest_cents'] ?? 0)),
                 'amount_cents' => max(0, (int)($policy['amount_cents'] ?? 0)),
+                'charged_amount_cents' => null,
                 'currency' => strtoupper((string)($policy['currency'] ?? 'EUR')),
                 'customer_reference' => (string)($verified['customer_reference'] ?? ''),
                 'payment_method_reference' => (string)($verified['payment_method_reference'] ?? ''),
@@ -330,6 +331,9 @@ final class PmdReservationGuaranteeService
         return [
             'status' => (string)$row->status,
             'amount_cents' => (int)$row->amount_cents,
+            'charged_amount_cents' => isset($row->charged_amount_cents)
+                ? (int)$row->charged_amount_cents
+                : null,
             'currency' => (string)$row->currency,
             'terms_version' => (string)$row->terms_version,
             'cancellation_deadline_at' => $row->cancellation_deadline_at,
@@ -413,6 +417,9 @@ final class PmdReservationGuaranteeService
         return [
             'status' => $status,
             'amount_cents' => (int)$row->amount_cents,
+            'charged_amount_cents' => isset($row->charged_amount_cents)
+                ? (int)$row->charged_amount_cents
+                : null,
             'amount_per_guest_cents' => (int)$row->amount_per_guest_cents,
             'currency' => (string)$row->currency,
             'can_charge' => $canChargeStatus && $eligible,
@@ -423,8 +430,11 @@ final class PmdReservationGuaranteeService
         ];
     }
 
-    public function chargeNoShow(Reservations_model $reservation): array
-    {
+    public function chargeNoShow(
+        Reservations_model $reservation,
+        ?int $requestedAmountCents = null
+    ): array {
+
         $row = $this->guaranteeForReservation((int)$reservation->getKey());
         if (!$row) {
             throw new RuntimeException('This reservation has no card guarantee.');
@@ -435,7 +445,10 @@ final class PmdReservationGuaranteeService
                 'success' => true,
                 'already_charged' => true,
                 'payment_intent_id' => (string)$row->charge_intent_reference,
-                'amount_cents' => (int)$row->amount_cents,
+                'amount_cents' => isset($row->charged_amount_cents)
+                    ? (int)$row->charged_amount_cents
+                    : (int)$row->amount_cents,
+                'maximum_amount_cents' => (int)$row->amount_cents,
                 'currency' => (string)$row->currency,
             ];
         }
@@ -462,12 +475,29 @@ final class PmdReservationGuaranteeService
             throw new RuntimeException('Stripe is not enabled for this restaurant.');
         }
 
+        $maximumAmount = max(0, (int)$row->amount_cents);
+        $chargeAmount = $requestedAmountCents === null
+            ? $maximumAmount
+            : max(0, (int)$requestedAmountCents);
+
+        if ($chargeAmount < 1) {
+            throw new RuntimeException(
+                'Enter the actual no-show compensation amount to charge, or release the guarantee if no charge is appropriate.'
+            );
+        }
+
+        if ($chargeAmount > $maximumAmount) {
+            throw new RuntimeException(
+                'The no-show charge cannot exceed the maximum amount accepted by the guest.'
+            );
+        }
+
         $stripe = new StripeClient($stripeConfig['secret_key']);
         $reference = 'R'.str_pad((string)$reservation->getKey(), 6, '0', STR_PAD_LEFT);
 
         try {
             $intent = $stripe->paymentIntents->create([
-                'amount' => (int)$row->amount_cents,
+                'amount' => $chargeAmount,
                 'currency' => strtolower((string)$row->currency),
                 'customer' => (string)$row->customer_reference,
                 'payment_method' => (string)$row->payment_method_reference,
@@ -490,6 +520,7 @@ final class PmdReservationGuaranteeService
                     ->where('guarantee_id', (int)$row->guarantee_id)
                     ->update([
                         'status' => 'charged',
+                        'charged_amount_cents' => $chargeAmount,
                         'charge_intent_reference' => (string)$intent->id,
                         'charged_at' => now(),
                         'last_error' => null,
@@ -510,7 +541,8 @@ final class PmdReservationGuaranteeService
                     'success' => true,
                     'already_charged' => false,
                     'payment_intent_id' => (string)$intent->id,
-                    'amount_cents' => (int)$row->amount_cents,
+                    'amount_cents' => $chargeAmount,
+                    'maximum_amount_cents' => $maximumAmount,
                     'currency' => (string)$row->currency,
                 ];
             }
@@ -535,7 +567,8 @@ final class PmdReservationGuaranteeService
                 'payment_intent_id' => (string)$intent->id,
                 'status' => $status,
                 'message' => $message,
-                'amount_cents' => (int)$row->amount_cents,
+                'amount_cents' => $chargeAmount,
+                'maximum_amount_cents' => $maximumAmount,
                 'currency' => (string)$row->currency,
             ];
         } catch (Throwable $error) {
