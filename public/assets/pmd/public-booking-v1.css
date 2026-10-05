@@ -656,14 +656,14 @@ img {
 .pmd-booking-time-option:hover,
 .pmd-booking-time-option:focus-visible {
   border-color: var(--pmd-book-accent);
-  outline: 2px solid transparent;
-  color: var(--pmd-book-accent);
+  outline: none;
+  color: var(--pmd-book-ink);
 }
 
 .pmd-booking-time-option.is-active {
-  border-color: var(--pmd-book-accent);
-  background: var(--pmd-book-accent);
-  color: #fff;
+  border-color: var(--pmd-book-ink);
+  background: var(--pmd-book-ink);
+  color: var(--pmd-book-white);
 }
 
 .pmd-booking-empty {
@@ -810,7 +810,7 @@ img {
   width: 27px;
   height: 27px;
   fill: none;
-  stroke: var(--pmd-book-accent);
+  stroke: var(--pmd-book-ink);
   stroke-width: 1.45;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -828,13 +828,13 @@ img {
 
 .pmd-booking-occasion-card:hover .pmd-booking-occasion-card__surface {
   border-color: var(--pmd-book-accent);
-  background: var(--pmd-book-accent-soft);
-  transform: translateY(-1px);
+  background: rgba(255, 253, 248, .66);
+  transform: none;
 }
 
 .pmd-booking-occasion-card input:focus-visible + .pmd-booking-occasion-card__surface {
-  outline: 2px solid var(--pmd-book-accent);
-  outline-offset: 2px;
+  border-color: var(--pmd-book-accent);
+  outline: none;
 }
 
 .pmd-booking-occasion-card input:checked + .pmd-booking-occasion-card__surface {
