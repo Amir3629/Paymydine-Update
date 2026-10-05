@@ -38,6 +38,8 @@
   var successDate = document.getElementById("pmd-booking-success-date");
   var successTime = document.getElementById("pmd-booking-success-time");
   var successParty = document.getElementById("pmd-booking-success-party");
+  var successGuarantee = document.getElementById("pmd-booking-success-guarantee");
+  var successGuaranteeAmount = document.getElementById("pmd-booking-success-guarantee-amount");
   var calendarLink = document.getElementById("pmd-booking-calendar");
   var manageLink = document.getElementById("pmd-booking-manage-link");
   var manageExistingLink = document.getElementById("pmd-booking-manage-existing");
@@ -1141,6 +1143,18 @@
     if (successDate) successDate.textContent = formatDate(reservation.date || state.date, true);
     if (successTime) successTime.textContent = reservation.time || state.time;
     if (successParty) successParty.textContent = partyLabel(Number(reservation.guests || state.guests));
+
+    var guarantee = payload.guarantee || null;
+    if (successGuarantee) {
+      successGuarantee.hidden = !guarantee;
+    }
+    if (successGuaranteeAmount && guarantee) {
+      successGuaranteeAmount.textContent = guaranteeMoney(
+        Number(guarantee.amount_cents || 0),
+        guarantee.currency || "EUR"
+      );
+    }
+
     if (calendarLink) calendarLink.href = calendarHref(payload);
     if (manageLink && payload.manage_url) {
       var manageUrl = new URL(payload.manage_url, window.location.origin);
