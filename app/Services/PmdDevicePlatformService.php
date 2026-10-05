@@ -460,6 +460,82 @@ final class PmdDevicePlatformService
         ];
     }
 
+    /**
+     * PMD_DEVICE_RECEIPT_PRINTER_V18
+     *
+     * Network ESC/POS printer settings live on the physical Device Platform
+     * record so kiosk and staff Android modes share one hardware assignment.
+     */
+    public function saveDeviceReceiptPrinter(
+        int $locationId,
+        int $deviceId,
+        array $input,
+        ?int $staffId
+    ): array {
+        $this->ensureStorage();
+
+        $device = DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->where('location_id', $locationId)
+            ->whereIn('device_kind', ['table_display', 'kiosk', 'staff_personal'])
+            ->whereNull('revoked_at')
+            ->first();
+
+        if (!$device) {
+            abort(404, 'PayMyDine Android device was not found.');
+        }
+
+        $connection = strtolower(trim((string)($input['connection_type'] ?? '')));
+        if (!in_array($connection, ['', 'network'], true)) {
+            abort(422, 'Receipt printer connection type is invalid.');
+        }
+
+        $host = trim((string)($input['host'] ?? ''));
+        $port = max(1, min(65535, (int)($input['port'] ?? 9100)));
+        $name = mb_substr(trim((string)($input['name'] ?? '')), 0, 120);
+
+        if ($connection === 'network') {
+            if (
+                $host === ''
+                || strlen($host) > 253
+                || !preg_match('/^[A-Za-z0-9._:-]+$/', $host)
+            ) {
+                abort(422, 'Enter a valid network printer host or IP address.');
+            }
+        } else {
+            $host = '';
+            $name = '';
+            $port = 9100;
+        }
+
+        $platform = $this->decode((string)($device->platform_info ?? ''));
+        $platform['receipt_printer_connection_type'] = $connection ?: null;
+        $platform['receipt_printer_host'] = $connection ? $host : null;
+        $platform['receipt_printer_port'] = $connection ? $port : null;
+        $platform['receipt_printer_name'] = $connection ? ($name ?: 'Receipt printer') : null;
+        $platform['receipt_printer_bound_at'] = $connection ? now()->toIso8601String() : null;
+        $platform['receipt_printer_bound_by_staff_id'] = $connection ? ($staffId ?: null) : null;
+
+        DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->update([
+                'platform_info' => json_encode(
+                    $platform,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
+                'updated_at' => now(),
+            ]);
+
+        return [
+            'ok' => true,
+            'device_id' => $deviceId,
+            'connection_type' => $connection ?: null,
+            'host' => $host ?: null,
+            'port' => $connection ? $port : null,
+            'name' => $connection ? ($name ?: 'Receipt printer') : null,
+        ];
+    }
+
     private function tableOptions(int $locationId): array
     {
         return collect(app(PmdTableDisplayService::class)->tables())
@@ -629,6 +705,12 @@ final class PmdDevicePlatformService
                 'payment_terminal_provider' => strtolower(
                     trim((string)($platform['payment_terminal_provider'] ?? ''))
                 ),
+                'receipt_printer_connection_type' => strtolower(
+                    trim((string)($platform['receipt_printer_connection_type'] ?? ''))
+                ),
+                'receipt_printer_host' => trim((string)($platform['receipt_printer_host'] ?? '')),
+                'receipt_printer_port' => (int)($platform['receipt_printer_port'] ?? 9100),
+                'receipt_printer_name' => trim((string)($platform['receipt_printer_name'] ?? '')),
                 'assignment' => $assignment,
                 'online' => $online,
                 'screen_state' => (string)($live->screen_state ?? 'unknown'),
