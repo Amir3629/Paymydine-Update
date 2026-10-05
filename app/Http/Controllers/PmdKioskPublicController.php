@@ -348,7 +348,11 @@ final class PmdKioskPublicController
             true
         );
         $preferredId = is_array($platform)
-            ? (int)($platform['terminal_device_id'] ?? 0)
+            ? (int)(
+                $platform['payment_terminal_device_id']
+                ?? $platform['terminal_device_id']
+                ?? 0
+            )
             : 0;
 
         $base = DB::table('terminal_devices')
