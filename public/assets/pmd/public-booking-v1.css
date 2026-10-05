@@ -834,7 +834,7 @@ img {
 .pmd-booking-summary {
   position: -webkit-sticky;
   position: sticky;
-  top: clamp(72px, 10vh, 110px);
+  top: clamp(130px, 18vh, 190px);
   align-self: start;
   height: max-content;
   margin-top: 58px;
