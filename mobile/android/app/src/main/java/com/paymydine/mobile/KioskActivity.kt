@@ -59,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -773,7 +774,7 @@ private fun KioskRemoteImage(
     modifier: Modifier,
     background: Color,
 ) {
-    val bg = "#%08X".format(background.value.toLong()).takeLast(6)
+    val bg = String.format("#%06X", 0xFFFFFF and background.toArgb())
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -783,7 +784,7 @@ private fun KioskRemoteImage(
                 isFocusable = false
                 isVerticalScrollBarEnabled = false
                 isHorizontalScrollBarEnabled = false
-                settings.javaScriptEnabled = false
+                settings.javaScriptEnabled = true
                 settings.domStorageEnabled = false
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
