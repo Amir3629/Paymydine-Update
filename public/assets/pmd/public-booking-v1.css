@@ -1271,6 +1271,35 @@ img {
   font-size: 13px;
 }
 
+.pmd-booking-success__guarantee {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--pmd-book-accent);
+  background: rgba(10, 105, 82, .045);
+}
+
+.pmd-booking-success__guarantee[hidden] {
+  display: none;
+}
+
+.pmd-booking-success__guarantee span {
+  color: var(--pmd-book-muted);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.pmd-booking-success__guarantee strong {
+  flex: 0 0 auto;
+  color: var(--pmd-book-accent);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+}
+
 .pmd-booking-success__actions {
   display: flex;
   flex-wrap: wrap;
