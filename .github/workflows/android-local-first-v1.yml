@@ -191,6 +191,7 @@ jobs:
           grep -Fq 'devicePurpose() == "table_display"' mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
           grep -Fq 'UnifiedFirstRun' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -Fq 'PMD_ANDROID_FIRST_RUN_ACCESS_V17' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -Fq 'PMD_ANDROID_RESERVATIONS_POS_WORKSPACE_V17' mobile/android/app/src/main/java/com/paymydine/mobile/ReservationsActivity.kt
           ! grep -Fq '"owner" to "Owner"' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           ! grep -Fq '"manager" to "Manager"' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -Fq 'PMD_ANDROID_RESERVATIONS_IN_POS_V17' app/Http/Controllers/PmdMobileWorkspaceAuthController.php
