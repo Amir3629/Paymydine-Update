@@ -44,7 +44,8 @@ class PmdPublicBookingController extends Controller
             $defaultGuests,
             $openingHours,
             $stayMinutes,
-            $slotInterval
+            $slotInterval,
+            $maxGuests
         );
 
         // PMD_PUBLIC_BOOKING_DIRECT_VIEW_FILE_R2
@@ -120,7 +121,16 @@ class PmdPublicBookingController extends Controller
 
         $days = min(self::MAX_DATE_STATUS_DAYS, max(1, (int)($data['days'] ?? self::MAX_DATE_STATUS_DAYS)));
         $guests = (int)$data['guests'];
-        $payload = $this->dateStatusPayload($location, $start, $days, $guests);
+        $payload = $this->dateStatusPayload(
+            $location,
+            $start,
+            $days,
+            $guests,
+            null,
+            null,
+            null,
+            $maxGuests
+        );
 
         return response()->json([
             'success' => true,
@@ -137,7 +147,8 @@ class PmdPublicBookingController extends Controller
         int $guests,
         ?array $openingHoursOverride = null,
         ?int $durationOverride = null,
-        ?int $intervalOverride = null
+        ?int $intervalOverride = null,
+        ?int $maxGuestsOverride = null
     ): array {
         $days = min(self::MAX_DATE_STATUS_DAYS, max(1, $days));
         $timezone = $this->timezone();
@@ -158,6 +169,7 @@ class PmdPublicBookingController extends Controller
         $openingHours = $openingHoursOverride ?? $this->openingHours($location);
         $duration = $durationOverride ?? $this->stayMinutes($location);
         $interval = $intervalOverride ?? $this->slotInterval($location);
+        $maxGuests = $maxGuestsOverride ?? $this->maxBookableGuests($location);
         $batchReservations = $this->activeReservations(
             $location,
             $start->copy()->startOfDay(),
@@ -189,16 +201,23 @@ class PmdPublicBookingController extends Controller
                 return $reserveDate >= $reservationDateMin && $reserveDate <= $reservationDateMax;
             })->values();
 
-            $payload = $this->availabilityPayload(
+            $capacityPayload = $this->availabilityCapacityPayload(
                 $location,
                 $date,
-                $guests,
+                $maxGuests,
                 $opening,
                 $duration,
                 $interval,
                 $dateReservations
             );
-            $slots = (array)($payload['slots'] ?? []);
+            $capacitySlots = (array)($capacityPayload['capacity_slots'] ?? []);
+            $slots = array_values(array_filter(
+                $capacitySlots,
+                fn (array $slot) => $this->guestRangesSupport(
+                    (array)($slot['guest_ranges'] ?? []),
+                    $guests
+                )
+            ));
 
             $status = 'available';
             if (empty($opening['enabled'])) {
@@ -211,10 +230,11 @@ class PmdPublicBookingController extends Controller
                 'date' => $date->toDateString(),
                 'status' => $status,
                 'slot_count' => count($slots),
-                'opening' => $payload['opening'],
-                'duration' => $payload['duration'],
-                'interval' => $payload['interval'],
+                'opening' => $capacityPayload['opening'],
+                'duration' => $capacityPayload['duration'],
+                'interval' => $capacityPayload['interval'],
                 'slots' => $slots,
+                'capacity_slots' => $capacitySlots,
             ];
         }
 
@@ -396,6 +416,131 @@ class PmdPublicBookingController extends Controller
         return $location;
     }
 
+    private function availabilityCapacityPayload(
+        Locations_model $location,
+        Carbon $date,
+        int $maxGuests,
+        array $opening,
+        int $duration,
+        int $interval,
+        Collection $activeReservations
+    ): array {
+        if (!$opening['enabled'] || !$opening['opening_time'] || !$opening['closing_time']) {
+            return [
+                'opening' => $opening,
+                'duration' => $duration,
+                'interval' => $interval,
+                'capacity_slots' => [],
+            ];
+        }
+
+        $timezone = $this->timezone();
+        $opensAt = Carbon::parse($date->toDateString().' '.$opening['opening_time'], $timezone);
+        $closesAt = Carbon::parse($date->toDateString().' '.$opening['closing_time'], $timezone);
+        if ($closesAt->lessThanOrEqualTo($opensAt)) {
+            $closesAt->addDay();
+        }
+
+        $lastStart = $closesAt->copy()->subMinutes($duration);
+        if ($lastStart->lessThan($opensAt)) {
+            return [
+                'opening' => $opening,
+                'duration' => $duration,
+                'interval' => $interval,
+                'capacity_slots' => [],
+            ];
+        }
+
+        $now = Carbon::now($timezone);
+        $slots = [];
+
+        for ($cursor = $opensAt->copy(); $cursor->lessThanOrEqualTo($lastStart); $cursor->addMinutes($interval)) {
+            if ($cursor->lessThanOrEqualTo($now)) {
+                continue;
+            }
+
+            $slotEnd = $cursor->copy()->addMinutes($duration);
+            $tables = $this->availableTablesForWindow(
+                $location,
+                $activeReservations,
+                $cursor,
+                $slotEnd
+            );
+
+            if ($tables->isEmpty()) {
+                continue;
+            }
+
+            $supportedGuests = [];
+            for ($guestCount = 1; $guestCount <= $maxGuests; $guestCount++) {
+                if ($this->selectTableIdsFromAvailableTables($tables, $guestCount)) {
+                    $supportedGuests[] = $guestCount;
+                }
+            }
+
+            if (!$supportedGuests) {
+                continue;
+            }
+
+            $slots[] = [
+                'value' => $cursor->format('H:i'),
+                'label' => $cursor->format('H:i'),
+                'period' => ((int)$cursor->format('H') < 16) ? 'day' : 'evening',
+                'guest_ranges' => $this->guestRanges($supportedGuests),
+            ];
+        }
+
+        return [
+            'opening' => $opening,
+            'duration' => $duration,
+            'interval' => $interval,
+            'capacity_slots' => $slots,
+        ];
+    }
+
+    private function guestRanges(array $guests): array
+    {
+        $guests = array_values(array_unique(array_map('intval', $guests)));
+        sort($guests);
+
+        if (!$guests) {
+            return [];
+        }
+
+        $ranges = [];
+        $start = $guests[0];
+        $previous = $guests[0];
+
+        foreach (array_slice($guests, 1) as $guest) {
+            if ($guest === $previous + 1) {
+                $previous = $guest;
+                continue;
+            }
+
+            $ranges[] = [$start, $previous];
+            $start = $guest;
+            $previous = $guest;
+        }
+
+        $ranges[] = [$start, $previous];
+
+        return $ranges;
+    }
+
+    private function guestRangesSupport(array $ranges, int $guests): bool
+    {
+        foreach ($ranges as $range) {
+            $min = (int)($range[0] ?? 0);
+            $max = (int)($range[1] ?? $min);
+
+            if ($guests >= $min && $guests <= $max) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function availabilityPayload(
         Locations_model $location,
         Carbon $date,
@@ -499,9 +644,26 @@ class PmdPublicBookingController extends Controller
         int $guests,
         Collection $activeReservations
     ): array {
+        return $this->selectTableIdsFromAvailableTables(
+            $this->availableTablesForWindow(
+                $location,
+                $activeReservations,
+                $start,
+                $end
+            ),
+            $guests
+        );
+    }
+
+    private function availableTablesForWindow(
+        Locations_model $location,
+        Collection $activeReservations,
+        Carbon $start,
+        Carbon $end
+    ): Collection {
         $blocked = $this->blockedTableIds($location, $activeReservations, $start, $end);
 
-        $tables = $location->tables
+        return $location->tables
             ->filter(static function ($table) use ($blocked) {
                 return (bool)$table->table_status
                     && !isset($blocked[(int)$table->table_id]);
@@ -513,8 +675,12 @@ class PmdPublicBookingController extends Controller
                     (int)($table->max_capacity ?? 0),
                     (int)($table->table_id ?? 0)
                 );
-            });
+            })
+            ->values();
+    }
 
+    private function selectTableIdsFromAvailableTables(Collection $tables, int $guests): array
+    {
         foreach ($tables as $table) {
             $min = max(1, (int)$table->min_capacity);
             $max = max($min, (int)$table->max_capacity);
