@@ -378,6 +378,14 @@ fun PmdStaffLogin(
                     }
                 }
         },
+        onHardwareSetup = {
+            context.startActivity(
+                Intent(
+                    context,
+                    com.paymydine.mobile.HardwareSetupActivity::class.java,
+                ),
+            )
+        },
     )
 
     if (clearPassword) {
@@ -491,6 +499,14 @@ fun PmdPairLogin(
                     }
                 }
         },
+        onHardwareSetup = {
+            context.startActivity(
+                Intent(
+                    context,
+                    com.paymydine.mobile.HardwareSetupActivity::class.java,
+                ),
+            )
+        },
     )
 
     if (clearPassword) {
@@ -538,6 +554,7 @@ private class NativeLoginBridge {
     var continueOfflineCallback: (() -> Unit)? = null
     var cancelWaitingCallback: (() -> Unit)? = null
     var forgotPasswordCallback: (() -> Unit)? = null
+    var hardwareSetupCallback: (() -> Unit)? = null
 
     @JavascriptInterface
     fun ready() {
@@ -564,6 +581,11 @@ private class NativeLoginBridge {
     fun forgotPassword() {
         forgotPasswordCallback?.invoke()
     }
+
+    @JavascriptInterface
+    fun hardwareSetup() {
+        hardwareSetupCallback?.invoke()
+    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -575,6 +597,7 @@ private fun PmdCanonicalLoginCard(
     onContinueOffline: () -> Unit,
     onCancelWaiting: () -> Unit,
     onForgotPassword: () -> Unit,
+    onHardwareSetup: () -> Unit,
 ) {
     val bridge = remember { NativeLoginBridge() }
 
@@ -583,6 +606,7 @@ private fun PmdCanonicalLoginCard(
     bridge.continueOfflineCallback = onContinueOffline
     bridge.cancelWaitingCallback = onCancelWaiting
     bridge.forgotPasswordCallback = onForgotPassword
+    bridge.hardwareSetupCallback = onHardwareSetup
 
     AndroidView(
         modifier = modifier,

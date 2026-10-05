@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Services\PmdKioskPairingService;
 use App\Services\PmdTableDisplayService;
+use App\Services\TerminalPayments\TerminalPaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 final class PmdKioskPublicController
 {
@@ -178,5 +181,211 @@ final class PmdKioskPublicController
         return response()->json(
             app(PmdKioskPairingService::class)->stateForDevice($request)
         );
+    }
+
+
+    /**
+     * PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V17
+     *
+     * The kiosk browser never receives payment-provider credentials or a kiosk
+     * bearer token. Android calls this endpoint with its Keystore-backed kiosk
+     * credential. The server resolves the restaurant's connected terminal and
+     * starts the normal TerminalPaymentService authority.
+     */
+    public function terminalPayment(Request $request): JsonResponse
+    {
+        $device = app(PmdKioskPairingService::class)->authenticate($request);
+        $data = $request->validate([
+            'order_id' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $orderId = (int)$data['order_id'];
+        $order = Schema::hasTable('orders')
+            ? DB::table('orders')->where('order_id', $orderId)->first()
+            : null;
+        if (!$order) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Kiosk order was not found.',
+            ], 404);
+        }
+
+        $locationId = (int)($device->location_id ?? 0);
+        if (
+            $locationId < 1
+            || (
+                Schema::hasColumn('orders', 'location_id')
+                && (int)($order->location_id ?? 0) > 0
+                && (int)$order->location_id !== $locationId
+            )
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This order belongs to another restaurant.',
+            ], 403);
+        }
+
+        $terminal = $this->terminalForKiosk($device);
+        if (!$terminal) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No active payment terminal is connected to this kiosk restaurant.',
+            ], 409);
+        }
+
+        $provider = strtolower(trim((string)($terminal->provider_code ?? '')));
+        $reader = trim((string)($terminal->reader_id ?? ''));
+        $result = app(TerminalPaymentService::class)->createAttempt(
+            $orderId,
+            $provider,
+            $reader !== '' ? $reader : (string)($terminal->terminal_device_id ?? '')
+        );
+
+        if (!(bool)($result['success'] ?? false)) {
+            return response()->json([
+                'ok' => false,
+                'message' => (string)(
+                    $result['error']
+                    ?? $result['message']
+                    ?? 'The payment terminal could not start.'
+                ),
+            ], 409);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'attempt_id' => (int)($result['attempt_id'] ?? 0),
+            'status' => strtolower(trim((string)($result['status'] ?? 'pending'))),
+            'message' => (string)($result['message'] ?? 'Present card on the terminal.'),
+            'payment_recorded' => (bool)($result['payment_recorded'] ?? false),
+            'terminal' => [
+                'id' => (int)($terminal->terminal_device_id ?? 0),
+                'label' => trim((string)($terminal->reader_label ?? '')) ?: 'Payment terminal',
+                'provider' => $provider,
+            ],
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    public function terminalPaymentStatus(
+        Request $request,
+        $attempt
+    ): JsonResponse {
+        $device = app(PmdKioskPairingService::class)->authenticate($request);
+        $attemptId = (int)$attempt;
+        if ($attemptId < 1 || !Schema::hasTable('payment_attempts')) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Payment attempt is invalid.',
+            ], 422);
+        }
+
+        $attemptRow = DB::table('payment_attempts')
+            ->where('id', $attemptId)
+            ->first();
+        if (!$attemptRow) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Payment attempt was not found.',
+            ], 404);
+        }
+
+        $orderId = (int)($attemptRow->order_id ?? 0);
+        $order = $orderId > 0 && Schema::hasTable('orders')
+            ? DB::table('orders')->where('order_id', $orderId)->first()
+            : null;
+        if (!$order) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Payment order was not found.',
+            ], 404);
+        }
+
+        $locationId = (int)($device->location_id ?? 0);
+        if (
+            $locationId < 1
+            || (
+                Schema::hasColumn('orders', 'location_id')
+                && (int)($order->location_id ?? 0) > 0
+                && (int)$order->location_id !== $locationId
+            )
+        ) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'This payment belongs to another restaurant.',
+            ], 403);
+        }
+
+        $result = app(TerminalPaymentService::class)->refreshAttempt($attemptId);
+
+        return response()->json([
+            'ok' => (bool)($result['success'] ?? false),
+            'attempt_id' => $attemptId,
+            'order_id' => $orderId,
+            'status' => strtolower(trim((string)($result['status'] ?? 'pending'))),
+            'message' => (string)(
+                $result['message']
+                ?? $result['error']
+                ?? 'Payment terminal status updated.'
+            ),
+            'payment_recorded' => (bool)($result['payment_recorded'] ?? false),
+            'simulated' => (bool)($result['simulated'] ?? false),
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    private function terminalForKiosk($device)
+    {
+        if (!Schema::hasTable('terminal_devices')) {
+            return null;
+        }
+
+        $locationId = (int)($device->location_id ?? 0);
+        if ($locationId < 1) {
+            return null;
+        }
+
+        $platform = json_decode(
+            (string)($device->platform_info ?? '{}'),
+            true
+        );
+        $preferredId = is_array($platform)
+            ? (int)(
+                $platform['payment_terminal_device_id']
+                ?? $platform['terminal_device_id']
+                ?? 0
+            )
+            : 0;
+
+        $base = DB::table('terminal_devices')
+            ->where('location_id', $locationId)
+            ->where('is_active', 1)
+            ->whereNotNull('provider_code')
+            ->where('provider_code', '!=', '');
+
+        if ($preferredId > 0) {
+            $preferred = (clone $base)
+                ->where('terminal_device_id', $preferredId)
+                ->first();
+            if ($preferred) {
+                return $preferred;
+            }
+        }
+
+        // Prefer a provider-reported ready/online reader; otherwise use the
+        // first explicitly active terminal. Provider services still validate
+        // the selected terminal before creating a payment attempt.
+        if (Schema::hasColumn('terminal_devices', 'terminal_status')) {
+            $ready = (clone $base)
+                ->whereRaw(
+                    "LOWER(COALESCE(terminal_status, '')) IN (?, ?, ?, ?)",
+                    ['ready', 'online', 'connected', 'available']
+                )
+                ->orderBy('terminal_device_id')
+                ->first();
+            if ($ready) {
+                return $ready;
+            }
+        }
+
+        return $base->orderBy('terminal_device_id')->first();
     }
 }
