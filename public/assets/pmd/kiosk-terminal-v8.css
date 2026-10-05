@@ -1819,6 +1819,11 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
  * Touch-first continuous menu, larger typography, compact + action, animated
  * checkout dock and a true full-screen terminal payment surface.
  */
+.pmd-kiosk-grid {
+  display: block;
+}
+
+
 .pmd-kiosk-category-section {
   margin: 0 0 34px;
   scroll-margin-top: 126px;
