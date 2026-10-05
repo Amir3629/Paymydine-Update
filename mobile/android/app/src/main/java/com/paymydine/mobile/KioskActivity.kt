@@ -46,7 +46,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -216,6 +219,10 @@ private fun KioskApp(
     var menuBootstrapReady by remember { mutableStateOf(false) }
     var menuOpening by remember { mutableStateOf(false) }
     var serviceMode by remember { mutableStateOf("eat_in") }
+    // PMD_KIOSK_WELCOME_LANGUAGE_V18
+    // The service-mode welcome owns language choice before the WebView opens.
+    var kioskLocales by remember { mutableStateOf(listOf("de", "en")) }
+    var kioskLocale by remember { mutableStateOf("de") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var completedOrderId by remember { mutableStateOf<String?>(null) }
@@ -247,6 +254,15 @@ private fun KioskApp(
             val heroResult = runCatching { api.heroImages(host) }
             if (heroResult.isSuccess) {
                 heroImages = heroResult.getOrDefault(emptyList())
+                val localeProfile = runCatching { api.localeProfile(host) }.getOrNull()
+                if (localeProfile != null && localeProfile.enabled.isNotEmpty()) {
+                    kioskLocales = localeProfile.enabled
+                    if (kioskLocale !in kioskLocales) {
+                        kioskLocale = localeProfile.defaultLocale
+                            .takeIf { it in kioskLocales }
+                            ?: kioskLocales.first()
+                    }
+                }
                 menuBootstrapReady = true
             } else {
                 menuBootstrapReady = false
@@ -283,7 +299,7 @@ private fun KioskApp(
         }
     }
 
-    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady) {
+    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady, kioskLocale) {
         val current = profile
         if (
             screen != KioskScreen.WELCOME ||
@@ -306,12 +322,14 @@ private fun KioskApp(
             profile = current,
             serviceMode = "eat_in",
             heroImage = hero,
+            locale = kioskLocale,
         )
         KioskMenuWarmPool.prewarm(
             context = context,
             profile = current,
             serviceMode = "pickup",
             heroImage = hero,
+            locale = kioskLocale,
         )
     }
 
@@ -363,7 +381,7 @@ private fun KioskApp(
             // partial Chromium paint. Normal taps pass this loop immediately.
             var waits = 0
             while (
-                !KioskMenuWarmPool.isReady(current.menuUrl, mode) &&
+                !KioskMenuWarmPool.isReady(current.menuUrl, mode, kioskLocale) &&
                 waits < 20
             ) {
                 delay(16L)
@@ -376,6 +394,7 @@ private fun KioskApp(
                     profile = current,
                     serviceMode = mode,
                     heroImage = heroImages.firstOrNull().orEmpty(),
+                    locale = kioskLocale,
                 ),
             )
             (context as? Activity)?.overridePendingTransition(0, 0)
@@ -658,6 +677,9 @@ private fun KioskLoadingScreen(
 private fun KioskWelcomeScreen(
     profile: KioskProfile,
     heroImages: List<String>,
+    locales: List<String>,
+    locale: String,
+    onLocale: (String) -> Unit,
     onEatHere: () -> Unit,
     onTakeAway: () -> Unit,
 ) {
@@ -741,19 +763,54 @@ private fun KioskWelcomeScreen(
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
             )
-            Text(
-                "How would you like to order?",
-                modifier = Modifier.padding(top = 7.dp),
-                color = muted,
-                fontSize = 18.sp,
-                textAlign = TextAlign.Center,
-            )
+            // PMD_KIOSK_WELCOME_LANGUAGE_V18
+            var languageMenuOpen by remember { mutableStateOf(false) }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 14.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                OutlinedButton(
+                    onClick = { languageMenuOpen = true },
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text(
+                        locale.uppercase(),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 15.sp,
+                    )
+                    Text("  ▾", fontSize = 13.sp)
+                }
+                DropdownMenu(
+                    expanded = languageMenuOpen,
+                    onDismissRequest = { languageMenuOpen = false },
+                ) {
+                    locales.distinct().forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    option.uppercase(),
+                                    fontWeight = if (option == locale) {
+                                        FontWeight.Black
+                                    } else {
+                                        FontWeight.SemiBold
+                                    },
+                                )
+                            },
+                            onClick = {
+                                onLocale(option)
+                                languageMenuOpen = false
+                            },
+                        )
+                    }
+                }
+            }
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(20.dp))
 
             KioskModeButton(
-                title = "EAT HERE",
-                subtitle = "Order and enjoy it here",
+                title = "DINE IN",
                 imageUrl = eatImage,
                 background = surface,
                 text = text,
@@ -763,7 +820,6 @@ private fun KioskWelcomeScreen(
             Spacer(Modifier.height(16.dp))
             KioskModeButton(
                 title = "TAKE AWAY",
-                subtitle = "Order for collection",
                 imageUrl = takeImage,
                 background = surface,
                 text = text,
@@ -793,7 +849,6 @@ private fun KioskWelcomeScreen(
 @Composable
 private fun KioskModeButton(
     title: String,
-    subtitle: String,
     imageUrl: String,
     background: Color,
     text: Color,
@@ -837,13 +892,13 @@ private fun KioskModeButton(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .fillMaxHeight()
-                            .width(52.dp)
+                            .width(26.dp)
                             .background(
                                 Brush.horizontalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        background.copy(alpha = 0.55f),
-                                        background,
+                                        background.copy(alpha = 0.18f),
+                                        background.copy(alpha = 0.72f),
                                     ),
                                 ),
                             ),
@@ -858,20 +913,14 @@ private fun KioskModeButton(
             ) {
                 // PMD_KIOSK_CLEAN_SERVICE_CARDS_V16
                 // Keep the service choice visually direct: artwork, label,
-                // description and action only. Sequence badges added noise and
+                // action only. Sequence badges and redundant subtitles added noise and
                 // implied an ordering that does not exist.
                 Text(
                     title,
                     color = text,
-                    fontSize = 21.sp,
+                    fontSize = 23.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 0.5.sp,
-                )
-                Text(
-                    subtitle,
-                    modifier = Modifier.padding(top = 2.dp),
-                    color = text.copy(alpha = 0.62f),
-                    fontSize = 12.sp,
                 )
             }
 
