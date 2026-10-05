@@ -275,6 +275,55 @@
     });
   }
 
+  function guaranteeMoney(cents, currency) {
+    var amount = Math.max(0, Number(cents || 0)) / 100;
+    try {
+      return new Intl.NumberFormat(document.documentElement.lang || 'en-GB', {
+        style: 'currency',
+        currency: String(currency || 'EUR').toUpperCase()
+      }).format(amount);
+    } catch (_) {
+      return amount.toFixed(2) + ' ' + String(currency || 'EUR').toUpperCase();
+    }
+  }
+
+  function guaranteeBadge(row) {
+    var status = String(row.guarantee_status || 'none');
+    if (status === 'none') return '';
+
+    var label = 'Card guarantee';
+    if (status === 'charged') label = 'No-show charged';
+    if (status === 'released') label = 'Guarantee released';
+    if (status === 'charge_failed') label = 'Charge failed';
+    if (status === 'action_required') label = 'Card action required';
+
+    return '<span class="pmd-qres-guarantee-badge-r19 is-' + esc(status) + '">' +
+      esc(label + ' · ' + guaranteeMoney(
+        row.guarantee_amount_cents || 0,
+        row.guarantee_currency || 'EUR'
+      )) +
+      '</span>';
+  }
+
+  function guaranteeActions(row) {
+    var id = Number(row.reservation_id || row.id || 0);
+    if (!id || String(row.guarantee_status || 'none') === 'none') return '';
+
+    var html = '<div class="pmd-qres-guarantee-actions-r19">' + guaranteeBadge(row);
+
+    if (row.guarantee_can_charge) {
+      html += '<button type="button" class="is-charge-r19" data-qres-guarantee-charge="' +
+        esc(id) + '">No-show & charge</button>';
+    }
+
+    if (row.guarantee_can_release) {
+      html += '<button type="button" data-qres-guarantee-release="' +
+        esc(id) + '">Release card</button>';
+    }
+
+    return html + '</div>';
+  }
+
   function rowMinute(row) {
     var value = parseMinutes(row.reserve_time || row.reservation_time || '');
     return value === null ? 0 : value;
@@ -390,25 +439,28 @@
     var guests = Math.max(0, Number(row.guest_num || row.guests || 0));
     var date = String(row.reserve_date || row.reservation_date || '');
     return (
-      '<button type="button" class="pmd-qres-list-card' +
-        (includeDate ? ' is-other-date-r136' : '') +
-        '" data-qres-edit="' + esc(row.reservation_id || row.id) + '">' +
-        '<span class="pmd-qres-list-time">' +
-          esc(String(row.reserve_time || '').slice(0, 5)) +
-          (includeDate
-            ? '<small class="pmd-qres-list-date-r136">' + esc(date) + '</small>'
-            : '') +
-        '</span>' +
-        '<span class="pmd-qres-list-copy">' +
-          '<strong>' + esc(rowName(row)) + '</strong>' +
-          '<small>' +
-            esc('P ' + guests + ' · ' + rowTables(row) + ' · ' + Math.max(1, Number(row.duration || 45)) + ' min') +
-          '</small>' +
-          (rowNote(row)
-            ? '<em class="pmd-qres-list-note">' + esc(rowNote(row)) + '</em>'
-            : '') +
-        '</span>' +
-      '</button>'
+      '<div class="pmd-qres-list-card-wrap-r19">' +
+        '<button type="button" class="pmd-qres-list-card' +
+          (includeDate ? ' is-other-date-r136' : '') +
+          '" data-qres-edit="' + esc(row.reservation_id || row.id) + '">' +
+          '<span class="pmd-qres-list-time">' +
+            esc(String(row.reserve_time || '').slice(0, 5)) +
+            (includeDate
+              ? '<small class="pmd-qres-list-date-r136">' + esc(date) + '</small>'
+              : '') +
+          '</span>' +
+          '<span class="pmd-qres-list-copy">' +
+            '<strong>' + esc(rowName(row)) + '</strong>' +
+            '<small>' +
+              esc('P ' + guests + ' · ' + rowTables(row) + ' · ' + Math.max(1, Number(row.duration || 45)) + ' min') +
+            '</small>' +
+            (rowNote(row)
+              ? '<em class="pmd-qres-list-note">' + esc(rowNote(row)) + '</em>'
+              : '') +
+          '</span>' +
+        '</button>' +
+        guaranteeActions(row) +
+      '</div>'
     );
   }
 
@@ -689,6 +741,7 @@
         '<span class="pmd-qres-booking-note">' +
           '<small>Note</small>' +
           '<span>' + esc(note || '—') + '</span>' +
+          guaranteeBadge(row) +
         '</span>' +
       '</button>'
     );
@@ -2085,6 +2138,51 @@
   document.addEventListener('click', function (event) {
     if (state.workspace !== 'reservations') return;
 
+    var guaranteeCharge = event.target && event.target.closest
+      ? event.target.closest('[data-qres-guarantee-charge]')
+      : null;
+    var guaranteeRelease = event.target && event.target.closest
+      ? event.target.closest('[data-qres-guarantee-release]')
+      : null;
+
+    if (guaranteeCharge || guaranteeRelease) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      var guaranteeButton = guaranteeCharge || guaranteeRelease;
+      var guaranteeId = Number(
+        guaranteeButton.getAttribute(
+          guaranteeCharge
+            ? 'data-qres-guarantee-charge'
+            : 'data-qres-guarantee-release'
+        ) || 0
+      );
+      if (!guaranteeId) return;
+
+      var question = guaranteeCharge
+        ? 'Mark this guest as a no-show and charge the agreed compensation now?'
+        : 'Release the card guarantee? No later no-show charge will be possible.';
+      if (!window.confirm(question)) return;
+
+      guaranteeButton.disabled = true;
+
+      canonicalRequest(
+        guaranteeCharge
+          ? 'onChargeNoShowGuarantee'
+          : 'onReleaseReservationGuarantee',
+        { reservation_id: guaranteeId }
+      ).then(function (response) {
+        toast(response && response.message
+          ? response.message
+          : (guaranteeCharge ? 'No-show charge completed.' : 'Card guarantee released.'));
+        loadReservations(true);
+      }).catch(function (error) {
+        guaranteeButton.disabled = false;
+        toast(error && error.message ? error.message : 'Guarantee action failed.');
+      });
+      return;
+    }
+
     var edit = event.target && event.target.closest
       ? event.target.closest('[data-qres-edit]')
       : null;
@@ -2390,7 +2488,7 @@
   setWorkspace(state.workspace, false);
 
   window.PMDQuickReservationsR136 = {
-    version: '1.0.0-r136',
+    version: '1.1.0-r19',
     setWorkspace: setWorkspace,
     refresh: loadReservations,
     newReservation: function () {
