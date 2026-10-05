@@ -25,6 +25,11 @@ data class KioskProfile(
     val idleTimeoutSeconds: Long,
 )
 
+data class KioskLocaleProfile(
+    val enabled: List<String>,
+    val defaultLocale: String,
+)
+
 /**
  * PMD_KIOSK_BOOTSTRAP_HANDOFF_V13
  * PMD_KIOSK_MULTI_WARM_BOOTSTRAP_V15
@@ -157,6 +162,77 @@ class KioskApiClient {
         )
     }
 
+
+    /**
+     * PMD_KIOSK_WELCOME_LANGUAGE_V18
+     *
+     * Reuse the already-warmed customer bootstrap so the native service-mode
+     * screen exposes the same enabled languages as the kiosk menu without a
+     * second network request.
+     */
+    suspend fun localeProfile(host: String): KioskLocaleProfile = withContext(Dispatchers.IO) {
+        val raw = KioskBootstrapWarmCache.peek(host)
+            ?: return@withContext KioskLocaleProfile(listOf("de", "en"), "de")
+
+        val root = runCatching { JSONObject(raw) }.getOrNull()
+            ?: return@withContext KioskLocaleProfile(listOf("de", "en"), "de")
+        val data = root.optJSONObject("data") ?: JSONObject()
+        val settings = unwrapObject(data.optJSONObject("settings"))
+        val theme = unwrapObject(data.optJSONObject("theme"))
+
+        fun firstText(vararg keys: String): String {
+            for (key in keys) {
+                val themeValue = theme.opt(key)
+                if (themeValue != null && themeValue !== JSONObject.NULL && themeValue.toString().isNotBlank()) {
+                    return themeValue.toString()
+                }
+                val settingsValue = settings.opt(key)
+                if (settingsValue != null && settingsValue !== JSONObject.NULL && settingsValue.toString().isNotBlank()) {
+                    return settingsValue.toString()
+                }
+            }
+            return ""
+        }
+
+        val rawEnabled = firstText("pmd_v2_enabled_languages", "enabled_languages")
+        val enabled = parseLocaleList(rawEnabled).toMutableList()
+        val defaultLocale = firstText("default_language", "locale")
+            .trim()
+            .lowercase()
+            .substringBefore('-')
+            .ifBlank { "de" }
+
+        if (defaultLocale !in enabled) enabled.add(0, defaultLocale)
+        if (enabled.isEmpty()) enabled += listOf("de", "en")
+
+        KioskLocaleProfile(
+            enabled = enabled.distinct(),
+            defaultLocale = defaultLocale,
+        )
+    }
+
+    private fun unwrapObject(value: JSONObject?): JSONObject {
+        if (value == null) return JSONObject()
+        return value.optJSONObject("data") ?: value
+    }
+
+    private fun parseLocaleList(raw: String): List<String> {
+        val text = raw.trim()
+        val values =
+            if (text.startsWith("[")) {
+                runCatching {
+                    val array = JSONArray(text)
+                    (0 until array.length()).map { array.optString(it) }
+                }.getOrDefault(emptyList())
+            } else {
+                text.split(',')
+            }
+
+        return values
+            .map { it.trim().lowercase().substringBefore('-') }
+            .filter { it.matches(Regex("^[a-z]{2,3}$")) }
+            .distinct()
+    }
 
     /**
      * PMD_KIOSK_PREMIUM_WELCOME_V11
