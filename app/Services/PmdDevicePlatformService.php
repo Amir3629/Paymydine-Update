@@ -353,12 +353,12 @@ final class PmdDevicePlatformService
         $device = DB::table('pmd_site_access_devices')
             ->where('id', $deviceId)
             ->where('location_id', $locationId)
-            ->where('device_kind', 'table_display')
+            ->whereIn('device_kind', ['table_display', 'kiosk'])
             ->whereNull('revoked_at')
             ->first();
 
         if (!$device) {
-            abort(404, 'Table Companion device was not found.');
+            abort(404, 'Table Display or Kiosk device was not found.');
         }
 
         $terminal = null;
