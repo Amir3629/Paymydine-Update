@@ -643,6 +643,7 @@ class KioskMenuActivity : ComponentActivity() {
         val view = WebView(this).apply {
             setInitialScale(100)
             setBackgroundColor(surfaceColor)
+            visibility = View.INVISIBLE
             // PMD_KIOSK_RENDER_FALLBACK_V10
             // Hardware rendering keeps real kiosk devices fast. The software
             // path is retained only for emulator-like devices that previously
