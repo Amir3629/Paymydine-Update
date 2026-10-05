@@ -5,6 +5,8 @@ namespace Admin\Services;
 use Admin\Classes\PmdPlatformI18n;
 use Admin\Models\Reservations_model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -54,8 +56,28 @@ final class PmdReservationsScheduleV1
                     ->limit($dateFilter !== null ? 500 : 1500)
                     ->get();
 
+                $guarantees = collect();
+                if (
+                    $rows->isNotEmpty()
+                    && Schema::hasTable('reservation_guarantees')
+                ) {
+                    $guarantees = DB::table('reservation_guarantees')
+                        ->whereIn(
+                            'reservation_id',
+                            $rows->pluck('reservation_id')
+                                ->map(static fn ($id) => (int)$id)
+                                ->filter()
+                                ->values()
+                                ->all()
+                        )
+                        ->get()
+                        ->keyBy('reservation_id');
+                }
+
+                $nowUtc = Carbon::now('UTC');
+
                 $reservations = $rows
-                    ->map(static function ($reservation): array {
+                    ->map(static function ($reservation) use ($guarantees, $nowUtc): array {
                         $date = '';
                         try {
                             $date = $reservation->reserve_date
@@ -97,6 +119,38 @@ final class PmdReservationsScheduleV1
                         $lastName = trim((string)$reservation->last_name);
                         $customerName = trim($firstName.' '.$lastName);
 
+                        $guarantee = $guarantees->get(
+                            (int)$reservation->reservation_id
+                        );
+                        $guaranteeStatus = $guarantee
+                            ? (string)$guarantee->status
+                            : 'none';
+                        $guaranteeEligibleAt = $guarantee
+                            ? (string)($guarantee->charge_eligible_at ?? '')
+                            : '';
+                        $guaranteeCanCharge = false;
+                        if (
+                            $guarantee
+                            && in_array(
+                                $guaranteeStatus,
+                                ['active', 'charge_failed', 'action_required'],
+                                true
+                            )
+                            && $guaranteeEligibleAt !== ''
+                        ) {
+                            try {
+                                $guaranteeCanCharge = $nowUtc
+                                    ->greaterThanOrEqualTo(
+                                        Carbon::parse(
+                                            $guaranteeEligibleAt,
+                                            'UTC'
+                                        )
+                                    );
+                            } catch (Throwable $ignored) {
+                                $guaranteeCanCharge = false;
+                            }
+                        }
+
                         return [
                             'reservation_id' => (int)$reservation->reservation_id,
                             'id' => (int)$reservation->reservation_id,
@@ -122,6 +176,22 @@ final class PmdReservationsScheduleV1
                             'table_names' => $tableNames,
                             'table_id' => (int)($tableIds[0] ?? 0),
                             'table_name' => implode(', ', $tableNames),
+                            'guarantee_status' => $guaranteeStatus,
+                            'guarantee_amount_cents' => $guarantee
+                                ? (int)$guarantee->amount_cents
+                                : 0,
+                            'guarantee_currency' => $guarantee
+                                ? (string)$guarantee->currency
+                                : 'EUR',
+                            'guarantee_can_charge' => $guaranteeCanCharge,
+                            'guarantee_can_release' => $guarantee
+                                ? !in_array(
+                                    $guaranteeStatus,
+                                    ['released', 'charged'],
+                                    true
+                                )
+                                : false,
+                            'guarantee_charge_eligible_at' => $guaranteeEligibleAt,
                         ];
                     })
                     ->values()
