@@ -66,6 +66,11 @@
         </receiver>
 
         <activity
+            android:name=".HardwareSetupActivity"
+            android:exported="false"
+            android:screenOrientation="fullSensor" />
+
+        <activity
             android:name=".KioskActivity"
             android:exported="false"
             android:screenOrientation="fullSensor"
