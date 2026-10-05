@@ -29,4 +29,21 @@ Route::group([
 
     Route::get('state', [PmdKioskPublicController::class, 'state'])
         ->middleware('throttle:120,1,pmd-kiosk-state');
+
+    // PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V17
+    // Only the paired Android kiosk can call these routes because the
+    // controller validates its bearer credential before touching an order.
+    Route::post(
+        'terminal/payment',
+        [PmdKioskPublicController::class, 'terminalPayment']
+    )
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:30,1,pmd-kiosk-terminal-payment');
+
+    Route::post(
+        'terminal/payment/{attempt}/status',
+        [PmdKioskPublicController::class, 'terminalPaymentStatus']
+    )
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:120,1,pmd-kiosk-terminal-status');
 });
