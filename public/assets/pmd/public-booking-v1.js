@@ -54,6 +54,7 @@
   var dateStatusAbort = null;
   var dateStatuses = {};
   var availabilityCache = Object.create(null);
+  var capacityCache = Object.create(null);
 
   function availabilityKey(date, guests) {
     return String(guests) + "|" + String(date);
@@ -69,8 +70,70 @@
     };
   }
 
+  function guestRangesSupport(ranges, guests) {
+    if (!Array.isArray(ranges)) return false;
+
+    return ranges.some(function (range) {
+      if (!Array.isArray(range) || !range.length) return false;
+      var min = Number(range[0] || 0);
+      var max = Number(range.length > 1 ? range[1] : min);
+      return guests >= min && guests <= max;
+    });
+  }
+
+  function cacheCapacity(date, payload) {
+    if (!date || !payload || !Array.isArray(payload.capacity_slots)) return;
+
+    capacityCache[String(date)] = {
+      opening: payload.opening || {},
+      duration: Number(payload.duration || config.stayMinutes || 90),
+      interval: Number(payload.interval || 30),
+      capacity_slots: payload.capacity_slots
+    };
+  }
+
+  function availabilityFromCapacity(date, guests) {
+    var capacity = capacityCache[String(date)];
+    if (!capacity) return null;
+
+    return {
+      opening: capacity.opening || {},
+      duration: Number(capacity.duration || config.stayMinutes || 90),
+      interval: Number(capacity.interval || 30),
+      slots: (capacity.capacity_slots || []).filter(function (slot) {
+        return guestRangesSupport(slot.guest_ranges, guests);
+      })
+    };
+  }
+
   function cachedAvailability(date, guests) {
-    return availabilityCache[availabilityKey(date, guests)] || null;
+    var key = availabilityKey(date, guests);
+    if (availabilityCache[key]) return availabilityCache[key];
+
+    var derived = availabilityFromCapacity(date, guests);
+    if (derived) {
+      availabilityCache[key] = derived;
+      return derived;
+    }
+
+    return null;
+  }
+
+  function syncDateStatusesForGuests(guests) {
+    dateStatuses = {};
+
+    Object.keys(capacityCache).forEach(function (date) {
+      var payload = availabilityFromCapacity(date, guests);
+      if (!payload) return;
+
+      if (!payload.opening || !payload.opening.enabled) {
+        dateStatuses[date] = "closed";
+      } else if (!payload.slots.length) {
+        dateStatuses[date] = "full";
+      } else {
+        dateStatuses[date] = "available";
+      }
+    });
   }
 
   function dateWindowIsCached(startValue, guests, count) {
@@ -91,7 +154,7 @@
     rows.forEach(function (row) {
       if (!row || !row.date) return;
 
-      dateStatuses[row.date] = row.status || "available";
+      cacheCapacity(row.date, row);
       cacheAvailability(row.date, guests, {
         opening: row.opening || {},
         duration: row.duration,
@@ -99,6 +162,8 @@
         slots: row.slots
       });
     });
+
+    syncDateStatusesForGuests(guests);
   }
 
   function pad(value) {
@@ -240,7 +305,7 @@
       rows.forEach(function (row) {
         if (!row || !row.date) return;
 
-        dateStatuses[row.date] = row.status || "available";
+        cacheCapacity(row.date, row);
         cacheAvailability(row.date, requestGuests, {
           opening: row.opening || {},
           duration: row.duration,
@@ -249,6 +314,7 @@
         });
       });
 
+      syncDateStatusesForGuests(state.guests);
       renderDateStrip();
 
       var instant = cachedAvailability(state.date, state.guests);
@@ -499,18 +565,27 @@
     setErrors([]);
   }
 
+  function applyGuestCount(next) {
+    state.guests = clampGuests(next);
+    state.time = "";
+    state.period = "";
+    syncDateStatusesForGuests(state.guests);
+    renderSummary();
+    renderDateStrip();
+
+    var instant = cachedAvailability(state.date, state.guests);
+    if (instant) {
+      renderTimes(instant);
+    } else {
+      loadAvailability();
+      loadDateStatuses();
+    }
+  }
+
   function adjustGuests(delta) {
     var next = clampGuests(state.guests + delta);
     if (next === state.guests) return;
-    state.guests = next;
-    state.time = "";
-    state.period = "";
-    dateStatuses = {};
-    availabilityCache = Object.create(null);
-    renderSummary();
-    renderDateStrip();
-    loadDateStatuses();
-    loadAvailability();
+    applyGuestCount(next);
   }
 
   function nextDate() {
@@ -672,16 +747,23 @@
     state.period = "";
     state.slots = [];
     state.duration = Number(config.stayMinutes || 90);
-    dateStatuses = {};
     availabilityCache = Object.create(null);
+    syncDateStatusesForGuests(state.guests);
     state.loading = false;
     setErrors([]);
     if (workspace) workspace.hidden = false;
     if (success) success.hidden = true;
     renderDateStrip();
     renderSummary();
-    loadDateStatuses();
-    loadAvailability();
+
+    var resetAvailability = cachedAvailability(state.date, state.guests);
+    if (resetAvailability) {
+      renderTimes(resetAvailability);
+    } else {
+      loadAvailability();
+      loadDateStatuses();
+    }
+
     workspace.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -718,15 +800,7 @@
   });
 
   guestInput.addEventListener("change", function () {
-    state.guests = clampGuests(guestInput.value);
-    state.time = "";
-    state.period = "";
-    dateStatuses = {};
-    availabilityCache = Object.create(null);
-    renderSummary();
-    renderDateStrip();
-    loadDateStatuses();
-    loadAvailability();
+    applyGuestCount(guestInput.value);
   });
 
   var minus = form.querySelector("[data-pmd-party-minus]");
