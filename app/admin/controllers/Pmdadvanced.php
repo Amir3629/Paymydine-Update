@@ -81,7 +81,7 @@ class Pmdadvanced extends AdminController
             'canceled_reservation_status' => ['nullable', 'integer'],
             'no_show_reservation_status' => ['nullable', 'integer'],
             'reservation_guarantee_min_guests' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'reservation_guarantee_amount_cents' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'reservation_guarantee_amount_eur' => ['nullable', 'numeric', 'min:0', 'max:10000'],
             'reservation_guarantee_free_cancel_hours' => ['nullable', 'integer', 'min:1', 'max:336'],
             'reservation_guarantee_grace_minutes' => ['nullable', 'integer', 'min:0', 'max:180'],
             'reservation_guarantee_terms_version' => ['nullable', 'string', 'max:64'],
@@ -169,7 +169,7 @@ class Pmdadvanced extends AdminController
             'no_show_reservation_status' => (int)($clean['no_show_reservation_status'] ?? 0),
             'reservation_guarantee_enabled' => !empty($input['reservation_guarantee_enabled']) ? 1 : 0,
             'reservation_guarantee_min_guests' => (int)($clean['reservation_guarantee_min_guests'] ?? 6),
-            'reservation_guarantee_amount_cents' => (int)($clean['reservation_guarantee_amount_cents'] ?? 0),
+            'reservation_guarantee_amount_cents' => (int)round(((float)($clean['reservation_guarantee_amount_eur'] ?? 0)) * 100),
             'reservation_guarantee_free_cancel_hours' => (int)($clean['reservation_guarantee_free_cancel_hours'] ?? 24),
             'reservation_guarantee_grace_minutes' => (int)($clean['reservation_guarantee_grace_minutes'] ?? 15),
             'reservation_guarantee_terms_version' => trim((string)($clean['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01')),
@@ -224,6 +224,12 @@ class Pmdadvanced extends AdminController
             if (trim($sentence) !== '') $lines[] = trim($sentence);
         }
         $values['note_suggestions'] = implode("\n", $lines);
+        $values['reservation_guarantee_amount_eur'] = number_format(
+            max(0, (int)($values['reservation_guarantee_amount_cents'] ?? 0)) / 100,
+            2,
+            '.',
+            ''
+        );
 
         return $this->normalizePayload($values);
     }
@@ -290,7 +296,7 @@ class Pmdadvanced extends AdminController
             'menus_page','reservation_page','distance_unit','default_geocoder','maps_api_key',
             'default_language','default_currency_code','timezone','eta_hint_text',
             'admin_after_save_action','kds_notification_sound','maintenance_message',
-            'reservation_guarantee_terms_version',
+            'reservation_guarantee_terms_version','reservation_guarantee_amount_eur',
             'currency_converter_api','currency_oer_api_key','currency_fixer_api_key','note_suggestions',
         ];
 
