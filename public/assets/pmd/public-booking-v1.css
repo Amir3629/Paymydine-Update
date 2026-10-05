@@ -1533,6 +1533,52 @@ img {
   display: none;
 }
 
+.pmd-booking-manage-guarantee {
+  display: grid;
+  gap: 9px;
+  margin: -8px 0 24px;
+  padding: 14px 16px;
+  border: 1px solid #b7c9c1;
+  background: rgba(10, 105, 82, .045);
+}
+
+.pmd-booking-manage-guarantee > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pmd-booking-manage-guarantee strong {
+  color: var(--pmd-book-accent);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.pmd-booking-manage-guarantee span {
+  color: var(--pmd-book-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pmd-booking-manage-guarantee p {
+  margin: 0;
+  color: var(--pmd-book-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.pmd-booking-manage-guarantee.is-charged {
+  border-color: #d6b15c;
+  background: #fff9e9;
+}
+
+.pmd-booking-manage-guarantee.is-released {
+  border-color: var(--pmd-book-line);
+  background: var(--pmd-book-paper);
+}
+
 .pmd-booking-manage-locked {
   padding: 18px;
   border: 1px dashed var(--pmd-book-line);
