@@ -180,7 +180,13 @@ final class PmdReservationsScheduleV1
                             'guarantee_amount_cents' => $guarantee
                                 ? (int)$guarantee->amount_cents
                                 : 0,
-                            'guarantee_currency' => $guarantee
+                                                        'guarantee_charged_amount_cents' => (
+                                $guarantee
+                                && isset($guarantee->charged_amount_cents)
+                            )
+                                ? (int)$guarantee->charged_amount_cents
+                                : null,
+'guarantee_currency' => $guarantee
                                 ? (string)$guarantee->currency
                                 : 'EUR',
                             'guarantee_can_charge' => $guaranteeCanCharge,
@@ -419,7 +425,13 @@ final class PmdReservationsScheduleV1
                     'guarantee_amount_cents' => $guarantee
                         ? (int)$guarantee->amount_cents
                         : 0,
-                    'guarantee_currency' => $guarantee
+                                                'guarantee_charged_amount_cents' => (
+                                $guarantee
+                                && isset($guarantee->charged_amount_cents)
+                            )
+                                ? (int)$guarantee->charged_amount_cents
+                                : null,
+'guarantee_currency' => $guarantee
                         ? (string)$guarantee->currency
                         : 'EUR',
                     'guarantee_can_charge' => $guaranteeCanCharge,
