@@ -39,6 +39,8 @@
   var successTime = document.getElementById("pmd-booking-success-time");
   var successParty = document.getElementById("pmd-booking-success-party");
   var calendarLink = document.getElementById("pmd-booking-calendar");
+  var manageLink = document.getElementById("pmd-booking-manage-link");
+  var manageExistingLink = document.getElementById("pmd-booking-manage-existing");
   var csrf = document.querySelector('meta[name="csrf-token"]');
 
   if (!form || !dateInput || !guestInput || !timeInput || !times || !submit) return;
@@ -281,6 +283,16 @@
       renderTimes(instant);
     } else if (state.slots && state.slots.length) {
       renderTimeChoices(state.slots);
+    }
+
+    if (manageExistingLink) {
+      manageExistingLink.href = "/book/manage?lang=" + encodeURIComponent(code);
+    }
+
+    if (manageLink && manageLink.href) {
+      var currentManageUrl = new URL(manageLink.href, window.location.origin);
+      currentManageUrl.searchParams.set("lang", code);
+      manageLink.href = currentManageUrl.pathname + currentManageUrl.search;
     }
 
     if (updateUrl !== false && window.history && window.history.replaceState) {
@@ -834,6 +846,11 @@
     if (successTime) successTime.textContent = reservation.time || state.time;
     if (successParty) successParty.textContent = partyLabel(Number(reservation.guests || state.guests));
     if (calendarLink) calendarLink.href = calendarHref(payload);
+    if (manageLink && payload.manage_url) {
+      var manageUrl = new URL(payload.manage_url, window.location.origin);
+      manageUrl.searchParams.set("lang", activeLanguageCode());
+      manageLink.href = manageUrl.pathname + manageUrl.search;
+    }
 
     success.scrollIntoView({ behavior: "smooth", block: "start" });
   }
