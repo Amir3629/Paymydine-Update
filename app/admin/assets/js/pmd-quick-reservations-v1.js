@@ -297,9 +297,13 @@
     if (status === 'charge_failed') label = 'Charge failed';
     if (status === 'action_required') label = 'Card action required';
 
+    var amountCents = status === 'charged' && row.guarantee_charged_amount_cents != null
+      ? row.guarantee_charged_amount_cents
+      : row.guarantee_amount_cents;
+
     return '<span class="pmd-qres-guarantee-badge-r19 is-' + esc(status) + '">' +
       esc(label + ' · ' + guaranteeMoney(
-        row.guarantee_amount_cents || 0,
+        amountCents || 0,
         row.guarantee_currency || 'EUR'
       )) +
       '</span>';
