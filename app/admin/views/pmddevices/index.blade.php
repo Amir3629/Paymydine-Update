@@ -387,15 +387,18 @@
                                         <button type="submit">{{ $pmdSettingsText(!empty($device['assignment']) ? 'Reassign' : 'Assign') }}</button>
                                     </form>
 
+                                @endif
+
+                                @if(in_array(($device['kind'] ?? ''), ['table_display', 'kiosk', 'staff_personal'], true))
                                     <form
                                         class="pmd-device-platform-assign pmd-device-platform-terminal-assign"
-                                        data-request="onAssignPmdTableDisplayTerminal"
+                                        data-request="onAssignPmdDeviceTerminal"
                                         data-request-flash
                                         data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
                                     >
                                         <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
                                         <select name="terminal_device_id">
-                                            <option value="">{{ $pmdSettingsText('No contactless terminal') }}</option>
+                                            <option value="">{{ $pmdSettingsText('No payment terminal') }}</option>
                                             @foreach($devicePlatformTerminalOptions as $terminalOption)
                                                 <option
                                                     value="{{ (int)($terminalOption['id'] ?? 0) }}"
