@@ -40,6 +40,7 @@
   var successParty = document.getElementById("pmd-booking-success-party");
   var successGuarantee = document.getElementById("pmd-booking-success-guarantee");
   var successGuaranteeAmount = document.getElementById("pmd-booking-success-guarantee-amount");
+  var successGuaranteeTerms = document.getElementById("pmd-booking-success-guarantee-terms");
   var calendarLink = document.getElementById("pmd-booking-calendar");
   var manageLink = document.getElementById("pmd-booking-manage-link");
   var manageExistingLink = document.getElementById("pmd-booking-manage-existing");
@@ -1153,6 +1154,11 @@
         Number(guarantee.amount_cents || 0),
         guarantee.currency || "EUR"
       );
+    }
+    if (successGuaranteeTerms) {
+      successGuaranteeTerms.textContent = guarantee
+        ? String(guarantee.terms_text || "")
+        : "";
     }
 
     if (calendarLink) calendarLink.href = calendarHref(payload);
