@@ -275,12 +275,12 @@ final class PmdDevicePlatformService
         $device = DB::table('pmd_site_access_devices')
             ->where('id', $deviceId)
             ->where('location_id', $locationId)
-            ->where('device_kind', 'table_display')
+            ->whereIn('device_kind', ['table_display', 'kiosk'])
             ->whereNull('revoked_at')
             ->first();
 
         if (!$device) {
-            abort(404, 'Table Companion device was not found.');
+            abort(404, 'Guest payment device was not found.');
         }
 
         $table = collect(app(PmdTableDisplayService::class)->tables())
@@ -341,7 +341,8 @@ final class PmdDevicePlatformService
         ];
     }
 
-    public function assignTableDisplayTerminal(
+    // PMD_DEVICE_PAYMENT_TERMINAL_BINDING_V18
+    public function assignDevicePaymentTerminal(
         int $locationId,
         int $deviceId,
         ?int $terminalDeviceId,
@@ -391,7 +392,7 @@ final class PmdDevicePlatformService
             if (!in_array($provider, ['sumup', 'worldline', 'square', 'vr_payment'], true)) {
                 abort(
                     422,
-                    'This terminal provider cannot be used for Table Companion contactless payment.'
+                    'This terminal provider cannot be used for guest-device terminal payment.'
                 );
             }
         }
@@ -437,6 +438,20 @@ final class PmdDevicePlatformService
                 )
                 : null,
         ];
+    }
+
+    public function assignTableDisplayTerminal(
+        int $locationId,
+        int $deviceId,
+        ?int $terminalDeviceId,
+        ?int $staffId
+    ): array {
+        return $this->assignDevicePaymentTerminal(
+            $locationId,
+            $deviceId,
+            $terminalDeviceId,
+            $staffId
+        );
     }
 
     private function tableOptions(int $locationId): array
@@ -604,7 +619,11 @@ final class PmdDevicePlatformService
                 'table_id' => $kind === 'table_display'
                     ? (int)($platform['table_id'] ?? 0)
                     : 0,
-                'payment_terminal_device_id' => $kind === 'table_display'
+                'payment_terminal_device_id' => in_array(
+                    $kind,
+                    ['table_display', 'kiosk'],
+                    true
+                )
                     ? (int)($platform['payment_terminal_device_id'] ?? 0)
                     : 0,
                 'assignment' => $assignment,
