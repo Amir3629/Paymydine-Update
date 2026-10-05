@@ -158,6 +158,39 @@ class KioskApiClient {
     }
 
 
+    // PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V17
+    // The WebView never receives the kiosk bearer token. Android owns the
+    // physical-terminal transport for the exact paired kiosk device.
+    suspend fun terminalPay(
+        host: String,
+        token: String,
+        orderId: Long,
+    ): JSONObject = withContext(Dispatchers.IO) {
+        require(orderId > 0) { "A valid kiosk order is required." }
+        request(
+            host = host,
+            endpoint = "terminal/payment",
+            method = "POST",
+            body = JSONObject().put("order_id", orderId),
+            token = token,
+        )
+    }
+
+    suspend fun terminalPaymentStatus(
+        host: String,
+        token: String,
+        attemptId: Long,
+    ): JSONObject = withContext(Dispatchers.IO) {
+        require(attemptId > 0) { "A valid terminal payment attempt is required." }
+        request(
+            host = host,
+            endpoint = "terminal/payment/" + attemptId + "/status",
+            method = "POST",
+            body = JSONObject(),
+            token = token,
+        )
+    }
+
     /**
      * PMD_KIOSK_PREMIUM_WELCOME_V11
      * Reuse the restaurant's existing menu photography for the native welcome
