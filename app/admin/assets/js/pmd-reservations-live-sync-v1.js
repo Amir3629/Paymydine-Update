@@ -197,7 +197,10 @@
     var status = String(row.guarantee_status || 'none');
     if (status === 'none') return '';
 
-    var amount = money(row.guarantee_amount_cents || 0, row.guarantee_currency || 'EUR');
+    var amountCents = status === 'charged' && row.guarantee_charged_amount_cents != null
+      ? row.guarantee_charged_amount_cents
+      : row.guarantee_amount_cents;
+    var amount = money(amountCents || 0, row.guarantee_currency || 'EUR');
     var statusLabel = status === 'charged'
       ? labels.charged
       : (status === 'released' ? labels.released : labels.guarantee);
