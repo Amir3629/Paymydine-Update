@@ -790,16 +790,16 @@ final class PmdReservationGuaranteeService
         $locale = $this->locale($locale);
 
         if ($locale === 'de') {
-            return 'Reservierung mit möglicher Ausfallentschädigung bestätigen';
+            return 'Verbindlich reservieren – mögliche Ausfallentschädigung bis';
         }
         if ($locale === 'tr') {
-            return 'Olası no-show tazminatıyla rezervasyonu onayla';
+            return 'Rezervasyonu onayla – olası no-show tazminatı en fazla';
         }
         if ($locale === 'ar') {
-            return 'تأكيد الحجز مع احتمال تعويض عدم الحضور';
+            return 'تأكيد الحجز – تعويض محتمل لعدم الحضور بحد أقصى';
         }
 
-        return 'Confirm reservation with possible no-show charge';
+        return 'Confirm booking – possible no-show charge up to';
     }
 
     private function money(int $cents, string $currency, string $locale): string
