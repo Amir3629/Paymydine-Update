@@ -128,10 +128,10 @@ jobs:
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.css
           grep -Fq 'v=12-instant-menu-hero' resources/views/pmd/kiosk-terminal.blade.php
-          grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_PAY_FIRST_V10' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
           grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'payment_intent_token: null' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'committed. qr_pay_later is only the settlement bridge for pay-existing.' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'https://js.stripe.com/v3/' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_BLADE_V8_NGINX_NO_REDIRECT' ops/nginx/pmd-kiosk-blade-v8-location.conf
