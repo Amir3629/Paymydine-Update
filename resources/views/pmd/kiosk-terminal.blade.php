@@ -4,7 +4,7 @@
     $initialRestaurantName = trim((string)($initialRestaurant['name'] ?? 'PayMyDine')) ?: 'PayMyDine';
     $initialRestaurantLogo = trim((string)($initialRestaurant['logo'] ?? ''));
     $initialRestaurantLetter = mb_strtoupper(mb_substr($initialRestaurantName, 0, 1));
-    $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Eat here';
+    $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Dine in';
     $initialHero = trim((string)($pmdKioskConfig['hero'] ?? ''));
 @endphp
 <!doctype html>
@@ -21,7 +21,7 @@
             :root { --pmd-k-hero-image: url({!! json_encode($initialHero, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) !!}); }
         </style>
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=13-smooth-scroll">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=17-terminal-checkout">
 </head>
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
@@ -135,6 +135,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=13-smooth-scroll" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=17-terminal-checkout" defer></script>
 </body>
 </html>
