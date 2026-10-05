@@ -17,9 +17,22 @@
       this.highestSeenId = cursor.value;
       this.baselineReady = cursor.exists;
       this.shownNotificationIds = new Set();
+      this.pollDelayMs = this.reservationWorkspaceActive() ? 4000 : 15000;
       this.createContainer();
       this.bellIcon = document.querySelector('#bell-icon, .fa-bell');
       this.startListening();
+    }
+
+    reservationWorkspaceActive() {
+      const path = String(window.location.pathname || '').replace(/\/+$/, '');
+      if (path === '/admin/reservations') return true;
+      if (path !== '/admin/pos') return false;
+
+      try {
+        return new URLSearchParams(window.location.search || '').get('workspace') === 'reservations';
+      } catch (_) {
+        return false;
+      }
     }
 
     getCursorStorage() {
@@ -136,7 +149,7 @@
 
     startListening() {
       if (this.pollInterval) return;
-      this.pollInterval = setInterval(() => this.checkForNewNotifications(), 15000);
+      this.pollInterval = setInterval(() => this.checkForNewNotifications(), this.pollDelayMs);
       setTimeout(() => this.checkForNewNotifications(), 1000);
 
       this._beforeUnloadHandler = () => this.stopListening();
@@ -149,7 +162,7 @@
           return;
         }
         if (!this.pollInterval) {
-          this.pollInterval = setInterval(() => this.checkForNewNotifications(), 15000);
+          this.pollInterval = setInterval(() => this.checkForNewNotifications(), this.pollDelayMs);
           this.checkForNewNotifications();
         }
       };
