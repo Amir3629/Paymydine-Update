@@ -411,7 +411,11 @@ class Reservations_model extends Model
      */
     protected function createHash()
     {
-        return md5(uniqid('reservation', microtime()));
+        try {
+            return bin2hex(random_bytes(16));
+        } catch (\Throwable $error) {
+            return md5(uniqid('reservation', microtime()));
+        }
     }
 
     /**
