@@ -198,8 +198,8 @@ jobs:
           grep -Fq 'PMD_ANDROID_RESERVATIONS_IN_POS_V17' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -Fq 'PMD_RESERVATIONS_POS_SHELL_V17' app/admin/Services/PmdDefaultStaffRoleService.php
           grep -Fq 'PMD_QPOS_RESERVATIONS_SHELL_AUTH_V17' app/admin/controllers/PmdQuickPosV1.php
-          grep -Fq "pos?workspace=reservations" app/Http/Controllers/PmdMobileWorkspaceAuthController.php
-          grep -Fq "pos?workspace=reservations" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -Fq 'PMD_ANDROID_RESERVATIONS_POS_TARGET_V17' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          grep -Fq "admin_url('pos').'?workspace=reservations'" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -Fq 'versionCode = 66' mobile/android/app/build.gradle.kts
           grep -Fq 'versionName = "0.5.3-device-app-v12"' mobile/android/app/build.gradle.kts
           grep -Fq 'PayMyDine Device App · Android' app/admin/views/pmdsettings/index.blade.php
