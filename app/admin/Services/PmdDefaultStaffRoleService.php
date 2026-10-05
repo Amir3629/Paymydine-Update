@@ -132,11 +132,6 @@ class PmdDefaultStaffRoleService
                 'permissions' => [
                     self::PMD_RESERVATIONS_WORKSPACE => 1,
                     'Admin.Reservations' => 1,
-                    // PMD_RESERVATIONS_POS_SHELL_V17
-                    // Quick POS requires Admin.Orders to render its shell. The
-                    // route boundary below still limits this managed role to
-                    // read-only POS shell/bootstrap/reservation projection URLs.
-                    'Admin.Orders' => 1,
                 ],
             ],
             [
