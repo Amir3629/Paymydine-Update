@@ -279,9 +279,20 @@ final class PmdKioskPublicController
         if (!$attempt) {
             abort(404, 'Terminal payment attempt was not found.');
         }
+        $attemptRequest = json_decode(
+            (string)($attempt->request_payload ?? '{}'),
+            true
+        );
+        $attemptRequest = is_array($attemptRequest) ? $attemptRequest : [];
+        $attemptTerminalDeviceId = (int)(
+            $attempt->terminal_device_id
+            ?? $attemptRequest['terminal_device_id']
+            ?? 0
+        );
+
         if (
             $terminalDeviceId < 1
-            || (int)($attempt->terminal_device_id ?? 0) !== $terminalDeviceId
+            || $attemptTerminalDeviceId !== $terminalDeviceId
         ) {
             abort(403, 'This payment attempt belongs to another terminal.');
         }
