@@ -194,9 +194,10 @@
         'maxDate' => $bookingMaxDate,
         'canManage' => $canManage,
         'canCancel' => $canCancel,
-        'availabilityUrl' => $reservation ? url('/book/manage/'.rawurlencode((string)$reservation->hash).'/availability') : null,
-        'updateUrl' => $reservation ? url('/book/manage/'.rawurlencode((string)$reservation->hash)) : null,
-        'cancelUrl' => $reservation ? url('/book/manage/'.rawurlencode((string)$reservation->hash).'/cancel') : null,
+        'manageHash' => $reservation ? (string)$reservation->hash : null,
+        'availabilityUrl' => $reservation ? url('/book/availability') : null,
+        'updateUrl' => $reservation ? url('/book') : null,
+        'cancelUrl' => $reservation ? url('/book') : null,
         'restaurantName' => $bookingProfile['name'],
     ];
 @endphp
@@ -209,7 +210,7 @@
     <meta name="theme-color" content="#f4efe4">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $t['manage_booking'] }} · {{ $bookingProfile['name'] }}</title>
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r16">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r17">
 </head>
 <body class="pmd-booking-page pmd-booking-manage-page">
     <div class="pmd-booking-shell">
@@ -225,7 +226,7 @@
             </a>
             <nav class="pmd-booking-language" aria-label="{{ $t['language'] }}" data-pmd-manage-language-nav>
                 @foreach($bookingLanguages as $code)
-                    <a href="{{ url()->current() }}?lang={{ $code }}" data-pmd-manage-language="{{ $code }}" class="{{ $bookingLocale === $code ? 'is-active' : '' }}" @if($bookingLocale === $code) aria-current="page" @endif>{{ strtoupper($code) }}</a>
+                    <a href="{{ url('/book') }}?manage={{ $reservation ? rawurlencode((string)$reservation->hash) : '1' }}&lang={{ $code }}" data-pmd-manage-language="{{ $code }}" class="{{ $bookingLocale === $code ? 'is-active' : '' }}" @if($bookingLocale === $code) aria-current="page" @endif>{{ strtoupper($code) }}</a>
                 @endforeach
             </nav>
         </header>
@@ -242,8 +243,9 @@
                     @if($lookupError)
                         <div class="pmd-booking-errors is-visible">{{ $lookupError }}</div>
                     @endif
-                    <form method="post" action="{{ url('/book/manage') }}">
+                    <form method="post" action="{{ url('/book') }}">
                         @csrf
+                        <input type="hidden" name="_pmd_manage_action" value="lookup">
                         <input type="hidden" name="lang" value="{{ $bookingLocale }}">
                         <label>
                             <span data-pmd-manage-i18n="reference">{{ $t['reference'] }}</span>
@@ -283,6 +285,8 @@
                     @if($canManage)
                         <form id="pmd-booking-manage-form" class="pmd-booking-manage-form" novalidate>
                             @csrf
+                            <input type="hidden" name="_pmd_manage_action" value="update">
+                            <input type="hidden" name="_pmd_manage_hash" value="{{ $reservationPayload['hash'] }}">
                             <div class="pmd-booking-fields">
                                 <label>
                                     <span data-pmd-manage-i18n="date">{{ $t['date'] }}</span>
@@ -378,6 +382,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-manage-config">{!! json_encode($manageConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261005-r16" defer></script>
+    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261005-r17" defer></script>
 </body>
 </html>
