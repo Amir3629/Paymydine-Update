@@ -227,6 +227,13 @@
     payload.reserve_date = state.date;
     payload.reserve_time = state.time;
     payload.guest_num = state.guests;
+
+    if (config.guaranteeLocksSchedule === true && config.reservation) {
+      payload.first_name = String(config.reservation.first_name || "");
+      payload.last_name = String(config.reservation.last_name || "");
+      payload.email = String(config.reservation.email || "");
+    }
+
     return payload;
   }
 
