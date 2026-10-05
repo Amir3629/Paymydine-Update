@@ -33,8 +33,14 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
+import com.paymydine.mobile.kiosk.KioskApiClient
 import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
+import com.paymydine.mobile.kiosk.KioskTerminalPaymentResult
 import com.paymydine.mobile.kiosk.KioskProfile
+import com.paymydine.mobile.tabledisplay.SecureStore
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.util.UUID
 
@@ -416,6 +422,14 @@ class KioskMenuActivity : ComponentActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private var sessionNonce = ""
     private val bridgeSecret = UUID.randomUUID().toString()
+    private val kioskStore by lazy {
+        SecureStore(
+            context = this,
+            storeName = "pmd-kiosk-v1",
+            keyAlias = "pmd-kiosk-v1",
+        )
+    }
+    private val kioskApi = KioskApiClient()
 
     private var useSoftwareRendererFallback = false
 
@@ -798,6 +812,8 @@ class KioskMenuActivity : ComponentActivity() {
             KioskJavascriptBridge(
                 secret = bridgeSecret,
                 onOrderComplete = ::showComplete,
+                onStartTerminalPayment = ::startTerminalPayment,
+                onPollTerminalPayment = ::pollTerminalPayment,
             )
 
         fun setBridgeEnabled(enabled: Boolean) {
@@ -1088,6 +1104,101 @@ class KioskMenuActivity : ComponentActivity() {
         mainHandler.postDelayed(idleRunnable, idleTimeoutMs)
     }
 
+    /**
+     * PMD_KIOSK_CARD_PRESENT_BRIDGE_V18
+     *
+     * JavaScript can request a payment but never receives the kiosk bearer
+     * token. Android performs the authenticated call and returns only sanitized
+     * payment state to the WebView.
+     */
+    private fun startTerminalPayment(
+        orderId: Long,
+        kioskSession: String,
+    ) {
+        val host = kioskStore.host().orEmpty()
+        val token = kioskStore.token().orEmpty()
+        if (host.isBlank() || token.isBlank()) {
+            dispatchTerminalPaymentResult(
+                phase = "start",
+                result = null,
+                error = "This kiosk must be paired before terminal payment.",
+            )
+            return
+        }
+
+        lifecycleScope.launch {
+            val result = runCatching {
+                kioskApi.terminalPaymentStart(
+                    host = host,
+                    token = token,
+                    orderId = orderId,
+                    kioskSession = kioskSession,
+                )
+            }
+            dispatchTerminalPaymentResult(
+                phase = "start",
+                result = result.getOrNull(),
+                error = result.exceptionOrNull()?.message,
+            )
+        }
+    }
+
+    private fun pollTerminalPayment(
+        attemptId: Long,
+        kioskSession: String,
+    ) {
+        val host = kioskStore.host().orEmpty()
+        val token = kioskStore.token().orEmpty()
+        if (host.isBlank() || token.isBlank()) {
+            dispatchTerminalPaymentResult(
+                phase = "status",
+                result = null,
+                error = "Kiosk device authentication is unavailable.",
+            )
+            return
+        }
+
+        lifecycleScope.launch {
+            val result = runCatching {
+                kioskApi.terminalPaymentStatus(
+                    host = host,
+                    token = token,
+                    attemptId = attemptId,
+                    kioskSession = kioskSession,
+                )
+            }
+            dispatchTerminalPaymentResult(
+                phase = "status",
+                result = result.getOrNull(),
+                error = result.exceptionOrNull()?.message,
+            )
+        }
+    }
+
+    private fun dispatchTerminalPaymentResult(
+        phase: String,
+        result: KioskTerminalPaymentResult?,
+        error: String?,
+    ) {
+        val payload = JSONObject()
+            .put("phase", phase)
+            .put("ok", result?.ok ?: false)
+            .put("attempt_id", result?.attemptId ?: 0L)
+            .put("status", result?.status.orEmpty())
+            .put("message", result?.message?.ifBlank { error.orEmpty() } ?: error.orEmpty())
+            .put("payment_recorded", result?.paymentRecorded ?: false)
+
+        runOnUiThread {
+            webView?.evaluateJavascript(
+                "window.__pmdKioskTerminalResult && " +
+                    "window.__pmdKioskTerminalResult(" +
+                    payload.toString() +
+                    ");",
+                null,
+            )
+        }
+    }
+
     private fun showComplete(orderId: String) {
         runOnUiThread {
             destroyWebView()
@@ -1189,6 +1300,8 @@ class KioskMenuActivity : ComponentActivity() {
     private class KioskJavascriptBridge(
         private val secret: String,
         private val onOrderComplete: (String) -> Unit,
+        private val onStartTerminalPayment: (Long, String) -> Unit,
+        private val onPollTerminalPayment: (Long, String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
 
@@ -1202,6 +1315,34 @@ class KioskMenuActivity : ComponentActivity() {
             }
             handler.post {
                 onOrderComplete(orderId.trim())
+            }
+        }
+
+        @JavascriptInterface
+        fun startTerminalPayment(
+            orderId: String,
+            kioskSession: String,
+            providedSecret: String,
+        ) {
+            if (providedSecret.isBlank() || providedSecret != secret) return
+            val parsedOrderId = orderId.trim().toLongOrNull() ?: return
+            if (parsedOrderId < 1L || kioskSession.isBlank()) return
+            handler.post {
+                onStartTerminalPayment(parsedOrderId, kioskSession.trim())
+            }
+        }
+
+        @JavascriptInterface
+        fun pollTerminalPayment(
+            attemptId: String,
+            kioskSession: String,
+            providedSecret: String,
+        ) {
+            if (providedSecret.isBlank() || providedSecret != secret) return
+            val parsedAttemptId = attemptId.trim().toLongOrNull() ?: return
+            if (parsedAttemptId < 1L || kioskSession.isBlank()) return
+            handler.post {
+                onPollTerminalPayment(parsedAttemptId, kioskSession.trim())
             }
         }
     }
