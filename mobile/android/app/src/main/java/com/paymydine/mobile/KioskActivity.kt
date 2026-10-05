@@ -894,6 +894,7 @@ private fun KioskModeButton(
                         background = background,
                     )
 
+                    // PMD_KIOSK_SERVICE_ARTWORK_FADE_V14
                     // PMD_KIOSK_SERVICE_ARTWORK_FADE_V17
                     // Keep only a tight edge blend. The photo must remain
                     // visually dominant instead of being covered by a wide wash.
