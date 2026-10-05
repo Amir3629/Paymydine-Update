@@ -216,6 +216,7 @@ private fun KioskApp(
     var menuBootstrapReady by remember { mutableStateOf(false) }
     var menuOpening by remember { mutableStateOf(false) }
     var serviceMode by remember { mutableStateOf("eat_in") }
+    var guestLocale by remember { mutableStateOf("en") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var completedOrderId by remember { mutableStateOf<String?>(null) }
@@ -376,6 +377,7 @@ private fun KioskApp(
                     profile = current,
                     serviceMode = mode,
                     heroImage = heroImages.firstOrNull().orEmpty(),
+                    locale = guestLocale,
                 ),
             )
             (context as? Activity)?.overridePendingTransition(0, 0)
@@ -433,6 +435,12 @@ private fun KioskApp(
             KioskWelcomeScreen(
                 profile = current,
                 heroImages = heroImages,
+                locale = guestLocale,
+                onLanguageChange = {
+                    val supported = listOf("en", "de", "tr", "fa")
+                    val index = supported.indexOf(guestLocale).coerceAtLeast(0)
+                    guestLocale = supported[(index + 1) % supported.size]
+                },
                 onEatHere = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
                     scope.launch {
@@ -658,6 +666,8 @@ private fun KioskLoadingScreen(
 private fun KioskWelcomeScreen(
     profile: KioskProfile,
     heroImages: List<String>,
+    locale: String,
+    onLanguageChange: () -> Unit,
     onEatHere: () -> Unit,
     onTakeAway: () -> Unit,
 ) {
@@ -693,6 +703,41 @@ private fun KioskWelcomeScreen(
                 .padding(top = 52.dp, bottom = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // PMD_KIOSK_WELCOME_LANGUAGE_V18
+            // Language belongs on the first guest decision screen as well as
+            // inside the menu. One large touch target cycles the kiosk locales.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                Button(
+                    onClick = onLanguageChange,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = surface,
+                        contentColor = text,
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = 18.dp,
+                        vertical = 10.dp,
+                    ),
+                ) {
+                    Text(
+                        locale.uppercase(),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black,
+                    )
+                    Text(
+                        " ⌄",
+                        color = muted,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+
             // PMD_KIOSK_PREMIUM_WELCOME_V11
             // The restaurant owns the primary brand on the guest screen.
             if (hero.isNotBlank()) {
@@ -741,19 +786,10 @@ private fun KioskWelcomeScreen(
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
             )
-            Text(
-                "How would you like to order?",
-                modifier = Modifier.padding(top = 7.dp),
-                color = muted,
-                fontSize = 18.sp,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(26.dp))
 
             KioskModeButton(
-                title = "EAT HERE",
-                subtitle = "Order and enjoy it here",
+                title = kioskServiceLabel(locale, "eat_in"),
                 imageUrl = eatImage,
                 background = surface,
                 text = text,
@@ -762,8 +798,7 @@ private fun KioskWelcomeScreen(
             )
             Spacer(Modifier.height(16.dp))
             KioskModeButton(
-                title = "TAKE AWAY",
-                subtitle = "Order for collection",
+                title = kioskServiceLabel(locale, "pickup"),
                 imageUrl = takeImage,
                 background = surface,
                 text = text,
@@ -790,10 +825,22 @@ private fun KioskWelcomeScreen(
     }
 }
 
+private fun kioskServiceLabel(
+    locale: String,
+    mode: String,
+): String {
+    val pickup = mode == "pickup"
+    return when (locale.lowercase()) {
+        "de" -> if (pickup) "MITNEHMEN" else "HIER ESSEN"
+        "tr" -> if (pickup) "PAKET" else "İÇERİDE YE"
+        "fa" -> if (pickup) "بیرون‌بر" else "صرف در رستوران"
+        else -> if (pickup) "TAKE AWAY" else "DINE IN"
+    }
+}
+
 @Composable
 private fun KioskModeButton(
     title: String,
-    subtitle: String,
     imageUrl: String,
     background: Color,
     text: Color,
@@ -837,12 +884,12 @@ private fun KioskModeButton(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .fillMaxHeight()
-                            .width(52.dp)
+                            .width(24.dp)
                             .background(
                                 Brush.horizontalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        background.copy(alpha = 0.55f),
+                                        background.copy(alpha = 0.28f),
                                         background,
                                     ),
                                 ),
@@ -863,15 +910,9 @@ private fun KioskModeButton(
                 Text(
                     title,
                     color = text,
-                    fontSize = 21.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 0.5.sp,
-                )
-                Text(
-                    subtitle,
-                    modifier = Modifier.padding(top = 2.dp),
-                    color = text.copy(alpha = 0.62f),
-                    fontSize = 12.sp,
                 )
             }
 
