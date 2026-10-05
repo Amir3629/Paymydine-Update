@@ -21,7 +21,6 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
-import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
@@ -36,12 +35,14 @@ import java.util.UUID
 
 /**
  * PMD_KIOSK_DEDICATED_WEB_ACTIVITY_V58
- * PMD_KIOSK_SOFTWARE_RENDER_V59
+ * PMD_KIOSK_FAST_WEBVIEW_V10
+ * PMD_KIOSK_PREMIUM_UI_V11
+ * PMD_KIOSK_RENDER_FALLBACK_V10
  *
  * Kiosk menu intentionally uses a classic Android view hierarchy instead of a
- * Compose AndroidView. V59 also forces the kiosk WebView onto Android's
- * software paint path. Some emulator/tablet WebView GPU surfaces report a
- * healthy DOM/page-finished state while compositing a visually blank surface.
+ * Compose AndroidView. Physical devices use the normal accelerated WebView
+ * path for responsive taps and scrolling. Emulator-like devices keep the
+ * proven software renderer fallback that avoids blank GPU surfaces.
  */
 class KioskMenuActivity : ComponentActivity() {
     private lateinit var root: LinearLayout
@@ -55,6 +56,17 @@ class KioskMenuActivity : ComponentActivity() {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val sessionNonce = UUID.randomUUID().toString()
     private val bridgeSecret = UUID.randomUUID().toString()
+
+    private val useSoftwareRendererFallback: Boolean by lazy {
+        val fingerprint = Build.FINGERPRINT.lowercase()
+        val model = Build.MODEL.lowercase()
+        val product = Build.PRODUCT.lowercase()
+        fingerprint.startsWith("generic") ||
+            fingerprint.contains("emulator") ||
+            model.contains("emulator") ||
+            model.contains("android sdk built for") ||
+            product.contains("sdk_gphone")
+    }
 
     private val menuUrl: String by lazy {
         intent.getStringExtra(EXTRA_MENU_URL).orEmpty().trimEnd('/')
@@ -86,7 +98,7 @@ class KioskMenuActivity : ComponentActivity() {
 
     private val idleRunnable = Runnable {
         if (!isFinishing) {
-            finish()
+            finishWithoutTransition()
         }
     }
 
@@ -96,13 +108,17 @@ class KioskMenuActivity : ComponentActivity() {
         enterKioskMode()
         buildNativeShell()
 
+        // PMD_KIOSK_FAST_WEBVIEW_V10
+        // Start WebView creation as soon as the native shell has dimensions.
+        // Do not wait for focus or throw away browser caches on every order.
+        root.post { createWebViewWhenReady() }
         root.postDelayed(
             {
-                if (!windowFocusedOnce && webView == null && !isFinishing) {
+                if (webView == null && !isFinishing) {
                     createWebViewWhenReady()
                 }
             },
-            700L,
+            250L,
         )
         resetIdleTimer()
     }
@@ -113,14 +129,11 @@ class KioskMenuActivity : ComponentActivity() {
 
         windowFocusedOnce = true
         if (webView == null) {
-            root.postDelayed(
-                {
-                    if (webView == null && !isFinishing) {
-                        createWebViewWhenReady()
-                    }
-                },
-                180L,
-            )
+            root.post {
+                if (webView == null && !isFinishing) {
+                    createWebViewWhenReady()
+                }
+            }
         } else {
             webView?.let(::synchronizeVisibleFrame)
         }
@@ -175,7 +188,7 @@ class KioskMenuActivity : ComponentActivity() {
             textSize = 16f
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(12), 0, dp(12), 0)
-            setOnClickListener { finish() }
+            setOnClickListener { finishWithoutTransition() }
         }
 
         val mode = TextView(this).apply {
@@ -283,12 +296,15 @@ class KioskMenuActivity : ComponentActivity() {
         val view = WebView(this).apply {
             setInitialScale(100)
             setBackgroundColor(Color.rgb(243, 245, 247))
-            // PMD_KIOSK_SOFTWARE_RENDER_V59
-            // Bypass Chromium/GPU surface composition for the kiosk menu.
-            // This is deliberately scoped to this dedicated activity only.
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+            // PMD_KIOSK_RENDER_FALLBACK_V10
+            // Hardware rendering keeps real kiosk devices fast. The software
+            // path is retained only for emulator-like devices that previously
+            // produced a blank Chromium surface.
+            applyKioskRenderLayer(this)
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
+            isNestedScrollingEnabled = true
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
 
             settings.apply {
                 javaScriptEnabled = true
@@ -298,7 +314,7 @@ class KioskMenuActivity : ComponentActivity() {
                 allowContentAccess = false
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 cacheMode = WebSettings.LOAD_DEFAULT
-                offscreenPreRaster = false
+                offscreenPreRaster = !useSoftwareRendererFallback
                 useWideViewPort = true
                 loadWithOverviewMode = false
                 textZoom = 100
@@ -490,17 +506,16 @@ class KioskMenuActivity : ComponentActivity() {
             ),
         )
 
-        WebStorage.getInstance().deleteAllData()
-        view.clearCache(true)
+        // PMD_KIOSK_FAST_WEBVIEW_V10
+        // Keep HTTP/WebView caches and cookies between kiosk orders. Session
+        // isolation is handled by the per-order kiosk_session and sessionStorage.
+        // Clearing all Chromium data here made every Dine In / Take Away tap a
+        // full cold start.
         view.clearHistory()
-
-        val cookies = CookieManager.getInstance()
-        cookies.removeAllCookies {
-            cookies.flush()
-            view.post {
-                if (!isFinishing && webView === view) {
-                    view.loadUrl(buildTargetUrl())
-                }
+        CookieManager.getInstance().flush()
+        view.post {
+            if (!isFinishing && webView === view) {
+                view.loadUrl(buildTargetUrl())
             }
         }
 
@@ -520,7 +535,7 @@ class KioskMenuActivity : ComponentActivity() {
     private fun presentReadyWebView(view: WebView) {
         if (webView !== view || isFinishing) return
 
-        view.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+        applyKioskRenderLayer(view)
         view.visibility = View.VISIBLE
         view.alpha = 1f
         view.bringToFront()
@@ -560,7 +575,7 @@ class KioskMenuActivity : ComponentActivity() {
         view.post {
             if (webView !== view || isFinishing) return@post
 
-            view.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+            applyKioskRenderLayer(view)
             view.visibility = View.VISIBLE
             view.alpha = 1f
             view.requestLayout()
@@ -585,8 +600,6 @@ class KioskMenuActivity : ComponentActivity() {
                     document.documentElement.clientHeight || 0
                   );
 
-                  document.documentElement.style.height = h + 'px';
-                  document.body.style.height = h + 'px';
                   document.documentElement.style.setProperty(
                     '--pmd-android-viewport-width',
                     w + 'px'
@@ -596,27 +609,23 @@ class KioskMenuActivity : ComponentActivity() {
                     h + 'px'
                   );
 
+                  // PMD_KIOSK_NATIVE_SCROLL_V10
+                  // Do not hard-pin html/body/app heights from Android. The
+                  // kiosk CSS owns its viewport and the menu is its scroll
+                  // container. Pinning maxHeight here prevented reliable
+                  // touch scrolling on portrait WebViews.
                   var app = document.getElementById('pmd-kiosk-app');
                   if (app) {
-                    app.style.height = h + 'px';
-                    app.style.minHeight = h + 'px';
-                    app.style.maxHeight = h + 'px';
                     app.style.width = '100%';
                     app.style.minWidth = '0';
-
+                    app.style.removeProperty('height');
+                    app.style.removeProperty('min-height');
+                    app.style.removeProperty('max-height');
                     var workspace = app.querySelector('.pmd-kiosk-workspace');
-                    var topbar = app.querySelector('.pmd-kiosk-topbar');
                     if (workspace) {
-                      var topbarHeight = topbar
-                        ? Math.round(topbar.getBoundingClientRect().height)
-                        : 86;
-                      workspace.style.height =
-                        Math.max(1, h - topbarHeight) + 'px';
+                      workspace.style.removeProperty('height');
                     }
-
                     void app.offsetWidth;
-                    void app.offsetHeight;
-                    app.getBoundingClientRect();
                   }
 
                   window.dispatchEvent(new Event('resize'));
@@ -686,6 +695,17 @@ class KioskMenuActivity : ComponentActivity() {
             Uri.encode(intent.getStringExtra(EXTRA_SURFACE).orEmpty())
     }
 
+    private fun applyKioskRenderLayer(view: WebView) {
+        view.setLayerType(
+            if (useSoftwareRendererFallback) {
+                View.LAYER_TYPE_SOFTWARE
+            } else {
+                View.LAYER_TYPE_HARDWARE
+            },
+            null,
+        )
+    }
+
     private fun resetIdleTimer() {
         mainHandler.removeCallbacks(idleRunnable)
         mainHandler.postDelayed(idleRunnable, idleTimeoutMs)
@@ -716,7 +736,7 @@ class KioskMenuActivity : ComponentActivity() {
 
             mainHandler.postDelayed(
                 {
-                    if (!isFinishing) finish()
+                    if (!isFinishing) finishWithoutTransition()
                 },
                 10_000L,
             )
@@ -726,6 +746,15 @@ class KioskMenuActivity : ComponentActivity() {
     private fun showFatal(message: String) {
         loadingView.visibility = View.VISIBLE
         loadingView.text = message
+    }
+
+    // PMD_KIOSK_SEAMLESS_ACTIVITY_V10
+    // The dedicated WebView activity remains isolated for blank-surface safety,
+    // but it must feel like the same kiosk surface to the guest.
+    private fun finishWithoutTransition() {
+        finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(0, 0)
     }
 
     private fun destroyWebView() {
@@ -793,6 +822,7 @@ class KioskMenuActivity : ComponentActivity() {
             serviceMode: String,
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
                 putExtra(EXTRA_MENU_URL, profile.menuUrl)
                 putExtra(EXTRA_SERVICE_MODE, serviceMode)
                 putExtra(EXTRA_RESTAURANT_NAME, profile.restaurantName)
