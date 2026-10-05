@@ -344,12 +344,16 @@ final class PmdReservationGuaranteeService
 
         return [
             'status' => (string)$row->status,
+            'amount_per_guest_cents' => (int)$row->amount_per_guest_cents,
             'amount_cents' => (int)$row->amount_cents,
             'charged_amount_cents' => isset($row->charged_amount_cents)
                 ? (int)$row->charged_amount_cents
                 : null,
             'currency' => (string)$row->currency,
             'terms_version' => (string)$row->terms_version,
+            'locale' => (string)($row->locale ?? 'en'),
+            'terms_text' => (string)($row->terms_text ?? ''),
+            'consent_text' => (string)($row->consent_text ?? ''),
             'cancellation_deadline_at' => $row->cancellation_deadline_at,
             'charge_eligible_at' => $row->charge_eligible_at,
             'charged_at' => $row->charged_at,
@@ -819,7 +823,7 @@ final class PmdReservationGuaranteeService
         $locale = $this->locale($locale);
 
         if ($locale === 'de') {
-            return 'Verbindlich reservieren – mögliche Ausfallentschädigung bis';
+            return 'Verbindlich reservieren – bei Nichterscheinen kostenpflichtig bis';
         }
         if ($locale === 'tr') {
             return 'Rezervasyonu onayla – olası no-show tazminatı en fazla';
