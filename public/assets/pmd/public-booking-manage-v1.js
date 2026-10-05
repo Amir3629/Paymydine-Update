@@ -157,6 +157,10 @@
       button.setAttribute("data-pmd-manage-time", String(slot.value));
       button.textContent = String(slot.label || slot.value);
       if (String(slot.value) === state.time) button.classList.add("is-active");
+      if (config.guaranteeLocksSchedule === true) {
+        button.disabled = true;
+        button.setAttribute("aria-disabled", "true");
+      }
       times.appendChild(button);
     });
   }
