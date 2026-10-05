@@ -702,6 +702,21 @@ private fun KioskWelcomeScreen(
         "/public/assets/pmd/kiosk-hero/take-away.png",
     )
 
+    val dineInLabel =
+        when (selectedLocale) {
+            "de" -> "HIER ESSEN"
+            "fa" -> "صرف در رستوران"
+            "tr" -> "BURADA YE"
+            else -> "DINE IN"
+        }
+    val takeAwayLabel =
+        when (selectedLocale) {
+            "de" -> "MITNEHMEN"
+            "fa" -> "بیرون بر"
+            "tr" -> "PAKET"
+            else -> "TAKE AWAY"
+        }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = background,
@@ -776,7 +791,7 @@ private fun KioskWelcomeScreen(
             Spacer(Modifier.height(22.dp))
 
             KioskModeButton(
-                title = "DINE IN",
+                title = dineInLabel,
                 imageUrl = eatImage,
                 background = surface,
                 text = text,
@@ -785,7 +800,7 @@ private fun KioskWelcomeScreen(
             )
             Spacer(Modifier.height(16.dp))
             KioskModeButton(
-                title = "TAKE AWAY",
+                title = takeAwayLabel,
                 imageUrl = takeImage,
                 background = surface,
                 text = text,
