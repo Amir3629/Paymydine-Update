@@ -27,10 +27,12 @@ data class KioskProfile(
 
 /**
  * PMD_KIOSK_BOOTSTRAP_HANDOFF_V13
+ * PMD_KIOSK_MULTI_WARM_BOOTSTRAP_V15
+ *
  * The native welcome already downloads the canonical menu bootstrap to choose
- * restaurant photography. Keep that fresh response in memory for one menu
- * navigation so WebView can consume it immediately instead of downloading the
- * exact same payload again and flashing an empty menu.
+ * restaurant photography. V15 keeps the fresh response reusable for its short
+ * TTL so both pre-rendered Eat Here / Take Away WebViews can hydrate from the
+ * same canonical payload without racing each other or touching the network.
  */
 object KioskBootstrapWarmCache {
     private data class Entry(
@@ -56,7 +58,7 @@ object KioskBootstrapWarmCache {
     }
 
     @Synchronized
-    fun consume(host: String): String? {
+    fun peek(host: String): String? {
         val current = entry ?: return null
         val normalized = SecureStore.normalizeHost(host).lowercase()
         val ageMs = System.currentTimeMillis() - current.savedAtMs
@@ -65,9 +67,14 @@ object KioskBootstrapWarmCache {
             return null
         }
 
-        entry = null
         return current.body
     }
+
+    // Backward-compatible alias for older call sites. V15 deliberately does
+    // not consume the snapshot because two service-mode WebViews warm in
+    // parallel from the same restaurant bootstrap.
+    @Synchronized
+    fun consume(host: String): String? = peek(host)
 }
 
 class KioskApiClient {
