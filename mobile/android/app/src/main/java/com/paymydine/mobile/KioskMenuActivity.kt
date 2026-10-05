@@ -20,6 +20,7 @@ import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -30,7 +31,9 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskProfile
+import java.io.ByteArrayInputStream
 import java.util.UUID
 
 /**
@@ -376,6 +379,28 @@ class KioskMenuActivity : ComponentActivity() {
                             startActivity(Intent(Intent.ACTION_VIEW, uri))
                         }
                         return true
+                    }
+
+                    override fun shouldInterceptRequest(
+                        view: WebView,
+                        request: WebResourceRequest,
+                    ): WebResourceResponse? {
+                        val uri = request.url
+                        val requestHost = uri.host?.lowercase().orEmpty()
+                        if (
+                            request.method.equals("GET", ignoreCase = true) &&
+                            requestHost == trustedHost &&
+                            uri.path == "/api/v1/frontend-bootstrap-batch-r1"
+                        ) {
+                            KioskBootstrapWarmCache.consume(menuUrl)?.let { body ->
+                                return WebResourceResponse(
+                                    "application/json",
+                                    "UTF-8",
+                                    ByteArrayInputStream(body.toByteArray(Charsets.UTF_8)),
+                                )
+                            }
+                        }
+                        return super.shouldInterceptRequest(view, request)
                     }
 
                     override fun onPageCommitVisible(
