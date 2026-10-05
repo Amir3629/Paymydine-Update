@@ -452,6 +452,12 @@ final class PmdReservationGuaranteeService
             throw new RuntimeException('This reservation has no card guarantee.');
         }
 
+        if ($reservation->isCanceled()) {
+            throw new RuntimeException(
+                'A canceled reservation cannot be charged as a no-show.'
+            );
+        }
+
         if ((string)$row->status === 'charged') {
             return [
                 'success' => true,
