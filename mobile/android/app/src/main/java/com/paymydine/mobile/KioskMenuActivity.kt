@@ -112,6 +112,7 @@ internal object KioskMenuWarmPool {
         )
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     fun prewarmRaw(
         context: Context,
         menuUrl: String,
@@ -391,6 +392,7 @@ class KioskMenuActivity : ComponentActivity() {
     private var webView: WebView? = null
     private var windowFocusedOnce = false
     private var pageReady = false
+    private var initialPresentationDone = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var sessionNonce = ""
@@ -636,6 +638,7 @@ class KioskMenuActivity : ComponentActivity() {
         }
 
         pageReady = false
+        initialPresentationDone = false
 
         val view = WebView(this).apply {
             setInitialScale(100)
@@ -740,6 +743,7 @@ class KioskMenuActivity : ComponentActivity() {
         installLiveClients(view, trustedHost)
         webView = view
         pageReady = true
+        initialPresentationDone = true
 
         webContainer.addView(
             view,
@@ -838,7 +842,13 @@ class KioskMenuActivity : ComponentActivity() {
                     url: String,
                 ) {
                     super.onPageCommitVisible(current, url)
-                    synchronizeVisibleFrame(current)
+                    // PMD_KIOSK_ATOMIC_FIRST_PAINT_V15
+                    // Never expose Chromium's partial first paint. Warm pages
+                    // are already complete; a cold fallback stays on the solid
+                    // themed surface until the kiosk DOM marker is confirmed.
+                    if (initialPresentationDone) {
+                        synchronizeVisibleFrame(current)
+                    }
                 }
 
                 override fun onPageFinished(
@@ -928,6 +938,7 @@ class KioskMenuActivity : ComponentActivity() {
     private fun presentReadyWebView(view: WebView) {
         if (webView !== view || isFinishing) return
 
+        initialPresentationDone = true
         applyKioskRenderLayer(view)
         view.visibility = View.VISIBLE
         view.alpha = 1f
