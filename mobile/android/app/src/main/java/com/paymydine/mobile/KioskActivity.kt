@@ -30,11 +30,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -624,8 +627,19 @@ private fun KioskWelcomeScreen(
     val accent = kioskColor(profile.theme.accent, Color(0xFFFF3B93))
     val surface = kioskColor(profile.theme.surface, Color(0xFF0D0D14))
     val hero = heroImages.getOrNull(0).orEmpty()
-    val eatImage = heroImages.getOrNull(1) ?: hero
-    val takeImage = heroImages.getOrNull(2) ?: hero
+
+    // PMD_KIOSK_SERVICE_ARTWORK_V14
+    // These are intentionally dedicated service-mode assets rather than random
+    // menu photography. They live on the tenant host so artwork can be changed
+    // without changing the menu model.
+    val eatImage = kioskPublicAssetUrl(
+        profile.menuUrl,
+        "/public/assets/pmd/kiosk-hero/dinein.png",
+    )
+    val takeImage = kioskPublicAssetUrl(
+        profile.menuUrl,
+        "/public/assets/pmd/kiosk-hero/take-away.png",
+    )
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -766,17 +780,39 @@ private fun KioskModeButton(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (imageUrl.isNotBlank()) {
-                KioskRemoteImage(
-                    url = imageUrl,
-                    contentDescription = title,
+                Box(
                     modifier = Modifier
-                        .widthIn(min = 118.dp, max = 132.dp)
-                        .fillMaxSize()
-                        .weight(0.42f)
+                        .weight(0.46f)
+                        .fillMaxHeight()
                         .clip(RoundedCornerShape(18.dp)),
-                    background = background,
-                )
-                Spacer(Modifier.size(14.dp))
+                ) {
+                    KioskRemoteImage(
+                        url = imageUrl,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        background = background,
+                    )
+
+                    // PMD_KIOSK_SERVICE_ARTWORK_FADE_V14
+                    // Blend the photo into the text side instead of ending on a
+                    // hard vertical edge, matching the selected kiosk concept.
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .width(52.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        background.copy(alpha = 0.55f),
+                                        background,
+                                    ),
+                                ),
+                            ),
+                    )
+                }
+                Spacer(Modifier.size(12.dp))
             }
 
             Column(
@@ -829,6 +865,16 @@ private fun KioskModeButton(
             }
         }
     }
+}
+
+private fun kioskPublicAssetUrl(
+    menuUrl: String,
+    assetPath: String,
+): String {
+    val uri = runCatching { Uri.parse(menuUrl) }.getOrNull() ?: return assetPath
+    val scheme = uri.scheme?.takeIf { it.isNotBlank() } ?: return assetPath
+    val authority = uri.encodedAuthority?.takeIf { it.isNotBlank() } ?: return assetPath
+    return scheme + "://" + authority + "/" + assetPath.trimStart('/')
 }
 
 private object KioskGuestImageCache {
