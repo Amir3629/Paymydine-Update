@@ -652,14 +652,31 @@ private fun KioskWelcomeScreen(
                 Spacer(Modifier.height(20.dp))
             }
 
-            KioskRemoteImage(
-                url = profile.restaurantLogoUrl,
-                contentDescription = profile.restaurantName,
-                modifier = Modifier
-                    .size(82.dp)
-                    .clip(RoundedCornerShape(20.dp)),
-                background = surface,
-            )
+            if (profile.restaurantLogoUrl.isNotBlank()) {
+                KioskRemoteImage(
+                    url = profile.restaurantLogoUrl,
+                    contentDescription = profile.restaurantName,
+                    modifier = Modifier
+                        .size(82.dp)
+                        .clip(RoundedCornerShape(20.dp)),
+                    background = surface,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(82.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(surface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        profile.restaurantName.take(1).uppercase(),
+                        color = accent,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+            }
             Text(
                 profile.restaurantName,
                 modifier = Modifier.padding(top = 12.dp),
