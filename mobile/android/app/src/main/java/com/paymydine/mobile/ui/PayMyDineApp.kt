@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -950,9 +951,11 @@ private fun UnifiedFirstRun(
                 style = MaterialTheme.typography.labelLarge,
             )
 
+            // PMD_ANDROID_FIRST_RUN_ACCESS_V17
+            // Owner and Manager are intentionally not offered as device-mode
+            // shortcuts. Their privileged/admin access remains available from
+            // the canonical web/admin authentication flow.
             listOf(
-                "owner" to "Owner",
-                "manager" to "Manager",
                 "cashier" to "Cashier",
                 "waiter" to "Waiter",
                 "kitchen" to "Kitchen / KDS",
@@ -997,13 +1000,22 @@ private fun UnifiedFirstRun(
                 Text("Table display")
             }
 
-            OutlinedButton(
+            Button(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp),
+                    .padding(top = 30.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PmdDeepGreen,
+                    contentColor = Color.White,
+                ),
+                shape = RoundedCornerShape(18.dp),
                 onClick = { step = 1 },
             ) {
-                Text("Change restaurant")
+                Text(
+                    "Change restaurant",
+                    modifier = Modifier.padding(vertical = 5.dp),
+                    fontWeight = FontWeight.Black,
+                )
             }
         }
 
