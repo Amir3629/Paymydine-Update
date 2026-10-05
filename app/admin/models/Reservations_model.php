@@ -379,6 +379,7 @@ class Reservations_model extends Model
             'general celebration',
             'hen party',
             'stag party',
+            'business',
         ];
     }
 
