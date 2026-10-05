@@ -347,17 +347,38 @@ final class PmdDevicePlatformService
         ?int $terminalDeviceId,
         ?int $staffId
     ): array {
+        return $this->assignDeviceTerminal(
+            $locationId,
+            $deviceId,
+            $terminalDeviceId,
+            $staffId
+        );
+    }
+
+    /**
+     * PMD_DEVICE_TERMINAL_BINDING_V18
+     *
+     * Payment terminals belong to the physical Android device, not only Table
+     * Companion. Kiosk and staff-personal devices therefore share the same
+     * binding model while keeping provider credentials server-side.
+     */
+    public function assignDeviceTerminal(
+        int $locationId,
+        int $deviceId,
+        ?int $terminalDeviceId,
+        ?int $staffId
+    ): array {
         $this->ensureStorage();
 
         $device = DB::table('pmd_site_access_devices')
             ->where('id', $deviceId)
             ->where('location_id', $locationId)
-            ->where('device_kind', 'table_display')
+            ->whereIn('device_kind', ['table_display', 'kiosk', 'staff_personal'])
             ->whereNull('revoked_at')
             ->first();
 
         if (!$device) {
-            abort(404, 'Table Companion device was not found.');
+            abort(404, 'PayMyDine Android device was not found.');
         }
 
         $terminal = null;
@@ -391,7 +412,7 @@ final class PmdDevicePlatformService
             if (!in_array($provider, ['sumup', 'worldline', 'square', 'vr_payment'], true)) {
                 abort(
                     422,
-                    'This terminal provider cannot be used for Table Companion contactless payment.'
+                    'This terminal provider cannot be used for PayMyDine device payment.'
                 );
             }
         }
@@ -604,9 +625,10 @@ final class PmdDevicePlatformService
                 'table_id' => $kind === 'table_display'
                     ? (int)($platform['table_id'] ?? 0)
                     : 0,
-                'payment_terminal_device_id' => $kind === 'table_display'
-                    ? (int)($platform['payment_terminal_device_id'] ?? 0)
-                    : 0,
+                'payment_terminal_device_id' => (int)($platform['payment_terminal_device_id'] ?? 0),
+                'payment_terminal_provider' => strtolower(
+                    trim((string)($platform['payment_terminal_provider'] ?? ''))
+                ),
                 'assignment' => $assignment,
                 'online' => $online,
                 'screen_state' => (string)($live->screen_state ?? 'unknown'),
