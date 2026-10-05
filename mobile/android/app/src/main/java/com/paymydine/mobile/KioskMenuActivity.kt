@@ -51,6 +51,7 @@ private fun buildKioskTargetUrl(
     accent: String,
     surface: String,
     heroImage: String,
+    locale: String,
 ): String {
     val base = menuUrl.trimEnd('/')
     return base +
@@ -64,7 +65,8 @@ private fun buildKioskTargetUrl(
         "&kiosk_muted=" + Uri.encode(muted) +
         "&kiosk_accent=" + Uri.encode(accent) +
         "&kiosk_surface=" + Uri.encode(surface) +
-        "&kiosk_hero=" + Uri.encode(heroImage)
+        "&kiosk_hero=" + Uri.encode(heroImage) +
+        "&lang=" + Uri.encode(locale)
 }
 
 internal data class KioskWarmMenuEntry(
@@ -89,13 +91,16 @@ internal object KioskMenuWarmPool {
     private fun key(
         menuUrl: String,
         serviceMode: String,
-    ): String = menuUrl.trimEnd('/').lowercase() + "|" + serviceMode
+        locale: String,
+    ): String =
+        menuUrl.trimEnd('/').lowercase() + "|" + serviceMode + "|" + locale.lowercase()
 
     fun prewarm(
         context: Context,
         profile: KioskProfile,
         serviceMode: String,
         heroImage: String,
+        locale: String,
     ) {
         prewarmRaw(
             context = context,
@@ -109,6 +114,7 @@ internal object KioskMenuWarmPool {
             accent = profile.theme.accent,
             surface = profile.theme.surface,
             heroImage = heroImage,
+            locale = locale,
         )
     }
 
@@ -125,6 +131,7 @@ internal object KioskMenuWarmPool {
         accent: String,
         surface: String,
         heroImage: String,
+        locale: String,
     ) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             mainHandler.post {
@@ -140,13 +147,14 @@ internal object KioskMenuWarmPool {
                     accent = accent,
                     surface = surface,
                     heroImage = heroImage,
+                    locale = locale,
                 )
             }
             return
         }
 
         val normalizedMode = if (serviceMode == "pickup") "pickup" else "eat_in"
-        val entryKey = key(menuUrl, normalizedMode)
+        val entryKey = key(menuUrl, normalizedMode, locale)
         val now = System.currentTimeMillis()
         entries[entryKey]?.let { current ->
             // Do not restart a page that is already warming just because the
@@ -184,6 +192,7 @@ internal object KioskMenuWarmPool {
                 accent = accent,
                 surface = surface,
                 heroImage = heroImage,
+                locale = locale,
             )
 
         val surfaceColor =
@@ -333,9 +342,14 @@ internal object KioskMenuWarmPool {
     fun isReady(
         menuUrl: String,
         serviceMode: String,
+        locale: String,
     ): Boolean {
         if (Looper.myLooper() != Looper.getMainLooper()) return false
-        val entryKey = key(menuUrl, if (serviceMode == "pickup") "pickup" else "eat_in")
+        val entryKey = key(
+            menuUrl,
+            if (serviceMode == "pickup") "pickup" else "eat_in",
+            locale,
+        )
         val entry = entries[entryKey] ?: return false
         val age = System.currentTimeMillis() - entry.createdAtMs
         return entry.ready && age in 0..MAX_AGE_MS
@@ -345,9 +359,14 @@ internal object KioskMenuWarmPool {
         context: Context,
         menuUrl: String,
         serviceMode: String,
+        locale: String,
     ): KioskWarmMenuEntry? {
         if (Looper.myLooper() != Looper.getMainLooper()) return null
-        val entryKey = key(menuUrl, if (serviceMode == "pickup") "pickup" else "eat_in")
+        val entryKey = key(
+            menuUrl,
+            if (serviceMode == "pickup") "pickup" else "eat_in",
+            locale,
+        )
         val entry = entries.remove(entryKey) ?: return null
         val age = System.currentTimeMillis() - entry.createdAtMs
         if (!entry.ready || age !in 0..MAX_AGE_MS) {
@@ -417,6 +436,13 @@ class KioskMenuActivity : ComponentActivity() {
     private val heroImage: String by lazy {
         intent.getStringExtra(EXTRA_HERO_IMAGE).orEmpty()
     }
+    private val locale: String by lazy {
+        intent.getStringExtra(EXTRA_LOCALE)
+            ?.trim()
+            ?.lowercase()
+            ?.takeIf { it.matches(Regex("^[a-z]{2,3}$")) }
+            ?: "de"
+    }
     private val surfaceColor: Int by lazy {
         parseColor(intent.getStringExtra(EXTRA_SURFACE), Color.rgb(244, 246, 248))
     }
@@ -455,6 +481,7 @@ class KioskMenuActivity : ComponentActivity() {
                 context = this,
                 menuUrl = menuUrl,
                 serviceMode = serviceMode,
+                locale = locale,
             )
         if (warm != null) {
             sessionNonce = warm.sessionNonce
@@ -535,7 +562,7 @@ class KioskMenuActivity : ComponentActivity() {
         }
 
         val mode = TextView(this).apply {
-            text = if (serviceMode == "pickup") "TAKE AWAY" else "EAT HERE"
+            text = if (serviceMode == "pickup") "TAKE AWAY" else "DINE IN"
             setTextColor(textColor)
             textSize = 12f
             gravity = Gravity.CENTER
@@ -1042,6 +1069,7 @@ class KioskMenuActivity : ComponentActivity() {
             accent = intent.getStringExtra(EXTRA_ACCENT).orEmpty(),
             surface = intent.getStringExtra(EXTRA_SURFACE).orEmpty(),
             heroImage = heroImage,
+            locale = locale,
         )
 
     private fun applyKioskRenderLayer(view: WebView) {
@@ -1124,6 +1152,7 @@ class KioskMenuActivity : ComponentActivity() {
                 accent = intent.getStringExtra(EXTRA_ACCENT).orEmpty(),
                 surface = intent.getStringExtra(EXTRA_SURFACE).orEmpty(),
                 heroImage = heroImage,
+                locale = locale,
             )
         }
     }
@@ -1189,12 +1218,14 @@ class KioskMenuActivity : ComponentActivity() {
         private const val EXTRA_ACCENT = "pmd.kiosk.accent"
         private const val EXTRA_SURFACE = "pmd.kiosk.surface"
         private const val EXTRA_IDLE_TIMEOUT_SECONDS = "pmd.kiosk.idle_timeout_seconds"
+        private const val EXTRA_LOCALE = "pmd.kiosk.locale"
 
         fun intent(
             context: Context,
             profile: KioskProfile,
             serviceMode: String,
             heroImage: String = "",
+            locale: String = "de",
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -1203,6 +1234,7 @@ class KioskMenuActivity : ComponentActivity() {
                 putExtra(EXTRA_RESTAURANT_NAME, profile.restaurantName)
                 putExtra(EXTRA_RESTAURANT_LOGO, profile.restaurantLogoUrl)
                 putExtra(EXTRA_HERO_IMAGE, heroImage)
+                putExtra(EXTRA_LOCALE, locale)
                 putExtra(EXTRA_BACKGROUND, profile.theme.background)
                 putExtra(EXTRA_TEXT, profile.theme.text)
                 putExtra(EXTRA_MUTED, profile.theme.muted)
