@@ -31,6 +31,15 @@ class PmdPublicBookingController extends Controller
         $timezone = $this->timezone();
         $languageContext = $this->languageContext($location);
         $locale = $this->locale($request, $languageContext);
+        $today = Carbon::now($timezone)->startOfDay();
+        $maxGuests = $this->maxBookableGuests($location);
+        $defaultGuests = min(2, $maxGuests);
+        $availabilitySeed = $this->dateStatusPayload(
+            $location,
+            $today,
+            self::MAX_DATE_STATUS_DAYS,
+            $defaultGuests
+        );
 
         // PMD_PUBLIC_BOOKING_DIRECT_VIEW_FILE_R2
         // TastyIgniter's runtime view finder does not include Laravel's
@@ -47,10 +56,11 @@ class PmdPublicBookingController extends Controller
                 'bookingDirection' => $this->localeDirection($locale),
                 'bookingLanguages' => $languageContext['eligible'],
                 'bookingTimezone' => $timezone,
-                'bookingToday' => Carbon::now($timezone)->toDateString(),
-                'bookingMaxDate' => Carbon::now($timezone)->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
-                'bookingMaxGuests' => $this->maxBookableGuests($location),
+                'bookingToday' => $today->toDateString(),
+                'bookingMaxDate' => $today->copy()->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
+                'bookingMaxGuests' => $maxGuests,
                 'bookingStayMinutes' => $this->stayMinutes($location),
+                'bookingAvailabilitySeed' => $availabilitySeed,
             ]
         )->render();
 
@@ -105,19 +115,37 @@ class PmdPublicBookingController extends Controller
 
         $days = min(self::MAX_DATE_STATUS_DAYS, max(1, (int)($data['days'] ?? self::MAX_DATE_STATUS_DAYS)));
         $guests = (int)$data['guests'];
+        $payload = $this->dateStatusPayload($location, $start, $days, $guests);
+
+        return response()->json([
+            'success' => true,
+            'start' => $start->toDateString(),
+            'guest_num' => $guests,
+            'dates' => $payload,
+        ]);
+    }
+
+    private function dateStatusPayload(
+        Locations_model $location,
+        Carbon $start,
+        int $days,
+        int $guests
+    ): array {
+        $days = min(self::MAX_DATE_STATUS_DAYS, max(1, $days));
+        $timezone = $this->timezone();
         $latest = Carbon::now($timezone)->startOfDay()->addDays(self::MAX_BOOKING_DAYS);
         $lastDate = $start->copy()->addDays($days - 1);
+
         if ($lastDate->greaterThan($latest)) {
             $lastDate = $latest->copy();
         }
 
         /*
-         * PMD_PUBLIC_BOOKING_INSTANT_TIMES_R4
+         * PMD_PUBLIC_BOOKING_ZERO_WAIT_R5
          *
-         * The date strip is a prefetch surface, not only a status surface.
-         * Calculate the visible/next dates from one opening-hours read and one
-         * reservation query, then return the actual slots with each date. The
-         * browser can switch dates immediately and revalidate silently.
+         * Build all near-term date statuses and time slots in one batch so the
+         * first HTML response can seed the browser cache. Date switching then
+         * does not depend on a network round trip.
          */
         $openingHours = $this->openingHours($location);
         $duration = $this->stayMinutes($location);
@@ -182,12 +210,7 @@ class PmdPublicBookingController extends Controller
             ];
         }
 
-        return response()->json([
-            'success' => true,
-            'start' => $start->toDateString(),
-            'guest_num' => $guests,
-            'dates' => $dates,
-        ]);
+        return $dates;
     }
 
     public function store(Request $request): JsonResponse
