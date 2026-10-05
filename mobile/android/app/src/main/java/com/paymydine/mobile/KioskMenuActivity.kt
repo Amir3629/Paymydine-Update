@@ -329,6 +329,17 @@ internal object KioskMenuWarmPool {
         view.loadUrl(target)
     }
 
+    fun isReady(
+        menuUrl: String,
+        serviceMode: String,
+    ): Boolean {
+        if (Looper.myLooper() != Looper.getMainLooper()) return false
+        val entryKey = key(menuUrl, if (serviceMode == "pickup") "pickup" else "eat_in")
+        val entry = entries[entryKey] ?: return false
+        val age = System.currentTimeMillis() - entry.createdAtMs
+        return entry.ready && age in 0..MAX_AGE_MS
+    }
+
     fun acquire(
         context: Context,
         menuUrl: String,
