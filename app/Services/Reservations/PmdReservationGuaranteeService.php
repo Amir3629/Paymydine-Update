@@ -8,6 +8,7 @@ use Admin\Models\Reservations_model;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use Stripe\StripeClient;
@@ -359,6 +360,131 @@ final class PmdReservationGuaranteeService
             'charged_at' => $row->charged_at,
             'released_at' => $row->released_at,
         ];
+    }
+
+    public function sendGuaranteeConfirmation(
+        Reservations_model $reservation
+    ): bool {
+        $row = $this->guaranteeForReservation((int)$reservation->getKey());
+        if (!$row) {
+            return false;
+        }
+
+        $email = strtolower(trim((string)$reservation->email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Log::warning('PMD reservation guarantee confirmation email skipped', [
+                'reservation_id' => (int)$reservation->getKey(),
+                'reason' => 'invalid_customer_email',
+            ]);
+
+            return false;
+        }
+
+        try {
+            $reservation->loadMissing('location');
+            $locale = $this->locale((string)($row->locale ?? 'de'));
+            $currency = strtoupper((string)($row->currency ?? 'EUR'));
+            $customerName = trim(
+                (string)$reservation->first_name.' '.(string)$reservation->last_name
+            );
+            $restaurantName = $reservation->location
+                ? trim((string)$reservation->location->location_name)
+                : '';
+            $restaurantEmail = $reservation->location
+                ? strtolower(trim((string)$reservation->location->location_email))
+                : '';
+
+            $reserveDate = $reservation->reserve_date instanceof \DateTimeInterface
+                ? $reservation->reserve_date->format('Y-m-d')
+                : substr((string)$reservation->reserve_date, 0, 10);
+            $reserveTime = $reservation->reserve_time instanceof \DateTimeInterface
+                ? $reservation->reserve_time->format('H:i')
+                : substr((string)$reservation->reserve_time, 0, 5);
+
+            $deadline = '';
+            if (!empty($row->cancellation_deadline_at)) {
+                $deadlineCarbon = Carbon::parse(
+                    (string)$row->cancellation_deadline_at,
+                    'UTC'
+                )->setTimezone('Europe/Berlin');
+
+                $deadline = $locale === 'de'
+                    ? $deadlineCarbon->format('d.m.Y H:i')
+                    : $deadlineCarbon->format('Y-m-d H:i');
+            }
+
+            $reference = 'R'.str_pad(
+                (string)$reservation->getKey(),
+                6,
+                '0',
+                STR_PAD_LEFT
+            );
+            $manageUrl = url('/book')
+                .'?manage='.rawurlencode((string)$reservation->hash)
+                .'&lang='.rawurlencode($locale);
+
+            $subjects = [
+                'de' => 'Kartengarantie für Ihre Reservierung '.$reference,
+                'tr' => 'Rezervasyon kart garantisi '.$reference,
+                'ar' => 'تأكيد ضمان البطاقة للحجز '.$reference,
+                'en' => 'Card guarantee for reservation '.$reference,
+            ];
+
+            $vars = [
+                'locale' => $locale,
+                'email_subject' => $subjects[$locale] ?? $subjects['en'],
+                'reference' => $reference,
+                'customer_name' => $customerName,
+                'restaurant_name' => $restaurantName,
+                'reservation_date' => $reserveDate,
+                'reservation_time' => $reserveTime,
+                'reservation_guests' => (int)$reservation->guest_num,
+                'guarantee_amount' => $this->money(
+                    (int)$row->amount_cents,
+                    $currency,
+                    $locale
+                ),
+                'guarantee_per_guest_amount' => $this->money(
+                    (int)$row->amount_per_guest_cents,
+                    $currency,
+                    $locale
+                ),
+                'guarantee_terms' => (string)($row->terms_text ?? ''),
+                'guarantee_consent' => (string)($row->consent_text ?? ''),
+                'guarantee_terms_version' => (string)($row->terms_version ?? ''),
+                'free_cancellation_deadline' => $deadline,
+                'manage_url' => $manageUrl,
+            ];
+
+            Mail::queue(
+                'admin::_mail.reservation_guarantee_confirmation',
+                $vars,
+                function ($message) use (
+                    $email,
+                    $customerName,
+                    $restaurantEmail,
+                    $restaurantName
+                ) {
+                    $message->to($email, $customerName);
+
+                    if (filter_var($restaurantEmail, FILTER_VALIDATE_EMAIL)) {
+                        $message->replyTo(
+                            $restaurantEmail,
+                            $restaurantName
+                        );
+                    }
+                }
+            );
+
+            return true;
+        } catch (Throwable $error) {
+            Log::warning('PMD reservation guarantee confirmation email failed', [
+                'reservation_id' => (int)$reservation->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     public function canGuestCancel(Reservations_model $reservation): ?bool
