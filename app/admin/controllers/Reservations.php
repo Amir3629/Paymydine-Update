@@ -263,6 +263,23 @@ class Reservations extends PmdCleanWorkspaceControllerV1
             $requestedAmountCents
         );
 
+        if (!empty($result['already_charged'])) {
+            $amount = number_format(
+                ((int)($result['amount_cents'] ?? 0)) / 100,
+                2,
+                '.',
+                ''
+            );
+            $currency = strtoupper((string)($result['currency'] ?? 'EUR'));
+
+            return [
+                'success' => true,
+                'message' => 'No-show compensation was already charged: '
+                    .$amount.' '.$currency.'.',
+                'guarantee' => $service->adminPayloadForReservation($reservationId),
+            ];
+        }
+
         if (!empty($result['success'])) {
             $amount = number_format(
                 ((int)($result['amount_cents'] ?? 0)) / 100,
