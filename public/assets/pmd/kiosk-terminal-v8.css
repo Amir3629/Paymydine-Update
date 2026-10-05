@@ -1570,7 +1570,7 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
   }
 
   .pmd-kiosk-topbar::after {
-    inset-left: 36%;
+    inset: 0 0 0 36%;
     opacity: .40;
   }
 
