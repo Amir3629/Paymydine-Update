@@ -1813,3 +1813,320 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
     height: calc(100% - 154px);
   }
 }
+
+
+/* PMD_KIOSK_STREAMLINED_TERMINAL_V18
+ * Continuous category browsing, larger guest typography, plus-only add action,
+ * animated Checkout CTA and full-screen card-present payment.
+ */
+.pmd-kiosk-grid.is-grouped {
+  display: block;
+}
+
+.pmd-kiosk-category-section {
+  scroll-margin-top: 18px;
+  margin: 0 0 32px;
+}
+
+.pmd-kiosk-category-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 0 0 14px;
+  padding: 2px 2px 10px;
+  border-bottom: 1px solid var(--pmd-k-line);
+}
+
+.pmd-kiosk-category-section__head h2 {
+  margin: 0;
+  color: var(--pmd-k-ink);
+  font-size: 25px;
+  line-height: 1.1;
+  letter-spacing: -.035em;
+}
+
+.pmd-kiosk-category-section__head span {
+  color: var(--pmd-k-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pmd-kiosk-category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pmd-kiosk-category-button {
+  font-size: 15px;
+}
+
+.pmd-kiosk-item__copy h2 {
+  font-size: 19px;
+}
+
+.pmd-kiosk-item__copy p {
+  font-size: 12.5px;
+}
+
+.pmd-kiosk-item__price {
+  font-size: 19px;
+}
+
+.pmd-kiosk-add {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  flex: 0 0 48px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.pmd-kiosk-compact-order {
+  position: fixed;
+  overflow: hidden;
+  isolation: isolate;
+  font-size: 14px;
+}
+
+.pmd-kiosk-compact-order::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: -30%;
+  bottom: -30%;
+  width: 42px;
+  left: -70px;
+  transform: skewX(-18deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,.18),
+    rgba(255,255,255,.9),
+    rgba(255,255,255,.18),
+    transparent
+  );
+  pointer-events: none;
+  animation: pmd-kiosk-checkout-sweep-v18 3s ease-in-out infinite;
+}
+
+@keyframes pmd-kiosk-checkout-sweep-v18 {
+  0%, 68% { left: -70px; opacity: 0; }
+  72% { opacity: 1; }
+  96% { left: calc(100% + 70px); opacity: 1; }
+  100% { left: calc(100% + 70px); opacity: 0; }
+}
+
+.pmd-kiosk-modal-layer.is-payment-screen {
+  display: block;
+  padding: 0;
+  background: var(--pmd-k-bg);
+}
+
+.pmd-kiosk-modal-layer.is-payment-screen .pmd-kiosk-modal-backdrop {
+  display: none;
+}
+
+.pmd-kiosk-modal.pmd-kiosk-modal--payment-screen {
+  width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--pmd-k-panel);
+}
+
+.pmd-kiosk-modal--payment-screen .pmd-kiosk-modal__head {
+  padding: 28px clamp(22px, 5vw, 54px) 22px;
+}
+
+.pmd-kiosk-modal--payment-screen .pmd-kiosk-modal__head p {
+  font-size: 12px;
+}
+
+.pmd-kiosk-modal--payment-screen .pmd-kiosk-modal__head h2 {
+  font-size: clamp(30px, 5vw, 46px);
+}
+
+.pmd-kiosk-modal--payment-screen .pmd-kiosk-modal__close {
+  width: 52px;
+  height: 52px;
+  font-size: 28px;
+}
+
+.pmd-kiosk-payment-screen__body {
+  width: min(860px, 100%);
+  margin: 0 auto;
+  padding: 28px clamp(22px, 5vw, 54px) 54px;
+}
+
+.pmd-kiosk-modal--payment-screen .pmd-kiosk-review-line {
+  min-height: 58px;
+  font-size: 16px;
+}
+
+.pmd-kiosk-modal--payment-screen .pmd-kiosk-checkout-totals {
+  font-size: 16px;
+}
+
+.pmd-kiosk-modal--payment-screen .pmd-kiosk-checkout-totals .is-total dt,
+.pmd-kiosk-modal--payment-screen .pmd-kiosk-checkout-totals .is-total dd {
+  font-size: 25px;
+}
+
+.pmd-kiosk-terminal-pay {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-top: 26px;
+  padding: 20px;
+  border: 1px solid var(--pmd-k-line-strong);
+  border-radius: 18px;
+  background: var(--pmd-k-panel-soft);
+}
+
+.pmd-kiosk-terminal-pay__copy strong,
+.pmd-kiosk-terminal-pay__copy span {
+  display: block;
+}
+
+.pmd-kiosk-terminal-pay__copy strong {
+  font-size: 22px;
+}
+
+.pmd-kiosk-terminal-pay__copy span {
+  margin-top: 5px;
+  color: var(--pmd-k-muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.pmd-kiosk-terminal-pay__button {
+  min-width: 170px;
+  min-height: 68px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--pmd-k-accent);
+  color: var(--pmd-k-accent-contrast);
+  font-size: 24px;
+  font-weight: 950;
+}
+
+.pmd-kiosk-terminal-pay__button:disabled {
+  opacity: .55;
+}
+
+.pmd-kiosk-payment-status {
+  font-size: 15px;
+}
+
+@media (max-width: 930px) {
+  .pmd-kiosk-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .pmd-kiosk-menu-head h1 {
+    font-size: 29px;
+  }
+
+  .pmd-kiosk-result-count {
+    font-size: 14px;
+  }
+
+  .pmd-kiosk-category-section__head h2 {
+    font-size: 23px;
+  }
+}
+
+@media (max-width: 680px) {
+  .pmd-kiosk-category-button {
+    min-height: 48px;
+    padding: 9px 14px;
+    font-size: 15px;
+  }
+
+  .pmd-kiosk-category-section {
+    margin-bottom: 30px;
+  }
+
+  .pmd-kiosk-category-section__head h2 {
+    font-size: 22px;
+  }
+
+  .pmd-kiosk-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .pmd-kiosk-item__body {
+    padding: 12px;
+  }
+
+  .pmd-kiosk-item__copy {
+    min-height: 68px;
+  }
+
+  .pmd-kiosk-item__copy h2 {
+    font-size: 18px;
+  }
+
+  .pmd-kiosk-item__copy p {
+    font-size: 12px;
+  }
+
+  .pmd-kiosk-item__foot {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .pmd-kiosk-item__price {
+    font-size: 19px;
+  }
+
+  .pmd-kiosk-add {
+    width: 48px;
+    min-width: 48px;
+    max-width: 48px;
+    min-height: 48px;
+    padding: 0;
+  }
+
+  .pmd-kiosk-compact-order {
+    min-height: 72px;
+    font-size: 14px;
+  }
+
+  .pmd-kiosk-modal-layer.is-payment-screen {
+    align-items: stretch;
+  }
+
+  .pmd-kiosk-modal.pmd-kiosk-modal--payment-screen {
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .pmd-kiosk-terminal-pay {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-kiosk-terminal-pay__button {
+    width: 100%;
+    min-height: 72px;
+    font-size: 25px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-kiosk-compact-order::after {
+    animation: none;
+    display: none;
+  }
+}
