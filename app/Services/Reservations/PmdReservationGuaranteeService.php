@@ -20,6 +20,13 @@ final class PmdReservationGuaranteeService
         $base = $this->baseSettings();
         $stripe = $this->stripeCredentials(true);
 
+        $samplePolicy = $this->policy(
+            $location,
+            $base['min_guests'],
+            null,
+            $locale
+        );
+
         return [
             'enabled' => $base['enabled'],
             'minGuests' => $base['min_guests'],
@@ -31,6 +38,9 @@ final class PmdReservationGuaranteeService
             'provider' => 'stripe',
             'providerReady' => (bool)($stripe['ready'] ?? false),
             'locale' => $this->locale($locale),
+            'termsText' => (string)$samplePolicy['terms_text'],
+            'consentText' => (string)$samplePolicy['consent_text'],
+            'buttonText' => (string)$samplePolicy['button_text'],
         ];
     }
 
@@ -691,23 +701,22 @@ final class PmdReservationGuaranteeService
     {
         $locale = $this->locale((string)$policy['locale']);
         $perGuest = $this->money((int)$policy['amount_per_guest_cents'], (string)$policy['currency'], $locale);
-        $total = $this->money((int)$policy['amount_cents'], (string)$policy['currency'], $locale);
         $hours = (int)$policy['free_cancel_hours'];
         $grace = (int)$policy['grace_minutes'];
 
         if ($locale === 'de') {
-            return "Kartengarantie: Jetzt wird nichts belastet. Bei Nichterscheinen kann nach {$grace} Minuten Kulanzzeit eine Ausfallentschädigung von bis zu {$perGuest} pro Person (maximal {$total}) über die bestätigte Karte belastet werden. Bis {$hours} Stunden vor dem Reservierungszeitpunkt kann kostenlos storniert werden. Ihnen bleibt ausdrücklich der Nachweis gestattet, dass kein oder ein wesentlich geringerer Schaden entstanden ist.";
+            return "Kartengarantie: Jetzt wird nichts belastet. Bei Nichterscheinen kann nach {$grace} Minuten Kulanzzeit eine Ausfallentschädigung von bis zu {$perGuest} pro Person über die bestätigte Karte belastet werden. Bis {$hours} Stunden vor dem Reservierungszeitpunkt kann kostenlos storniert werden. Ihnen bleibt ausdrücklich der Nachweis gestattet, dass kein oder ein wesentlich geringerer Schaden entstanden ist.";
         }
 
         if ($locale === 'tr') {
-            return "Kart garantisi: Şimdi herhangi bir ücret alınmaz. Rezervasyona gelinmemesi halinde {$grace} dakikalık bekleme süresinden sonra kişi başı en fazla {$perGuest} (toplam en fazla {$total}) zarar tazminatı onaylanan karttan tahsil edilebilir. Rezervasyondan {$hours} saat öncesine kadar ücretsiz iptal mümkündür. Hiç zarar oluşmadığını veya zararın önemli ölçüde daha düşük olduğunu kanıtlama hakkınız saklıdır.";
+            return "Kart garantisi: Şimdi herhangi bir ücret alınmaz. Rezervasyona gelinmemesi halinde {$grace} dakikalık bekleme süresinden sonra kişi başı en fazla {$perGuest} zarar tazminatı onaylanan karttan tahsil edilebilir. Rezervasyondan {$hours} saat öncesine kadar ücretsiz iptal mümkündür. Hiç zarar oluşmadığını veya zararın önemli ölçüde daha düşük olduğunu kanıtlama hakkınız saklıdır.";
         }
 
         if ($locale === 'ar') {
-            return "ضمان البطاقة: لن يتم خصم أي مبلغ الآن. في حال عدم الحضور، وبعد مهلة قدرها {$grace} دقيقة، يمكن تحصيل تعويض عن الضرر يصل إلى {$perGuest} لكل شخص (بحد أقصى {$total}) من البطاقة المؤكدة. يمكن الإلغاء مجاناً حتى {$hours} ساعة قبل موعد الحجز. ويظل من حقك إثبات عدم وقوع ضرر أو أن الضرر الفعلي أقل بكثير.";
+            return "ضمان البطاقة: لن يتم خصم أي مبلغ الآن. في حال عدم الحضور، وبعد مهلة قدرها {$grace} دقيقة، يمكن تحصيل تعويض عن الضرر يصل إلى {$perGuest} لكل شخص من البطاقة المؤكدة. يمكن الإلغاء مجاناً حتى {$hours} ساعة قبل موعد الحجز. ويظل من حقك إثبات عدم وقوع ضرر أو أن الضرر الفعلي أقل بكثير.";
         }
 
-        return "Card guarantee: Nothing is charged now. If you do not show up, after a {$grace}-minute grace period the restaurant may charge liquidated damages of up to {$perGuest} per guest (maximum {$total}) to the verified card. You can cancel free of charge until {$hours} hours before the reservation. You may expressly prove that no loss, or a substantially lower loss, occurred.";
+        return "Card guarantee: Nothing is charged now. If you do not show up, after a {$grace}-minute grace period the restaurant may charge liquidated damages of up to {$perGuest} per guest to the verified card. You can cancel free of charge until {$hours} hours before the reservation. You may expressly prove that no loss, or a substantially lower loss, occurred.";
     }
 
     private function consentText(array $policy): string
