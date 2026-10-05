@@ -53,6 +53,37 @@
   var availabilityAbort = null;
   var dateStatusAbort = null;
   var dateStatuses = {};
+  var availabilityCache = Object.create(null);
+
+  function availabilityKey(date, guests) {
+    return String(guests) + "|" + String(date);
+  }
+
+  function cacheAvailability(date, guests, payload) {
+    if (!date || !payload) return;
+    availabilityCache[availabilityKey(date, guests)] = {
+      opening: payload.opening || {},
+      duration: Number(payload.duration || config.stayMinutes || 90),
+      interval: Number(payload.interval || 30),
+      slots: Array.isArray(payload.slots) ? payload.slots : []
+    };
+  }
+
+  function cachedAvailability(date, guests) {
+    return availabilityCache[availabilityKey(date, guests)] || null;
+  }
+
+  function dateWindowIsCached(startValue, guests, count) {
+    var start = dateFromIso(startValue);
+    for (var index = 0; index < count; index += 1) {
+      var date = new Date(start);
+      date.setDate(start.getDate() + index);
+      var value = isoDate(date);
+      if (value > String(config.maxDate)) break;
+      if (!cachedAvailability(value, guests)) return false;
+    }
+    return true;
+  }
 
   function pad(value) {
     return String(value).padStart(2, "0");
@@ -162,16 +193,23 @@
     }
   }
 
-  function loadDateStatuses() {
+  function loadDateStatuses(force) {
     if (!config.dateStatusesUrl || !state.dateWindowStart || !state.guests) return;
+
+    if (!force && dateWindowIsCached(state.dateWindowStart, state.guests, 7)) {
+      renderDateStrip();
+      return;
+    }
 
     if (dateStatusAbort) dateStatusAbort.abort();
     dateStatusAbort = typeof AbortController !== "undefined" ? new AbortController() : null;
 
+    var requestStart = state.dateWindowStart;
+    var requestGuests = state.guests;
     var url = new URL(config.dateStatusesUrl, window.location.origin);
-    url.searchParams.set("start", state.dateWindowStart);
-    url.searchParams.set("days", "7");
-    url.searchParams.set("guests", String(state.guests));
+    url.searchParams.set("start", requestStart);
+    url.searchParams.set("days", "14");
+    url.searchParams.set("guests", String(requestGuests));
 
     fetch(url.toString(), {
       method: "GET",
@@ -184,9 +222,23 @@
     }).then(function (payload) {
       var rows = Array.isArray(payload.dates) ? payload.dates : [];
       rows.forEach(function (row) {
-        if (row && row.date) dateStatuses[row.date] = row.status || "available";
+        if (!row || !row.date) return;
+
+        dateStatuses[row.date] = row.status || "available";
+        cacheAvailability(row.date, requestGuests, {
+          opening: row.opening || {},
+          duration: row.duration,
+          interval: row.interval,
+          slots: row.slots
+        });
       });
+
       renderDateStrip();
+
+      var instant = cachedAvailability(state.date, state.guests);
+      if (state.loading && instant) {
+        renderTimes(instant);
+      }
     }).catch(function (error) {
       if (error && error.name === "AbortError") return;
     });
@@ -290,6 +342,11 @@
     state.duration = Number(payload.duration || config.stayMinutes || 90);
     var slots = Array.isArray(payload.slots) ? payload.slots : [];
     state.slots = slots;
+
+    if (state.time && !slots.some(function (slot) { return slot.value === state.time; })) {
+      state.time = "";
+    }
+
     var openingData = payload.opening || {};
 
     if (opening) {
@@ -335,17 +392,22 @@
     return output;
   }
 
-  function loadAvailability() {
+  function loadAvailability(options) {
     if (!state.date || !state.guests) return;
+
+    options = options || {};
+    var silent = Boolean(options.silent);
+    var requestDate = state.date;
+    var requestGuests = state.guests;
 
     if (availabilityAbort) availabilityAbort.abort();
     availabilityAbort = typeof AbortController !== "undefined" ? new AbortController() : null;
 
-    loadingState();
+    if (!silent) loadingState();
 
     var url = new URL(config.availabilityUrl, window.location.origin);
-    url.searchParams.set("date", state.date);
-    url.searchParams.set("guests", String(state.guests));
+    url.searchParams.set("date", requestDate);
+    url.searchParams.set("guests", String(requestGuests));
 
     fetch(url.toString(), {
       method: "GET",
@@ -361,9 +423,15 @@
         return payload;
       });
     }).then(function (payload) {
-      renderTimes(payload);
+      cacheAvailability(requestDate, requestGuests, payload);
+
+      if (state.date === requestDate && state.guests === requestGuests) {
+        renderTimes(payload);
+      }
     }).catch(function (error) {
       if (error && error.name === "AbortError") return;
+      if (silent || state.date !== requestDate || state.guests !== requestGuests) return;
+
       state.loading = false;
       emptyState(error && error.message ? error.message : (labels.no_times || "No times available."), false);
       renderSummary();
@@ -387,7 +455,14 @@
 
     renderDateStrip();
     renderSummary();
-    loadAvailability();
+
+    var instant = cachedAvailability(value, state.guests);
+    if (instant) {
+      renderTimes(instant);
+      loadAvailability({ silent: true });
+    } else {
+      loadAvailability();
+    }
   }
 
   function selectTime(value, button) {
@@ -410,6 +485,7 @@
     state.time = "";
     state.period = "";
     dateStatuses = {};
+    availabilityCache = Object.create(null);
     renderSummary();
     renderDateStrip();
     loadDateStatuses();
@@ -576,6 +652,7 @@
     state.slots = [];
     state.duration = Number(config.stayMinutes || 90);
     dateStatuses = {};
+    availabilityCache = Object.create(null);
     state.loading = false;
     setErrors([]);
     if (workspace) workspace.hidden = false;
@@ -624,6 +701,7 @@
     state.time = "";
     state.period = "";
     dateStatuses = {};
+    availabilityCache = Object.create(null);
     renderSummary();
     renderDateStrip();
     loadDateStatuses();
