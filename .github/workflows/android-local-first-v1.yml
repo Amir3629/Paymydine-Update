@@ -146,6 +146,7 @@ jobs:
           ! grep -Fq 'Order and enjoy it here' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           ! grep -Fq 'Order for collection' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V17' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          grep -Fq 'terminalPaymentStatus' mobile/android/app/src/main/java/com/paymydine/mobile/kiosk/KioskApiClient.kt
           grep -Fq 'terminalPayment' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'PMD_ANDROID_RECEIPT_PRINTER_V17' mobile/android/app/src/main/java/com/paymydine/mobile/hardware/ReceiptPrinterManager.kt
           grep -Fq 'PMD_ANDROID_HARDWARE_SETUP_V17' mobile/android/app/src/main/java/com/paymydine/mobile/HardwareSetupActivity.kt
