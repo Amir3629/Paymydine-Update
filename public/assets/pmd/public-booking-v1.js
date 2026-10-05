@@ -16,6 +16,8 @@
   var workspace = document.querySelector(".pmd-booking-workspace");
   var dateInput = document.getElementById("pmd-booking-date");
   var dateStrip = document.getElementById("pmd-booking-date-strip");
+  var datePrev = document.querySelector("[data-pmd-date-prev]");
+  var dateNext = document.querySelector("[data-pmd-date-next]");
   var guestInput = document.getElementById("pmd-booking-guests");
   var partyCopy = document.getElementById("pmd-booking-party-copy");
   var timeInput = document.getElementById("pmd-booking-time");
@@ -37,16 +39,19 @@
 
   if (!form || !dateInput || !guestInput || !timeInput || !times || !submit) return;
 
-  var localeMap = { en: "en-GB", de: "de-DE", tr: "tr-TR" };
-  var locale = localeMap[config.locale] || "en-GB";
+  var locale = config.localeTag || config.locale || "en-GB";
   var state = {
     date: config.today,
+    dateWindowStart: config.today,
     guests: Math.min(2, Number(config.maxGuests || 2)),
     time: "",
     duration: Number(config.stayMinutes || 90),
+    period: "",
     loading: false
   };
   var availabilityAbort = null;
+  var dateStatusAbort = null;
+  var dateStatuses = {};
 
   function pad(value) {
     return String(value).padStart(2, "0");
@@ -107,32 +112,95 @@
     return node.innerHTML;
   }
 
+  function dateStatusLabel(status) {
+    if (status === "closed") return labels.closed_short || "Closed";
+    if (status === "full") return labels.full_short || "Fully booked";
+    return "";
+  }
+
   function renderDateStrip() {
     if (!dateStrip) return;
 
-    var selected = dateFromIso(state.date);
+    var start = dateFromIso(state.dateWindowStart || config.today);
     var html = [];
 
     for (var index = 0; index < 7; index += 1) {
-      var date = new Date(selected);
-      date.setDate(selected.getDate() + index);
+      var date = new Date(start);
+      date.setDate(start.getDate() + index);
       var value = isoDate(date);
       if (value > String(config.maxDate || value)) break;
 
       var weekday = new Intl.DateTimeFormat(locale, { weekday: "short" }).format(date);
       var month = new Intl.DateTimeFormat(locale, { month: "short" }).format(date);
       var active = value === state.date ? " is-active" : "";
+      var status = dateStatuses[value] || "";
+      var unavailable = status === "closed" || status === "full";
+      var statusClass = status ? " has-status is-" + status : "";
+      var statusLabel = dateStatusLabel(status);
 
       html.push(
-        '<button type="button" class="pmd-booking-date-option' + active + '" data-pmd-booking-date="' + value + '" role="listitem">' +
+        '<button type="button" class="pmd-booking-date-option' + active + statusClass + '" data-pmd-booking-date="' + value + '" role="listitem"' +
+          (unavailable ? ' aria-disabled="true"' : '') + '>' +
           "<span>" + escapeHtml(weekday) + "</span>" +
           "<strong>" + date.getDate() + "</strong>" +
           "<small>" + escapeHtml(month) + "</small>" +
+          (statusLabel ? '<em>' + escapeHtml(statusLabel) + '</em>' : '') +
         "</button>"
       );
     }
 
     dateStrip.innerHTML = html.join("");
+
+    if (datePrev) {
+      datePrev.disabled = String(state.dateWindowStart) <= String(config.today);
+    }
+    if (dateNext) {
+      var last = new Date(start);
+      last.setDate(start.getDate() + 7);
+      dateNext.disabled = isoDate(last) > String(config.maxDate);
+    }
+  }
+
+  function loadDateStatuses() {
+    if (!config.dateStatusesUrl || !state.dateWindowStart || !state.guests) return;
+
+    if (dateStatusAbort) dateStatusAbort.abort();
+    dateStatusAbort = typeof AbortController !== "undefined" ? new AbortController() : null;
+
+    var url = new URL(config.dateStatusesUrl, window.location.origin);
+    url.searchParams.set("start", state.dateWindowStart);
+    url.searchParams.set("days", "7");
+    url.searchParams.set("guests", String(state.guests));
+
+    fetch(url.toString(), {
+      method: "GET",
+      credentials: "same-origin",
+      headers: { "Accept": "application/json" },
+      signal: dateStatusAbort ? dateStatusAbort.signal : undefined
+    }).then(function (response) {
+      if (!response.ok) throw new Error("Date availability could not be loaded.");
+      return response.json();
+    }).then(function (payload) {
+      var rows = Array.isArray(payload.dates) ? payload.dates : [];
+      rows.forEach(function (row) {
+        if (row && row.date) dateStatuses[row.date] = row.status || "available";
+      });
+      renderDateStrip();
+    }).catch(function (error) {
+      if (error && error.name === "AbortError") return;
+    });
+  }
+
+  function moveDateWindow(days) {
+    var start = dateFromIso(state.dateWindowStart || config.today);
+    start.setDate(start.getDate() + days);
+    var next = isoDate(start);
+    if (next < String(config.today)) next = String(config.today);
+    if (next > String(config.maxDate)) return;
+    state.dateWindowStart = next;
+    renderDateStrip();
+    loadDateStatuses();
+    if (dateStrip && dateStrip.scrollTo) dateStrip.scrollTo({ left: 0, behavior: "smooth" });
   }
 
   function renderSummary() {
@@ -165,6 +233,57 @@
     times.innerHTML = '<div class="pmd-booking-empty">' + escapeHtml(message) + button + "</div>";
   }
 
+  function periodForTime(value) {
+    var hour = Number(String(value || "00:00").split(":")[0] || 0);
+    if (hour < 12) return "morning";
+    if (hour < 17) return "afternoon";
+    return "evening";
+  }
+
+  function renderTimeChoices(slots) {
+    var groups = { morning: [], afternoon: [], evening: [] };
+    slots.forEach(function (slot) {
+      groups[periodForTime(slot.value)].push(slot);
+    });
+
+    var availablePeriods = ["morning", "afternoon", "evening"].filter(function (period) {
+      return groups[period].length > 0;
+    });
+    if (!availablePeriods.length) return;
+
+    if (availablePeriods.indexOf(state.period) === -1) {
+      state.period = availablePeriods[0];
+    }
+
+    var periodLabels = {
+      morning: labels.morning || "Morning",
+      afternoon: labels.afternoon || "Afternoon",
+      evening: labels.evening || "Evening"
+    };
+
+    var tabs = availablePeriods.length > 1
+      ? '<div class="pmd-booking-time-periods" role="tablist">' +
+          availablePeriods.map(function (period) {
+            var active = period === state.period;
+            return '<button type="button" role="tab" class="' + (active ? "is-active" : "") +
+              '" data-pmd-time-period="' + period + '" aria-selected="' + (active ? "true" : "false") + '">' +
+              escapeHtml(periodLabels[period]) + '<span>' + groups[period].length + '</span></button>';
+          }).join("") +
+        '</div>'
+      : "";
+
+    var choices = groups[state.period].map(function (slot) {
+      var active = slot.value === state.time;
+      return '<button type="button" class="pmd-booking-time-option' + (active ? " is-active" : "") +
+        '" data-pmd-booking-time="' + escapeHtml(slot.value) + '" aria-pressed="' + (active ? "true" : "false") + '">' +
+        escapeHtml(slot.label || slot.value) + "</button>";
+    }).join("");
+
+    times.innerHTML = tabs +
+      '<div class="pmd-booking-time-strip" role="group" aria-label="' +
+      escapeHtml(periodLabels[state.period]) + '">' + choices + '</div>';
+  }
+
   function renderTimes(payload) {
     state.loading = false;
     state.duration = Number(payload.duration || config.stayMinutes || 90);
@@ -180,22 +299,24 @@
     }
 
     if (!openingData.enabled) {
+      dateStatuses[state.date] = "closed";
+      renderDateStrip();
       emptyState(labels.closed || "The restaurant is closed for online reservations on this date.", true);
       renderSummary();
       return;
     }
 
     if (!slots.length) {
+      dateStatuses[state.date] = "full";
+      renderDateStrip();
       emptyState(labels.no_times || "No online tables are available for this date.", true);
       renderSummary();
       return;
     }
 
-    times.innerHTML = slots.map(function (slot) {
-      return '<button type="button" class="pmd-booking-time-option" data-pmd-booking-time="' +
-        escapeHtml(slot.value) + '">' + escapeHtml(slot.label || slot.value) + "</button>";
-    }).join("");
-
+    dateStatuses[state.date] = "available";
+    renderDateStrip();
+    renderTimeChoices(slots);
     renderSummary();
   }
 
@@ -253,8 +374,10 @@
 
     state.date = value;
     state.time = "";
+    state.period = "";
     renderDateStrip();
     renderSummary();
+    loadDateStatuses();
     loadAvailability();
   }
 
@@ -276,15 +399,34 @@
     if (next === state.guests) return;
     state.guests = next;
     state.time = "";
+    state.period = "";
+    dateStatuses = {};
     renderSummary();
+    renderDateStrip();
+    loadDateStatuses();
     loadAvailability();
   }
 
   function nextDate() {
     var date = dateFromIso(state.date);
-    date.setDate(date.getDate() + 1);
-    var value = isoDate(date);
-    if (value <= String(config.maxDate)) selectDate(value);
+    for (var index = 0; index < 14; index += 1) {
+      date.setDate(date.getDate() + 1);
+      var value = isoDate(date);
+      if (value > String(config.maxDate)) return;
+      if (dateStatuses[value] !== "closed" && dateStatuses[value] !== "full") {
+        if (value >= state.dateWindowStart) {
+          var windowEnd = dateFromIso(state.dateWindowStart);
+          windowEnd.setDate(windowEnd.getDate() + 6);
+          if (value > isoDate(windowEnd)) {
+            state.dateWindowStart = value;
+            loadDateStatuses();
+          }
+        }
+        selectDate(value);
+        return;
+      }
+    }
+    moveDateWindow(7);
   }
 
   function formPayload() {
@@ -418,9 +560,12 @@
   function resetBooking() {
     form.reset();
     state.date = String(config.today);
+    state.dateWindowStart = String(config.today);
     state.guests = Math.min(2, Number(config.maxGuests || 2));
     state.time = "";
+    state.period = "";
     state.duration = Number(config.stayMinutes || 90);
+    dateStatuses = {};
     state.loading = false;
     setErrors([]);
     if (workspace) workspace.hidden = false;
@@ -433,11 +578,21 @@
 
   dateStrip.addEventListener("click", function (event) {
     var button = event.target.closest("[data-pmd-booking-date]");
-    if (!button) return;
+    if (!button || button.getAttribute("aria-disabled") === "true") return;
     selectDate(button.getAttribute("data-pmd-booking-date"));
   });
 
+  if (datePrev) datePrev.addEventListener("click", function () { moveDateWindow(-7); });
+  if (dateNext) dateNext.addEventListener("click", function () { moveDateWindow(7); });
+
   times.addEventListener("click", function (event) {
+    var periodButton = event.target.closest("[data-pmd-time-period]");
+    if (periodButton) {
+      state.period = periodButton.getAttribute("data-pmd-time-period") || "";
+      loadAvailability();
+      return;
+    }
+
     var timeButton = event.target.closest("[data-pmd-booking-time]");
     if (timeButton) {
       selectTime(timeButton.getAttribute("data-pmd-booking-time"), timeButton);
@@ -456,7 +611,11 @@
   guestInput.addEventListener("change", function () {
     state.guests = clampGuests(guestInput.value);
     state.time = "";
+    state.period = "";
+    dateStatuses = {};
     renderSummary();
+    renderDateStrip();
+    loadDateStatuses();
     loadAvailability();
   });
 
@@ -473,6 +632,7 @@
 
   renderDateStrip();
   renderSummary();
+  loadDateStatuses();
   loadAvailability();
 
   window.PMDPublicBookingV1 = {
