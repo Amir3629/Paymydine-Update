@@ -67,7 +67,7 @@ private fun buildKioskTargetUrl(
         "&kiosk_hero=" + Uri.encode(heroImage)
 }
 
-private data class KioskWarmMenuEntry(
+internal data class KioskWarmMenuEntry(
     val key: String,
     val sessionNonce: String,
     val targetUrl: String,
@@ -148,7 +148,10 @@ internal object KioskMenuWarmPool {
         val entryKey = key(menuUrl, normalizedMode)
         val now = System.currentTimeMillis()
         entries[entryKey]?.let { current ->
-            if (current.ready && now - current.createdAtMs in 0..MAX_AGE_MS) {
+            // Do not restart a page that is already warming just because the
+            // welcome hero image arrived a moment later. Keep any fresh warm
+            // navigation alive until it either becomes ready or expires.
+            if (now - current.createdAtMs in 0..MAX_AGE_MS) {
                 return
             }
             entries.remove(entryKey)
@@ -1171,7 +1174,6 @@ class KioskMenuActivity : ComponentActivity() {
             heroImage: String = "",
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
                 putExtra(EXTRA_MENU_URL, profile.menuUrl)
                 putExtra(EXTRA_SERVICE_MODE, serviceMode)
