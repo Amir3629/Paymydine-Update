@@ -368,9 +368,12 @@
                                     @if(!$canCancel) disabled aria-disabled="true" @endif
                                 >{{ $t['cancel'] }}</button>
                             </div>
-                            @if(!$canCancel)
-                                <p class="pmd-booking-manage-cancel-note" data-pmd-manage-i18n="cancel_unavailable">{{ $t['cancel_unavailable'] }}</p>
-                            @endif
+                            <p
+                                id="pmd-manage-cancel-note"
+                                class="pmd-booking-manage-cancel-note"
+                                data-pmd-manage-i18n="cancel_unavailable"
+                                @if($canCancel) hidden @endif
+                            >{{ $t['cancel_unavailable'] }}</p>
                         </form>
                     @else
                         <div class="pmd-booking-manage-locked">
