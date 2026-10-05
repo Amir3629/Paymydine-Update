@@ -42,6 +42,10 @@
             'email_restaurant' => 'Email restaurant',
             'status_canceled' => 'Canceled',
             'status_active' => 'Active',
+            'guarantee_active' => 'Card guarantee active',
+            'guarantee_charged' => 'No-show compensation charged',
+            'guarantee_released' => 'Card guarantee released',
+            'guarantee_locked' => 'Date, time and party size are locked while the card guarantee is active. Contact the restaurant to change them so the guarantee terms can be reconfirmed.',
         ],
         'de' => [
             'language' => 'Sprache',
@@ -85,6 +89,10 @@
             'email_restaurant' => 'Restaurant mailen',
             'status_canceled' => 'Storniert',
             'status_active' => 'Aktiv',
+            'guarantee_active' => 'Kartengarantie aktiv',
+            'guarantee_charged' => 'Ausfallentschädigung belastet',
+            'guarantee_released' => 'Kartengarantie freigegeben',
+            'guarantee_locked' => 'Datum, Uhrzeit und Personenzahl sind während der aktiven Kartengarantie gesperrt. Bitte kontaktieren Sie das Restaurant, damit die Garantiebedingungen bei einer Änderung erneut bestätigt werden können.',
         ],
         'tr' => [
             'language' => 'Dil',
@@ -128,6 +136,10 @@
             'email_restaurant' => 'Restorana e-posta',
             'status_canceled' => 'İptal edildi',
             'status_active' => 'Aktif',
+            'guarantee_active' => 'Kart garantisi aktif',
+            'guarantee_charged' => 'No-show tazminatı tahsil edildi',
+            'guarantee_released' => 'Kart garantisi serbest bırakıldı',
+            'guarantee_locked' => 'Kart garantisi aktifken tarih, saat ve kişi sayısı kilitlidir. Değişiklik için restoranla iletişime geçin; garanti koşulları yeniden onaylanmalıdır.',
         ],
         'ar' => [
             'language' => 'اللغة',
@@ -171,6 +183,10 @@
             'email_restaurant' => 'راسل المطعم',
             'status_canceled' => 'ملغى',
             'status_active' => 'نشط',
+            'guarantee_active' => 'ضمان البطاقة فعال',
+            'guarantee_charged' => 'تم تحصيل تعويض عدم الحضور',
+            'guarantee_released' => 'تم تحرير ضمان البطاقة',
+            'guarantee_locked' => 'يتم تثبيت التاريخ والوقت وعدد الأشخاص أثناء سريان ضمان البطاقة. يرجى التواصل مع المطعم لتغييرها وإعادة تأكيد شروط الضمان.',
         ],
     ];
 
@@ -182,6 +198,15 @@
 
     $localeTags = ['en' => 'en-GB', 'de' => 'de-DE', 'tr' => 'tr-TR', 'ar' => 'ar-OM'];
     $localeDirections = ['en' => 'ltr', 'de' => 'ltr', 'tr' => 'ltr', 'ar' => 'rtl'];
+    $reservationGuarantee = $reservationPayload['guarantee'] ?? null;
+    $guaranteeStatus = is_array($reservationGuarantee)
+        ? (string)($reservationGuarantee['status'] ?? 'none')
+        : 'none';
+    $guaranteeLocksSchedule = in_array(
+        $guaranteeStatus,
+        ['active', 'charge_failed', 'action_required'],
+        true
+    );
 
     $manageConfig = [
         'locale' => $bookingLocale,
@@ -203,6 +228,7 @@
         'updateUrl' => $reservation ? url('/book') : null,
         'cancelUrl' => $reservation ? url('/book') : null,
         'restaurantName' => $bookingProfile['name'],
+        'guaranteeLocksSchedule' => $guaranteeLocksSchedule,
     ];
 @endphp
 <!doctype html>
@@ -214,7 +240,7 @@
     <meta name="theme-color" content="#f4efe4">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $t['manage_booking'] }} · {{ $bookingProfile['name'] }}</title>
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r18">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r19">
 </head>
 <body class="pmd-booking-page pmd-booking-manage-page">
     <div class="pmd-booking-shell">
@@ -286,6 +312,31 @@
                         </div>
                     </div>
 
+                    @if($reservationGuarantee)
+                        @php
+                            $guaranteeAmount = number_format(
+                                ((int)($reservationGuarantee['amount_cents'] ?? 0)) / 100,
+                                2,
+                                $bookingLocale === 'de' ? ',' : '.',
+                                $bookingLocale === 'de' ? '.' : ','
+                            );
+                            $guaranteeLabelKey = $guaranteeStatus === 'charged'
+                                ? 'guarantee_charged'
+                                : ($guaranteeStatus === 'released'
+                                    ? 'guarantee_released'
+                                    : 'guarantee_active');
+                        @endphp
+                        <div class="pmd-booking-manage-guarantee is-{{ $guaranteeStatus }}">
+                            <div>
+                                <strong data-pmd-manage-i18n="{{ $guaranteeLabelKey }}">{{ $t[$guaranteeLabelKey] }}</strong>
+                                <span>{{ $guaranteeAmount }} {{ strtoupper($reservationGuarantee['currency'] ?? 'EUR') }}</span>
+                            </div>
+                            @if($guaranteeLocksSchedule)
+                                <p data-pmd-manage-i18n="guarantee_locked">{{ $t['guarantee_locked'] }}</p>
+                            @endif
+                        </div>
+                    @endif
+
                     @if($canManage)
                         <form id="pmd-booking-manage-form" class="pmd-booking-manage-form" novalidate>
                             @csrf
@@ -294,11 +345,11 @@
                             <div class="pmd-booking-fields">
                                 <label>
                                     <span data-pmd-manage-i18n="date">{{ $t['date'] }}</span>
-                                    <input id="pmd-manage-date" name="reserve_date" type="date" min="{{ $bookingToday }}" max="{{ $bookingMaxDate }}" value="{{ $reservationPayload['date'] }}" required>
+                                    <input id="pmd-manage-date" name="reserve_date" type="date" min="{{ $bookingToday }}" max="{{ $bookingMaxDate }}" value="{{ $reservationPayload['date'] }}" required @if($guaranteeLocksSchedule) disabled aria-disabled="true" @endif>
                                 </label>
                                 <label>
                                     <span data-pmd-manage-i18n="party">{{ $t['party'] }}</span>
-                                    <input id="pmd-manage-guests" name="guest_num" type="number" min="1" max="{{ $bookingMaxGuests }}" value="{{ $reservationPayload['guests'] }}" inputmode="numeric" required>
+                                    <input id="pmd-manage-guests" name="guest_num" type="number" min="1" max="{{ $bookingMaxGuests }}" value="{{ $reservationPayload['guests'] }}" inputmode="numeric" required @if($guaranteeLocksSchedule) disabled aria-disabled="true" @endif>
                                 </label>
                                 <div class="pmd-booking-field--wide">
                                     <span class="pmd-booking-manage-field-title" data-pmd-manage-i18n="available_times">{{ $t['available_times'] }}</span>
@@ -396,6 +447,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-manage-config">{!! json_encode($manageConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261005-r18" defer></script>
+    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261005-r19" defer></script>
 </body>
 </html>
