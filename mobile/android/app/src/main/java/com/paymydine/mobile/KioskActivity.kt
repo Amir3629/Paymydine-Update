@@ -752,7 +752,6 @@ private fun KioskWelcomeScreen(
             Spacer(Modifier.height(30.dp))
 
             KioskModeButton(
-                number = "01",
                 title = "EAT HERE",
                 subtitle = "Order and enjoy it here",
                 imageUrl = eatImage,
@@ -763,7 +762,6 @@ private fun KioskWelcomeScreen(
             )
             Spacer(Modifier.height(16.dp))
             KioskModeButton(
-                number = "02",
                 title = "TAKE AWAY",
                 subtitle = "Order for collection",
                 imageUrl = takeImage,
@@ -794,7 +792,6 @@ private fun KioskWelcomeScreen(
 
 @Composable
 private fun KioskModeButton(
-    number: String,
     title: String,
     subtitle: String,
     imageUrl: String,
@@ -859,24 +856,12 @@ private fun KioskModeButton(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
             ) {
-                Box(
-                    modifier = Modifier
-                        .background(
-                            accent.copy(alpha = 0.16f),
-                            RoundedCornerShape(12.dp),
-                        )
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                ) {
-                    Text(
-                        number,
-                        color = accent,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                    )
-                }
+                // PMD_KIOSK_CLEAN_SERVICE_CARDS_V16
+                // Keep the service choice visually direct: artwork, label,
+                // description and action only. Sequence badges added noise and
+                // implied an ordering that does not exist.
                 Text(
                     title,
-                    modifier = Modifier.padding(top = 8.dp),
                     color = text,
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Black,
