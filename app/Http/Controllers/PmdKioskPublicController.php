@@ -85,8 +85,24 @@ final class PmdKioskPublicController
             $restaurantLogo = '';
         }
 
+        // PMD_KIOSK_INITIAL_HERO_V13
+        // Android already prefetches restaurant menu photography on the welcome
+        // screen. Pass that image into the first Blade frame so the menu never
+        // paints a large empty hero box while bootstrap is still revalidating.
+        $initialHero = trim((string)$request->query('kiosk_hero', ''));
+        if (
+            strlen($initialHero) > 2048 ||
+            (
+                $initialHero !== '' &&
+                !str_starts_with($initialHero, '/') &&
+                !preg_match('#^https?://#i', $initialHero)
+            )
+        ) {
+            $initialHero = '';
+        }
+
         $config = [
-            'version' => 'blade-v8-theme-v12',
+            'version' => 'blade-v8-theme-v13',
             'session' => $session,
             'serviceMode' => $serviceMode,
             'paymentReturn' => $request->boolean('pmd_payment_return'),
@@ -102,6 +118,7 @@ final class PmdKioskPublicController
                 'name' => $restaurantName,
                 'logo' => $restaurantLogo,
             ],
+            'hero' => $initialHero,
             'theme' => $theme,
         ];
 
