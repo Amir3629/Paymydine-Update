@@ -348,7 +348,7 @@ final class PmdMobileWorkspaceAuthController extends Controller
             // Reservations now lives inside the combined Quick POS shell. Keep
             // the staff authorization surface as reservations, but point the
             // canonical destination at the Reservations workspace within POS.
-            $route = 'pos?workspace=reservations';
+            $route = 'pos';
         }
 
         return [
