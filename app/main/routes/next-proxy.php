@@ -52,6 +52,10 @@
                 return app(\App\Http\Controllers\PmdPublicBookingController::class)->availability(request());
             }
 
+            if ($pmdBookingPath === '/book/date-statuses' && $pmdBookingMethod === 'GET') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->dateStatuses(request());
+            }
+
             if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'POST') {
                 return app(\App\Http\Controllers\PmdPublicBookingController::class)->store(request());
             }
