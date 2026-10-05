@@ -404,7 +404,7 @@ class Pmddevices extends AdminController
         }
 
         $result = app(PmdDevicePlatformService::class)
-            ->assignTableDisplayTerminal(
+            ->assignDevicePaymentTerminal(
                 $this->devicePlatformLocationId(),
                 $deviceId,
                 $terminalId > 0 ? $terminalId : null,
