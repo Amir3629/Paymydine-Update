@@ -32,7 +32,7 @@
     en: {
       product: "Self-service ordering", orderType: "Order type", eatHere: "Eat here", takeAway: "Take away",
       menu: "Menu", all: "All items", search: "Search menu", items: "items", item: "item",
-      add: "Add", customize: "Customize", order: "Your order", empty: "Your order is empty",
+      add: "Add", customize: "Customize", details: "Tap for details", order: "Your order", empty: "Your order is empty",
       emptyHint: "Choose something from the menu to begin.", clear: "Clear order", subtotal: "Subtotal",
       tax: "Tax", service: "Service charge", total: "Total", reviewPay: "Review & pay",
       noResults: "Nothing found", noResultsHint: "Try another category or search.",
@@ -50,7 +50,7 @@
     de: {
       product: "Selbstbedienung", orderType: "Bestellart", eatHere: "Hier essen", takeAway: "Mitnehmen",
       menu: "Menü", all: "Alle Artikel", search: "Speisekarte durchsuchen", items: "Artikel", item: "Artikel",
-      add: "Hinzufügen", customize: "Anpassen", order: "Deine Bestellung", empty: "Deine Bestellung ist leer",
+      add: "Hinzufügen", customize: "Anpassen", details: "Tippen für Details", order: "Deine Bestellung", empty: "Deine Bestellung ist leer",
       emptyHint: "Wähle etwas aus der Speisekarte.", clear: "Bestellung leeren", subtotal: "Zwischensumme",
       tax: "Steuer", service: "Servicegebühr", total: "Gesamt", reviewPay: "Prüfen & bezahlen",
       noResults: "Nichts gefunden", noResultsHint: "Andere Kategorie oder Suche wählen.",
@@ -68,7 +68,7 @@
     fa: {
       product: "سفارش سلف‌سرویس", orderType: "نوع سفارش", eatHere: "صرف در رستوران", takeAway: "بیرون‌بر",
       menu: "منو", all: "همه", search: "جستجو در منو", items: "آیتم", item: "آیتم",
-      add: "افزودن", customize: "انتخاب گزینه‌ها", order: "سفارش شما", empty: "سفارش شما خالی است",
+      add: "افزودن", customize: "انتخاب گزینه‌ها", details: "برای جزئیات لمس کنید", order: "سفارش شما", empty: "سفارش شما خالی است",
       emptyHint: "برای شروع یک آیتم از منو انتخاب کنید.", clear: "پاک کردن سفارش", subtotal: "جمع جزء",
       tax: "مالیات", service: "هزینه سرویس", total: "جمع کل", reviewPay: "بررسی و پرداخت",
       noResults: "چیزی پیدا نشد", noResultsHint: "دسته یا عبارت دیگری را امتحان کنید.",
@@ -86,7 +86,7 @@
     tr: {
       product: "Self servis sipariş", orderType: "Sipariş tipi", eatHere: "Burada ye", takeAway: "Paket",
       menu: "Menü", all: "Tümü", search: "Menüde ara", items: "ürün", item: "ürün",
-      add: "Ekle", customize: "Seçenekler", order: "Siparişiniz", empty: "Siparişiniz boş",
+      add: "Ekle", customize: "Seçenekler", details: "Detaylar için dokun", order: "Siparişiniz", empty: "Siparişiniz boş",
       emptyHint: "Başlamak için menüden bir ürün seçin.", clear: "Siparişi temizle", subtotal: "Ara toplam",
       tax: "Vergi", service: "Servis ücreti", total: "Toplam", reviewPay: "Kontrol et & öde",
       noResults: "Sonuç bulunamadı", noResultsHint: "Başka kategori veya arama deneyin.",
@@ -671,13 +671,24 @@
     }).join("");
   }
 
+  function categoryIcon(name) {
+    var value = String(name || "").toLowerCase();
+    if (/breakfast|frühstück|صبح|kahvalt/.test(value)) return "🥐";
+    if (/drink|beverage|getränk|نوش|içecek/.test(value)) return "🥤";
+    if (/dessert|sweet|nachtisch|دسر|tatlı/.test(value)) return "🍰";
+    if (/lunch|dinner|main|haupt|ناهار|شام|öğle|akşam/.test(value)) return "🍲";
+    return "";
+  }
+
   function renderCategories() {
     var entries = [{ id: "all", name: copy().all }].concat(state.categories);
     categoryList.innerHTML = entries.map(function (entry) {
       var active = String(entry.id) === String(state.category);
+      var icon = entry.id === "all" ? "" : categoryIcon(entry.name);
       return '<button type="button" class="pmd-kiosk-category-button' + (active ? " is-active" : "") +
         '" data-category="' + escapeHtml(entry.id) + '" aria-pressed="' + (active ? "true" : "false") + '">' +
-        escapeHtml(entry.name) + "</button>";
+        (icon ? '<span class="pmd-kiosk-category-icon" aria-hidden="true">' + icon + "</span>" : "") +
+        '<span>' + escapeHtml(entry.name) + "</span></button>";
     }).join("");
 
     var current = entries.find(function (entry) { return String(entry.id) === String(state.category); }) || entries[0];
@@ -698,10 +709,13 @@
       var image = item.image
         ? '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '" loading="lazy" decoding="async">'
         : '<span class="pmd-kiosk-item__placeholder">' + escapeHtml(item.name.charAt(0).toUpperCase()) + "</span>";
-      return '<article class="pmd-kiosk-item">' +
-        '<button type="button" class="pmd-kiosk-item__image" data-open-item="' + escapeHtml(item.id) + '">' +
-          image + (quantity > 0 ? '<span class="pmd-kiosk-item__qty">' + quantity + "</span>" : "") +
-        "</button>" +
+      return '<article class="pmd-kiosk-item" data-open-item="' + escapeHtml(item.id) + '" tabindex="0" role="button" aria-label="' +
+          escapeHtml(item.name + " - " + copy().details) + '">' +
+        '<div class="pmd-kiosk-item__image">' +
+          image +
+          '<span class="pmd-kiosk-item__info" aria-hidden="true">i</span>' +
+          (quantity > 0 ? '<span class="pmd-kiosk-item__qty">' + quantity + "</span>" : "") +
+        "</div>" +
         '<div class="pmd-kiosk-item__body">' +
           '<div class="pmd-kiosk-item__copy"><h2>' + escapeHtml(item.name) + "</h2>" +
             (item.description ? "<p>" + escapeHtml(item.description) + "</p>" : "") +
@@ -711,6 +725,8 @@
               (item.options.length ? escapeHtml(copy().customize) : "+ " + escapeHtml(copy().add)) +
             "</button>" +
           "</div>" +
+          '<div class="pmd-kiosk-item__details"><span aria-hidden="true">☝</span><span>' + escapeHtml(copy().details) +
+            '</span><span aria-hidden="true">›</span></div>' +
         "</div>" +
       "</article>";
     }).join("");
@@ -820,10 +836,6 @@
 
   function openItem(item) {
     if (!item) return;
-    if (!item.options.length) {
-      addConfiguredItem(item, 1, [], "");
-      return;
-    }
     state.currentModal = { type: "item", itemId: item.id };
     var selected = defaultSelections(item);
     var detailImage = item.image
@@ -1752,6 +1764,13 @@
         state.categories = normalizedMenu.categories;
         state.payments = normalizePayments(data.payments);
 
+        // PMD_KIOSK_PREMIUM_UI_V11: reuse the restaurant's own menu photography
+        // as a subtle header hero instead of shipping generic stock imagery.
+        var heroItem = state.items.find(function (entry) { return entry.image; });
+        if (heroItem && heroItem.image) {
+          document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(heroItem.image).replace(/"/g, "%22") + '")');
+        }
+
         state.restaurant = {
           name: cleanText(first(config.restaurant || {}, ["name"],
             first(settings, ["pmd_restaurant_identity_name", "site_name", "business_name", "restaurant_name"],
@@ -1817,11 +1836,28 @@
   });
 
   grid.addEventListener("click", function (event) {
-    var opener = event.target.closest("[data-open-item]");
     var adder = event.target.closest("[data-add-item]");
-    var id = opener ? opener.getAttribute("data-open-item") : adder ? adder.getAttribute("data-add-item") : "";
-    if (!id) return;
-    openItem(findItem(id));
+    if (adder) {
+      event.preventDefault();
+      event.stopPropagation();
+      var addItem = findItem(adder.getAttribute("data-add-item"));
+      if (!addItem) return;
+      if (addItem.options.length) openItem(addItem);
+      else addConfiguredItem(addItem, 1, [], "");
+      return;
+    }
+
+    var opener = event.target.closest("[data-open-item]");
+    if (!opener) return;
+    openItem(findItem(opener.getAttribute("data-open-item")));
+  });
+
+  grid.addEventListener("keydown", function (event) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    var opener = event.target.closest("[data-open-item]");
+    if (!opener) return;
+    event.preventDefault();
+    openItem(findItem(opener.getAttribute("data-open-item")));
   });
 
   orderLines.addEventListener("click", function (event) {

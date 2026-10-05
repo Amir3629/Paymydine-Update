@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="theme-color" id="pmd-kiosk-theme-color" content="#f3f5f7">
     <title>Self-service ordering · PayMyDine</title>
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=10-fast-scroll-pay-first">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=11-premium-ui">
 </head>
 <body class="pmd-kiosk-v8" data-pmd-kiosk-terminal="blade-v8" data-pmd-kiosk-theme="kazen_japanese">
 <div id="pmd-kiosk-app" class="pmd-kiosk-shell" aria-busy="true">
@@ -98,6 +98,8 @@
         <section id="pmd-kiosk-modal" class="pmd-kiosk-modal" role="dialog" aria-modal="true" aria-live="polite"></section>
     </div>
 
+    <div class="pmd-kiosk-powered" aria-hidden="true">Powered by PayMyDine</div>
+
     <div id="pmd-kiosk-toast" class="pmd-kiosk-toast" role="status" hidden></div>
 
     <div id="pmd-kiosk-loading" class="pmd-kiosk-loading" role="status">
@@ -108,6 +110,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=10-fast-scroll-pay-first" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=11-premium-ui" defer></script>
 </body>
 </html>

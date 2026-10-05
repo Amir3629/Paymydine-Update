@@ -85,7 +85,7 @@ final class PmdKioskPublicController
         }
 
         $config = [
-            'version' => 'blade-v8-theme-v10',
+            'version' => 'blade-v8-theme-v11',
             'session' => $session,
             'serviceMode' => $serviceMode,
             'paymentReturn' => $request->boolean('pmd_payment_return'),
