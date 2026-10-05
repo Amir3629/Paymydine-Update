@@ -425,7 +425,11 @@ class PmdPublicBookingController extends Controller
             );
         }
 
-        $locale = $this->locale($request, $this->languageContext($location));
+        $languageContext = $this->languageContext($location);
+        $requestedLocale = strtolower(substr((string)$request->input('lang', ''), 0, 2));
+        $locale = in_array($requestedLocale, (array)$languageContext['eligible'], true)
+            ? $requestedLocale
+            : $this->locale($request, $languageContext);
 
         return redirect('/book/manage/'.rawurlencode((string)$reservation->hash).'?lang='.rawurlencode($locale), 302);
     }
@@ -779,7 +783,7 @@ class PmdPublicBookingController extends Controller
             return false;
         }
 
-        return $reservation->isCancelable();
+        return true;
     }
 
     private function publicReservationPayload(Reservations_model $reservation): array
