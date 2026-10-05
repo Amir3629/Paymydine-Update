@@ -785,7 +785,10 @@ img {
   position: absolute;
   width: 1px;
   height: 1px;
+  min-height: 0;
   margin: 0;
+  padding: 0;
+  border: 0;
   opacity: 0;
   pointer-events: none;
 }
@@ -818,7 +821,9 @@ img {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 14px;
   font-weight: 600;
+  letter-spacing: normal;
   line-height: 1.2;
+  text-transform: none;
 }
 
 .pmd-booking-occasion-card:hover .pmd-booking-occasion-card__surface {
