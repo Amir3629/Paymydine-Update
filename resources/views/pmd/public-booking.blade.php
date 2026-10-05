@@ -312,7 +312,7 @@
         'availabilitySeed' => $bookingAvailabilitySeed,
         'tableRules' => $bookingTableRules,
         'availabilityUrl' => url('/book/availability'),
-        'dateStatusesUrl' => url('/book/date-statuses'),
+        'dateStatusesUrl' => url('/book/availability').'?mode=date-statuses',
         'storeUrl' => url('/book'),
         'restaurantName' => $bookingProfile['name'],
         'restaurantAddress' => $bookingProfile['address'],
@@ -332,7 +332,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r16">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r17">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -372,6 +372,7 @@
                 </div>
 
                 <div class="pmd-booking-intro__details">
+                    <a id="pmd-booking-manage-top" class="pmd-booking-manage-entry" href="{{ url('/book') }}?manage=1&lang={{ $bookingLocale }}" data-pmd-i18n="manage_existing">{{ $t['manage_existing'] }}</a>
                     @if($bookingProfile['description'])
                         <p class="pmd-booking-restaurant-note">{{ $bookingProfile['description'] }}</p>
                     @endif
@@ -610,7 +611,7 @@
 
                 <div class="pmd-booking-success__actions">
                     <a id="pmd-booking-calendar" href="#" download="reservation.ics" data-pmd-i18n="add_calendar">{{ $t['add_calendar'] }}</a>
-                    <a id="pmd-booking-manage-link" href="/book/manage?lang={{ $bookingLocale }}" data-pmd-i18n="manage_booking">{{ $t['manage_booking'] }}</a>
+                    <a id="pmd-booking-manage-link" href="{{ url('/book') }}?manage=1&lang={{ $bookingLocale }}" data-pmd-i18n="manage_booking">{{ $t['manage_booking'] }}</a>
                     <button type="button" data-pmd-new-booking data-pmd-i18n="new_booking">{{ $t['new_booking'] }}</button>
                 </div>
             </section>
@@ -619,7 +620,7 @@
         <footer class="pmd-booking-footer">
             <span data-pmd-i18n="powered">{{ $t['powered'] }}</span>
             <div>
-                <a id="pmd-booking-manage-existing" href="/book/manage?lang={{ $bookingLocale }}" data-pmd-i18n="manage_existing">{{ $t['manage_existing'] }}</a>
+                <a id="pmd-booking-manage-existing" href="{{ url('/book') }}?manage=1&lang={{ $bookingLocale }}" data-pmd-i18n="manage_existing">{{ $t['manage_existing'] }}</a>
                 @if($bookingProfile['website_url'])
                     <a href="{{ $bookingProfile['website_url'] }}" rel="noopener noreferrer">Website</a>
                 @endif
@@ -634,6 +635,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r16" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r17" defer></script>
 </body>
 </html>
