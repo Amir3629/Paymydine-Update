@@ -21,8 +21,9 @@
             :root { --pmd-k-hero-image: url({!! json_encode($initialHero, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) !!}); }
         </style>
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=13-smooth-scroll">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=18-terminal-printer">
 </head>
+<!-- PMD_KIOSK_V18_TERMINAL_PRINTER -->
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
     data-pmd-kiosk-terminal="blade-v8"
@@ -135,6 +136,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=13-smooth-scroll" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=18-terminal-printer" defer></script>
 </body>
 </html>
