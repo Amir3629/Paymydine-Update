@@ -39,9 +39,12 @@ import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskTerminalPaymentResult
 import com.paymydine.mobile.kiosk.KioskProfile
 import com.paymydine.mobile.tabledisplay.SecureStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.util.UUID
 
 
@@ -469,6 +472,19 @@ class KioskMenuActivity : ComponentActivity() {
     private val idleTimeoutMs: Long by lazy {
         intent.getLongExtra(EXTRA_IDLE_TIMEOUT_SECONDS, 120L)
             .coerceIn(45L, 600L) * 1_000L
+    }
+    private val receiptPrinterHost: String by lazy {
+        intent.getStringExtra(EXTRA_RECEIPT_PRINTER_HOST).orEmpty().trim()
+    }
+    private val receiptPrinterPort: Int by lazy {
+        intent.getIntExtra(EXTRA_RECEIPT_PRINTER_PORT, 9100)
+            .coerceIn(1, 65535)
+    }
+    private val receiptPrinterName: String by lazy {
+        intent.getStringExtra(EXTRA_RECEIPT_PRINTER_NAME)
+            .orEmpty()
+            .trim()
+            .ifBlank { "Receipt printer" }
     }
 
     private val idleRunnable = Runnable {
@@ -1199,7 +1215,51 @@ class KioskMenuActivity : ComponentActivity() {
         }
     }
 
-    private fun showComplete(orderId: String) {
+    /**
+     * PMD_KIOSK_NETWORK_RECEIPT_V18
+     *
+     * The device-level printer binding is shared with staff modes. Kiosk uses
+     * raw network ESC/POS (normally TCP 9100). Printing is best-effort and
+     * never changes payment or order state.
+     */
+    private fun printReceiptIfConfigured(receiptText: String) {
+        val host = receiptPrinterHost
+        val text = receiptText.trim()
+        if (host.isBlank() || text.isBlank()) return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching {
+                Socket().use { socket ->
+                    socket.connect(
+                        InetSocketAddress(host, receiptPrinterPort),
+                        3_500,
+                    )
+                    socket.soTimeout = 3_500
+                    socket.getOutputStream().use { output ->
+                        output.write(byteArrayOf(0x1B, 0x40))
+                        output.write(text.toByteArray(Charsets.UTF_8))
+                        output.write("\n\n\n".toByteArray(Charsets.UTF_8))
+                        output.write(byteArrayOf(0x1D, 0x56, 0x00))
+                        output.flush()
+                    }
+                }
+            }.onFailure { error ->
+                android.util.Log.w(
+                    "PayMyDineKiosk",
+                    "Receipt print failed on " +
+                        receiptPrinterName +
+                        ": " +
+                        error.message,
+                )
+            }
+        }
+    }
+
+    private fun showComplete(
+        orderId: String,
+        receiptText: String,
+    ) {
+        printReceiptIfConfigured(receiptText)
         runOnUiThread {
             destroyWebView()
             webContainer.removeAllViews()
@@ -1299,7 +1359,7 @@ class KioskMenuActivity : ComponentActivity() {
 
     private class KioskJavascriptBridge(
         private val secret: String,
-        private val onOrderComplete: (String) -> Unit,
+        private val onOrderComplete: (String, String) -> Unit,
         private val onStartTerminalPayment: (Long, String) -> Unit,
         private val onPollTerminalPayment: (Long, String) -> Unit,
     ) {
@@ -1308,13 +1368,17 @@ class KioskMenuActivity : ComponentActivity() {
         @JavascriptInterface
         fun orderComplete(
             orderId: String,
+            receiptText: String,
             providedSecret: String,
         ) {
             if (providedSecret.isBlank() || providedSecret != secret) {
                 return
             }
             handler.post {
-                onOrderComplete(orderId.trim())
+                onOrderComplete(
+                    orderId.trim(),
+                    receiptText.take(8_000),
+                )
             }
         }
 
@@ -1360,6 +1424,9 @@ class KioskMenuActivity : ComponentActivity() {
         private const val EXTRA_SURFACE = "pmd.kiosk.surface"
         private const val EXTRA_IDLE_TIMEOUT_SECONDS = "pmd.kiosk.idle_timeout_seconds"
         private const val EXTRA_LOCALE = "pmd.kiosk.locale"
+        private const val EXTRA_RECEIPT_PRINTER_HOST = "pmd.kiosk.receipt_printer_host"
+        private const val EXTRA_RECEIPT_PRINTER_PORT = "pmd.kiosk.receipt_printer_port"
+        private const val EXTRA_RECEIPT_PRINTER_NAME = "pmd.kiosk.receipt_printer_name"
 
         fun intent(
             context: Context,
@@ -1376,6 +1443,11 @@ class KioskMenuActivity : ComponentActivity() {
                 putExtra(EXTRA_RESTAURANT_LOGO, profile.restaurantLogoUrl)
                 putExtra(EXTRA_HERO_IMAGE, heroImage)
                 putExtra(EXTRA_LOCALE, locale)
+                profile.receiptPrinter?.let { printer ->
+                    putExtra(EXTRA_RECEIPT_PRINTER_HOST, printer.host)
+                    putExtra(EXTRA_RECEIPT_PRINTER_PORT, printer.port)
+                    putExtra(EXTRA_RECEIPT_PRINTER_NAME, printer.name)
+                }
                 putExtra(EXTRA_BACKGROUND, profile.theme.background)
                 putExtra(EXTRA_TEXT, profile.theme.text)
                 putExtra(EXTRA_MUTED, profile.theme.muted)
