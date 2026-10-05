@@ -1,6 +1,7 @@
 // PMD_KIOSK_BLADE_TERMINAL_V8
 // PMD_KIOSK_INSTANT_MENU_V12
 // PMD_KIOSK_SMOOTH_SCROLL_V13
+// PMD_KIOSK_CLEAN_CARDS_V13 (preserved contract; V17 extends the clean card layout)
 (function () {
   "use strict";
 
