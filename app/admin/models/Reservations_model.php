@@ -25,6 +25,8 @@ class Reservations_model extends Model
 
     public $skipAutoTableAllocation = false;
 
+    protected $pmdGuaranteeReleaseReason = null;
+
     /**
      * @var string The database table name
      */
@@ -88,12 +90,69 @@ class Reservations_model extends Model
     // Events
     //
 
+    protected function beforeSave()
+    {
+        if (!$this->exists) {
+            return;
+        }
+
+        try {
+            foreach ([
+                'location_id',
+                'reserve_date',
+                'reserve_time',
+                'guest_num',
+                'first_name',
+                'last_name',
+                'email',
+            ] as $field) {
+                if ($this->isDirty($field)) {
+                    $this->pmdGuaranteeReleaseReason =
+                        'reservation_guarantee_terms_changed';
+                    return;
+                }
+            }
+
+            if (
+                $this->isDirty('status_id')
+                && (int)$this->status_id === (int)setting(
+                    'canceled_reservation_status',
+                    0
+                )
+            ) {
+                $this->pmdGuaranteeReleaseReason =
+                    'reservation_canceled';
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('PMD reservation guarantee lifecycle check failed', [
+                'reservation_id' => (int)$this->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+        }
+    }
+
     protected function beforeCreate()
     {
         $this->generateHash();
 
         $this->ip_address = Request::getClientIp();
         $this->user_agent = Request::userAgent();
+    }
+
+    protected function beforeDelete()
+    {
+        try {
+            app(\App\Services\Reservations\PmdReservationGuaranteeService::class)
+                ->releaseGuarantee(
+                    $this,
+                    'reservation_deleted'
+                );
+        } catch (\Throwable $error) {
+            logger()->warning('PMD reservation guarantee release before delete failed', [
+                'reservation_id' => (int)$this->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+        }
     }
 
     protected function afterSave()
@@ -107,6 +166,22 @@ class Reservations_model extends Model
         if (!$this->skipAutoTableAllocation
             && $this->location->getOption('auto_allocate_table', 1) && !$this->tables()->count()) {
             $this->addReservationTables($this->getNextBookableTable()->pluck('table_id')->all());
+        }
+
+        if ($this->pmdGuaranteeReleaseReason) {
+            $reason = (string)$this->pmdGuaranteeReleaseReason;
+            $this->pmdGuaranteeReleaseReason = null;
+
+            try {
+                app(\App\Services\Reservations\PmdReservationGuaranteeService::class)
+                    ->releaseGuarantee($this, $reason);
+            } catch (\Throwable $error) {
+                logger()->warning('PMD reservation guarantee automatic release failed', [
+                    'reservation_id' => (int)$this->getKey(),
+                    'reason' => $reason,
+                    'message' => $error->getMessage(),
+                ]);
+            }
         }
     }
 

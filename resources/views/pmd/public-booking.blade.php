@@ -41,6 +41,14 @@
             'notes' => 'Anything we should know?',
             'notes_hint' => 'Allergies, accessibility, high chair, seating preference…',
             'consent' => 'I agree that the restaurant may use these contact details to manage this reservation.',
+            'guarantee_title' => 'Card guarantee',
+            'guarantee_intro' => 'For this reservation, the restaurant requires a verified card. Nothing is charged now.',
+            'guarantee_total' => 'Maximum no-show compensation for this booking',
+            'guarantee_card' => 'Card details',
+            'guarantee_secure' => 'Securely verified by Stripe. PayMyDine never stores your card number or CVC.',
+            'guarantee_unavailable' => 'Card guarantee is temporarily unavailable. Please contact the restaurant.',
+            'guarantee_verifying' => 'Verifying card…',
+            'guarantee_success' => 'Card guarantee active. Nothing was charged now. Maximum possible no-show compensation:',
             'book_table' => 'Request this table',
             'booking' => 'Saving your reservation…',
             'summary' => 'Your table',
@@ -110,6 +118,14 @@
             'notes' => 'Gibt es etwas, das wir wissen sollten?',
             'notes_hint' => 'Allergien, Barrierefreiheit, Kinderstuhl, Sitzwunsch…',
             'consent' => 'Ich stimme zu, dass das Restaurant diese Kontaktdaten zur Bearbeitung der Reservierung verwenden darf.',
+            'guarantee_title' => 'Kartengarantie',
+            'guarantee_intro' => 'Für diese Reservierung ist eine Kartenbestätigung erforderlich. Jetzt wird nichts belastet.',
+            'guarantee_total' => 'Maximale Ausfallentschädigung für diese Reservierung',
+            'guarantee_card' => 'Kartendaten',
+            'guarantee_secure' => 'Sichere Bestätigung über Stripe. PayMyDine speichert weder Kartennummer noch CVC.',
+            'guarantee_unavailable' => 'Die Kartengarantie ist derzeit nicht verfügbar. Bitte kontaktieren Sie das Restaurant.',
+            'guarantee_verifying' => 'Karte wird bestätigt…',
+            'guarantee_success' => 'Kartengarantie aktiv. Jetzt wurde nichts belastet. Maximale mögliche Ausfallentschädigung:',
             'book_table' => 'Tisch anfragen',
             'booking' => 'Reservierung wird gespeichert…',
             'summary' => 'Ihre Reservierung',
@@ -179,6 +195,14 @@
             'notes' => 'Bilmemiz gereken bir şey var mı?',
             'notes_hint' => 'Alerji, erişilebilirlik, mama sandalyesi, oturma tercihi…',
             'consent' => 'Restoranın bu iletişim bilgilerini rezervasyonu yönetmek için kullanmasını kabul ediyorum.',
+            'guarantee_title' => 'Kart garantisi',
+            'guarantee_intro' => 'Bu rezervasyon için doğrulanmış bir kart gereklidir. Şimdi herhangi bir ücret alınmaz.',
+            'guarantee_total' => 'Bu rezervasyon için azami no-show tazminatı',
+            'guarantee_card' => 'Kart bilgileri',
+            'guarantee_secure' => 'Stripe üzerinden güvenli doğrulama. PayMyDine kart numaranızı veya CVC kodunuzu saklamaz.',
+            'guarantee_unavailable' => 'Kart garantisi şu anda kullanılamıyor. Lütfen restoranla iletişime geçin.',
+            'guarantee_verifying' => 'Kart doğrulanıyor…',
+            'guarantee_success' => 'Kart garantisi aktif. Şimdi ücret alınmadı. Olası azami no-show tazminatı:',
             'book_table' => 'Masayı talep et',
             'booking' => 'Rezervasyon kaydediliyor…',
             'summary' => 'Masanız',
@@ -248,6 +272,14 @@
             'notes' => 'هل هناك شيء يجب أن نعرفه؟',
             'notes_hint' => 'الحساسية، سهولة الوصول، كرسي طفل، تفضيل الجلوس…',
             'consent' => 'أوافق على استخدام المطعم لبيانات الاتصال هذه لإدارة الحجز.',
+            'guarantee_title' => 'ضمان البطاقة',
+            'guarantee_intro' => 'يتطلب هذا الحجز التحقق من البطاقة. لن يتم خصم أي مبلغ الآن.',
+            'guarantee_total' => 'الحد الأقصى لتعويض عدم الحضور لهذا الحجز',
+            'guarantee_card' => 'بيانات البطاقة',
+            'guarantee_secure' => 'تحقق آمن عبر Stripe. لا تقوم PayMyDine بتخزين رقم البطاقة أو رمز CVC.',
+            'guarantee_unavailable' => 'ضمان البطاقة غير متاح مؤقتاً. يرجى الاتصال بالمطعم.',
+            'guarantee_verifying' => 'جارٍ التحقق من البطاقة…',
+            'guarantee_success' => 'ضمان البطاقة فعال. لم يتم خصم أي مبلغ الآن. الحد الأقصى المحتمل لتعويض عدم الحضور:',
             'book_table' => 'إرسال طلب الحجز',
             'booking' => 'جارٍ حفظ الحجز…',
             'summary' => 'حجزك',
@@ -314,6 +346,11 @@
         'availabilityUrl' => url('/book/availability'),
         'dateStatusesUrl' => url('/book/availability').'?mode=date-statuses',
         'storeUrl' => url('/book'),
+        'guarantee' => array_merge(
+            (array)($bookingGuarantee ?? []),
+            ['setupUrl' => url('/book/guarantee/setup')]
+        ),
+        'guaranteeByLocale' => $bookingGuaranteeByLocale ?? [],
         'restaurantName' => $bookingProfile['name'],
         'restaurantAddress' => $bookingProfile['address'],
         'labels' => $t,
@@ -332,7 +369,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r17">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r19">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -534,6 +571,37 @@
                                 <span data-pmd-i18n="consent">{{ $t['consent'] }}</span>
                             </label>
 
+                            <section id="pmd-booking-guarantee" class="pmd-booking-guarantee" hidden aria-live="polite">
+                                <div class="pmd-booking-guarantee__head">
+                                    <div>
+                                        <span class="pmd-booking-field-label" data-pmd-i18n="guarantee_title">{{ $t['guarantee_title'] }}</span>
+                                        <strong data-pmd-i18n="guarantee_intro">{{ $t['guarantee_intro'] }}</strong>
+                                    </div>
+                                    <span class="pmd-booking-guarantee__shield" aria-hidden="true">✓</span>
+                                </div>
+
+                                <p id="pmd-booking-guarantee-terms" class="pmd-booking-guarantee__terms"></p>
+
+                                <div class="pmd-booking-guarantee__amount">
+                                    <span data-pmd-i18n="guarantee_total">{{ $t['guarantee_total'] }}</span>
+                                    <strong id="pmd-booking-guarantee-total">—</strong>
+                                </div>
+
+                                <div id="pmd-booking-guarantee-unavailable" class="pmd-booking-guarantee__unavailable" hidden data-pmd-i18n="guarantee_unavailable">{{ $t['guarantee_unavailable'] }}</div>
+
+                                <div id="pmd-booking-guarantee-card-wrap" class="pmd-booking-guarantee__card-wrap">
+                                    <span class="pmd-booking-field-label" data-pmd-i18n="guarantee_card">{{ $t['guarantee_card'] }}</span>
+                                    <div id="pmd-booking-guarantee-card" class="pmd-booking-guarantee__card"></div>
+                                    <div id="pmd-booking-guarantee-card-error" class="pmd-booking-guarantee__card-error" role="alert"></div>
+                                    <small data-pmd-i18n="guarantee_secure">{{ $t['guarantee_secure'] }}</small>
+                                </div>
+
+                                <label class="pmd-booking-consent pmd-booking-guarantee__consent">
+                                    <input id="pmd-booking-guarantee-consent" type="checkbox" value="1">
+                                    <span id="pmd-booking-guarantee-consent-copy">{{ $bookingGuarantee['consentText'] ?? '' }}</span>
+                                </label>
+                            </section>
+
                             <div id="pmd-booking-errors" class="pmd-booking-errors" role="alert" aria-live="assertive"></div>
 
                             <button id="pmd-booking-submit" class="pmd-booking-submit" type="submit" disabled>
@@ -609,6 +677,14 @@
                     </div>
                 </div>
 
+                <div id="pmd-booking-success-guarantee" class="pmd-booking-success__guarantee" hidden>
+                    <div>
+                        <span data-pmd-i18n="guarantee_success">{{ $t['guarantee_success'] }}</span>
+                        <strong id="pmd-booking-success-guarantee-amount">—</strong>
+                    </div>
+                    <p id="pmd-booking-success-guarantee-terms"></p>
+                </div>
+
                 <div class="pmd-booking-success__actions">
                     <a id="pmd-booking-calendar" href="#" download="reservation.ics" data-pmd-i18n="add_calendar">{{ $t['add_calendar'] }}</a>
                     <a id="pmd-booking-manage-link" href="{{ url('/book') }}?manage=1&lang={{ $bookingLocale }}" data-pmd-i18n="manage_booking">{{ $t['manage_booking'] }}</a>
@@ -635,6 +711,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r17" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r19" defer></script>
 </body>
 </html>

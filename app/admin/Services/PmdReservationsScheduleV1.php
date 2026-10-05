@@ -3,8 +3,11 @@
 namespace Admin\Services;
 
 use Admin\Classes\PmdPlatformI18n;
+use Admin\Facades\AdminAuth;
 use Admin\Models\Reservations_model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -32,6 +35,7 @@ final class PmdReservationsScheduleV1
         }
 
         $reservations = [];
+        $canManageGuarantees = $this->canManageGuarantees();
 
         if ($locationId > 0) {
             try {
@@ -54,8 +58,28 @@ final class PmdReservationsScheduleV1
                     ->limit($dateFilter !== null ? 500 : 1500)
                     ->get();
 
+                $guarantees = collect();
+                if (
+                    $rows->isNotEmpty()
+                    && Schema::hasTable('reservation_guarantees')
+                ) {
+                    $guarantees = DB::table('reservation_guarantees')
+                        ->whereIn(
+                            'reservation_id',
+                            $rows->pluck('reservation_id')
+                                ->map(static fn ($id) => (int)$id)
+                                ->filter()
+                                ->values()
+                                ->all()
+                        )
+                        ->get()
+                        ->keyBy('reservation_id');
+                }
+
+                $nowUtc = Carbon::now('UTC');
+
                 $reservations = $rows
-                    ->map(static function ($reservation): array {
+                    ->map(static function ($reservation) use ($guarantees, $nowUtc, $canManageGuarantees): array {
                         $date = '';
                         try {
                             $date = $reservation->reserve_date
@@ -97,6 +121,38 @@ final class PmdReservationsScheduleV1
                         $lastName = trim((string)$reservation->last_name);
                         $customerName = trim($firstName.' '.$lastName);
 
+                        $guarantee = $guarantees->get(
+                            (int)$reservation->reservation_id
+                        );
+                        $guaranteeStatus = $guarantee
+                            ? (string)$guarantee->status
+                            : 'none';
+                        $guaranteeEligibleAt = $guarantee
+                            ? (string)($guarantee->charge_eligible_at ?? '')
+                            : '';
+                        $guaranteeCanCharge = false;
+                        if (
+                            $guarantee
+                            && in_array(
+                                $guaranteeStatus,
+                                ['active', 'charge_failed'],
+                                true
+                            )
+                            && $guaranteeEligibleAt !== ''
+                        ) {
+                            try {
+                                $guaranteeCanCharge = $nowUtc
+                                    ->greaterThanOrEqualTo(
+                                        Carbon::parse(
+                                            $guaranteeEligibleAt,
+                                            'UTC'
+                                        )
+                                    );
+                            } catch (Throwable $ignored) {
+                                $guaranteeCanCharge = false;
+                            }
+                        }
+
                         return [
                             'reservation_id' => (int)$reservation->reservation_id,
                             'id' => (int)$reservation->reservation_id,
@@ -122,6 +178,28 @@ final class PmdReservationsScheduleV1
                             'table_names' => $tableNames,
                             'table_id' => (int)($tableIds[0] ?? 0),
                             'table_name' => implode(', ', $tableNames),
+                            'guarantee_status' => $guaranteeStatus,
+                            'guarantee_amount_cents' => $guarantee
+                                ? (int)$guarantee->amount_cents
+                                : 0,
+                                                        'guarantee_charged_amount_cents' => (
+                                $guarantee
+                                && isset($guarantee->charged_amount_cents)
+                            )
+                                ? (int)$guarantee->charged_amount_cents
+                                : null,
+'guarantee_currency' => $guarantee
+                                ? (string)$guarantee->currency
+                                : 'EUR',
+                            'guarantee_can_charge' => $canManageGuarantees && $guaranteeCanCharge,
+                            'guarantee_can_release' => $canManageGuarantees
+                                && $guarantee
+                                && !in_array(
+                                    $guaranteeStatus,
+                                    ['released', 'charged'],
+                                    true
+                                ),
+                            'guarantee_charge_eligible_at' => $guaranteeEligibleAt,
                         ];
                     })
                     ->values()
@@ -222,7 +300,28 @@ final class PmdReservationsScheduleV1
                 ->limit($limit)
                 ->get();
 
-            return $rows->map(static function ($reservation): array {
+            $guarantees = collect();
+            if (
+                $rows->isNotEmpty()
+                && Schema::hasTable('reservation_guarantees')
+            ) {
+                $guarantees = DB::table('reservation_guarantees')
+                    ->whereIn(
+                        'reservation_id',
+                        $rows->pluck('reservation_id')
+                            ->map(static fn ($id) => (int)$id)
+                            ->filter()
+                            ->values()
+                            ->all()
+                    )
+                    ->get()
+                    ->keyBy('reservation_id');
+            }
+
+            $nowUtc = Carbon::now('UTC');
+            $canManageGuarantees = $this->canManageGuarantees();
+
+            return $rows->map(static function ($reservation) use ($guarantees, $nowUtc, $canManageGuarantees): array {
                 $date = '';
                 try {
                     $date = $reservation->reserve_date
@@ -268,6 +367,38 @@ final class PmdReservationsScheduleV1
                 $lastName = trim((string)$reservation->last_name);
                 $customerName = trim($firstName.' '.$lastName);
 
+                $guarantee = $guarantees->get(
+                    (int)$reservation->reservation_id
+                );
+                $guaranteeStatus = $guarantee
+                    ? (string)$guarantee->status
+                    : 'none';
+                $guaranteeEligibleAt = $guarantee
+                    ? (string)($guarantee->charge_eligible_at ?? '')
+                    : '';
+                $guaranteeCanCharge = false;
+                if (
+                    $guarantee
+                    && in_array(
+                        $guaranteeStatus,
+                        ['active', 'charge_failed'],
+                        true
+                    )
+                    && $guaranteeEligibleAt !== ''
+                ) {
+                    try {
+                        $guaranteeCanCharge = $nowUtc
+                            ->greaterThanOrEqualTo(
+                                Carbon::parse(
+                                    $guaranteeEligibleAt,
+                                    'UTC'
+                                )
+                            );
+                    } catch (Throwable $ignored) {
+                        $guaranteeCanCharge = false;
+                    }
+                }
+
                 return [
                     'reservation_id' => (int)$reservation->reservation_id,
                     'id' => (int)$reservation->reservation_id,
@@ -293,11 +424,46 @@ final class PmdReservationsScheduleV1
                     'table_names' => $tableNames,
                     'table_id' => (int)($tableIds[0] ?? 0),
                     'table_name' => implode(', ', $tableNames),
+                    'guarantee_status' => $guaranteeStatus,
+                    'guarantee_amount_cents' => $guarantee
+                        ? (int)$guarantee->amount_cents
+                        : 0,
+                                                'guarantee_charged_amount_cents' => (
+                                $guarantee
+                                && isset($guarantee->charged_amount_cents)
+                            )
+                                ? (int)$guarantee->charged_amount_cents
+                                : null,
+'guarantee_currency' => $guarantee
+                        ? (string)$guarantee->currency
+                        : 'EUR',
+                    'guarantee_can_charge' => $canManageGuarantees && $guaranteeCanCharge,
+                    'guarantee_can_release' => $canManageGuarantees
+                        && $guarantee
+                        && !in_array(
+                            $guaranteeStatus,
+                            ['released', 'charged'],
+                            true
+                        ),
+                    'guarantee_charge_eligible_at' => $guaranteeEligibleAt,
                 ];
             })->values()->all();
         } catch (Throwable $error) {
             report($error);
             return [];
+        }
+    }
+
+    private function canManageGuarantees(): bool
+    {
+        try {
+            $user = AdminAuth::getUser();
+
+            return $user
+                && $user->hasPermission('Admin.Reservations')
+                && $user->hasPermission('Admin.Payments');
+        } catch (Throwable $error) {
+            return false;
         }
     }
 

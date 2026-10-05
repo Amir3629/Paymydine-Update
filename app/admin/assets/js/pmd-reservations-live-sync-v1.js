@@ -33,7 +33,15 @@
         cancelled: 'Storniert',
         arrived: 'Angekommen',
         completed: 'Abgeschlossen',
-        scheduled: 'Geplant'
+        scheduled: 'Geplant',
+        guarantee: 'Kartengarantie',
+        charge: 'No-Show belasten',
+        release: 'Garantie freigeben',
+        charged: 'Belastet',
+        released: 'Freigegeben',
+        chargeConfirm: 'Gast als No-Show markieren. Welcher tatsächliche Ausfallbetrag soll belastet werden? Der Betrag darf die vereinbarte Höchstgrenze nicht überschreiten.',
+        chargePrompt: 'Ausfallentschädigung in EUR (maximal {amount})',
+        releaseConfirm: 'Kartengarantie freigeben? Danach kann keine No-Show-Belastung mehr durchgeführt werden.'
       };
     }
     if (code === 'tr') {
@@ -51,7 +59,15 @@
         cancelled: 'İptal edildi',
         arrived: 'Geldi',
         completed: 'Tamamlandı',
-        scheduled: 'Planlandı'
+        scheduled: 'Planlandı',
+        guarantee: 'Kart garantisi',
+        charge: 'No-show tahsil et',
+        release: 'Garantiyi serbest bırak',
+        charged: 'Tahsil edildi',
+        released: 'Serbest bırakıldı',
+        chargeConfirm: 'Misafiri no-show olarak işaretleyin. Gerçek kayıp için ne kadar tahsil edilsin? Tutar kabul edilen azami sınırı aşamaz.',
+        chargePrompt: 'No-show tazminatı EUR (en fazla {amount})',
+        releaseConfirm: 'Kart garantisi serbest bırakılsın mı? Bundan sonra no-show tahsilatı yapılamaz.'
       };
     }
     return {
@@ -68,7 +84,15 @@
       cancelled: 'Cancelled',
       arrived: 'Arrived',
       completed: 'Completed',
-      scheduled: 'Scheduled'
+      scheduled: 'Scheduled',
+      guarantee: 'Card guarantee',
+      charge: 'Charge no-show',
+      release: 'Release guarantee',
+      charged: 'Charged',
+      released: 'Released',
+      chargeConfirm: 'Mark this guest as a no-show. Enter the actual compensation to charge; it cannot exceed the agreed maximum.',
+      chargePrompt: 'No-show compensation in EUR (maximum {amount})',
+      releaseConfirm: 'Release this card guarantee? No later no-show charge will be possible.'
     };
   }
 
@@ -154,6 +178,88 @@
 
   function statusLabel(key, labels) {
     return labels[key] || labels.scheduled;
+  }
+
+  function money(cents, currency) {
+    var amount = Math.max(0, Number(cents || 0)) / 100;
+    try {
+      var locale = lang() === 'de' ? 'de-DE' : (lang() === 'tr' ? 'tr-TR' : 'en-GB');
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: String(currency || 'EUR').toUpperCase()
+      }).format(amount);
+    } catch (_) {
+      return amount.toFixed(2) + ' ' + String(currency || 'EUR').toUpperCase();
+    }
+  }
+
+  function guaranteeFooter(row, labels) {
+    var status = String(row.guarantee_status || 'none');
+    if (status === 'none') return '';
+
+    var amountCents = status === 'charged' && row.guarantee_charged_amount_cents != null
+      ? row.guarantee_charged_amount_cents
+      : row.guarantee_amount_cents;
+    var amount = money(amountCents || 0, row.guarantee_currency || 'EUR');
+    var statusLabel = status === 'charged'
+      ? labels.charged
+      : (status === 'released' ? labels.released : labels.guarantee);
+
+    var html =
+      '<span class="pmd-reservation-guarantee-badge is-' + esc(status) + '">' +
+        esc(statusLabel) + ' · ' + esc(amount) +
+      '</span>';
+
+    if (row.guarantee_can_charge) {
+      html +=
+        '<button type="button" class="pmd-reservation-guarantee-action is-charge"' +
+        ' data-pmd-guarantee-charge="' + esc(reservationId(row)) + '"' +
+        ' data-pmd-guarantee-max-cents="' + esc(row.guarantee_amount_cents || 0) + '"' +
+        ' data-pmd-guarantee-currency="' + esc(row.guarantee_currency || 'EUR') + '">' +
+        esc(labels.charge) +
+        '</button>';
+    }
+
+    if (row.guarantee_can_release) {
+      html +=
+        '<button type="button" class="pmd-reservation-guarantee-action"' +
+        ' data-pmd-guarantee-release="' + esc(reservationId(row)) + '">' +
+        esc(labels.release) +
+        '</button>';
+    }
+
+    return html;
+  }
+
+  function ajax(handler, reservationId, extra) {
+    var csrf = document.querySelector('meta[name="csrf-token"]');
+    var body = Object.assign(
+      {reservation_id: Number(reservationId || 0)},
+      extra || {}
+    );
+
+    return fetch('/admin/reservations', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': csrf ? csrf.getAttribute('content') : '',
+        'X-IGNITER-REQUEST-HANDLER': handler
+      },
+      body: JSON.stringify(body)
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (payload) {
+        if (!response.ok || !payload || payload.success === false) {
+          throw new Error(
+            (payload && (payload.message || payload.error)) ||
+            ('HTTP ' + response.status)
+          );
+        }
+        return payload;
+      });
+    });
   }
 
   function dateLabel(value) {
@@ -242,6 +348,7 @@
             ' data-pmd-reservations-card-time="' + esc(time === '—' ? '' : time) + '">' +
             esc(labels.open) +
           '</a>' +
+          guaranteeFooter(row, labels) +
         '</footer>';
 
       grid.appendChild(article);
@@ -270,8 +377,104 @@
     apply(event && event.detail ? event.detail : {});
   });
 
+  document.addEventListener('click', function (event) {
+    var charge = event.target && event.target.closest
+      ? event.target.closest('[data-pmd-guarantee-charge]')
+      : null;
+    var release = event.target && event.target.closest
+      ? event.target.closest('[data-pmd-guarantee-release]')
+      : null;
+
+    if (!charge && !release) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    var labels = text();
+    var button = charge || release;
+    var reservationId = Number(
+      button.getAttribute(
+        charge ? 'data-pmd-guarantee-charge' : 'data-pmd-guarantee-release'
+      ) || 0
+    );
+
+    if (!reservationId) return;
+
+    var extra = {};
+
+    if (charge) {
+      if (!window.confirm(labels.chargeConfirm)) return;
+
+      var maxCents = Math.max(
+        0,
+        Number(button.getAttribute('data-pmd-guarantee-max-cents') || 0)
+      );
+      var currency = String(
+        button.getAttribute('data-pmd-guarantee-currency') || 'EUR'
+      ).toUpperCase();
+      var maxDisplay = (maxCents / 100).toFixed(2) + ' ' + currency;
+      var promptText = String(labels.chargePrompt || 'No-show compensation (maximum {amount})')
+        .replace('{amount}', maxDisplay);
+      var entered = window.prompt(promptText, (maxCents / 100).toFixed(2));
+
+      if (entered === null) return;
+
+      var normalized = String(entered)
+        .trim()
+        .replace(/\s+/g, '')
+        .replace(',', '.');
+      var amount = Number(normalized);
+      var amountCents = Math.round(amount * 100);
+
+      if (
+        !Number.isFinite(amount) ||
+        amountCents < 1 ||
+        amountCents > maxCents
+      ) {
+        window.alert(promptText);
+        return;
+      }
+
+      extra.amount_cents = amountCents;
+    } else if (!window.confirm(labels.releaseConfirm)) {
+      return;
+    }
+
+    button.disabled = true;
+
+    ajax(
+      charge ? 'onChargeNoShowGuarantee' : 'onReleaseReservationGuarantee',
+      reservationId,
+      extra
+    ).then(function (payload) {
+      try {
+        window.dispatchEvent(new CustomEvent('pmd:reservation-saved', {
+          detail: {
+            reservation_id: reservationId,
+            guarantee_action: charge ? 'charged' : 'released'
+          }
+        }));
+      } catch (_) {}
+
+      if (payload && payload.message && window.PMDToast && typeof window.PMDToast.show === 'function') {
+        window.PMDToast.show(payload.message, 'success');
+      }
+    }).catch(function (error) {
+      button.disabled = false;
+      window.alert(error && error.message ? error.message : 'Guarantee action failed.');
+    });
+  });
+
+  try {
+    var bootNode = document.getElementById('pmd-reservations-schedule-bootstrap-v1');
+    var boot = bootNode ? JSON.parse(bootNode.textContent || '{}') : null;
+    if (boot && Array.isArray(boot.reservations)) {
+      renderCards(boot);
+    }
+  } catch (_) {}
+
   window.PMDReservationsPublicBookingLiveSyncR18 = {
-    version: '1.0.0-r18',
+    version: '1.1.0-r19',
     applyLivePayload: apply,
     renderCards: renderCards
   };

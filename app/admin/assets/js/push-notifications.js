@@ -276,7 +276,10 @@
       } else if (
         notif.type === 'reservation_created' ||
         notif.type === 'reservation_updated' ||
-        notif.type === 'reservation_canceled'
+        notif.type === 'reservation_canceled' ||
+        notif.type === 'reservation_no_show_charged' ||
+        notif.type === 'reservation_no_show_charge_failed' ||
+        notif.type === 'reservation_guarantee_released'
       ) {
         const reference = payload.reference || (
           payload.reservation_id ? 'R' + String(payload.reservation_id).padStart(6, '0') : ''
@@ -284,14 +287,28 @@
         const actionLabels = {
           reservation_created: 'New online reservation',
           reservation_updated: 'Reservation updated by guest',
-          reservation_canceled: 'Reservation canceled by guest'
+          reservation_canceled: 'Reservation canceled by guest',
+          reservation_no_show_charged: 'No-show charge completed',
+          reservation_no_show_charge_failed: 'No-show charge needs attention',
+          reservation_guarantee_released: 'Card guarantee released'
         };
         title = reference || 'Reservation';
         message = notif.message || actionLabels[notif.type] || 'Reservation changed';
         statusName = notif.type === 'reservation_canceled'
           ? 'Canceled'
-          : (notif.type === 'reservation_created' ? 'New' : 'Updated');
-        statusColor = notif.type === 'reservation_canceled' ? '#e74c3c' : '#08815e';
+          : (notif.type === 'reservation_created'
+            ? 'New'
+            : (notif.type === 'reservation_no_show_charged'
+              ? 'Charged'
+              : (notif.type === 'reservation_no_show_charge_failed'
+                ? 'Attention'
+                : (notif.type === 'reservation_guarantee_released'
+                  ? 'Released'
+                  : 'Updated'))));
+        statusColor = (
+          notif.type === 'reservation_canceled' ||
+          notif.type === 'reservation_no_show_charge_failed'
+        ) ? '#e74c3c' : '#08815e';
       } else if (notif.type === 'table_move') {
         message = payload.source_table_name && payload.dest_table_name
           ? payload.source_table_name + ' move to ' + payload.dest_table_name

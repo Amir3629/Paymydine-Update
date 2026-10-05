@@ -80,7 +80,7 @@
          Reservation mode reuses the canonical Composer but keeps the Quick POS
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20260928-r129">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20261005-r19">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
 </head>
 <body class="pmd-qpos-body">
@@ -1209,7 +1209,7 @@ window.PMDQuickPOSConfig = {
         ).then(function () {
             return loadScript(
                 'pmd-qpos-reservations-r135',
-                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261005-r18',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261005-r19',
                 function () { return !!window.PMDQuickReservationsR136; }
             );
         });
@@ -1226,7 +1226,7 @@ window.PMDQuickPOSConfig = {
     function loadBackgroundExtras() {
         loadScript(
             'pmd-qpos-push-r135',
-            '/app/admin/assets/js/push-notifications.js?v=20261005-r18',
+            '/app/admin/assets/js/push-notifications.js?v=20261005-r19',
             function () {
                 return window.PushNotificationManagerInitialized === true
                     || window.PushNotificationManagerInitialized === 'claiming';

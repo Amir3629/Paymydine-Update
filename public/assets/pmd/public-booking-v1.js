@@ -38,11 +38,23 @@
   var successDate = document.getElementById("pmd-booking-success-date");
   var successTime = document.getElementById("pmd-booking-success-time");
   var successParty = document.getElementById("pmd-booking-success-party");
+  var successGuarantee = document.getElementById("pmd-booking-success-guarantee");
+  var successGuaranteeAmount = document.getElementById("pmd-booking-success-guarantee-amount");
+  var successGuaranteeTerms = document.getElementById("pmd-booking-success-guarantee-terms");
   var calendarLink = document.getElementById("pmd-booking-calendar");
   var manageLink = document.getElementById("pmd-booking-manage-link");
   var manageExistingLink = document.getElementById("pmd-booking-manage-existing");
   var manageTopLink = document.getElementById("pmd-booking-manage-top");
   var csrf = document.querySelector('meta[name="csrf-token"]');
+  var guaranteeSection = document.getElementById("pmd-booking-guarantee");
+  var guaranteeTerms = document.getElementById("pmd-booking-guarantee-terms");
+  var guaranteeTotal = document.getElementById("pmd-booking-guarantee-total");
+  var guaranteeUnavailable = document.getElementById("pmd-booking-guarantee-unavailable");
+  var guaranteeCardWrap = document.getElementById("pmd-booking-guarantee-card-wrap");
+  var guaranteeCardNode = document.getElementById("pmd-booking-guarantee-card");
+  var guaranteeCardError = document.getElementById("pmd-booking-guarantee-card-error");
+  var guaranteeConsent = document.getElementById("pmd-booking-guarantee-consent");
+  var guaranteeConsentCopy = document.getElementById("pmd-booking-guarantee-consent-copy");
 
   if (!form || !dateInput || !guestInput || !timeInput || !times || !submit) return;
 
@@ -59,6 +71,11 @@
   };
   var availabilityAbort = null;
   var dateStatusAbort = null;
+  var stripePromise = null;
+  var stripeClient = null;
+  var stripeCard = null;
+  var guaranteeCardComplete = false;
+  var guaranteeCardLoadFailed = false;
   var dateStatuses = {};
   var availabilityCache = Object.create(null);
   var capacityCache = Object.create(null);
@@ -252,6 +269,269 @@
     return String(config.locale || "").toLowerCase().slice(0, 2);
   }
 
+  function currentGuaranteeConfig() {
+    var base = config.guarantee || {};
+    var packs = config.guaranteeByLocale || {};
+    var localized = packs[activeLanguageCode()] || {};
+    return Object.assign({}, base, localized, {
+      setupUrl: base.setupUrl || "/book/guarantee/setup"
+    });
+  }
+
+  function guaranteeRequired() {
+    var guarantee = currentGuaranteeConfig();
+    return Boolean(
+      guarantee.enabled &&
+      Number(guarantee.amountPerGuestCents || 0) > 0 &&
+      state.guests >= Math.max(1, Number(guarantee.minGuests || 1))
+    );
+  }
+
+  function guaranteeMoney(cents, currency) {
+    var amount = Math.max(0, Number(cents || 0)) / 100;
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: String(currency || "EUR").toUpperCase()
+      }).format(amount);
+    } catch (_) {
+      return amount.toFixed(2) + " " + String(currency || "EUR").toUpperCase();
+    }
+  }
+
+  function syncSubmitState() {
+    var guarantee = currentGuaranteeConfig();
+    var guaranteeBlocked = guaranteeRequired() && (
+      !guarantee.providerReady ||
+      !guaranteeCardComplete ||
+      !guaranteeConsent ||
+      !guaranteeConsent.checked ||
+      guaranteeCardLoadFailed
+    );
+
+    submit.disabled = !state.time || state.loading || guaranteeBlocked;
+  }
+
+  function loadStripeRuntime() {
+    if (window.Stripe) return Promise.resolve(window.Stripe);
+    if (stripePromise) return stripePromise;
+
+    stripePromise = new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[src^="https://js.stripe.com/v3"]');
+      if (existing) {
+        existing.addEventListener("load", function () {
+          window.Stripe ? resolve(window.Stripe) : reject(new Error("Stripe could not be loaded."));
+        }, { once: true });
+        existing.addEventListener("error", function () {
+          reject(new Error("Stripe could not be loaded."));
+        }, { once: true });
+        return;
+      }
+
+      var script = document.createElement("script");
+      script.src = "https://js.stripe.com/v3/";
+      script.async = true;
+      script.onload = function () {
+        window.Stripe ? resolve(window.Stripe) : reject(new Error("Stripe could not be loaded."));
+      };
+      script.onerror = function () {
+        reject(new Error("Stripe could not be loaded."));
+      };
+      document.head.appendChild(script);
+    });
+
+    return stripePromise;
+  }
+
+  function ensureStripeCard() {
+    var guarantee = currentGuaranteeConfig();
+    if (!guaranteeRequired() || !guarantee.providerReady) {
+      return Promise.resolve(null);
+    }
+    if (stripeCard && stripeClient) return Promise.resolve(stripeCard);
+
+    guaranteeCardLoadFailed = false;
+
+    return loadStripeRuntime().then(function (StripeFactory) {
+      if (!stripeClient) {
+        stripeClient = StripeFactory(String(guarantee.publishableKey || ""));
+      }
+
+      if (!stripeClient) throw new Error("Stripe could not be initialized.");
+
+      if (!stripeCard) {
+        var elements = stripeClient.elements();
+        stripeCard = elements.create("card", {
+          hidePostalCode: false,
+          style: {
+            base: {
+              fontSize: "16px",
+              fontFamily: "Arial, sans-serif"
+            }
+          }
+        });
+        stripeCard.mount("#pmd-booking-guarantee-card");
+        stripeCard.on("change", function (event) {
+          guaranteeCardComplete = Boolean(event && event.complete);
+          if (guaranteeCardError) {
+            guaranteeCardError.textContent = event && event.error
+              ? String(event.error.message || "")
+              : "";
+          }
+          syncSubmitState();
+        });
+      }
+
+      return stripeCard;
+    }).catch(function (error) {
+      guaranteeCardLoadFailed = true;
+      guaranteeCardComplete = false;
+      if (guaranteeCardError) {
+        guaranteeCardError.textContent = error && error.message
+          ? error.message
+          : (labels.guarantee_unavailable || "Card guarantee is unavailable.");
+      }
+      syncSubmitState();
+      throw error;
+    });
+  }
+
+  function renderGuarantee() {
+    if (!guaranteeSection) return;
+
+    var guarantee = currentGuaranteeConfig();
+    var required = guaranteeRequired();
+
+    guaranteeSection.hidden = !required;
+
+    if (!required) {
+      if (guaranteeConsent) guaranteeConsent.checked = false;
+      var normalLabel = submit.querySelector("span");
+      if (normalLabel) normalLabel.textContent = labels.book_table || "Request this table";
+      syncSubmitState();
+      return;
+    }
+
+    if (guaranteeTerms) guaranteeTerms.textContent = String(guarantee.termsText || "");
+    if (guaranteeConsentCopy) guaranteeConsentCopy.textContent = String(guarantee.consentText || "");
+    if (guaranteeTotal) {
+      guaranteeTotal.textContent = guaranteeMoney(
+        Number(guarantee.amountPerGuestCents || 0) * state.guests,
+        guarantee.currency || "EUR"
+      );
+    }
+
+    if (guaranteeUnavailable) guaranteeUnavailable.hidden = Boolean(guarantee.providerReady);
+    if (guaranteeCardWrap) guaranteeCardWrap.hidden = !guarantee.providerReady;
+
+    var label = submit.querySelector("span");
+    if (label) {
+      var maximum = guaranteeMoney(
+        Number(guarantee.amountPerGuestCents || 0) * state.guests,
+        guarantee.currency || "EUR"
+      );
+      label.textContent = String(
+        guarantee.buttonText ||
+        labels.book_table ||
+        "Confirm reservation"
+      ) + " " + maximum;
+    }
+
+    if (guarantee.providerReady) {
+      ensureStripeCard().catch(function () {});
+    }
+
+    syncSubmitState();
+  }
+
+  function verifyGuaranteeForBooking(payload) {
+    var guarantee = currentGuaranteeConfig();
+
+    payload._pmd_booking_locale = activeLanguageCode();
+
+    if (!guaranteeRequired()) {
+      return Promise.resolve(payload);
+    }
+
+    if (!guarantee.providerReady) {
+      return Promise.reject(new Error(
+        labels.guarantee_unavailable || "Card guarantee is unavailable."
+      ));
+    }
+
+    if (!guaranteeConsent || !guaranteeConsent.checked) {
+      return Promise.reject(new Error(
+        guarantee.consentText || "Please accept the card guarantee terms."
+      ));
+    }
+
+    if (!guaranteeCardComplete) {
+      return Promise.reject(new Error("Please complete the card details."));
+    }
+
+    return ensureStripeCard().then(function () {
+      var setupPayload = {
+        first_name: payload.first_name || "",
+        last_name: payload.last_name || "",
+        email: payload.email || "",
+        reserve_date: state.date,
+        reserve_time: state.time,
+        guest_num: state.guests,
+        locale: activeLanguageCode()
+      };
+
+      return fetch(guarantee.setupUrl || "/book/guarantee/setup", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrf ? csrf.getAttribute("content") : ""
+        },
+        body: JSON.stringify(setupPayload)
+      });
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (setup) {
+        if (!response.ok || !setup.success || !setup.client_secret) {
+          var messages = responseErrors(setup);
+          throw new Error(messages[0] || "Card verification could not be started.");
+        }
+        return setup;
+      });
+    }).then(function (setup) {
+      if (!stripeClient || !stripeCard) {
+        throw new Error("Card verification is unavailable.");
+      }
+
+      var holderName = String(
+        (payload.first_name || "") + " " + (payload.last_name || "")
+      ).trim();
+
+      return stripeClient.confirmCardSetup(setup.client_secret, {
+        payment_method: {
+          card: stripeCard,
+          billing_details: {
+            name: holderName,
+            email: payload.email || ""
+          }
+        }
+      });
+    }).then(function (result) {
+      if (result && result.error) {
+        throw new Error(result.error.message || "Card verification failed.");
+      }
+
+      var intent = result && result.setupIntent ? result.setupIntent : null;
+      if (!intent || intent.status !== "succeeded" || !intent.id) {
+        throw new Error("Please complete the card verification.");
+      }
+
+      payload._pmd_guarantee_setup_intent = String(intent.id);
+      payload._pmd_guarantee_terms_accepted = "1";
+      return payload;
+    });
+  }
+
   function applyLanguage(code, updateUrl) {
     code = String(code || "").toLowerCase().slice(0, 2);
     var packs = config.labelsByLocale || {};
@@ -278,6 +558,7 @@
     translateStaticContent();
     renderDateStrip();
     renderSummary();
+    renderGuarantee();
 
     var instant = cachedAvailability(state.date, state.guests);
     if (instant) {
@@ -463,7 +744,8 @@
     guestInput.value = String(state.guests);
     dateInput.value = state.date;
     timeInput.value = state.time;
-    submit.disabled = !state.time || state.loading;
+    syncSubmitState();
+    renderGuarantee();
   }
 
   function loadingState() {
@@ -756,15 +1038,26 @@
     var previousLabel = originalText ? originalText.textContent : "";
     if (originalText) originalText.textContent = labels.booking || "Saving your reservation…";
 
-    fetch(config.storeUrl, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "X-CSRF-TOKEN": csrf ? csrf.getAttribute("content") : ""
-      },
-      body: JSON.stringify(formPayload())
+    var bookingPayload = formPayload();
+    bookingPayload._pmd_booking_locale = activeLanguageCode();
+
+    if (guaranteeRequired() && originalText) {
+      originalText.textContent = labels.guarantee_verifying || "Verifying card…";
+    }
+
+    verifyGuaranteeForBooking(bookingPayload).then(function (verifiedPayload) {
+      if (originalText) originalText.textContent = labels.booking || "Saving your reservation…";
+
+      return fetch(config.storeUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-CSRF-TOKEN": csrf ? csrf.getAttribute("content") : ""
+        },
+        body: JSON.stringify(verifiedPayload)
+      });
     }).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (payload) {
         if (!response.ok || !payload.success) {
@@ -778,8 +1071,9 @@
       showSuccess(payload);
     }).catch(function (error) {
       state.loading = false;
-      submit.disabled = false;
       if (originalText) originalText.textContent = previousLabel;
+      renderGuarantee();
+      syncSubmitState();
       var messages = error && error.payload ? responseErrors(error.payload) : [error.message];
       setErrors(messages);
       if (error && error.payload && error.payload.errors && error.payload.errors.reserve_time) {
@@ -850,6 +1144,23 @@
     if (successDate) successDate.textContent = formatDate(reservation.date || state.date, true);
     if (successTime) successTime.textContent = reservation.time || state.time;
     if (successParty) successParty.textContent = partyLabel(Number(reservation.guests || state.guests));
+
+    var guarantee = payload.guarantee || null;
+    if (successGuarantee) {
+      successGuarantee.hidden = !guarantee;
+    }
+    if (successGuaranteeAmount && guarantee) {
+      successGuaranteeAmount.textContent = guaranteeMoney(
+        Number(guarantee.amount_cents || 0),
+        guarantee.currency || "EUR"
+      );
+    }
+    if (successGuaranteeTerms) {
+      successGuaranteeTerms.textContent = guarantee
+        ? String(guarantee.terms_text || "")
+        : "";
+    }
+
     if (calendarLink) calendarLink.href = calendarHref(payload);
     if (manageLink && payload.manage_url) {
       var manageUrl = new URL(payload.manage_url, window.location.origin);
@@ -872,6 +1183,10 @@
     availabilityCache = Object.create(null);
     syncDateStatusesForGuests(state.guests);
     state.loading = false;
+    guaranteeCardComplete = false;
+    guaranteeCardLoadFailed = false;
+    if (guaranteeConsent) guaranteeConsent.checked = false;
+    if (stripeCard && typeof stripeCard.clear === "function") stripeCard.clear();
     setErrors([]);
     if (workspace) workspace.hidden = false;
     if (success) success.hidden = true;
@@ -929,6 +1244,12 @@
   var plus = form.querySelector("[data-pmd-party-plus]");
   if (minus) minus.addEventListener("click", function () { adjustGuests(-1); });
   if (plus) plus.addEventListener("click", function () { adjustGuests(1); });
+
+  if (guaranteeConsent) {
+    guaranteeConsent.addEventListener("change", function () {
+      syncSubmitState();
+    });
+  }
 
   form.addEventListener("submit", submitBooking);
 

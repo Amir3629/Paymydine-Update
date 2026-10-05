@@ -12,6 +12,7 @@ use Admin\Services\PmdCleanWorkspaceSharedV1;
 use Admin\Services\PmdReservationsScheduleV1;
 use Admin\Services\ReservationComposerService;
 use Admin\Services\PmdSharedFloorRegistryV1;
+use App\Services\Reservations\PmdReservationGuaranteeService;
 use Carbon\Carbon;
 use Exception;
 use Igniter\Flame\Exception\ApplicationException;
@@ -88,6 +89,7 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         parent::__construct();
         $this->addCss('css/pmd-reservations-schedule-v1.css');
         $this->addCss('css/pmd-cashier-lab-orders-v1.css');
+        $this->addCss('css/pmd-reservations-guarantee-v1.css');
         $this->addJs('js/pmd-reservations-table-card-filter-v1.js');
         $this->addJs('js/pmd-reservations-live-sync-v1.js');
     }
@@ -221,6 +223,268 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         }
     }
 
+    public function onChargeNoShowGuarantee()
+    {
+        $user = $this->getUser();
+        if (!$user || !$user->hasPermission('Admin.Payments')) {
+            abort(403, 'Payment permission required.');
+        }
+
+        $reservationId = (int)post('reservation_id', 0);
+        if ($reservationId < 1) {
+            throw ValidationException::withMessages([
+                'reservation_id' => 'Reservation is required.',
+            ]);
+        }
+
+        $reservation = Reservations_model::query()
+            ->with(['tables', 'status', 'location'])
+            ->find($reservationId);
+
+        if (!$reservation) {
+            throw ValidationException::withMessages([
+                'reservation_id' => 'Reservation was not found.',
+            ]);
+        }
+
+        $service = app(PmdReservationGuaranteeService::class);
+        $maximum = $service->adminPayloadForReservation($reservationId);
+        $requestedAmountCents = (int)post(
+            'amount_cents',
+            (int)($maximum['amount_cents'] ?? 0)
+        );
+
+        if (
+            $requestedAmountCents < 1
+            || $requestedAmountCents > (int)($maximum['amount_cents'] ?? 0)
+        ) {
+            throw ValidationException::withMessages([
+                'amount_cents' => 'Enter an amount between 0.01 and the maximum accepted by the guest.',
+            ]);
+        }
+
+        $result = $service->chargeNoShow(
+            $reservation,
+            $requestedAmountCents
+        );
+
+        if (!empty($result['already_charged'])) {
+            $amount = number_format(
+                ((int)($result['amount_cents'] ?? 0)) / 100,
+                2,
+                '.',
+                ''
+            );
+            $currency = strtoupper((string)($result['currency'] ?? 'EUR'));
+
+            return [
+                'success' => true,
+                'message' => 'No-show compensation was already charged: '
+                    .$amount.' '.$currency.'.',
+                'guarantee' => $service->adminPayloadForReservation($reservationId),
+            ];
+        }
+
+        if (!empty($result['success'])) {
+            $amount = number_format(
+                ((int)($result['amount_cents'] ?? 0)) / 100,
+                2,
+                '.',
+                ''
+            );
+            $currency = strtoupper((string)($result['currency'] ?? 'EUR'));
+            $historyComment = 'No-show recorded. Card guarantee charged '
+                .$amount.' '.$currency.'.';
+
+            $noShowStatusId = (int)setting('no_show_reservation_status', 0);
+            try {
+                $status = $noShowStatusId > 0
+                    ? Statuses_model::isForReservation()
+                        ->where('status_id', $noShowStatusId)
+                        ->first()
+                    : null;
+
+                $history = $reservation->addStatusHistory(
+                    $status ? (int)$status->status_id : (int)$reservation->status_id,
+                    [
+                        'comment' => $historyComment,
+                        'staff_id' => (int)$user->getKey(),
+                    ]
+                );
+
+                if ($history) {
+                    StatusUpdated::log($history, $this->getUser());
+                }
+            } catch (Throwable $historyError) {
+                logger()->warning('PMD no-show guarantee history failed', [
+                    'reservation_id' => $reservationId,
+                    'message' => $historyError->getMessage(),
+                ]);
+            }
+
+            $this->pmdReservationGuaranteeNotification(
+                $reservation,
+                'reservation_no_show_charged',
+                'No-show charge completed',
+                $historyComment,
+                'high'
+            );
+
+            return [
+                'success' => true,
+                'message' => $historyComment,
+                'guarantee' => $service->adminPayloadForReservation($reservationId),
+            ];
+        }
+
+        $message = (string)($result['message'] ?? 'The no-show charge was not completed.');
+
+        $this->pmdReservationGuaranteeNotification(
+            $reservation,
+            'reservation_no_show_charge_failed',
+            'No-show charge needs attention',
+            $message,
+            'high'
+        );
+
+        return [
+            'success' => false,
+            'message' => $message,
+            'requires_action' => !empty($result['requires_action']),
+            'guarantee' => $service->adminPayloadForReservation($reservationId),
+        ];
+    }
+
+    public function onReleaseReservationGuarantee()
+    {
+        $user = $this->getUser();
+        if (!$user || !$user->hasPermission('Admin.Payments')) {
+            abort(403, 'Payment permission required.');
+        }
+
+        $reservationId = (int)post('reservation_id', 0);
+        if ($reservationId < 1) {
+            throw ValidationException::withMessages([
+                'reservation_id' => 'Reservation is required.',
+            ]);
+        }
+
+        $reservation = Reservations_model::query()
+            ->with(['tables', 'status', 'location'])
+            ->find($reservationId);
+
+        if (!$reservation) {
+            throw ValidationException::withMessages([
+                'reservation_id' => 'Reservation was not found.',
+            ]);
+        }
+
+        $service = app(PmdReservationGuaranteeService::class);
+        $before = $service->adminPayloadForReservation($reservationId);
+
+        if ((string)($before['status'] ?? 'none') === 'charged') {
+            throw ValidationException::withMessages([
+                'reservation_id' => 'This guarantee has already been charged and cannot be released.',
+            ]);
+        }
+
+        if ((string)($before['status'] ?? 'none') === 'released') {
+            return [
+                'success' => true,
+                'message' => 'Card guarantee was already released.',
+                'guarantee' => $before,
+            ];
+        }
+
+        if (!$service->releaseGuarantee(
+            $reservation,
+            'released_by_admin_staff'
+        )) {
+            throw ValidationException::withMessages([
+                'reservation_id' => 'The card guarantee could not be released.',
+            ]);
+        }
+
+        try {
+            $history = $reservation->addStatusHistory(
+                (int)$reservation->status_id,
+                [
+                    'comment' => 'Card guarantee released by staff. No no-show charge was made.',
+                    'staff_id' => (int)$user->getKey(),
+                ]
+            );
+
+            if (is_object($history)) {
+                StatusUpdated::log($history, $user);
+            }
+        } catch (Throwable $historyError) {
+            logger()->warning('PMD guarantee release history failed', [
+                'reservation_id' => $reservationId,
+                'message' => $historyError->getMessage(),
+            ]);
+        }
+
+        $releaseMessage = 'Card guarantee released. No no-show charge was made.';
+
+        $this->pmdReservationGuaranteeNotification(
+            $reservation,
+            'reservation_guarantee_released',
+            'Card guarantee released',
+            $releaseMessage,
+            'medium'
+        );
+
+        return [
+            'success' => true,
+            'message' => $releaseMessage,
+            'guarantee' => $service->adminPayloadForReservation($reservationId),
+        ];
+    }
+
+    protected function pmdReservationGuaranteeNotification(
+        Reservations_model $reservation,
+        string $type,
+        string $title,
+        string $message,
+        string $priority = 'medium'
+    ): void {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('notifications')) {
+                return;
+            }
+
+            $table = $reservation->tables ? $reservation->tables->first() : null;
+
+            DB::table('notifications')->insert([
+                'type' => $type,
+                'title' => $title,
+                'message' => $message,
+                'table_id' => $table ? (int)$table->table_id : null,
+                'table_name' => $table ? (string)$table->table_name : null,
+                'payload' => json_encode([
+                    'reservation_id' => (int)$reservation->getKey(),
+                    'reference' => 'R'.str_pad(
+                        (string)$reservation->getKey(),
+                        6,
+                        '0',
+                        STR_PAD_LEFT
+                    ),
+                    'source' => 'reservation_card_guarantee',
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'status' => 'new',
+                'priority' => $priority,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (Throwable $error) {
+            logger()->warning('PMD guarantee notification failed', [
+                'reservation_id' => (int)$reservation->getKey(),
+                'type' => $type,
+                'message' => $error->getMessage(),
+            ]);
+        }
+    }
+
     public function index_onDelete()
     {
         if (!$this->getUser()->hasPermission('Admin.DeleteReservations'))
@@ -236,8 +500,18 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         if (!$model || !$status)
             return;
 
-        if ($record = $model->addStatusHistory($status))
+        if ($record = $model->addStatusHistory($status)) {
             StatusUpdated::log($record, $this->getUser());
+
+            $model->refresh();
+            if ($model->isCanceled()) {
+                app(PmdReservationGuaranteeService::class)
+                    ->releaseGuarantee(
+                        $model,
+                        'reservation_canceled_by_admin'
+                    );
+            }
+        }
 
         flash()->success(sprintf(lang('admin::lang.alert_success'), lang('admin::lang.statuses.text_form_name').' updated'))->now();
 
