@@ -254,6 +254,29 @@ img {
   text-underline-offset: 4px;
 }
 
+.pmd-booking-intro__details .pmd-booking-manage-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: fit-content;
+  min-height: 42px;
+  margin: 0 0 14px;
+  padding: 0 14px;
+  border: 1px solid var(--pmd-book-ink);
+  background: var(--pmd-book-ink);
+  color: var(--pmd-book-white);
+  text-decoration: none;
+  line-height: 40px;
+}
+
+.pmd-booking-intro__details .pmd-booking-manage-entry:hover,
+.pmd-booking-intro__details .pmd-booking-manage-entry:focus-visible {
+  border-color: var(--pmd-book-accent);
+  background: var(--pmd-book-ink);
+  color: var(--pmd-book-white);
+  outline: none;
+}
+
 .pmd-booking-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
