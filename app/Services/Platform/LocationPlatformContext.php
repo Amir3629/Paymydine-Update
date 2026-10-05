@@ -22,17 +22,34 @@ final class LocationPlatformContext
     {
         $location = $this->resolveLocation($locationId);
         $countryCode = $this->countryCodeFromLocation($location);
+        $profile = $countryCode !== '' ? $this->profiles->profile($countryCode) : null;
 
-        // Tenant-level market setting is a fallback only. Location country wins.
-        if ($countryCode === '') {
+        /*
+         * PMD_LOCATION_PLATFORM_CONTEXT_R2
+         *
+         * A legacy/stale physical location can carry a country that is not a
+         * supported PayMyDine market (for example an old UK demo address).
+         * In that case the Superadmin-applied tenant market must remain the
+         * authoritative fallback for runtime market features such as booking
+         * languages. Supported physical location countries still win.
+         */
+        if (!$profile) {
             try {
-                $countryCode = $this->profiles->normalizeCountry((string)setting('pmd_market_country_code', ''));
+                $marketCountryCode = $this->profiles->normalizeCountry(
+                    (string)setting('pmd_market_country_code', '')
+                );
+                $marketProfile = $marketCountryCode !== ''
+                    ? $this->profiles->profile($marketCountryCode)
+                    : null;
+
+                if ($marketProfile) {
+                    $countryCode = $marketCountryCode;
+                    $profile = $marketProfile;
+                }
             } catch (\Throwable $ignored) {
-                $countryCode = '';
+                // Preserve unresolved state below.
             }
         }
-
-        $profile = $countryCode !== '' ? $this->profiles->profile($countryCode) : null;
 
         return [
             'location_id' => $location ? (int)$location->getKey() : null,
