@@ -283,6 +283,21 @@ final class PmdReservationGuaranteeService
         );
     }
 
+    public function discardVerification(array $verified): void
+    {
+        if (empty($verified['required'])) {
+            return;
+        }
+
+        $row = (object)[
+            'guarantee_id' => 0,
+            'customer_reference' => (string)($verified['customer_reference'] ?? ''),
+            'payment_method_reference' => (string)($verified['payment_method_reference'] ?? ''),
+        ];
+
+        $this->cleanupStripeReferences($row);
+    }
+
     public function guaranteeForReservation(int $reservationId): ?object
     {
         if ($reservationId < 1 || !Schema::hasTable('reservation_guarantees')) {
