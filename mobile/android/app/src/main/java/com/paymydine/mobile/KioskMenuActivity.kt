@@ -33,8 +33,13 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
+import com.paymydine.mobile.kiosk.KioskApiClient
 import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskProfile
+import com.paymydine.mobile.tabledisplay.SecureStore
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.util.UUID
 
@@ -42,6 +47,7 @@ import java.util.UUID
 private fun buildKioskTargetUrl(
     menuUrl: String,
     serviceMode: String,
+    locale: String,
     sessionNonce: String,
     restaurantName: String,
     restaurantLogo: String,
@@ -56,6 +62,7 @@ private fun buildKioskTargetUrl(
     return base +
         "/kiosk/?pmd_kiosk=1" +
         "&kiosk_order_type=" + Uri.encode(serviceMode) +
+        "&lang=" + Uri.encode(locale) +
         "&kiosk_session=" + Uri.encode(sessionNonce) +
         "&kiosk_name=" + Uri.encode(restaurantName) +
         "&kiosk_logo=" + Uri.encode(restaurantLogo) +
@@ -89,18 +96,22 @@ internal object KioskMenuWarmPool {
     private fun key(
         menuUrl: String,
         serviceMode: String,
-    ): String = menuUrl.trimEnd('/').lowercase() + "|" + serviceMode
+        locale: String,
+    ): String =
+        menuUrl.trimEnd('/').lowercase() + "|" + serviceMode + "|" + locale
 
     fun prewarm(
         context: Context,
         profile: KioskProfile,
         serviceMode: String,
+        locale: String,
         heroImage: String,
     ) {
         prewarmRaw(
             context = context,
             menuUrl = profile.menuUrl,
             serviceMode = serviceMode,
+            locale = locale,
             restaurantName = profile.restaurantName,
             restaurantLogo = profile.restaurantLogoUrl,
             background = profile.theme.background,
@@ -117,6 +128,7 @@ internal object KioskMenuWarmPool {
         context: Context,
         menuUrl: String,
         serviceMode: String,
+        locale: String,
         restaurantName: String,
         restaurantLogo: String,
         background: String,
@@ -132,6 +144,7 @@ internal object KioskMenuWarmPool {
                     context = context,
                     menuUrl = menuUrl,
                     serviceMode = serviceMode,
+                    locale = locale,
                     restaurantName = restaurantName,
                     restaurantLogo = restaurantLogo,
                     background = background,
@@ -146,7 +159,11 @@ internal object KioskMenuWarmPool {
         }
 
         val normalizedMode = if (serviceMode == "pickup") "pickup" else "eat_in"
-        val entryKey = key(menuUrl, normalizedMode)
+        val normalizedLocale =
+            locale.trim().lowercase().takeIf {
+                it in setOf("de", "en", "fa", "tr")
+            } ?: "en"
+        val entryKey = key(menuUrl, normalizedMode, normalizedLocale)
         val now = System.currentTimeMillis()
         entries[entryKey]?.let { current ->
             // Do not restart a page that is already warming just because the
@@ -175,6 +192,7 @@ internal object KioskMenuWarmPool {
             buildKioskTargetUrl(
                 menuUrl = menuUrl,
                 serviceMode = normalizedMode,
+                locale = normalizedLocale,
                 sessionNonce = nonce,
                 restaurantName = restaurantName,
                 restaurantLogo = restaurantLogo,
@@ -333,9 +351,16 @@ internal object KioskMenuWarmPool {
     fun isReady(
         menuUrl: String,
         serviceMode: String,
+        locale: String,
     ): Boolean {
         if (Looper.myLooper() != Looper.getMainLooper()) return false
-        val entryKey = key(menuUrl, if (serviceMode == "pickup") "pickup" else "eat_in")
+        val normalizedLocale = locale.trim().lowercase().ifBlank { "en" }
+        val entryKey =
+            key(
+                menuUrl,
+                if (serviceMode == "pickup") "pickup" else "eat_in",
+                normalizedLocale,
+            )
         val entry = entries[entryKey] ?: return false
         val age = System.currentTimeMillis() - entry.createdAtMs
         return entry.ready && age in 0..MAX_AGE_MS
@@ -345,9 +370,16 @@ internal object KioskMenuWarmPool {
         context: Context,
         menuUrl: String,
         serviceMode: String,
+        locale: String,
     ): KioskWarmMenuEntry? {
         if (Looper.myLooper() != Looper.getMainLooper()) return null
-        val entryKey = key(menuUrl, if (serviceMode == "pickup") "pickup" else "eat_in")
+        val normalizedLocale = locale.trim().lowercase().ifBlank { "en" }
+        val entryKey =
+            key(
+                menuUrl,
+                if (serviceMode == "pickup") "pickup" else "eat_in",
+                normalizedLocale,
+            )
         val entry = entries.remove(entryKey) ?: return null
         val age = System.currentTimeMillis() - entry.createdAtMs
         if (!entry.ready || age !in 0..MAX_AGE_MS) {
@@ -400,6 +432,16 @@ class KioskMenuActivity : ComponentActivity() {
 
     private var useSoftwareRendererFallback = false
 
+    // PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V17
+    private val kioskApi = KioskApiClient()
+    private val kioskStore: SecureStore by lazy {
+        SecureStore(
+            context = this,
+            storeName = "pmd-kiosk-v1",
+            keyAlias = "pmd-kiosk-v1",
+        )
+    }
+
     private val menuUrl: String by lazy {
         intent.getStringExtra(EXTRA_MENU_URL).orEmpty().trimEnd('/')
     }
@@ -407,6 +449,13 @@ class KioskMenuActivity : ComponentActivity() {
         intent.getStringExtra(EXTRA_SERVICE_MODE)
             ?.takeIf { it == "pickup" }
             ?: "eat_in"
+    }
+    private val locale: String by lazy {
+        intent.getStringExtra(EXTRA_LOCALE)
+            ?.trim()
+            ?.lowercase()
+            ?.takeIf { it in setOf("de", "en", "fa", "tr") }
+            ?: "en"
     }
     private val restaurantName: String by lazy {
         intent.getStringExtra(EXTRA_RESTAURANT_NAME).orEmpty().ifBlank { "PayMyDine" }
@@ -455,6 +504,7 @@ class KioskMenuActivity : ComponentActivity() {
                 context = this,
                 menuUrl = menuUrl,
                 serviceMode = serviceMode,
+                locale = locale,
             )
         if (warm != null) {
             sessionNonce = warm.sessionNonce
@@ -535,7 +585,7 @@ class KioskMenuActivity : ComponentActivity() {
         }
 
         val mode = TextView(this).apply {
-            text = if (serviceMode == "pickup") "TAKE AWAY" else "EAT HERE"
+            text = if (serviceMode == "pickup") "TAKE AWAY" else "DINE IN"
             setTextColor(textColor)
             textSize = 12f
             gravity = Gravity.CENTER
@@ -771,6 +821,8 @@ class KioskMenuActivity : ComponentActivity() {
             KioskJavascriptBridge(
                 secret = bridgeSecret,
                 onOrderComplete = ::showComplete,
+                onTerminalPayment = ::requestTerminalPayment,
+                onTerminalStatus = ::requestTerminalStatus,
             )
 
         fun setBridgeEnabled(enabled: Boolean) {
@@ -1033,6 +1085,7 @@ class KioskMenuActivity : ComponentActivity() {
         buildKioskTargetUrl(
             menuUrl = menuUrl,
             serviceMode = serviceMode,
+            locale = locale,
             sessionNonce = sessionNonce,
             restaurantName = restaurantName,
             restaurantLogo = restaurantLogo,
@@ -1058,6 +1111,121 @@ class KioskMenuActivity : ComponentActivity() {
     private fun resetIdleTimer() {
         mainHandler.removeCallbacks(idleRunnable)
         mainHandler.postDelayed(idleRunnable, idleTimeoutMs)
+    }
+
+    private fun requestTerminalPayment(
+        orderId: String,
+        requestId: String,
+    ) {
+        val parsedOrderId = orderId.toLongOrNull()
+        if (parsedOrderId == null || parsedOrderId < 1L) {
+            postTerminalResult(
+                requestId,
+                JSONObject()
+                    .put("ok", false)
+                    .put("message", "A valid kiosk order is required."),
+            )
+            return
+        }
+
+        val host = kioskStore.host().orEmpty()
+        val token = kioskStore.token().orEmpty()
+        if (host.isBlank() || token.isBlank()) {
+            postTerminalResult(
+                requestId,
+                JSONObject()
+                    .put("ok", false)
+                    .put("message", "This kiosk must be paired before payment."),
+            )
+            return
+        }
+
+        lifecycleScope.launch {
+            val result =
+                runCatching {
+                    kioskApi.terminalPay(
+                        host = host,
+                        token = token,
+                        orderId = parsedOrderId,
+                    )
+                }.getOrElse { error ->
+                    JSONObject()
+                        .put("ok", false)
+                        .put(
+                            "message",
+                            error.message ?: "Payment terminal is unavailable.",
+                        )
+                }
+            postTerminalResult(requestId, result)
+        }
+    }
+
+    private fun requestTerminalStatus(
+        attemptId: String,
+        requestId: String,
+    ) {
+        val parsedAttemptId = attemptId.toLongOrNull()
+        if (parsedAttemptId == null || parsedAttemptId < 1L) {
+            postTerminalResult(
+                requestId,
+                JSONObject()
+                    .put("ok", false)
+                    .put("message", "Payment attempt is invalid."),
+            )
+            return
+        }
+
+        val host = kioskStore.host().orEmpty()
+        val token = kioskStore.token().orEmpty()
+        if (host.isBlank() || token.isBlank()) {
+            postTerminalResult(
+                requestId,
+                JSONObject()
+                    .put("ok", false)
+                    .put("message", "This kiosk is not paired."),
+            )
+            return
+        }
+
+        lifecycleScope.launch {
+            val result =
+                runCatching {
+                    kioskApi.terminalPaymentStatus(
+                        host = host,
+                        token = token,
+                        attemptId = parsedAttemptId,
+                    )
+                }.getOrElse { error ->
+                    JSONObject()
+                        .put("ok", false)
+                        .put(
+                            "message",
+                            error.message ?: "Payment status is unavailable.",
+                        )
+                }
+            postTerminalResult(requestId, result)
+        }
+    }
+
+    private fun postTerminalResult(
+        requestId: String,
+        payload: JSONObject,
+    ) {
+        val current = webView ?: return
+        val requestJson = JSONObject.quote(requestId)
+        val payloadJson = payload.toString()
+        current.post {
+            if (webView !== current || isFinishing) return@post
+            current.evaluateJavascript(
+                "window.PmdKioskTerminalResult && " +
+                    "window.PmdKioskTerminalResult(" +
+                    requestJson +
+                    "," +
+                    payloadJson +
+                    ");",
+                null,
+            )
+        }
     }
 
     private fun showComplete(orderId: String) {
@@ -1116,6 +1284,7 @@ class KioskMenuActivity : ComponentActivity() {
                 context = applicationContext,
                 menuUrl = menuUrl,
                 serviceMode = nextMode,
+                locale = locale,
                 restaurantName = restaurantName,
                 restaurantLogo = restaurantLogo,
                 background = intent.getStringExtra(EXTRA_BACKGROUND).orEmpty(),
@@ -1160,6 +1329,8 @@ class KioskMenuActivity : ComponentActivity() {
     private class KioskJavascriptBridge(
         private val secret: String,
         private val onOrderComplete: (String) -> Unit,
+        private val onTerminalPayment: (String, String) -> Unit,
+        private val onTerminalStatus: (String, String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
 
@@ -1175,11 +1346,36 @@ class KioskMenuActivity : ComponentActivity() {
                 onOrderComplete(orderId.trim())
             }
         }
+
+        @JavascriptInterface
+        fun terminalPayment(
+            orderId: String,
+            requestId: String,
+            providedSecret: String,
+        ) {
+            if (providedSecret.isBlank() || providedSecret != secret) return
+            handler.post {
+                onTerminalPayment(orderId.trim(), requestId.trim())
+            }
+        }
+
+        @JavascriptInterface
+        fun terminalStatus(
+            attemptId: String,
+            requestId: String,
+            providedSecret: String,
+        ) {
+            if (providedSecret.isBlank() || providedSecret != secret) return
+            handler.post {
+                onTerminalStatus(attemptId.trim(), requestId.trim())
+            }
+        }
     }
 
     companion object {
         private const val EXTRA_MENU_URL = "pmd.kiosk.menu_url"
         private const val EXTRA_SERVICE_MODE = "pmd.kiosk.service_mode"
+        private const val EXTRA_LOCALE = "pmd.kiosk.locale"
         private const val EXTRA_RESTAURANT_NAME = "pmd.kiosk.restaurant_name"
         private const val EXTRA_RESTAURANT_LOGO = "pmd.kiosk.restaurant_logo"
         private const val EXTRA_HERO_IMAGE = "pmd.kiosk.hero_image"
@@ -1194,12 +1390,14 @@ class KioskMenuActivity : ComponentActivity() {
             context: Context,
             profile: KioskProfile,
             serviceMode: String,
+            locale: String,
             heroImage: String = "",
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
                 putExtra(EXTRA_MENU_URL, profile.menuUrl)
                 putExtra(EXTRA_SERVICE_MODE, serviceMode)
+                putExtra(EXTRA_LOCALE, locale)
                 putExtra(EXTRA_RESTAURANT_NAME, profile.restaurantName)
                 putExtra(EXTRA_RESTAURANT_LOGO, profile.restaurantLogoUrl)
                 putExtra(EXTRA_HERO_IMAGE, heroImage)
