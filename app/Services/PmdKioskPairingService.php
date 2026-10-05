@@ -295,6 +295,38 @@ final class PmdKioskPairingService
             trim((string)($terminal->provider_code ?? ''))
         );
 
+        // PMD_KIOSK_TERMINAL_IDEMPOTENCY_V18
+        // A slow/pending countertop terminal must never create a second charge
+        // just because the guest taps Pay again. Reuse the newest live attempt
+        // for this order + linked physical terminal and continue polling it.
+        if (Schema::hasTable('payment_attempts')) {
+            $liveAttempt = DB::table('payment_attempts')
+                ->where('order_id', $orderId)
+                ->where('provider_code', $providerCode)
+                ->where('terminal_device_id', $terminalDeviceId)
+                ->whereIn('status', [
+                    'pending',
+                    'sent_to_terminal',
+                    'processing',
+                    'requires_action',
+                ])
+                ->orderByDesc('id')
+                ->first();
+
+            if ($liveAttempt) {
+                return [
+                    'ok' => true,
+                    'paid' => false,
+                    'status' => (string)($liveAttempt->status ?? 'pending'),
+                    'attempt_id' => (int)$liveAttempt->id,
+                    'provider_code' => $providerCode,
+                    'terminal_device_id' => $terminalDeviceId,
+                    'amount' => $remaining,
+                    'message' => 'Existing terminal payment resumed. Do not pay twice.',
+                ];
+            }
+        }
+
         if (!in_array(
             $providerCode,
             ['sumup', 'worldline', 'square', 'vr_payment'],
