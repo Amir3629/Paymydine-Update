@@ -606,7 +606,10 @@ final class PmdTableDisplayService
             ?: ''
         ));
         if ($logo === '') {
-            $logo = '/brand/paymydine-logo.svg';
+            // Guest surfaces must never substitute the PayMyDine mark for a
+            // missing restaurant logo. Native/web clients render a neutral
+            // restaurant initial instead; PayMyDine stays in the small footer.
+            $logo = '';
         } elseif (!preg_match('#^https?://#i', $logo)) {
             $logoPath = '/'.ltrim(
                 str_replace('\\\\', '/', (string)(parse_url($logo, PHP_URL_PATH) ?: $logo)),
