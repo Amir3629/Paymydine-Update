@@ -652,6 +652,7 @@
     state.slots = [];
     state.duration = Number(config.stayMinutes || 90);
     dateStatuses = {};
+    availabilityCache = Object.create(null);
     state.loading = false;
     setErrors([]);
     if (workspace) workspace.hidden = false;
@@ -700,6 +701,7 @@
     state.time = "";
     state.period = "";
     dateStatuses = {};
+    availabilityCache = Object.create(null);
     renderSummary();
     renderDateStrip();
     loadDateStatuses();
