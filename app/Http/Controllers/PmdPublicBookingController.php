@@ -251,7 +251,7 @@ class PmdPublicBookingController extends Controller
             'reserve_date' => ['required', 'date_format:Y-m-d'],
             'reserve_time' => ['required', 'date_format:H:i'],
             'guest_num' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
-            'occasion_id' => ['nullable', 'integer', 'between:0,5'],
+            'occasion_id' => ['nullable', 'integer', 'in:0,3,6'],
             'comment' => ['nullable', 'string', 'max:1000'],
             'consent' => ['accepted'],
         ])->validate();

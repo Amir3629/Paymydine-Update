@@ -35,6 +35,7 @@
             'birthday' => 'Birthday',
             'anniversary' => 'Anniversary',
             'celebration' => 'Celebration',
+            'business' => 'Business',
             'hen_party' => 'Hen party',
             'stag_party' => 'Stag party',
             'notes' => 'Anything we should know?',
@@ -101,6 +102,7 @@
             'birthday' => 'Geburtstag',
             'anniversary' => 'Jahrestag',
             'celebration' => 'Feier',
+            'business' => 'Geschäftlich',
             'hen_party' => 'Junggesellinnenabschied',
             'stag_party' => 'Junggesellenabschied',
             'notes' => 'Gibt es etwas, das wir wissen sollten?',
@@ -167,6 +169,7 @@
             'birthday' => 'Doğum günü',
             'anniversary' => 'Yıldönümü',
             'celebration' => 'Kutlama',
+            'business' => 'İş',
             'hen_party' => 'Bekarlığa veda',
             'stag_party' => 'Bekarlığa veda',
             'notes' => 'Bilmemiz gereken bir şey var mı?',
@@ -233,6 +236,7 @@
             'birthday' => 'عيد ميلاد',
             'anniversary' => 'ذكرى سنوية',
             'celebration' => 'احتفال',
+            'business' => 'عمل',
             'hen_party' => 'حفلة توديع عزوبية',
             'stag_party' => 'حفلة توديع عزوبية',
             'notes' => 'هل هناك شيء يجب أن نعرفه؟',
@@ -320,7 +324,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r13">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r14">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -495,20 +499,6 @@
                                             </span>
                                         </label>
                                         <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="1">
-                                            <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M8 14h16v11H8zM10 10h12v4H10zM16 5v5M13 7h6"/><path d="M8 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2"/></svg>
-                                                <strong data-pmd-i18n="birthday">{{ $t['birthday'] }}</strong>
-                                            </span>
-                                        </label>
-                                        <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="2">
-                                            <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 26S6 20 6 12.5C6 8.5 9 6 12.5 6c2 0 3.2 1 3.5 2 .3-1 1.5-2 3.5-2C23 6 26 8.5 26 12.5 26 20 16 26 16 26Z"/></svg>
-                                                <strong data-pmd-i18n="anniversary">{{ $t['anniversary'] }}</strong>
-                                            </span>
-                                        </label>
-                                        <label class="pmd-booking-occasion-card">
                                             <input type="radio" name="occasion_id" value="3">
                                             <span class="pmd-booking-occasion-card__surface">
                                                 <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 5 2.5 6.5L25 14l-6.5 2.5L16 23l-2.5-6.5L7 14l6.5-2.5L16 5Z"/><path d="m25 5 .8 2.2L28 8l-2.2.8L25 11l-.8-2.2L22 8l2.2-.8L25 5ZM7 21l1 2.5 2.5 1L8 25.5 7 28l-1-2.5-2.5-1 2.5-1L7 21Z"/></svg>
@@ -516,17 +506,10 @@
                                             </span>
                                         </label>
                                         <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="4">
+                                            <input type="radio" name="occasion_id" value="6">
                                             <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 24c3-8 5-12 7-12s4 4 7 12M12 24h8M11 10c1.5-3 3.2-4.5 5-4.5S19.5 7 21 10"/><circle cx="16" cy="12" r="2"/></svg>
-                                                <strong data-pmd-i18n="hen_party">{{ $t['hen_party'] }}</strong>
-                                            </span>
-                                        </label>
-                                        <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="5">
-                                            <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 24h18M10 24l2-11h8l2 11M13 9h6M14 5h4v4h-4z"/><path d="M12 17h8"/></svg>
-                                                <strong data-pmd-i18n="stag_party">{{ $t['stag_party'] }}</strong>
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="10" width="20" height="15" rx="1"/><path d="M12 10V7h8v3M6 15h20M13 15v2h6v-2"/></svg>
+                                                <strong data-pmd-i18n="business">{{ $t['business'] }}</strong>
                                             </span>
                                         </label>
                                     </div>
@@ -641,6 +624,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r13" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r14" defer></script>
 </body>
 </html>
