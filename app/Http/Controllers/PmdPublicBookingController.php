@@ -730,11 +730,14 @@ class PmdPublicBookingController extends Controller
                 (string)($beforeSnapshot['date'] ?? '') !== $date->toDateString()
                 || (string)($beforeSnapshot['time'] ?? '') !== $time
                 || (int)($beforeSnapshot['guests'] ?? 0) !== $guests
+                || (string)($beforeSnapshot['first_name'] ?? '') !== trim((string)$data['first_name'])
+                || (string)($beforeSnapshot['last_name'] ?? '') !== trim((string)$data['last_name'])
+                || (string)($beforeSnapshot['email'] ?? '') !== strtolower(trim((string)$data['email']))
             )
         ) {
             throw ValidationException::withMessages([
                 'reservation' => [
-                    'This reservation has an active card guarantee. Date, time or party size can only be changed after the restaurant reconfirms the guarantee terms. Please contact the restaurant.',
+                    'This reservation has an active card guarantee. Date, time, party size, guest name or email can only be changed after the restaurant reconfirms the guarantee terms. Please contact the restaurant.',
                 ],
             ]);
         }
