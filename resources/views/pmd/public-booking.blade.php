@@ -324,7 +324,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r14">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r15">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -624,6 +624,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r14" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r15" defer></script>
 </body>
 </html>
