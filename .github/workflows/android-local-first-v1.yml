@@ -1,8 +1,8 @@
-name: PayMyDine Device App V12
+name: PayMyDine Device App V13
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, fix/kiosk-v9-theme-payment-sync, feat/kiosk-v11-premium-ui-scroll-details, feat/kiosk-v12-instant-menu-hero, feat/kiosk-v13-smooth-scroll-clean-cards, feat/kiosk-v14-fixed-service-artwork, feat/kiosk-v15-instant-menu-pool, feat/kiosk-v16-clean-mode-cards, feat/device-app-v17-access-reservations-routing, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, fix/kiosk-v9-theme-payment-sync, feat/kiosk-v11-premium-ui-scroll-details, feat/kiosk-v12-instant-menu-hero, feat/kiosk-v13-smooth-scroll-clean-cards, feat/kiosk-v14-fixed-service-artwork, feat/kiosk-v15-instant-menu-pool, feat/kiosk-v16-clean-mode-cards, feat/device-app-v17-access-reservations-routing, feat/kiosk-v18-terminal-printer-flow, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
@@ -48,7 +48,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: pmd-device-app-v12-${{ github.ref }}
+  group: pmd-device-app-v13-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -139,6 +139,19 @@ jobs:
           grep -Fq 'PMD_KIOSK_SERVICE_ARTWORK_FADE_V14' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_CENTERED_ARROW_V15' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_CLEAN_SERVICE_CARDS_V16' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq 'PMD_KIOSK_WELCOME_LANGUAGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq 'PMD_KIOSK_TERMINAL_ONLY_CHECKOUT_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_SCROLL_CATEGORIES_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_NO_TIP_NO_COUPON_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_RECEIPT_PRINT_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_TOUCH_FLOW_V18' public/assets/pmd/kiosk-terminal-v8.css
+          grep -Fq 'PMD_KIOSK_NATIVE_HARDWARE_BRIDGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          grep -Fq 'PMD_KIOSK_TERMINAL_PAYMENT_V18' app/Services/PmdKioskPairingService.php
+          grep -Fq 'PMD_KIOSK_TERMINAL_PAYMENT_V18' routes/pmd-kiosk-v1.php
+          grep -Fq 'PMD_SHARED_PRINTER_SETUP_V18' mobile/android/app/src/main/java/com/paymydine/mobile/PrinterSettingsActivity.kt
+          grep -Fq 'PMD_SHARED_NETWORK_PRINTER_V18' mobile/android/app/src/main/java/com/paymydine/mobile/hardware/printing/PrinterManager.kt
+          grep -Fq 'PMD_SHARED_PRINTER_SETUP_V18' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -Fq 'PrinterSettingsActivity' mobile/android/app/src/main/AndroidManifest.xml
           grep -Fq 'PMD_KIOSK_EXACT_WEBVIEW_PREWARM_V15' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_EXACT_WEBVIEW_POOL_V15' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'PMD_KIOSK_INSTANT_HANDOFF_V15' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
@@ -149,7 +162,7 @@ jobs:
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' app/Http/Controllers/PmdKioskPublicController.php
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.css
-          grep -Fq 'v=13-smooth-scroll' resources/views/pmd/kiosk-terminal.blade.php
+          grep -Fq 'v=18-terminal-printer' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_PAY_FIRST_V10' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
           grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
@@ -200,8 +213,8 @@ jobs:
           grep -Fq 'PMD_QPOS_RESERVATIONS_SHELL_AUTH_V17' app/admin/controllers/PmdQuickPosV1.php
           grep -Fq 'PMD_ANDROID_RESERVATIONS_POS_TARGET_V17' app/Http/Controllers/PmdMobileWorkspaceSessionController.php
           grep -Fq "admin_url('pos').'?workspace=reservations'" app/Http/Controllers/PmdMobileWorkspaceSessionController.php
-          grep -Fq 'versionCode = 66' mobile/android/app/build.gradle.kts
-          grep -Fq 'versionName = "0.5.3-device-app-v12"' mobile/android/app/build.gradle.kts
+          grep -Fq 'versionCode = 67' mobile/android/app/build.gradle.kts
+          grep -Fq 'versionName = "0.5.4-device-app-v13"' mobile/android/app/build.gradle.kts
           grep -Fq 'PayMyDine Device App · Android' app/admin/views/pmdsettings/index.blade.php
           grep -Fq 'customerMenuTheme' app/Services/PmdTableDisplayService.php
           grep -Fq 'Crossfade' mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/TableDisplayApp.kt
@@ -296,7 +309,7 @@ jobs:
         run: |
           set -euo pipefail
           APK_IN="mobile/android/app/build/outputs/apk/debug/app-debug.apk"
-          APK_OUT="mobile/android/PayMyDine-Device-App-0.5.3.apk"
+          APK_OUT="mobile/android/PayMyDine-Device-App-0.5.4.apk"
           test -f "$APK_IN"
           cp "$APK_IN" "$APK_OUT"
           sha256sum "$APK_OUT" > "$APK_OUT.sha256"
@@ -305,23 +318,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK="mobile/android/PayMyDine-Device-App-0.5.3.apk"
+          APK="mobile/android/PayMyDine-Device-App-0.5.4.apk"
           AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='66'" <<<"$BADGING"
-          grep -Fq "versionName='0.5.3-device-app-v12-debug'" <<<"$BADGING"
+          grep -Fq "versionCode='67'" <<<"$BADGING"
+          grep -Fq "versionName='0.5.4-device-app-v13-debug'" <<<"$BADGING"
           "$APKSIGNER" verify "$APK"
           sha256sum "$APK"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: paymydine-device-app-v12
+          name: paymydine-device-app-v13
           path: |
-            mobile/android/PayMyDine-Device-App-0.5.3.apk
-            mobile/android/PayMyDine-Device-App-0.5.3.apk.sha256
+            mobile/android/PayMyDine-Device-App-0.5.4.apk
+            mobile/android/PayMyDine-Device-App-0.5.4.apk.sha256
           if-no-files-found: error
 
       - name: Publish Device App preview
@@ -335,4 +348,4 @@ jobs:
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "PayMyDine Device App Preview"               --notes "Unified Android app for PayMyDine restaurant devices."               --prerelease
           fi
-          gh release upload "$TAG"             mobile/android/PayMyDine-Device-App-0.5.3.apk             mobile/android/PayMyDine-Device-App-0.5.3.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
+          gh release upload "$TAG"             mobile/android/PayMyDine-Device-App-0.5.4.apk             mobile/android/PayMyDine-Device-App-0.5.4.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
