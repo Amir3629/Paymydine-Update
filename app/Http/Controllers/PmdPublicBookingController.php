@@ -27,6 +27,23 @@ class PmdPublicBookingController extends Controller
 
     public function show(Request $request)
     {
+        if ($request->has('manage')) {
+            $manage = trim((string)$request->query('manage', ''));
+
+            if ($manage === '' || in_array(strtolower($manage), ['1', 'lookup'], true)) {
+                return $this->renderManagePage($request, null, null);
+            }
+
+            $manageLocation = $this->location();
+            $manageReservation = $this->reservationByPublicHash($manageLocation, $manage);
+
+            if (!$manageReservation) {
+                abort(404);
+            }
+
+            return $this->renderManagePage($request, $manageReservation, null);
+        }
+
         $location = $this->location();
         $timezone = $this->timezone();
         $languageContext = $this->languageContext($location);
@@ -78,6 +95,10 @@ class PmdPublicBookingController extends Controller
 
     public function availability(Request $request): JsonResponse
     {
+        if (strtolower(trim((string)$request->query('mode', ''))) === 'date-statuses') {
+            return $this->dateStatuses($request);
+        }
+
         $location = $this->location();
         $timezone = $this->timezone();
         $maxGuests = $this->maxBookableGuests($location);
@@ -90,7 +111,22 @@ class PmdPublicBookingController extends Controller
         $date = Carbon::createFromFormat('Y-m-d', (string)$data['date'], $timezone)->startOfDay();
         $this->guardBookableDate($date, $timezone);
 
-        $payload = $this->availabilityPayload($location, $date, (int)$data['guests']);
+        $manageHash = trim((string)$request->query('manage_hash', ''));
+        if ($manageHash !== '') {
+            $reservation = $this->reservationByPublicHash($location, $manageHash);
+            if (!$reservation) {
+                abort(404);
+            }
+
+            $payload = $this->availabilityPayloadExcludingReservation(
+                $location,
+                $date,
+                (int)$data['guests'],
+                (int)$reservation->getKey()
+            );
+        } else {
+            $payload = $this->availabilityPayload($location, $date, (int)$data['guests']);
+        }
 
         return response()->json([
             'success' => true,
@@ -229,8 +265,31 @@ class PmdPublicBookingController extends Controller
         return $dates;
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
+        $manageAction = strtolower(trim((string)$request->input('_pmd_manage_action', '')));
+        if ($manageAction !== '') {
+            $manageHash = trim((string)$request->input('_pmd_manage_hash', ''));
+
+            if ($manageAction === 'lookup') {
+                return $this->manageLookup($request);
+            }
+
+            if (!preg_match('/^[a-f0-9]{32}$/i', $manageHash)) {
+                abort(404);
+            }
+
+            if ($manageAction === 'update') {
+                return $this->manageUpdate($request, $manageHash);
+            }
+
+            if ($manageAction === 'cancel') {
+                return $this->manageCancel($request, $manageHash);
+            }
+
+            abort(404);
+        }
+
         // Quiet honeypot. Real guests never see or populate this field.
         if (trim((string)$request->input('website', '')) !== '') {
             return response()->json([
@@ -367,7 +426,7 @@ class PmdPublicBookingController extends Controller
                 'message' => $isConfirmed
                     ? 'Your table is confirmed.'
                     : 'Your reservation request has been received.',
-                'manage_url' => url('/book/manage/'.rawurlencode((string)$reservation->hash)),
+                'manage_url' => url('/book').'?manage='.rawurlencode((string)$reservation->hash),
                 'reservation' => [
                     'date' => $date->toDateString(),
                     'time' => $time,
@@ -431,7 +490,7 @@ class PmdPublicBookingController extends Controller
             ? $requestedLocale
             : $this->locale($request, $languageContext);
 
-        return redirect('/book/manage/'.rawurlencode((string)$reservation->hash).'?lang='.rawurlencode($locale), 302);
+        return redirect('/book?manage='.rawurlencode((string)$reservation->hash).'&lang='.rawurlencode($locale), 302);
     }
 
     public function manageShow(Request $request, string $hash)
