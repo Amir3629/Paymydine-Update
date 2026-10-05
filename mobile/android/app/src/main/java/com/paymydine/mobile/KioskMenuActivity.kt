@@ -473,6 +473,9 @@ class KioskMenuActivity : ComponentActivity() {
         intent.getLongExtra(EXTRA_IDLE_TIMEOUT_SECONDS, 120L)
             .coerceIn(45L, 600L) * 1_000L
     }
+    private val paymentTerminalReady: Boolean by lazy {
+        intent.getBooleanExtra(EXTRA_PAYMENT_TERMINAL_READY, false)
+    }
     private val receiptPrinterHost: String by lazy {
         intent.getStringExtra(EXTRA_RECEIPT_PRINTER_HOST).orEmpty().trim()
     }
@@ -828,6 +831,7 @@ class KioskMenuActivity : ComponentActivity() {
             KioskJavascriptBridge(
                 secret = bridgeSecret,
                 onOrderComplete = ::showComplete,
+                terminalReady = { paymentTerminalReady },
                 onStartTerminalPayment = ::startTerminalPayment,
                 onPollTerminalPayment = ::pollTerminalPayment,
             )
@@ -1360,6 +1364,7 @@ class KioskMenuActivity : ComponentActivity() {
     private class KioskJavascriptBridge(
         private val secret: String,
         private val onOrderComplete: (String, String) -> Unit,
+        private val terminalReady: () -> Boolean,
         private val onStartTerminalPayment: (Long, String) -> Unit,
         private val onPollTerminalPayment: (Long, String) -> Unit,
     ) {
@@ -1381,6 +1386,9 @@ class KioskMenuActivity : ComponentActivity() {
                 )
             }
         }
+
+        @JavascriptInterface
+        fun terminalReady(): Boolean = terminalReady.invoke()
 
         @JavascriptInterface
         fun startTerminalPayment(
@@ -1424,6 +1432,7 @@ class KioskMenuActivity : ComponentActivity() {
         private const val EXTRA_SURFACE = "pmd.kiosk.surface"
         private const val EXTRA_IDLE_TIMEOUT_SECONDS = "pmd.kiosk.idle_timeout_seconds"
         private const val EXTRA_LOCALE = "pmd.kiosk.locale"
+        private const val EXTRA_PAYMENT_TERMINAL_READY = "pmd.kiosk.payment_terminal_ready"
         private const val EXTRA_RECEIPT_PRINTER_HOST = "pmd.kiosk.receipt_printer_host"
         private const val EXTRA_RECEIPT_PRINTER_PORT = "pmd.kiosk.receipt_printer_port"
         private const val EXTRA_RECEIPT_PRINTER_NAME = "pmd.kiosk.receipt_printer_name"
@@ -1443,6 +1452,10 @@ class KioskMenuActivity : ComponentActivity() {
                 putExtra(EXTRA_RESTAURANT_LOGO, profile.restaurantLogoUrl)
                 putExtra(EXTRA_HERO_IMAGE, heroImage)
                 putExtra(EXTRA_LOCALE, locale)
+                putExtra(
+                    EXTRA_PAYMENT_TERMINAL_READY,
+                    profile.paymentTerminalReady,
+                )
                 profile.receiptPrinter?.let { printer ->
                     putExtra(EXTRA_RECEIPT_PRINTER_HOST, printer.host)
                     putExtra(EXTRA_RECEIPT_PRINTER_PORT, printer.port)
