@@ -1272,10 +1272,8 @@ img {
 }
 
 .pmd-booking-success__guarantee {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 18px;
+  display: grid;
+  gap: 10px;
   margin-top: 18px;
   padding: 14px 16px;
   border: 1px solid var(--pmd-book-accent);
@@ -1284,6 +1282,13 @@ img {
 
 .pmd-booking-success__guarantee[hidden] {
   display: none;
+}
+
+.pmd-booking-success__guarantee > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
 }
 
 .pmd-booking-success__guarantee span {
@@ -1298,6 +1303,13 @@ img {
   color: var(--pmd-book-accent);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 18px;
+}
+
+.pmd-booking-success__guarantee p {
+  margin: 0;
+  color: var(--pmd-book-muted);
+  font-size: 11px;
+  line-height: 1.6;
 }
 
 .pmd-booking-success__actions {
