@@ -23,7 +23,16 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
 {
     use \Admin\Controllers\Concerns\PmdQuickPosBatchPaymentV114Concern;
 
-    protected $requiredPermissions = 'Admin.Orders';
+    // PMD_QPOS_RESERVATIONS_SHELL_AUTH_V17
+    // The combined Quick POS shell also hosts the Reservations workspace.
+    // AdminController uses hasAnyPermission(), so Cashier/Waiter continue via
+    // Admin.Orders while Reservations staff can render the shell through their
+    // existing Admin.Reservations permission. PmdDefaultStaffRoleService keeps
+    // the Reservations role blocked from POS mutation paths.
+    protected $requiredPermissions = [
+        'Admin.Orders',
+        'Admin.Reservations',
+    ];
 
     /**
      * PMD_QPOS_PAYMENT_AUTHORITY_V50
