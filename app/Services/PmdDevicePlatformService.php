@@ -275,12 +275,12 @@ final class PmdDevicePlatformService
         $device = DB::table('pmd_site_access_devices')
             ->where('id', $deviceId)
             ->where('location_id', $locationId)
-            ->where('device_kind', 'table_display')
+            ->whereIn('device_kind', ['table_display', 'kiosk'])
             ->whereNull('revoked_at')
             ->first();
 
         if (!$device) {
-            abort(404, 'Table Companion device was not found.');
+            abort(404, 'PayMyDine guest device was not found.');
         }
 
         $table = collect(app(PmdTableDisplayService::class)->tables())
@@ -391,7 +391,7 @@ final class PmdDevicePlatformService
             if (!in_array($provider, ['sumup', 'worldline', 'square', 'vr_payment'], true)) {
                 abort(
                     422,
-                    'This terminal provider cannot be used for Table Companion contactless payment.'
+                    'This terminal provider cannot be used for PayMyDine device payment.'
                 );
             }
         }
@@ -604,7 +604,14 @@ final class PmdDevicePlatformService
                 'table_id' => $kind === 'table_display'
                     ? (int)($platform['table_id'] ?? 0)
                     : 0,
-                'payment_terminal_device_id' => $kind === 'table_display'
+                // PMD_KIOSK_TERMINAL_DEVICE_LINK_V17
+                // Table Companions and kiosks can both be explicitly bound to
+                // one card-present terminal from Devices & hardware.
+                'payment_terminal_device_id' => in_array(
+                    $kind,
+                    ['table_display', 'kiosk'],
+                    true
+                )
                     ? (int)($platform['payment_terminal_device_id'] ?? 0)
                     : 0,
                 'assignment' => $assignment,
