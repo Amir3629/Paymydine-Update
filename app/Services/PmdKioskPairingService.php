@@ -311,7 +311,11 @@ final class PmdKioskPairingService
         )->createAttempt(
             $orderId,
             $providerCode,
-            (string)$terminalDeviceId
+            (string)$terminalDeviceId,
+            [
+                'surface' => 'kiosk',
+                'disable_tipping' => true,
+            ]
         );
 
         if (empty($result['success'])) {
