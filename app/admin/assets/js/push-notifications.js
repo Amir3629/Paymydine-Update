@@ -278,7 +278,8 @@
         notif.type === 'reservation_updated' ||
         notif.type === 'reservation_canceled' ||
         notif.type === 'reservation_no_show_charged' ||
-        notif.type === 'reservation_no_show_charge_failed'
+        notif.type === 'reservation_no_show_charge_failed' ||
+        notif.type === 'reservation_guarantee_released'
       ) {
         const reference = payload.reference || (
           payload.reservation_id ? 'R' + String(payload.reservation_id).padStart(6, '0') : ''
@@ -288,7 +289,8 @@
           reservation_updated: 'Reservation updated by guest',
           reservation_canceled: 'Reservation canceled by guest',
           reservation_no_show_charged: 'No-show charge completed',
-          reservation_no_show_charge_failed: 'No-show charge needs attention'
+          reservation_no_show_charge_failed: 'No-show charge needs attention',
+          reservation_guarantee_released: 'Card guarantee released'
         };
         title = reference || 'Reservation';
         message = notif.message || actionLabels[notif.type] || 'Reservation changed';
@@ -300,7 +302,9 @@
               ? 'Charged'
               : (notif.type === 'reservation_no_show_charge_failed'
                 ? 'Attention'
-                : 'Updated')));
+                : (notif.type === 'reservation_guarantee_released'
+                  ? 'Released'
+                  : 'Updated'))));
         statusColor = (
           notif.type === 'reservation_canceled' ||
           notif.type === 'reservation_no_show_charge_failed'
