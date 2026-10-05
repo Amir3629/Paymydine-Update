@@ -169,6 +169,19 @@ final class PmdKioskPairingService
     {
         $device = $this->authenticate($request);
         $locationId = (int)$device->location_id;
+        $platform = $this->platformInfo($device);
+
+        // PMD_KIOSK_DEVICE_HARDWARE_V18
+        // Device Control binds one physical card terminal to this exact kiosk.
+        // Public menu JavaScript never receives provider credentials; Android
+        // uses the bearer-protected kiosk payment endpoints below.
+        $terminal = null;
+        $terminalDeviceId = (int)($platform['payment_terminal_device_id'] ?? 0);
+        if ($terminalDeviceId > 0 && Schema::hasTable('terminal_devices')) {
+            $terminal = DB::table('terminal_devices')
+                ->where('terminal_device_id', $terminalDeviceId)
+                ->first();
+        }
 
         $profile = app(PmdTableDisplayService::class)
             ->customerSurfaceProfile($locationId);
@@ -193,11 +206,25 @@ final class PmdKioskPairingService
             'theme' => (array)($profile['theme'] ?? []),
             'menu_url' => rtrim($request->getSchemeAndHttpHost(), '/').'/',
             'service_modes' => [
-                ['id' => 'eat_in', 'label' => 'Eat here'],
+                ['id' => 'eat_in', 'label' => 'Dine in'],
                 ['id' => 'pickup', 'label' => 'Take away'],
             ],
+            'payment_terminal' => $terminal ? [
+                'terminal_device_id' => (int)($terminal->terminal_device_id ?? 0),
+                'provider_code' => strtolower(trim((string)($terminal->provider_code ?? ''))),
+                'label' => trim((string)($terminal->reader_label ?? ''))
+                    ?: trim((string)($terminal->reader_id ?? ''))
+                    ?: 'Payment terminal',
+                'ready' => (bool)($terminal->is_active ?? true),
+            ] : null,
+            'receipt_printer' => [
+                'connection_type' => strtolower(trim((string)($platform['receipt_printer_connection_type'] ?? ''))),
+                'host' => trim((string)($platform['receipt_printer_host'] ?? '')),
+                'port' => max(1, min(65535, (int)($platform['receipt_printer_port'] ?? 9100))),
+                'name' => trim((string)($platform['receipt_printer_name'] ?? '')),
+            ],
             'idle_timeout_seconds' => 120,
-            'payments_enabled' => true,
+            'payments_enabled' => $terminal !== null,
         ];
     }
 
