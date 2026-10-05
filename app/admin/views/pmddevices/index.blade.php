@@ -416,6 +416,44 @@
                                     </form>
                                 @endif
 
+                                @if(in_array(($device['kind'] ?? ''), ['table_display', 'kiosk', 'staff_personal'], true))
+                                    <form
+                                        class="pmd-device-platform-assign pmd-device-platform-printer-assign"
+                                        data-request="onSavePmdDeviceReceiptPrinter"
+                                        data-request-flash
+                                        data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                                    >
+                                        <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                        <select name="receipt_printer[connection_type]">
+                                            <option value="">{{ $pmdSettingsText('No receipt printer') }}</option>
+                                            <option value="network" {{ ($device['receipt_printer_connection_type'] ?? '') === 'network' ? 'selected' : '' }}>
+                                                {{ $pmdSettingsText('Network ESC/POS') }}
+                                            </option>
+                                        </select>
+                                        <input
+                                            type="text"
+                                            name="receipt_printer[name]"
+                                            value="{{ e($device['receipt_printer_name'] ?? '') }}"
+                                            placeholder="{{ $pmdSettingsText('Printer name') }}"
+                                        >
+                                        <input
+                                            type="text"
+                                            name="receipt_printer[host]"
+                                            value="{{ e($device['receipt_printer_host'] ?? '') }}"
+                                            placeholder="{{ $pmdSettingsText('Printer IP / host') }}"
+                                        >
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="65535"
+                                            name="receipt_printer[port]"
+                                            value="{{ (int)($device['receipt_printer_port'] ?? 9100) }}"
+                                            placeholder="9100"
+                                        >
+                                        <button type="submit">{{ $pmdSettingsText('Save printer') }}</button>
+                                    </form>
+                                @endif
+
                                 <form
                                     class="pmd-device-platform-row-actions"
                                     data-request="onPmdDevicePlatformCommand"
