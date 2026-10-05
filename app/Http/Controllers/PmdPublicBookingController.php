@@ -65,6 +65,13 @@ class PmdPublicBookingController extends Controller
             $slotInterval
         );
 
+        $guaranteeService = app(PmdReservationGuaranteeService::class);
+        $guaranteeByLocale = [];
+        foreach ((array)$languageContext['eligible'] as $guaranteeLocale) {
+            $guaranteeByLocale[$guaranteeLocale] = $guaranteeService
+                ->publicConfig($location, (string)$guaranteeLocale);
+        }
+
         // PMD_PUBLIC_BOOKING_DIRECT_VIEW_FILE_R2
         // TastyIgniter's runtime view finder does not include Laravel's
         // resources/views path on this deployment. Render this standalone
@@ -85,8 +92,9 @@ class PmdPublicBookingController extends Controller
                 'bookingStayMinutes' => $stayMinutes,
                 'bookingAvailabilitySeed' => $availabilitySeed,
                 'bookingTableRules' => $this->tableRules($location),
-                'bookingGuarantee' => app(PmdReservationGuaranteeService::class)
-                    ->publicConfig($location, $locale),
+                'bookingGuarantee' => $guaranteeByLocale[$locale]
+                    ?? $guaranteeService->publicConfig($location, $locale),
+                'bookingGuaranteeByLocale' => $guaranteeByLocale,
             ]
         )->render();
 
