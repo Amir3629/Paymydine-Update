@@ -1180,6 +1180,35 @@
     closeCalendar: function () { setMode(false); },
     getSelectedFloorReservationContext: selectedFloorReservationContext,
     getOpeningHours: function () { return pmdOpeningHours.map(function (row) { return Object.assign({}, row); }); },
+    applyLivePayload: function (schedule) {
+      if (!schedule || typeof schedule !== 'object') return false;
+
+      if (Array.isArray(schedule.reservations)) {
+        reservations = schedule.reservations.slice();
+        boot.reservations = schedule.reservations.slice();
+      }
+
+      if (schedule.today) boot.today = String(schedule.today);
+      if (Number(schedule.year || 0) > 0) year = Number(schedule.year);
+      if (Number(schedule.month || 0) > 0) month = Math.max(0, Number(schedule.month) - 1);
+
+      if (Array.isArray(schedule.opening_hours)) {
+        pmdOpeningHours = schedule.opening_hours.map(function (row) {
+          return {
+            weekday: Number(row && row.weekday),
+            enabled: Boolean(row && row.enabled),
+            opening_time: String((row && row.opening_time) || '').slice(0, 5),
+            closing_time: String((row && row.closing_time) || '').slice(0, 5)
+          };
+        }).filter(function (row) {
+          return row.weekday >= 0 && row.weekday <= 6;
+        });
+      }
+
+      var root = document.getElementById(ROOT_ID);
+      if (root) render(root);
+      return true;
+    },
     audit: function () {
       var root = document.getElementById(ROOT_ID);
       return {
