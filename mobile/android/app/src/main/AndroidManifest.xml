@@ -66,6 +66,12 @@
         </receiver>
 
         <activity
+            android:name=".PrinterSettingsActivity"
+            android:exported="false"
+            android:screenOrientation="fullSensor"
+            android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden" />
+
+        <activity
             android:name=".KioskActivity"
             android:exported="false"
             android:screenOrientation="fullSensor"
