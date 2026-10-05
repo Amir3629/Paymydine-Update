@@ -45,7 +45,7 @@
             'guarantee_active' => 'Card guarantee active',
             'guarantee_charged' => 'No-show compensation charged',
             'guarantee_released' => 'Card guarantee released',
-            'guarantee_locked' => 'Date, time and party size are locked while the card guarantee is active. Contact the restaurant to change them so the guarantee terms can be reconfirmed.',
+            'guarantee_locked' => 'Date, time, party size, guest name and email are locked while the card guarantee is active. Contact the restaurant to change them so the guarantee terms can be reconfirmed.',
         ],
         'de' => [
             'language' => 'Sprache',
@@ -92,7 +92,7 @@
             'guarantee_active' => 'Kartengarantie aktiv',
             'guarantee_charged' => 'Ausfallentschädigung belastet',
             'guarantee_released' => 'Kartengarantie freigegeben',
-            'guarantee_locked' => 'Datum, Uhrzeit und Personenzahl sind während der aktiven Kartengarantie gesperrt. Bitte kontaktieren Sie das Restaurant, damit die Garantiebedingungen bei einer Änderung erneut bestätigt werden können.',
+            'guarantee_locked' => 'Datum, Uhrzeit, Personenzahl, Gastname und E-Mail sind während der aktiven Kartengarantie gesperrt. Bitte kontaktieren Sie das Restaurant, damit die Garantiebedingungen bei einer Änderung erneut bestätigt werden können.',
         ],
         'tr' => [
             'language' => 'Dil',
@@ -139,7 +139,7 @@
             'guarantee_active' => 'Kart garantisi aktif',
             'guarantee_charged' => 'No-show tazminatı tahsil edildi',
             'guarantee_released' => 'Kart garantisi serbest bırakıldı',
-            'guarantee_locked' => 'Kart garantisi aktifken tarih, saat ve kişi sayısı kilitlidir. Değişiklik için restoranla iletişime geçin; garanti koşulları yeniden onaylanmalıdır.',
+            'guarantee_locked' => 'Kart garantisi aktifken tarih, saat, kişi sayısı, misafir adı ve e-posta kilitlidir. Değişiklik için restoranla iletişime geçin; garanti koşulları yeniden onaylanmalıdır.',
         ],
         'ar' => [
             'language' => 'اللغة',
@@ -186,7 +186,7 @@
             'guarantee_active' => 'ضمان البطاقة فعال',
             'guarantee_charged' => 'تم تحصيل تعويض عدم الحضور',
             'guarantee_released' => 'تم تحرير ضمان البطاقة',
-            'guarantee_locked' => 'يتم تثبيت التاريخ والوقت وعدد الأشخاص أثناء سريان ضمان البطاقة. يرجى التواصل مع المطعم لتغييرها وإعادة تأكيد شروط الضمان.',
+            'guarantee_locked' => 'يتم تثبيت التاريخ والوقت وعدد الأشخاص واسم الضيف والبريد الإلكتروني أثناء سريان ضمان البطاقة. يرجى التواصل مع المطعم لتغييرها وإعادة تأكيد شروط الضمان.',
         ],
     ];
 
@@ -358,15 +358,15 @@
                                 </div>
                                 <label>
                                     <span data-pmd-manage-i18n="first_name">{{ $t['first_name'] }}</span>
-                                    <input name="first_name" type="text" value="{{ $reservationPayload['first_name'] }}" maxlength="48" required>
+                                    <input name="first_name" type="text" value="{{ $reservationPayload['first_name'] }}" maxlength="48" required @if($guaranteeLocksSchedule) disabled aria-disabled="true" @endif>
                                 </label>
                                 <label>
                                     <span data-pmd-manage-i18n="last_name">{{ $t['last_name'] }}</span>
-                                    <input name="last_name" type="text" value="{{ $reservationPayload['last_name'] }}" maxlength="48" required>
+                                    <input name="last_name" type="text" value="{{ $reservationPayload['last_name'] }}" maxlength="48" required @if($guaranteeLocksSchedule) disabled aria-disabled="true" @endif>
                                 </label>
                                 <label>
                                     <span data-pmd-manage-i18n="email">{{ $t['email'] }}</span>
-                                    <input name="email" type="email" value="{{ $reservationPayload['email'] }}" maxlength="96" required>
+                                    <input name="email" type="email" value="{{ $reservationPayload['email'] }}" maxlength="96" required @if($guaranteeLocksSchedule) disabled aria-disabled="true" @endif>
                                 </label>
                                 <label>
                                     <span data-pmd-manage-i18n="phone">{{ $t['phone'] }}</span>
