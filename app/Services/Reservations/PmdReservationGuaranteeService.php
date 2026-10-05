@@ -266,6 +266,7 @@ final class PmdReservationGuaranteeService
 
         $policy = (array)($verified['policy'] ?? []);
         $terms = (string)($policy['terms_text'] ?? '');
+        $consent = (string)($policy['consent_text'] ?? '');
         $deadline = $policy['cancellation_deadline_at'] ?? null;
         $eligible = $policy['charge_eligible_at'] ?? null;
         $now = now();
@@ -285,8 +286,11 @@ final class PmdReservationGuaranteeService
                 'setup_intent_reference' => (string)($verified['setup_intent_reference'] ?? ''),
                 'charge_intent_reference' => null,
                 'terms_version' => (string)($policy['terms_version'] ?? ''),
+                'locale' => (string)($policy['locale'] ?? 'en'),
                 'terms_text' => $terms,
-                'consent_text_hash' => hash('sha256', $terms),
+                'terms_hash' => hash('sha256', $terms),
+                'consent_text' => $consent,
+                'consent_text_hash' => hash('sha256', $consent),
                 'consent_at' => $now,
                 'cancellation_deadline_at' => $deadline
                     ? Carbon::parse($deadline)->utc()->format('Y-m-d H:i:s')
