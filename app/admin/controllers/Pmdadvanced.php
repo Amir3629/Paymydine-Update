@@ -79,6 +79,12 @@ class Pmdadvanced extends AdminController
             'default_reservation_status' => ['nullable', 'integer'],
             'confirmed_reservation_status' => ['nullable', 'integer'],
             'canceled_reservation_status' => ['nullable', 'integer'],
+            'no_show_reservation_status' => ['nullable', 'integer'],
+            'reservation_guarantee_min_guests' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'reservation_guarantee_amount_eur' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'reservation_guarantee_free_cancel_hours' => ['nullable', 'integer', 'min:1', 'max:336'],
+            'reservation_guarantee_grace_minutes' => ['nullable', 'integer', 'min:0', 'max:180'],
+            'reservation_guarantee_terms_version' => ['nullable', 'string', 'max:64'],
             'eta_default_prep_minutes' => ['nullable', 'integer', 'min:1', 'max:240'],
             'eta_order_load_window_minutes' => ['nullable', 'integer', 'min:1', 'max:240'],
             'eta_busy_item_threshold' => ['nullable', 'integer', 'min:0', 'max:500'],
@@ -160,6 +166,13 @@ class Pmdadvanced extends AdminController
             'default_reservation_status' => (int)($clean['default_reservation_status'] ?? 0),
             'confirmed_reservation_status' => (int)($clean['confirmed_reservation_status'] ?? 0),
             'canceled_reservation_status' => (int)($clean['canceled_reservation_status'] ?? 0),
+            'no_show_reservation_status' => (int)($clean['no_show_reservation_status'] ?? 0),
+            'reservation_guarantee_enabled' => !empty($input['reservation_guarantee_enabled']) ? 1 : 0,
+            'reservation_guarantee_min_guests' => (int)($clean['reservation_guarantee_min_guests'] ?? 6),
+            'reservation_guarantee_amount_cents' => (int)round(((float)($clean['reservation_guarantee_amount_eur'] ?? 0)) * 100),
+            'reservation_guarantee_free_cancel_hours' => (int)($clean['reservation_guarantee_free_cancel_hours'] ?? 24),
+            'reservation_guarantee_grace_minutes' => (int)($clean['reservation_guarantee_grace_minutes'] ?? 15),
+            'reservation_guarantee_terms_version' => trim((string)($clean['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01')),
             'admin_after_save_action' => (string)($clean['admin_after_save_action'] ?? 'continue'),
             'note_suggestion_sentences' => $suggestions,
             'kds_notification_sound' => trim((string)($clean['kds_notification_sound'] ?? '')),
@@ -211,6 +224,12 @@ class Pmdadvanced extends AdminController
             if (trim($sentence) !== '') $lines[] = trim($sentence);
         }
         $values['note_suggestions'] = implode("\n", $lines);
+        $values['reservation_guarantee_amount_eur'] = number_format(
+            max(0, (int)($values['reservation_guarantee_amount_cents'] ?? 0)) / 100,
+            2,
+            '.',
+            ''
+        );
 
         return $this->normalizePayload($values);
     }
@@ -254,6 +273,13 @@ class Pmdadvanced extends AdminController
             'default_reservation_status'=>0,
             'confirmed_reservation_status'=>0,
             'canceled_reservation_status'=>0,
+            'no_show_reservation_status'=>0,
+            'reservation_guarantee_enabled'=>0,
+            'reservation_guarantee_min_guests'=>6,
+            'reservation_guarantee_amount_cents'=>0,
+            'reservation_guarantee_free_cancel_hours'=>24,
+            'reservation_guarantee_grace_minutes'=>15,
+            'reservation_guarantee_terms_version'=>'DE-NOSHOW-2026-01',
             'admin_after_save_action'=>'continue',
             'note_suggestion_sentences'=>[],
             'kds_notification_sound'=>'',
@@ -270,6 +296,7 @@ class Pmdadvanced extends AdminController
             'menus_page','reservation_page','distance_unit','default_geocoder','maps_api_key',
             'default_language','default_currency_code','timezone','eta_hint_text',
             'admin_after_save_action','kds_notification_sound','maintenance_message',
+            'reservation_guarantee_terms_version','reservation_guarantee_amount_eur',
             'currency_converter_api','currency_oer_api_key','currency_fixer_api_key','note_suggestions',
         ];
 
@@ -281,7 +308,11 @@ class Pmdadvanced extends AdminController
             'eta_very_busy_extra_minutes','eta_use_staff_attendance','eta_expected_kitchen_staff',
             'eta_understaffed_extra_minutes','eta_round_to_nearest_minutes','eta_max_minutes',
             'reservation_email','default_reservation_status','confirmed_reservation_status',
-            'canceled_reservation_status','enable_request_log','activity_log_timeout','maintenance_mode',
+            'canceled_reservation_status','no_show_reservation_status',
+            'reservation_guarantee_enabled','reservation_guarantee_min_guests',
+            'reservation_guarantee_amount_cents','reservation_guarantee_free_cancel_hours',
+            'reservation_guarantee_grace_minutes',
+            'enable_request_log','activity_log_timeout','maintenance_mode',
             'currency_refresh_interval',
         ];
 
