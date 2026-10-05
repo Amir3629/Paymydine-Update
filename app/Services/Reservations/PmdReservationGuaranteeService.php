@@ -386,8 +386,12 @@ final class PmdReservationGuaranteeService
             return false;
         }
 
-        if (in_array((string)$row->status, ['released', 'charged'], true)) {
+        if ((string)$row->status === 'released') {
             return true;
+        }
+
+        if ((string)$row->status === 'charged') {
+            return false;
         }
 
         $this->cleanupStripeReferences($row);
