@@ -749,6 +749,7 @@
 
   function renderMenu() {
     var items = visibleItems();
+    grid.classList.toggle("is-grouped", !state.search.trim());
     $("pmd-kiosk-result-count").textContent = items.length + " " + (items.length === 1 ? copy().item : copy().items);
     if (!items.length) {
       grid.innerHTML = '<div class="pmd-kiosk-no-results"><strong>' + escapeHtml(copy().noResults) + '</strong><p>' +
