@@ -344,7 +344,11 @@ final class PmdMobileWorkspaceAuthController extends Controller
             );
 
         if ($resolvedSurface === 'reservations') {
-            $route = 'reservations';
+            // PMD_ANDROID_RESERVATIONS_IN_POS_V17
+            // Reservations now lives inside the combined Quick POS shell. Keep
+            // the staff authorization surface as reservations, but point the
+            // canonical destination at the Reservations workspace within POS.
+            $route = 'pos?workspace=reservations';
         }
 
         return [
