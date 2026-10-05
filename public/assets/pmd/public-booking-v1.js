@@ -85,6 +85,22 @@
     return true;
   }
 
+  function hydrateAvailabilitySeed(rows, guests) {
+    if (!Array.isArray(rows)) return;
+
+    rows.forEach(function (row) {
+      if (!row || !row.date) return;
+
+      dateStatuses[row.date] = row.status || "available";
+      cacheAvailability(row.date, guests, {
+        opening: row.opening || {},
+        duration: row.duration,
+        interval: row.interval,
+        slots: row.slots
+      });
+    });
+  }
+
   function pad(value) {
     return String(value).padStart(2, "0");
   }
@@ -458,8 +474,13 @@
 
     var instant = cachedAvailability(value, state.guests);
     if (instant) {
+      /*
+       * PMD_PUBLIC_BOOKING_ZERO_WAIT_R5
+       *
+       * Date changes inside the seeded window are intentionally 100% local.
+       * The final booking POST remains authoritative and revalidates the slot.
+       */
       renderTimes(instant);
-      loadAvailability({ silent: true });
     } else {
       loadAvailability();
     }
@@ -719,10 +740,16 @@
     button.addEventListener("click", resetBooking);
   });
 
+  hydrateAvailabilitySeed(config.availabilitySeed, state.guests);
   renderDateStrip();
   renderSummary();
-  loadDateStatuses();
-  loadAvailability();
+
+  var initialAvailability = cachedAvailability(state.date, state.guests);
+  if (initialAvailability) {
+    renderTimes(initialAvailability);
+  } else {
+    loadAvailability();
+  }
 
   window.PMDPublicBookingV1 = {
     reload: loadAvailability,
