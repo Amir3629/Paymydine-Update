@@ -1729,3 +1729,87 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
 .pmd-kiosk-loading[hidden] {
   display: none !important;
 }
+
+
+/* PMD_KIOSK_SCROLL_PERF_V13
+ * Keep the always-visible kiosk surface cheap to composite on Android WebView.
+ * The selected restaurant theme is preserved, but expensive blur/shadow/
+ * transform effects are removed from the scrolling path.
+ */
+.pmd-kiosk-order-mode,
+.pmd-kiosk-search,
+.pmd-kiosk-language select {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--pmd-k-panel);
+}
+
+.pmd-kiosk-item {
+  box-shadow: none;
+  transition: none;
+  contain: layout paint style;
+  content-visibility: auto;
+  contain-intrinsic-size: 360px;
+}
+
+.pmd-kiosk-item:active {
+  transform: none;
+}
+
+.pmd-kiosk-item__info,
+.pmd-kiosk-item__details {
+  display: none !important;
+}
+
+.pmd-kiosk-menu,
+.pmd-kiosk-category-list,
+.pmd-kiosk-categories {
+  scroll-behavior: auto !important;
+}
+
+.pmd-kiosk-menu {
+  overscroll-behavior-y: none;
+  transform: translateZ(0);
+}
+
+.pmd-kiosk-menu-hero {
+  box-shadow: none;
+}
+
+.pmd-kiosk-compact-order {
+  box-shadow: none !important;
+}
+
+@media (max-width: 930px) {
+  body:not(.pmd-kiosk-hero-ready) .pmd-kiosk-topbar {
+    height: 150px;
+    grid-template-rows: 54px 0 56px;
+  }
+
+  body:not(.pmd-kiosk-hero-ready) .pmd-kiosk-menu-hero {
+    display: none;
+    height: 0;
+    border: 0;
+  }
+
+  body:not(.pmd-kiosk-hero-ready) .pmd-kiosk-workspace {
+    height: calc(100% - 150px);
+  }
+}
+
+@media (max-width: 680px) {
+  .pmd-kiosk-menu {
+    overflow-y: auto;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: auto;
+  }
+
+  body:not(.pmd-kiosk-hero-ready) .pmd-kiosk-topbar {
+    height: 154px;
+    grid-template-rows: 54px 0 56px;
+  }
+
+  body:not(.pmd-kiosk-hero-ready) .pmd-kiosk-workspace {
+    height: calc(100% - 154px);
+  }
+}

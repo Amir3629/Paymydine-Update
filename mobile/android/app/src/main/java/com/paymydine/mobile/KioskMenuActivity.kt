@@ -20,6 +20,7 @@ import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -30,7 +31,9 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskProfile
+import java.io.ByteArrayInputStream
 import java.util.UUID
 
 /**
@@ -39,11 +42,12 @@ import java.util.UUID
  * PMD_KIOSK_PREMIUM_UI_V11
  * PMD_KIOSK_INSTANT_MENU_V12
  * PMD_KIOSK_RENDER_FALLBACK_V10
+ * PMD_KIOSK_HARDWARE_SCROLL_V13
  *
  * Kiosk menu intentionally uses a classic Android view hierarchy instead of a
- * Compose AndroidView. Physical devices use the normal accelerated WebView
- * path for responsive taps and scrolling. Emulator-like devices keep the
- * proven software renderer fallback that avoids blank GPU surfaces.
+ * Compose AndroidView. V13 is hardware accelerated on both physical devices
+ * and the Android emulator. Software rendering is now a crash fallback only;
+ * forcing software on every emulator made touch scrolling visibly laggy.
  */
 class KioskMenuActivity : ComponentActivity() {
     private lateinit var root: LinearLayout
@@ -58,16 +62,7 @@ class KioskMenuActivity : ComponentActivity() {
     private val sessionNonce = UUID.randomUUID().toString()
     private val bridgeSecret = UUID.randomUUID().toString()
 
-    private val useSoftwareRendererFallback: Boolean by lazy {
-        val fingerprint = Build.FINGERPRINT.lowercase()
-        val model = Build.MODEL.lowercase()
-        val product = Build.PRODUCT.lowercase()
-        fingerprint.startsWith("generic") ||
-            fingerprint.contains("emulator") ||
-            model.contains("emulator") ||
-            model.contains("android sdk built for") ||
-            product.contains("sdk_gphone")
-    }
+    private var useSoftwareRendererFallback = false
 
     private val menuUrl: String by lazy {
         intent.getStringExtra(EXTRA_MENU_URL).orEmpty().trimEnd('/')
@@ -82,6 +77,9 @@ class KioskMenuActivity : ComponentActivity() {
     }
     private val restaurantLogo: String by lazy {
         intent.getStringExtra(EXTRA_RESTAURANT_LOGO).orEmpty()
+    }
+    private val heroImage: String by lazy {
+        intent.getStringExtra(EXTRA_HERO_IMAGE).orEmpty()
     }
     private val surfaceColor: Int by lazy {
         parseColor(intent.getStringExtra(EXTRA_SURFACE), Color.rgb(244, 246, 248))
@@ -299,8 +297,8 @@ class KioskMenuActivity : ComponentActivity() {
             applyKioskRenderLayer(this)
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
-            isNestedScrollingEnabled = true
-            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+            isNestedScrollingEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
 
             settings.apply {
                 javaScriptEnabled = true
@@ -310,7 +308,7 @@ class KioskMenuActivity : ComponentActivity() {
                 allowContentAccess = false
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 cacheMode = WebSettings.LOAD_DEFAULT
-                offscreenPreRaster = !useSoftwareRendererFallback
+                offscreenPreRaster = false
                 useWideViewPort = true
                 loadWithOverviewMode = false
                 textZoom = 100
@@ -381,6 +379,28 @@ class KioskMenuActivity : ComponentActivity() {
                             startActivity(Intent(Intent.ACTION_VIEW, uri))
                         }
                         return true
+                    }
+
+                    override fun shouldInterceptRequest(
+                        view: WebView,
+                        request: WebResourceRequest,
+                    ): WebResourceResponse? {
+                        val uri = request.url
+                        val requestHost = uri.host?.lowercase().orEmpty()
+                        if (
+                            request.method.equals("GET", ignoreCase = true) &&
+                            requestHost == trustedHost &&
+                            uri.path == "/api/v1/frontend-bootstrap-batch-r1"
+                        ) {
+                            KioskBootstrapWarmCache.consume(menuUrl)?.let { body ->
+                                return WebResourceResponse(
+                                    "application/json",
+                                    "UTF-8",
+                                    ByteArrayInputStream(body.toByteArray(Charsets.UTF_8)),
+                                )
+                            }
+                        }
+                        return super.shouldInterceptRequest(view, request)
                     }
 
                     override fun onPageCommitVisible(
@@ -457,6 +477,10 @@ class KioskMenuActivity : ComponentActivity() {
                             webView = null
                             loadingView.visibility = View.GONE
                             loadingView.text = ""
+                            // PMD_KIOSK_RENDER_FALLBACK_V13
+                            // Hardware is the fast default. Only a real Chromium
+                            // renderer death activates software for the retry.
+                            useSoftwareRendererFallback = true
                             webContainer.post {
                                 if (!isFinishing) createCanonicalKioskWebView()
                             }
@@ -570,76 +594,29 @@ class KioskMenuActivity : ComponentActivity() {
             applyKioskRenderLayer(view)
             view.visibility = View.VISIBLE
             view.alpha = 1f
-            view.requestLayout()
-            view.invalidate()
 
             val measuredWidth = view.width.coerceAtLeast(1)
             val measuredHeight = view.height.coerceAtLeast(1)
 
+            // PMD_KIOSK_LIGHTWEIGHT_VIEWPORT_SYNC_V13
+            // Do not force DOM reflow, dispatch synthetic resize events or
+            // request visual-state callbacks during normal kiosk interaction.
+            // Those operations were especially expensive in emulator WebView.
             view.evaluateJavascript(
                 """
                 (function(){
-                  var w = Math.max(
-                    1,
-                    $measuredWidth,
-                    window.innerWidth || 0,
-                    document.documentElement.clientWidth || 0
-                  );
-                  var h = Math.max(
-                    1,
-                    $measuredHeight,
-                    window.innerHeight || 0,
-                    document.documentElement.clientHeight || 0
-                  );
-
                   document.documentElement.style.setProperty(
                     '--pmd-android-viewport-width',
-                    w + 'px'
+                    '${measuredWidth}px'
                   );
                   document.documentElement.style.setProperty(
                     '--pmd-android-viewport-height',
-                    h + 'px'
+                    '${measuredHeight}px'
                   );
-
-                  // PMD_KIOSK_NATIVE_SCROLL_V10
-                  // Do not hard-pin html/body/app heights from Android. The
-                  // kiosk CSS owns its viewport and the menu is its scroll
-                  // container. Pinning maxHeight here prevented reliable
-                  // touch scrolling on portrait WebViews.
-                  var app = document.getElementById('pmd-kiosk-app');
-                  if (app) {
-                    app.style.width = '100%';
-                    app.style.minWidth = '0';
-                    app.style.removeProperty('height');
-                    app.style.removeProperty('min-height');
-                    app.style.removeProperty('max-height');
-                    var workspace = app.querySelector('.pmd-kiosk-workspace');
-                    if (workspace) {
-                      workspace.style.removeProperty('height');
-                    }
-                    void app.offsetWidth;
-                  }
-
-                  window.dispatchEvent(new Event('resize'));
-                  return JSON.stringify({
-                    app: !!app,
-                    width: w,
-                    height: h,
-                    appHeight: app ? app.getBoundingClientRect().height : 0
-                  });
+                  return true;
                 })()
                 """.trimIndent(),
                 null,
-            )
-
-            view.postVisualStateCallback(
-                System.nanoTime(),
-                object : WebView.VisualStateCallback() {
-                    override fun onComplete(requestId: Long) {
-                        view.requestLayout()
-                        view.invalidate()
-                    }
-                },
             )
         }
     }
@@ -684,7 +661,9 @@ class KioskMenuActivity : ComponentActivity() {
             "&kiosk_accent=" +
             Uri.encode(intent.getStringExtra(EXTRA_ACCENT).orEmpty()) +
             "&kiosk_surface=" +
-            Uri.encode(intent.getStringExtra(EXTRA_SURFACE).orEmpty())
+            Uri.encode(intent.getStringExtra(EXTRA_SURFACE).orEmpty()) +
+            "&kiosk_hero=" +
+            Uri.encode(heroImage)
     }
 
     private fun applyKioskRenderLayer(view: WebView) {
@@ -753,8 +732,10 @@ class KioskMenuActivity : ComponentActivity() {
         webView?.let { view ->
             webContainer.removeView(view)
             runCatching {
+                // Keep visual/menu cache between kiosk sessions. Guest cart and
+                // payment state live in sessionStorage and are still cleared.
                 view.evaluateJavascript(
-                    "try{localStorage.clear();sessionStorage.clear();}catch(e){}",
+                    "try{sessionStorage.clear();}catch(e){}",
                     null,
                 )
                 view.removeJavascriptInterface("PayMyDineKiosk")
@@ -801,6 +782,7 @@ class KioskMenuActivity : ComponentActivity() {
         private const val EXTRA_SERVICE_MODE = "pmd.kiosk.service_mode"
         private const val EXTRA_RESTAURANT_NAME = "pmd.kiosk.restaurant_name"
         private const val EXTRA_RESTAURANT_LOGO = "pmd.kiosk.restaurant_logo"
+        private const val EXTRA_HERO_IMAGE = "pmd.kiosk.hero_image"
         private const val EXTRA_BACKGROUND = "pmd.kiosk.background"
         private const val EXTRA_TEXT = "pmd.kiosk.text"
         private const val EXTRA_MUTED = "pmd.kiosk.muted"
@@ -812,6 +794,7 @@ class KioskMenuActivity : ComponentActivity() {
             context: Context,
             profile: KioskProfile,
             serviceMode: String,
+            heroImage: String = "",
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -819,6 +802,7 @@ class KioskMenuActivity : ComponentActivity() {
                 putExtra(EXTRA_SERVICE_MODE, serviceMode)
                 putExtra(EXTRA_RESTAURANT_NAME, profile.restaurantName)
                 putExtra(EXTRA_RESTAURANT_LOGO, profile.restaurantLogoUrl)
+                putExtra(EXTRA_HERO_IMAGE, heroImage)
                 putExtra(EXTRA_BACKGROUND, profile.theme.background)
                 putExtra(EXTRA_TEXT, profile.theme.text)
                 putExtra(EXTRA_MUTED, profile.theme.muted)

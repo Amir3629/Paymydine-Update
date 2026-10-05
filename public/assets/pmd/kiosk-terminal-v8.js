@@ -1,5 +1,6 @@
 // PMD_KIOSK_BLADE_TERMINAL_V8
 // PMD_KIOSK_INSTANT_MENU_V12
+// PMD_KIOSK_SMOOTH_SCROLL_V13
 (function () {
   "use strict";
 
@@ -136,6 +137,9 @@
   var cartKey = "pmd-kiosk-v8-cart:" + String(config.session || "kiosk");
   var orderKey = "pmd-kiosk-v8-order:" + String(config.session || "kiosk");
   var paymentKey = "pmd-kiosk-v8-payment:" + String(config.session || "kiosk");
+  var bootstrapCacheKey = "pmd-kiosk-v13-bootstrap:" + String(window.location.host || "tenant");
+  var bootstrapCacheMaxAgeMs = 6 * 60 * 60 * 1000;
+  var bootPresented = false;
 
   function copy() {
     return COPY[state.locale] || COPY.en;
@@ -705,6 +709,9 @@
       return;
     }
 
+    // PMD_KIOSK_CLEAN_CARDS_V13
+    // The whole card remains tappable for item details, but the UI does not
+    // repeat that fact with an info badge or a "Tap for details" footer.
     grid.innerHTML = items.map(function (item, index) {
       var quantity = itemCartQuantity(item.id);
       var image = item.image
@@ -713,10 +720,9 @@
           (index < 2 ? ' fetchpriority="high"' : '') + '>'
         : '<span class="pmd-kiosk-item__placeholder">' + escapeHtml(item.name.charAt(0).toUpperCase()) + "</span>";
       return '<article class="pmd-kiosk-item" data-open-item="' + escapeHtml(item.id) + '" tabindex="0" role="button" aria-label="' +
-          escapeHtml(item.name + " - " + copy().details) + '">' +
+          escapeHtml(item.name) + '">' +
         '<div class="pmd-kiosk-item__image">' +
           image +
-          '<span class="pmd-kiosk-item__info" aria-hidden="true">i</span>' +
           (quantity > 0 ? '<span class="pmd-kiosk-item__qty">' + quantity + "</span>" : "") +
         "</div>" +
         '<div class="pmd-kiosk-item__body">' +
@@ -728,8 +734,6 @@
               (item.options.length ? escapeHtml(copy().customize) : "+ " + escapeHtml(copy().add)) +
             "</button>" +
           "</div>" +
-          '<div class="pmd-kiosk-item__details"><span aria-hidden="true">☝</span><span>' + escapeHtml(copy().details) +
-            '</span><span aria-hidden="true">›</span></div>' +
         "</div>" +
       "</article>";
     }).join("");
@@ -1750,68 +1754,95 @@
     check();
   }
 
+  function applyBootstrapBatch(batch) {
+    var data = object(batch && batch.data);
+    var settings = unwrap(data.settings);
+    var restaurant = unwrap(data.restaurant);
+    var theme = unwrap(data.theme);
+    var vat = unwrap(data.vatSettings);
+    var tipPayload = unwrap(data.tipSettings);
+    var normalizedMenu = normalizeMenu(data.menu);
+
+    state.settings = settings;
+    applyCustomerMenuTheme(settings, theme);
+    state.items = normalizedMenu.items;
+    state.categories = normalizedMenu.categories;
+    state.payments = normalizePayments(data.payments);
+
+    var heroItem = state.items.find(function (entry) { return entry.image; });
+    if (heroItem && heroItem.image) {
+      document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(heroItem.image).replace(/"/g, "%22") + '")');
+      var heroNode = $("pmd-kiosk-menu-hero");
+      if (heroNode) heroNode.classList.add("is-ready");
+      document.body.classList.add("pmd-kiosk-hero-ready");
+    }
+
+    state.restaurant = {
+      name: cleanText(first(config.restaurant || {}, ["name"],
+        first(settings, ["pmd_restaurant_identity_name", "site_name", "business_name", "restaurant_name"],
+          first(restaurant, ["name", "restaurant_name"], "PayMyDine"))), "PayMyDine"),
+      logo: normalizeAsset(first(config.restaurant || {}, ["logo"],
+        first(settings, ["pmd_restaurant_identity_logo", "site_logo_url", "logo_url", "site_logo", "logo"], ""))),
+      currency: String(first(restaurant, ["currency", "location_currency"], first(settings, ["default_currency", "currency"], "EUR")) || "EUR").toUpperCase()
+    };
+
+    state.enabledLocales = parseLocales(settings, theme);
+    var requested = new URL(window.location.href).searchParams.get("lang");
+    var baseLocale = String(requested || first(settings, ["default_language", "locale"], state.enabledLocales[0] || "en")).toLowerCase().split("-")[0];
+    state.locale = state.enabledLocales.indexOf(baseLocale) >= 0 ? baseLocale : (state.enabledLocales[0] || "en");
+
+    var vatPercentage = number(first(vat, ["vat_percentage", "tax_percentage"], first(settings, ["vat_percentage", "tax_percentage"], 0)));
+    var vatMode = boolish(first(vat, ["vat_mode", "tax_mode"], first(settings, ["vat_mode", "tax_mode"], vatPercentage > 0)), vatPercentage > 0);
+    var addAtCheckout = boolish(first(vat, ["vat_menu_price", "tax_menu_price"], first(settings, ["vat_menu_price", "tax_menu_price"], 0)), false);
+    state.tax = { enabled: vatMode, percentage: vatPercentage, included: !addAtCheckout };
+
+    var serviceType = String(first(settings, ["pmd_service_charge_type", "service_charge_type"], first(theme, ["pmd_service_charge_type", "service_charge_type"], "percentage"))).toLowerCase();
+    var serviceValue = Math.max(0, number(first(settings, ["pmd_service_charge_value", "service_charge_value"], first(theme, ["pmd_service_charge_value", "service_charge_value"], 0))));
+    state.service = {
+      enabled: boolish(first(settings, ["pmd_service_charge_enabled", "service_charge_enabled"], first(theme, ["pmd_service_charge_enabled", "service_charge_enabled"], false)), false) && serviceValue > 0,
+      type: serviceType === "fixed" ? "fixed" : "percentage",
+      value: serviceValue,
+      label: cleanText(first(settings, ["pmd_service_charge_label", "service_charge_label"], first(theme, ["pmd_service_charge_label", "service_charge_label"], copy().service)), copy().service)
+    };
+
+    var rawPresets = first(tipPayload, ["tip_presets", "tips_presets", "presets"], first(settings, ["tip_presets", "tips_presets"], [0, 5, 10]));
+    var presets = Array.isArray(rawPresets) ? rawPresets : String(rawPresets || "").split(",");
+    state.tips = {
+      enabled: boolish(first(tipPayload, ["tips_enabled", "tip_enabled", "enabled"], first(settings, ["tips_enabled", "tip_enabled"], true)), true),
+      presets: presets.map(function (value) { return Math.max(0, number(value)); }).filter(function (value, index, all) { return all.indexOf(value) === index; })
+    };
+
+    if (!state.items.length) throw new Error("No menu items are available.");
+  }
+
+  function readBootstrapCache() {
+    try {
+      var raw = localStorage.getItem(bootstrapCacheKey);
+      if (!raw) return null;
+      var cached = JSON.parse(raw);
+      if (!cached || !cached.batch || !cached.savedAt) return null;
+      if ((Date.now() - Number(cached.savedAt)) > bootstrapCacheMaxAgeMs) return null;
+      return cached.batch;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeBootstrapCache(batch) {
+    try {
+      localStorage.setItem(bootstrapCacheKey, JSON.stringify({
+        savedAt: Date.now(),
+        batch: batch
+      }));
+    } catch (error) {}
+  }
+
   function loadBootstrap() {
     return requestJson(config.bootstrapUrl || "/api/v1/frontend-bootstrap-batch-r1")
       .then(function (batch) {
-        var data = object(batch.data);
-        var settings = unwrap(data.settings);
-        var restaurant = unwrap(data.restaurant);
-        var theme = unwrap(data.theme);
-        var vat = unwrap(data.vatSettings);
-        var tipPayload = unwrap(data.tipSettings);
-        var normalizedMenu = normalizeMenu(data.menu);
-
-        state.settings = settings;
-        applyCustomerMenuTheme(settings, theme);
-        state.items = normalizedMenu.items;
-        state.categories = normalizedMenu.categories;
-        state.payments = normalizePayments(data.payments);
-
-        // PMD_KIOSK_PREMIUM_UI_V11: reuse the restaurant's own menu photography
-        // as a subtle header hero instead of shipping generic stock imagery.
-        var heroItem = state.items.find(function (entry) { return entry.image; });
-        if (heroItem && heroItem.image) {
-          document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(heroItem.image).replace(/"/g, "%22") + '")');
-          var heroNode = $("pmd-kiosk-menu-hero");
-          if (heroNode) heroNode.classList.add("is-ready");
-        }
-
-        state.restaurant = {
-          name: cleanText(first(config.restaurant || {}, ["name"],
-            first(settings, ["pmd_restaurant_identity_name", "site_name", "business_name", "restaurant_name"],
-              first(restaurant, ["name", "restaurant_name"], "PayMyDine"))), "PayMyDine"),
-          logo: normalizeAsset(first(config.restaurant || {}, ["logo"],
-            first(settings, ["pmd_restaurant_identity_logo", "site_logo_url", "logo_url", "site_logo", "logo"], ""))),
-          currency: String(first(restaurant, ["currency", "location_currency"], first(settings, ["default_currency", "currency"], "EUR")) || "EUR").toUpperCase()
-        };
-
-        state.enabledLocales = parseLocales(settings, theme);
-        var requested = new URL(window.location.href).searchParams.get("lang");
-        var baseLocale = String(requested || first(settings, ["default_language", "locale"], state.enabledLocales[0] || "en")).toLowerCase().split("-")[0];
-        state.locale = state.enabledLocales.indexOf(baseLocale) >= 0 ? baseLocale : (state.enabledLocales[0] || "en");
-
-        var vatPercentage = number(first(vat, ["vat_percentage", "tax_percentage"], first(settings, ["vat_percentage", "tax_percentage"], 0)));
-        var vatMode = boolish(first(vat, ["vat_mode", "tax_mode"], first(settings, ["vat_mode", "tax_mode"], vatPercentage > 0)), vatPercentage > 0);
-        var addAtCheckout = boolish(first(vat, ["vat_menu_price", "tax_menu_price"], first(settings, ["vat_menu_price", "tax_menu_price"], 0)), false);
-        state.tax = { enabled: vatMode, percentage: vatPercentage, included: !addAtCheckout };
-
-        var serviceType = String(first(settings, ["pmd_service_charge_type", "service_charge_type"], first(theme, ["pmd_service_charge_type", "service_charge_type"], "percentage"))).toLowerCase();
-        var serviceValue = Math.max(0, number(first(settings, ["pmd_service_charge_value", "service_charge_value"], first(theme, ["pmd_service_charge_value", "service_charge_value"], 0))));
-        state.service = {
-          enabled: boolish(first(settings, ["pmd_service_charge_enabled", "service_charge_enabled"], first(theme, ["pmd_service_charge_enabled", "service_charge_enabled"], false)), false) && serviceValue > 0,
-          type: serviceType === "fixed" ? "fixed" : "percentage",
-          value: serviceValue,
-          label: cleanText(first(settings, ["pmd_service_charge_label", "service_charge_label"], first(theme, ["pmd_service_charge_label", "service_charge_label"], copy().service)), copy().service)
-        };
-
-        var rawPresets = first(tipPayload, ["tip_presets", "tips_presets", "presets"], first(settings, ["tip_presets", "tips_presets"], [0, 5, 10]));
-        var presets = Array.isArray(rawPresets) ? rawPresets : String(rawPresets || "").split(",");
-        state.tips = {
-          enabled: boolish(first(tipPayload, ["tips_enabled", "tip_enabled", "enabled"], first(settings, ["tips_enabled", "tip_enabled"], true)), true),
-          presets: presets.map(function (value) { return Math.max(0, number(value)); }).filter(function (value, index, all) { return all.indexOf(value) === index; })
-        };
-
-        if (!state.items.length) throw new Error("No menu items are available.");
+        applyBootstrapBatch(batch);
+        writeBootstrapCache(batch);
+        return batch;
       });
   }
 
@@ -1827,6 +1858,11 @@
     app.setAttribute("aria-busy", "false");
     if (loading) loading.hidden = true;
     renderAll();
+
+    // Cached menu snapshots are visual-only first paint. Checkout/payment
+    // side effects must run once, after the first usable menu is presented.
+    if (bootPresented) return;
+    bootPresented = true;
     if (config.paymentReturn) {
       handlePaymentReturn();
     } else if (state.order) {
@@ -1939,6 +1975,33 @@
   });
 
   applyCustomerMenuTheme({}, config.theme || {});
+  if (config.hero) {
+    document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(config.hero).replace(/"/g, "%22") + '")');
+    document.body.classList.add("pmd-kiosk-hero-ready");
+    var initialHeroNode = $("pmd-kiosk-menu-hero");
+    if (initialHeroNode) initialHeroNode.classList.add("is-ready");
+  }
   restoreSession();
-  loadBootstrap().then(finishBoot).catch(failBoot);
+
+  // PMD_KIOSK_INSTANT_CACHE_V13
+  // Paint the most recent canonical menu immediately, then revalidate in the
+  // background. The fresh response always wins, so admin/menu edits still
+  // appear automatically without asking the guest to wait.
+  var cachedBootstrap = readBootstrapCache();
+  var cacheHydrated = false;
+  if (cachedBootstrap) {
+    try {
+      applyBootstrapBatch(cachedBootstrap);
+      cacheHydrated = true;
+      finishBoot();
+    } catch (error) {
+      cacheHydrated = false;
+    }
+  }
+
+  loadBootstrap()
+    .then(finishBoot)
+    .catch(function (error) {
+      if (!cacheHydrated) failBoot(error);
+    });
 })();

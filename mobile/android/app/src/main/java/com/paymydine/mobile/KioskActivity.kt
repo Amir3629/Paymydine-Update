@@ -385,6 +385,7 @@ private fun KioskApp(
                             context = context,
                             profile = current,
                             serviceMode = "eat_in",
+                            heroImage = heroImages.firstOrNull().orEmpty(),
                         ),
                     )
                     (context as? Activity)?.overridePendingTransition(0, 0)
@@ -396,6 +397,7 @@ private fun KioskApp(
                             context = context,
                             profile = current,
                             serviceMode = "pickup",
+                            heroImage = heroImages.firstOrNull().orEmpty(),
                         ),
                     )
                     (context as? Activity)?.overridePendingTransition(0, 0)

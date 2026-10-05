@@ -25,6 +25,51 @@ data class KioskProfile(
     val idleTimeoutSeconds: Long,
 )
 
+/**
+ * PMD_KIOSK_BOOTSTRAP_HANDOFF_V13
+ * The native welcome already downloads the canonical menu bootstrap to choose
+ * restaurant photography. Keep that fresh response in memory for one menu
+ * navigation so WebView can consume it immediately instead of downloading the
+ * exact same payload again and flashing an empty menu.
+ */
+object KioskBootstrapWarmCache {
+    private data class Entry(
+        val host: String,
+        val body: String,
+        val savedAtMs: Long,
+    )
+
+    @Volatile
+    private var entry: Entry? = null
+
+    fun put(
+        host: String,
+        body: String,
+    ) {
+        if (body.isBlank()) return
+        entry =
+            Entry(
+                host = SecureStore.normalizeHost(host).lowercase(),
+                body = body,
+                savedAtMs = System.currentTimeMillis(),
+            )
+    }
+
+    @Synchronized
+    fun consume(host: String): String? {
+        val current = entry ?: return null
+        val normalized = SecureStore.normalizeHost(host).lowercase()
+        val ageMs = System.currentTimeMillis() - current.savedAtMs
+        if (current.host != normalized || ageMs !in 0..90_000L) {
+            entry = null
+            return null
+        }
+
+        entry = null
+        return current.body
+    }
+}
+
 class KioskApiClient {
     suspend fun pair(
         host: String,
@@ -128,6 +173,7 @@ class KioskApiClient {
             if (connection.responseCode !in 200..299) return@withContext emptyList()
 
             val text = connection.inputStream.bufferedReader().use { it.readText() }
+            KioskBootstrapWarmCache.put(host, text)
             val json = runCatching { JSONObject(text) }.getOrNull() ?: return@withContext emptyList()
             val menu = json.optJSONObject("data")?.opt("menu") ?: return@withContext emptyList()
             val raw = linkedSetOf<String>()

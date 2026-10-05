@@ -5,6 +5,7 @@
     $initialRestaurantLogo = trim((string)($initialRestaurant['logo'] ?? ''));
     $initialRestaurantLetter = mb_strtoupper(mb_substr($initialRestaurantName, 0, 1));
     $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Eat here';
+    $initialHero = trim((string)($pmdKioskConfig['hero'] ?? ''));
 @endphp
 <!doctype html>
 <html lang="en">
@@ -15,10 +16,15 @@
     <meta name="robots" content="noindex,nofollow">
     <meta name="theme-color" id="pmd-kiosk-theme-color" content="#f3f5f7">
     <title>Self-service ordering · PayMyDine</title>
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=12-instant-menu-hero">
+    @if ($initialHero !== '')
+        <style id="pmd-kiosk-initial-hero-v13">
+            :root { --pmd-k-hero-image: url({!! json_encode($initialHero, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) !!}); }
+        </style>
+    @endif
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=13-smooth-scroll">
 </head>
 <body
-    class="pmd-kiosk-v8"
+    class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
     data-pmd-kiosk-terminal="blade-v8"
     data-pmd-kiosk-theme="{{ e((string)($initialTheme['id'] ?? 'kazen_japanese')) }}"
     style="--pmd-k-bg: {{ e((string)($initialTheme['background'] ?? '#f3f5f7')) }}; --pmd-k-panel: {{ e((string)($initialTheme['surface'] ?? '#ffffff')) }}; --pmd-k-ink: {{ e((string)($initialTheme['text'] ?? '#17212b')) }}; --pmd-k-muted: {{ e((string)($initialTheme['muted'] ?? '#6d7985')) }}; --pmd-k-accent: {{ e((string)($initialTheme['accent'] ?? '#0a6b57')) }};"
@@ -129,6 +135,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=12-instant-menu-hero" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=13-smooth-scroll" defer></script>
 </body>
 </html>
