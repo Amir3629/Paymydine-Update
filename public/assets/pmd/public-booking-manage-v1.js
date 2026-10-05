@@ -187,6 +187,7 @@
     var url = new URL(config.availabilityUrl, window.location.origin);
     url.searchParams.set("date", state.date);
     url.searchParams.set("guests", String(state.guests));
+    if (config.manageHash) url.searchParams.set("manage_hash", String(config.manageHash));
 
     fetch(url.toString(), {
       method: "GET",
@@ -300,7 +301,10 @@
         "Content-Type": "application/json",
         "X-CSRF-TOKEN": csrf ? csrf.getAttribute("content") : ""
       },
-      body: JSON.stringify({})
+      body: JSON.stringify({
+        _pmd_manage_action: "cancel",
+        _pmd_manage_hash: config.manageHash || ""
+      })
     }).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (payload) {
         if (!response.ok || !payload.success) {
