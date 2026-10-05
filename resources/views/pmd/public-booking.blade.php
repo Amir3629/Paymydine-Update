@@ -678,8 +678,11 @@
                 </div>
 
                 <div id="pmd-booking-success-guarantee" class="pmd-booking-success__guarantee" hidden>
-                    <span data-pmd-i18n="guarantee_success">{{ $t['guarantee_success'] }}</span>
-                    <strong id="pmd-booking-success-guarantee-amount">—</strong>
+                    <div>
+                        <span data-pmd-i18n="guarantee_success">{{ $t['guarantee_success'] }}</span>
+                        <strong id="pmd-booking-success-guarantee-amount">—</strong>
+                    </div>
+                    <p id="pmd-booking-success-guarantee-terms"></p>
                 </div>
 
                 <div class="pmd-booking-success__actions">
