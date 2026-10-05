@@ -1,4 +1,5 @@
 // PMD_KIOSK_BLADE_TERMINAL_V8
+// PMD_KIOSK_INSTANT_MENU_V12
 (function () {
   "use strict";
 
@@ -704,10 +705,12 @@
       return;
     }
 
-    grid.innerHTML = items.map(function (item) {
+    grid.innerHTML = items.map(function (item, index) {
       var quantity = itemCartQuantity(item.id);
       var image = item.image
-        ? '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '" loading="lazy" decoding="async">'
+        ? '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) +
+          '" loading="' + (index < 4 ? "eager" : "lazy") + '" decoding="async"' +
+          (index < 2 ? ' fetchpriority="high"' : '') + '>'
         : '<span class="pmd-kiosk-item__placeholder">' + escapeHtml(item.name.charAt(0).toUpperCase()) + "</span>";
       return '<article class="pmd-kiosk-item" data-open-item="' + escapeHtml(item.id) + '" tabindex="0" role="button" aria-label="' +
           escapeHtml(item.name + " - " + copy().details) + '">' +
@@ -1769,6 +1772,8 @@
         var heroItem = state.items.find(function (entry) { return entry.image; });
         if (heroItem && heroItem.image) {
           document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(heroItem.image).replace(/"/g, "%22") + '")');
+          var heroNode = $("pmd-kiosk-menu-hero");
+          if (heroNode) heroNode.classList.add("is-ready");
         }
 
         state.restaurant = {
@@ -1811,6 +1816,8 @@
   }
 
   function failBoot(error) {
+    if (!loading) return;
+    loading.hidden = false;
     loading.innerHTML = '<div class="pmd-kiosk-loading__mark">!</div><strong>' + escapeHtml(copy().unavailable) +
       "</strong><span>" + escapeHtml(error && error.message ? error.message : copy().wait) +
       '</span><button type="button" class="pmd-kiosk-secondary" onclick="window.location.reload()">' + escapeHtml(copy().reload) + "</button>";
@@ -1818,7 +1825,7 @@
 
   function finishBoot() {
     app.setAttribute("aria-busy", "false");
-    loading.hidden = true;
+    if (loading) loading.hidden = true;
     renderAll();
     if (config.paymentReturn) {
       handlePaymentReturn();
