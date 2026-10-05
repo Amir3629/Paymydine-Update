@@ -165,10 +165,10 @@ jobs:
           ! grep -Fq 'subtitle = "Order for collection"' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'title = "DINE IN"' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'data-kiosk-terminal-pay' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'PMD_KIOSK_PAY_FIRST_V10' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_CARD_PRESENT_HOLD_V18' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
           grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'committed. qr_pay_later is only the settlement bridge for pay-existing.' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'kiosk_terminal_pending: true' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'https://js.stripe.com/v3/' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_BLADE_V8_NGINX_NO_REDIRECT' ops/nginx/pmd-kiosk-blade-v8-location.conf
