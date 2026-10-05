@@ -128,7 +128,7 @@ jobs:
           grep -Fq 'PMD_KIOSK_LIGHTWEIGHT_VIEWPORT_SYNC_V13' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'PMD_KIOSK_INITIAL_HERO_V13' app/Http/Controllers/PmdKioskPublicController.php
           grep -Fq 'PMD_KIOSK_BOOTSTRAP_HANDOFF_V13' mobile/android/app/src/main/java/com/paymydine/mobile/kiosk/KioskApiClient.kt
-          grep -Fq 'KioskBootstrapWarmCache.consume' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          grep -Fq 'KioskBootstrapWarmCache.peek' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'PMD_KIOSK_RESTAURANT_IDENTITY_V12' app/Services/PmdTableDisplayService.php
           grep -Fq 'Tippen für Details' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_PREMIUM_WELCOME_V11' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
