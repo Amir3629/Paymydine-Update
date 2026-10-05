@@ -81,6 +81,7 @@ final class PmdReservationGuaranteeService
             'required' => $required,
             'provider_ready' => (bool)($stripe['ready'] ?? false),
             'provider' => 'stripe',
+            'provider_mode' => (string)($stripe['mode'] ?? 'test'),
             'min_guests' => $base['min_guests'],
             'guests' => $guests,
             'amount_per_guest_cents' => $base['amount_per_guest_cents'],
@@ -276,6 +277,7 @@ final class PmdReservationGuaranteeService
             [
                 'location_id' => (int)$reservation->location_id,
                 'provider' => 'stripe',
+                'provider_mode' => (string)($policy['provider_mode'] ?? 'test'),
                 'status' => 'active',
                 'amount_per_guest_cents' => max(0, (int)($policy['amount_per_guest_cents'] ?? 0)),
                 'amount_cents' => max(0, (int)($policy['amount_cents'] ?? 0)),
@@ -491,6 +493,15 @@ final class PmdReservationGuaranteeService
         $stripeConfig = $this->stripeCredentials(true);
         if (!($stripeConfig['ready'] ?? false)) {
             throw new RuntimeException('Stripe is not enabled for this restaurant.');
+        }
+
+        if (
+            trim((string)($row->provider_mode ?? '')) !== ''
+            && (string)$row->provider_mode !== (string)($stripeConfig['mode'] ?? '')
+        ) {
+            throw new RuntimeException(
+                'Stripe test/live mode changed after this card guarantee was created. Release this guarantee and ask the guest to verify the card again.'
+            );
         }
 
         $maximumAmount = max(0, (int)$row->amount_cents);
