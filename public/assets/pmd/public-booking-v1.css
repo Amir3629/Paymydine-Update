@@ -834,10 +834,10 @@ img {
 .pmd-booking-summary {
   position: -webkit-sticky;
   position: sticky;
-  top: 32px;
+  top: clamp(72px, 10vh, 110px);
   align-self: start;
   height: max-content;
-  margin-top: 36px;
+  margin-top: 58px;
   padding: 26px;
   border: 1px solid #c9c0af;
   background:
