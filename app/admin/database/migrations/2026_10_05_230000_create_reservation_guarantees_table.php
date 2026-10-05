@@ -17,6 +17,7 @@ return new class extends Migration
             $table->unsignedInteger('reservation_id')->unique();
             $table->unsignedInteger('location_id')->index();
             $table->string('provider', 32)->default('stripe');
+            $table->string('provider_mode', 16)->nullable();
             $table->string('status', 32)->default('active')->index();
             $table->unsignedInteger('amount_per_guest_cents')->default(0);
             $table->unsignedInteger('amount_cents')->default(0);
