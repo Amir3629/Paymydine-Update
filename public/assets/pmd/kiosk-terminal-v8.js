@@ -1200,9 +1200,10 @@
       tip_amount: 0,
       coupon_code: null,
       coupon_discount: 0,
-      // PMD_KIOSK_PAY_FIRST_V10
-      // Provider payment succeeds before this short-lived canonical order is
-      // committed. qr_pay_later is only the settlement bridge for pay-existing.
+      // PMD_KIOSK_CARD_PRESENT_HOLD_V18
+      // Persist the kiosk order as processed=0 so the linked card terminal can
+      // reference it. Terminal settlement is the only path that releases the
+      // order to Kitchen by changing processed to 1.
       payment_method: "qr_pay_later",
       payment_method_raw: "qr_pay_later",
       payment_provider: null,
