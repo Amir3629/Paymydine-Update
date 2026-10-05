@@ -96,6 +96,22 @@ class Reservations_model extends Model
         $this->user_agent = Request::userAgent();
     }
 
+    protected function beforeDelete()
+    {
+        try {
+            app(\App\Services\Reservations\PmdReservationGuaranteeService::class)
+                ->releaseGuarantee(
+                    $this,
+                    'reservation_deleted'
+                );
+        } catch (\Throwable $error) {
+            logger()->warning('PMD reservation guarantee release before delete failed', [
+                'reservation_id' => (int)$this->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+        }
+    }
+
     protected function afterSave()
     {
         $this->restorePurgedValues();
