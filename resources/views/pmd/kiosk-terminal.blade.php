@@ -77,8 +77,8 @@
         <main class="pmd-kiosk-menu">
             <div class="pmd-kiosk-menu-head">
                 <div>
-                    <p class="pmd-kiosk-kicker" id="pmd-kiosk-context-label">EAT HERE</p>
-                    <h1 id="pmd-kiosk-category-title">All items</h1>
+                    <p class="pmd-kiosk-kicker" id="pmd-kiosk-context-label">DINE IN</p>
+                    <h1 id="pmd-kiosk-category-title">Menu</h1>
                 </div>
                 <span id="pmd-kiosk-result-count" class="pmd-kiosk-result-count"></span>
             </div>
@@ -105,7 +105,7 @@
                     <div class="pmd-kiosk-total-row"><dt id="pmd-kiosk-total-label">Total</dt><dd id="pmd-kiosk-total">€0.00</dd></div>
                 </dl>
                 <button type="button" id="pmd-kiosk-checkout" class="pmd-kiosk-primary" disabled>
-                    <span id="pmd-kiosk-checkout-label">Review & pay</span>
+                    <span id="pmd-kiosk-checkout-label">Checkout</span>
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
                 </button>
             </div>
@@ -114,7 +114,7 @@
 
     <button type="button" id="pmd-kiosk-compact-order" class="pmd-kiosk-compact-order" hidden>
         <span id="pmd-kiosk-compact-count" class="pmd-kiosk-compact-order__count">0</span>
-        <span id="pmd-kiosk-compact-label">Your order</span>
+        <span id="pmd-kiosk-compact-label">Checkout</span>
         <strong id="pmd-kiosk-compact-total">€0.00</strong>
         <span aria-hidden="true">›</span>
     </button>
