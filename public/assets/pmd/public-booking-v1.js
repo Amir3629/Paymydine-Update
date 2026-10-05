@@ -41,6 +41,7 @@
   var calendarLink = document.getElementById("pmd-booking-calendar");
   var manageLink = document.getElementById("pmd-booking-manage-link");
   var manageExistingLink = document.getElementById("pmd-booking-manage-existing");
+  var manageTopLink = document.getElementById("pmd-booking-manage-top");
   var csrf = document.querySelector('meta[name="csrf-token"]');
 
   if (!form || !dateInput || !guestInput || !timeInput || !times || !submit) return;
@@ -286,7 +287,11 @@
     }
 
     if (manageExistingLink) {
-      manageExistingLink.href = "/book/manage?lang=" + encodeURIComponent(code);
+      manageExistingLink.href = "/book?manage=1&lang=" + encodeURIComponent(code);
+    }
+
+    if (manageTopLink) {
+      manageTopLink.href = "/book?manage=1&lang=" + encodeURIComponent(code);
     }
 
     if (manageLink && manageLink.href) {
