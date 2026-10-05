@@ -48,6 +48,7 @@
             'guarantee_secure' => 'Securely verified by Stripe. PayMyDine never stores your card number or CVC.',
             'guarantee_unavailable' => 'Card guarantee is temporarily unavailable. Please contact the restaurant.',
             'guarantee_verifying' => 'Verifying card…',
+            'guarantee_success' => 'Card guarantee active. Nothing was charged now. Maximum possible no-show compensation:',
             'book_table' => 'Request this table',
             'booking' => 'Saving your reservation…',
             'summary' => 'Your table',
@@ -124,6 +125,7 @@
             'guarantee_secure' => 'Sichere Bestätigung über Stripe. PayMyDine speichert weder Kartennummer noch CVC.',
             'guarantee_unavailable' => 'Die Kartengarantie ist derzeit nicht verfügbar. Bitte kontaktieren Sie das Restaurant.',
             'guarantee_verifying' => 'Karte wird bestätigt…',
+            'guarantee_success' => 'Kartengarantie aktiv. Jetzt wurde nichts belastet. Maximale mögliche Ausfallentschädigung:',
             'book_table' => 'Tisch anfragen',
             'booking' => 'Reservierung wird gespeichert…',
             'summary' => 'Ihre Reservierung',
@@ -200,6 +202,7 @@
             'guarantee_secure' => 'Stripe üzerinden güvenli doğrulama. PayMyDine kart numaranızı veya CVC kodunuzu saklamaz.',
             'guarantee_unavailable' => 'Kart garantisi şu anda kullanılamıyor. Lütfen restoranla iletişime geçin.',
             'guarantee_verifying' => 'Kart doğrulanıyor…',
+            'guarantee_success' => 'Kart garantisi aktif. Şimdi ücret alınmadı. Olası azami no-show tazminatı:',
             'book_table' => 'Masayı talep et',
             'booking' => 'Rezervasyon kaydediliyor…',
             'summary' => 'Masanız',
@@ -276,6 +279,7 @@
             'guarantee_secure' => 'تحقق آمن عبر Stripe. لا تقوم PayMyDine بتخزين رقم البطاقة أو رمز CVC.',
             'guarantee_unavailable' => 'ضمان البطاقة غير متاح مؤقتاً. يرجى الاتصال بالمطعم.',
             'guarantee_verifying' => 'جارٍ التحقق من البطاقة…',
+            'guarantee_success' => 'ضمان البطاقة فعال. لم يتم خصم أي مبلغ الآن. الحد الأقصى المحتمل لتعويض عدم الحضور:',
             'book_table' => 'إرسال طلب الحجز',
             'booking' => 'جارٍ حفظ الحجز…',
             'summary' => 'حجزك',
@@ -671,6 +675,11 @@
                         <b id="pmd-booking-success-time">—</b>
                         <b id="pmd-booking-success-party">—</b>
                     </div>
+                </div>
+
+                <div id="pmd-booking-success-guarantee" class="pmd-booking-success__guarantee" hidden>
+                    <span data-pmd-i18n="guarantee_success">{{ $t['guarantee_success'] }}</span>
+                    <strong id="pmd-booking-success-guarantee-amount">—</strong>
                 </div>
 
                 <div class="pmd-booking-success__actions">
