@@ -313,7 +313,9 @@
 
     if (row.guarantee_can_charge) {
       html += '<button type="button" class="is-charge-r19" data-qres-guarantee-charge="' +
-        esc(id) + '">No-show & charge</button>';
+        esc(id) + '" data-qres-guarantee-max-cents="' +
+        esc(row.guarantee_amount_cents || 0) + '" data-qres-guarantee-currency="' +
+        esc(row.guarantee_currency || 'EUR') + '">No-show & charge</button>';
     }
 
     if (row.guarantee_can_release) {
@@ -2159,10 +2161,49 @@
       );
       if (!guaranteeId) return;
 
-      var question = guaranteeCharge
-        ? 'Mark this guest as a no-show and charge the agreed compensation now?'
-        : 'Release the card guarantee? No later no-show charge will be possible.';
-      if (!window.confirm(question)) return;
+      var guaranteePayload = { reservation_id: guaranteeId };
+
+      if (guaranteeCharge) {
+        if (!window.confirm(
+          'Mark this guest as a no-show. Enter the actual loss amount to charge; it cannot exceed the amount accepted by the guest.'
+        )) return;
+
+        var maxCents = Math.max(
+          0,
+          Number(guaranteeButton.getAttribute('data-qres-guarantee-max-cents') || 0)
+        );
+        var currency = String(
+          guaranteeButton.getAttribute('data-qres-guarantee-currency') || 'EUR'
+        ).toUpperCase();
+        var entered = window.prompt(
+          'No-show compensation in ' + currency + ' (maximum ' +
+            (maxCents / 100).toFixed(2) + ' ' + currency + ')',
+          (maxCents / 100).toFixed(2)
+        );
+        if (entered === null) return;
+
+        var normalized = String(entered)
+          .trim()
+          .replace(/\s+/g, '')
+          .replace(',', '.');
+        var amount = Number(normalized);
+        var amountCents = Math.round(amount * 100);
+
+        if (
+          !Number.isFinite(amount) ||
+          amountCents < 1 ||
+          amountCents > maxCents
+        ) {
+          toast('Enter an amount between 0.01 and the agreed maximum.');
+          return;
+        }
+
+        guaranteePayload.amount_cents = amountCents;
+      } else if (!window.confirm(
+        'Release the card guarantee? No later no-show charge will be possible.'
+      )) {
+        return;
+      }
 
       guaranteeButton.disabled = true;
 
@@ -2170,7 +2211,7 @@
         guaranteeCharge
           ? 'onChargeNoShowGuarantee'
           : 'onReleaseReservationGuarantee',
-        { reservation_id: guaranteeId }
+        guaranteePayload
       ).then(function (response) {
         toast(response && response.message
           ? response.message
