@@ -815,7 +815,7 @@ private fun KioskRemoteImage(
                         }
                     try {
                         if (connection.responseCode !in 200..299) return@runCatching null
-                        connection.inputStream.use(BitmapFactory::decodeStream)
+                        connection.inputStream.use { input -> BitmapFactory.decodeStream(input) }
                     } finally {
                         connection.disconnect()
                     }
