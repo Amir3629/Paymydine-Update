@@ -2355,6 +2355,25 @@
     window.setTimeout(function () { loadReservations(true); }, 60);
   });
 
+  window.addEventListener('pmd:notification:new', function (event) {
+    var detail = event && event.detail ? event.detail : {};
+    var notification = detail.notification || {};
+    var type = String(notification.type || '').toLowerCase();
+
+    if (
+      type !== 'reservation_created' &&
+      type !== 'reservation_updated' &&
+      type !== 'reservation_canceled'
+    ) {
+      return;
+    }
+
+    window.setTimeout(function () {
+      loadReservations(true);
+      if (state.search.length >= 2) scheduleOtherDateSearch(0);
+    }, 80);
+  });
+
   if (!window.PMDReservationsCardsV320) {
     window.PMDReservationsCardsV320 = {
       version: 'qpos-r136-bridge',
