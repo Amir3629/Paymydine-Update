@@ -387,7 +387,6 @@
 
     renderDateStrip();
     renderSummary();
-    loadDateStatuses();
     loadAvailability();
   }
 
