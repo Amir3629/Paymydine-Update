@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
+use App\Services\Platform\LocationPlatformContext;
 use Carbon\Carbon;
 use DateTimeInterface;
 use DateTimeZone;
@@ -19,14 +20,17 @@ use Throwable;
 class PmdPublicBookingController extends Controller
 {
     private const MAX_BOOKING_DAYS = 180;
+    private const MAX_DATE_STATUS_DAYS = 14;
     private const DEFAULT_SLOT_MINUTES = 30;
     private const DEFAULT_STAY_MINUTES = 90;
+    private const PUBLIC_LOCALES = ['en', 'de', 'tr', 'ar'];
 
     public function show(Request $request)
     {
         $location = $this->location();
         $timezone = $this->timezone();
-        $locale = $this->locale($request);
+        $languageContext = $this->languageContext($location);
+        $locale = $this->locale($request, $languageContext);
 
         // PMD_PUBLIC_BOOKING_DIRECT_VIEW_FILE_R2
         // TastyIgniter's runtime view finder does not include Laravel's
@@ -39,6 +43,9 @@ class PmdPublicBookingController extends Controller
                 'bookingProfile' => $this->profile($location),
                 'bookingHours' => $this->openingHours($location),
                 'bookingLocale' => $locale,
+                'bookingLocaleTag' => $languageContext['locale_tags'][$locale] ?? $this->defaultLocaleTag($locale),
+                'bookingDirection' => $this->localeDirection($locale),
+                'bookingLanguages' => $languageContext['eligible'],
                 'bookingTimezone' => $timezone,
                 'bookingToday' => Carbon::now($timezone)->toDateString(),
                 'bookingMaxDate' => Carbon::now($timezone)->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
@@ -78,6 +85,58 @@ class PmdPublicBookingController extends Controller
             'duration' => $payload['duration'],
             'interval' => $payload['interval'],
             'slots' => $payload['slots'],
+        ]);
+    }
+
+    public function dateStatuses(Request $request): JsonResponse
+    {
+        $location = $this->location();
+        $timezone = $this->timezone();
+        $maxGuests = $this->maxBookableGuests($location);
+
+        $data = validator($request->all(), [
+            'start' => ['required', 'date_format:Y-m-d'],
+            'days' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_DATE_STATUS_DAYS],
+            'guests' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
+        ])->validate();
+
+        $start = Carbon::createFromFormat('Y-m-d', (string)$data['start'], $timezone)->startOfDay();
+        $this->guardBookableDate($start, $timezone);
+
+        $days = min(self::MAX_DATE_STATUS_DAYS, max(1, (int)($data['days'] ?? self::MAX_DATE_STATUS_DAYS)));
+        $guests = (int)$data['guests'];
+        $latest = Carbon::now($timezone)->startOfDay()->addDays(self::MAX_BOOKING_DAYS);
+        $dates = [];
+
+        for ($index = 0; $index < $days; $index++) {
+            $date = $start->copy()->addDays($index);
+            if ($date->greaterThan($latest)) {
+                break;
+            }
+
+            $payload = $this->availabilityPayload($location, $date, $guests);
+            $opening = (array)($payload['opening'] ?? []);
+            $slots = (array)($payload['slots'] ?? []);
+
+            $status = 'available';
+            if (empty($opening['enabled'])) {
+                $status = 'closed';
+            } elseif (!$slots) {
+                $status = 'full';
+            }
+
+            $dates[] = [
+                'date' => $date->toDateString(),
+                'status' => $status,
+                'slot_count' => count($slots),
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'start' => $start->toDateString(),
+            'guest_num' => $guests,
+            'dates' => $dates,
         ]);
     }
 
@@ -685,11 +744,97 @@ class PmdPublicBookingController extends Controller
         return '/api/media/'.rawurlencode(basename($path));
     }
 
-    private function locale(Request $request): string
+    private function locale(Request $request, array $languageContext): string
     {
-        $requested = strtolower(substr((string)$request->query('lang', app()->getLocale()), 0, 2));
+        $eligible = array_values((array)($languageContext['eligible'] ?? []));
+        $default = strtolower(substr((string)($languageContext['default'] ?? 'en'), 0, 2));
+        $requested = strtolower(substr((string)$request->query('lang', ''), 0, 2));
 
-        return in_array($requested, ['en', 'de', 'tr'], true) ? $requested : 'en';
+        if ($requested !== '' && in_array($requested, $eligible, true)) {
+            return $requested;
+        }
+
+        if (in_array($default, $eligible, true)) {
+            return $default;
+        }
+
+        return (string)($eligible[0] ?? 'en');
+    }
+
+    private function languageContext(Locations_model $location): array
+    {
+        $marketLanguages = [];
+
+        try {
+            $marketLanguages = app(LocationPlatformContext::class)->languages((int)$location->getKey());
+        } catch (Throwable $error) {
+            $marketLanguages = [];
+        }
+
+        $rawEligible = array_values((array)($marketLanguages['eligible'] ?? []));
+        $rawTags = array_values((array)($marketLanguages['locale_tags'] ?? []));
+        $eligible = [];
+        $localeTags = [];
+
+        foreach ($rawEligible as $index => $rawLocale) {
+            $locale = strtolower(substr(trim((string)$rawLocale), 0, 2));
+            if (
+                $locale === ''
+                || !in_array($locale, self::PUBLIC_LOCALES, true)
+                || in_array($locale, $eligible, true)
+            ) {
+                continue;
+            }
+
+            $eligible[] = $locale;
+            $tag = trim((string)($rawTags[$index] ?? ''));
+            $localeTags[$locale] = $tag !== '' ? $tag : $this->defaultLocaleTag($locale);
+        }
+
+        if (!$eligible) {
+            $eligible = ['en'];
+            $localeTags['en'] = $this->defaultLocaleTag('en');
+        }
+
+        $default = strtolower(substr((string)($marketLanguages['default'] ?? ''), 0, 2));
+        if (!in_array($default, $eligible, true)) {
+            $default = (string)$eligible[0];
+        }
+
+        $fallback = strtolower(substr((string)($marketLanguages['fallback'] ?? ''), 0, 2));
+        if (!in_array($fallback, $eligible, true)) {
+            $fallback = $default;
+        }
+
+        foreach ($eligible as $locale) {
+            if (!isset($localeTags[$locale])) {
+                $localeTags[$locale] = $this->defaultLocaleTag($locale);
+            }
+        }
+
+        return [
+            'default' => $default,
+            'fallback' => $fallback,
+            'eligible' => $eligible,
+            'locale_tags' => $localeTags,
+        ];
+    }
+
+    private function defaultLocaleTag(string $locale): string
+    {
+        return match (strtolower(substr($locale, 0, 2))) {
+            'de' => 'de-DE',
+            'tr' => 'tr-TR',
+            'ar' => 'ar-OM',
+            default => 'en-GB',
+        };
+    }
+
+    private function localeDirection(string $locale): string
+    {
+        return in_array(strtolower(substr($locale, 0, 2)), ['ar', 'fa', 'he', 'ur'], true)
+            ? 'rtl'
+            : 'ltr';
     }
 
     private function timezone(): string
