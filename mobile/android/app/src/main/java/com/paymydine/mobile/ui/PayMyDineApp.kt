@@ -44,6 +44,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.paymydine.mobile.KdsActivity
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.PosActivity
+import com.paymydine.mobile.PrinterSettingsActivity
 import com.paymydine.mobile.R
 import com.paymydine.mobile.ReservationsActivity
 import com.paymydine.mobile.RoleWorkspaceActivity
@@ -831,6 +832,11 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             )
                         }
                     },
+                    onPrinterSetup = {
+                        context.startActivity(
+                            Intent(context, PrinterSettingsActivity::class.java),
+                        )
+                    },
                     onTableDisplay = {
                         val code = normalizeTenantCode(tenantCode)
 
@@ -885,6 +891,7 @@ private fun UnifiedFirstRun(
     onStaffSelected: (String) -> Unit,
     onKiosk: () -> Unit,
     onTableDisplay: () -> Unit,
+    onPrinterSetup: () -> Unit,
 ) {
     var step by remember { mutableStateOf(1) }
 
@@ -998,6 +1005,28 @@ private fun UnifiedFirstRun(
                 onClick = onTableDisplay,
             ) {
                 Text("Table display")
+            }
+
+            // PMD_SHARED_PRINTER_SETUP_V18
+            Text(
+                "Device hardware",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 26.dp),
+                color = PmdMuted,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge,
+            )
+            OutlinedButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 7.dp),
+                onClick = onPrinterSetup,
+            ) {
+                Text(
+                    "Printer setup",
+                    fontWeight = FontWeight.Black,
+                )
             }
 
             Button(
