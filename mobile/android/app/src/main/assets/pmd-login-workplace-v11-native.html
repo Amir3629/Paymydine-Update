@@ -64,6 +64,7 @@ body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:gri
 <button type="submit" class="submit pin-submit" id="pinSubmit" data-copy="signIn">Sign in</button>
 </form>
 <button type="button" class="mode-switch" id="useFull" data-copy="useFull">Manager / Accountant · Full sign-in</button>
+<button type="button" class="mode-switch" id="hardwarePin" data-copy="hardware">Printer setup</button>
 </div>
 <div class="full-panel" id="fullPanel" hidden>
 <form class="form" id="loginForm">
@@ -73,6 +74,7 @@ body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:gri
 <button type="button" class="forgot" id="forgot" data-copy="forgot">Forgot password?</button>
 </form>
 <button type="button" class="mode-switch" id="usePin" data-copy="usePin">Use Staff PIN</button>
+<button type="button" class="mode-switch" id="hardware" data-copy="hardware">Printer setup</button>
 </div>
 <div class="offline" id="offline"><p id="offlineText"></p><button type="button" class="secondary" id="offlineButton">Continue offline</button></div>
 </section>
@@ -88,8 +90,8 @@ body{min-height:100vh;min-height:100dvh;overflow-y:auto;padding:20px;display:gri
 'use strict';
 var locale='en',busy=false,online=true,offlineCredential=false,mode='login',credentialMode='staff',authMode='pin',lastCredentialMode='';
 var copy={
-en:{username:'Username',password:'Password',continue:'Continue',forgot:'Forgot password?',pinTitle:'Staff PIN',pinText:'Enter your 6-digit Quick PIN.',signIn:'Sign in',useFull:'Manager / Accountant · Full sign-in',usePin:'Use Staff PIN',approvalTitle:'Restaurant approval',approvalText:'Waiting for approval on a trusted PayMyDine dashboard.',codeLabel:'Request code',waiting:'Waiting for restaurant approval…',failed:'Login failed'},
-de:{username:'Benutzername',password:'Passwort',continue:'Weiter',forgot:'Passwort vergessen?',pinTitle:'Mitarbeiter-PIN',pinText:'6-stellige Quick PIN eingeben.',signIn:'Anmelden',useFull:'Manager / Buchhaltung · Vollständige Anmeldung',usePin:'Mitarbeiter-PIN verwenden',approvalTitle:'Restaurant-Freigabe',approvalText:'Warte auf die Freigabe in einem vertrauenswürdigen PayMyDine-Dashboard.',codeLabel:'Anfragecode',waiting:'Warte auf Restaurant-Freigabe…',failed:'Anmeldung fehlgeschlagen'}
+en:{username:'Username',password:'Password',continue:'Continue',forgot:'Forgot password?',pinTitle:'Staff PIN',pinText:'Enter your 6-digit Quick PIN.',signIn:'Sign in',useFull:'Manager / Accountant · Full sign-in',usePin:'Use Staff PIN',hardware:'Printer setup',approvalTitle:'Restaurant approval',approvalText:'Waiting for approval on a trusted PayMyDine dashboard.',codeLabel:'Request code',waiting:'Waiting for restaurant approval…',failed:'Login failed'},
+de:{username:'Benutzername',password:'Passwort',continue:'Weiter',forgot:'Passwort vergessen?',pinTitle:'Mitarbeiter-PIN',pinText:'6-stellige Quick PIN eingeben.',signIn:'Anmelden',useFull:'Manager / Buchhaltung · Vollständige Anmeldung',usePin:'Mitarbeiter-PIN verwenden',hardware:'Drucker einrichten',approvalTitle:'Restaurant-Freigabe',approvalText:'Warte auf die Freigabe in einem vertrauenswürdigen PayMyDine-Dashboard.',codeLabel:'Anfragecode',waiting:'Warte auf Restaurant-Freigabe…',failed:'Anmeldung fehlgeschlagen'}
 };
 function applyCopy(){
  document.documentElement.lang=locale;document.getElementById('lang').textContent=locale==='en'?'DE':'EN';
@@ -149,6 +151,8 @@ document.getElementById('loginForm').onsubmit=function(e){
 document.getElementById('toggle').onclick=function(){var p=document.getElementById('password');p.type=p.type==='password'?'text':'password'};
 document.getElementById('lang').onclick=function(){locale=locale==='en'?'de':'en';applyCopy()};
 document.getElementById('forgot').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.forgotPassword()};
+document.getElementById('hardware').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.hardwareSetup()};
+document.getElementById('hardwarePin').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.hardwareSetup()};
 document.getElementById('offlineButton').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.continueOffline()};
 document.getElementById('back').onclick=function(){if(window.PayMyDineNative)window.PayMyDineNative.cancelWaiting()};
 setAuthMode('pin');renderPin();applyCopy();if(window.PayMyDineNative)window.PayMyDineNative.ready();
