@@ -25,6 +25,16 @@ data class KioskProfile(
     val idleTimeoutSeconds: Long,
 )
 
+data class KioskTerminalPaymentResult(
+    val ok: Boolean,
+    val paid: Boolean,
+    val failed: Boolean,
+    val status: String,
+    val attemptId: Long?,
+    val message: String,
+)
+
+
 /**
  * PMD_KIOSK_BOOTSTRAP_HANDOFF_V13
  * PMD_KIOSK_MULTI_WARM_BOOTSTRAP_V15
@@ -197,6 +207,69 @@ class KioskApiClient {
         } finally {
             connection.disconnect()
         }
+    }
+
+    /**
+     * PMD_KIOSK_TERMINAL_PAYMENT_V18
+     * Browser checkout never receives staff/admin credentials. The paired
+     * native kiosk bearer token is the only authority allowed to ask the
+     * server to start/refresh the terminal linked to this kiosk device.
+     */
+    suspend fun startTerminalPayment(
+        host: String,
+        token: String,
+        orderId: Long,
+    ): KioskTerminalPaymentResult = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "terminal-payment/$orderId",
+            method = "POST",
+            body = JSONObject(),
+            token = token,
+        )
+        terminalResult(json)
+    }
+
+    suspend fun refreshTerminalPayment(
+        host: String,
+        token: String,
+        attemptId: Long,
+    ): KioskTerminalPaymentResult = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "terminal-payment-attempt/$attemptId/refresh",
+            method = "POST",
+            body = JSONObject(),
+            token = token,
+        )
+        terminalResult(json)
+    }
+
+    private fun terminalResult(json: JSONObject): KioskTerminalPaymentResult {
+        val attempt =
+            if (json.isNull("attempt_id")) null
+            else json.optLong("attempt_id", 0L).takeIf { it > 0L }
+        val status = json.optString("status", "pending").ifBlank { "pending" }
+        val paid =
+            json.optBoolean("paid", false) ||
+                status.equals("paid", ignoreCase = true)
+        val failed =
+            json.optBoolean("failed", false) ||
+                status.lowercase() in
+                    setOf("failed", "cancelled", "canceled", "rejected", "expired")
+
+        return KioskTerminalPaymentResult(
+            ok = json.optBoolean("ok", !failed),
+            paid = paid,
+            failed = failed,
+            status = status,
+            attemptId = attempt,
+            message =
+                json.optString(
+                    "message",
+                    if (paid) "Payment approved." else "Waiting for terminal.",
+                ),
+        )
     }
 
     private fun collectHeroImageCandidates(
