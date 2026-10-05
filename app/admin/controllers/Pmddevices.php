@@ -429,6 +429,38 @@ class Pmddevices extends AdminController
         }
     }
 
+    /** PMD_DEVICE_RECEIPT_PRINTER_V18 */
+    public function onSavePmdDeviceReceiptPrinter()
+    {
+        $this->assertDevicePlatformManager();
+
+        $deviceId = max(0, (int)post('device_id', 0));
+        if ($deviceId < 1) {
+            throw new \RuntimeException('Choose a PayMyDine Android device.');
+        }
+
+        $result = app(PmdDevicePlatformService::class)
+            ->saveDeviceReceiptPrinter(
+                $this->devicePlatformLocationId(),
+                $deviceId,
+                (array)post('receipt_printer', []),
+                $this->devicePlatformStaffId()
+            );
+
+        if (!empty($result['connection_type'])) {
+            flash()->success(
+                'Receipt printer saved for device #'.$deviceId.': '.
+                (string)($result['name'] ?? 'Receipt printer').' · '.
+                (string)($result['host'] ?? '').':'.
+                (int)($result['port'] ?? 9100).'.'
+            );
+        } else {
+            flash()->success(
+                'Receipt printer removed from device #'.$deviceId.'.'
+            );
+        }
+    }
+
     /** PMD_DEVICE_PLATFORM_V1 */
     public function onSavePmdDevicePlatformPolicy()
     {
