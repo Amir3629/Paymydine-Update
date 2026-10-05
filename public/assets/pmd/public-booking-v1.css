@@ -26,7 +26,6 @@
 
 html {
   min-height: 100%;
-  overflow-x: hidden;
   background: var(--pmd-book-paper);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -37,7 +36,6 @@ body.pmd-booking-page {
   min-width: 0;
   min-height: 100vh;
   margin: 0;
-  overflow-x: hidden;
   color: var(--pmd-book-ink);
   background:
     repeating-linear-gradient(
@@ -256,6 +254,8 @@ img {
   grid-template-columns: minmax(0, 1fr) 330px;
   gap: 42px;
   align-items: start;
+  min-width: 0;
+  overflow: visible;
 }
 
 .pmd-booking-ledger {
@@ -832,8 +832,11 @@ img {
 }
 
 .pmd-booking-summary {
+  position: -webkit-sticky;
   position: sticky;
   top: 32px;
+  align-self: start;
+  height: max-content;
   margin-top: 36px;
   padding: 26px;
   border: 1px solid #c9c0af;
