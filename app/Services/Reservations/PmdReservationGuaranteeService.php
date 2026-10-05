@@ -425,7 +425,7 @@ final class PmdReservationGuaranteeService
         }
 
         $status = (string)$row->status;
-        $canChargeStatus = in_array($status, ['active', 'charge_failed', 'action_required'], true);
+        $canChargeStatus = in_array($status, ['active', 'charge_failed'], true);
         $eligible = $row->charge_eligible_at
             ? Carbon::now('UTC')->greaterThanOrEqualTo(
                 Carbon::parse((string)$row->charge_eligible_at, 'UTC')
@@ -477,7 +477,13 @@ final class PmdReservationGuaranteeService
             ];
         }
 
-        if (!in_array((string)$row->status, ['active', 'charge_failed', 'action_required'], true)) {
+        if ((string)$row->status === 'action_required') {
+            throw new RuntimeException(
+                'The card issuer requires customer authentication. No charge was completed. Release the guarantee or contact the guest for a new card authorization.'
+            );
+        }
+
+        if (!in_array((string)$row->status, ['active', 'charge_failed'], true)) {
             throw new RuntimeException('This card guarantee can no longer be charged.');
         }
 
