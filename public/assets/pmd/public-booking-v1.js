@@ -47,6 +47,7 @@
     time: "",
     duration: Number(config.stayMinutes || 90),
     period: "",
+    slots: [],
     loading: false
   };
   var availabilityAbort = null;
@@ -288,6 +289,7 @@
     state.loading = false;
     state.duration = Number(payload.duration || config.stayMinutes || 90);
     var slots = Array.isArray(payload.slots) ? payload.slots : [];
+    state.slots = slots;
     var openingData = payload.opening || {};
 
     if (opening) {
@@ -375,6 +377,14 @@
     state.date = value;
     state.time = "";
     state.period = "";
+
+    var windowStart = dateFromIso(state.dateWindowStart || config.today);
+    var windowEnd = new Date(windowStart);
+    windowEnd.setDate(windowStart.getDate() + 6);
+    if (value < isoDate(windowStart) || value > isoDate(windowEnd)) {
+      state.dateWindowStart = value;
+    }
+
     renderDateStrip();
     renderSummary();
     loadDateStatuses();
@@ -564,6 +574,7 @@
     state.guests = Math.min(2, Number(config.maxGuests || 2));
     state.time = "";
     state.period = "";
+    state.slots = [];
     state.duration = Number(config.stayMinutes || 90);
     dateStatuses = {};
     state.loading = false;
@@ -572,6 +583,7 @@
     if (success) success.hidden = true;
     renderDateStrip();
     renderSummary();
+    loadDateStatuses();
     loadAvailability();
     workspace.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -589,7 +601,7 @@
     var periodButton = event.target.closest("[data-pmd-time-period]");
     if (periodButton) {
       state.period = periodButton.getAttribute("data-pmd-time-period") || "";
-      loadAvailability();
+      renderTimeChoices(state.slots || []);
       return;
     }
 
