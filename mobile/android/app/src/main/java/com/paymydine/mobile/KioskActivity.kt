@@ -23,6 +23,7 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -63,8 +64,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
@@ -210,12 +213,13 @@ private fun KioskApp(
     }
     var profile by remember { mutableStateOf<KioskProfile?>(null) }
     var heroImages by remember { mutableStateOf<List<String>>(emptyList()) }
+    var menuBootstrapReady by remember { mutableStateOf(false) }
+    var menuOpening by remember { mutableStateOf(false) }
     var serviceMode by remember { mutableStateOf("eat_in") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var completedOrderId by remember { mutableStateOf<String?>(null) }
     var sessionNonce by remember { mutableStateOf(UUID.randomUUID().toString()) }
-    var browserPrewarmed by remember { mutableStateOf(false) }
     var lastInteractionMs by remember {
         mutableLongStateOf(SystemClock.elapsedRealtime())
     }
@@ -240,7 +244,13 @@ private fun KioskApp(
                 // independently on the next suspension.
                 screen = KioskScreen.WELCOME
             }
-            heroImages = runCatching { api.heroImages(host) }.getOrDefault(emptyList())
+            val heroResult = runCatching { api.heroImages(host) }
+            if (heroResult.isSuccess) {
+                heroImages = heroResult.getOrDefault(emptyList())
+                menuBootstrapReady = true
+            } else {
+                menuBootstrapReady = false
+            }
         } catch (t: Throwable) {
             error = t.message ?: "Kiosk connection is unavailable."
             if (profile == null) {
@@ -273,32 +283,36 @@ private fun KioskApp(
         }
     }
 
-    LaunchedEffect(screen, profile) {
+    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady) {
+        val current = profile
         if (
             screen != KioskScreen.WELCOME ||
-            profile == null ||
-            browserPrewarmed
+            current == null ||
+            !menuBootstrapReady
         ) {
             return@LaunchedEffect
         }
 
-        // PMD_KIOSK_WEBVIEW_PREWARM_V12
-        // Warm Chromium after the welcome frame is already on screen. This
-        // happens while the guest is deciding between Eat Here / Take Away,
-        // so the menu tap does not pay the WebView process cold-start cost.
-        browserPrewarmed = true
-        val warmView =
-            runCatching {
-                WebView(context).apply {
-                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                    settings.javaScriptEnabled = false
-                    settings.domStorageEnabled = true
-                    settings.cacheMode = WebSettings.LOAD_DEFAULT
-                    loadUrl("about:blank")
-                }
-            }.getOrNull()
-        delay(220L)
-        runCatching { warmView?.destroy() }
+        // PMD_KIOSK_EXACT_WEBVIEW_PREWARM_V15
+        // V12 only opened about:blank and destroyed it 220ms later, which
+        // warmed Chromium itself but still left the real menu HTML/JS/render
+        // work for the guest's tap. V15 waits until the native bootstrap is in
+        // memory, then renders both exact service-mode pages
+        // behind the welcome screen and hands the selected ready WebView to the
+        // next Activity.
+        val hero = heroImages.firstOrNull().orEmpty()
+        KioskMenuWarmPool.prewarm(
+            context = context,
+            profile = current,
+            serviceMode = "eat_in",
+            heroImage = hero,
+        )
+        KioskMenuWarmPool.prewarm(
+            context = context,
+            profile = current,
+            serviceMode = "pickup",
+            heroImage = hero,
+        )
     }
 
 
@@ -333,6 +347,44 @@ private fun KioskApp(
                 .background(Color.Black),
         )
         return
+    }
+
+    suspend fun openPreparedMenu(
+        current: KioskProfile,
+        mode: String,
+    ) {
+        if (menuOpening) return
+        menuOpening = true
+        try {
+            // PMD_KIOSK_READY_BEFORE_SWITCH_V15
+            // On an unusually fast tap, keep the already-perfect welcome frame
+            // visible for at most ~320 ms while the off-screen page finishes.
+            // This is preferable to switching Activities early and exposing a
+            // partial Chromium paint. Normal taps pass this loop immediately.
+            var waits = 0
+            while (
+                !KioskMenuWarmPool.isReady(current.menuUrl, mode) &&
+                waits < 20
+            ) {
+                delay(16L)
+                waits += 1
+            }
+
+            context.startActivity(
+                KioskMenuActivity.intent(
+                    context = context,
+                    profile = current,
+                    serviceMode = mode,
+                    heroImage = heroImages.firstOrNull().orEmpty(),
+                ),
+            )
+            (context as? Activity)?.overridePendingTransition(0, 0)
+
+            // Block accidental double taps during the zero-animation handoff.
+            delay(450L)
+        } finally {
+            menuOpening = false
+        }
     }
 
     when (screen) {
@@ -383,27 +435,15 @@ private fun KioskApp(
                 heroImages = heroImages,
                 onEatHere = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
-                    context.startActivity(
-                        KioskMenuActivity.intent(
-                            context = context,
-                            profile = current,
-                            serviceMode = "eat_in",
-                            heroImage = heroImages.firstOrNull().orEmpty(),
-                        ),
-                    )
-                    (context as? Activity)?.overridePendingTransition(0, 0)
+                    scope.launch {
+                        openPreparedMenu(current, "eat_in")
+                    }
                 },
                 onTakeAway = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
-                    context.startActivity(
-                        KioskMenuActivity.intent(
-                            context = context,
-                            profile = current,
-                            serviceMode = "pickup",
-                            heroImage = heroImages.firstOrNull().orEmpty(),
-                        ),
-                    )
-                    (context as? Activity)?.overridePendingTransition(0, 0)
+                    scope.launch {
+                        openPreparedMenu(current, "pickup")
+                    }
                 },
             )
         }
@@ -856,12 +896,38 @@ private fun KioskModeButton(
                     .background(accent, RoundedCornerShape(24.dp)),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    "→",
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                )
+                // PMD_KIOSK_CENTERED_ARROW_V15
+                // A font glyph has asymmetric visual bounds and looked shifted
+                // inside the circle. Draw the arrow geometrically instead.
+                Canvas(modifier = Modifier.size(22.dp)) {
+                    val centerY = size.height / 2f
+                    val startX = size.width * 0.20f
+                    val tipX = size.width * 0.78f
+                    val head = size.width * 0.23f
+                    val stroke = 2.4.dp.toPx()
+
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(startX, centerY),
+                        end = Offset(tipX, centerY),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(tipX - head, centerY - head),
+                        end = Offset(tipX, centerY),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(tipX - head, centerY + head),
+                        end = Offset(tipX, centerY),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                }
             }
         }
     }
