@@ -317,21 +317,21 @@
                                     <legend data-pmd-manage-i18n="occasion">{{ $t['occasion'] }}</legend>
                                     <div class="pmd-booking-occasion-grid">
                                         <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="0" @checked((int)$reservationPayload['occasion_id'] === 0)>
+                                            <input type="radio" name="occasion_id" value="0" {{ (int)$reservationPayload['occasion_id'] === 0 ? 'checked' : '' }}>
                                             <span class="pmd-booking-occasion-card__surface">
                                                 <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"/><path d="M10 22 22 10"/></svg>
                                                 <strong data-pmd-manage-i18n="occasion_none">{{ $t['occasion_none'] }}</strong>
                                             </span>
                                         </label>
                                         <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="3" @checked((int)$reservationPayload['occasion_id'] === 3)>
+                                            <input type="radio" name="occasion_id" value="3" {{ (int)$reservationPayload['occasion_id'] === 3 ? 'checked' : '' }}>
                                             <span class="pmd-booking-occasion-card__surface">
                                                 <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 5 2.5 6.5L25 14l-6.5 2.5L16 23l-2.5-6.5L7 14l6.5-2.5L16 5Z"/></svg>
                                                 <strong data-pmd-manage-i18n="celebration">{{ $t['celebration'] }}</strong>
                                             </span>
                                         </label>
                                         <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="6" @checked((int)$reservationPayload['occasion_id'] === 6)>
+                                            <input type="radio" name="occasion_id" value="6" {{ (int)$reservationPayload['occasion_id'] === 6 ? 'checked' : '' }}>
                                             <span class="pmd-booking-occasion-card__surface">
                                                 <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="10" width="20" height="15" rx="1"/><path d="M12 10V7h8v3M6 15h20M13 15v2h6v-2"/></svg>
                                                 <strong data-pmd-manage-i18n="business">{{ $t['business'] }}</strong>
