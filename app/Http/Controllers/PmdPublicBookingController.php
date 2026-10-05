@@ -550,6 +550,14 @@ class PmdPublicBookingController extends Controller
 
             $this->pushReservationAdminNotification($reservation, 'created');
 
+            $guaranteePayload = $guaranteeService->publicGuaranteePayload(
+                (int)$reservation->getKey()
+            );
+
+            if ($guaranteePayload) {
+                $guaranteeService->sendGuaranteeConfirmation($reservation);
+            }
+
             return response()->json([
                 'success' => true,
                 'reservation_id' => (int)$reservation->getKey(),
@@ -567,9 +575,7 @@ class PmdPublicBookingController extends Controller
                     'duration' => (int)$reservation->duration,
                     'name' => trim($reservation->first_name.' '.$reservation->last_name),
                 ],
-                'guarantee' => $guaranteeService->publicGuaranteePayload(
-                    (int)$reservation->getKey()
-                ),
+                'guarantee' => $guaranteePayload,
             ]);
         } catch (ValidationException $error) {
             $guaranteeService->discardVerification($guaranteeVerified);
