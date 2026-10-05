@@ -11,6 +11,8 @@ on:
       - 'app/Services/PmdTableDisplayService.php'
       - 'app/Services/PmdTableDisplayPairingService.php'
       - 'app/Services/PmdKioskPairingService.php'
+      - 'app/Services/TerminalPayments/TerminalPaymentService.php'
+      - 'app/Services/TerminalPayments/SquareTerminalProvider.php'
       - 'app/Http/Controllers/PmdKioskPublicController.php'
       - 'app/Http/Controllers/PmdDevicePlatformController.php'
       - 'app/admin/controllers/Pmddevices.php'
@@ -110,6 +112,8 @@ jobs:
           php -l app/Services/PmdTableDisplayService.php
           php -l app/Services/PmdTableDisplayPairingService.php
           php -l app/Services/PmdKioskPairingService.php
+          php -l app/Services/TerminalPayments/TerminalPaymentService.php
+          php -l app/Services/TerminalPayments/SquareTerminalProvider.php
           php -l app/Http/Controllers/PmdKioskPublicController.php
           php -l kiosk/index.php
           php -l kiosk-reset/index.php
@@ -148,6 +152,11 @@ jobs:
           grep -Fq 'PMD_KIOSK_NATIVE_HARDWARE_BRIDGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'PMD_KIOSK_TERMINAL_PAYMENT_V18' app/Services/PmdKioskPairingService.php
           grep -Fq 'PMD_KIOSK_TERMINAL_PAYMENT_V18' routes/pmd-kiosk-v1.php
+          grep -Fq 'PMD_KIOSK_TERMINAL_IDEMPOTENCY_V18' app/Services/PmdKioskPairingService.php
+          grep -Fq 'PMD_TERMINAL_SURFACE_OPTIONS_V18' app/Services/TerminalPayments/TerminalPaymentService.php
+          grep -Fq 'PMD_KIOSK_NO_TERMINAL_TIP_V18' app/Services/TerminalPayments/SquareTerminalProvider.php
+          grep -Fq 'PMD_DEVICE_PAYMENT_TERMINAL_BINDING_V18' app/Services/PmdDevicePlatformService.php
+          grep -Fq 'PMD_KIOSK_TERMINAL_BINDING_V18' app/admin/views/pmddevices/index.blade.php
           grep -Fq 'PMD_SHARED_PRINTER_SETUP_V18' mobile/android/app/src/main/java/com/paymydine/mobile/PrinterSettingsActivity.kt
           grep -Fq 'PMD_SHARED_NETWORK_PRINTER_V18' mobile/android/app/src/main/java/com/paymydine/mobile/hardware/printing/PrinterManager.kt
           grep -Fq 'PMD_SHARED_PRINTER_SETUP_V18' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
