@@ -314,8 +314,13 @@
 
                     @if($reservationGuarantee)
                         @php
+                            $guaranteeDisplayCents = $guaranteeStatus === 'charged'
+                                ? (int)($reservationGuarantee['charged_amount_cents']
+                                    ?? $reservationGuarantee['amount_cents']
+                                    ?? 0)
+                                : (int)($reservationGuarantee['amount_cents'] ?? 0);
                             $guaranteeAmount = number_format(
-                                ((int)($reservationGuarantee['amount_cents'] ?? 0)) / 100,
+                                $guaranteeDisplayCents / 100,
                                 2,
                                 $bookingLocale === 'de' ? ',' : '.',
                                 $bookingLocale === 'de' ? '.' : ','
