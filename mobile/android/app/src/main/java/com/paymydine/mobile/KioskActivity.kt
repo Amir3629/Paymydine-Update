@@ -452,6 +452,9 @@ private fun KioskApp(
             KioskWelcomeScreen(
                 profile = current,
                 heroImages = heroImages,
+                locales = kioskLocales,
+                locale = kioskLocale,
+                onLocale = { kioskLocale = it },
                 onEatHere = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
                     scope.launch {
