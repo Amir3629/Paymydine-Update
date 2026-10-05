@@ -367,10 +367,30 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         }
 
         $service = app(PmdReservationGuaranteeService::class);
-        $service->releaseGuarantee(
+        $before = $service->adminPayloadForReservation($reservationId);
+
+        if ((string)($before['status'] ?? 'none') === 'charged') {
+            throw ValidationException::withMessages([
+                'reservation_id' => 'This guarantee has already been charged and cannot be released.',
+            ]);
+        }
+
+        if ((string)($before['status'] ?? 'none') === 'released') {
+            return [
+                'success' => true,
+                'message' => 'Card guarantee was already released.',
+                'guarantee' => $before,
+            ];
+        }
+
+        if (!$service->releaseGuarantee(
             $reservation,
             'released_by_admin_staff'
-        );
+        )) {
+            throw ValidationException::withMessages([
+                'reservation_id' => 'The card guarantee could not be released.',
+            ]);
+        }
 
         try {
             $reservation->addStatusHistory(
