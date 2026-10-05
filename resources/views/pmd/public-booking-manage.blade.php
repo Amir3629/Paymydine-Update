@@ -336,6 +336,9 @@
                                 <strong data-pmd-manage-i18n="{{ $guaranteeLabelKey }}">{{ $t[$guaranteeLabelKey] }}</strong>
                                 <span>{{ $guaranteeAmount }} {{ strtoupper($reservationGuarantee['currency'] ?? 'EUR') }}</span>
                             </div>
+                            @if(!empty($reservationGuarantee['terms_text']))
+                                <p class="pmd-booking-manage-guarantee__terms">{{ $reservationGuarantee['terms_text'] }}</p>
+                            @endif
                             @if($guaranteeLocksSchedule)
                                 <p data-pmd-manage-i18n="guarantee_locked">{{ $t['guarantee_locked'] }}</p>
                             @endif
