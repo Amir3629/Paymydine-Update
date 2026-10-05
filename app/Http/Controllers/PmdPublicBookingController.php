@@ -417,6 +417,8 @@ class PmdPublicBookingController extends Controller
             $isConfirmed = $confirmedStatus > 0
                 && (int)$reservation->status_id === $confirmedStatus;
 
+            $this->pushReservationAdminNotification($reservation, 'created');
+
             return response()->json([
                 'success' => true,
                 'reservation_id' => (int)$reservation->getKey(),
@@ -560,6 +562,7 @@ class PmdPublicBookingController extends Controller
 
         $timezone = $this->timezone();
         $maxGuests = $this->maxBookableGuests($location);
+        $beforeSnapshot = $this->reservationChangeSnapshot($reservation);
         $data = validator($request->all(), [
             'first_name' => ['required', 'string', 'min:1', 'max:48'],
             'last_name' => ['required', 'string', 'min:1', 'max:48'],
@@ -591,7 +594,7 @@ class PmdPublicBookingController extends Controller
         }
 
         try {
-            $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight) {
+            $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight, $beforeSnapshot) {
                 $allTableIds = $location->tables
                     ->pluck('table_id')
                     ->map(static fn ($id) => (int)$id)
@@ -652,24 +655,39 @@ class PmdPublicBookingController extends Controller
                 $locked->save();
                 $locked->addReservationTables($tableIds);
 
+                $fresh = $locked->fresh(['tables', 'status', 'location']);
+                $changes = $this->reservationChangeList($beforeSnapshot, $fresh);
+                $historyComment = 'Updated by guest via public booking manager';
+                if ($changes) {
+                    $historyComment .= ': '.implode('; ', $changes);
+                }
+
                 try {
-                    $locked->addStatusHistory((int)$locked->status_id, [
-                        'comment' => 'Updated by guest via public booking manager',
+                    $fresh->addStatusHistory((int)$fresh->status_id, [
+                        'comment' => $historyComment,
                     ]);
                 } catch (Throwable $historyError) {
                     Log::warning('PMD public booking update history failed', [
-                        'reservation_id' => (int)$locked->getKey(),
+                        'reservation_id' => (int)$fresh->getKey(),
                         'message' => $historyError->getMessage(),
                     ]);
                 }
 
-                return $locked->fresh(['tables', 'status', 'location']);
+                return [
+                    'reservation' => $fresh,
+                    'changes' => $changes,
+                ];
             }, 3);
+
+            $updatedReservation = $updated['reservation'];
+            $changes = (array)($updated['changes'] ?? []);
+            $this->pushReservationAdminNotification($updatedReservation, 'updated', $changes);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Your reservation has been updated.',
-                'reservation' => $this->publicReservationPayload($updated),
+                'reservation' => $this->publicReservationPayload($updatedReservation),
+                'changes' => $changes,
             ]);
         } catch (ValidationException $error) {
             throw $error;
@@ -740,6 +758,11 @@ class PmdPublicBookingController extends Controller
 
             if (!$ok) {
                 throw new \RuntimeException('Cancellation could not be recorded.');
+            }
+
+            $canceledReservation = $this->reservationByPublicHash($location, $hash);
+            if ($canceledReservation) {
+                $this->pushReservationAdminNotification($canceledReservation, 'canceled');
             }
 
             return response()->json([
@@ -913,6 +936,143 @@ class PmdPublicBookingController extends Controller
             $interval,
             $active
         );
+    }
+
+    private function reservationChangeSnapshot(Reservations_model $reservation): array
+    {
+        $date = $reservation->reserve_date;
+        $time = $reservation->reserve_time;
+
+        return [
+            'date' => $date instanceof DateTimeInterface
+                ? $date->format('Y-m-d')
+                : substr((string)$date, 0, 10),
+            'time' => $time instanceof DateTimeInterface
+                ? $time->format('H:i')
+                : substr((string)$time, 0, 5),
+            'guests' => (int)$reservation->guest_num,
+            'first_name' => trim((string)$reservation->first_name),
+            'last_name' => trim((string)$reservation->last_name),
+            'email' => strtolower(trim((string)$reservation->email)),
+            'telephone' => trim((string)$reservation->telephone),
+            'occasion_id' => (int)$reservation->occasion_id,
+            'comment' => trim((string)$reservation->comment),
+        ];
+    }
+
+    private function reservationChangeList(array $before, Reservations_model $reservation): array
+    {
+        $after = $this->reservationChangeSnapshot($reservation);
+        $labels = [
+            'date' => 'date',
+            'time' => 'time',
+            'guests' => 'party size',
+            'first_name' => 'first name',
+            'last_name' => 'last name',
+            'email' => 'email',
+            'telephone' => 'phone',
+            'occasion_id' => 'occasion',
+            'comment' => 'notes',
+        ];
+
+        $changes = [];
+        foreach ($labels as $key => $label) {
+            $old = (string)($before[$key] ?? '');
+            $new = (string)($after[$key] ?? '');
+            if ($old === $new) {
+                continue;
+            }
+
+            if (in_array($key, ['comment'], true)) {
+                $changes[] = $label.' changed';
+                continue;
+            }
+
+            $changes[] = $label.' '.$old.' -> '.$new;
+        }
+
+        return $changes;
+    }
+
+    private function pushReservationAdminNotification(
+        Reservations_model $reservation,
+        string $action,
+        array $changes = []
+    ): void {
+        try {
+            if (!Schema::hasTable('notifications')) {
+                return;
+            }
+
+            $reservation->loadMissing(['tables', 'status', 'location']);
+            $id = (int)$reservation->getKey();
+            $reference = 'R'.str_pad((string)$id, 6, '0', STR_PAD_LEFT);
+            $name = trim((string)$reservation->first_name.' '.(string)$reservation->last_name);
+            $table = $reservation->tables ? $reservation->tables->first() : null;
+
+            $date = $reservation->reserve_date instanceof DateTimeInterface
+                ? $reservation->reserve_date->format('Y-m-d')
+                : substr((string)$reservation->reserve_date, 0, 10);
+            $time = $reservation->reserve_time instanceof DateTimeInterface
+                ? $reservation->reserve_time->format('H:i')
+                : substr((string)$reservation->reserve_time, 0, 5);
+
+            $types = [
+                'created' => 'reservation_created',
+                'updated' => 'reservation_updated',
+                'canceled' => 'reservation_canceled',
+            ];
+            $verbs = [
+                'created' => 'New online reservation',
+                'updated' => 'Reservation updated by guest',
+                'canceled' => 'Reservation canceled by guest',
+            ];
+
+            $type = $types[$action] ?? 'reservation_updated';
+            $verb = $verbs[$action] ?? 'Reservation changed';
+            $message = $verb.' · '.$reference;
+            if ($name !== '') {
+                $message .= ' · '.$name;
+            }
+            $message .= ' · '.$date.' '.$time.' · '.(int)$reservation->guest_num.' guests';
+
+            if ($changes) {
+                $message .= ' · '.implode(', ', array_slice($changes, 0, 3));
+            }
+
+            DB::table('notifications')->insert([
+                'type' => $type,
+                'title' => $verb,
+                'message' => $message,
+                'table_id' => $table ? (int)$table->table_id : null,
+                'table_name' => $table ? (string)$table->table_name : null,
+                'payload' => json_encode([
+                    'reservation_id' => $id,
+                    'reference' => $reference,
+                    'action' => $action,
+                    'customer_name' => $name,
+                    'date' => $date,
+                    'time' => $time,
+                    'guests' => (int)$reservation->guest_num,
+                    'status_id' => (int)$reservation->status_id,
+                    'status_name' => (string)($reservation->status_name ?? ''),
+                    'changes' => array_values($changes),
+                    'source' => 'public_booking',
+                    'admin_reservations_url' => '/admin/reservations?pmd_mode=edit&pmd_id='.$id,
+                    'pos_reservations_url' => '/admin/pos?workspace=reservations',
+                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'status' => 'new',
+                'priority' => $action === 'canceled' ? 'high' : 'medium',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (Throwable $error) {
+            Log::warning('PMD public booking admin notification failed', [
+                'reservation_id' => (int)$reservation->getKey(),
+                'action' => $action,
+                'message' => $error->getMessage(),
+            ]);
+        }
     }
 
     private function location(): Locations_model

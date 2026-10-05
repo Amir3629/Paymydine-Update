@@ -260,6 +260,25 @@
         const note = payload.note || 'Note';
         title = 'Note';
         message = staffName + ' • ' + (note.length > 50 ? note.substring(0, 50) + '...' : note);
+      } else if (
+        notif.type === 'reservation_created' ||
+        notif.type === 'reservation_updated' ||
+        notif.type === 'reservation_canceled'
+      ) {
+        const reference = payload.reference || (
+          payload.reservation_id ? 'R' + String(payload.reservation_id).padStart(6, '0') : ''
+        );
+        const actionLabels = {
+          reservation_created: 'New online reservation',
+          reservation_updated: 'Reservation updated by guest',
+          reservation_canceled: 'Reservation canceled by guest'
+        };
+        title = reference || 'Reservation';
+        message = notif.message || actionLabels[notif.type] || 'Reservation changed';
+        statusName = notif.type === 'reservation_canceled'
+          ? 'Canceled'
+          : (notif.type === 'reservation_created' ? 'New' : 'Updated');
+        statusColor = notif.type === 'reservation_canceled' ? '#e74c3c' : '#08815e';
       } else if (notif.type === 'table_move') {
         message = payload.source_table_name && payload.dest_table_name
           ? payload.source_table_name + ' move to ' + payload.dest_table_name

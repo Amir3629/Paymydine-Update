@@ -1396,7 +1396,18 @@ img {
 
 .pmd-booking-manage-cancel:disabled {
   cursor: not-allowed;
-  opacity: .5;
+  opacity: .55;
+}
+
+.pmd-booking-manage-cancel-note {
+  margin: 9px 0 0;
+  color: var(--pmd-book-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.pmd-booking-manage-cancel-note[hidden] {
+  display: none;
 }
 
 .pmd-booking-manage-locked {

@@ -21,6 +21,7 @@
   var times = document.getElementById("pmd-manage-times");
   var saveButton = document.getElementById("pmd-manage-save");
   var cancelButton = document.getElementById("pmd-manage-cancel");
+  var cancelNote = document.getElementById("pmd-manage-cancel-note");
   var message = document.getElementById("pmd-manage-message");
   var currentDate = document.getElementById("pmd-manage-current-date");
   var currentTime = document.getElementById("pmd-manage-current-time");
@@ -273,6 +274,15 @@
       if (currentTime) currentTime.textContent = state.time;
       if (currentParty) currentParty.textContent = partyLabel(state.guests);
 
+      if (cancelButton) {
+        var canCancelNow = reservation.can_cancel === true;
+        cancelButton.disabled = !canCancelNow;
+        cancelButton.setAttribute("aria-disabled", canCancelNow ? "false" : "true");
+      }
+      if (cancelNote) {
+        cancelNote.hidden = reservation.can_cancel === true;
+      }
+
       setMessage(labels.updated || payload.message || "Reservation updated.", false);
       loadAvailability();
     }).catch(function (error) {
@@ -325,6 +335,7 @@
         node.disabled = true;
       });
       cancelButton.hidden = true;
+      if (cancelNote) cancelNote.hidden = true;
     }).catch(function (error) {
       var messages = error && error.payload ? responseMessages(error.payload) : [error.message];
       setMessage(messages[0] || "Cancellation failed.", true);

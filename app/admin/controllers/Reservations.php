@@ -89,6 +89,7 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         $this->addCss('css/pmd-reservations-schedule-v1.css');
         $this->addCss('css/pmd-cashier-lab-orders-v1.css');
         $this->addJs('js/pmd-reservations-table-card-filter-v1.js');
+        $this->addJs('js/pmd-reservations-live-sync-v1.js');
     }
 
     /*
