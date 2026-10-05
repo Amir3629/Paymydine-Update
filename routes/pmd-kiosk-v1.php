@@ -29,4 +29,14 @@ Route::group([
 
     Route::get('state', [PmdKioskPublicController::class, 'state'])
         ->middleware('throttle:120,1,pmd-kiosk-state');
+
+    // PMD_KIOSK_CARD_PRESENT_PAYMENT_V18
+    // Only the paired kiosk bearer credential can trigger its linked terminal.
+    Route::post('payment/start', [PmdKioskPublicController::class, 'terminalPaymentStart'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:30,1,pmd-kiosk-payment-start');
+
+    Route::post('payment/status', [PmdKioskPublicController::class, 'terminalPaymentStatus'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:120,1,pmd-kiosk-payment-status');
 });
