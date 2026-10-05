@@ -106,6 +106,27 @@ class PmdPublicBookingController extends Controller
         $days = min(self::MAX_DATE_STATUS_DAYS, max(1, (int)($data['days'] ?? self::MAX_DATE_STATUS_DAYS)));
         $guests = (int)$data['guests'];
         $latest = Carbon::now($timezone)->startOfDay()->addDays(self::MAX_BOOKING_DAYS);
+        $lastDate = $start->copy()->addDays($days - 1);
+        if ($lastDate->greaterThan($latest)) {
+            $lastDate = $latest->copy();
+        }
+
+        /*
+         * PMD_PUBLIC_BOOKING_INSTANT_TIMES_R4
+         *
+         * The date strip is a prefetch surface, not only a status surface.
+         * Calculate the visible/next dates from one opening-hours read and one
+         * reservation query, then return the actual slots with each date. The
+         * browser can switch dates immediately and revalidate silently.
+         */
+        $openingHours = $this->openingHours($location);
+        $duration = $this->stayMinutes($location);
+        $interval = $this->slotInterval($location);
+        $batchReservations = $this->activeReservations(
+            $location,
+            $start->copy()->startOfDay(),
+            $lastDate->copy()->endOfDay()->addDay()
+        );
         $dates = [];
 
         for ($index = 0; $index < $days; $index++) {
@@ -114,8 +135,33 @@ class PmdPublicBookingController extends Controller
                 break;
             }
 
-            $payload = $this->availabilityPayload($location, $date, $guests);
-            $opening = (array)($payload['opening'] ?? []);
+            $weekday = max(0, min(6, ((int)$date->isoWeekday()) - 1));
+            $opening = $openingHours[$weekday] ?? [
+                'weekday' => $weekday,
+                'enabled' => false,
+                'opening_time' => null,
+                'closing_time' => null,
+            ];
+
+            $reservationDateMin = $date->copy()->subDay()->toDateString();
+            $reservationDateMax = $date->copy()->addDay()->toDateString();
+            $dateReservations = $batchReservations->filter(static function ($reservation) use ($reservationDateMin, $reservationDateMax) {
+                $reserveDate = $reservation->reserve_date instanceof DateTimeInterface
+                    ? $reservation->reserve_date->format('Y-m-d')
+                    : substr((string)$reservation->reserve_date, 0, 10);
+
+                return $reserveDate >= $reservationDateMin && $reserveDate <= $reservationDateMax;
+            })->values();
+
+            $payload = $this->availabilityPayload(
+                $location,
+                $date,
+                $guests,
+                $opening,
+                $duration,
+                $interval,
+                $dateReservations
+            );
             $slots = (array)($payload['slots'] ?? []);
 
             $status = 'available';
@@ -129,6 +175,10 @@ class PmdPublicBookingController extends Controller
                 'date' => $date->toDateString(),
                 'status' => $status,
                 'slot_count' => count($slots),
+                'opening' => $payload['opening'],
+                'duration' => $payload['duration'],
+                'interval' => $payload['interval'],
+                'slots' => $slots,
             ];
         }
 
@@ -315,11 +365,18 @@ class PmdPublicBookingController extends Controller
         return $location;
     }
 
-    private function availabilityPayload(Locations_model $location, Carbon $date, int $guests): array
-    {
-        $opening = $this->hoursForDate($location, $date);
-        $duration = $this->stayMinutes($location);
-        $interval = $this->slotInterval($location);
+    private function availabilityPayload(
+        Locations_model $location,
+        Carbon $date,
+        int $guests,
+        ?array $openingOverride = null,
+        ?int $durationOverride = null,
+        ?int $intervalOverride = null,
+        ?Collection $activeReservationsOverride = null
+    ): array {
+        $opening = $openingOverride ?? $this->hoursForDate($location, $date);
+        $duration = $durationOverride ?? $this->stayMinutes($location);
+        $interval = $intervalOverride ?? $this->slotInterval($location);
 
         if (!$opening['enabled'] || !$opening['opening_time'] || !$opening['closing_time']) {
             return [
@@ -347,7 +404,8 @@ class PmdPublicBookingController extends Controller
             ];
         }
 
-        $activeReservations = $this->activeReservations($location, $opensAt, $closesAt);
+        $activeReservations = $activeReservationsOverride
+            ?? $this->activeReservations($location, $opensAt, $closesAt);
         $now = Carbon::now($timezone);
         $slots = [];
 
