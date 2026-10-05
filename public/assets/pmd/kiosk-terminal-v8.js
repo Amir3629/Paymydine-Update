@@ -1459,16 +1459,52 @@
     });
   }
 
+  function kioskReceiptText(orderId) {
+    var totals = calculateTotals();
+    var lines = [
+      state.restaurant.name || "PayMyDine",
+      "Order #" + String(
+        (state.order && (state.order.orderNumber || state.order.orderId)) ||
+        orderId ||
+        ""
+      ),
+      "------------------------------"
+    ];
+
+    state.cart.forEach(function (line) {
+      lines.push(
+        String(line.quantity) + " x " + String(line.item.name || "") +
+        "  " + money(line.unitPrice * line.quantity)
+      );
+    });
+
+    lines.push("------------------------------");
+    lines.push(copy().total + ": " + money(totals.payable));
+    lines.push("");
+    lines.push(copy().paidHint || "Thank you");
+    return lines.join("\n");
+  }
+
   function notifyNativeOrderComplete(orderId) {
     var attempts = 0;
+    var receiptSent = false;
     function run() {
       attempts += 1;
       try {
         var bridge = window.PayMyDineKiosk;
         var secret = String(window.__PMD_KIOSK_BRIDGE_SECRET__ || "");
-        if (bridge && typeof bridge.orderComplete === "function" && secret) {
-          bridge.orderComplete(String(orderId), secret);
-          return;
+        if (bridge && secret) {
+          if (
+            !receiptSent &&
+            typeof bridge.printReceipt === "function"
+          ) {
+            receiptSent = true;
+            bridge.printReceipt(kioskReceiptText(orderId), secret);
+          }
+          if (typeof bridge.orderComplete === "function") {
+            bridge.orderComplete(String(orderId), secret);
+            return;
+          }
         }
       } catch (error) {}
       if (attempts < 30) window.setTimeout(run, 150);
