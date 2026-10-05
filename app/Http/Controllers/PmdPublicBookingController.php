@@ -34,11 +34,17 @@ class PmdPublicBookingController extends Controller
         $today = Carbon::now($timezone)->startOfDay();
         $maxGuests = $this->maxBookableGuests($location);
         $defaultGuests = min(2, $maxGuests);
+        $openingHours = $this->openingHours($location);
+        $stayMinutes = $this->stayMinutes($location);
+        $slotInterval = $this->slotInterval($location);
         $availabilitySeed = $this->dateStatusPayload(
             $location,
             $today,
             self::MAX_DATE_STATUS_DAYS,
-            $defaultGuests
+            $defaultGuests,
+            $openingHours,
+            $stayMinutes,
+            $slotInterval
         );
 
         // PMD_PUBLIC_BOOKING_DIRECT_VIEW_FILE_R2
@@ -50,7 +56,6 @@ class PmdPublicBookingController extends Controller
             base_path('resources/views/pmd/public-booking.blade.php'),
             [
                 'bookingProfile' => $this->profile($location),
-                'bookingHours' => $this->openingHours($location),
                 'bookingLocale' => $locale,
                 'bookingLocaleTag' => $languageContext['locale_tags'][$locale] ?? $this->defaultLocaleTag($locale),
                 'bookingDirection' => $this->localeDirection($locale),
@@ -59,7 +64,7 @@ class PmdPublicBookingController extends Controller
                 'bookingToday' => $today->toDateString(),
                 'bookingMaxDate' => $today->copy()->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
                 'bookingMaxGuests' => $maxGuests,
-                'bookingStayMinutes' => $this->stayMinutes($location),
+                'bookingStayMinutes' => $stayMinutes,
                 'bookingAvailabilitySeed' => $availabilitySeed,
             ]
         )->render();
@@ -129,7 +134,10 @@ class PmdPublicBookingController extends Controller
         Locations_model $location,
         Carbon $start,
         int $days,
-        int $guests
+        int $guests,
+        ?array $openingHoursOverride = null,
+        ?int $durationOverride = null,
+        ?int $intervalOverride = null
     ): array {
         $days = min(self::MAX_DATE_STATUS_DAYS, max(1, $days));
         $timezone = $this->timezone();
@@ -147,9 +155,9 @@ class PmdPublicBookingController extends Controller
          * first HTML response can seed the browser cache. Date switching then
          * does not depend on a network round trip.
          */
-        $openingHours = $this->openingHours($location);
-        $duration = $this->stayMinutes($location);
-        $interval = $this->slotInterval($location);
+        $openingHours = $openingHoursOverride ?? $this->openingHours($location);
+        $duration = $durationOverride ?? $this->stayMinutes($location);
+        $interval = $intervalOverride ?? $this->slotInterval($location);
         $batchReservations = $this->activeReservations(
             $location,
             $start->copy()->startOfDay(),
