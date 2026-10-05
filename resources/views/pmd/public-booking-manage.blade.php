@@ -31,6 +31,7 @@
             'save' => 'Save changes',
             'saving' => 'Saving changes…',
             'cancel' => 'Cancel reservation',
+            'cancel_unavailable' => 'Online cancellation is no longer available for this reservation. Please contact the restaurant.',
             'cancel_confirm' => 'Cancel this reservation? This action cannot be undone.',
             'canceling' => 'Canceling…',
             'updated' => 'Your reservation has been updated.',
@@ -73,6 +74,7 @@
             'save' => 'Änderungen speichern',
             'saving' => 'Änderungen werden gespeichert…',
             'cancel' => 'Reservierung stornieren',
+            'cancel_unavailable' => 'Die Online-Stornierungsfrist für diese Reservierung ist abgelaufen. Bitte kontaktieren Sie das Restaurant.',
             'cancel_confirm' => 'Diese Reservierung stornieren? Dies kann nicht rückgängig gemacht werden.',
             'canceling' => 'Wird storniert…',
             'updated' => 'Ihre Reservierung wurde aktualisiert.',
@@ -115,6 +117,7 @@
             'save' => 'Değişiklikleri kaydet',
             'saving' => 'Değişiklikler kaydediliyor…',
             'cancel' => 'Rezervasyonu iptal et',
+            'cancel_unavailable' => 'Bu rezervasyon için çevrimiçi iptal süresi sona erdi. Lütfen restoranla iletişime geçin.',
             'cancel_confirm' => 'Bu rezervasyonu iptal etmek istiyor musunuz? Bu işlem geri alınamaz.',
             'canceling' => 'İptal ediliyor…',
             'updated' => 'Rezervasyonunuz güncellendi.',
@@ -157,6 +160,7 @@
             'save' => 'حفظ التغييرات',
             'saving' => 'جارٍ حفظ التغييرات…',
             'cancel' => 'إلغاء الحجز',
+            'cancel_unavailable' => 'لم يعد الإلغاء عبر الإنترنت متاحًا لهذا الحجز. يرجى الاتصال بالمطعم.',
             'cancel_confirm' => 'إلغاء هذا الحجز؟ لا يمكن التراجع عن هذا الإجراء.',
             'canceling' => 'جارٍ الإلغاء…',
             'updated' => 'تم تحديث حجزك.',
@@ -210,7 +214,7 @@
     <meta name="theme-color" content="#f4efe4">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $t['manage_booking'] }} · {{ $bookingProfile['name'] }}</title>
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r17">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r18">
 </head>
 <body class="pmd-booking-page pmd-booking-manage-page">
     <div class="pmd-booking-shell">
@@ -356,10 +360,17 @@
                                     <span data-pmd-manage-i18n="save">{{ $t['save'] }}</span>
                                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M14 7l5 5-5 5"/></svg>
                                 </button>
-                                @if($canCancel)
-                                    <button id="pmd-manage-cancel" class="pmd-booking-manage-cancel" type="button" data-pmd-manage-i18n="cancel">{{ $t['cancel'] }}</button>
-                                @endif
+                                <button
+                                    id="pmd-manage-cancel"
+                                    class="pmd-booking-manage-cancel"
+                                    type="button"
+                                    data-pmd-manage-i18n="cancel"
+                                    @if(!$canCancel) disabled aria-disabled="true" @endif
+                                >{{ $t['cancel'] }}</button>
                             </div>
+                            @if(!$canCancel)
+                                <p class="pmd-booking-manage-cancel-note" data-pmd-manage-i18n="cancel_unavailable">{{ $t['cancel_unavailable'] }}</p>
+                            @endif
                         </form>
                     @else
                         <div class="pmd-booking-manage-locked">
@@ -382,6 +393,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-manage-config">{!! json_encode($manageConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261005-r17" defer></script>
+    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261005-r18" defer></script>
 </body>
 </html>
