@@ -216,6 +216,10 @@ private fun KioskApp(
     var menuBootstrapReady by remember { mutableStateOf(false) }
     var menuOpening by remember { mutableStateOf(false) }
     var serviceMode by remember { mutableStateOf("eat_in") }
+    // PMD_KIOSK_WELCOME_LANGUAGE_V17
+    // Language is chosen before service mode so the first menu frame is already
+    // localized; no guest has to enter the menu and then find the language control.
+    var selectedLocale by remember { mutableStateOf("de") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var completedOrderId by remember { mutableStateOf<String?>(null) }
@@ -283,7 +287,13 @@ private fun KioskApp(
         }
     }
 
-    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady) {
+    LaunchedEffect(
+        screen,
+        profile,
+        heroImages,
+        menuBootstrapReady,
+        selectedLocale,
+    ) {
         val current = profile
         if (
             screen != KioskScreen.WELCOME ||
@@ -305,12 +315,14 @@ private fun KioskApp(
             context = context,
             profile = current,
             serviceMode = "eat_in",
+            locale = selectedLocale,
             heroImage = hero,
         )
         KioskMenuWarmPool.prewarm(
             context = context,
             profile = current,
             serviceMode = "pickup",
+            locale = selectedLocale,
             heroImage = hero,
         )
     }
@@ -363,7 +375,11 @@ private fun KioskApp(
             // partial Chromium paint. Normal taps pass this loop immediately.
             var waits = 0
             while (
-                !KioskMenuWarmPool.isReady(current.menuUrl, mode) &&
+                !KioskMenuWarmPool.isReady(
+                    current.menuUrl,
+                    mode,
+                    selectedLocale,
+                ) &&
                 waits < 20
             ) {
                 delay(16L)
@@ -375,6 +391,7 @@ private fun KioskApp(
                     context = context,
                     profile = current,
                     serviceMode = mode,
+                    locale = selectedLocale,
                     heroImage = heroImages.firstOrNull().orEmpty(),
                 ),
             )
@@ -433,6 +450,8 @@ private fun KioskApp(
             KioskWelcomeScreen(
                 profile = current,
                 heroImages = heroImages,
+                selectedLocale = selectedLocale,
+                onLocaleSelected = { selectedLocale = it },
                 onEatHere = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
                     scope.launch {
@@ -658,6 +677,8 @@ private fun KioskLoadingScreen(
 private fun KioskWelcomeScreen(
     profile: KioskProfile,
     heroImages: List<String>,
+    selectedLocale: String,
+    onLocaleSelected: (String) -> Unit,
     onEatHere: () -> Unit,
     onTakeAway: () -> Unit,
 ) {
@@ -741,19 +762,21 @@ private fun KioskWelcomeScreen(
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
             )
-            Text(
-                "How would you like to order?",
-                modifier = Modifier.padding(top = 7.dp),
-                color = muted,
-                fontSize = 18.sp,
-                textAlign = TextAlign.Center,
+            // PMD_KIOSK_CLEAN_WELCOME_V17
+            // Guest chooses language here; the redundant "How would you like
+            // to order?" prompt and service-card subtitles are intentionally gone.
+            KioskLanguageSelector(
+                selectedLocale = selectedLocale,
+                onLocaleSelected = onLocaleSelected,
+                surface = surface,
+                text = text,
+                accent = accent,
             )
 
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(22.dp))
 
             KioskModeButton(
-                title = "EAT HERE",
-                subtitle = "Order and enjoy it here",
+                title = "DINE IN",
                 imageUrl = eatImage,
                 background = surface,
                 text = text,
@@ -763,7 +786,6 @@ private fun KioskWelcomeScreen(
             Spacer(Modifier.height(16.dp))
             KioskModeButton(
                 title = "TAKE AWAY",
-                subtitle = "Order for collection",
                 imageUrl = takeImage,
                 background = surface,
                 text = text,
@@ -791,9 +813,51 @@ private fun KioskWelcomeScreen(
 }
 
 @Composable
+private fun KioskLanguageSelector(
+    selectedLocale: String,
+    onLocaleSelected: (String) -> Unit,
+    surface: Color,
+    text: Color,
+    accent: Color,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 18.dp),
+        horizontalArrangement = Arrangement.End,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        listOf("de", "en", "fa", "tr").forEach { locale ->
+            val selected = locale == selectedLocale
+            Button(
+                onClick = { onLocaleSelected(locale) },
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .height(42.dp),
+                shape = RoundedCornerShape(13.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (selected) accent else surface,
+                    contentColor = if (selected) Color.White else text,
+                ),
+                contentPadding =
+                    androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = 13.dp,
+                        vertical = 0.dp,
+                    ),
+            ) {
+                Text(
+                    locale.uppercase(),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Black,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun KioskModeButton(
     title: String,
-    subtitle: String,
     imageUrl: String,
     background: Color,
     text: Color,
@@ -830,20 +894,20 @@ private fun KioskModeButton(
                         background = background,
                     )
 
-                    // PMD_KIOSK_SERVICE_ARTWORK_FADE_V14
-                    // Blend the photo into the text side instead of ending on a
-                    // hard vertical edge, matching the selected kiosk concept.
+                    // PMD_KIOSK_SERVICE_ARTWORK_FADE_V17
+                    // Keep only a tight edge blend. The photo must remain
+                    // visually dominant instead of being covered by a wide wash.
                     Box(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .fillMaxHeight()
-                            .width(52.dp)
+                            .width(26.dp)
                             .background(
                                 Brush.horizontalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        background.copy(alpha = 0.55f),
-                                        background,
+                                        background.copy(alpha = 0.20f),
+                                        background.copy(alpha = 0.78f),
                                     ),
                                 ),
                             ),
@@ -863,15 +927,9 @@ private fun KioskModeButton(
                 Text(
                     title,
                     color = text,
-                    fontSize = 21.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 0.5.sp,
-                )
-                Text(
-                    subtitle,
-                    modifier = Modifier.padding(top = 2.dp),
-                    color = text.copy(alpha = 0.62f),
-                    fontSize = 12.sp,
                 )
             }
 
