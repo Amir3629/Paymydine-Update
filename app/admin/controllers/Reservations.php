@@ -225,6 +225,11 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
     public function onChargeNoShowGuarantee()
     {
+        $user = $this->getUser();
+        if (!$user || !$user->hasPermission('Admin.Payments')) {
+            abort(403, 'Payment permission required.');
+        }
+
         $reservationId = (int)post('reservation_id', 0);
         if ($reservationId < 1) {
             throw ValidationException::withMessages([
@@ -349,6 +354,11 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
     public function onReleaseReservationGuarantee()
     {
+        $user = $this->getUser();
+        if (!$user || !$user->hasPermission('Admin.Payments')) {
+            abort(403, 'Payment permission required.');
+        }
+
         $reservationId = (int)post('reservation_id', 0);
         if ($reservationId < 1) {
             throw ValidationException::withMessages([
