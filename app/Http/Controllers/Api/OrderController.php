@@ -40,7 +40,8 @@ class OrderController extends Controller
             'tax_amount' => 'nullable|numeric|min:0',
             'coupon_code' => 'nullable|string|max:255',
             'coupon_discount' => 'nullable|numeric|min:0',
-            'payment_method' => 'required|string|in:cash,cod,card,paypal',
+            'payment_method' => 'required|string|in:cash,cod,card,paypal,qr_pay_later',
+            'kiosk_terminal_pending' => 'nullable|boolean',
             'special_instructions' => 'nullable|string|max:500',
             'service_mode' => 'nullable|string|in:kiosk,pickup',
             'kiosk_session' => 'nullable|string|max:100',
@@ -72,6 +73,13 @@ class OrderController extends Controller
             $serviceMode = strtolower(trim((string)($request->service_mode ?? '')));
             $kioskSession = preg_replace('/[^A-Za-z0-9._:-]/', '', trim((string)($request->kiosk_session ?? '')));
             $isKioskDirect = !$tableId && in_array($serviceMode, ['kiosk', 'pickup'], true);
+            // PMD_KIOSK_TERMINAL_HOLD_V18
+            // A card-present kiosk order is persisted before the terminal can
+            // reference it, but remains held from Kitchen until the terminal
+            // settlement service flips processed=1 after confirmed payment.
+            $kioskTerminalPending =
+                $isKioskDirect
+                && (bool)$request->boolean('kiosk_terminal_pending');
 
             if ($isKioskDirect) {
                 $orderType = $serviceMode;
@@ -159,7 +167,7 @@ class OrderController extends Controller
                     'comment' => trim((string)$request->special_instructions)
                         .(($guestSessionId !== '') ? ' [guest_session:'.$guestSessionId.']' : '')
                         .(($isKioskDirect && $kioskSession !== '') ? ' [kiosk_session:'.$kioskSession.']' : ''),
-                    'processed' => 1,
+                    'processed' => $kioskTerminalPending ? 0 : 1,
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
