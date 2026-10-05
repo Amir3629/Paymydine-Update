@@ -1357,15 +1357,41 @@
     });
   }
 
+  function kioskReceiptText(orderId) {
+    var totals = calculateTotals();
+    var lines = [
+      String(state.restaurant.name || "PayMyDine"),
+      config.serviceMode === "pickup" ? "TAKE AWAY" : "DINE IN",
+      "Order #" + String(orderId || ""),
+      "--------------------------------"
+    ];
+    state.cart.forEach(function (line) {
+      lines.push(
+        String(line.quantity) + " x " +
+        String(line.item.name || "") + "  " +
+        money(line.unitPrice * line.quantity)
+      );
+      (line.selections || []).forEach(function (entry) {
+        lines.push("  " + String(entry.valueName || ""));
+      });
+    });
+    lines.push("--------------------------------");
+    lines.push("TOTAL  " + money(totals.payable));
+    lines.push("");
+    lines.push("Thank you");
+    return lines.join("\n");
+  }
+
   function notifyNativeOrderComplete(orderId) {
     var attempts = 0;
+    var receipt = kioskReceiptText(orderId);
     function run() {
       attempts += 1;
       try {
         var bridge = window.PayMyDineKiosk;
         var secret = String(window.__PMD_KIOSK_BRIDGE_SECRET__ || "");
         if (bridge && typeof bridge.orderComplete === "function" && secret) {
-          bridge.orderComplete(String(orderId), secret);
+          bridge.orderComplete(String(orderId), receipt, secret);
           return;
         }
       } catch (error) {}
