@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
 use App\Services\Platform\LocationPlatformContext;
+use App\Services\Reservations\PmdReservationGuaranteeService;
 use Carbon\Carbon;
 use DateTimeInterface;
 use DateTimeZone;
@@ -84,6 +85,8 @@ class PmdPublicBookingController extends Controller
                 'bookingStayMinutes' => $stayMinutes,
                 'bookingAvailabilitySeed' => $availabilitySeed,
                 'bookingTableRules' => $this->tableRules($location),
+                'bookingGuarantee' => app(PmdReservationGuaranteeService::class)
+                    ->publicConfig($location, $locale),
             ]
         )->render();
 
@@ -170,6 +173,68 @@ class PmdPublicBookingController extends Controller
             'guest_num' => $guests,
             'dates' => $payload,
         ]);
+    }
+
+    public function guaranteeSetup(Request $request): JsonResponse
+    {
+        $location = $this->location();
+        $timezone = $this->timezone();
+        $maxGuests = $this->maxBookableGuests($location);
+
+        $data = validator($request->all(), [
+            'first_name' => ['required', 'string', 'min:1', 'max:48'],
+            'last_name' => ['required', 'string', 'min:1', 'max:48'],
+            'email' => ['required', 'email:filter', 'max:96'],
+            'reserve_date' => ['required', 'date_format:Y-m-d'],
+            'reserve_time' => ['required', 'date_format:H:i'],
+            'guest_num' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
+            'locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
+        ])->validate();
+
+        $date = Carbon::createFromFormat(
+            'Y-m-d',
+            (string)$data['reserve_date'],
+            $timezone
+        )->startOfDay();
+        $this->guardBookableDate($date, $timezone);
+
+        $availability = $this->availabilityPayload(
+            $location,
+            $date,
+            (int)$data['guest_num']
+        );
+
+        if (!collect($availability['slots'])->firstWhere(
+            'value',
+            (string)$data['reserve_time']
+        )) {
+            throw ValidationException::withMessages([
+                'reserve_time' => [
+                    'That time is no longer available. Please choose another time.',
+                ],
+            ]);
+        }
+
+        try {
+            $result = app(PmdReservationGuaranteeService::class)
+                ->createSetupIntent(
+                    $location,
+                    $data,
+                    (string)($data['locale'] ?? 'de')
+                );
+
+            return response()->json($result);
+        } catch (Throwable $error) {
+            Log::warning('PMD public reservation card guarantee setup failed', [
+                'location_id' => (int)$location->getKey(),
+                'message' => $error->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $error->getMessage(),
+            ], 422);
+        }
     }
 
     private function dateStatusPayload(
@@ -313,6 +378,9 @@ class PmdPublicBookingController extends Controller
             'occasion_id' => ['nullable', 'integer', 'in:0,3,6'],
             'comment' => ['nullable', 'string', 'max:1000'],
             'consent' => ['accepted'],
+            '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
+            '_pmd_guarantee_setup_intent' => ['nullable', 'string', 'max:255'],
+            '_pmd_guarantee_terms_accepted' => ['nullable'],
         ])->validate();
 
         $date = Carbon::createFromFormat('Y-m-d', (string)$data['reserve_date'], $timezone)->startOfDay();
@@ -329,6 +397,54 @@ class PmdPublicBookingController extends Controller
             ]);
         }
 
+        $guaranteeService = app(PmdReservationGuaranteeService::class);
+        $reservationStart = Carbon::parse(
+            $date->toDateString().' '.$time,
+            $timezone
+        );
+        $bookingLocale = (string)($data['_pmd_booking_locale'] ?? 'de');
+        $guaranteePolicy = $guaranteeService->policy(
+            $location,
+            $guests,
+            $reservationStart,
+            $bookingLocale
+        );
+        $guaranteeVerified = [
+            'required' => false,
+            'policy' => $guaranteePolicy,
+        ];
+
+        if (!empty($guaranteePolicy['required'])) {
+            if (empty($data['_pmd_guarantee_terms_accepted'])) {
+                throw ValidationException::withMessages([
+                    '_pmd_guarantee_terms_accepted' => [
+                        'Please accept the card guarantee terms before confirming the reservation.',
+                    ],
+                ]);
+            }
+
+            if (empty($guaranteePolicy['provider_ready'])) {
+                throw ValidationException::withMessages([
+                    'reservation' => [
+                        'Card guarantee is temporarily unavailable. Please contact the restaurant.',
+                    ],
+                ]);
+            }
+
+            try {
+                $guaranteeVerified = $guaranteeService->verifySetupIntent(
+                    $location,
+                    $data,
+                    trim((string)($data['_pmd_guarantee_setup_intent'] ?? '')),
+                    $bookingLocale
+                );
+            } catch (Throwable $error) {
+                throw ValidationException::withMessages([
+                    '_pmd_guarantee_setup_intent' => [$error->getMessage()],
+                ]);
+            }
+        }
+
         try {
             $reservation = DB::transaction(function () use (
                 $location,
@@ -337,7 +453,9 @@ class PmdPublicBookingController extends Controller
                 $guests,
                 $data,
                 $timezone,
-                $availability
+                $availability,
+                $guaranteeVerified,
+                $guaranteeService
             ) {
                 $allTableIds = $location->tables
                     ->pluck('table_id')
@@ -410,6 +528,11 @@ class PmdPublicBookingController extends Controller
                     ]);
                 }
 
+                $guaranteeService->recordGuarantee(
+                    $reservation,
+                    $guaranteeVerified
+                );
+
                 return $reservation->fresh(['tables', 'status', 'location']);
             }, 3);
 
@@ -436,10 +559,15 @@ class PmdPublicBookingController extends Controller
                     'duration' => (int)$reservation->duration,
                     'name' => trim($reservation->first_name.' '.$reservation->last_name),
                 ],
+                'guarantee' => $guaranteeService->publicGuaranteePayload(
+                    (int)$reservation->getKey()
+                ),
             ]);
         } catch (ValidationException $error) {
+            $guaranteeService->discardVerification($guaranteeVerified);
             throw $error;
         } catch (Throwable $error) {
+            $guaranteeService->discardVerification($guaranteeVerified);
             Log::error('PMD public booking create failed', [
                 'host' => $request->getHost(),
                 'location_id' => (int)$location->getKey(),
@@ -714,6 +842,9 @@ class PmdPublicBookingController extends Controller
         }
 
         if ($reservation->isCanceled()) {
+            app(PmdReservationGuaranteeService::class)
+                ->releaseGuarantee($reservation, 'already_canceled');
+
             return response()->json([
                 'success' => true,
                 'canceled' => true,
@@ -721,7 +852,7 @@ class PmdPublicBookingController extends Controller
             ]);
         }
 
-        if (!$reservation->isCancelable()) {
+        if (!$this->reservationCanBeCanceledOnline($reservation)) {
             return response()->json([
                 'success' => false,
                 'message' => 'This reservation can no longer be canceled online. Please contact the restaurant.',
@@ -745,7 +876,7 @@ class PmdPublicBookingController extends Controller
                     return true;
                 }
 
-                if (!$locked->isCancelable()) {
+                if (!$this->reservationCanBeCanceledOnline($locked)) {
                     throw ValidationException::withMessages([
                         'reservation' => ['This reservation can no longer be canceled online.'],
                     ]);
@@ -762,6 +893,11 @@ class PmdPublicBookingController extends Controller
 
             $canceledReservation = $this->reservationByPublicHash($location, $hash);
             if ($canceledReservation) {
+                app(PmdReservationGuaranteeService::class)
+                    ->releaseGuarantee(
+                        $canceledReservation,
+                        'guest_canceled_before_deadline'
+                    );
                 $this->pushReservationAdminNotification($canceledReservation, 'canceled');
             }
 
@@ -828,7 +964,9 @@ class PmdPublicBookingController extends Controller
                 'initialAvailability' => $initialAvailability,
                 'lookupError' => $lookupError,
                 'canManage' => $reservation ? $this->reservationCanBeManaged($reservation) : false,
-                'canCancel' => $reservation ? (!$reservation->isCanceled() && $reservation->isCancelable()) : false,
+                'canCancel' => $reservation
+                    ? (!$reservation->isCanceled() && $this->reservationCanBeCanceledOnline($reservation))
+                    : false,
             ]
         )->render();
 
@@ -893,8 +1031,31 @@ class PmdPublicBookingController extends Controller
             'comment' => (string)$reservation->comment,
             'canceled' => $reservation->isCanceled(),
             'can_manage' => $this->reservationCanBeManaged($reservation),
-            'can_cancel' => !$reservation->isCanceled() && $reservation->isCancelable(),
+            'can_cancel' => !$reservation->isCanceled() && $this->reservationCanBeCanceledOnline($reservation),
+            'guarantee' => app(PmdReservationGuaranteeService::class)
+                ->publicGuaranteePayload((int)$reservation->getKey()),
         ];
+    }
+
+    private function reservationCanBeCanceledOnline(
+        Reservations_model $reservation
+    ): bool {
+        try {
+            if ($reservation->isCanceled() || !$reservation->reservation_datetime->isFuture()) {
+                return false;
+            }
+        } catch (Throwable $error) {
+            return false;
+        }
+
+        $guaranteeDecision = app(PmdReservationGuaranteeService::class)
+            ->canGuestCancel($reservation);
+
+        if ($guaranteeDecision !== null) {
+            return $guaranteeDecision;
+        }
+
+        return $reservation->isCancelable();
     }
 
     private function availabilityPayloadExcludingReservation(
