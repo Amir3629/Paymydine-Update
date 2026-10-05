@@ -37,6 +37,7 @@ final class PmdReservationGuaranteeService
             'termsVersion' => $base['terms_version'],
             'provider' => 'stripe',
             'providerReady' => (bool)($stripe['ready'] ?? false),
+            'publishableKey' => (string)($stripe['publishable_key'] ?? ''),
             'locale' => $this->locale($locale),
             'termsText' => (string)$samplePolicy['terms_text'],
             'consentText' => (string)$samplePolicy['consent_text'],
