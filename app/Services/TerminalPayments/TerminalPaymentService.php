@@ -10,7 +10,12 @@ use Illuminate\Support\Facades\Schema;
 
 class TerminalPaymentService
 {
-    public function createAttempt(int $orderId, string $providerCode, ?string $terminalId = null): array
+    public function createAttempt(
+        int $orderId,
+        string $providerCode,
+        ?string $terminalId = null,
+        array $options = []
+    ): array
     {
         if (!Schema::hasTable('payment_attempts')) return ['success'=>false,'error'=>'payment_attempts table is missing. Run migrations first.'];
         $order=DB::table('orders')->where('order_id',$orderId)->first();
@@ -20,6 +25,15 @@ class TerminalPaymentService
         $allowedProviderCodes=array_keys(Terminal_devices_model::listProviderOptions());
         if(!in_array($providerCode,$allowedProviderCodes,true))return ['success'=>false,'error'=>'This terminal provider is not enabled for the active restaurant market.'];
         $provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
+        // PMD_TERMINAL_SURFACE_OPTIONS_V18
+        // Kiosk may suppress terminal gratuity without changing Cashier/Waiter
+        // behavior or weakening provider settlement authority.
+        if (!empty($options['disable_tipping'])) {
+            $config['pmd_disable_tipping'] = true;
+        }
+        if (!empty($options['surface'])) {
+            $config['pmd_surface'] = substr((string)$options['surface'], 0, 32);
+        }
         if($providerCode==='sumup'){
             $terminal=$this->resolveSumupTerminal($terminalId);
             if(!$terminal) return ['success'=>false,'error'=>'No active SumUp terminal is configured.'];
