@@ -716,6 +716,29 @@ class PmdPublicBookingController extends Controller
         $guests = (int)$data['guest_num'];
         $time = (string)$data['reserve_time'];
 
+        $activeGuarantee = app(PmdReservationGuaranteeService::class)
+            ->guaranteeForReservation((int)$reservation->getKey());
+
+        if (
+            $activeGuarantee
+            && in_array(
+                (string)$activeGuarantee->status,
+                ['active', 'charge_failed', 'action_required'],
+                true
+            )
+            && (
+                (string)($beforeSnapshot['date'] ?? '') !== $date->toDateString()
+                || (string)($beforeSnapshot['time'] ?? '') !== $time
+                || (int)($beforeSnapshot['guests'] ?? 0) !== $guests
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'reservation' => [
+                    'This reservation has an active card guarantee. Date, time or party size can only be changed after the restaurant reconfirms the guarantee terms. Please contact the restaurant.',
+                ],
+            ]);
+        }
+
         $preflight = $this->availabilityPayloadExcludingReservation(
             $location,
             $date,
