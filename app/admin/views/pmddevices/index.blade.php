@@ -386,10 +386,13 @@
                                         </select>
                                         <button type="submit">{{ $pmdSettingsText(!empty($device['assignment']) ? 'Reassign' : 'Assign') }}</button>
                                     </form>
+                                @endif
 
+                                {{-- PMD_KIOSK_TERMINAL_DEVICE_LINK_V17 --}}
+                                @if(in_array(($device['kind'] ?? ''), ['table_display', 'kiosk'], true))
                                     <form
                                         class="pmd-device-platform-assign pmd-device-platform-terminal-assign"
-                                        data-request="onAssignPmdTableDisplayTerminal"
+                                        data-request="{{ ($device['kind'] ?? '') === 'kiosk' ? 'onAssignPmdKioskTerminal' : 'onAssignPmdTableDisplayTerminal' }}"
                                         data-request-flash
                                         data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
                                     >
@@ -409,7 +412,9 @@
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <button type="submit">{{ $pmdSettingsText('Link payment') }}</button>
+                                        <button type="submit">
+                                            {{ $pmdSettingsText(($device['kind'] ?? '') === 'kiosk' ? 'Link kiosk payment' : 'Link payment') }}
+                                        </button>
                                     </form>
                                 @endif
 
