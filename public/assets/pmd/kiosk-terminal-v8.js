@@ -1774,6 +1774,7 @@
       document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(heroItem.image).replace(/"/g, "%22") + '")');
       var heroNode = $("pmd-kiosk-menu-hero");
       if (heroNode) heroNode.classList.add("is-ready");
+      document.body.classList.add("pmd-kiosk-hero-ready");
     }
 
     state.restaurant = {
@@ -1974,6 +1975,12 @@
   });
 
   applyCustomerMenuTheme({}, config.theme || {});
+  if (config.hero) {
+    document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(config.hero).replace(/"/g, "%22") + '")');
+    document.body.classList.add("pmd-kiosk-hero-ready");
+    var initialHeroNode = $("pmd-kiosk-menu-hero");
+    if (initialHeroNode) initialHeroNode.classList.add("is-ready");
+  }
   restoreSession();
 
   // PMD_KIOSK_INSTANT_CACHE_V13
