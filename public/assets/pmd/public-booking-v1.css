@@ -26,13 +26,18 @@
 
 html {
   min-height: 100%;
+  overflow-x: hidden;
   background: var(--pmd-book-paper);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body.pmd-booking-page {
-  min-width: 320px;
+  width: 100%;
+  min-width: 0;
   min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
   color: var(--pmd-book-ink);
   background:
     repeating-linear-gradient(
@@ -254,7 +259,7 @@ img {
 }
 
 .pmd-booking-ledger {
-  border-top: 2px solid var(--pmd-book-ink);
+  border-top: 0;
 }
 
 .pmd-booking-step {
@@ -325,19 +330,23 @@ img {
   width: 100%;
   opacity: 0;
   cursor: pointer;
+  font-size: 16px;
 }
 
 .pmd-booking-date-browser {
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) 38px;
   gap: 8px;
-  align-items: stretch;
+  align-items: start;
   min-width: 0;
 }
 
 .pmd-booking-date-nav {
   display: grid;
   place-items: center;
+  align-self: start;
+  width: 100%;
+  height: 86px;
   min-height: 86px;
   padding: 0;
   border: 1px solid var(--pmd-book-line);
@@ -376,6 +385,7 @@ img {
 
 .pmd-booking-date-option {
   position: relative;
+  height: 86px;
   min-height: 86px;
   padding: 11px 9px 10px;
   border: 1px solid var(--pmd-book-line);
@@ -823,7 +833,8 @@ img {
 
 .pmd-booking-summary {
   position: sticky;
-  top: 22px;
+  top: 32px;
+  margin-top: 36px;
   padding: 26px;
   border: 1px solid #c9c0af;
   background:
@@ -1118,7 +1129,7 @@ img {
   }
 
   .pmd-booking-intro__copy h1 {
-    font-size: clamp(38px, 12vw, 58px);
+    font-size: clamp(34px, 10.5vw, 50px);
   }
 
   .pmd-booking-intro__copy > p:last-child {
@@ -1167,7 +1178,8 @@ img {
   }
 
   .pmd-booking-date-nav {
-    min-height: 84px;
+    height: 86px;
+    min-height: 86px;
   }
 
   .pmd-booking-date-strip {
@@ -1180,6 +1192,13 @@ img {
 
   .pmd-booking-fields {
     grid-template-columns: 1fr;
+  }
+
+  .pmd-booking-fields input,
+  .pmd-booking-fields select,
+  .pmd-booking-fields textarea,
+  .pmd-booking-stepper input {
+    font-size: 16px;
   }
 
   .pmd-booking-field--wide {
@@ -1235,7 +1254,7 @@ img {
   }
 
   .pmd-booking-intro__copy h1 {
-    font-size: 40px;
+    font-size: 36px;
   }
 
   .pmd-booking-step {
