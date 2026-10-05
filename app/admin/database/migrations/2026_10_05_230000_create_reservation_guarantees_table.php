@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('status', 32)->default('active')->index();
             $table->unsignedInteger('amount_per_guest_cents')->default(0);
             $table->unsignedInteger('amount_cents')->default(0);
+            $table->unsignedInteger('charged_amount_cents')->nullable();
             $table->string('currency', 3)->default('EUR');
             $table->string('customer_reference', 191)->nullable();
             $table->string('payment_method_reference', 191)->nullable();
