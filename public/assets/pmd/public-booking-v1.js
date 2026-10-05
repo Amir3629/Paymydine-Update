@@ -12,6 +12,10 @@
   }
 
   var labels = config.labels || {};
+  var languageNav = document.querySelector(".pmd-booking-language");
+  var titleMain = document.getElementById("pmd-booking-title-main");
+  var titleSub = document.getElementById("pmd-booking-title-sub");
+  var descriptionMeta = document.querySelector('meta[name="description"]');
   var form = document.getElementById("pmd-booking-form");
   var workspace = document.querySelector(".pmd-booking-workspace");
   var dateInput = document.getElementById("pmd-booking-date");
@@ -211,6 +215,81 @@
   function partyLabel(count) {
     var suffix = count === 1 ? (labels.guest || "guest") : (labels.guests || "guests");
     return count + " " + suffix;
+  }
+
+  function translateStaticContent() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pmd-i18n]"), function (node) {
+      var key = node.getAttribute("data-pmd-i18n");
+      if (key && Object.prototype.hasOwnProperty.call(labels, key)) {
+        node.textContent = labels[key];
+      }
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pmd-i18n-placeholder]"), function (node) {
+      var key = node.getAttribute("data-pmd-i18n-placeholder");
+      if (key && Object.prototype.hasOwnProperty.call(labels, key)) {
+        node.setAttribute("placeholder", labels[key]);
+      }
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pmd-i18n-aria]"), function (node) {
+      var key = node.getAttribute("data-pmd-i18n-aria");
+      if (key && Object.prototype.hasOwnProperty.call(labels, key)) {
+        node.setAttribute("aria-label", labels[key]);
+      }
+    });
+
+    if (titleMain) titleMain.textContent = labels.find_table || "";
+    if (titleSub) titleSub.textContent = (labels.at || "at") + " " + (config.restaurantName || "");
+    if (descriptionMeta) descriptionMeta.setAttribute("content", labels.intro || "");
+    document.title = (labels.reservations || "Reservations") + " · " + (config.restaurantName || "");
+  }
+
+  function activeLanguageCode() {
+    return String(config.locale || "").toLowerCase().slice(0, 2);
+  }
+
+  function applyLanguage(code, updateUrl) {
+    code = String(code || "").toLowerCase().slice(0, 2);
+    var packs = config.labelsByLocale || {};
+    if (!packs[code]) return false;
+
+    config.locale = code;
+    labels = packs[code];
+    config.labels = labels;
+    locale = (config.localeTags && config.localeTags[code]) || code;
+    config.localeTag = locale;
+
+    var direction = (config.localeDirections && config.localeDirections[code]) || "ltr";
+    config.direction = direction;
+    document.documentElement.lang = locale;
+    document.documentElement.dir = direction;
+
+    Array.prototype.forEach.call(document.querySelectorAll("[data-pmd-language]"), function (link) {
+      var isActive = String(link.getAttribute("data-pmd-language") || "") === code;
+      link.classList.toggle("is-active", isActive);
+      if (isActive) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+
+    translateStaticContent();
+    renderDateStrip();
+    renderSummary();
+
+    var instant = cachedAvailability(state.date, state.guests);
+    if (instant) {
+      renderTimes(instant);
+    } else if (state.slots && state.slots.length) {
+      renderTimeChoices(state.slots);
+    }
+
+    if (updateUrl !== false && window.history && window.history.replaceState) {
+      var nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("lang", code);
+      window.history.replaceState({ pmdBookingLang: code }, "", nextUrl.pathname + nextUrl.search + nextUrl.hash);
+    }
+
+    return true;
   }
 
   function formatDate(value, compact) {
@@ -831,11 +910,30 @@
 
   form.addEventListener("submit", submitBooking);
 
+  if (languageNav) {
+    languageNav.addEventListener("click", function (event) {
+      var link = event.target.closest("[data-pmd-language]");
+      if (!link) return;
+
+      event.preventDefault();
+      applyLanguage(link.getAttribute("data-pmd-language"), true);
+    });
+  }
+
+  window.addEventListener("popstate", function () {
+    var url = new URL(window.location.href);
+    var requested = url.searchParams.get("lang");
+    if (requested && requested !== activeLanguageCode()) {
+      applyLanguage(requested, false);
+    }
+  });
+
   Array.prototype.forEach.call(document.querySelectorAll("[data-pmd-new-booking]"), function (button) {
     button.addEventListener("click", resetBooking);
   });
 
   hydrateAvailabilitySeed(config.availabilitySeed, state.guests);
+  translateStaticContent();
   renderDateStrip();
   renderSummary();
 
@@ -854,6 +952,7 @@
 
   window.PMDPublicBookingV1 = {
     reload: loadAvailability,
+    setLanguage: function (code) { return applyLanguage(code, true); },
     state: state
   };
 })();
