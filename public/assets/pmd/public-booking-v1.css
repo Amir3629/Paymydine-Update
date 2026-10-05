@@ -209,7 +209,12 @@ img {
   line-height: .98;
 }
 
-.pmd-booking-intro__copy h1 span {
+.pmd-booking-intro__copy h1 > b {
+  font: inherit;
+  font-weight: inherit;
+}
+
+.pmd-booking-intro__copy h1 > span {
   display: block;
   margin-top: 7px;
   color: var(--pmd-book-accent);
@@ -746,6 +751,106 @@ img {
   resize: vertical;
 }
 
+.pmd-booking-occasion {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.pmd-booking-occasion legend {
+  margin: 0 0 8px;
+  padding: 0;
+  color: var(--pmd-book-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.pmd-booking-occasion-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.pmd-booking-occasion-card {
+  position: relative;
+  display: block;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.pmd-booking-occasion-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pmd-booking-occasion-card__surface {
+  display: flex;
+  min-height: 96px;
+  height: 100%;
+  padding: 13px 12px 12px;
+  border: 1px solid var(--pmd-book-line);
+  background: rgba(255, 253, 248, .66);
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.pmd-booking-occasion-card svg {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: var(--pmd-book-accent);
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-booking-occasion-card strong {
+  color: var(--pmd-book-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: normal;
+  line-height: 1.2;
+  text-transform: none;
+}
+
+.pmd-booking-occasion-card:hover .pmd-booking-occasion-card__surface {
+  border-color: var(--pmd-book-accent);
+  background: var(--pmd-book-accent-soft);
+  transform: translateY(-1px);
+}
+
+.pmd-booking-occasion-card input:focus-visible + .pmd-booking-occasion-card__surface {
+  outline: 2px solid var(--pmd-book-accent);
+  outline-offset: 2px;
+}
+
+.pmd-booking-occasion-card input:checked + .pmd-booking-occasion-card__surface {
+  border-color: var(--pmd-book-ink);
+  background: var(--pmd-book-ink);
+  box-shadow: inset 0 0 0 1px var(--pmd-book-ink);
+}
+
+.pmd-booking-occasion-card input:checked + .pmd-booking-occasion-card__surface svg {
+  stroke: var(--pmd-book-white);
+}
+
+.pmd-booking-occasion-card input:checked + .pmd-booking-occasion-card__surface strong {
+  color: var(--pmd-book-white);
+}
+
 .pmd-booking-fields input:focus,
 .pmd-booking-fields select:focus,
 .pmd-booking-fields textarea:focus {
@@ -849,6 +954,7 @@ img {
 .pmd-booking-summary__folio {
   margin-left: 24px;
   color: var(--pmd-book-muted);
+  text-transform: uppercase;
   font-size: 9px;
   font-weight: 900;
   letter-spacing: .2em;
@@ -1197,6 +1303,10 @@ img {
     grid-template-columns: 1fr;
   }
 
+  .pmd-booking-occasion-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .pmd-booking-fields input,
   .pmd-booking-fields select,
   .pmd-booking-fields textarea,
@@ -1287,6 +1397,19 @@ img {
   .pmd-booking-time-option {
     min-width: 78px;
     padding-inline: 13px;
+  }
+
+  .pmd-booking-occasion-grid {
+    gap: 7px;
+  }
+
+  .pmd-booking-occasion-card__surface {
+    min-height: 88px;
+    padding: 11px 10px;
+  }
+
+  .pmd-booking-occasion-card strong {
+    font-size: 13px;
   }
 
   .pmd-booking-summary {
