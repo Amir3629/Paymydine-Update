@@ -959,7 +959,7 @@ final class PmdReservationGuaranteeService
         $locale = $this->locale($locale);
 
         if ($locale === 'de') {
-            return 'Verbindlich reservieren – bei Nichterscheinen kostenpflichtig bis';
+            return 'Verbindlich reservieren – bei Nichterscheinen zahlungspflichtig bis';
         }
         if ($locale === 'tr') {
             return 'Rezervasyonu onayla – olası no-show tazminatı en fazla';
