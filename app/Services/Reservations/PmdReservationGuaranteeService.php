@@ -128,6 +128,7 @@ final class PmdReservationGuaranteeService
 
         $stripe = new StripeClient($stripeConfig['secret_key']);
         $metadata = $this->setupMetadata($location, $booking, $policy);
+        $customer = null;
 
         try {
             $customer = $stripe->customers->create([
@@ -155,6 +156,13 @@ final class PmdReservationGuaranteeService
                 'policy' => $this->publicPolicyPayload($policy),
             ];
         } catch (Throwable $error) {
+            if ($customer && !empty($customer->id)) {
+                try {
+                    $stripe->customers->delete((string)$customer->id, []);
+                } catch (Throwable $ignored) {
+                }
+            }
+
             Log::warning('PMD reservation guarantee setup failed', [
                 'location_id' => (int)$location->getKey(),
                 'message' => $error->getMessage(),
