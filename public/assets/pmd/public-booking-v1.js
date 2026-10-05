@@ -70,15 +70,36 @@
     };
   }
 
-  function guestRangesSupport(ranges, guests) {
-    if (!Array.isArray(ranges)) return false;
+  function tableIdsSupportGuests(tableIds, guests) {
+    if (!Array.isArray(tableIds) || !tableIds.length) return false;
 
-    return ranges.some(function (range) {
-      if (!Array.isArray(range) || !range.length) return false;
-      var min = Number(range[0] || 0);
-      var max = Number(range.length > 1 ? range[1] : min);
-      return guests >= min && guests <= max;
-    });
+    var rules = config.tableRules || {};
+
+    for (var index = 0; index < tableIds.length; index += 1) {
+      var single = rules[String(tableIds[index])] || {};
+      var singleMin = Math.max(1, Number(single.min || 1));
+      var singleMax = Math.max(singleMin, Number(single.max || singleMin));
+
+      if (guests >= singleMin && guests <= singleMax) {
+        return true;
+      }
+    }
+
+    var remaining = guests;
+
+    for (var joinIndex = 0; joinIndex < tableIds.length; joinIndex += 1) {
+      var rule = rules[String(tableIds[joinIndex])] || {};
+      if (!rule.joinable) continue;
+
+      var min = Math.max(1, Number(rule.min || 1));
+      var max = Math.max(min, Number(rule.max || min));
+      if (remaining < min) continue;
+
+      remaining -= max;
+      if (remaining <= 0) return true;
+    }
+
+    return false;
   }
 
   function cacheCapacity(date, payload) {
@@ -101,7 +122,7 @@
       duration: Number(capacity.duration || config.stayMinutes || 90),
       interval: Number(capacity.interval || 30),
       slots: (capacity.capacity_slots || []).filter(function (slot) {
-        return guestRangesSupport(slot.guest_ranges, guests);
+        return tableIdsSupportGuests(slot.table_ids, guests);
       })
     };
   }
@@ -824,6 +845,12 @@
   } else {
     loadAvailability();
   }
+
+  // R7: first paint only carries the visible week. Prefetch the next week
+  // after the UI is already interactive so /book itself stays fast.
+  window.setTimeout(function () {
+    loadDateStatuses(true);
+  }, 0);
 
   window.PMDPublicBookingV1 = {
     reload: loadAvailability,
