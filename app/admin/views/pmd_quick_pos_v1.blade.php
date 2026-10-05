@@ -1209,7 +1209,7 @@ window.PMDQuickPOSConfig = {
         ).then(function () {
             return loadScript(
                 'pmd-qpos-reservations-r135',
-                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20260928-r129',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261005-r18',
                 function () { return !!window.PMDQuickReservationsR136; }
             );
         });
@@ -1226,7 +1226,7 @@ window.PMDQuickPOSConfig = {
     function loadBackgroundExtras() {
         loadScript(
             'pmd-qpos-push-r135',
-            '/app/admin/assets/js/push-notifications.js?v=20260922-qpos-v59',
+            '/app/admin/assets/js/push-notifications.js?v=20261005-r18',
             function () {
                 return window.PushNotificationManagerInitialized === true
                     || window.PushNotificationManagerInitialized === 'claiming';
