@@ -856,6 +856,14 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             )
                         }
                     },
+                    onPrinterSetup = {
+                        context.startActivity(
+                            Intent(
+                                context,
+                                com.paymydine.mobile.HardwareSetupActivity::class.java,
+                            ),
+                        )
+                    },
                 )
 
             }
@@ -885,6 +893,7 @@ private fun UnifiedFirstRun(
     onStaffSelected: (String) -> Unit,
     onKiosk: () -> Unit,
     onTableDisplay: () -> Unit,
+    onPrinterSetup: () -> Unit,
 ) {
     var step by remember { mutableStateOf(1) }
 
@@ -998,6 +1007,19 @@ private fun UnifiedFirstRun(
                 onClick = onTableDisplay,
             ) {
                 Text("Table display")
+            }
+
+            // PMD_ANDROID_HARDWARE_SETUP_V17
+            OutlinedButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 26.dp),
+                onClick = onPrinterSetup,
+            ) {
+                Text(
+                    "Printer setup",
+                    fontWeight = FontWeight.Bold,
+                )
             }
 
             Button(
