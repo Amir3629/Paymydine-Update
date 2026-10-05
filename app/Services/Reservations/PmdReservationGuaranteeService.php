@@ -511,7 +511,20 @@ final class PmdReservationGuaranteeService
                     'pmd_terms_version' => (string)$row->terms_version,
                 ],
             ], [
-                'idempotency_key' => 'pmd-noshow-'.$reservation->getKey().'-'.$row->guarantee_id,
+                'idempotency_key' => 'pmd-noshow-'
+                    .$reservation->getKey().'-'
+                    .$row->guarantee_id.'-'
+                    .$chargeAmount.'-'
+                    .substr(
+                        hash(
+                            'sha256',
+                            trim((string)($row->charge_intent_reference ?? '')) !== ''
+                                ? (string)$row->charge_intent_reference
+                                : 'first'
+                        ),
+                        0,
+                        12
+                    ),
             ]);
 
             $status = (string)$intent->status;
