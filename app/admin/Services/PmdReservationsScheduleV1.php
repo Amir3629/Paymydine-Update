@@ -133,7 +133,7 @@ final class PmdReservationsScheduleV1
                             $guarantee
                             && in_array(
                                 $guaranteeStatus,
-                                ['active', 'charge_failed', 'action_required'],
+                                ['active', 'charge_failed'],
                                 true
                             )
                             && $guaranteeEligibleAt !== ''
@@ -378,7 +378,7 @@ final class PmdReservationsScheduleV1
                     $guarantee
                     && in_array(
                         $guaranteeStatus,
-                        ['active', 'charge_failed', 'action_required'],
+                        ['active', 'charge_failed'],
                         true
                     )
                     && $guaranteeEligibleAt !== ''
