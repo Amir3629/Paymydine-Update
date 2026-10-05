@@ -34,7 +34,7 @@
 
   var COPY = {
     en: {
-      product: "Self-service ordering", orderType: "Order type", eatHere: "Eat here", takeAway: "Take away",
+      product: "Self-service ordering", orderType: "Order type", eatHere: "Dine in", takeAway: "Take away",
       menu: "Menu", all: "All items", search: "Search menu", items: "items", item: "item",
       add: "Add", customize: "Customize", details: "Tap for details", order: "Your order", empty: "Your order is empty",
       emptyHint: "Choose something from the menu to begin.", clear: "Clear order", subtotal: "Subtotal",
