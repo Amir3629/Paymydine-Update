@@ -6,6 +6,7 @@ use Admin\Models\Locations_model;
 use Admin\Models\Payments_model;
 use Admin\Models\Reservations_model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -23,7 +24,7 @@ final class PmdReservationGuaranteeService
     ): array {
         $base = $this->baseSettings();
         $registry = app(PmdReservationGuaranteeProviderRegistry::class);
-        $methods = $registry->availableMethods();
+        $methods = $this->runtimeAvailableMethods();
         $cardProvider = $registry->selectedProvider();
         $cardProviderState = $registry->provider($cardProvider);
         $stripe = $this->stripeCredentials(true);
@@ -73,7 +74,7 @@ final class PmdReservationGuaranteeService
         $providerRegistry = app(PmdReservationGuaranteeProviderRegistry::class);
         $providerCode = $providerRegistry->selectedProvider();
         $providerState = $providerRegistry->provider($providerCode);
-        $enabledMethods = array_keys($providerRegistry->availableMethods());
+        $enabledMethods = array_keys($this->runtimeAvailableMethods());
         $stripe = $this->stripeCredentials(true);
         $guests = max(1, $guests);
         $required = $base['enabled']
@@ -123,6 +124,82 @@ final class PmdReservationGuaranteeService
         $policy['button_text'] = $this->buttonText($policy['locale']);
 
         return $policy;
+    }
+
+    private function runtimeAvailableMethods(): array
+    {
+        $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $methods = $registry->availableMethods();
+
+        $wallets = array_values(array_intersect(
+            ['apple_pay', 'google_pay'],
+            array_keys($methods)
+        ));
+        if (!$wallets) {
+            return $methods;
+        }
+
+        $stripe = $this->stripeCredentials(true);
+        if (!($stripe['ready'] ?? false)) {
+            unset($methods['apple_pay'], $methods['google_pay']);
+
+            return $methods;
+        }
+
+        $host = '';
+        try {
+            $host = strtolower(trim((string)request()->getHost()));
+        } catch (Throwable $ignored) {
+        }
+
+        if ($host === '') {
+            unset($methods['apple_pay'], $methods['google_pay']);
+
+            return $methods;
+        }
+
+        $cacheKey = 'pmd:guarantee:stripe-wallet-domain:'
+            .sha1((string)($stripe['mode'] ?? 'test').'|'.$host);
+
+        try {
+            $domain = Cache::remember(
+                $cacheKey,
+                now()->addHours(12),
+                fn (): array => $this->ensureStripePaymentMethodDomain(
+                    $host
+                )
+            );
+        } catch (Throwable $error) {
+            Log::warning(
+                'PMD reservation guarantee wallet domain unavailable',
+                [
+                    'host' => $host,
+                    'message' => $error->getMessage(),
+                ]
+            );
+            unset($methods['apple_pay'], $methods['google_pay']);
+
+            return $methods;
+        }
+
+        if (
+            strtolower((string)(
+                $domain['apple_pay_status']
+                ?? ''
+            )) !== 'active'
+        ) {
+            unset($methods['apple_pay']);
+        }
+        if (
+            strtolower((string)(
+                $domain['google_pay_status']
+                ?? ''
+            )) !== 'active'
+        ) {
+            unset($methods['google_pay']);
+        }
+
+        return $methods;
     }
 
     public function ensureStripePaymentMethodDomain(
