@@ -430,11 +430,19 @@ class KioskMenuActivity : ComponentActivity() {
     private val heroImage: String by lazy {
         intent.getStringExtra(EXTRA_HERO_IMAGE).orEmpty()
     }
+    // PMD_KIOSK_TENANT_LOCALES_V20
+    // KioskActivity already validates this against the paired tenant profile.
+    // Keep the menu activity generic so new tenant languages do not require an
+    // Android release or fall back to a global hard-coded list.
     private val locale: String by lazy {
         intent.getStringExtra(EXTRA_LOCALE)
+            ?.trim()
             ?.lowercase()
-            ?.takeIf { it in listOf("de", "en", "tr", "fa") }
-            ?: "de"
+            ?.substringBefore("-")
+            ?.substringBefore("_")
+            ?.replace(Regex("[^a-z]"), "")
+            ?.takeIf { it.length in 2..3 }
+            ?: "en"
     }
     private val deviceToken: String by lazy {
         intent.getStringExtra(EXTRA_DEVICE_TOKEN).orEmpty()
@@ -685,7 +693,11 @@ class KioskMenuActivity : ComponentActivity() {
                 allowContentAccess = false
                 mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                 cacheMode = WebSettings.LOAD_DEFAULT
-                offscreenPreRaster = false
+                // PMD_KIOSK_PRERASTER_V20
+                // If the warm pool ever misses, raster the hidden canonical
+                // page before presentation instead of exposing first-paint work
+                // to the guest after the Activity handoff.
+                offscreenPreRaster = true
                 useWideViewPort = true
                 loadWithOverviewMode = false
                 textZoom = 100
