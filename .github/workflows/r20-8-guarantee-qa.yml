@@ -1,0 +1,27 @@
+name: R20.8 Guarantee QA
+on:
+  push:
+    branches:
+      - qa/r20-8-guarantee-methods-final
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -l app/Http/Controllers/PmdPublicBookingController.php
+          php -l app/Services/Payments/VrPaymentApiClient.php
+          php -l app/Services/Payments/WorldlineConnectRuntimeService.php
+          php -l app/Services/Reservations/PmdReservationGuaranteeGateway.php
+          php -l app/Services/Reservations/PmdReservationGuaranteeProviderRegistry.php
+          php -l app/Services/Reservations/PmdReservationGuaranteeService.php
+          php -l app/admin/controllers/Pmdfinance.php
+          php -l app/admin/database/migrations/2026_10_06_170000_add_guarantee_payment_method_to_tenants.php
+          php -l app/main/routes/next-proxy.php
+          php -l app/main/routes/pmd-public-booking-v1.php
+          php -l scripts/pmd-reservation-guarantee-schema-check-r20-6.php
+      - name: JavaScript syntax
+        run: node --check public/assets/pmd/public-booking-v1.js
+      - name: R20.8 static QA
+        run: bash scripts/pmd-r20-8-guarantee-qa.sh .
