@@ -267,6 +267,39 @@ class KioskApiClient {
         }
     }
 
+    // PMD_KIOSK_NATIVE_TERMINAL_PAYMENT_V18
+    // Card-present payment is initiated by the trusted native kiosk process.
+    // The bearer credential never enters the WebView/JavaScript context.
+    fun startTerminalPaymentBlocking(
+        host: String,
+        token: String,
+        orderId: Long,
+        kioskSession: String,
+    ): JSONObject =
+        request(
+            host = host,
+            endpoint = "terminal-payment",
+            method = "POST",
+            body = JSONObject()
+                .put("order_id", orderId)
+                .put("kiosk_session", kioskSession),
+            token = token,
+        )
+
+    fun refreshTerminalPaymentBlocking(
+        host: String,
+        token: String,
+        attemptId: Long,
+        kioskSession: String,
+    ): JSONObject =
+        request(
+            host = host,
+            endpoint = "terminal-payment/" + attemptId,
+            method = "POST",
+            body = JSONObject().put("kiosk_session", kioskSession),
+            token = token,
+        )
+
     private fun request(
         host: String,
         endpoint: String,
