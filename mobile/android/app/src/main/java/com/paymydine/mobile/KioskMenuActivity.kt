@@ -33,6 +33,7 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.paymydine.mobile.kiosk.KioskApiClient
 import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskProfile
 import java.io.ByteArrayInputStream
@@ -86,6 +87,7 @@ internal object KioskMenuWarmPool {
     // from zero.
     private const val MAX_AGE_MS = 120_000L
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val kioskApi = KioskApiClient()
     private val entries = LinkedHashMap<String, KioskWarmMenuEntry>()
 
     private fun key(
@@ -432,6 +434,9 @@ class KioskMenuActivity : ComponentActivity() {
             ?.lowercase()
             ?.takeIf { it in listOf("de", "en", "tr", "fa") }
             ?: "de"
+    }
+    private val deviceToken: String by lazy {
+        intent.getStringExtra(EXTRA_DEVICE_TOKEN).orEmpty()
     }
     private val surfaceColor: Int by lazy {
         parseColor(intent.getStringExtra(EXTRA_SURFACE), Color.rgb(244, 246, 248))
@@ -788,6 +793,7 @@ class KioskMenuActivity : ComponentActivity() {
             KioskJavascriptBridge(
                 secret = bridgeSecret,
                 onOrderComplete = ::showComplete,
+                onTerminalPayment = ::startAssignedTerminalPayment,
             )
 
         fun setBridgeEnabled(enabled: Boolean) {
@@ -1078,6 +1084,155 @@ class KioskMenuActivity : ComponentActivity() {
         mainHandler.postDelayed(idleRunnable, idleTimeoutMs)
     }
 
+    // PMD_KIOSK_NATIVE_TERMINAL_BRIDGE_V18
+    // The WebView requests one action: PAY. Native Android owns the kiosk
+    // bearer token, starts the linked card-present terminal, polls provider
+    // state, and only sends sanitized status back to JavaScript.
+    private fun startAssignedTerminalPayment(
+        orderIdRaw: String,
+        kioskSessionRaw: String,
+    ) {
+        val orderId = orderIdRaw.trim().toLongOrNull()
+        val kioskSession = kioskSessionRaw
+            .trim()
+            .replace(Regex("[^A-Za-z0-9._:-]"), "")
+            .take(100)
+
+        if (orderId == null || orderId < 1L || kioskSession.isBlank()) {
+            sendTerminalResult(
+                ok = false,
+                status = "failed",
+                message = "Invalid kiosk order.",
+            )
+            return
+        }
+        if (deviceToken.isBlank()) {
+            sendTerminalResult(
+                ok = false,
+                status = "unavailable",
+                message = "This kiosk must be paired before terminal payment.",
+            )
+            return
+        }
+
+        Thread {
+            try {
+                val started =
+                    kioskApi.startTerminalPaymentBlocking(
+                        host = menuUrl,
+                        token = deviceToken,
+                        orderId = orderId,
+                        kioskSession = kioskSession,
+                    )
+                var attemptId = started.optLong("attempt_id", 0L)
+                var status = started.optString("status", "pending").lowercase()
+                var message =
+                    started.optString(
+                        "message",
+                        "Present card on the connected terminal.",
+                    )
+
+                sendTerminalResult(
+                    ok = started.optBoolean("ok", true),
+                    status = status,
+                    message = message,
+                )
+
+                if (status == "paid") return@Thread
+                if (attemptId < 1L) {
+                    sendTerminalResult(
+                        ok = false,
+                        status = "failed",
+                        message = message.ifBlank { "Payment terminal did not start." },
+                    )
+                    return@Thread
+                }
+
+                var checks = 0
+                while (!isFinishing && checks < 80) {
+                    Thread.sleep(1_500L)
+                    checks += 1
+
+                    val refreshed =
+                        kioskApi.refreshTerminalPaymentBlocking(
+                            host = menuUrl,
+                            token = deviceToken,
+                            attemptId = attemptId,
+                            kioskSession = kioskSession,
+                        )
+                    status = refreshed.optString("status", "pending").lowercase()
+                    message =
+                        refreshed.optString(
+                            "message",
+                            "Waiting for the payment terminal.",
+                        )
+
+                    if (status == "paid") {
+                        sendTerminalResult(true, "paid", message)
+                        return@Thread
+                    }
+
+                    if (
+                        status in setOf(
+                            "failed",
+                            "declined",
+                            "cancelled",
+                            "canceled",
+                            "error",
+                            "simulated_approved",
+                            "simulated_declined",
+                            "simulated_cancelled",
+                        )
+                    ) {
+                        sendTerminalResult(false, status, message)
+                        return@Thread
+                    }
+                }
+
+                sendTerminalResult(
+                    ok = false,
+                    status = "timeout",
+                    message = "Payment timed out. Please try again.",
+                )
+            } catch (error: Throwable) {
+                sendTerminalResult(
+                    ok = false,
+                    status = "failed",
+                    message = error.message ?: "Payment terminal is unavailable.",
+                )
+            }
+        }.apply {
+            name = "pmd-kiosk-terminal-payment"
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun sendTerminalResult(
+        ok: Boolean,
+        status: String,
+        message: String,
+    ) {
+        val payload =
+            org.json.JSONObject()
+                .put("ok", ok)
+                .put("status", status)
+                .put("message", message)
+                .toString()
+
+        mainHandler.post {
+            val current = webView ?: return@post
+            if (isFinishing) return@post
+            current.evaluateJavascript(
+                "window.__PMD_KIOSK_TERMINAL_RESULT__ && " +
+                    "window.__PMD_KIOSK_TERMINAL_RESULT__(" +
+                    org.json.JSONObject.quote(payload) +
+                    ");",
+                null,
+            )
+        }
+    }
+
     private fun showComplete(orderId: String) {
         runOnUiThread {
             destroyWebView()
@@ -1179,6 +1334,7 @@ class KioskMenuActivity : ComponentActivity() {
     private class KioskJavascriptBridge(
         private val secret: String,
         private val onOrderComplete: (String) -> Unit,
+        private val onTerminalPayment: (String, String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
 
@@ -1194,6 +1350,20 @@ class KioskMenuActivity : ComponentActivity() {
                 onOrderComplete(orderId.trim())
             }
         }
+
+        @JavascriptInterface
+        fun payWithTerminal(
+            orderId: String,
+            kioskSession: String,
+            providedSecret: String,
+        ) {
+            if (providedSecret.isBlank() || providedSecret != secret) {
+                return
+            }
+            handler.post {
+                onTerminalPayment(orderId.trim(), kioskSession.trim())
+            }
+        }
     }
 
     companion object {
@@ -1203,6 +1373,7 @@ class KioskMenuActivity : ComponentActivity() {
         private const val EXTRA_RESTAURANT_LOGO = "pmd.kiosk.restaurant_logo"
         private const val EXTRA_HERO_IMAGE = "pmd.kiosk.hero_image"
         private const val EXTRA_LOCALE = "pmd.kiosk.locale"
+        private const val EXTRA_DEVICE_TOKEN = "pmd.kiosk.device_token"
         private const val EXTRA_BACKGROUND = "pmd.kiosk.background"
         private const val EXTRA_TEXT = "pmd.kiosk.text"
         private const val EXTRA_MUTED = "pmd.kiosk.muted"
@@ -1215,6 +1386,8 @@ class KioskMenuActivity : ComponentActivity() {
             profile: KioskProfile,
             serviceMode: String,
             heroImage: String = "",
+            locale: String = "de",
+            deviceToken: String = "",
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -1224,6 +1397,7 @@ class KioskMenuActivity : ComponentActivity() {
                 putExtra(EXTRA_RESTAURANT_LOGO, profile.restaurantLogoUrl)
                 putExtra(EXTRA_HERO_IMAGE, heroImage)
                 putExtra(EXTRA_LOCALE, locale)
+                putExtra(EXTRA_DEVICE_TOKEN, deviceToken)
                 putExtra(EXTRA_BACKGROUND, profile.theme.background)
                 putExtra(EXTRA_TEXT, profile.theme.text)
                 putExtra(EXTRA_MUTED, profile.theme.muted)
