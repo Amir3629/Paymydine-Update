@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Services\TerminalPayments\TerminalPaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -198,7 +199,187 @@ final class PmdKioskPairingService
             ],
             'idle_timeout_seconds' => 120,
             'payments_enabled' => true,
+            'terminal' => $this->terminalStateForDevice($device),
         ];
+    }
+
+
+    /**
+     * PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V18
+     *
+     * Kiosk payment is intentionally device-bound. The public kiosk WebView
+     * never receives provider credentials or a terminal id. It asks the native
+     * Android bridge, which calls this bearer-authenticated endpoint.
+     */
+    public function startTerminalPayment(Request $request): array
+    {
+        $device = $this->authenticate($request);
+        $orderId = max(0, (int)$request->input('order_id', 0));
+        if ($orderId < 1) {
+            abort(422, 'A valid kiosk order is required.');
+        }
+
+        $terminal = $this->linkedTerminalForDevice($device);
+        if (!$terminal) {
+            abort(
+                409,
+                'No active payment terminal is linked to this kiosk. Link one under Settings > Devices & hardware.'
+            );
+        }
+
+        if (!Schema::hasTable('orders')) {
+            abort(503, 'Order storage is unavailable.');
+        }
+
+        $order = DB::table('orders')->where('order_id', $orderId)->first();
+        if (!$order) {
+            abort(404, 'Kiosk order was not found.');
+        }
+
+        if (
+            Schema::hasColumn('orders', 'location_id')
+            && (int)($order->location_id ?? 0) > 0
+            && (int)$order->location_id !== (int)$device->location_id
+        ) {
+            abort(403, 'That order belongs to another restaurant location.');
+        }
+
+        $provider = strtolower(trim((string)($terminal->provider_code ?? '')));
+        $result = app(TerminalPaymentService::class)->createAttempt(
+            $orderId,
+            $provider,
+            (string)$terminal->terminal_device_id
+        );
+
+        return array_merge((array)$result, [
+            'ok' => (bool)($result['success'] ?? false),
+            'terminal' => [
+                'id' => (int)$terminal->terminal_device_id,
+                'provider' => $provider,
+                'name' => $this->terminalLabel($terminal),
+            ],
+        ]);
+    }
+
+    public function terminalPaymentStatus(
+        Request $request,
+        int $attemptId
+    ): array {
+        $device = $this->authenticate($request);
+        $terminal = $this->linkedTerminalForDevice($device);
+        if (!$terminal) {
+            abort(409, 'This kiosk no longer has an active payment terminal linked.');
+        }
+
+        if (!Schema::hasTable('payment_attempts')) {
+            abort(503, 'Payment-attempt storage is unavailable.');
+        }
+
+        $attempt = DB::table('payment_attempts')
+            ->where('id', $attemptId)
+            ->first();
+
+        if (!$attempt) {
+            abort(404, 'Terminal payment attempt was not found.');
+        }
+
+        $provider = strtolower(trim((string)($terminal->provider_code ?? '')));
+        if (
+            strtolower(trim((string)($attempt->provider_code ?? ''))) !== $provider
+        ) {
+            abort(403, 'That payment attempt does not belong to this kiosk terminal.');
+        }
+
+        $orderId = (int)($attempt->order_id ?? 0);
+        if ($orderId > 0 && Schema::hasTable('orders')) {
+            $order = DB::table('orders')->where('order_id', $orderId)->first();
+            if (
+                !$order
+                || (
+                    Schema::hasColumn('orders', 'location_id')
+                    && (int)($order->location_id ?? 0) > 0
+                    && (int)$order->location_id !== (int)$device->location_id
+                )
+            ) {
+                abort(403, 'That payment attempt does not belong to this kiosk location.');
+            }
+        }
+
+        $result = app(TerminalPaymentService::class)
+            ->refreshAttempt($attemptId);
+
+        return array_merge((array)$result, [
+            'ok' => (bool)($result['success'] ?? false),
+            'order_id' => $orderId,
+        ]);
+    }
+
+    private function terminalStateForDevice($device): array
+    {
+        $terminal = $this->linkedTerminalForDevice($device);
+        if (!$terminal) {
+            return [
+                'linked' => false,
+                'ready' => false,
+                'id' => null,
+                'provider' => null,
+                'name' => null,
+            ];
+        }
+
+        return [
+            'linked' => true,
+            'ready' => true,
+            'id' => (int)$terminal->terminal_device_id,
+            'provider' => strtolower(trim((string)($terminal->provider_code ?? ''))),
+            'name' => $this->terminalLabel($terminal),
+        ];
+    }
+
+    private function linkedTerminalForDevice($device)
+    {
+        if (!Schema::hasTable('terminal_devices')) {
+            return null;
+        }
+
+        $platform = $this->platformInfo($device);
+        $terminalId = (int)($platform['payment_terminal_device_id'] ?? 0);
+        if ($terminalId < 1) {
+            return null;
+        }
+
+        $query = DB::table('terminal_devices')
+            ->where('terminal_device_id', $terminalId);
+
+        if (Schema::hasColumn('terminal_devices', 'is_active')) {
+            $query->where('is_active', 1);
+        }
+        if (Schema::hasColumn('terminal_devices', 'location_id')) {
+            $locationId = (int)$device->location_id;
+            $query->where(function ($location) use ($locationId) {
+                $location->whereNull('location_id')
+                    ->orWhere('location_id', $locationId);
+            });
+        }
+
+        $terminal = $query->first();
+        if (!$terminal) {
+            return null;
+        }
+
+        $provider = strtolower(trim((string)($terminal->provider_code ?? '')));
+        if (!in_array($provider, ['sumup', 'worldline', 'square', 'vr_payment'], true)) {
+            return null;
+        }
+
+        return $terminal;
+    }
+
+    private function terminalLabel($terminal): string
+    {
+        return trim((string)($terminal->reader_label ?? ''))
+            ?: trim((string)($terminal->reader_id ?? ''))
+            ?: 'Payment terminal';
     }
 
     public function authenticate(Request $request)
