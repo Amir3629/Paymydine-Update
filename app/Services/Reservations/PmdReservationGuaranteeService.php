@@ -997,18 +997,18 @@ final class PmdReservationGuaranteeService
         $grace = (int)$policy['grace_minutes'];
 
         if ($locale === 'de') {
-            return "Keine Abbuchung jetzt. Kostenlose Stornierung bis {$hours} Std. vorher. Bei Nichterscheinen nach {$grace} Min.: bis {$perGuest} pro Person, höchstens der tatsächliche Schaden.";
+            return "Kostenlose Stornierung: {$hours} Std. vorher · No-Show: bis {$perGuest} pro Person nach {$grace} Min. · Nur tatsächlicher Schaden";
         }
 
         if ($locale === 'tr') {
-            return "Şimdi ödeme yok. {$hours} saat öncesine kadar ücretsiz iptal. Gelmeme durumunda {$grace} dk sonra kişi başı en fazla {$perGuest}; yalnızca gerçek zarar kadar.";
+            return "Ücretsiz iptal: {$hours} saat önce · Gelmeme: {$grace} dk sonra kişi başı en fazla {$perGuest} · Yalnızca gerçek zarar";
         }
 
         if ($locale === 'ar') {
-            return "لا خصم الآن. إلغاء مجاني حتى {$hours} ساعة قبل الحجز. عند عدم الحضور بعد {$grace} دقيقة: حتى {$perGuest} لكل شخص، وبحد أقصى الضرر الفعلي.";
+            return "إلغاء مجاني: قبل {$hours} ساعة · عدم الحضور: حتى {$perGuest} لكل شخص بعد {$grace} دقيقة · الضرر الفعلي فقط";
         }
 
-        return "No charge now. Free cancellation up to {$hours}h before. No-show after {$grace} min: up to {$perGuest} per guest, never more than the actual loss.";
+        return "Free cancellation: {$hours}h before · No-show: up to {$perGuest} per guest after {$grace} min · Actual loss only";
     }
 
     private function consentText(array $policy): string
