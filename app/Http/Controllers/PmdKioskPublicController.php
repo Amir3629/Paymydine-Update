@@ -102,7 +102,7 @@ final class PmdKioskPublicController
         }
 
         $config = [
-            'version' => 'blade-v8-theme-v13',
+            'version' => 'blade-v8-terminal-v18',
             'session' => $session,
             'serviceMode' => $serviceMode,
             'paymentReturn' => $request->boolean('pmd_payment_return'),
@@ -177,6 +177,31 @@ final class PmdKioskPublicController
     {
         return response()->json(
             app(PmdKioskPairingService::class)->stateForDevice($request)
+        );
+    }
+
+    // PMD_KIOSK_TERMINAL_PAYMENT_V18
+    public function terminalPayment(
+        Request $request,
+        $order
+    ): JsonResponse {
+        return response()->json(
+            app(PmdKioskPairingService::class)->startTerminalPayment(
+                $request,
+                (int)$order
+            )
+        );
+    }
+
+    public function terminalPaymentRefresh(
+        Request $request,
+        $attempt
+    ): JsonResponse {
+        return response()->json(
+            app(PmdKioskPairingService::class)->refreshTerminalPayment(
+                $request,
+                (int)$attempt
+            )
         );
     }
 }
