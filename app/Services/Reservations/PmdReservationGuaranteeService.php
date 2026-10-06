@@ -1001,11 +1001,11 @@ final class PmdReservationGuaranteeService
         }
 
         if ($locale === 'tr') {
-            return "Kart garantisi: Şimdi herhangi bir ücret alınmaz. Rezervasyona gelinmemesi halinde {$grace} dakikalık bekleme süresinden sonra kişi başı en fazla {$perGuest} zarar tazminatı onaylanan karttan tahsil edilebilir. Rezervasyondan {$hours} saat öncesine kadar ücretsiz iptal mümkündür. Hiç zarar oluşmadığını veya zararın önemli ölçüde daha düşük olduğunu kanıtlama hakkınız saklıdır.";
+            return "Şimdi ücret alınmaz. Gelmemeniz durumunda restoran {$grace} dakika sonra kişi başı en fazla {$perGuest} tahsil edebilir. Rezervasyondan {$hours} saat öncesine kadar ücretsiz iptal edebilirsiniz. Gerçek zarar daha düşükse veya yoksa daha az ya da hiç ücret alınmaz.";
         }
 
         if ($locale === 'ar') {
-            return "ضمان البطاقة: لن يتم خصم أي مبلغ الآن. في حال عدم الحضور، وبعد مهلة قدرها {$grace} دقيقة، يمكن تحصيل تعويض عن الضرر يصل إلى {$perGuest} لكل شخص من البطاقة المؤكدة. يمكن الإلغاء مجاناً حتى {$hours} ساعة قبل موعد الحجز. ويظل من حقك إثبات عدم وقوع ضرر أو أن الضرر الفعلي أقل بكثير.";
+            return "لن يتم خصم أي مبلغ الآن. إذا لم تحضر، يمكن للمطعم بعد {$grace} دقيقة تحصيل ما يصل إلى {$perGuest} لكل شخص. الإلغاء مجاني حتى {$hours} ساعة قبل الحجز. إذا كان الضرر الفعلي أقل أو معدوماً، يكون المبلغ أقل أو لا يتم الخصم.";
         }
 
         return "Nothing is charged now. If you do not show up, after {$grace} minutes the restaurant may charge up to {$perGuest} per guest. Free cancellation until {$hours} hours before the booking. If the actual loss is lower or zero, the charge will be lower or zero.";
@@ -1020,11 +1020,11 @@ final class PmdReservationGuaranteeService
         }
 
         if ($locale === 'tr') {
-            return 'Kart garantisi ve olası no-show tazminatı koşullarını okudum ve bu rezervasyon için kart doğrulamasını kabul ediyorum.';
+            return 'Kart garantisini ve koşullarını kabul ediyorum.';
         }
 
         if ($locale === 'ar') {
-            return 'قرأت شروط ضمان البطاقة والتعويض المحتمل عن عدم الحضور وأوافق على التحقق من البطاقة لهذا الحجز.';
+            return 'أوافق على ضمان البطاقة وشروطه.';
         }
 
         return 'I agree to the card guarantee and its terms.';
@@ -1038,10 +1038,10 @@ final class PmdReservationGuaranteeService
             return 'Reservierung bestätigen – Garantie bis';
         }
         if ($locale === 'tr') {
-            return 'Rezervasyonu onayla – olası no-show tazminatı en fazla';
+            return 'Rezervasyonu onayla – garanti en fazla';
         }
         if ($locale === 'ar') {
-            return 'تأكيد الحجز – تعويض محتمل لعدم الحضور بحد أقصى';
+            return 'تأكيد الحجز – ضمان بحد أقصى';
         }
 
         return 'Confirm booking – guarantee up to';
