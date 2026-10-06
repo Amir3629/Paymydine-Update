@@ -121,10 +121,8 @@ jobs:
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.css
           grep -Fq 'v=18-terminal-kiosk' resources/views/pmd/kiosk-terminal.blade.php
-          grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
           grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'payment_intent_token: null' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'https://js.stripe.com/v3/' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_BLADE_V8_NGINX_NO_REDIRECT' ops/nginx/pmd-kiosk-blade-v8-location.conf
@@ -138,6 +136,7 @@ jobs:
           php -l app/Http/Controllers/Api/OrderController.php
           php -l app/Http/Controllers/PmdDevicePlatformController.php
           php -l app/admin/controllers/Pmddevices.php
+          php -l app/Services/TerminalPayments/TerminalPaymentService.php
           php -l routes/pmd-kiosk-v1.php
           php -l routes/admin-app-before.php
           php -l routes.php
@@ -158,6 +157,23 @@ jobs:
           grep -Fq "kiosk_order_type" frontend/features/customer-menu/checkout/paymentModalPaymentFlow.ts
           grep -Fq 'devicePurpose() == "table_display"' mobile/android/app/src/main/java/com/paymydine/mobile/MainActivity.kt
           grep -Fq 'UnifiedFirstRun' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
+          grep -Fq 'PMD_KIOSK_WELCOME_LANGUAGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq 'PMD_KIOSK_MINIMAL_SERVICE_COPY_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq 'PMD_KIOSK_EXACT_WEBVIEW_PREWARM_V15' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq 'PMD_KIOSK_NATIVE_TERMINAL_BRIDGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          grep -Fq 'PMD_KIOSK_NATIVE_TERMINAL_PAYMENT_V18' mobile/android/app/src/main/java/com/paymydine/mobile/kiosk/KioskApiClient.kt
+          grep -Fq 'PMD_KIOSK_TERMINAL_ONLY_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_SCROLL_CATEGORIES_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_NO_TIP_COUPON_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_TERMINAL_CHECKOUT_V18' public/assets/pmd/kiosk-terminal-v8.css
+          grep -Fq 'PMD_KIOSK_TERMINAL_CHECKOUT_V18' resources/views/pmd/kiosk-terminal.blade.php
+          grep -Fq 'PMD_GUEST_DEVICE_TERMINAL_LINK_V18' app/Services/PmdDevicePlatformService.php
+          grep -Fq 'PMD_KIOSK_TERMINAL_PAYMENT_V18' app/Http/Controllers/PmdKioskPublicController.php
+          grep -Fq 'PMD_KIOSK_TERMINAL_PAYMENT_V18' routes/pmd-kiosk-v1.php
+          grep -Fq 'PMD_KIOSK_TERMINAL_LINK_V18' app/admin/controllers/Pmddevices.php
+          grep -Fq 'PMD_KIOSK_TERMINAL_LINK_V18' app/admin/views/pmddevices/index.blade.php
+          grep -Fq 'PMD_SHARED_PRINTER_SETUP_V18' mobile/android/app/src/main/java/com/paymydine/mobile/PrinterSetupActivity.kt
+          grep -Fq 'PMD_SHARED_PRINTER_SETUP_V18' mobile/android/app/src/main/java/com/paymydine/mobile/printer/PmdPrinterManager.kt
           grep -Fq 'versionCode = 67' mobile/android/app/build.gradle.kts
           grep -Fq 'versionName = "0.5.4-device-app-v13"' mobile/android/app/build.gradle.kts
           grep -Fq 'PayMyDine Device App · Android' app/admin/views/pmdsettings/index.blade.php
