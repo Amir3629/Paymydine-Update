@@ -4,7 +4,7 @@
     $initialRestaurantName = trim((string)($initialRestaurant['name'] ?? 'PayMyDine')) ?: 'PayMyDine';
     $initialRestaurantLogo = trim((string)($initialRestaurant['logo'] ?? ''));
     $initialRestaurantLetter = mb_strtoupper(mb_substr($initialRestaurantName, 0, 1));
-    $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Eat here';
+    $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Dine in';
     $initialHero = trim((string)($pmdKioskConfig['hero'] ?? ''));
 @endphp
 <!doctype html>
