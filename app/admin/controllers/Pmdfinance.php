@@ -191,7 +191,7 @@ class Pmdfinance extends AdminController
             'invoice_font_size_preset' => ['nullable', 'in:small,normal'],
             'invoice_logo' => ['nullable', 'string', 'max:500'],
             'invoice_print_hint' => ['nullable', 'string', 'max:1500'],
-            'reservation_guarantee_provider' => ['nullable', 'in:stripe,vr_payment,worldline,sumup,paypal'],
+            'reservation_guarantee_provider' => ['nullable', 'in:stripe,vr_payment,worldline,sumup'],
             'reservation_guarantee_methods' => ['nullable', 'array'],
             'reservation_guarantee_methods.*' => ['string', 'in:card,apple_pay,google_pay,paypal'],
             'reservation_guarantee_min_guests' => ['nullable', 'integer', 'min:1', 'max:100'],
@@ -240,7 +240,7 @@ class Pmdfinance extends AdminController
 
             $registry = $guaranteeRegistry;
             $allowedGuaranteeProviders = match ($countryCode) {
-                CountryPlatformProfileRegistry::GERMANY => ['stripe', 'paypal', 'sumup', 'vr_payment', 'worldline'],
+                CountryPlatformProfileRegistry::GERMANY => ['stripe', 'sumup', 'vr_payment', 'worldline'],
                 default => [],
             };
 
@@ -256,15 +256,25 @@ class Pmdfinance extends AdminController
                 ]);
             }
 
-            $providerMethods = $registry->methodsForProvider($guaranteeProvider);
-            $guaranteeMethods = array_values(array_intersect(
-                $guaranteeMethods,
-                $providerMethods
-            ));
             if (!$guaranteeMethods) {
                 throw ValidationException::withMessages([
-                    'finance.reservation_guarantee_methods' => 'Enable at least one guarantee payment method supported by the selected provider.',
+                    'finance.reservation_guarantee_methods' => 'Enable at least one reservation guarantee method.',
                 ]);
+            }
+
+            foreach ($guaranteeMethods as $methodCode) {
+                $methodProvider = $registry->providerForMethod($methodCode);
+                if ($methodProvider === '') {
+                    throw ValidationException::withMessages([
+                        'finance.reservation_guarantee_methods' => 'One of the selected guarantee methods is not supported.',
+                    ]);
+                }
+
+                if (!$registry->canEnable($methodProvider)) {
+                    throw ValidationException::withMessages([
+                        'finance.reservation_guarantee_methods' => $registry->assertionMessage($methodProvider),
+                    ]);
+                }
             }
         }
 
