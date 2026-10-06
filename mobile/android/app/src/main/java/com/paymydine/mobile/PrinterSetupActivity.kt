@@ -3,6 +3,8 @@ package com.paymydine.mobile
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -67,6 +69,7 @@ private fun PrinterSetupScreen(
     var autoPrint by remember { mutableStateOf(initial.autoPrintReceipts) }
     var status by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
 
     fun currentConfig(): PmdPrinterConfig =
         PmdPrinterConfig(
@@ -147,7 +150,7 @@ private fun PrinterSetupScreen(
                     status = "Testing printer..."
                     Thread {
                         val result = manager.testPrint()
-                        runOnUiThread {
+                        mainHandler.post {
                             busy = false
                             status =
                                 result.fold(
