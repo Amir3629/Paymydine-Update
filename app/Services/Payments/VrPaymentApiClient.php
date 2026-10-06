@@ -138,6 +138,67 @@ class VrPaymentApiClient
         );
     }
 
+    public function token(int $tokenId): array
+    {
+        return $this->request(
+            'GET',
+            '/api/v2.0/payment/tokens/'.$tokenId
+        );
+    }
+
+    public function activeTokenVersion(int $tokenId): array
+    {
+        return $this->request(
+            'GET',
+            '/api/v2.0/payment/tokens/'.$tokenId.'/active-version'
+        );
+    }
+
+    public function createToken(array $payload): array
+    {
+        return $this->request(
+            'POST',
+            '/api/v2.0/payment/tokens',
+            [],
+            $payload
+        );
+    }
+
+    public function createTokenUpdateTransaction(int $tokenId): array
+    {
+        return $this->request(
+            'POST',
+            '/api/v2.0/payment/tokens/'.$tokenId
+                .'/create-transaction-for-token-update'
+        );
+    }
+
+    public function deleteToken(int $tokenId): array
+    {
+        return $this->request(
+            'DELETE',
+            '/api/v2.0/payment/tokens/'.$tokenId
+        );
+    }
+
+    public function processWithToken(int $transactionId): array
+    {
+        return $this->request(
+            'POST',
+            '/api/v2.0/payment/transactions/'.$transactionId
+                .'/process-with-token'
+        );
+    }
+
+    public function processWithoutInteraction(int $transactionId): array
+    {
+        return $this->request(
+            'POST',
+            '/api/v2.0/payment/transactions/'.$transactionId
+                .'/process-without-interaction'
+        );
+    }
+
     public function terminals(): array
     {
         return $this->request('GET', '/api/v2.0/payment/terminals', [
