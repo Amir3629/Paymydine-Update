@@ -439,6 +439,253 @@ final class PmdDevicePlatformService
         ];
     }
 
+    /**
+     * PMD_KIOSK_TERMINAL_ONLY_V18
+     *
+     * A paired PayMyDine device may inspect/link only active payment terminals
+     * that belong to its restaurant location. Provider credentials remain
+     * server-side; the Android app receives no merchant secrets.
+     */
+    public function deviceHardware($device): array
+    {
+        $this->ensureStorage();
+
+        $locationId = max(1, (int)($device->location_id ?? 0));
+        $platform = $this->decode((string)($device->platform_info ?? ''));
+        $selected = (int)($platform['payment_terminal_device_id'] ?? 0);
+
+        return [
+            'ok' => true,
+            'device_id' => (int)($device->id ?? 0),
+            'device_kind' => strtolower(trim((string)($device->device_kind ?? 'device'))),
+            'payment_terminal_device_id' => $selected > 0 ? $selected : null,
+            'terminal_options' => $this->terminalOptions($locationId),
+        ];
+    }
+
+    public function configureDeviceTerminal(
+        $device,
+        ?int $terminalDeviceId,
+        ?int $staffId = null
+    ): array {
+        $this->ensureStorage();
+
+        $deviceId = (int)($device->id ?? 0);
+        $locationId = max(1, (int)($device->location_id ?? 0));
+        $kind = strtolower(trim((string)($device->device_kind ?? 'device')));
+
+        if (!in_array($kind, ['kiosk', 'table_display', 'cashier', 'staff_personal'], true)) {
+            abort(422, 'This device type cannot own a payment terminal.');
+        }
+
+        $terminal = null;
+        if ($terminalDeviceId) {
+            if (!Schema::hasTable('terminal_devices')) {
+                abort(503, 'Payment-terminal storage is unavailable.');
+            }
+
+            $query = DB::table('terminal_devices')
+                ->where('terminal_device_id', $terminalDeviceId);
+
+            if (Schema::hasColumn('terminal_devices', 'is_active')) {
+                $query->where('is_active', 1);
+            }
+            if (Schema::hasColumn('terminal_devices', 'location_id')) {
+                $query->where(function ($row) use ($locationId) {
+                    $row->whereNull('location_id')->orWhere('location_id', $locationId);
+                });
+            }
+
+            $terminal = $query->first();
+            if (!$terminal) {
+                abort(404, 'That active payment terminal is not available for this restaurant.');
+            }
+
+            $provider = strtolower(trim((string)($terminal->provider_code ?? '')));
+            if (!in_array($provider, ['sumup', 'worldline', 'square', 'vr_payment'], true)) {
+                abort(422, 'That terminal provider is not supported by PayMyDine device payments.');
+            }
+        }
+
+        $fresh = DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->where('location_id', $locationId)
+            ->whereNull('revoked_at')
+            ->first();
+        if (!$fresh) {
+            abort(404, 'PayMyDine device was not found.');
+        }
+
+        $platform = $this->decode((string)($fresh->platform_info ?? ''));
+        $platform['payment_terminal_device_id'] = $terminal
+            ? (int)$terminal->terminal_device_id
+            : null;
+        $platform['payment_terminal_provider'] = $terminal
+            ? strtolower(trim((string)($terminal->provider_code ?? '')))
+            : null;
+        $platform['payment_terminal_bound_at'] = $terminal
+            ? now()->toIso8601String()
+            : null;
+        $platform['payment_terminal_bound_by_staff_id'] = $staffId ?: null;
+
+        DB::table('pmd_site_access_devices')
+            ->where('id', $deviceId)
+            ->update([
+                'platform_info' => json_encode(
+                    $platform,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
+                'updated_at' => now(),
+            ]);
+
+        return [
+            'ok' => true,
+            'device_id' => $deviceId,
+            'payment_terminal_device_id' => $terminal
+                ? (int)$terminal->terminal_device_id
+                : null,
+            'provider_code' => $terminal
+                ? strtolower(trim((string)($terminal->provider_code ?? '')))
+                : null,
+            'terminal_name' => $terminal
+                ? (
+                    trim((string)($terminal->reader_label ?? ''))
+                    ?: trim((string)($terminal->reader_id ?? ''))
+                    ?: 'Payment terminal'
+                )
+                : null,
+        ];
+    }
+
+    public function startKioskTerminalPayment($device, int $orderId): array
+    {
+        $this->ensureStorage();
+
+        $kind = strtolower(trim((string)($device->device_kind ?? '')));
+        if ($kind !== 'kiosk') {
+            abort(403, 'Terminal-only kiosk payment requires a paired kiosk device.');
+        }
+        if ($orderId < 1 || !Schema::hasTable('orders')) {
+            abort(422, 'Kiosk order is invalid.');
+        }
+
+        $locationId = max(1, (int)($device->location_id ?? 0));
+        $platform = $this->decode((string)($device->platform_info ?? ''));
+        $terminalDeviceId = (int)($platform['payment_terminal_device_id'] ?? 0);
+        if ($terminalDeviceId < 1) {
+            abort(
+                409,
+                'No payment terminal is linked to this kiosk. Open Hardware setup on the PayMyDine Device App and link one.'
+            );
+        }
+
+        $order = DB::table('orders')->where('order_id', $orderId)->first();
+        if (!$order) {
+            abort(404, 'Kiosk order was not found.');
+        }
+        if (
+            isset($order->location_id)
+            && (int)$order->location_id > 0
+            && (int)$order->location_id !== $locationId
+        ) {
+            abort(403, 'This order belongs to another restaurant location.');
+        }
+
+        if (!Schema::hasTable('terminal_devices')) {
+            abort(503, 'Payment-terminal storage is unavailable.');
+        }
+        $terminalQuery = DB::table('terminal_devices')
+            ->where('terminal_device_id', $terminalDeviceId);
+        if (Schema::hasColumn('terminal_devices', 'is_active')) {
+            $terminalQuery->where('is_active', 1);
+        }
+        if (Schema::hasColumn('terminal_devices', 'location_id')) {
+            $terminalQuery->where(function ($row) use ($locationId) {
+                $row->whereNull('location_id')->orWhere('location_id', $locationId);
+            });
+        }
+        $terminal = $terminalQuery->first();
+        if (!$terminal) {
+            abort(409, 'The terminal linked to this kiosk is inactive or unavailable.');
+        }
+
+        $provider = strtolower(trim((string)($terminal->provider_code ?? '')));
+        if (!in_array($provider, ['sumup', 'worldline', 'square', 'vr_payment'], true)) {
+            abort(422, 'The linked kiosk terminal provider is not supported.');
+        }
+
+        $result = app(
+            AppServicesTerminalPaymentsTerminalPaymentService::class
+        )->createAttempt(
+            $orderId,
+            $provider,
+            (string)$terminalDeviceId
+        );
+
+        return [
+            'ok' => (bool)($result['success'] ?? false),
+            'order_id' => $orderId,
+            'attempt_id' => (int)($result['attempt_id'] ?? 0) ?: null,
+            'status' => strtolower(trim((string)($result['status'] ?? 'pending'))),
+            'message' => (string)(
+                $result['message']
+                ?? $result['error']
+                ?? 'Payment request sent to the linked terminal.'
+            ),
+            'payment_recorded' => (bool)($result['payment_recorded'] ?? false),
+            'provider_code' => $provider,
+            'terminal_device_id' => $terminalDeviceId,
+        ];
+    }
+
+    public function refreshKioskTerminalPayment($device, int $attemptId): array
+    {
+        $this->ensureStorage();
+
+        if ($attemptId < 1 || !Schema::hasTable('payment_attempts')) {
+            abort(422, 'Kiosk payment attempt is invalid.');
+        }
+
+        $attempt = DB::table('payment_attempts')->where('id', $attemptId)->first();
+        if (!$attempt) {
+            abort(404, 'Kiosk payment attempt was not found.');
+        }
+
+        $orderId = (int)($attempt->order_id ?? 0);
+        $order = $orderId > 0 && Schema::hasTable('orders')
+            ? DB::table('orders')->where('order_id', $orderId)->first()
+            : null;
+        if (!$order) {
+            abort(404, 'Kiosk payment order was not found.');
+        }
+
+        $locationId = max(1, (int)($device->location_id ?? 0));
+        if (
+            isset($order->location_id)
+            && (int)$order->location_id > 0
+            && (int)$order->location_id !== $locationId
+        ) {
+            abort(403, 'This payment belongs to another restaurant location.');
+        }
+
+        $result = app(
+            AppServicesTerminalPaymentsTerminalPaymentService::class
+        )->refreshAttempt($attemptId);
+
+        return [
+            'ok' => (bool)($result['success'] ?? false),
+            'order_id' => $orderId,
+            'attempt_id' => $attemptId,
+            'status' => strtolower(trim((string)($result['status'] ?? 'pending'))),
+            'message' => (string)(
+                $result['message']
+                ?? $result['error']
+                ?? 'Payment terminal status updated.'
+            ),
+            'payment_recorded' => (bool)($result['payment_recorded'] ?? false),
+        ];
+    }
+
     private function tableOptions(int $locationId): array
     {
         return collect(app(PmdTableDisplayService::class)->tables())
@@ -456,7 +703,7 @@ final class PmdDevicePlatformService
             ->all();
     }
 
-    private function terminalOptions(int $locationId): array
+    public function terminalOptions(int $locationId): array
     {
         if (!Schema::hasTable('terminal_devices')) {
             return [];
