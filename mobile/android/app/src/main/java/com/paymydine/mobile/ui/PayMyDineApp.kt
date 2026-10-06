@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -830,6 +831,14 @@ fun PayMyDineApp(app: PayMyDineApplication) {
                             )
                         }
                     },
+                    onHardwareSetup = {
+                        context.startActivity(
+                            Intent(
+                                context,
+                                com.paymydine.mobile.DeviceHardwareSetupActivity::class.java,
+                            ),
+                        )
+                    },
                     onTableDisplay = {
                         val code = normalizeTenantCode(tenantCode)
 
@@ -884,6 +893,7 @@ private fun UnifiedFirstRun(
     onStaffSelected: (String) -> Unit,
     onKiosk: () -> Unit,
     onTableDisplay: () -> Unit,
+    onHardwareSetup: () -> Unit,
 ) {
     var step by remember { mutableStateOf(1) }
 
@@ -950,9 +960,8 @@ private fun UnifiedFirstRun(
                 style = MaterialTheme.typography.labelLarge,
             )
 
+            // PMD_ANDROID_FIRST_RUN_ACCESS_V18
             listOf(
-                "owner" to "Owner",
-                "manager" to "Manager",
                 "cashier" to "Cashier",
                 "waiter" to "Waiter",
                 "kitchen" to "Kitchen / KDS",
@@ -997,13 +1006,43 @@ private fun UnifiedFirstRun(
                 Text("Table display")
             }
 
+            Text(
+                "Device hardware",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 28.dp),
+                color = PmdMuted,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelLarge,
+            )
             OutlinedButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp),
+                    .padding(top = 7.dp),
+                onClick = onHardwareSetup,
+            ) {
+                Text(
+                    "Printer & terminal setup",
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 30.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PmdDeepGreen,
+                    contentColor = Color.White,
+                ),
+                shape = RoundedCornerShape(18.dp),
                 onClick = { step = 1 },
             ) {
-                Text("Change restaurant")
+                Text(
+                    "Change restaurant",
+                    modifier = Modifier.padding(vertical = 5.dp),
+                    fontWeight = FontWeight.Black,
+                )
             }
         }
 
