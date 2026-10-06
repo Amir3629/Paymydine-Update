@@ -96,9 +96,7 @@
     guide.innerHTML =
       '<strong>Counter rule</strong>' +
       '<ul>' +
-        '<li>For food pre-order by phone, write it in Comment for now.</li>' +
         '<li>For delay/cancellation/no-show, write a clear reason in Comment.</li>' +
-        '<li>Later PMD should connect Reservation → Pre-order Draft → Real Order.</li>' +
       '</ul>';
 
     var comment = grid.querySelector('[data-pmd-res-field="comment"]');
