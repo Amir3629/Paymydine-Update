@@ -285,7 +285,7 @@ final class PmdReservationGuaranteeService
             return;
         }
 
-        if (!Schema::hasTable('reservation_guarantees')) {
+        if (!$this->guaranteeSchema()->hasTable('reservation_guarantees')) {
             throw new RuntimeException('Reservation guarantee storage is not installed.');
         }
 
@@ -296,7 +296,7 @@ final class PmdReservationGuaranteeService
         $eligible = $policy['charge_eligible_at'] ?? null;
         $now = now();
 
-        DB::table('reservation_guarantees')->updateOrInsert(
+        $this->guaranteeDb()->table('reservation_guarantees')->updateOrInsert(
             ['reservation_id' => (int)$reservation->getKey()],
             [
                 'location_id' => (int)$reservation->location_id,
@@ -350,11 +350,11 @@ final class PmdReservationGuaranteeService
 
     public function guaranteeForReservation(int $reservationId): ?object
     {
-        if ($reservationId < 1 || !Schema::hasTable('reservation_guarantees')) {
+        if ($reservationId < 1 || !$this->guaranteeSchema()->hasTable('reservation_guarantees')) {
             return null;
         }
 
-        return DB::table('reservation_guarantees')
+        return $this->guaranteeDb()->table('reservation_guarantees')
             ->where('reservation_id', $reservationId)
             ->first();
     }
@@ -551,7 +551,7 @@ final class PmdReservationGuaranteeService
             $this->cleanupStripeReferences($row);
         }
 
-        DB::table('reservation_guarantees')
+        $this->guaranteeDb()->table('reservation_guarantees')
             ->where('guarantee_id', (int)$row->guarantee_id)
             ->update([
                 'status' => 'released',
@@ -717,7 +717,7 @@ final class PmdReservationGuaranteeService
             );
         }
 
-        DB::table('reservation_guarantees')
+        $this->guaranteeDb()->table('reservation_guarantees')
             ->where('guarantee_id', (int)$row->guarantee_id)
             ->update([
                 'loss_assessment_note' => $lossAssessmentNote,
@@ -763,7 +763,7 @@ final class PmdReservationGuaranteeService
 
             $status = (string)$intent->status;
             if ($status === 'succeeded') {
-                DB::table('reservation_guarantees')
+                $this->guaranteeDb()->table('reservation_guarantees')
                     ->where('guarantee_id', (int)$row->guarantee_id)
                     ->update([
                         'status' => 'charged',
@@ -776,7 +776,7 @@ final class PmdReservationGuaranteeService
 
                 $this->cleanupStripeReferences($row);
 
-                DB::table('reservation_guarantees')
+                $this->guaranteeDb()->table('reservation_guarantees')
                     ->where('guarantee_id', (int)$row->guarantee_id)
                     ->update([
                         'customer_reference' => null,
@@ -799,7 +799,7 @@ final class PmdReservationGuaranteeService
                 : 'charge_failed';
             $message = 'Stripe returned payment status '.$status.'.';
 
-            DB::table('reservation_guarantees')
+            $this->guaranteeDb()->table('reservation_guarantees')
                 ->where('guarantee_id', (int)$row->guarantee_id)
                 ->update([
                     'status' => $nextStatus,
@@ -819,7 +819,7 @@ final class PmdReservationGuaranteeService
                 'currency' => (string)$row->currency,
             ];
         } catch (Throwable $error) {
-            DB::table('reservation_guarantees')
+            $this->guaranteeDb()->table('reservation_guarantees')
                 ->where('guarantee_id', (int)$row->guarantee_id)
                 ->update([
                     'status' => 'charge_failed',
@@ -853,6 +853,23 @@ final class PmdReservationGuaranteeService
             'consentText' => (string)($policy['consent_text'] ?? ''),
             'buttonText' => (string)($policy['button_text'] ?? ''),
         ];
+    }
+
+    private function guaranteeConnectionName(): string
+    {
+        return app()->bound('tenant')
+            ? 'tenant'
+            : DB::getDefaultConnection();
+    }
+
+    private function guaranteeDb()
+    {
+        return DB::connection($this->guaranteeConnectionName());
+    }
+
+    private function guaranteeSchema()
+    {
+        return Schema::connection($this->guaranteeConnectionName());
     }
 
     private function baseSettings(): array
