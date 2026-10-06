@@ -857,8 +857,12 @@ final class PmdReservationGuaranteeService
 
     private function baseSettings(): array
     {
-        $enabled = $this->boolSetting('reservation_guarantee_enabled', false);
-        $amount = max(0, min(1000000, $this->intSetting('reservation_guarantee_amount_cents', 0)));
+        $settings = app(PmdReservationGuaranteeSettings::class);
+        $enabled = $settings->bool('reservation_guarantee_enabled', false);
+        $amount = max(0, min(
+            1000000,
+            $settings->int('reservation_guarantee_amount_cents', 0)
+        ));
 
         $provider = app(PmdReservationGuaranteeProviderRegistry::class)
             ->selectedProvider();
@@ -866,13 +870,15 @@ final class PmdReservationGuaranteeService
         return [
             'enabled' => $enabled && $amount > 0,
             'provider' => $provider,
-            'send_confirmation_email' => $this->boolSetting('reservation_guarantee_send_confirmation_email', true),
-            'min_guests' => max(1, min(100, $this->intSetting('reservation_guarantee_min_guests', 6))),
+            'send_confirmation_email' => $settings->bool('reservation_guarantee_send_confirmation_email', true),
+            'min_guests' => max(1, min(100, $settings->int('reservation_guarantee_min_guests', 6))),
             'amount_per_guest_cents' => $amount,
-            'free_cancel_hours' => max(1, min(336, $this->intSetting('reservation_guarantee_free_cancel_hours', 24))),
-            'grace_minutes' => max(0, min(180, $this->intSetting('reservation_guarantee_grace_minutes', 15))),
-            'terms_version' => trim((string)setting('reservation_guarantee_terms_version', 'DE-NOSHOW-2026-01'))
-                ?: 'DE-NOSHOW-2026-01',
+            'free_cancel_hours' => max(1, min(336, $settings->int('reservation_guarantee_free_cancel_hours', 24))),
+            'grace_minutes' => max(0, min(180, $settings->int('reservation_guarantee_grace_minutes', 15))),
+            'terms_version' => trim($settings->string(
+                'reservation_guarantee_terms_version',
+                'DE-NOSHOW-2026-01'
+            )) ?: 'DE-NOSHOW-2026-01',
         ];
     }
 
@@ -1074,23 +1080,13 @@ final class PmdReservationGuaranteeService
 
     private function intSetting(string $key, int $default): int
     {
-        $value = setting($key, $default);
-        return is_scalar($value) || $value === null
-            ? (int)$value
-            : $default;
+        return app(PmdReservationGuaranteeSettings::class)
+            ->int($key, $default);
     }
 
     private function boolSetting(string $key, bool $default): bool
     {
-        $value = setting($key, $default ? 1 : 0);
-        if (is_bool($value)) {
-            return $value;
-        }
-
-        return in_array(
-            strtolower(trim((string)$value)),
-            ['1', 'true', 'yes', 'on'],
-            true
-        );
+        return app(PmdReservationGuaranteeSettings::class)
+            ->bool($key, $default);
     }
 }

@@ -10,6 +10,7 @@ use Admin\Models\Payments_model;
 use App\Services\Platform\CountryPlatformProfileRegistry;
 use App\Services\Platform\LocationPlatformContext;
 use App\Services\Reservations\PmdReservationGuaranteeProviderRegistry;
+use App\Services\Reservations\PmdReservationGuaranteeSettings;
 use App\Services\Turkey\TurkeyIntegrationConfigurationService;
 use App\Services\Turkey\TurkeyPaymentMethodService;
 use App\Services\Turkey\TurkeyReadinessService;
@@ -302,7 +303,8 @@ class Pmdfinance extends AdminController
         $input = (array)post('finance', []);
         $providerCode = strtolower(trim((string)(
             $input['reservation_guarantee_provider']
-            ?? setting('reservation_guarantee_provider', 'stripe')
+            ?? app(PmdReservationGuaranteeSettings::class)
+                ->string('reservation_guarantee_provider', 'stripe')
         )));
 
         $registry = app(PmdReservationGuaranteeProviderRegistry::class);
@@ -328,11 +330,24 @@ class Pmdfinance extends AdminController
         }
 
         $mode = strtoupper((string)($provider['mode'] ?? 'configured'));
-        flash()->success($label.' is ready for reservation guarantee testing in '.$mode.' mode.');
+        $settings = app(PmdReservationGuaranteeSettings::class);
+        $enabled = $settings->bool('reservation_guarantee_enabled', false);
+        $minGuests = max(1, $settings->int('reservation_guarantee_min_guests', 6));
+        $amountCents = max(0, $settings->int('reservation_guarantee_amount_cents', 0));
+        $amount = number_format($amountCents / 100, 2, '.', '');
+
+        $policySummary = ($enabled ? 'ON' : 'OFF')
+            .' · from '.$minGuests.' guest'.($minGuests === 1 ? '' : 's')
+            .' · €'.$amount.'/guest';
+
+        flash()->success(
+            $label.' is ready for reservation guarantee testing in '.$mode
+            .' mode. Policy: '.$policySummary.'.'
+        );
 
         return [
             '#pmd-guarantee-provider-test-status' =>
-                '<span class="pmd-owner-status is-active">Ready · '.e($label).' · '.e($mode).'</span>',
+                '<span class="pmd-owner-status is-active">Ready · '.e($label).' · '.e($mode).' · '.e($policySummary).'</span>',
         ];
     }
 
@@ -656,6 +671,15 @@ class Pmdfinance extends AdminController
             'tax_percentage' => (string)($values['tax_percentage'] ?? 0),
             'tax_menu_price' => '1',
             'tax_delivery_charge' => (string)($values['tax_delivery_charge'] ?? 0),
+            'reservation_guarantee_enabled' => (string)($values['reservation_guarantee_enabled'] ?? 0),
+            'reservation_guarantee_provider' => (string)($values['reservation_guarantee_provider'] ?? 'stripe'),
+            'reservation_guarantee_min_guests' => (string)($values['reservation_guarantee_min_guests'] ?? 6),
+            'reservation_guarantee_amount_cents' => (string)($values['reservation_guarantee_amount_cents'] ?? 0),
+            'reservation_guarantee_free_cancel_hours' => (string)($values['reservation_guarantee_free_cancel_hours'] ?? 24),
+            'reservation_guarantee_grace_minutes' => (string)($values['reservation_guarantee_grace_minutes'] ?? 15),
+            'reservation_guarantee_terms_version' => (string)($values['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01'),
+            'reservation_guarantee_send_confirmation_email' => (string)($values['reservation_guarantee_send_confirmation_email'] ?? 1),
+            'no_show_reservation_status' => (string)($values['no_show_reservation_status'] ?? 0),
         ];
 
         $verifyQuery = DB::connection($connection)->table('settings')->whereIn($keyColumn, array_keys($expected));
@@ -665,8 +689,8 @@ class Pmdfinance extends AdminController
         foreach ($stored as $row) $storedMap[(string)$row->{$keyColumn}] = (string)$row->{$valueColumn};
 
         foreach ($expected as $key => $expectedValue) {
-            if (!array_key_exists($key, $storedMap)) throw new \RuntimeException('Tax settings persistence verification failed for '.$key.'.');
-            if ((string)$storedMap[$key] !== $expectedValue) throw new \RuntimeException('Tax settings persistence verification mismatch for '.$key.'.');
+            if (!array_key_exists($key, $storedMap)) throw new \RuntimeException('Finance settings persistence verification failed for '.$key.'.');
+            if ((string)$storedMap[$key] !== $expectedValue) throw new \RuntimeException('Finance settings persistence verification mismatch for '.$key.'.');
         }
     }
 

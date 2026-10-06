@@ -74,7 +74,10 @@ final class PmdReservationGuaranteeProviderRegistry
 
     public function selectedProvider(): string
     {
-        $provider = strtolower(trim((string)setting('reservation_guarantee_provider', 'stripe')));
+        $provider = strtolower(trim(
+            app(PmdReservationGuaranteeSettings::class)
+                ->string('reservation_guarantee_provider', 'stripe')
+        ));
 
         return array_key_exists($provider, $this->definitions())
             ? $provider
