@@ -932,16 +932,17 @@ final class PmdReservationGuaranteeGateway
             );
         }
 
-        $processed = $client->processWithoutInteraction($transactionId);
+        $processed = $client->processWithToken($transactionId);
         if (!($processed['ok'] ?? false)) {
             throw new RuntimeException(
                 (string)($processed['message']
-                    ?? 'VR Payment declined the no-show charge.')
+                    ?? 'VR Payment declined the saved-token no-show charge.')
             );
         }
 
-        $transaction = is_array($processed['data'] ?? null)
-            ? (array)$processed['data']
+        $read = $client->readTransaction($transactionId);
+        $transaction = is_array($read['data'] ?? null)
+            ? (array)$read['data']
             : (array)$created['data'];
         $status = $client->normalizeTransactionStatus($transaction);
 
