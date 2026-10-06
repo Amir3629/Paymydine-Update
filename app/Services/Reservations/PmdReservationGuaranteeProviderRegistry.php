@@ -113,7 +113,7 @@ final class PmdReservationGuaranteeProviderRegistry
         $raw = app(PmdReservationGuaranteeSettings::class)
             ->string(
                 'reservation_guarantee_methods',
-                'card,apple_pay,google_pay,paypal'
+                'card'
             );
 
         $selected = array_values(array_unique(array_filter(array_map(
