@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -44,6 +45,7 @@ import com.paymydine.mobile.KdsActivity
 import com.paymydine.mobile.PayMyDineApplication
 import com.paymydine.mobile.PosActivity
 import com.paymydine.mobile.R
+import com.paymydine.mobile.hardware.PrinterSetupActivity
 import com.paymydine.mobile.ReservationsActivity
 import com.paymydine.mobile.RoleWorkspaceActivity
 import com.paymydine.mobile.data.local.BootstrapSummary
@@ -885,6 +887,7 @@ private fun UnifiedFirstRun(
     onKiosk: () -> Unit,
     onTableDisplay: () -> Unit,
 ) {
+    val context = LocalContext.current
     var step by remember { mutableStateOf(1) }
 
     Column(
@@ -950,9 +953,11 @@ private fun UnifiedFirstRun(
                 style = MaterialTheme.typography.labelLarge,
             )
 
+            // PMD_ANDROID_FIRST_RUN_ACCESS_V17
+            // Owner and Manager are intentionally not offered as device-mode
+            // shortcuts. Their privileged/admin access remains available from
+            // the canonical web/admin authentication flow.
             listOf(
-                "owner" to "Owner",
-                "manager" to "Manager",
                 "cashier" to "Cashier",
                 "waiter" to "Waiter",
                 "kitchen" to "Kitchen / KDS",
@@ -997,13 +1002,39 @@ private fun UnifiedFirstRun(
                 Text("Table display")
             }
 
+            // PMD_ANDROID_PRINTER_SETUP_V18
             OutlinedButton(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 14.dp),
+                    .padding(top = 26.dp),
+                onClick = {
+                    context.startActivity(PrinterSetupActivity.intent(context))
+                },
+                shape = RoundedCornerShape(18.dp),
+            ) {
+                Text(
+                    "Printer setup",
+                    modifier = Modifier.padding(vertical = 5.dp),
+                    fontWeight = FontWeight.Black,
+                )
+            }
+
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 30.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PmdDeepGreen,
+                    contentColor = Color.White,
+                ),
+                shape = RoundedCornerShape(18.dp),
                 onClick = { step = 1 },
             ) {
-                Text("Change restaurant")
+                Text(
+                    "Change restaurant",
+                    modifier = Modifier.padding(vertical = 5.dp),
+                    fontWeight = FontWeight.Black,
+                )
             }
         }
 

@@ -108,11 +108,13 @@ final class SquareTerminalProvider implements TerminalPaymentProviderInterface
                     'device_id' => (string)$config['device_id'],
                     'skip_receipt_screen' => false,
                     // PMD_SQUARE_TERMINAL_TIP_V48
-                    // Customer chooses gratuity on the physical Square Terminal.
+                    // PMD_KIOSK_TERMINAL_NO_TIP_V18
+                    // POS/Waiter retain their configured tipping path. Kiosk
+                    // explicitly disables gratuity on the physical terminal.
                     'tip_settings' => [
-                        'allow_tipping' => true,
-                        'separate_tip_screen' => true,
-                        'custom_tip_field' => true,
+                        'allow_tipping' => (bool)($config['allow_tipping'] ?? true),
+                        'separate_tip_screen' => (bool)($config['allow_tipping'] ?? true),
+                        'custom_tip_field' => (bool)($config['allow_tipping'] ?? true),
                     ],
                 ],
                 'payment_options' => ['autocomplete' => true],

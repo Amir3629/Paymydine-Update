@@ -29,4 +29,19 @@ Route::group([
 
     Route::get('state', [PmdKioskPublicController::class, 'state'])
         ->middleware('throttle:120,1,pmd-kiosk-state');
+
+    // PMD_KIOSK_CONNECTED_TERMINAL_V18
+    // These routes require the paired kiosk bearer credential. The web layer
+    // never receives terminal/provider secrets.
+    Route::get('terminal', [PmdKioskPublicController::class, 'terminalState'])
+        ->middleware('throttle:120,1,pmd-kiosk-terminal-state');
+
+    Route::post('terminal-payment/{orderId}', [PmdKioskPublicController::class, 'terminalPayment'])
+        ->where('orderId', '[0-9]+')
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:30,1,pmd-kiosk-terminal-pay');
+
+    Route::get('terminal-payment/{attemptId}', [PmdKioskPublicController::class, 'terminalPaymentStatus'])
+        ->where('attemptId', '[0-9]+')
+        ->middleware('throttle:120,1,pmd-kiosk-terminal-status');
 });

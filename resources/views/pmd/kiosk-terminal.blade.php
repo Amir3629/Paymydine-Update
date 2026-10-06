@@ -21,7 +21,7 @@
             :root { --pmd-k-hero-image: url({!! json_encode($initialHero, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) !!}); }
         </style>
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=13-smooth-scroll">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=18-terminal-printer">
 </head>
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
@@ -77,7 +77,7 @@
             <div class="pmd-kiosk-menu-head">
                 <div>
                     <p class="pmd-kiosk-kicker" id="pmd-kiosk-context-label">EAT HERE</p>
-                    <h1 id="pmd-kiosk-category-title">All items</h1>
+                    <h1 id="pmd-kiosk-category-title">Menu</h1>
                 </div>
                 <span id="pmd-kiosk-result-count" class="pmd-kiosk-result-count"></span>
             </div>
@@ -135,6 +135,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=13-smooth-scroll" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=18-terminal-printer" defer></script>
 </body>
 </html>

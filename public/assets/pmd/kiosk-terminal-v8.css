@@ -1813,3 +1813,292 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
     height: calc(100% - 154px);
   }
 }
+
+
+/* PMD_KIOSK_STREAMLINED_TERMINAL_V18
+ * Continuous menu sections, larger kiosk typography, compact + actions,
+ * animated checkout CTA and an actual full-screen terminal payment surface.
+ */
+body.pmd-kiosk-v8 {
+  font-size: 17px;
+}
+
+.pmd-kiosk-menu-head h1 {
+  font-size: clamp(30px, 2.6vw, 42px);
+}
+
+.pmd-kiosk-result-count,
+.pmd-kiosk-category-button,
+.pmd-kiosk-order-mode strong {
+  font-size: 14px;
+}
+
+.pmd-kiosk-grid {
+  display: block;
+}
+
+.pmd-kiosk-category-section {
+  scroll-margin-top: 12px;
+  margin: 0 0 34px;
+}
+
+.pmd-kiosk-category-section__title {
+  position: sticky;
+  z-index: 4;
+  top: -1px;
+  margin: 0 0 14px;
+  padding: 10px 2px 12px;
+  background: color-mix(in srgb, var(--pmd-k-bg) 94%, transparent);
+  color: var(--pmd-k-ink);
+  font-size: clamp(23px, 2vw, 32px);
+  font-weight: 950;
+  letter-spacing: -.035em;
+  backdrop-filter: none;
+}
+
+.pmd-kiosk-category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pmd-kiosk-category-section.is-search .pmd-kiosk-category-grid {
+  margin-top: 4px;
+}
+
+.pmd-kiosk-item__body {
+  padding: 15px;
+}
+
+.pmd-kiosk-item__copy {
+  min-height: 76px;
+}
+
+.pmd-kiosk-item__copy h2 {
+  font-size: 19px;
+  line-height: 1.22;
+}
+
+.pmd-kiosk-item__copy p {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pmd-kiosk-item__price {
+  font-size: 19px;
+}
+
+.pmd-kiosk-add {
+  width: 50px;
+  min-width: 50px;
+  height: 50px;
+  min-height: 50px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pmd-kiosk-order-head strong {
+  font-size: 20px;
+}
+
+.pmd-kiosk-order-line__head strong {
+  font-size: 15px;
+}
+
+.pmd-kiosk-order-line__price {
+  font-size: 14px;
+}
+
+.pmd-kiosk-primary {
+  position: relative;
+  overflow: hidden;
+  font-size: 15px;
+}
+
+.pmd-kiosk-compact-order {
+  position: relative;
+  overflow: hidden;
+}
+
+.pmd-kiosk-compact-order.is-ready::after,
+.pmd-kiosk-primary:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: -35%;
+  bottom: -35%;
+  width: 32px;
+  left: -70px;
+  transform: skewX(-18deg);
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,.12),
+    rgba(255,255,255,.72),
+    rgba(255,255,255,.12),
+    transparent
+  );
+  animation: pmd-kiosk-checkout-shimmer-v18 3s ease-in-out infinite;
+}
+
+@keyframes pmd-kiosk-checkout-shimmer-v18 {
+  0%, 58% { left: -70px; opacity: 0; }
+  62% { opacity: .9; }
+  86% { left: calc(100% + 70px); opacity: .8; }
+  100% { left: calc(100% + 70px); opacity: 0; }
+}
+
+/* PMD_KIOSK_FULLSCREEN_CHECKOUT_V18 */
+.pmd-kiosk-modal-layer.is-checkout-fullscreen {
+  display: block;
+  padding: 0;
+  background: var(--pmd-k-panel);
+}
+
+.pmd-kiosk-modal-layer.is-checkout-fullscreen .pmd-kiosk-modal-backdrop {
+  display: none;
+}
+
+.pmd-kiosk-modal.pmd-kiosk-payment-screen {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--pmd-k-panel);
+}
+
+.pmd-kiosk-payment-screen .pmd-kiosk-modal__head {
+  min-height: 92px;
+  padding: 22px clamp(24px, 5vw, 70px);
+  align-items: center;
+}
+
+.pmd-kiosk-payment-screen .pmd-kiosk-modal__head h2 {
+  font-size: clamp(30px, 4vw, 46px);
+}
+
+.pmd-kiosk-payment-screen .pmd-kiosk-modal__close {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  font-size: 30px;
+}
+
+.pmd-kiosk-checkout-screen__body {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 54px) !important;
+}
+
+.pmd-kiosk-checkout-screen__content {
+  width: 100%;
+}
+
+.pmd-kiosk-review-line {
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 14px;
+  padding: 16px 0;
+}
+
+.pmd-kiosk-review-line > b,
+.pmd-kiosk-review-line strong,
+.pmd-kiosk-review-line > span {
+  font-size: 17px;
+}
+
+.pmd-kiosk-review-line small {
+  font-size: 13px;
+}
+
+.pmd-kiosk-checkout-totals {
+  margin-top: 24px;
+  padding: 22px;
+  border-radius: 16px;
+}
+
+.pmd-kiosk-checkout-totals dt,
+.pmd-kiosk-checkout-totals dd {
+  font-size: 16px;
+}
+
+.pmd-kiosk-checkout-totals .is-total dt,
+.pmd-kiosk-checkout-totals .is-total dd {
+  font-size: 27px;
+}
+
+.pmd-kiosk-checkout-screen__pay {
+  margin-top: 30px;
+}
+
+.pmd-kiosk-terminal-pay {
+  width: 100%;
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 0 26px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--pmd-k-accent);
+  color: var(--pmd-k-accent-contrast);
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 950;
+  letter-spacing: -.02em;
+}
+
+.pmd-kiosk-terminal-pay:disabled {
+  opacity: .45;
+}
+
+.pmd-kiosk-terminal-hint {
+  margin: 14px 0 0;
+  color: var(--pmd-k-muted);
+  font-size: 16px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.pmd-kiosk-payment-methods {
+  display: none !important;
+}
+
+@media (max-width: 1120px) {
+  .pmd-kiosk-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pmd-kiosk-category-section {
+    margin-bottom: 28px;
+  }
+}
+
+@media (max-width: 720px) {
+  .pmd-kiosk-menu {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .pmd-kiosk-category-grid {
+    gap: 12px;
+  }
+
+  .pmd-kiosk-item__copy h2 {
+    font-size: 18px;
+  }
+
+  .pmd-kiosk-item__price {
+    font-size: 18px;
+  }
+
+  .pmd-kiosk-checkout-screen__body {
+    padding: 20px !important;
+  }
+}
