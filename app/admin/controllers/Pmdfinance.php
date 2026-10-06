@@ -226,11 +226,15 @@ class Pmdfinance extends AdminController
             }
 
             $registry = app(PmdReservationGuaranteeProviderRegistry::class);
-            $providerState = $registry->provider($guaranteeProvider);
+            $allowedGuaranteeProviders = match ($countryCode) {
+                CountryPlatformProfileRegistry::GERMANY => ['stripe', 'paypal', 'sumup', 'vr_payment', 'worldline'],
+                CountryPlatformProfileRegistry::CANADA => ['square'],
+                default => [],
+            };
 
-            if (empty($providerState['market_available']) && $guaranteeProvider === 'square' && $countryCode !== CountryPlatformProfileRegistry::CANADA) {
+            if (!in_array($guaranteeProvider, $allowedGuaranteeProviders, true)) {
                 throw ValidationException::withMessages([
-                    'finance.reservation_guarantee_provider' => 'Square reservation guarantees are only available in supported Square markets.',
+                    'finance.reservation_guarantee_provider' => 'The selected guarantee provider is not available for this restaurant market.',
                 ]);
             }
 
