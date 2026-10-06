@@ -400,7 +400,7 @@ class Pmddevices extends AdminController
         $deviceId = max(0, (int)post('device_id', 0));
         $terminalId = max(0, (int)post('terminal_device_id', 0));
         if ($deviceId < 1) {
-            throw new \RuntimeException('Choose a Table Companion device.');
+            throw new \RuntimeException('Choose a Kiosk or Table Display device.');
         }
 
         $result = app(PmdDevicePlatformService::class)
