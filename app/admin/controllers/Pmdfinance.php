@@ -330,11 +330,24 @@ class Pmdfinance extends AdminController
         }
 
         $mode = strtoupper((string)($provider['mode'] ?? 'configured'));
-        flash()->success($label.' is ready for reservation guarantee testing in '.$mode.' mode.');
+        $settings = app(PmdReservationGuaranteeSettings::class);
+        $enabled = $settings->bool('reservation_guarantee_enabled', false);
+        $minGuests = max(1, $settings->int('reservation_guarantee_min_guests', 6));
+        $amountCents = max(0, $settings->int('reservation_guarantee_amount_cents', 0));
+        $amount = number_format($amountCents / 100, 2, '.', '');
+
+        $policySummary = ($enabled ? 'ON' : 'OFF')
+            .' · from '.$minGuests.' guest'.($minGuests === 1 ? '' : 's')
+            .' · €'.$amount.'/guest';
+
+        flash()->success(
+            $label.' is ready for reservation guarantee testing in '.$mode
+            .' mode. Policy: '.$policySummary.'.'
+        );
 
         return [
             '#pmd-guarantee-provider-test-status' =>
-                '<span class="pmd-owner-status is-active">Ready · '.e($label).' · '.e($mode).'</span>',
+                '<span class="pmd-owner-status is-active">Ready · '.e($label).' · '.e($mode).' · '.e($policySummary).'</span>',
         ];
     }
 
