@@ -897,6 +897,7 @@
 
   function openModal(html, wide) {
     modal.classList.remove("pmd-kiosk-modal--payment-fullscreen");
+    modalLayer.classList.remove("is-payment-fullscreen");
     modal.classList.toggle("pmd-kiosk-modal--wide", Boolean(wide));
     modal.innerHTML = html;
     modalLayer.hidden = false;
@@ -915,6 +916,7 @@
     state.stripeElements = null;
     state.currentModal = null;
     modalLayer.hidden = true;
+    modalLayer.classList.remove("is-payment-fullscreen");
     modal.innerHTML = "";
   }
 
@@ -1070,6 +1072,7 @@
       true
     );
     modal.classList.add("pmd-kiosk-modal--payment-fullscreen");
+    modalLayer.classList.add("is-payment-fullscreen");
   }
 
   function terminalBridge() {
