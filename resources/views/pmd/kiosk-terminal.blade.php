@@ -4,7 +4,7 @@
     $initialRestaurantName = trim((string)($initialRestaurant['name'] ?? 'PayMyDine')) ?: 'PayMyDine';
     $initialRestaurantLogo = trim((string)($initialRestaurant['logo'] ?? ''));
     $initialRestaurantLetter = mb_strtoupper(mb_substr($initialRestaurantName, 0, 1));
-    $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Eat here';
+    $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Dine in';
     $initialHero = trim((string)($pmdKioskConfig['hero'] ?? ''));
 @endphp
 <!doctype html>
@@ -21,7 +21,7 @@
             :root { --pmd-k-hero-image: url({!! json_encode($initialHero, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) !!}); }
         </style>
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=13-smooth-scroll">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=18-terminal-only">
 </head>
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
@@ -29,6 +29,7 @@
     data-pmd-kiosk-theme="{{ e((string)($initialTheme['id'] ?? 'kazen_japanese')) }}"
     style="--pmd-k-bg: {{ e((string)($initialTheme['background'] ?? '#f3f5f7')) }}; --pmd-k-panel: {{ e((string)($initialTheme['surface'] ?? '#ffffff')) }}; --pmd-k-ink: {{ e((string)($initialTheme['text'] ?? '#17212b')) }}; --pmd-k-muted: {{ e((string)($initialTheme['muted'] ?? '#6d7985')) }}; --pmd-k-accent: {{ e((string)($initialTheme['accent'] ?? '#0a6b57')) }};"
 >
+{{-- PMD_KIOSK_TERMINAL_ONLY_UI_V18 --}}
 <div id="pmd-kiosk-app" class="pmd-kiosk-shell" aria-busy="true">
     <header class="pmd-kiosk-topbar">
         <div class="pmd-kiosk-brand" aria-label="Restaurant">
@@ -77,7 +78,7 @@
             <div class="pmd-kiosk-menu-head">
                 <div>
                     <p class="pmd-kiosk-kicker" id="pmd-kiosk-context-label">EAT HERE</p>
-                    <h1 id="pmd-kiosk-category-title">All items</h1>
+                    <h1 id="pmd-kiosk-category-title">Menu</h1>
                 </div>
                 <span id="pmd-kiosk-result-count" class="pmd-kiosk-result-count"></span>
             </div>
@@ -113,7 +114,7 @@
 
     <button type="button" id="pmd-kiosk-compact-order" class="pmd-kiosk-compact-order" hidden>
         <span id="pmd-kiosk-compact-count" class="pmd-kiosk-compact-order__count">0</span>
-        <span id="pmd-kiosk-compact-label">Your order</span>
+        <span id="pmd-kiosk-compact-label">Checkout</span>
         <strong id="pmd-kiosk-compact-total">€0.00</strong>
         <span aria-hidden="true">›</span>
     </button>
@@ -135,6 +136,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=13-smooth-scroll" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=18-terminal-only" defer></script>
 </body>
 </html>
