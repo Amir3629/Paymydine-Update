@@ -1107,16 +1107,16 @@ function tipOptionsHtml() {
           escapeHtml(message) + "</div>"
       : "";
     var body = reviewLinesHtml() + checkoutTotalsHtml();
-    var terminal = terminalPaymentMethod();
     var labels = terminalCopy();
 
-    var payAction = terminal
-      ? '<button type="button" class="pmd-kiosk-terminal-pay" data-terminal-pay' +
-          (state.busy ? " disabled" : "") + '>' +
-          '<span>' + escapeHtml(labels.title) + '</span><span aria-hidden="true">→</span></button>' +
-        '<p class="pmd-kiosk-terminal-hint">' + escapeHtml(labels.hint) + "</p>"
-      : '<div class="pmd-kiosk-payment-status is-error">' +
-          escapeHtml(labels.missing) + "</div>";
+    // PMD_KIOSK_NATIVE_TERMINAL_PAY_V18
+    // The guest never chooses a provider. Android authenticates the paired
+    // kiosk and the server resolves the connected reader for this location.
+    var payAction =
+      '<button type="button" class="pmd-kiosk-terminal-pay" data-terminal-pay' +
+        (state.busy ? " disabled" : "") + '>' +
+        '<span>' + escapeHtml(labels.title) + '</span><span aria-hidden="true">→</span></button>' +
+      '<p class="pmd-kiosk-terminal-hint">' + escapeHtml(labels.hint) + "</p>";
 
     var kicker = order
       ? (escapeHtml(copy().orderNumber) + " #" + escapeHtml(order.orderNumber || order.orderId))
@@ -1367,6 +1367,51 @@ function tipOptionsHtml() {
     }
     run();
   }
+
+  function startConnectedTerminalPayment() {
+    if (state.busy) return;
+    var bridge = window.PayMyDineKiosk;
+    var secret = String(window.__PMD_KIOSK_BRIDGE_SECRET__ || "");
+    if (!bridge || typeof bridge.terminalPay !== "function" || !secret) {
+      renderCheckout(
+        "Connected terminal payment requires the PayMyDine Device App.",
+        true
+      );
+      return;
+    }
+
+    state.busy = true;
+    renderCheckout(copy().creating, false);
+
+    submitOrder({ silent: true, allowWhileBusy: true })
+      .then(function (order) {
+        renderCheckout(terminalCopy().hint, false);
+        bridge.terminalPay(String(order.orderId), secret);
+      })
+      .catch(function (error) {
+        state.busy = false;
+        renderCheckout(error.message || "The order could not be prepared for payment.", true);
+      });
+  }
+
+  window.__PMD_KIOSK_NATIVE_TERMINAL_RESULT__ = function (raw) {
+    var result = raw;
+    if (typeof raw === "string") {
+      try { result = JSON.parse(raw); } catch (error) { result = { ok: false, message: raw }; }
+    }
+    result = result || {};
+    state.busy = false;
+
+    if (result.paid === true || String(result.status || "").toLowerCase() === "paid") {
+      finishOrder(result.message || copy().paidHint);
+      return;
+    }
+
+    renderCheckout(
+      String(result.message || "Terminal payment was not completed."),
+      true
+    );
+  };
 
   function finishOrder(message) {
     try { sessionStorage.removeItem(paymentKey); } catch (error) {}
@@ -2120,8 +2165,7 @@ function tipOptionsHtml() {
     }
 
     if (event.target.closest("[data-terminal-pay]")) {
-      var terminal = terminalPaymentMethod();
-      if (terminal) startPayment(terminal);
+      startConnectedTerminalPayment();
       return;
     }
 
