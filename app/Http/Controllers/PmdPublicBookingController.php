@@ -195,10 +195,161 @@ class PmdPublicBookingController extends Controller
             'email' => ['required', 'email:filter', 'max:96'],
             'reserve_date' => ['required', 'date_format:Y-m-d'],
             'reserve_time' => ['required', 'date_format:H:i'],
-            'guest_num' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
+            'guest_num' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:'.$maxGuests,
+            ],
             'locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
+            'guarantee_method' => [
+                'required',
+                'string',
+                'in:card,apple_pay,google_pay,paypal',
+            ],
         ])->validate();
 
+        $this->assertGuaranteeSlotAvailable(
+            $location,
+            $timezone,
+            $data
+        );
+
+        try {
+            $result = app(PmdReservationGuaranteeService::class)
+                ->createSetup(
+                    $location,
+                    $data,
+                    strtolower((string)$data['guarantee_method']),
+                    (string)($data['locale'] ?? 'de')
+                );
+
+            return response()->json($result);
+        } catch (Throwable $error) {
+            Log::warning(
+                'PMD public reservation guarantee setup failed',
+                [
+                    'location_id' => (int)$location->getKey(),
+                    'guarantee_method' => (string)(
+                        $data['guarantee_method'] ?? ''
+                    ),
+                    'message' => $error->getMessage(),
+                ]
+            );
+
+            return response()->json([
+                'success' => false,
+                'message' => $error->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function guaranteeStatus(Request $request): JsonResponse
+    {
+        $location = $this->location();
+        $timezone = $this->timezone();
+        $maxGuests = $this->maxBookableGuests($location);
+
+        $data = validator($request->all(), [
+            'reserve_date' => ['required', 'date_format:Y-m-d'],
+            'reserve_time' => ['required', 'date_format:H:i'],
+            'guest_num' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:'.$maxGuests,
+            ],
+            'locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
+            'guarantee_provider' => [
+                'required',
+                'string',
+                'in:stripe,sumup,paypal,vr_payment,worldline',
+            ],
+            'guarantee_method' => [
+                'required',
+                'string',
+                'in:card,apple_pay,google_pay,paypal',
+            ],
+            'setup_reference' => [
+                'required',
+                'string',
+                'max:8192',
+            ],
+        ])->validate();
+
+        $this->assertGuaranteeSlotAvailable(
+            $location,
+            $timezone,
+            $data
+        );
+
+        try {
+            return response()->json(
+                app(PmdReservationGuaranteeService::class)
+                    ->setupStatus(
+                        $location,
+                        $data,
+                        strtolower((string)$data['guarantee_provider']),
+                        strtolower((string)$data['guarantee_method']),
+                        (string)$data['setup_reference'],
+                        (string)($data['locale'] ?? 'de')
+                    )
+            );
+        } catch (Throwable $error) {
+            return response()->json([
+                'success' => false,
+                'message' => $error->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function guaranteeReturn(Request $request)
+    {
+        $provider = strtolower(trim((string)$request->query(
+            'provider',
+            ''
+        )));
+        $result = strtolower(trim((string)$request->query(
+            'result',
+            'returned'
+        )));
+
+        if (!in_array(
+            $provider,
+            ['paypal', 'vr_payment', 'worldline'],
+            true
+        )) {
+            abort(404);
+        }
+
+        $ok = in_array(
+            $result,
+            ['approved', 'success', 'returned'],
+            true
+        );
+        $title = $ok
+            ? 'Payment method confirmed'
+            : 'Payment method not confirmed';
+        $message = $ok
+            ? 'Return to the PayMyDine booking page to continue.'
+            : 'Return to the PayMyDine booking page and try again.';
+
+        $html = '<!doctype html><html><head><meta charset="utf-8">'
+            .'<meta name="viewport" content="width=device-width,initial-scale=1">'
+            .'<title>'.e($title).'</title></head><body>'
+            .'<main><h1>'.e($title).'</h1><p>'.e($message).'</p></main>'
+            .'</body></html>';
+
+        return response($html, 200)
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Cache-Control', 'private, no-store, max-age=0');
+    }
+
+    private function assertGuaranteeSlotAvailable(
+        Locations_model $location,
+        string $timezone,
+        array $data
+    ): void {
         $date = Carbon::createFromFormat(
             'Y-m-d',
             (string)$data['reserve_date'],
@@ -221,27 +372,6 @@ class PmdPublicBookingController extends Controller
                     'That time is no longer available. Please choose another time.',
                 ],
             ]);
-        }
-
-        try {
-            $result = app(PmdReservationGuaranteeService::class)
-                ->createSetupIntent(
-                    $location,
-                    $data,
-                    (string)($data['locale'] ?? 'de')
-                );
-
-            return response()->json($result);
-        } catch (Throwable $error) {
-            Log::warning('PMD public reservation card guarantee setup failed', [
-                'location_id' => (int)$location->getKey(),
-                'message' => $error->getMessage(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => $error->getMessage(),
-            ], 422);
         }
     }
 
@@ -387,7 +517,26 @@ class PmdPublicBookingController extends Controller
             'comment' => ['nullable', 'string', 'max:1000'],
             'consent' => ['accepted'],
             '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
-            '_pmd_guarantee_setup_intent' => ['nullable', 'string', 'max:255'],
+            '_pmd_guarantee_provider' => [
+                'nullable',
+                'string',
+                'in:stripe,sumup,paypal,vr_payment,worldline',
+            ],
+            '_pmd_guarantee_method' => [
+                'nullable',
+                'string',
+                'in:card,apple_pay,google_pay,paypal',
+            ],
+            '_pmd_guarantee_setup_reference' => [
+                'nullable',
+                'string',
+                'max:8192',
+            ],
+            '_pmd_guarantee_setup_intent' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
             '_pmd_guarantee_terms_accepted' => ['nullable'],
         ])->validate();
 
@@ -426,7 +575,7 @@ class PmdPublicBookingController extends Controller
             if (empty($data['_pmd_guarantee_terms_accepted'])) {
                 throw ValidationException::withMessages([
                     '_pmd_guarantee_terms_accepted' => [
-                        'Please accept the card guarantee terms before confirming the reservation.',
+                        'Please accept the payment guarantee terms before confirming the reservation.',
                     ],
                 ]);
             }
@@ -434,21 +583,39 @@ class PmdPublicBookingController extends Controller
             if (empty($guaranteePolicy['provider_ready'])) {
                 throw ValidationException::withMessages([
                     'reservation' => [
-                        'Card guarantee is temporarily unavailable. Please contact the restaurant.',
+                        'Payment guarantee is temporarily unavailable. Please contact the restaurant.',
                     ],
                 ]);
             }
 
+            $guaranteeProvider = strtolower(trim((string)(
+                $data['_pmd_guarantee_provider']
+                ?? $guaranteePolicy['provider']
+                ?? 'stripe'
+            )));
+            $guaranteeMethod = strtolower(trim((string)(
+                $data['_pmd_guarantee_method'] ?? 'card'
+            )));
+            $setupReference = trim((string)(
+                $data['_pmd_guarantee_setup_reference']
+                ?? $data['_pmd_guarantee_setup_intent']
+                ?? ''
+            ));
+
             try {
-                $guaranteeVerified = $guaranteeService->verifySetupIntent(
+                $guaranteeVerified = $guaranteeService->verifySetup(
                     $location,
                     $data,
-                    trim((string)($data['_pmd_guarantee_setup_intent'] ?? '')),
+                    $guaranteeProvider,
+                    $guaranteeMethod,
+                    $setupReference,
                     $bookingLocale
                 );
             } catch (Throwable $error) {
                 throw ValidationException::withMessages([
-                    '_pmd_guarantee_setup_intent' => [$error->getMessage()],
+                    '_pmd_guarantee_setup_reference' => [
+                        $error->getMessage(),
+                    ],
                 ]);
             }
         }
