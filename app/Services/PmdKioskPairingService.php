@@ -180,6 +180,44 @@ final class PmdKioskPairingService
                 'updated_at' => now(),
             ]);
 
+        // PMD_KIOSK_TERMINAL_STATE_V18
+        // Report only the physical terminal explicitly linked to this trusted
+        // kiosk. This keeps diagnostics/setup honest before the guest reaches
+        // checkout and never falls back to a browser wallet.
+        $platform = $this->platformInfo($device);
+        $terminalDeviceId = (int)(
+            $platform['payment_terminal_device_id']
+            ?? $platform['terminal_device_id']
+            ?? 0
+        );
+        $terminalSummary = null;
+        if ($terminalDeviceId > 0 && Schema::hasTable('terminal_devices')) {
+            $terminalQuery = DB::table('terminal_devices')
+                ->where('terminal_device_id', $terminalDeviceId);
+
+            if (Schema::hasColumn('terminal_devices', 'is_active')) {
+                $terminalQuery->where('is_active', 1);
+            }
+            if (Schema::hasColumn('terminal_devices', 'location_id')) {
+                $terminalQuery->where(function ($query) use ($locationId) {
+                    $query->whereNull('location_id')
+                        ->orWhere('location_id', $locationId);
+                });
+            }
+
+            $terminal = $terminalQuery->first();
+            if ($terminal) {
+                $terminalSummary = [
+                    'id' => (int)($terminal->terminal_device_id ?? 0),
+                    'provider' => strtolower(trim((string)($terminal->provider_code ?? ''))),
+                    'name' => trim((string)($terminal->reader_label ?? ''))
+                        ?: trim((string)($terminal->reader_id ?? ''))
+                        ?: 'Payment terminal',
+                    'status' => strtolower(trim((string)($terminal->terminal_status ?? ''))),
+                ];
+            }
+        }
+
         return [
             'ok' => true,
             'protocol' => 'pmd-kiosk-v1',
@@ -197,7 +235,8 @@ final class PmdKioskPairingService
                 ['id' => 'pickup', 'label' => 'Take away'],
             ],
             'idle_timeout_seconds' => 120,
-            'payments_enabled' => true,
+            'payments_enabled' => $terminalSummary !== null,
+            'payment_terminal' => $terminalSummary,
         ];
     }
 
