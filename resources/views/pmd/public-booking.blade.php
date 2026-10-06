@@ -41,7 +41,7 @@
             'notes' => 'Anything we should know?',
             'notes_hint' => 'Allergies, accessibility, high chair, seating preference…',
             'consent' => 'I agree that the restaurant may use these contact details to manage this reservation.',
-            'guarantee_title' => 'Card guarantee',
+            'guarantee_title' => 'Reservation guarantee',
             'guarantee_intro' => 'No charge today.',
             'guarantee_total' => 'Guarantee limit',
             'guarantee_card' => 'Card details',
@@ -118,7 +118,7 @@
             'notes' => 'Gibt es etwas, das wir wissen sollten?',
             'notes_hint' => 'Allergien, Barrierefreiheit, Kinderstuhl, Sitzwunsch…',
             'consent' => 'Ich stimme zu, dass das Restaurant diese Kontaktdaten zur Bearbeitung der Reservierung verwenden darf.',
-            'guarantee_title' => 'Kartengarantie',
+            'guarantee_title' => 'Reservierungsgarantie',
             'guarantee_intro' => 'Jetzt keine Abbuchung.',
             'guarantee_total' => 'Garantielimit',
             'guarantee_card' => 'Kartendaten',
@@ -195,7 +195,7 @@
             'notes' => 'Bilmemiz gereken bir şey var mı?',
             'notes_hint' => 'Alerji, erişilebilirlik, mama sandalyesi, oturma tercihi…',
             'consent' => 'Restoranın bu iletişim bilgilerini rezervasyonu yönetmek için kullanmasını kabul ediyorum.',
-            'guarantee_title' => 'Kart garantisi',
+            'guarantee_title' => 'Rezervasyon garantisi',
             'guarantee_intro' => 'Şimdi ödeme yok.',
             'guarantee_total' => 'Garanti limiti',
             'guarantee_card' => 'Kart bilgileri',
@@ -272,7 +272,7 @@
             'notes' => 'هل هناك شيء يجب أن نعرفه؟',
             'notes_hint' => 'الحساسية، سهولة الوصول، كرسي طفل، تفضيل الجلوس…',
             'consent' => 'أوافق على استخدام المطعم لبيانات الاتصال هذه لإدارة الحجز.',
-            'guarantee_title' => 'ضمان البطاقة',
+            'guarantee_title' => 'ضمان الحجز',
             'guarantee_intro' => 'لا خصم الآن.',
             'guarantee_total' => 'حد الضمان',
             'guarantee_card' => 'بيانات البطاقة',
@@ -348,7 +348,11 @@
         'storeUrl' => url('/book'),
         'guarantee' => array_merge(
             (array)($bookingGuarantee ?? []),
-            ['setupUrl' => url('/book/guarantee/setup')]
+            [
+                'setupUrl' => url('/book/guarantee/setup'),
+                'statusUrl' => url('/book/guarantee/status'),
+                'returnUrl' => url('/book/guarantee/return'),
+            ]
         ),
         'guaranteeByLocale' => $bookingGuaranteeByLocale ?? [],
         'restaurantName' => $bookingProfile['name'],
@@ -369,7 +373,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261006-r20-7">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261006-r20-8">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -589,11 +593,24 @@
 
                                 <div id="pmd-booking-guarantee-unavailable" class="pmd-booking-guarantee__unavailable" hidden data-pmd-i18n="guarantee_unavailable">{{ $t['guarantee_unavailable'] }}</div>
 
+                                <div id="pmd-booking-guarantee-methods" class="pmd-booking-guarantee__methods" role="radiogroup" aria-label="Guarantee payment method"></div>
+
                                 <div id="pmd-booking-guarantee-card-wrap" class="pmd-booking-guarantee__card-wrap">
-                                    <span class="pmd-booking-field-label" data-pmd-i18n="guarantee_card">{{ $t['guarantee_card'] }}</span>
+                                    <span id="pmd-booking-guarantee-method-title" class="pmd-booking-field-label" data-pmd-i18n="guarantee_card">{{ $t['guarantee_card'] }}</span>
+
                                     <div id="pmd-booking-guarantee-card" class="pmd-booking-guarantee__card"></div>
+
+                                    <div id="pmd-booking-guarantee-wallet" class="pmd-booking-guarantee__wallet" hidden></div>
+
+                                    <div id="pmd-booking-guarantee-provider-action" class="pmd-booking-guarantee__provider-action" hidden>
+                                        <button id="pmd-booking-guarantee-provider-button" type="button"></button>
+                                        <small id="pmd-booking-guarantee-provider-note"></small>
+                                    </div>
+
+                                    <div id="pmd-booking-guarantee-sumup" class="pmd-booking-guarantee__sumup" hidden></div>
+
                                     <div id="pmd-booking-guarantee-card-error" class="pmd-booking-guarantee__card-error" role="alert"></div>
-                                    <small data-pmd-i18n="guarantee_secure">{{ $t['guarantee_secure'] }}</small>
+                                    <small id="pmd-booking-guarantee-secure" data-pmd-i18n="guarantee_secure">{{ $t['guarantee_secure'] }}</small>
                                 </div>
 
                                 <label class="pmd-booking-consent pmd-booking-guarantee__consent">
@@ -711,6 +728,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261006-r20-4" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261006-r20-8" defer></script>
 </body>
 </html>
