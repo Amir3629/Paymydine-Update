@@ -347,17 +347,46 @@ final class PmdDevicePlatformService
         ?int $terminalDeviceId,
         ?int $staffId
     ): array {
+        return $this->assignGuestDeviceTerminal(
+            $locationId,
+            $deviceId,
+            'table_display',
+            $terminalDeviceId,
+            $staffId
+        );
+    }
+
+    /**
+     * PMD_GUEST_DEVICE_TERMINAL_LINK_V18
+     * Link exactly one card-present terminal to a managed guest-facing device.
+     * Both Table Display and Kiosk use the same platform_info contract so the
+     * physical terminal is selected centrally rather than by a guest.
+     */
+    public function assignGuestDeviceTerminal(
+        int $locationId,
+        int $deviceId,
+        string $deviceKind,
+        ?int $terminalDeviceId,
+        ?int $staffId
+    ): array {
         $this->ensureStorage();
+
+        $deviceKind = strtolower(trim($deviceKind));
+        if (!in_array($deviceKind, ['table_display', 'kiosk'], true)) {
+            abort(422, 'This device type cannot own a guest payment terminal.');
+        }
 
         $device = DB::table('pmd_site_access_devices')
             ->where('id', $deviceId)
             ->where('location_id', $locationId)
-            ->where('device_kind', 'table_display')
+            ->where('device_kind', $deviceKind)
             ->whereNull('revoked_at')
             ->first();
 
         if (!$device) {
-            abort(404, 'Table Companion device was not found.');
+            abort(404, $deviceKind === 'kiosk'
+                ? 'Kiosk device was not found.'
+                : 'Table Display device was not found.');
         }
 
         $terminal = null;
@@ -391,7 +420,7 @@ final class PmdDevicePlatformService
             if (!in_array($provider, ['sumup', 'worldline', 'square', 'vr_payment'], true)) {
                 abort(
                     422,
-                    'This terminal provider cannot be used for Table Companion contactless payment.'
+                    'This provider cannot be used for PayMyDine card-present payment.'
                 );
             }
         }
@@ -423,6 +452,7 @@ final class PmdDevicePlatformService
         return [
             'ok' => true,
             'device_id' => $deviceId,
+            'device_kind' => $deviceKind,
             'terminal_device_id' => $terminal
                 ? (int)$terminal->terminal_device_id
                 : null,

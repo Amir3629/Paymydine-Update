@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Services\PmdKioskPairingService;
 use App\Services\PmdTableDisplayService;
+use App\Services\TerminalPayments\TerminalPaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 final class PmdKioskPublicController
 {
@@ -178,5 +180,154 @@ final class PmdKioskPublicController
         return response()->json(
             app(PmdKioskPairingService::class)->stateForDevice($request)
         );
+    }
+
+
+    /** PMD_KIOSK_TERMINAL_PAYMENT_V18 */
+    public function startTerminalPayment(
+        Request $request,
+        TerminalPaymentService $payments
+    ): JsonResponse {
+        $device = app(PmdKioskPairingService::class)->authenticate($request);
+        $data = $request->validate([
+            'order_id' => ['required', 'integer', 'min:1'],
+            'kiosk_session' => ['required', 'string', 'max:100'],
+        ]);
+
+        $orderId = (int)$data['order_id'];
+        $session = $this->assertKioskOrderForDevice(
+            $device,
+            $orderId,
+            (string)$data['kiosk_session']
+        );
+
+        $platform = json_decode(
+            (string)($device->platform_info ?? '{}'),
+            true
+        );
+        $platform = is_array($platform) ? $platform : [];
+        $terminalId = max(
+            0,
+            (int)($platform['payment_terminal_device_id'] ?? 0)
+        );
+        $provider = strtolower(trim(
+            (string)($platform['payment_terminal_provider'] ?? '')
+        ));
+
+        if ($terminalId < 1 || $provider === '') {
+            return response()->json([
+                'ok' => false,
+                'status' => 'unavailable',
+                'message' => 'No payment terminal is linked to this kiosk.',
+            ], 409);
+        }
+
+        $result = $payments->createAttempt(
+            $orderId,
+            $provider,
+            (string)$terminalId
+        );
+
+        if (!($result['success'] ?? false)) {
+            return response()->json([
+                'ok' => false,
+                'status' => (string)($result['status'] ?? 'failed'),
+                'message' => (string)(
+                    $result['error']
+                    ?? $result['message']
+                    ?? 'The payment terminal could not start.'
+                ),
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'kiosk_session' => $session,
+            'attempt_id' => (int)($result['attempt_id'] ?? 0),
+            'status' => (string)($result['status'] ?? 'pending'),
+            'message' => (string)($result['message'] ?? 'Present card on the terminal.'),
+            'payment_recorded' => (bool)($result['payment_recorded'] ?? false),
+        ]);
+    }
+
+    /** PMD_KIOSK_TERMINAL_PAYMENT_V18 */
+    public function refreshTerminalPayment(
+        Request $request,
+        $attemptId,
+        TerminalPaymentService $payments
+    ): JsonResponse {
+        $device = app(PmdKioskPairingService::class)->authenticate($request);
+        $session = preg_replace(
+            '/[^A-Za-z0-9._:-]/',
+            '',
+            trim((string)$request->input('kiosk_session', ''))
+        );
+        if ($session === '') {
+            return response()->json([
+                'ok' => false,
+                'status' => 'failed',
+                'message' => 'Kiosk session is required.',
+            ], 422);
+        }
+
+        $attempt = DB::table('payment_attempts')
+            ->where('id', (int)$attemptId)
+            ->first();
+        if (!$attempt) {
+            return response()->json([
+                'ok' => false,
+                'status' => 'failed',
+                'message' => 'Payment attempt was not found.',
+            ], 404);
+        }
+
+        $this->assertKioskOrderForDevice(
+            $device,
+            (int)$attempt->order_id,
+            $session
+        );
+
+        $result = $payments->refreshAttempt((int)$attemptId);
+
+        return response()->json([
+            'ok' => (bool)($result['success'] ?? false),
+            'attempt_id' => (int)($result['attempt_id'] ?? $attemptId),
+            'status' => (string)($result['status'] ?? 'pending'),
+            'message' => (string)(
+                $result['message']
+                ?? $result['error']
+                ?? 'Waiting for the payment terminal.'
+            ),
+            'payment_recorded' => (bool)($result['payment_recorded'] ?? false),
+        ]);
+    }
+
+    private function assertKioskOrderForDevice(
+        $device,
+        int $orderId,
+        string $session
+    ): string {
+        $session = preg_replace(
+            '/[^A-Za-z0-9._:-]/',
+            '',
+            trim($session)
+        );
+        if ($session === '') {
+            abort(422, 'Kiosk session is required.');
+        }
+
+        $order = DB::table('orders')->where('order_id', $orderId)->first();
+        if (
+            !$order
+            || (int)($order->location_id ?? 0) !== (int)$device->location_id
+            || !str_contains(
+                (string)($order->comment ?? ''),
+                '[kiosk_session:'.$session.']'
+            )
+        ) {
+            abort(403, 'This order does not belong to the current kiosk session.');
+        }
+
+        return $session;
     }
 }

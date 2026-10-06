@@ -431,7 +431,21 @@ class PmdDefaultStaffRoleService
                 || $isCashierReservationsV128;
         }
         if ($code === self::ACCOUNTANT) return $is('accountantlab');
-        if ($code === self::RESERVATIONS) return $is('reservations');
+        if ($code === self::RESERVATIONS) {
+            // PMD_RESERVATIONS_POS_SHELL_V17
+            return $is('reservations')
+                || $path === 'admin/pos'
+                || preg_match(
+                    '#^admin/pos/bootstrap/(?:cashier|waiter)$#',
+                    $path
+                ) === 1
+                || $path === 'admin/pos/reservations-data'
+                || $path === 'admin/pos/floor-data'
+                || preg_match(
+                    '#^admin/pos/table/[0-9]+$#',
+                    $path
+                ) === 1;
+        }
 
         if (str_starts_with($code, self::KDS_PREFIX)) {
             $slug = trim(substr($code, strlen(self::KDS_PREFIX)));
