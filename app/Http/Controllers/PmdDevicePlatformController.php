@@ -85,4 +85,80 @@ final class PmdDevicePlatformController extends Controller
             ['Cache-Control' => 'no-store, private']
         );
     }
+    public function hardware(
+        Request $request,
+        PmdDevicePlatformAuthService $auth,
+        PmdDevicePlatformService $platform
+    ): JsonResponse {
+        $device = $auth->authenticate($request);
+
+        return response()->json(
+            $platform->deviceHardware($device),
+            200,
+            ['Cache-Control' => 'no-store, private']
+        );
+    }
+
+    public function configureHardware(
+        Request $request,
+        PmdDevicePlatformAuthService $auth,
+        PmdDevicePlatformService $platform
+    ): JsonResponse {
+        $device = $auth->authenticate($request);
+        $data = $request->validate([
+            'payment_terminal_device_id' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        return response()->json(
+            $platform->configureDeviceTerminal(
+                $device,
+                isset($data['payment_terminal_device_id'])
+                    ? (int)$data['payment_terminal_device_id']
+                    : null
+            ),
+            200,
+            ['Cache-Control' => 'no-store, private']
+        );
+    }
+
+    public function kioskTerminalPayment(
+        Request $request,
+        PmdDevicePlatformAuthService $auth,
+        PmdDevicePlatformService $platform
+    ): JsonResponse {
+        $device = $auth->authenticate($request);
+        $data = $request->validate([
+            'order_id' => ['required', 'integer', 'min:1'],
+        ]);
+
+        return response()->json(
+            $platform->startKioskTerminalPayment(
+                $device,
+                (int)$data['order_id']
+            ),
+            200,
+            ['Cache-Control' => 'no-store, private']
+        );
+    }
+
+    public function kioskTerminalPaymentRefresh(
+        Request $request,
+        PmdDevicePlatformAuthService $auth,
+        PmdDevicePlatformService $platform
+    ): JsonResponse {
+        $device = $auth->authenticate($request);
+        $data = $request->validate([
+            'attempt_id' => ['required', 'integer', 'min:1'],
+        ]);
+
+        return response()->json(
+            $platform->refreshKioskTerminalPayment(
+                $device,
+                (int)$data['attempt_id']
+            ),
+            200,
+            ['Cache-Control' => 'no-store, private']
+        );
+    }
+
 }
