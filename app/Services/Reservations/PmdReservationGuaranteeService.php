@@ -997,7 +997,7 @@ final class PmdReservationGuaranteeService
         $grace = (int)$policy['grace_minutes'];
 
         if ($locale === 'de') {
-            return "Kartengarantie: Jetzt wird nichts belastet. Bei Nichterscheinen kann nach {$grace} Minuten Kulanzzeit eine Ausfallentschädigung von bis zu {$perGuest} pro Person über die bestätigte Karte belastet werden. Bis {$hours} Stunden vor dem Reservierungszeitpunkt kann kostenlos storniert werden. Ihnen bleibt ausdrücklich der Nachweis gestattet, dass kein oder ein wesentlich geringerer Schaden entstanden ist.";
+            return "Jetzt wird nichts abgebucht. Bei Nichterscheinen kann das Restaurant nach {$grace} Minuten bis zu {$perGuest} pro Person berechnen. Kostenlose Stornierung bis {$hours} Stunden vorher. Ist der tatsächliche Schaden geringer oder null, wird entsprechend weniger oder nichts berechnet.";
         }
 
         if ($locale === 'tr') {
@@ -1008,7 +1008,7 @@ final class PmdReservationGuaranteeService
             return "ضمان البطاقة: لن يتم خصم أي مبلغ الآن. في حال عدم الحضور، وبعد مهلة قدرها {$grace} دقيقة، يمكن تحصيل تعويض عن الضرر يصل إلى {$perGuest} لكل شخص من البطاقة المؤكدة. يمكن الإلغاء مجاناً حتى {$hours} ساعة قبل موعد الحجز. ويظل من حقك إثبات عدم وقوع ضرر أو أن الضرر الفعلي أقل بكثير.";
         }
 
-        return "Card guarantee: Nothing is charged now. If you do not show up, after a {$grace}-minute grace period the restaurant may charge liquidated damages of up to {$perGuest} per guest to the verified card. You can cancel free of charge until {$hours} hours before the reservation. You may expressly prove that no loss, or a substantially lower loss, occurred.";
+        return "Nothing is charged now. If you do not show up, after {$grace} minutes the restaurant may charge up to {$perGuest} per guest. Free cancellation until {$hours} hours before the booking. If the actual loss is lower or zero, the charge will be lower or zero.";
     }
 
     private function consentText(array $policy): string
@@ -1016,7 +1016,7 @@ final class PmdReservationGuaranteeService
         $locale = $this->locale((string)$policy['locale']);
 
         if ($locale === 'de') {
-            return 'Ich habe die Kartengarantie und die mögliche Ausfallentschädigung gelesen und stimme der Kartenbestätigung für diese Reservierung zu.';
+            return 'Ich stimme der Kartengarantie und den Bedingungen zu.';
         }
 
         if ($locale === 'tr') {
@@ -1027,7 +1027,7 @@ final class PmdReservationGuaranteeService
             return 'قرأت شروط ضمان البطاقة والتعويض المحتمل عن عدم الحضور وأوافق على التحقق من البطاقة لهذا الحجز.';
         }
 
-        return 'I have read the card-guarantee and possible no-show compensation terms and agree to verify my card for this reservation.';
+        return 'I agree to the card guarantee and its terms.';
     }
 
     private function buttonText(string $locale): string
@@ -1035,7 +1035,7 @@ final class PmdReservationGuaranteeService
         $locale = $this->locale($locale);
 
         if ($locale === 'de') {
-            return 'Verbindlich reservieren – bei Nichterscheinen zahlungspflichtig bis';
+            return 'Reservierung bestätigen – Garantie bis';
         }
         if ($locale === 'tr') {
             return 'Rezervasyonu onayla – olası no-show tazminatı en fazla';
@@ -1044,7 +1044,7 @@ final class PmdReservationGuaranteeService
             return 'تأكيد الحجز – تعويض محتمل لعدم الحضور بحد أقصى';
         }
 
-        return 'Confirm booking – possible no-show charge up to';
+        return 'Confirm booking – guarantee up to';
     }
 
     private function money(int $cents, string $currency, string $locale): string
