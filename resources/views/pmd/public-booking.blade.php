@@ -42,10 +42,10 @@
             'notes_hint' => 'Allergies, accessibility, high chair, seating preference…',
             'consent' => 'I agree that the restaurant may use these contact details to manage this reservation.',
             'guarantee_title' => 'Card guarantee',
-            'guarantee_intro' => 'A card guarantee is required for this booking. Nothing is charged now.',
-            'guarantee_total' => 'Maximum guarantee amount',
+            'guarantee_intro' => 'Secure this reservation with a card. Nothing is charged now.',
+            'guarantee_total' => 'Guarantee limit',
             'guarantee_card' => 'Card details',
-            'guarantee_secure' => 'Securely verified by Stripe. PayMyDine does not store your card details.',
+            'guarantee_secure' => 'Secure card verification by Stripe.',
             'guarantee_unavailable' => 'Card guarantee is temporarily unavailable. Please contact the restaurant.',
             'guarantee_verifying' => 'Verifying card…',
             'guarantee_success' => 'Card guarantee active. Nothing was charged. Maximum guarantee amount:',
@@ -119,10 +119,10 @@
             'notes_hint' => 'Allergien, Barrierefreiheit, Kinderstuhl, Sitzwunsch…',
             'consent' => 'Ich stimme zu, dass das Restaurant diese Kontaktdaten zur Bearbeitung der Reservierung verwenden darf.',
             'guarantee_title' => 'Kartengarantie',
-            'guarantee_intro' => 'Für diese Reservierung ist eine Kartengarantie erforderlich. Jetzt wird nichts abgebucht.',
-            'guarantee_total' => 'Maximaler Garantiebetrag',
+            'guarantee_intro' => 'Reservierung mit Karte absichern. Jetzt wird nichts abgebucht.',
+            'guarantee_total' => 'Garantielimit',
             'guarantee_card' => 'Kartendaten',
-            'guarantee_secure' => 'Sicher über Stripe. PayMyDine speichert Ihre Kartendaten nicht.',
+            'guarantee_secure' => 'Sichere Kartenprüfung über Stripe.',
             'guarantee_unavailable' => 'Die Kartengarantie ist derzeit nicht verfügbar. Bitte kontaktieren Sie das Restaurant.',
             'guarantee_verifying' => 'Karte wird bestätigt…',
             'guarantee_success' => 'Kartengarantie aktiv. Es wurde nichts abgebucht. Maximaler Garantiebetrag:',
@@ -196,10 +196,10 @@
             'notes_hint' => 'Alerji, erişilebilirlik, mama sandalyesi, oturma tercihi…',
             'consent' => 'Restoranın bu iletişim bilgilerini rezervasyonu yönetmek için kullanmasını kabul ediyorum.',
             'guarantee_title' => 'Kart garantisi',
-            'guarantee_intro' => 'Bu rezervasyon için kart garantisi gerekiyor. Şimdi ücret alınmaz.',
-            'guarantee_total' => 'Maksimum garanti tutarı',
+            'guarantee_intro' => 'Bu rezervasyonu kartla güvenceye alın. Şimdi ödeme alınmaz.',
+            'guarantee_total' => 'Garanti limiti',
             'guarantee_card' => 'Kart bilgileri',
-            'guarantee_secure' => 'Stripe ile güvenli doğrulama. PayMyDine kart bilgilerinizi saklamaz.',
+            'guarantee_secure' => 'Stripe ile güvenli kart doğrulaması.',
             'guarantee_unavailable' => 'Kart garantisi şu anda kullanılamıyor. Lütfen restoranla iletişime geçin.',
             'guarantee_verifying' => 'Kart doğrulanıyor…',
             'guarantee_success' => 'Kart garantisi aktif. Ücret alınmadı. Maksimum garanti tutarı:',
@@ -273,10 +273,10 @@
             'notes_hint' => 'الحساسية، سهولة الوصول، كرسي طفل، تفضيل الجلوس…',
             'consent' => 'أوافق على استخدام المطعم لبيانات الاتصال هذه لإدارة الحجز.',
             'guarantee_title' => 'ضمان البطاقة',
-            'guarantee_intro' => 'هذا الحجز يحتاج إلى ضمان بالبطاقة. لن يتم خصم أي مبلغ الآن.',
-            'guarantee_total' => 'الحد الأقصى لمبلغ الضمان',
+            'guarantee_intro' => 'أمّن هذا الحجز بالبطاقة. لن يتم خصم أي مبلغ الآن.',
+            'guarantee_total' => 'حد الضمان',
             'guarantee_card' => 'بيانات البطاقة',
-            'guarantee_secure' => 'تحقق آمن عبر Stripe. لا تخزن PayMyDine بيانات بطاقتك.',
+            'guarantee_secure' => 'تحقق آمن للبطاقة عبر Stripe.',
             'guarantee_unavailable' => 'ضمان البطاقة غير متاح مؤقتاً. يرجى الاتصال بالمطعم.',
             'guarantee_verifying' => 'جارٍ التحقق من البطاقة…',
             'guarantee_success' => 'ضمان البطاقة فعال. لم يتم خصم أي مبلغ. الحد الأقصى لمبلغ الضمان:',
@@ -369,7 +369,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261005-r19">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261006-r20-4">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -711,6 +711,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261005-r19" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261006-r20-4" defer></script>
 </body>
 </html>
