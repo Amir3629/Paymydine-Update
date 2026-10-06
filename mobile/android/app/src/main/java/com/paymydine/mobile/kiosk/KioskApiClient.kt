@@ -183,6 +183,7 @@ class KioskApiClient {
             method = "POST",
             body = JSONObject(),
             token = token,
+            readTimeoutMs = 130_000,
         )
         KioskTerminalPayment(
             attemptId = json.optLong("attempt_id", 0L),
@@ -203,6 +204,7 @@ class KioskApiClient {
             method = "GET",
             body = null,
             token = token,
+            readTimeoutMs = 30_000,
         )
         KioskTerminalPayment(
             attemptId = json.optLong("attempt_id", attemptId),
@@ -327,6 +329,7 @@ class KioskApiClient {
         method: String,
         body: JSONObject?,
         token: String?,
+        readTimeoutMs: Int = 12_000,
     ): JSONObject {
         val normalized = SecureStore.normalizeHost(host)
         val url = URL(
@@ -339,7 +342,7 @@ class KioskApiClient {
             (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = method
                 connectTimeout = 12_000
-                readTimeout = 12_000
+                readTimeout = readTimeoutMs
                 useCaches = false
                 setRequestProperty("Accept", "application/json")
                 setRequestProperty("X-PayMyDine-Kiosk", "1")
