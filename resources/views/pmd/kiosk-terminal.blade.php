@@ -21,9 +21,10 @@
             :root { --pmd-k-hero-image: url({!! json_encode($initialHero, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) !!}); }
         </style>
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=18-terminal-kiosk">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=20-fixed-checkout-dom-stable">
 </head>
 <!-- PMD_KIOSK_TERMINAL_CHECKOUT_V18 -->
+<!-- PMD_KIOSK_PERF_LOCALES_V20 -->
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
     data-pmd-kiosk-terminal="blade-v8"
@@ -136,6 +137,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=13-smooth-scroll" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=20-dom-stable-tenant-locales" defer></script>
 </body>
 </html>

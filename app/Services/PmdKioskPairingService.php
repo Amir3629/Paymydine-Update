@@ -203,6 +203,8 @@ final class PmdKioskPairingService
                 'updated_at' => now(),
             ]);
 
+        $localization = $this->kioskLocalization();
+
         return [
             'ok' => true,
             'protocol' => 'pmd-kiosk-v1',
@@ -215,6 +217,11 @@ final class PmdKioskPairingService
             'restaurant' => (array)($profile['restaurant'] ?? []),
             'theme' => (array)($profile['theme'] ?? []),
             'menu_url' => rtrim($request->getSchemeAndHttpHost(), '/').'/',
+            // PMD_KIOSK_TENANT_LOCALES_V20
+            // Kiosk language choices are owned by the paired tenant/location,
+            // never by a hard-coded Android list. Use the same language settings
+            // as Customer Menu, with framework supported_languages as fallback.
+            'localization' => $localization,
             'service_modes' => [
                 ['id' => 'eat_in', 'label' => 'Dine in'],
                 ['id' => 'pickup', 'label' => 'Take away'],
@@ -228,6 +235,96 @@ final class PmdKioskPairingService
                 'name' => $terminalName ?: null,
             ],
         ];
+    }
+
+    /**
+     * PMD_KIOSK_TENANT_LOCALES_V20
+     * Resolve the guest languages from the active tenant database. The kiosk is
+     * already authenticated to one location, so the current tenant setting store
+     * is authoritative for that device. Customer Menu's explicit enabled-language
+     * list wins; framework supported_languages remains the compatibility fallback.
+     */
+    private function kioskLocalization(): array
+    {
+        $default = $this->normalizeLocaleCode(
+            (string)setting('default_language', 'en')
+        ) ?: 'en';
+
+        $raw = setting('pmd_v2_enabled_languages', null);
+        if ($raw === null || $raw === '' || $raw === []) {
+            $raw = setting('supported_languages', []);
+        }
+
+        $supported = $this->normalizeLocaleList($raw);
+        if (!$supported) {
+            $supported = [$default];
+        }
+        if (!in_array($default, $supported, true)) {
+            array_unshift($supported, $default);
+        }
+
+        return [
+            'default' => $default,
+            'supported' => array_values(array_unique($supported)),
+        ];
+    }
+
+    private function normalizeLocaleList($raw): array
+    {
+        if ($raw instanceof \Illuminate\Support\Collection) {
+            $raw = $raw->all();
+        } elseif ($raw instanceof \Traversable) {
+            $raw = iterator_to_array($raw);
+        }
+
+        if (is_string($raw)) {
+            $trimmed = trim($raw);
+            if ($trimmed === '') {
+                return [];
+            }
+
+            $decoded = json_decode($trimmed, true);
+            if (is_array($decoded)) {
+                $raw = $decoded;
+            } else {
+                $unserialized = @unserialize($trimmed);
+                if (is_array($unserialized)) {
+                    $raw = $unserialized;
+                } else {
+                    $raw = preg_split('/[\\s,;|]+/', $trimmed) ?: [];
+                }
+            }
+        } elseif (!is_array($raw)) {
+            $raw = [$raw];
+        }
+
+        $out = [];
+        foreach ($raw as $key => $value) {
+            if (is_bool($value) && is_string($key)) {
+                $candidate = $value ? $key : '';
+            } else {
+                $candidate = is_scalar($value) ? (string)$value : '';
+            }
+
+            $code = $this->normalizeLocaleCode($candidate);
+            if ($code !== '' && !in_array($code, $out, true)) {
+                $out[] = $code;
+            }
+        }
+
+        return $out;
+    }
+
+    private function normalizeLocaleCode(string $value): string
+    {
+        $value = strtolower(trim($value));
+        if ($value === '') {
+            return '';
+        }
+
+        $parts = preg_split('/[-_]/', $value) ?: [];
+        $code = preg_replace('/[^a-z]/', '', (string)($parts[0] ?? ''));
+        return strlen($code) >= 2 && strlen($code) <= 3 ? $code : '';
     }
 
     public function authenticate(Request $request)

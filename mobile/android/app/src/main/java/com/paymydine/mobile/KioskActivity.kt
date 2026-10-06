@@ -46,6 +46,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -216,14 +218,9 @@ private fun KioskApp(
     var heroImages by remember { mutableStateOf<List<String>>(emptyList()) }
     var menuBootstrapReady by remember { mutableStateOf(false) }
     var menuOpening by remember { mutableStateOf(false) }
-    var selectedLocale by remember {
-        mutableStateOf(
-            Locale.getDefault().language
-                .lowercase()
-                .takeIf { it in listOf("de", "en", "tr", "fa") }
-                ?: "de",
-        )
-    }
+    // PMD_KIOSK_TENANT_LOCALES_V20
+    // Locale is resolved only after the paired tenant profile arrives.
+    var selectedLocale by remember { mutableStateOf("") }
     var serviceMode by remember { mutableStateOf("eat_in") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
@@ -244,7 +241,25 @@ private fun KioskApp(
         }
 
         try {
-            profile = api.state(host, token)
+            val loadedProfile = api.state(host, token)
+            profile = loadedProfile
+
+            val allowedLocales = loadedProfile.supportedLocales.ifEmpty {
+                listOf(loadedProfile.defaultLocale.ifBlank { "en" })
+            }
+            if (selectedLocale !in allowedLocales) {
+                val deviceLocale = Locale.getDefault().language
+                    .trim()
+                    .lowercase()
+                    .substringBefore("-")
+                    .substringBefore("_")
+                selectedLocale = when {
+                    deviceLocale in allowedLocales -> deviceLocale
+                    loadedProfile.defaultLocale in allowedLocales -> loadedProfile.defaultLocale
+                    else -> allowedLocales.first()
+                }
+            }
+
             error = null
             if (screen == KioskScreen.LOADING) {
                 // PMD_KIOSK_INSTANT_WELCOME_V12
@@ -253,12 +268,15 @@ private fun KioskApp(
                 // independently on the next suspension.
                 screen = KioskScreen.WELCOME
             }
-            val heroResult = runCatching { api.heroImages(host) }
-            if (heroResult.isSuccess) {
-                heroImages = heroResult.getOrDefault(emptyList())
-                menuBootstrapReady = true
-            } else {
-                menuBootstrapReady = false
+            // PMD_KIOSK_LIGHT_BOOTSTRAP_V20
+            // Do not redownload the full menu bootstrap on every 15-second
+            // device-state heartbeat. The first successful snapshot stays warm.
+            if (!menuBootstrapReady) {
+                val heroResult = runCatching { api.heroImages(host) }
+                if (heroResult.isSuccess) {
+                    heroImages = heroResult.getOrDefault(emptyList())
+                    menuBootstrapReady = true
+                }
             }
         } catch (t: Throwable) {
             error = t.message ?: "Kiosk connection is unavailable."
@@ -317,6 +335,12 @@ private fun KioskApp(
             heroImage = hero,
             locale = selectedLocale,
         )
+
+        // PMD_KIOSK_STAGGERED_PREWARM_V20
+        // Two Chromium pre-renders starting in the same frame can stall the
+        // welcome screen on lower-end devices/emulators. Warm the second mode
+        // shortly after the first while the guest is still choosing.
+        delay(420L)
         KioskMenuWarmPool.prewarm(
             context = context,
             profile = current,
@@ -447,6 +471,7 @@ private fun KioskApp(
                 profile = current,
                 heroImages = heroImages,
                 locale = selectedLocale,
+                supportedLocales = current.supportedLocales,
                 onLocaleChange = { selectedLocale = it },
                 onEatHere = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
@@ -674,6 +699,7 @@ private fun KioskWelcomeScreen(
     profile: KioskProfile,
     heroImages: List<String>,
     locale: String,
+    supportedLocales: List<String>,
     onLocaleChange: (String) -> Unit,
     onEatHere: () -> Unit,
     onTakeAway: () -> Unit,
@@ -697,12 +723,9 @@ private fun KioskWelcomeScreen(
         profile.menuUrl,
         "/public/assets/pmd/kiosk-hero/take-away.png",
     )
-    val dineInTitle = when (locale) {
-        "de" -> "HIER ESSEN"
-        "tr" -> "BURADA YE"
-        "fa" -> "صرف در رستوران"
-        else -> "DINE IN"
-    }
+    // PMD_KIOSK_DINE_IN_LABEL_V20
+    // Product wording is intentionally identical in German and English.
+    val dineInTitle = "DINE IN"
     val takeAwayTitle = when (locale) {
         "de" -> "MITNEHMEN"
         "tr" -> "PAKET"
@@ -729,20 +752,13 @@ private fun KioskWelcomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
             ) {
-                TextButton(
-                    onClick = {
-                        val locales = listOf("de", "en", "tr", "fa")
-                        val current = locales.indexOf(locale).takeIf { it >= 0 } ?: 0
-                        onLocaleChange(locales[(current + 1) % locales.size])
-                    },
-                ) {
-                    Text(
-                        locale.uppercase() + "  ▾",
-                        color = text,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Black,
-                    )
-                }
+                KioskLanguageMenu(
+                    locale = locale,
+                    supportedLocales = supportedLocales,
+                    text = text,
+                    surface = surface,
+                    onLocaleChange = onLocaleChange,
+                )
             }
             Spacer(Modifier.height(8.dp))
 
@@ -836,6 +852,58 @@ private fun KioskWelcomeScreen(
 }
 
 @Composable
+private fun KioskLanguageMenu(
+    locale: String,
+    supportedLocales: List<String>,
+    text: Color,
+    surface: Color,
+    onLocaleChange: (String) -> Unit,
+) {
+    val locales = supportedLocales
+        .map { it.trim().lowercase().substringBefore("-").substringBefore("_") }
+        .filter { it.matches(Regex("^[a-z]{2,3}$")) }
+        .distinct()
+        .ifEmpty { listOf("en") }
+    var expanded by remember { mutableStateOf(false) }
+    val active = locale.takeIf { it in locales } ?: locales.first()
+
+    Box {
+        TextButton(
+            onClick = { if (locales.size > 1) expanded = true },
+        ) {
+            Text(
+                active.uppercase(Locale.ROOT) + if (locales.size > 1) "  ▾" else "",
+                color = text,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Black,
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = surface,
+        ) {
+            locales.forEach { code ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            code.uppercase(Locale.ROOT),
+                            color = text,
+                            fontWeight = if (code == active) FontWeight.Black else FontWeight.Medium,
+                        )
+                    },
+                    onClick = {
+                        expanded = false
+                        onLocaleChange(code)
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun KioskModeButton(
     title: String,
     imageUrl: String,
@@ -865,6 +933,10 @@ private fun KioskModeButton(
                     modifier = Modifier
                         .weight(0.46f)
                         .fillMaxHeight()
+                        // PMD_KIOSK_SERVICE_ARTWORK_SHADOW_V20
+                        // Exact rollback to the V16/V17 service-artwork treatment:
+                        // the image itself stays crisp while its right edge fades
+                        // softly into the card surface.
                         .clip(RoundedCornerShape(18.dp)),
                 ) {
                     KioskRemoteImage(
@@ -881,13 +953,13 @@ private fun KioskModeButton(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .fillMaxHeight()
-                            .width(30.dp)
+                            .width(52.dp)
                             .background(
                                 Brush.horizontalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        background.copy(alpha = 0.18f),
-                                        background.copy(alpha = 0.72f),
+                                        background.copy(alpha = 0.55f),
+                                        background,
                                     ),
                                 ),
                             ),

@@ -23,6 +23,9 @@ data class KioskProfile(
     val theme: DisplayTheme,
     val menuUrl: String,
     val idleTimeoutSeconds: Long,
+    // PMD_KIOSK_TENANT_LOCALES_V20
+    val supportedLocales: List<String>,
+    val defaultLocale: String,
 )
 
 /**
@@ -131,6 +134,31 @@ class KioskApiClient {
         val theme = json.optJSONObject("theme") ?: JSONObject()
         val restaurantLogo = restaurant.optString("logo", "").trim()
 
+        // PMD_KIOSK_TENANT_LOCALES_V20
+        // The paired tenant/location is the language authority. Never expose a
+        // global hard-coded kiosk language list to the guest.
+        val localization = json.optJSONObject("localization") ?: JSONObject()
+        val supportedLocales = buildList {
+            val raw = localization.optJSONArray("supported") ?: JSONArray()
+            for (index in 0 until raw.length()) {
+                val code = raw.optString(index, "")
+                    .trim()
+                    .lowercase()
+                    .substringBefore("-")
+                    .substringBefore("_")
+                    .replace(Regex("[^a-z]"), "")
+                if (code.length in 2..3 && code !in this) add(code)
+            }
+        }.ifEmpty { listOf("en") }
+        val defaultLocale = localization.optString("default", supportedLocales.first())
+            .trim()
+            .lowercase()
+            .substringBefore("-")
+            .substringBefore("_")
+            .replace(Regex("[^a-z]"), "")
+            .takeIf { it in supportedLocales }
+            ?: supportedLocales.first()
+
         KioskProfile(
             restaurantName = restaurant.optString("name", "PayMyDine"),
             restaurantLogoUrl =
@@ -154,6 +182,8 @@ class KioskApiClient {
             ),
             idleTimeoutSeconds = json.optLong("idle_timeout_seconds", 120L)
                 .coerceIn(45L, 600L),
+            supportedLocales = supportedLocales,
+            defaultLocale = defaultLocale,
         )
     }
 
