@@ -317,6 +317,16 @@
                                     </div>
                                 @endforeach
                             </div>
+                            <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
+                                <button
+                                    type="button"
+                                    class="pmd-owner-action"
+                                    data-request="onTestReservationGuaranteeProvider"
+                                    data-request-form="#pmd-finance-form"
+                                    data-request-flash
+                                >{{ $pmdSettingsText('Test guarantee provider readiness') }}</button>
+                                <span id="pmd-guarantee-provider-test-status"></span>
+                            </div>
                         </div>
                     </div>
 
