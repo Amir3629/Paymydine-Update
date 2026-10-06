@@ -1813,3 +1813,275 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
     height: calc(100% - 154px);
   }
 }
+
+
+/* PMD_KIOSK_TERMINAL_CHECKOUT_V18
+ * Kiosk is a continuous category feed with a single physical-terminal checkout.
+ * These overrides deliberately remove heavyweight modal/blur effects from the
+ * payment path and make touch targets/readability larger on kiosk displays.
+ */
+.pmd-kiosk-grid {
+  display: block !important;
+  min-width: 0;
+}
+
+.pmd-kiosk-category-section {
+  scroll-margin-top: 176px;
+  margin: 0 0 34px;
+}
+
+.pmd-kiosk-category-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px 14px;
+}
+
+.pmd-kiosk-category-section__head h2 {
+  margin: 0;
+  color: var(--pmd-k-ink);
+  font-size: clamp(25px, 3.2vw, 34px);
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: -.035em;
+}
+
+.pmd-kiosk-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.pmd-kiosk-item__copy h2 {
+  font-size: clamp(20px, 2.5vw, 27px) !important;
+  line-height: 1.13 !important;
+}
+
+.pmd-kiosk-item__copy p {
+  font-size: clamp(14px, 1.7vw, 17px) !important;
+  line-height: 1.42 !important;
+}
+
+.pmd-kiosk-item__price {
+  font-size: clamp(22px, 2.8vw, 29px) !important;
+  font-weight: 900 !important;
+}
+
+.pmd-kiosk-add--icon {
+  width: 58px !important;
+  min-width: 58px !important;
+  height: 58px !important;
+  min-height: 58px !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center;
+  border-radius: 18px !important;
+  font-size: 35px !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+}
+
+.pmd-kiosk-category-button {
+  font-size: 16px !important;
+  min-height: 54px;
+}
+
+.pmd-kiosk-primary,
+.pmd-kiosk-compact-order {
+  position: relative;
+  overflow: hidden;
+}
+
+.pmd-kiosk-primary.is-live::after,
+.pmd-kiosk-compact-order.is-live::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: -30%;
+  bottom: -30%;
+  left: -36%;
+  width: 24%;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    rgba(255,255,255,0),
+    rgba(255,255,255,.12) 35%,
+    rgba(255,255,255,.72) 50%,
+    rgba(255,255,255,.12) 65%,
+    rgba(255,255,255,0)
+  );
+  transform: skewX(-18deg);
+  animation: pmd-kiosk-checkout-shine-v18 3s ease-in-out infinite;
+}
+
+@keyframes pmd-kiosk-checkout-shine-v18 {
+  0%, 62% { left: -36%; opacity: 0; }
+  68% { opacity: .92; }
+  88% { left: 118%; opacity: .92; }
+  100% { left: 118%; opacity: 0; }
+}
+
+.pmd-kiosk-compact-order {
+  font-size: 18px !important;
+  font-weight: 900 !important;
+}
+
+.pmd-kiosk-payment-screen {
+  padding: 0 !important;
+  place-items: stretch !important;
+  background: var(--pmd-k-bg) !important;
+}
+
+.pmd-kiosk-payment-screen .pmd-kiosk-modal-backdrop {
+  display: none !important;
+  backdrop-filter: none !important;
+}
+
+.pmd-kiosk-payment-screen .pmd-kiosk-modal,
+.pmd-kiosk-payment-screen .pmd-kiosk-modal--wide {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--pmd-k-panel) !important;
+}
+
+.pmd-kiosk-checkout-screen__head {
+  padding: 28px 30px 22px !important;
+}
+
+.pmd-kiosk-checkout-screen__head p {
+  font-size: 12px !important;
+}
+
+.pmd-kiosk-checkout-screen__head h2 {
+  font-size: clamp(31px, 4vw, 44px) !important;
+}
+
+.pmd-kiosk-checkout-screen__body {
+  padding: 26px 30px 42px !important;
+  font-size: 17px;
+}
+
+.pmd-kiosk-payment-screen .pmd-kiosk-review-line {
+  font-size: 18px !important;
+  padding-block: 16px !important;
+}
+
+.pmd-kiosk-payment-screen .pmd-kiosk-checkout-totals {
+  font-size: 18px !important;
+}
+
+.pmd-kiosk-terminal-pay-panel {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 28px 0 18px;
+  padding: 22px;
+  border: 1px solid var(--pmd-k-line);
+  border-radius: 20px;
+  background: var(--pmd-k-panel-soft);
+}
+
+.pmd-kiosk-terminal-pay-panel__icon {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  background: var(--pmd-k-accent-soft);
+  color: var(--pmd-k-accent);
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.pmd-kiosk-terminal-pay-panel h3 {
+  margin: 0;
+  color: var(--pmd-k-ink);
+  font-size: 23px;
+  font-weight: 900;
+}
+
+.pmd-kiosk-terminal-pay-panel p {
+  margin: 5px 0 0;
+  color: var(--pmd-k-muted);
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.pmd-kiosk-terminal-pay {
+  width: 100%;
+  min-height: 78px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--pmd-k-accent);
+  color: var(--pmd-k-accent-contrast);
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: .06em;
+  box-shadow: none;
+}
+
+.pmd-kiosk-terminal-pay:disabled {
+  opacity: .62;
+}
+
+.pmd-kiosk-terminal-help {
+  margin: 12px 0 0;
+  color: var(--pmd-k-muted);
+  font-size: 15px;
+  text-align: center;
+}
+
+.pmd-kiosk-payment-screen .pmd-kiosk-payment-methods,
+.pmd-kiosk-payment-screen .pmd-kiosk-tip-options,
+.pmd-kiosk-payment-screen .pmd-kiosk-coupon {
+  display: none !important;
+}
+
+/* Keep scroll paint cheap: no blur/shadow on the continuously moving menu. */
+.pmd-kiosk-item,
+.pmd-kiosk-category-section,
+.pmd-kiosk-category-grid {
+  box-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-width: 760px) {
+  .pmd-kiosk-category-grid {
+    gap: 14px;
+  }
+
+  .pmd-kiosk-category-section {
+    scroll-margin-top: 150px;
+    margin-bottom: 28px;
+  }
+
+  .pmd-kiosk-item__copy h2 {
+    font-size: 19px !important;
+  }
+
+  .pmd-kiosk-item__copy p {
+    font-size: 14px !important;
+  }
+
+  .pmd-kiosk-item__price {
+    font-size: 21px !important;
+  }
+
+  .pmd-kiosk-add--icon {
+    width: 54px !important;
+    min-width: 54px !important;
+    height: 54px !important;
+    min-height: 54px !important;
+  }
+
+  .pmd-kiosk-checkout-screen__body {
+    padding: 22px 24px 36px !important;
+  }
+}
