@@ -166,13 +166,10 @@ class Pmdadvanced extends AdminController
             'default_reservation_status' => (int)($clean['default_reservation_status'] ?? 0),
             'confirmed_reservation_status' => (int)($clean['confirmed_reservation_status'] ?? 0),
             'canceled_reservation_status' => (int)($clean['canceled_reservation_status'] ?? 0),
-            'no_show_reservation_status' => (int)($clean['no_show_reservation_status'] ?? 0),
-            'reservation_guarantee_enabled' => !empty($input['reservation_guarantee_enabled']) ? 1 : 0,
-            'reservation_guarantee_min_guests' => (int)($clean['reservation_guarantee_min_guests'] ?? 6),
-            'reservation_guarantee_amount_cents' => (int)round(((float)($clean['reservation_guarantee_amount_eur'] ?? 0)) * 100),
-            'reservation_guarantee_free_cancel_hours' => (int)($clean['reservation_guarantee_free_cancel_hours'] ?? 24),
-            'reservation_guarantee_grace_minutes' => (int)($clean['reservation_guarantee_grace_minutes'] ?? 15),
-            'reservation_guarantee_terms_version' => trim((string)($clean['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01')),
+            // PMD_RESERVATION_GUARANTEE_FINANCE_AUTHORITY_R20
+            // no_show_reservation_status and reservation_guarantee_* are now
+            // owned exclusively by Payments & finance. Do not overwrite them
+            // when an unrelated Advanced setting is saved.
             'admin_after_save_action' => (string)($clean['admin_after_save_action'] ?? 'continue'),
             'note_suggestion_sentences' => $suggestions,
             'kds_notification_sound' => trim((string)($clean['kds_notification_sound'] ?? '')),
