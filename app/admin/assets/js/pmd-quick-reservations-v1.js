@@ -2180,9 +2180,9 @@
           guaranteeButton.getAttribute('data-qres-guarantee-currency') || 'EUR'
         ).toUpperCase();
         var entered = window.prompt(
-          'No-show compensation in ' + currency + ' (maximum ' +
-            (maxCents / 100).toFixed(2) + ' ' + currency + ')',
-          (maxCents / 100).toFixed(2)
+          'Actual no-show compensation in ' + currency + ' (maximum ' +
+            (maxCents / 100).toFixed(2) + ' ' + currency + '). Enter only the actual loss you can justify.',
+          ''
         );
         if (entered === null) return;
 
@@ -2198,11 +2198,23 @@
           amountCents < 1 ||
           amountCents > maxCents
         ) {
-          toast('Enter an amount between 0.01 and the agreed maximum.');
+          toast('Enter an amount between 0.01 and the agreed maximum. If there is no compensable loss, release the card instead.');
+          return;
+        }
+
+        var lossNote = window.prompt(
+          'Briefly record the actual loss basis (for example: reserved table remained empty, could not be refilled, prepared fixed-menu costs, or another concrete loss).',
+          ''
+        );
+        if (lossNote === null) return;
+        lossNote = String(lossNote).trim();
+        if (lossNote.length < 5 || lossNote.length > 2000) {
+          toast('Add a short loss assessment before charging (5–2000 characters).');
           return;
         }
 
         guaranteePayload.amount_cents = amountCents;
+        guaranteePayload.loss_assessment_note = lossNote;
       } else if (!window.confirm(
         'Release the card guarantee? No later no-show charge will be possible.'
       )) {

@@ -12,6 +12,9 @@
     $providers = $data['providers'] ?? collect();
     $settings = $data['settings'] ?? [];
     $fiskaly = $data['fiskaly'] ?? [];
+    $guaranteeProviders = (array)($data['guarantee_providers'] ?? []);
+    $reservationStatuses = (array)($data['reservation_statuses'] ?? []);
+    $guaranteeSelected = strtolower((string)($settings['reservation_guarantee_provider'] ?? 'stripe'));
     $checked = fn($value) => !in_array(strtolower((string)$value), ['0','false','off','no',''], true);
 
     $marketCountry = strtoupper((string)($data['market']['country_code'] ?? ''));
@@ -166,6 +169,185 @@
                                 <div class="pmd-owner-empty">{{ $pmdSettingsText('No payment methods are available yet.') }}</div>
                             @endforelse
                         @endif
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="pmd-owner-section" id="reservation-guarantee">
+            <div class="pmd-owner-card" data-accent="orange">
+                <div class="pmd-owner-card__header">
+                    <div class="pmd-owner-card__icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18M7 15h4M16 15h1"></path></svg></div>
+                    <div class="pmd-owner-card__title">
+                        <h2>{{ $pmdSettingsText('Reservation card guarantee & no-show protection') }}</h2>
+                        <p>{{ $pmdSettingsText('Control when a reservation needs a saved payment method, which provider is allowed to hold it, and the maximum compensation the guest accepts before booking.') }}</p>
+                    </div>
+                    <div class="pmd-owner-card__actions">
+                        <span class="pmd-owner-status {{ $checked($settings['reservation_guarantee_enabled'] ?? 0) ? 'is-active' : '' }}">{{ $pmdSettingsText($checked($settings['reservation_guarantee_enabled'] ?? 0) ? 'Enabled' : 'Disabled') }}</span>
+                    </div>
+                </div>
+
+                <div class="pmd-owner-card__body">
+                    <div class="pmd-owner-setting-row">
+                        <div class="pmd-owner-setting-copy">
+                            <strong>{{ $pmdSettingsText('Require a card / payment-method guarantee') }}</strong>
+                            <small>{{ $pmdSettingsText('Nothing is charged when the booking is created. The guest approves storage of a provider token for a possible later no-show charge.') }}</small>
+                        </div>
+                        <label class="pmd-owner-switch">
+                            <input type="checkbox" name="finance[reservation_guarantee_enabled]" value="1" {{ $checked($settings['reservation_guarantee_enabled'] ?? 0) ? 'checked' : '' }}>
+                            <span></span>
+                        </label>
+                    </div>
+
+                    <div class="pmd-owner-grid">
+                        <div class="pmd-owner-panel">
+                            <h3>{{ $pmdSettingsText('Policy') }}</h3>
+                            <div class="pmd-owner-form-grid">
+                                <div class="pmd-owner-field pmd-owner-field--full">
+                                    <label>{{ $pmdSettingsText('Guarantee payment provider') }}</label>
+                                    <select name="finance[reservation_guarantee_provider]">
+                                        @foreach($guaranteeProviders as $code => $provider)
+                                            @php
+                                                $marketOk = !empty($provider['market_available']);
+                                                $adapterReady = !empty($provider['adapter_ready']);
+                                                $providerReady = !empty($provider['provider_enabled']) && !empty($provider['credentials_ready']);
+                                                $selectable = $marketOk;
+                                                $suffix = $adapterReady
+                                                    ? ($providerReady ? ' · Ready' : ' · Configure provider first')
+                                                    : ' · Adapter pending';
+                                            @endphp
+                                            <option
+                                                value="{{ $code }}"
+                                                {{ $guaranteeSelected === (string)$code ? 'selected' : '' }}
+                                                {{ !$marketOk && $guaranteeSelected !== (string)$code ? 'disabled' : '' }}
+                                            >{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}{{ $suffix }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small>{{ $pmdSettingsText('A PSP can support ordinary checkout and still not be ready for saved-credential no-show charging. PayMyDine only enables providers with a verified reservation-guarantee adapter.') }}</small>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('Apply from party size') }}</label>
+                                    <input type="number" min="1" max="100" name="finance[reservation_guarantee_min_guests]" value="{{ $settings['reservation_guarantee_min_guests'] ?? 6 }}">
+                                    <small>{{ $pmdSettingsText('Example: 6 means parties of 6 or more need the guarantee.') }}</small>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('Maximum no-show compensation per guest (€)') }}</label>
+                                    <input type="number" min="0" max="10000" step="0.01" name="finance[reservation_guarantee_amount_eur]" value="{{ $settings['reservation_guarantee_amount_eur'] ?? '0.00' }}">
+                                    <small>{{ $pmdSettingsText('This is a ceiling accepted by the guest, not an amount that PayMyDine automatically charges.') }}</small>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('Free cancellation until') }}</label>
+                                    <input type="number" min="1" max="336" name="finance[reservation_guarantee_free_cancel_hours]" value="{{ $settings['reservation_guarantee_free_cancel_hours'] ?? 24 }}">
+                                    <small>{{ $pmdSettingsText('Hours before the reservation start. Default: 24 hours.') }}</small>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('No-show grace period') }}</label>
+                                    <input type="number" min="0" max="180" name="finance[reservation_guarantee_grace_minutes]" value="{{ $settings['reservation_guarantee_grace_minutes'] ?? 15 }}">
+                                    <small>{{ $pmdSettingsText('Minutes after the reservation time before staff may assess a no-show charge.') }}</small>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('No-show reservation status') }}</label>
+                                    <select name="finance[no_show_reservation_status]">
+                                        <option value="0">— {{ $pmdSettingsText('Keep current status') }} —</option>
+                                        @foreach($reservationStatuses as $id => $name)
+                                            <option value="{{ $id }}" {{ (int)($settings['no_show_reservation_status'] ?? 0) === (int)$id ? 'selected' : '' }}>{{ $name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('Policy / terms version') }}</label>
+                                    <input type="text" maxlength="64" name="finance[reservation_guarantee_terms_version]" value="{{ $settings['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01' }}">
+                                    <small>{{ $pmdSettingsText('The exact accepted terms and this version are stored with every guaranteed reservation.') }}</small>
+                                </div>
+                            </div>
+
+                            <div class="pmd-owner-setting-row">
+                                <div class="pmd-owner-setting-copy">
+                                    <strong>{{ $pmdSettingsText('Email guarantee confirmation') }}</strong>
+                                    <small>{{ $pmdSettingsText('Send the guest the exact accepted guarantee amount, cancellation deadline, terms and Manage Booking link on a durable email record.') }}</small>
+                                </div>
+                                <label class="pmd-owner-switch">
+                                    <input type="checkbox" name="finance[reservation_guarantee_send_confirmation_email]" value="1" {{ $checked($settings['reservation_guarantee_send_confirmation_email'] ?? 1) ? 'checked' : '' }}>
+                                    <span></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="pmd-owner-panel">
+                            <h3>{{ $pmdSettingsText('Provider readiness') }}</h3>
+                            <p class="pmd-provider-section-note">{{ $pmdSettingsText('Provider capability and PayMyDine implementation are shown separately. Unsupported adapters remain visible for planning but cannot be enabled for real guarantees.') }}</p>
+
+                            <div class="pmd-owner-list">
+                                @foreach($guaranteeProviders as $code => $provider)
+                                    @php
+                                        $adapterReady = !empty($provider['adapter_ready']);
+                                        $providerEnabled = !empty($provider['provider_enabled']);
+                                        $credentialsReady = !empty($provider['credentials_ready']);
+                                        $marketOk = !empty($provider['market_available']);
+                                        $fullyReady = $adapterReady && $providerEnabled && $credentialsReady && $marketOk;
+                                    @endphp
+                                    <div class="pmd-owner-list-row">
+                                        <div>
+                                            <strong>{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}</strong>
+                                            <small>{{ $provider['flow'] ?? '' }}{{ !empty($provider['note']) ? ' · '.$provider['note'] : '' }}</small>
+                                        </div>
+                                        <div class="pmd-owner-meta">{{ strtoupper((string)($provider['mode'] ?? '—')) }}</div>
+                                        <div class="pmd-owner-status {{ $fullyReady ? 'is-active' : '' }}">
+                                            @if(!$marketOk)
+                                                {{ $pmdSettingsText('Not in this market') }}
+                                            @elseif(!$adapterReady)
+                                                {{ $pmdSettingsText('Adapter pending') }}
+                                            @elseif(!$providerEnabled)
+                                                {{ $pmdSettingsText('Provider disabled') }}
+                                            @elseif(!$credentialsReady)
+                                                {{ $pmdSettingsText('Credentials incomplete') }}
+                                            @else
+                                                {{ $pmdSettingsText('Ready for guarantees') }}
+                                            @endif
+                                        </div>
+                                        @if($marketOk)
+                                            <a class="pmd-owner-action" href="#payment-providers">{{ $pmdSettingsText('Provider setup') }}</a>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                            <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
+                                <button
+                                    type="button"
+                                    class="pmd-owner-action"
+                                    data-request="onTestReservationGuaranteeProvider"
+                                    data-request-form="#pmd-finance-form"
+                                    data-request-flash
+                                >{{ $pmdSettingsText('Test guarantee provider readiness') }}</button>
+                                <span id="pmd-guarantee-provider-test-status"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pmd-owner-divider"></div>
+
+                    <div class="pmd-owner-grid">
+                        <div class="pmd-owner-panel">
+                            <h3>{{ $pmdSettingsText('What happens for one specific no-show?') }}</h3>
+                            <p class="pmd-provider-section-note">{{ $pmdSettingsText('The maximum above is never auto-charged. After the grace period, an authorized staff member opens that reservation, chooses “No-show & charge”, and enters the actual compensation for that case. PayMyDine rejects anything above the guest-approved maximum.') }}</p>
+                            <p class="pmd-provider-section-note">{{ $pmdSettingsText('If the table was refilled, the restaurant suffered no compensable loss, or staff decides not to charge, use “Release card”. Occupancy can later assist the decision, but it must not silently invent a legal loss amount.') }}</p>
+                        </div>
+
+                        <div class="pmd-owner-panel">
+                            <h3>{{ $pmdSettingsText('Safety rules') }}</h3>
+                            <div class="pmd-owner-list">
+                                <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('No charge at booking') }}</strong><small>{{ $pmdSettingsText('Only the payment credential is verified and tokenized by the selected provider.') }}</small></div><span class="pmd-owner-status is-active">€0</span></div>
+                                <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('Manual no-show decision') }}</strong><small>{{ $pmdSettingsText('A staff member with payment permission must explicitly start the charge after the grace period.') }}</small></div><span class="pmd-owner-status is-active">{{ $pmdSettingsText('Required') }}</span></div>
+                                <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('Canceled booking protection') }}</strong><small>{{ $pmdSettingsText('Canceled reservations cannot be charged as a no-show.') }}</small></div><span class="pmd-owner-status is-active">{{ $pmdSettingsText('Blocked') }}</span></div>
+                                <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('Issuer authentication failure') }}</strong><small>{{ $pmdSettingsText('If the bank requires the guest again, PayMyDine records Action required / Charge failed and never pretends the money was collected.') }}</small></div><span class="pmd-owner-status">{{ $pmdSettingsText('Fail closed') }}</span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

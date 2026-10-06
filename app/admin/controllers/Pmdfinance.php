@@ -9,6 +9,7 @@ use Admin\Facades\Template;
 use Admin\Models\Payments_model;
 use App\Services\Platform\CountryPlatformProfileRegistry;
 use App\Services\Platform\LocationPlatformContext;
+use App\Services\Reservations\PmdReservationGuaranteeProviderRegistry;
 use App\Services\Turkey\TurkeyIntegrationConfigurationService;
 use App\Services\Turkey\TurkeyPaymentMethodService;
 use App\Services\Turkey\TurkeyReadinessService;
@@ -127,6 +128,17 @@ class Pmdfinance extends AdminController
                 ->all();
         }
 
+        // PMD_RESERVATION_GUARANTEE_FINANCE_R20
+        // Ordinary checkout compatibility is not enough for a reservation
+        // guarantee. The registry exposes PSP capability, PMD adapter readiness
+        // and live credential readiness separately so this page fails closed.
+        $guaranteeRegistry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $guaranteeProviders = $guaranteeRegistry->all();
+        foreach ($guaranteeProviders as $code => &$guaranteeProvider) {
+            $guaranteeProvider['market_available'] = in_array((string)$code, $providerCodes, true);
+        }
+        unset($guaranteeProvider);
+
         $turkey = null;
         if ($countryCode === CountryPlatformProfileRegistry::TURKEY) {
             try {
@@ -147,6 +159,8 @@ class Pmdfinance extends AdminController
             'provider_fields' => $this->inlineProviderFields(),
             'provider_secret_fields' => $this->inlineProviderSecretFields(),
             'settings' => $this->financeSettings(),
+            'guarantee_providers' => $guaranteeProviders,
+            'reservation_statuses' => $this->statusOptions('reserve'),
             'fiskaly' => $countryCode === CountryPlatformProfileRegistry::GERMANY ? $this->fiskalyPayload() : [],
             'turkey' => $turkey,
             'vr_terminal_inventory' => $this->vrTerminalInventory(),
@@ -175,6 +189,13 @@ class Pmdfinance extends AdminController
             'invoice_font_size_preset' => ['nullable', 'in:small,normal'],
             'invoice_logo' => ['nullable', 'string', 'max:500'],
             'invoice_print_hint' => ['nullable', 'string', 'max:1500'],
+            'reservation_guarantee_provider' => ['nullable', 'in:stripe,vr_payment,worldline,sumup,square,paypal'],
+            'reservation_guarantee_min_guests' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'reservation_guarantee_amount_eur' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'reservation_guarantee_free_cancel_hours' => ['nullable', 'integer', 'min:1', 'max:336'],
+            'reservation_guarantee_grace_minutes' => ['nullable', 'integer', 'min:0', 'max:180'],
+            'reservation_guarantee_terms_version' => ['nullable', 'string', 'max:64'],
+            'no_show_reservation_status' => ['nullable', 'integer', 'min:0'],
             'fiskaly_environment' => ['nullable', 'in:test,live'],
             'fiskaly_api_key' => ['nullable', 'string', 'max:4096'],
             'fiskaly_api_secret' => ['nullable', 'string', 'max:4096'],
@@ -192,6 +213,37 @@ class Pmdfinance extends AdminController
 
         $clean = $validator->validated();
         $countryCode = $this->currentCountryCode();
+
+        $guaranteeProvider = strtolower(trim((string)($clean['reservation_guarantee_provider'] ?? 'stripe')));
+        $guaranteeEnabled = !empty($input['reservation_guarantee_enabled']);
+        $guaranteeAmountCents = (int)round(((float)($clean['reservation_guarantee_amount_eur'] ?? 0)) * 100);
+
+        if ($guaranteeEnabled) {
+            if ($guaranteeAmountCents < 1) {
+                throw ValidationException::withMessages([
+                    'finance.reservation_guarantee_amount_eur' => 'Set a maximum no-show compensation above 0 before enabling Card Guarantee.',
+                ]);
+            }
+
+            $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+            $allowedGuaranteeProviders = match ($countryCode) {
+                CountryPlatformProfileRegistry::GERMANY => ['stripe', 'paypal', 'sumup', 'vr_payment', 'worldline'],
+                CountryPlatformProfileRegistry::CANADA => ['square'],
+                default => [],
+            };
+
+            if (!in_array($guaranteeProvider, $allowedGuaranteeProviders, true)) {
+                throw ValidationException::withMessages([
+                    'finance.reservation_guarantee_provider' => 'The selected guarantee provider is not available for this restaurant market.',
+                ]);
+            }
+
+            if (!$registry->canEnable($guaranteeProvider)) {
+                throw ValidationException::withMessages([
+                    'finance.reservation_guarantee_provider' => $registry->assertionMessage($guaranteeProvider),
+                ]);
+            }
+        }
 
         $values = [
             'tax_mode' => !empty($input['tax_mode']) ? 1 : 0,
@@ -213,6 +265,15 @@ class Pmdfinance extends AdminController
             'invoice_auto_print_dialog' => !empty($input['invoice_auto_print_dialog']) ? 1 : 0,
             'invoice_auto_print_after_paid' => !empty($input['invoice_auto_print_after_paid']) ? 1 : 0,
             'invoice_print_hint' => trim((string)($clean['invoice_print_hint'] ?? '')),
+            'reservation_guarantee_enabled' => $guaranteeEnabled ? 1 : 0,
+            'reservation_guarantee_provider' => $guaranteeProvider,
+            'reservation_guarantee_min_guests' => (int)($clean['reservation_guarantee_min_guests'] ?? 6),
+            'reservation_guarantee_amount_cents' => max(0, $guaranteeAmountCents),
+            'reservation_guarantee_free_cancel_hours' => (int)($clean['reservation_guarantee_free_cancel_hours'] ?? 24),
+            'reservation_guarantee_grace_minutes' => (int)($clean['reservation_guarantee_grace_minutes'] ?? 15),
+            'reservation_guarantee_terms_version' => trim((string)($clean['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01')) ?: 'DE-NOSHOW-2026-01',
+            'reservation_guarantee_send_confirmation_email' => !empty($input['reservation_guarantee_send_confirmation_email']) ? 1 : 0,
+            'no_show_reservation_status' => (int)($clean['no_show_reservation_status'] ?? 0),
         ];
 
         DB::transaction(function () use ($values, $input, $clean, $countryCode) {
@@ -234,6 +295,45 @@ class Pmdfinance extends AdminController
         flash()->success('Payments & finance settings saved.');
 
         return ['#pmd-owner-save-status' => '<span>Saved</span>'];
+    }
+
+    public function onTestReservationGuaranteeProvider()
+    {
+        $input = (array)post('finance', []);
+        $providerCode = strtolower(trim((string)(
+            $input['reservation_guarantee_provider']
+            ?? setting('reservation_guarantee_provider', 'stripe')
+        )));
+
+        $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $provider = $registry->provider($providerCode);
+        $label = (string)($provider['label'] ?? $providerCode);
+
+        if (empty($provider['adapter_ready'])) {
+            flash()->error($registry->assertionMessage($providerCode));
+
+            return [
+                '#pmd-guarantee-provider-test-status' =>
+                    '<span class="pmd-owner-status">Adapter pending · '.e($label).'</span>',
+            ];
+        }
+
+        if (!$registry->canEnable($providerCode)) {
+            flash()->error($registry->assertionMessage($providerCode));
+
+            return [
+                '#pmd-guarantee-provider-test-status' =>
+                    '<span class="pmd-owner-status">Not ready · '.e($label).'</span>',
+            ];
+        }
+
+        $mode = strtoupper((string)($provider['mode'] ?? 'configured'));
+        flash()->success($label.' is ready for reservation guarantee testing in '.$mode.' mode.');
+
+        return [
+            '#pmd-guarantee-provider-test-status' =>
+                '<span class="pmd-owner-status is-active">Ready · '.e($label).' · '.e($mode).'</span>',
+        ];
     }
 
     public function onTestTurkeyYemeksepeti()
@@ -592,6 +692,15 @@ class Pmdfinance extends AdminController
             'invoice_auto_print_dialog' => 0,
             'invoice_auto_print_after_paid' => 0,
             'invoice_print_hint' => '',
+            'reservation_guarantee_enabled' => 0,
+            'reservation_guarantee_provider' => 'stripe',
+            'reservation_guarantee_min_guests' => 6,
+            'reservation_guarantee_amount_cents' => 0,
+            'reservation_guarantee_free_cancel_hours' => 24,
+            'reservation_guarantee_grace_minutes' => 15,
+            'reservation_guarantee_terms_version' => 'DE-NOSHOW-2026-01',
+            'reservation_guarantee_send_confirmation_email' => 1,
+            'no_show_reservation_status' => 0,
         ];
 
         $direct = [];
@@ -624,7 +733,35 @@ class Pmdfinance extends AdminController
         }
 
         $keys['tax_menu_price'] = 1;
+        $keys['reservation_guarantee_amount_eur'] = number_format(
+            max(0, (int)($keys['reservation_guarantee_amount_cents'] ?? 0)) / 100,
+            2,
+            '.',
+            ''
+        );
+
         return $keys;
+    }
+
+    protected function statusOptions(string $for): array
+    {
+        try {
+            if (!Schema::hasTable('statuses')) return [];
+
+            return DB::table('statuses')
+                ->where('status_for', $for)
+                ->orderBy('status_id')
+                ->pluck('status_name', 'status_id')
+                ->map(fn ($name) => is_scalar($name) || $name === null ? (string)$name : '')
+                ->toArray();
+        } catch (\Throwable $error) {
+            logger()->warning('PMD finance status options failed', [
+                'status_for' => $for,
+                'message' => $error->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     protected function fiskalyPayload(): array

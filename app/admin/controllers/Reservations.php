@@ -263,9 +263,18 @@ class Reservations extends PmdCleanWorkspaceControllerV1
             ]);
         }
 
+        $lossAssessmentNote = trim((string)post('loss_assessment_note', ''));
+        if (mb_strlen($lossAssessmentNote) < 5 || mb_strlen($lossAssessmentNote) > 2000) {
+            throw ValidationException::withMessages([
+                'loss_assessment_note' => 'Describe the actual loss for this no-show in 5 to 2000 characters.',
+            ]);
+        }
+
         $result = $service->chargeNoShow(
             $reservation,
-            $requestedAmountCents
+            $requestedAmountCents,
+            $lossAssessmentNote,
+            (int)$user->getKey()
         );
 
         if (!empty($result['already_charged'])) {
