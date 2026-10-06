@@ -41,6 +41,7 @@ class Pmdfinance extends AdminController
         $this->addCss('css/pmd-finance-flat-ui-v1.css');
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-settings-inline-detail-v1.js');
+        $this->addJs('js/pmd-finance-guarantee-r20-9.js');
         AdminMenu::setContext('settings', 'system');
     }
 
