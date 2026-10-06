@@ -66,6 +66,11 @@
         </receiver>
 
         <activity
+            android:name=".hardware.PrinterSetupActivity"
+            android:exported="false"
+            android:screenOrientation="fullSensor" />
+
+        <activity
             android:name=".KioskActivity"
             android:exported="false"
             android:screenOrientation="fullSensor"
@@ -74,7 +79,7 @@
         <activity
             android:name=".KioskMenuActivity"
             android:exported="false"
-            android:hardwareAccelerated="false"
+            android:hardwareAccelerated="true"
             android:screenOrientation="fullSensor"
             android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden" />
 
