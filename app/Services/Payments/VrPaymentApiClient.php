@@ -181,6 +181,15 @@ class VrPaymentApiClient
         );
     }
 
+    public function processWithToken(int $transactionId): array
+    {
+        return $this->request(
+            'POST',
+            '/api/v2.0/payment/transactions/'.$transactionId
+                .'/process-with-token'
+        );
+    }
+
     public function processWithoutInteraction(int $transactionId): array
     {
         return $this->request(
