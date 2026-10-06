@@ -604,12 +604,19 @@ final class PmdReservationGuaranteeService
             'charge_eligible_at' => $row->charge_eligible_at,
             'cancellation_deadline_at' => $row->cancellation_deadline_at,
             'charge_intent_reference' => $row->charge_intent_reference,
+            'loss_assessment_note' => (string)($row->loss_assessment_note ?? ''),
+            'loss_assessed_by_staff_id' => isset($row->loss_assessed_by_staff_id)
+                ? (int)$row->loss_assessed_by_staff_id
+                : null,
+            'loss_assessed_at' => $row->loss_assessed_at ?? null,
         ];
     }
 
     public function chargeNoShow(
         Reservations_model $reservation,
-        ?int $requestedAmountCents = null
+        ?int $requestedAmountCents = null,
+        ?string $lossAssessmentNote = null,
+        ?int $staffId = null
     ): array {
 
         $row = $this->guaranteeForReservation((int)$reservation->getKey());
@@ -697,6 +704,27 @@ final class PmdReservationGuaranteeService
                 'The no-show charge cannot exceed the maximum amount accepted by the guest.'
             );
         }
+
+        $lossAssessmentNote = trim((string)$lossAssessmentNote);
+        if (mb_strlen($lossAssessmentNote) < 5) {
+            throw new RuntimeException(
+                'Record the actual loss assessment before charging this no-show.'
+            );
+        }
+        if (mb_strlen($lossAssessmentNote) > 2000) {
+            throw new RuntimeException(
+                'The no-show loss assessment must be 2000 characters or fewer.'
+            );
+        }
+
+        DB::table('reservation_guarantees')
+            ->where('guarantee_id', (int)$row->guarantee_id)
+            ->update([
+                'loss_assessment_note' => $lossAssessmentNote,
+                'loss_assessed_by_staff_id' => $staffId && $staffId > 0 ? $staffId : null,
+                'loss_assessed_at' => now(),
+                'updated_at' => now(),
+            ]);
 
         $stripe = new StripeClient($stripeConfig['secret_key']);
         $reference = 'R'.str_pad((string)$reservation->getKey(), 6, '0', STR_PAD_LEFT);
