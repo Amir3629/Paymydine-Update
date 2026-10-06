@@ -1,8 +1,11 @@
 package com.paymydine.mobile
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -20,6 +23,7 @@ import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,11 +31,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +46,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -56,8 +65,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -75,9 +90,14 @@ import com.paymydine.mobile.kiosk.KioskProfile
 import com.paymydine.mobile.tabledisplay.DevicePlatformClient
 import com.paymydine.mobile.tabledisplay.DeviceShellController
 import com.paymydine.mobile.tabledisplay.SecureStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Dedicated customer-facing self-service kiosk inside the PayMyDine Device App.
@@ -195,7 +215,10 @@ private fun KioskApp(
         )
     }
     var profile by remember { mutableStateOf<KioskProfile?>(null) }
-    var serviceMode by remember { mutableStateOf("eat_in") }
+    var heroImages by remember { mutableStateOf<List<String>>(emptyList()) }
+    var menuBootstrapReady by remember { mutableStateOf(false) }
+    var menuOpening by remember { mutableStateOf(false) }
+    var serviceMode by remember { mutableStateOf("eat_in") }\n    // PMD_KIOSK_WELCOME_LANGUAGE_V18\n    var kioskLocale by remember { mutableStateOf("de") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var completedOrderId by remember { mutableStateOf<String?>(null) }
@@ -218,7 +241,18 @@ private fun KioskApp(
             profile = api.state(host, token)
             error = null
             if (screen == KioskScreen.LOADING) {
+                // PMD_KIOSK_INSTANT_WELCOME_V12
+                // Never block the first guest screen on decorative photography.
+                // Restaurant identity/theme arrives first; hero images hydrate
+                // independently on the next suspension.
                 screen = KioskScreen.WELCOME
+            }
+            val heroResult = runCatching { api.heroImages(host) }
+            if (heroResult.isSuccess) {
+                heroImages = heroResult.getOrDefault(emptyList())
+                menuBootstrapReady = true
+            } else {
+                menuBootstrapReady = false
             }
         } catch (t: Throwable) {
             error = t.message ?: "Kiosk connection is unavailable."
@@ -252,6 +286,39 @@ private fun KioskApp(
         }
     }
 
+    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady) {
+        val current = profile
+        if (
+            screen != KioskScreen.WELCOME ||
+            current == null ||
+            !menuBootstrapReady
+        ) {
+            return@LaunchedEffect
+        }
+
+        // PMD_KIOSK_EXACT_WEBVIEW_PREWARM_V15
+        // V12 only opened about:blank and destroyed it 220ms later, which
+        // warmed Chromium itself but still left the real menu HTML/JS/render
+        // work for the guest's tap. V15 waits until the native bootstrap is in
+        // memory, then renders both exact service-mode pages
+        // behind the welcome screen and hands the selected ready WebView to the
+        // next Activity.
+        val hero = heroImages.firstOrNull().orEmpty()
+        KioskMenuWarmPool.prewarm(
+            context = context,
+            profile = current,
+            serviceMode = "eat_in",
+            heroImage = hero,
+        )
+        KioskMenuWarmPool.prewarm(
+            context = context,
+            profile = current,
+            serviceMode = "pickup",
+            heroImage = hero,
+        )
+    }
+
+
     LaunchedEffect(screen, profile?.idleTimeoutSeconds) {
         if (screen != KioskScreen.MENU) return@LaunchedEffect
         while (screen == KioskScreen.MENU) {
@@ -283,6 +350,44 @@ private fun KioskApp(
                 .background(Color.Black),
         )
         return
+    }
+
+    suspend fun openPreparedMenu(
+        current: KioskProfile,
+        mode: String,
+    ) {
+        if (menuOpening) return
+        menuOpening = true
+        try {
+            // PMD_KIOSK_READY_BEFORE_SWITCH_V15
+            // On an unusually fast tap, keep the already-perfect welcome frame
+            // visible for at most ~320 ms while the off-screen page finishes.
+            // This is preferable to switching Activities early and exposing a
+            // partial Chromium paint. Normal taps pass this loop immediately.
+            var waits = 0
+            while (
+                !KioskMenuWarmPool.isReady(current.menuUrl, mode) &&
+                waits < 20
+            ) {
+                delay(16L)
+                waits += 1
+            }
+
+            context.startActivity(
+                KioskMenuActivity.intent(
+                    context = context,
+                    profile = current,
+                    serviceMode = mode,
+                    heroImage = heroImages.firstOrNull().orEmpty(),
+                ),
+            )
+            (context as? Activity)?.overridePendingTransition(0, 0)
+
+            // Block accidental double taps during the zero-animation handoff.
+            delay(450L)
+        } finally {
+            menuOpening = false
+        }
     }
 
     when (screen) {
@@ -330,25 +435,18 @@ private fun KioskApp(
             val current = profile ?: return
             KioskWelcomeScreen(
                 profile = current,
+                heroImages = heroImages,
                 onEatHere = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
-                    context.startActivity(
-                        KioskMenuActivity.intent(
-                            context = context,
-                            profile = current,
-                            serviceMode = "eat_in",
-                        ),
-                    )
+                    scope.launch {
+                        openPreparedMenu(current, "eat_in")
+                    }
                 },
                 onTakeAway = {
                     lastInteractionMs = SystemClock.elapsedRealtime()
-                    context.startActivity(
-                        KioskMenuActivity.intent(
-                            context = context,
-                            profile = current,
-                            serviceMode = "pickup",
-                        ),
-                    )
+                    scope.launch {
+                        openPreparedMenu(current, "pickup")
+                    }
                 },
             )
         }
@@ -562,14 +660,29 @@ private fun KioskLoadingScreen(
 @Composable
 private fun KioskWelcomeScreen(
     profile: KioskProfile,
+    heroImages: List<String>,
     onEatHere: () -> Unit,
     onTakeAway: () -> Unit,
 ) {
-    val background = kioskColor(profile.theme.background, Color(0xFFF4F8F6))
-    val text = kioskColor(profile.theme.text, Color(0xFF17342F))
-    val muted = kioskColor(profile.theme.muted, Color(0xFF6D7C79))
-    val accent = kioskColor(profile.theme.accent, Color(0xFF0A6B57))
-    val surface = kioskColor(profile.theme.surface, Color.White)
+    val background = kioskColor(profile.theme.background, Color(0xFF050508))
+    val text = kioskColor(profile.theme.text, Color(0xFFF7F7FB))
+    val muted = kioskColor(profile.theme.muted, Color(0xFFB8B5C2))
+    val accent = kioskColor(profile.theme.accent, Color(0xFFFF3B93))
+    val surface = kioskColor(profile.theme.surface, Color(0xFF0D0D14))
+    val hero = heroImages.getOrNull(0).orEmpty()
+
+    // PMD_KIOSK_SERVICE_ARTWORK_V14
+    // These are intentionally dedicated service-mode assets rather than random
+    // menu photography. They live on the tenant host so artwork can be changed
+    // without changing the menu model.
+    val eatImage = kioskPublicAssetUrl(
+        profile.menuUrl,
+        "/public/assets/pmd/kiosk-hero/dinein.png",
+    )
+    val takeImage = kioskPublicAssetUrl(
+        profile.menuUrl,
+        "/public/assets/pmd/kiosk-hero/take-away.png",
+    )
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -578,47 +691,96 @@ private fun KioskWelcomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 42.dp, vertical = 48.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 28.dp)
+                .padding(top = 52.dp, bottom = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            KioskBrand(72.dp)
+            // PMD_KIOSK_PREMIUM_WELCOME_V11
+            // The restaurant owns the primary brand on the guest screen.
+            if (hero.isNotBlank()) {
+                KioskRemoteImage(
+                    url = hero,
+                    contentDescription = profile.restaurantName,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(258.dp)
+                        .clip(RoundedCornerShape(28.dp)),
+                    background = surface,
+                )
+                Spacer(Modifier.height(20.dp))
+            }
+
+            if (profile.restaurantLogoUrl.isNotBlank()) {
+                KioskRemoteImage(
+                    url = profile.restaurantLogoUrl,
+                    contentDescription = profile.restaurantName,
+                    modifier = Modifier
+                        .size(82.dp)
+                        .clip(RoundedCornerShape(20.dp)),
+                    background = surface,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(82.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(surface),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        profile.restaurantName.take(1).uppercase(),
+                        color = accent,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+            }
             Text(
                 profile.restaurantName,
-                modifier = Modifier.padding(top = 18.dp),
+                modifier = Modifier.padding(top = 12.dp),
                 color = text,
-                fontSize = 28.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
             )
-            Text(
-                "How would you like to order?",
-                modifier = Modifier.padding(top = 8.dp),
-                color = muted,
-                fontSize = 17.sp,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(Modifier.height(46.dp))
+            Spacer(Modifier.height(30.dp))
 
             KioskModeButton(
                 title = "EAT HERE",
                 subtitle = "Order and enjoy it here",
+                imageUrl = eatImage,
                 background = surface,
                 text = text,
                 accent = accent,
                 onClick = onEatHere,
             )
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(16.dp))
             KioskModeButton(
                 title = "TAKE AWAY",
                 subtitle = "Order for collection",
+                imageUrl = takeImage,
                 background = surface,
                 text = text,
                 accent = accent,
                 onClick = onTakeAway,
             )
 
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.height(30.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                KioskBrand(18.dp)
+                Text(
+                    "Powered by PayMyDine",
+                    modifier = Modifier.padding(start = 8.dp),
+                    color = muted.copy(alpha = 0.72f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+            Spacer(Modifier.height(14.dp))
         }
     }
 }
@@ -627,6 +789,7 @@ private fun KioskWelcomeScreen(
 private fun KioskModeButton(
     title: String,
     subtitle: String,
+    imageUrl: String,
     background: Color,
     text: Color,
     accent: Color,
@@ -636,58 +799,188 @@ private fun KioskModeButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(112.dp),
+            .height(132.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = background,
             contentColor = text,
         ),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(24.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(10.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp),
+            modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(
-                        accent.copy(alpha = 0.14f),
-                        RoundedCornerShape(14.dp),
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    if (title == "EAT HERE") "01" else "02",
-                    color = accent,
-                    fontWeight = FontWeight.Black,
-                )
+            if (imageUrl.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .weight(0.46f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(18.dp)),
+                ) {
+                    KioskRemoteImage(
+                        url = imageUrl,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        background = background,
+                    )
+
+                    // PMD_KIOSK_SERVICE_ARTWORK_FADE_V14
+                    // Blend the photo into the text side instead of ending on a
+                    // hard vertical edge, matching the selected kiosk concept.
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .width(28.dp)
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        background.copy(alpha = 0.55f),
+                                        background,
+                                    ),
+                                ),
+                            ),
+                    )
+                }
+                Spacer(Modifier.size(12.dp))
             }
+
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 18.dp),
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center,
             ) {
+                // PMD_KIOSK_CLEAN_SERVICE_CARDS_V16\n                // PMD_KIOSK_MINIMAL_SERVICE_CARDS_V18
+                // Keep the service choice visually direct: artwork, label,
+                // description and action only. Sequence badges added noise and
+                // implied an ordering that does not exist.
                 Text(
                     title,
                     color = text,
                     fontSize = 21.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 0.7.sp,
+                    letterSpacing = 0.5.sp,
                 )
-                Text(
-                    subtitle,
-                    modifier = Modifier.padding(top = 3.dp),
-                    color = text.copy(alpha = 0.62f),
-                    fontSize = 13.sp,
-                )
+                if (subtitle.isNotBlank()) {
+                    Text(
+                        subtitle,
+                        modifier = Modifier.padding(top = 2.dp),
+                        color = text.copy(alpha = 0.62f),
+                        fontSize = 12.sp,
+                    )
+                }
             }
-            Text(
-                "→",
-                color = accent,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(accent, RoundedCornerShape(24.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                // PMD_KIOSK_CENTERED_ARROW_V15
+                // A font glyph has asymmetric visual bounds and looked shifted
+                // inside the circle. Draw the arrow geometrically instead.
+                Canvas(modifier = Modifier.size(22.dp)) {
+                    val centerY = size.height / 2f
+                    val startX = size.width * 0.20f
+                    val tipX = size.width * 0.78f
+                    val head = size.width * 0.23f
+                    val stroke = 2.4.dp.toPx()
+
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(startX, centerY),
+                        end = Offset(tipX, centerY),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(tipX - head, centerY - head),
+                        end = Offset(tipX, centerY),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(tipX - head, centerY + head),
+                        end = Offset(tipX, centerY),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun kioskPublicAssetUrl(
+    menuUrl: String,
+    assetPath: String,
+): String {
+    val uri = runCatching { Uri.parse(menuUrl) }.getOrNull() ?: return assetPath
+    val scheme = uri.scheme?.takeIf { it.isNotBlank() } ?: return assetPath
+    val authority = uri.encodedAuthority?.takeIf { it.isNotBlank() } ?: return assetPath
+    return scheme + "://" + authority + "/" + assetPath.trimStart('/')
+}
+
+private object KioskGuestImageCache {
+    val bitmaps = ConcurrentHashMap<String, Bitmap>()
+}
+
+@Composable
+private fun KioskRemoteImage(
+    url: String,
+    contentDescription: String,
+    modifier: Modifier,
+    background: Color,
+) {
+    var bitmap by remember(url) {
+        mutableStateOf(
+            url.takeIf { it.isNotBlank() }
+                ?.let(KioskGuestImageCache.bitmaps::get),
+        )
+    }
+
+    LaunchedEffect(url) {
+        if (url.isBlank() || bitmap != null) return@LaunchedEffect
+        val loaded =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val connection =
+                        (URL(url).openConnection() as HttpURLConnection).apply {
+                            connectTimeout = 4_500
+                            readTimeout = 4_500
+                            instanceFollowRedirects = true
+                            useCaches = true
+                            setRequestProperty("Accept", "image/*")
+                        }
+                    try {
+                        if (connection.responseCode !in 200..299) return@runCatching null
+                        connection.inputStream.use { input -> BitmapFactory.decodeStream(input) }
+                    } finally {
+                        connection.disconnect()
+                    }
+                }.getOrNull()
+            }
+
+        if (loaded != null) {
+            KioskGuestImageCache.bitmaps[url] = loaded
+            bitmap = loaded
+        }
+    }
+
+    Box(
+        modifier = modifier.background(background),
+        contentAlignment = Alignment.Center,
+    ) {
+        bitmap?.let {
+            Image(
+                bitmap = it.asImageBitmap(),
+                contentDescription = contentDescription,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
             )
         }
     }
@@ -921,15 +1214,13 @@ private fun KioskWebView(
                 // Do not round-trip through /kiosk-reset: a reset-page navigation
                 // can race WebView callbacks and leave the customer on a blank
                 // surface even when the server page itself is healthy.
-                WebStorage.getInstance().deleteAllData()
-                clearCache(true)
+                // PMD_KIOSK_FAST_WEBVIEW_V11
+                // Keep WebView HTTP/cache state warm between orders. Guest state
+                // is isolated by kiosk_session/sessionStorage instead.
                 clearHistory()
-
-                cookies.removeAllCookies {
-                    cookies.flush()
-                    post {
-                        loadUrl(target)
-                    }
+                cookies.flush()
+                post {
+                    loadUrl(target)
                 }
             }
         },
