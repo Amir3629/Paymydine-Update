@@ -173,6 +173,29 @@ final class PmdKioskPairingService
         $profile = app(PmdTableDisplayService::class)
             ->customerSurfaceProfile($locationId);
 
+        // PMD_KIOSK_TERMINAL_STATE_V18
+        // The guest never chooses a provider. Device Control binds one physical
+        // terminal to this kiosk and the native app receives only that binding.
+        $platform = $this->platformInfo($device);
+        $terminalDeviceId = max(
+            0,
+            (int)($platform['payment_terminal_device_id'] ?? 0)
+        );
+        $terminalProvider = strtolower(trim(
+            (string)($platform['payment_terminal_provider'] ?? '')
+        ));
+        $terminalName = '';
+        if ($terminalDeviceId > 0 && Schema::hasTable('terminal_devices')) {
+            $terminal = DB::table('terminal_devices')
+                ->where('terminal_device_id', $terminalDeviceId)
+                ->first();
+            if ($terminal) {
+                $terminalName = trim((string)($terminal->reader_label ?? ''))
+                    ?: trim((string)($terminal->reader_id ?? ''))
+                    ?: 'Payment terminal';
+            }
+        }
+
         DB::table('pmd_site_access_devices')
             ->where('id', (int)$device->id)
             ->update([
@@ -193,11 +216,17 @@ final class PmdKioskPairingService
             'theme' => (array)($profile['theme'] ?? []),
             'menu_url' => rtrim($request->getSchemeAndHttpHost(), '/').'/',
             'service_modes' => [
-                ['id' => 'eat_in', 'label' => 'Eat here'],
+                ['id' => 'eat_in', 'label' => 'Dine in'],
                 ['id' => 'pickup', 'label' => 'Take away'],
             ],
             'idle_timeout_seconds' => 120,
-            'payments_enabled' => true,
+            'payments_enabled' => $terminalDeviceId > 0 && $terminalProvider !== '',
+            'payment_terminal' => [
+                'linked' => $terminalDeviceId > 0 && $terminalProvider !== '',
+                'terminal_device_id' => $terminalDeviceId ?: null,
+                'provider_code' => $terminalProvider ?: null,
+                'name' => $terminalName ?: null,
+            ],
         ];
     }
 
