@@ -209,9 +209,10 @@
                             <h3>{{ $pmdSettingsText('Policy') }}</h3>
                             <div class="pmd-owner-form-grid">
                                 <div class="pmd-owner-field pmd-owner-field--full">
-                                    <label>{{ $pmdSettingsText('Guarantee payment provider') }}</label>
+                                    <label>{{ $pmdSettingsText('Card guarantee provider') }}</label>
                                     <select name="finance[reservation_guarantee_provider]">
                                         @foreach($guaranteeProviders as $code => $provider)
+                                            @continue((string)$code === 'paypal')
                                             @php
                                                 $marketOk = !empty($provider['market_available']);
                                                 $adapterReady = !empty($provider['adapter_ready']);
@@ -228,7 +229,7 @@
                                             >{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}{{ $suffix }}</option>
                                         @endforeach
                                     </select>
-                                    <small>{{ $pmdSettingsText('Choose the PSP that stores and later charges the guarantee credential. Square is intentionally not used for reservation guarantees.') }}</small>
+                                    <small>{{ $pmdSettingsText('Choose which PSP handles card guarantees: Stripe, SumUp, VR Payment or Worldline. Apple Pay and Google Pay use Stripe; PayPal uses PayPal Vault. Square is not used for reservation guarantees.') }}</small>
                                 </div>
 
                                 <div class="pmd-owner-field pmd-owner-field--full">
@@ -257,7 +258,7 @@
                                             </label>
                                         @endforeach
                                     </div>
-                                    <small>{{ $pmdSettingsText('Only methods supported by the selected guarantee provider are used. Apple Pay and Google Pay are available through Stripe; PayPal uses PayPal Vault; card guarantees can use Stripe, SumUp, VR Payment or Worldline.') }}</small>
+                                    <small>{{ $pmdSettingsText('Card uses the selected card provider. Apple Pay and Google Pay route through Stripe. PayPal routes through PayPal Vault. A method is shown to guests only when its provider is enabled and configured.') }}</small>
                                 </div>
 
                                 <div class="pmd-owner-field">
