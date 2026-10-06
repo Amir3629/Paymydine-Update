@@ -21,18 +21,11 @@ final class PmdReservationGuaranteeService
         string $locale = 'de'
     ): array {
         $base = $this->baseSettings();
-        $providerCode = (string)$base['provider'];
         $registry = app(PmdReservationGuaranteeProviderRegistry::class);
-        $providerState = $registry->provider($providerCode);
-        $methods = $registry->enabledMethodsForProvider($providerCode);
-        $methodDefinitions = $registry->methodDefinitions();
-        $stripe = $providerCode === 'stripe'
-            ? $this->stripeCredentials(true)
-            : [
-                'ready' => false,
-                'currency' => 'EUR',
-                'publishable_key' => '',
-            ];
+        $methods = $registry->availableMethods();
+        $cardProvider = $registry->selectedProvider();
+        $cardProviderState = $registry->provider($cardProvider);
+        $stripe = $this->stripeCredentials(true);
 
         $samplePolicy = $this->policy(
             $location,
@@ -45,28 +38,23 @@ final class PmdReservationGuaranteeService
             'enabled' => $base['enabled'],
             'minGuests' => $base['min_guests'],
             'amountPerGuestCents' => $base['amount_per_guest_cents'],
-            'currency' => $stripe['currency'] ?? 'EUR',
+            'currency' => (string)($stripe['currency'] ?? 'EUR'),
             'freeCancelHours' => $base['free_cancel_hours'],
             'graceMinutes' => $base['grace_minutes'],
             'termsVersion' => $base['terms_version'],
-            'provider' => $providerCode,
+            'provider' => $cardProvider,
             'providerLabel' => (string)(
-                $providerState['label'] ?? $providerCode
+                $cardProviderState['label'] ?? $cardProvider
             ),
-            'providerReady' => $providerCode === 'stripe'
-                ? (bool)($stripe['ready'] ?? false)
-                : $registry->canEnable($providerCode),
-            'methods' => array_values(array_map(
-                static fn (string $code): array => [
-                    'code' => $code,
-                    'label' => (string)(
-                        $methodDefinitions[$code]['label'] ?? $code
-                    ),
-                ],
-                $methods
-            )),
-            'defaultMethod' => (string)($methods[0] ?? ''),
+            'providerReady' => !empty($methods),
+            'methods' => array_values($methods),
+            'defaultMethod' => (string)(
+                array_key_exists('card', $methods)
+                    ? 'card'
+                    : (array_key_first($methods) ?? '')
+            ),
             'publishableKey' => (string)($stripe['publishable_key'] ?? ''),
+            'stripeReady' => (bool)($stripe['ready'] ?? false),
             'locale' => $this->locale($locale),
             'termsText' => (string)$samplePolicy['terms_text'],
             'consentText' => (string)$samplePolicy['consent_text'],
@@ -81,14 +69,11 @@ final class PmdReservationGuaranteeService
         string $locale = 'de'
     ): array {
         $base = $this->baseSettings();
-        $providerCode = (string)$base['provider'];
         $providerRegistry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $providerCode = $providerRegistry->selectedProvider();
         $providerState = $providerRegistry->provider($providerCode);
-        $enabledMethods = $providerRegistry
-            ->enabledMethodsForProvider($providerCode);
-        $stripe = $providerCode === 'stripe'
-            ? $this->stripeCredentials(true)
-            : ['ready' => false, 'currency' => 'EUR', 'mode' => ($providerState['mode'] ?? null)];
+        $enabledMethods = array_keys($providerRegistry->availableMethods());
+        $stripe = $this->stripeCredentials(true);
         $guests = max(1, $guests);
         $required = $base['enabled']
             && $base['amount_per_guest_cents'] > 0
@@ -115,11 +100,7 @@ final class PmdReservationGuaranteeService
         $policy = [
             'enabled' => $base['enabled'],
             'required' => $required,
-            'provider_ready' => (
-                $providerCode === 'stripe'
-                    ? (bool)($stripe['ready'] ?? false)
-                    : $providerRegistry->canEnable($providerCode)
-            ) && !empty($enabledMethods),
+            'provider_ready' => !empty($enabledMethods),
             'provider' => $providerCode,
             'methods' => $enabledMethods,
             'provider_mode' => (string)($providerState['mode'] ?? ($stripe['mode'] ?? 'test')),
@@ -173,15 +154,23 @@ final class PmdReservationGuaranteeService
             );
         }
 
-        $providerCode = strtolower(
-            (string)($policy['provider'] ?? 'stripe')
-        );
         $method = strtolower(trim($method));
         if (!in_array($method, (array)($policy['methods'] ?? []), true)) {
             throw new RuntimeException(
                 'Please choose an available guarantee payment method.'
             );
         }
+
+        $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $providerCode = $registry->providerForMethod($method);
+        if ($providerCode === '' || !$registry->canEnable($providerCode)) {
+            throw new RuntimeException(
+                'The selected guarantee payment method is unavailable.'
+            );
+        }
+        $providerState = $registry->provider($providerCode);
+        $policy['provider'] = $providerCode;
+        $policy['provider_mode'] = (string)($providerState['mode'] ?? 'test');
 
         if ($providerCode !== 'stripe') {
             $result = app(PmdReservationGuaranteeGateway::class)->begin(
@@ -224,9 +213,10 @@ final class PmdReservationGuaranteeService
             $locale
         );
 
-        $expectedProvider = strtolower(
-            (string)($policy['provider'] ?? 'stripe')
-        );
+        $provider = strtolower(trim($provider));
+        $method = strtolower(trim($method));
+        $expectedProvider = app(PmdReservationGuaranteeProviderRegistry::class)
+            ->providerForMethod($method);
         if ($provider !== $expectedProvider) {
             throw new RuntimeException(
                 'The guarantee provider no longer matches this reservation.'
@@ -290,11 +280,10 @@ final class PmdReservationGuaranteeService
             return ['required' => false, 'policy' => $policy];
         }
 
-        $expectedProvider = strtolower(
-            (string)($policy['provider'] ?? 'stripe')
-        );
         $provider = strtolower(trim($provider));
         $method = strtolower(trim($method));
+        $expectedProvider = app(PmdReservationGuaranteeProviderRegistry::class)
+            ->providerForMethod($method);
 
         if ($provider !== $expectedProvider) {
             throw new RuntimeException(
@@ -306,6 +295,11 @@ final class PmdReservationGuaranteeService
                 'The selected guarantee method is no longer available.'
             );
         }
+
+        $providerState = app(PmdReservationGuaranteeProviderRegistry::class)
+            ->provider($provider);
+        $policy['provider'] = $provider;
+        $policy['provider_mode'] = (string)($providerState['mode'] ?? 'test');
 
         if ($provider !== 'stripe') {
             return app(PmdReservationGuaranteeGateway::class)->verify(
