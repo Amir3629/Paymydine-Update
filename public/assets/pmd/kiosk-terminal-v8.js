@@ -1339,13 +1339,27 @@ function tipOptionsHtml() {
 
   function notifyNativeOrderComplete(orderId) {
     var attempts = 0;
+    var receiptPayload = JSON.stringify({
+      restaurant: state.restaurant.name || "PayMyDine",
+      order_id: String(orderId || ""),
+      order_number: state.order ? String(state.order.orderNumber || state.order.orderId || "") : "",
+      currency: state.restaurant.currency || "EUR",
+      total: calculateTotals().payable,
+      lines: state.cart.map(function (line) {
+        return {
+          name: line.item.name,
+          quantity: line.quantity,
+          total: Math.round(line.unitPrice * line.quantity * 100) / 100
+        };
+      })
+    });
     function run() {
       attempts += 1;
       try {
         var bridge = window.PayMyDineKiosk;
         var secret = String(window.__PMD_KIOSK_BRIDGE_SECRET__ || "");
         if (bridge && typeof bridge.orderComplete === "function" && secret) {
-          bridge.orderComplete(String(orderId), secret);
+          bridge.orderComplete(String(orderId), secret, receiptPayload);
           return;
         }
       } catch (error) {}
