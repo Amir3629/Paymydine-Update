@@ -798,13 +798,14 @@ class KioskMenuActivity : ComponentActivity() {
         val bridge =
             KioskJavascriptBridge(
                 secret = bridgeSecret,
-                onOrderComplete = { orderId ->
+                onOrderComplete = { orderId, receiptJson ->
                     // PMD_ANDROID_KIOSK_AUTO_PRINT_V18
                     // Printing is best-effort and never blocks paid-order completion.
                     ReceiptPrinterManager.printKioskReceiptAsync(
                         applicationContext,
                         restaurantName,
                         orderId,
+                        receiptJson,
                     )
                     showComplete(orderId)
                 },
@@ -1198,7 +1199,7 @@ class KioskMenuActivity : ComponentActivity() {
 
     private class KioskJavascriptBridge(
         private val secret: String,
-        private val onOrderComplete: (String) -> Unit,
+        private val onOrderComplete: (String, String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
 
@@ -1206,12 +1207,13 @@ class KioskMenuActivity : ComponentActivity() {
         fun orderComplete(
             orderId: String,
             providedSecret: String,
+            receiptJson: String,
         ) {
             if (providedSecret.isBlank() || providedSecret != secret) {
                 return
             }
             handler.post {
-                onOrderComplete(orderId.trim())
+                onOrderComplete(orderId.trim(), receiptJson)
             }
         }
     }
