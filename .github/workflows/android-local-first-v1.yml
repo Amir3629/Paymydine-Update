@@ -285,7 +285,7 @@ jobs:
           BADGING="$("$AAPT" dump badging "$APK" | head -1)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='67'" <<<"$BADGING"
+          grep -Fq "versionCode='68'" <<<"$BADGING"
           grep -Fq "versionName='0.5.5-device-app-v14-debug'" <<<"$BADGING"
           "$APKSIGNER" verify "$APK"
           sha256sum "$APK"
