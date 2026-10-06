@@ -336,6 +336,288 @@ final class WorldlineConnectRuntimeService
         ];
     }
 
+    public function createGuaranteeCardOnFileCheckout(
+        string $locale,
+        string $currency,
+        string $merchantCustomerId,
+        string $returnUrl
+    ): array {
+        $cfg = $this->config(true);
+        $currency = strtoupper(trim($currency));
+        $locale = trim($locale) !== '' ? trim($locale) : 'en_GB';
+        $merchantCustomerId = preg_replace(
+            '/[^A-Za-z0-9_-]/',
+            '',
+            trim($merchantCustomerId)
+        ) ?? '';
+        $merchantCustomerId = substr($merchantCustomerId, 0, 15);
+
+        if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+            throw new \InvalidArgumentException(
+                'Invalid Worldline guarantee currency.'
+            );
+        }
+        if ($merchantCustomerId === '') {
+            throw new \InvalidArgumentException(
+                'Worldline guarantee customer reference is missing.'
+            );
+        }
+        if (
+            !filter_var($returnUrl, FILTER_VALIDATE_URL)
+            || stripos($returnUrl, 'https://') !== 0
+        ) {
+            throw new \InvalidArgumentException(
+                'Worldline guarantee return URL must use HTTPS.'
+            );
+        }
+
+        $available = $this->availablePaymentProducts(
+            'DE',
+            $currency,
+            0,
+            $locale
+        );
+        $productIds = array_values(array_unique(array_map(
+            'intval',
+            (array)($available['card'] ?? [])
+        )));
+        if (!$productIds) {
+            throw new \RuntimeException(
+                'Worldline card payments are not configured for this Merchant ID.'
+            );
+        }
+
+        $amount = new AmountOfMoney();
+        $amount->amount = 0;
+        $amount->currencyCode = $currency;
+
+        $address = new Address();
+        $address->countryCode = 'DE';
+
+        $customer = new Customer();
+        $customer->merchantCustomerId = $merchantCustomerId;
+        $customer->billingAddress = $address;
+
+        $order = new Order();
+        $order->amountOfMoney = $amount;
+        $order->customer = $customer;
+
+        $referencesClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\OrderReferences';
+        if (class_exists($referencesClass)) {
+            $references = new $referencesClass();
+            $this->assignSdkValue(
+                $references,
+                'merchantReference',
+                substr(
+                    'PMDG-'.strtoupper(bin2hex(random_bytes(8))),
+                    0,
+                    40
+                )
+            );
+            $order->references = $references;
+        }
+
+        $hosted = new HostedCheckoutSpecificInput();
+        $hosted->returnUrl = $returnUrl;
+        $hosted->locale = $locale;
+        $hosted->showResultPage = false;
+
+        $variant = trim((string)(
+            $cfg['hosted_checkout_variant']
+            ?? ''
+        ));
+        if ($variant !== '') {
+            $hosted->variant = $variant;
+        }
+        $this->applyProductFilter($hosted, $productIds);
+
+        $cardClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\CardPaymentMethodSpecificInput';
+        if (!class_exists($cardClass)) {
+            throw new \RuntimeException(
+                'Installed Worldline SDK cannot create card-on-file guarantees.'
+            );
+        }
+
+        $card = new $cardClass();
+        $this->assignSdkValue(
+            $card,
+            'unscheduledCardOnFileRequestor',
+            'cardholderInitiated'
+        );
+        $this->assignSdkValue(
+            $card,
+            'unscheduledCardOnFileSequenceIndicator',
+            'first'
+        );
+        $this->assignSdkValue($card, 'tokenize', true);
+        $this->assignSdkValue(
+            $card,
+            'transactionChannel',
+            'ECOMMERCE'
+        );
+
+        $request = new CreateHostedCheckoutRequest();
+        $request->order = $order;
+        $request->hostedCheckoutSpecificInput = $hosted;
+        $this->assignSdkValue(
+            $request,
+            'cardPaymentMethodSpecificInput',
+            $card
+        );
+
+        $response = $this->merchantClient($cfg)
+            ->hostedcheckouts()
+            ->create($request);
+        $raw = $this->toArray($response);
+
+        $checkoutId = trim((string)(
+            $raw['hostedCheckoutId']
+            ?? ''
+        ));
+        $redirect = $this->resolveRedirect($raw);
+
+        if ($checkoutId === '' || $redirect === '') {
+            throw new \RuntimeException(
+                'Worldline did not return a complete card-verification checkout.'
+            );
+        }
+
+        return [
+            'success' => true,
+            'provider' => 'worldline',
+            'environment' => $this->environment($cfg),
+            'hosted_checkout_id' => $checkoutId,
+            'redirect_url' => $redirect,
+            'merchant_customer_id' => $merchantCustomerId,
+            'payment_product_ids' => $productIds,
+            'verification_amount_minor' => 0,
+        ];
+    }
+
+    public function guaranteeCardOnFileStatus(
+        string $hostedCheckoutId
+    ): array {
+        $hostedCheckoutId = trim($hostedCheckoutId);
+        if (
+            $hostedCheckoutId === ''
+            || !preg_match(
+                '/^[A-Za-z0-9._:-]{8,191}$/',
+                $hostedCheckoutId
+            )
+        ) {
+            throw new \InvalidArgumentException(
+                'Invalid Worldline guarantee checkout ID.'
+            );
+        }
+
+        $cfg = $this->config(true);
+        $raw = $this->toArray(
+            $this->merchantClient($cfg)
+                ->hostedcheckouts()
+                ->get($hostedCheckoutId)
+        );
+
+        $created = (array)(
+            $raw['createdPaymentOutput']
+            ?? []
+        );
+        $payment = (array)($created['payment'] ?? []);
+        $paymentOutput = (array)(
+            $payment['paymentOutput']
+            ?? []
+        );
+        $cardOutput = (array)(
+            $paymentOutput['cardPaymentMethodSpecificOutput']
+            ?? []
+        );
+
+        $schemeTransactionId = trim((string)(
+            $cardOutput['schemeTransactionId']
+            ?? ''
+        ));
+
+        $token = '';
+        $tokens = $created['tokens'] ?? [];
+        if (is_string($tokens)) {
+            $parts = array_values(array_filter(array_map(
+                'trim',
+                explode(',', $tokens)
+            )));
+            $token = (string)($parts[0] ?? '');
+        } elseif (is_array($tokens)) {
+            foreach ($tokens as $candidate) {
+                if (is_scalar($candidate) && trim((string)$candidate) !== '') {
+                    $token = trim((string)$candidate);
+                    break;
+                }
+                if (is_array($candidate)) {
+                    $candidateId = trim((string)(
+                        $candidate['id']
+                        ?? $candidate['token']
+                        ?? ''
+                    ));
+                    if ($candidateId !== '') {
+                        $token = $candidateId;
+                        break;
+                    }
+                }
+            }
+        }
+
+        $tokenizationSucceeded = filter_var(
+            $created['tokenizationSucceeded']
+                ?? ($token !== ''),
+            FILTER_VALIDATE_BOOLEAN
+        );
+
+        $status = strtoupper(trim((string)(
+            $payment['status']
+            ?? $created['status']
+            ?? $raw['status']
+            ?? ''
+        )));
+        $statusOutput = (array)(
+            $payment['statusOutput']
+            ?? $created['statusOutput']
+            ?? []
+        );
+        $category = strtoupper(trim((string)(
+            $statusOutput['statusCategory']
+            ?? ''
+        )));
+
+        $failedCategories = [
+            'REJECTED',
+            'UNSUCCESSFUL',
+            'REVERSED',
+        ];
+        $failedStatuses = [
+            'REJECTED',
+            'REJECTED_CAPTURE',
+            'CANCELLED',
+            'CANCELED',
+        ];
+
+        $failed = in_array($category, $failedCategories, true)
+            || in_array($status, $failedStatuses, true);
+        $ready = !$failed
+            && $tokenizationSucceeded
+            && $token !== ''
+            && $schemeTransactionId !== '';
+
+        return [
+            'success' => true,
+            'provider' => 'worldline',
+            'ready' => $ready,
+            'failed' => $failed,
+            'status' => $status !== '' ? $status : 'PENDING',
+            'hosted_checkout_id' => $hostedCheckoutId,
+            'token_id' => $token,
+            'scheme_transaction_id' => $schemeTransactionId,
+            'tokenization_succeeded' => $tokenizationSucceeded,
+        ];
+    }
+
     public function createGuaranteeTokenization(
         string $locale = 'en_GB'
     ): array {
@@ -441,15 +723,34 @@ final class WorldlineConnectRuntimeService
 
     public function chargeGuaranteeToken(
         string $tokenId,
+        string $merchantCustomerId,
+        string $initialSchemeTransactionId,
         int $amountMinor,
         string $currency,
         string $merchantReference
     ): array {
         $tokenId = trim($tokenId);
+        $merchantCustomerId = substr(
+            preg_replace(
+                '/[^A-Za-z0-9_-]/',
+                '',
+                trim($merchantCustomerId)
+            ) ?? '',
+            0,
+            15
+        );
+        $initialSchemeTransactionId = trim(
+            $initialSchemeTransactionId
+        );
         $currency = strtoupper(trim($currency));
         $merchantReference = substr(trim($merchantReference), 0, 40);
 
-        if ($tokenId === '' || $amountMinor < 1) {
+        if (
+            $tokenId === ''
+            || $merchantCustomerId === ''
+            || $initialSchemeTransactionId === ''
+            || $amountMinor < 1
+        ) {
             throw new \InvalidArgumentException(
                 'Worldline guarantee charge data is incomplete.'
             );
@@ -474,8 +775,16 @@ final class WorldlineConnectRuntimeService
         $amount->amount = $amountMinor;
         $amount->currencyCode = $currency;
 
+        $address = new Address();
+        $address->countryCode = 'DE';
+
+        $customer = new Customer();
+        $customer->merchantCustomerId = $merchantCustomerId;
+        $customer->billingAddress = $address;
+
         $order = new Order();
         $order->amountOfMoney = $amount;
+        $order->customer = $customer;
 
         $referencesClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\OrderReferences';
         if (class_exists($referencesClass) && $merchantReference !== '') {
@@ -500,6 +809,16 @@ final class WorldlineConnectRuntimeService
             $specific,
             'unscheduledCardOnFileSequenceIndicator',
             'subsequent'
+        );
+        $this->assignSdkValue(
+            $specific,
+            'initialSchemeTransactionId',
+            $initialSchemeTransactionId
+        );
+        $this->assignSdkValue(
+            $specific,
+            'transactionChannel',
+            'ECOMMERCE'
         );
 
         $request = new $requestClass();
