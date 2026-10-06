@@ -229,7 +229,7 @@
                                 <div class="pmd-owner-field">
                                     <label>{{ $pmdSettingsText('Apply from party size') }}</label>
                                     <input type="number" min="1" max="100" name="finance[reservation_guarantee_min_guests]" value="{{ $settings['reservation_guarantee_min_guests'] ?? 6 }}">
-                                    <small>{{ $pmdSettingsText('Example: 6 means parties of 6 or more need the guarantee.') }}</small>
+                                    <small>{{ $pmdSettingsText('Example: 6 means parties of 6 or more need the guarantee. Parties of 1–5 will book normally and will not see any card step.') }}</small>
                                 </div>
 
                                 <div class="pmd-owner-field">
