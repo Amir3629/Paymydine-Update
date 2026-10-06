@@ -292,7 +292,7 @@ private fun KioskApp(
         }
     }
 
-    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady) {
+    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady, selectedLocale) {
         val current = profile
         if (
             screen != KioskScreen.WELCOME ||
@@ -697,6 +697,18 @@ private fun KioskWelcomeScreen(
         profile.menuUrl,
         "/public/assets/pmd/kiosk-hero/take-away.png",
     )
+    val dineInTitle = when (locale) {
+        "de" -> "HIER ESSEN"
+        "tr" -> "BURADA YE"
+        "fa" -> "صرف در رستوران"
+        else -> "DINE IN"
+    }
+    val takeAwayTitle = when (locale) {
+        "de" -> "MITNEHMEN"
+        "tr" -> "PAKET"
+        "fa" -> "بیرون‌بر"
+        else -> "TAKE AWAY"
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -787,7 +799,7 @@ private fun KioskWelcomeScreen(
             Spacer(Modifier.height(24.dp))
 
             KioskModeButton(
-                title = "DINE IN",
+                title = dineInTitle,
                 imageUrl = eatImage,
                 background = surface,
                 text = text,
@@ -796,7 +808,7 @@ private fun KioskWelcomeScreen(
             )
             Spacer(Modifier.height(16.dp))
             KioskModeButton(
-                title = "TAKE AWAY",
+                title = takeAwayTitle,
                 imageUrl = takeImage,
                 background = surface,
                 text = text,
