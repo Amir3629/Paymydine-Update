@@ -101,18 +101,15 @@ final class PmdKioskPublicController
             $initialHero = '';
         }
 
+        // PMD_KIOSK_TERMINAL_ONLY_CONFIG_V18
+        // Browser wallets/hosted payment URLs are intentionally not exposed to
+        // a physical kiosk. The paired Android bridge owns terminal payment.
         $config = [
-            'version' => 'blade-v8-theme-v13',
+            'version' => 'blade-v8-terminal-v18',
             'session' => $session,
             'serviceMode' => $serviceMode,
-            'paymentReturn' => $request->boolean('pmd_payment_return'),
             'bootstrapUrl' => url('/api/v1/frontend-bootstrap-batch-r1'),
             'orderUrl' => url('/api/v1/orders'),
-            'payExistingUrl' => url('/api/v1/orders/pay-existing'),
-            'paypalConfigUrl' => url('/api/v1/payments/config-public'),
-            'paypalCreateUrl' => url('/api/v1/payments/paypal/create-order'),
-            'paypalCaptureUrl' => url('/api/v1/payments/paypal/capture-order'),
-            'returnUrl' => url('/kiosk/'),
             'resetUrl' => url('/kiosk-reset/'),
             'restaurant' => [
                 'name' => $restaurantName,
@@ -177,6 +174,31 @@ final class PmdKioskPublicController
     {
         return response()->json(
             app(PmdKioskPairingService::class)->stateForDevice($request)
+        );
+    }
+
+    // PMD_KIOSK_TERMINAL_PAYMENT_V18
+    public function terminalPayment(
+        Request $request,
+        $order
+    ): JsonResponse {
+        return response()->json(
+            app(PmdKioskPairingService::class)->startTerminalPayment(
+                $request,
+                (int)$order
+            )
+        );
+    }
+
+    public function terminalPaymentRefresh(
+        Request $request,
+        $attempt
+    ): JsonResponse {
+        return response()->json(
+            app(PmdKioskPairingService::class)->refreshTerminalPayment(
+                $request,
+                (int)$attempt
+            )
         );
     }
 }

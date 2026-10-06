@@ -108,12 +108,18 @@ final class SquareTerminalProvider implements TerminalPaymentProviderInterface
                     'device_id' => (string)$config['device_id'],
                     'skip_receipt_screen' => false,
                     // PMD_SQUARE_TERMINAL_TIP_V48
-                    // Customer chooses gratuity on the physical Square Terminal.
-                    'tip_settings' => [
-                        'allow_tipping' => true,
-                        'separate_tip_screen' => true,
-                        'custom_tip_field' => true,
-                    ],
+                    // PMD_KIOSK_NO_TERMINAL_TIP_V18
+                    // Staff POS retains terminal tipping; kiosk explicitly
+                    // suppresses gratuity on the physical payment terminal.
+                    'tip_settings' => !empty($config['pmd_disable_tipping'])
+                        ? [
+                            'allow_tipping' => false,
+                        ]
+                        : [
+                            'allow_tipping' => true,
+                            'separate_tip_screen' => true,
+                            'custom_tip_field' => true,
+                        ],
                 ],
                 'payment_options' => ['autocomplete' => true],
                 'note' => 'PayMyDine order #'.(int)($attempt['order_id'] ?? 0),

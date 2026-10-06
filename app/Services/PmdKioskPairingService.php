@@ -180,6 +180,44 @@ final class PmdKioskPairingService
                 'updated_at' => now(),
             ]);
 
+        // PMD_KIOSK_TERMINAL_STATE_V18
+        // Report only the physical terminal explicitly linked to this trusted
+        // kiosk. This keeps diagnostics/setup honest before the guest reaches
+        // checkout and never falls back to a browser wallet.
+        $platform = $this->platformInfo($device);
+        $terminalDeviceId = (int)(
+            $platform['payment_terminal_device_id']
+            ?? $platform['terminal_device_id']
+            ?? 0
+        );
+        $terminalSummary = null;
+        if ($terminalDeviceId > 0 && Schema::hasTable('terminal_devices')) {
+            $terminalQuery = DB::table('terminal_devices')
+                ->where('terminal_device_id', $terminalDeviceId);
+
+            if (Schema::hasColumn('terminal_devices', 'is_active')) {
+                $terminalQuery->where('is_active', 1);
+            }
+            if (Schema::hasColumn('terminal_devices', 'location_id')) {
+                $terminalQuery->where(function ($query) use ($locationId) {
+                    $query->whereNull('location_id')
+                        ->orWhere('location_id', $locationId);
+                });
+            }
+
+            $terminal = $terminalQuery->first();
+            if ($terminal) {
+                $terminalSummary = [
+                    'id' => (int)($terminal->terminal_device_id ?? 0),
+                    'provider' => strtolower(trim((string)($terminal->provider_code ?? ''))),
+                    'name' => trim((string)($terminal->reader_label ?? ''))
+                        ?: trim((string)($terminal->reader_id ?? ''))
+                        ?: 'Payment terminal',
+                    'status' => strtolower(trim((string)($terminal->terminal_status ?? ''))),
+                ];
+            }
+        }
+
         return [
             'ok' => true,
             'protocol' => 'pmd-kiosk-v1',
@@ -193,11 +231,252 @@ final class PmdKioskPairingService
             'theme' => (array)($profile['theme'] ?? []),
             'menu_url' => rtrim($request->getSchemeAndHttpHost(), '/').'/',
             'service_modes' => [
-                ['id' => 'eat_in', 'label' => 'Eat here'],
+                ['id' => 'eat_in', 'label' => 'Dine in'],
                 ['id' => 'pickup', 'label' => 'Take away'],
             ],
             'idle_timeout_seconds' => 120,
-            'payments_enabled' => true,
+            'payments_enabled' => $terminalSummary !== null,
+            'payment_terminal' => $terminalSummary,
+        ];
+    }
+
+    /**
+     * PMD_KIOSK_TERMINAL_PAYMENT_V18
+     *
+     * Physical kiosks may only pay through the terminal explicitly linked to
+     * this trusted kiosk device. Browser wallets/provider forms are not kiosk
+     * payment methods. Provider settlement remains authoritative.
+     */
+    public function startTerminalPayment(
+        Request $request,
+        int $orderId
+    ): array {
+        $device = $this->authenticate($request);
+        $locationId = (int)$device->location_id;
+
+        if ($orderId < 1 || !Schema::hasTable('orders')) {
+            abort(422, 'A valid kiosk order is required.');
+        }
+        if (!Schema::hasTable('terminal_devices')) {
+            abort(503, 'Payment terminal storage is unavailable.');
+        }
+
+        $order = DB::table('orders')
+            ->where('order_id', $orderId)
+            ->first();
+
+        if (!$order) {
+            abort(404, 'Kiosk order was not found.');
+        }
+
+        $orderLocationId = (int)($order->location_id ?? $locationId);
+        if ($orderLocationId > 0 && $orderLocationId !== $locationId) {
+            abort(403, 'This order belongs to another restaurant location.');
+        }
+
+        $total = max(0.0, (float)($order->order_total ?? 0));
+        $settled = max(0.0, (float)($order->settled_amount ?? 0));
+        $remaining = round(max(0.0, $total - $settled), 2);
+
+        if ($remaining <= 0.0001) {
+            return [
+                'ok' => true,
+                'paid' => true,
+                'status' => 'paid',
+                'attempt_id' => null,
+                'message' => 'This kiosk order is already paid.',
+            ];
+        }
+
+        if ($settled > 0.0001) {
+            abort(
+                422,
+                'A partially settled order cannot be paid from kiosk mode.'
+            );
+        }
+
+        $platform = $this->platformInfo($device);
+        $terminalDeviceId = (int)(
+            $platform['payment_terminal_device_id']
+            ?? $platform['terminal_device_id']
+            ?? 0
+        );
+
+        if ($terminalDeviceId < 1) {
+            abort(
+                409,
+                'No payment terminal is linked to this kiosk. Link the terminal to this device under Devices & hardware.'
+            );
+        }
+
+        $terminalQuery = DB::table('terminal_devices')
+            ->where('terminal_device_id', $terminalDeviceId);
+
+        if (Schema::hasColumn('terminal_devices', 'is_active')) {
+            $terminalQuery->where('is_active', 1);
+        }
+        if (Schema::hasColumn('terminal_devices', 'location_id')) {
+            $terminalQuery->where(function ($query) use ($locationId) {
+                $query->whereNull('location_id')
+                    ->orWhere('location_id', $locationId);
+            });
+        }
+
+        $terminal = $terminalQuery->first();
+        if (!$terminal) {
+            abort(
+                409,
+                'The terminal linked to this kiosk is inactive or belongs to another location.'
+            );
+        }
+
+        $providerCode = strtolower(
+            trim((string)($terminal->provider_code ?? ''))
+        );
+
+        // PMD_KIOSK_TERMINAL_IDEMPOTENCY_V18
+        // A slow/pending countertop terminal must never create a second charge
+        // just because the guest taps Pay again. Reuse the newest live attempt
+        // for this order + linked physical terminal and continue polling it.
+        if (Schema::hasTable('payment_attempts')) {
+            $liveAttempt = DB::table('payment_attempts')
+                ->where('order_id', $orderId)
+                ->where('provider_code', $providerCode)
+                ->where('terminal_device_id', $terminalDeviceId)
+                ->whereIn('status', [
+                    'pending',
+                    'sent_to_terminal',
+                    'processing',
+                    'requires_action',
+                ])
+                ->orderByDesc('id')
+                ->first();
+
+            if ($liveAttempt) {
+                return [
+                    'ok' => true,
+                    'paid' => false,
+                    'status' => (string)($liveAttempt->status ?? 'pending'),
+                    'attempt_id' => (int)$liveAttempt->id,
+                    'provider_code' => $providerCode,
+                    'terminal_device_id' => $terminalDeviceId,
+                    'amount' => $remaining,
+                    'message' => 'Existing terminal payment resumed. Do not pay twice.',
+                ];
+            }
+        }
+
+        if (!in_array(
+            $providerCode,
+            ['sumup', 'worldline', 'square', 'vr_payment'],
+            true
+        )) {
+            abort(
+                422,
+                'The linked terminal provider is not supported by PayMyDine terminal payments.'
+            );
+        }
+
+        $result = app(
+            \App\Services\TerminalPayments\TerminalPaymentService::class
+        )->createAttempt(
+            $orderId,
+            $providerCode,
+            (string)$terminalDeviceId,
+            [
+                'surface' => 'kiosk',
+                'disable_tipping' => true,
+            ]
+        );
+
+        if (empty($result['success'])) {
+            abort(
+                422,
+                (string)(
+                    $result['message']
+                    ?? $result['error']
+                    ?? 'The connected terminal could not start payment.'
+                )
+            );
+        }
+
+        $status = strtolower(trim((string)($result['status'] ?? 'pending')));
+        $paid = $status === 'paid' || !empty($result['payment_recorded']);
+
+        return [
+            'ok' => true,
+            'paid' => $paid,
+            'status' => $paid ? 'paid' : ($status ?: 'pending'),
+            'attempt_id' => (int)($result['attempt_id'] ?? 0) ?: null,
+            'provider_code' => $providerCode,
+            'terminal_device_id' => $terminalDeviceId,
+            'amount' => $remaining,
+            'message' => (string)(
+                $result['message']
+                ?? ($paid
+                    ? 'Payment approved.'
+                    : 'Payment sent to the connected terminal.')
+            ),
+        ];
+    }
+
+    public function refreshTerminalPayment(
+        Request $request,
+        int $attemptId
+    ): array {
+        $device = $this->authenticate($request);
+        $locationId = (int)$device->location_id;
+
+        if ($attemptId < 1 || !Schema::hasTable('payment_attempts')) {
+            abort(422, 'A valid terminal payment attempt is required.');
+        }
+
+        $attempt = DB::table('payment_attempts')
+            ->where('id', $attemptId)
+            ->first();
+
+        if (!$attempt) {
+            abort(404, 'Terminal payment attempt was not found.');
+        }
+
+        $orderId = (int)($attempt->order_id ?? 0);
+        $order = $orderId > 0 && Schema::hasTable('orders')
+            ? DB::table('orders')->where('order_id', $orderId)->first()
+            : null;
+
+        if (!$order) {
+            abort(404, 'Payment order was not found.');
+        }
+
+        $orderLocationId = (int)($order->location_id ?? $locationId);
+        if ($orderLocationId > 0 && $orderLocationId !== $locationId) {
+            abort(403, 'This payment belongs to another restaurant location.');
+        }
+
+        $result = app(
+            \App\Services\TerminalPayments\TerminalPaymentService::class
+        )->refreshAttempt($attemptId);
+
+        $status = strtolower(trim((string)($result['status'] ?? 'pending')));
+        $paid = $status === 'paid' || !empty($result['payment_recorded']);
+        $terminalFailure = in_array(
+            $status,
+            ['failed', 'cancelled', 'canceled', 'rejected', 'expired'],
+            true
+        );
+
+        return [
+            'ok' => (bool)($result['success'] ?? !$terminalFailure),
+            'paid' => $paid,
+            'failed' => $terminalFailure,
+            'status' => $paid ? 'paid' : ($status ?: 'pending'),
+            'attempt_id' => $attemptId,
+            'order_id' => $orderId,
+            'message' => (string)(
+                $result['message']
+                ?? $result['error']
+                ?? ($paid ? 'Payment approved.' : 'Waiting for terminal.')
+            ),
         ];
     }
 

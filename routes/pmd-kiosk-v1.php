@@ -29,4 +29,21 @@ Route::group([
 
     Route::get('state', [PmdKioskPublicController::class, 'state'])
         ->middleware('throttle:120,1,pmd-kiosk-state');
+
+    // PMD_KIOSK_TERMINAL_PAYMENT_V18
+    Route::post('terminal-payment/{order}', [
+        PmdKioskPublicController::class,
+        'terminalPayment',
+    ])
+        ->where('order', '[0-9]+')
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:30,1,pmd-kiosk-terminal-payment');
+
+    Route::post('terminal-payment-attempt/{attempt}/refresh', [
+        PmdKioskPublicController::class,
+        'terminalPaymentRefresh',
+    ])
+        ->where('attempt', '[0-9]+')
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:120,1,pmd-kiosk-terminal-refresh');
 });
