@@ -143,6 +143,7 @@
   var bootstrapCacheMaxAgeMs = 6 * 60 * 60 * 1000;
   var bootPresented = false;
   var categoryObserver = null;
+  var receiptPrintRequested = false;
 
   function copy() {
     return COPY[state.locale] || COPY.en;
@@ -1329,16 +1330,43 @@
     });
   }
 
+
   function notifyNativeOrderComplete(orderId) {
     var attempts = 0;
+
+    function receiptPayload() {
+      var totals = calculateTotals();
+      return JSON.stringify({
+        restaurant: state.restaurant.name || "PayMyDine",
+        orderNumber: state.order && (state.order.orderNumber || state.order.orderId) || orderId,
+        lines: state.cart.map(function (line) {
+          return {
+            name: line.item.name,
+            quantity: line.quantity,
+            total: money(number(line.unitPrice) * number(line.quantity, 1))
+          };
+        }),
+        total: money(totals.payable)
+      });
+    }
+
     function run() {
       attempts += 1;
       try {
         var bridge = window.PayMyDineKiosk;
         var secret = String(window.__PMD_KIOSK_BRIDGE_SECRET__ || "");
-        if (bridge && typeof bridge.orderComplete === "function" && secret) {
-          bridge.orderComplete(String(orderId), secret);
-          return;
+        if (bridge && secret) {
+          if (
+            !receiptPrintRequested &&
+            typeof bridge.printReceipt === "function"
+          ) {
+            receiptPrintRequested = true;
+            bridge.printReceipt(receiptPayload(), secret);
+          }
+          if (typeof bridge.orderComplete === "function") {
+            bridge.orderComplete(String(orderId), secret);
+            return;
+          }
         }
       } catch (error) {}
       if (attempts < 30) window.setTimeout(run, 150);
