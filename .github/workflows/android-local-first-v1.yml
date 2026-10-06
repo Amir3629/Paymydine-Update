@@ -136,7 +136,7 @@ jobs:
           grep -Fq 'Tippen für Details' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_PREMIUM_WELCOME_V11' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_SERVICE_ARTWORK_V14' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
-          grep -Fq 'PMD_KIOSK_SERVICE_ARTWORK_FADE_V14' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq 'PMD_KIOSK_SERVICE_ARTWORK_FADE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_CENTERED_ARROW_V15' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_CLEAN_SERVICE_CARDS_V16' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_EXACT_WEBVIEW_PREWARM_V15' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
@@ -149,13 +149,7 @@ jobs:
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' app/Http/Controllers/PmdKioskPublicController.php
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.css
-          grep -Fq 'v=13-smooth-scroll' resources/views/pmd/kiosk-terminal.blade.php
-          grep -Fq 'PMD_KIOSK_PAY_FIRST_V10' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
-          grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'committed. qr_pay_later is only the settlement bridge for pay-existing.' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'https://js.stripe.com/v3/' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'v=18-terminal-printer' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_BLADE_V8_NGINX_NO_REDIRECT' ops/nginx/pmd-kiosk-blade-v8-location.conf
           grep -Fq 'PMD_KIOSK_DEDICATED_WEB_ACTIVITY_V58' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'PMD_KIOSK_FAST_WEBVIEW_V10' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
@@ -193,6 +187,15 @@ jobs:
           grep -Fq 'PMD_ANDROID_FIRST_RUN_ACCESS_V17' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -Fq 'PMD_ANDROID_RESERVATIONS_POS_WORKSPACE_V17' mobile/android/app/src/main/java/com/paymydine/mobile/ReservationsActivity.kt
           grep -Fq 'PMD_KIOSK_STREAMLINED_WELCOME_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          ! grep -Fq 'How would you like to order?' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          ! grep -Fq 'Order and enjoy it here' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          ! grep -Fq 'Order for collection' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          grep -Fq '"DINE IN"' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
+          ! grep -Fq 'var entries = [{ id: "all"' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'data-terminal-pay' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'state.tips = { enabled: false, presets: [0] }' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'pmd-kiosk-payment-screen' public/assets/pmd/kiosk-terminal-v8.css
+          grep -Fq 'pmd-kiosk-checkout-shimmer-v18' public/assets/pmd/kiosk-terminal-v8.css
           grep -Fq 'PMD_KIOSK_WELCOME_LANGUAGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_STREAMLINED_TERMINAL_V18' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_SCROLL_SECTIONS_V18' public/assets/pmd/kiosk-terminal-v8.js
