@@ -7,6 +7,26 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
+data class DeviceTerminalOption(
+    val id: Long,
+    val providerCode: String,
+    val name: String,
+)
+
+data class DeviceHardwareState(
+    val selectedTerminalId: Long,
+    val terminals: List<DeviceTerminalOption>,
+)
+
+data class KioskTerminalPaymentResult(
+    val ok: Boolean,
+    val orderId: Long,
+    val attemptId: Long,
+    val status: String,
+    val message: String,
+    val paymentRecorded: Boolean,
+)
+
 class DevicePlatformClient {
     suspend fun heartbeat(
         host: String,
@@ -90,6 +110,95 @@ class DevicePlatformClient {
             token = token,
         )
     }
+
+    suspend fun hardware(
+        host: String,
+        token: String,
+    ): DeviceHardwareState = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "hardware",
+            body = JSONObject(),
+            token = token,
+        )
+        val rows = json.optJSONArray("terminal_options") ?: JSONArray()
+        val terminals = buildList {
+            for (index in 0 until rows.length()) {
+                val row = rows.optJSONObject(index) ?: continue
+                val id = row.optLong("id", 0L)
+                if (id < 1L) continue
+                add(
+                    DeviceTerminalOption(
+                        id = id,
+                        providerCode = row.optString("provider_code").trim(),
+                        name = row.optString("name", "Payment terminal").trim(),
+                    ),
+                )
+            }
+        }
+        DeviceHardwareState(
+            selectedTerminalId = json.optLong("payment_terminal_device_id", 0L),
+            terminals = terminals,
+        )
+    }
+
+    suspend fun configureTerminal(
+        host: String,
+        token: String,
+        terminalId: Long?,
+    ): DeviceHardwareState = withContext(Dispatchers.IO) {
+        request(
+            host = host,
+            endpoint = "hardware/configure",
+            body = JSONObject().apply {
+                if (terminalId != null && terminalId > 0L) {
+                    put("payment_terminal_device_id", terminalId)
+                } else {
+                    put("payment_terminal_device_id", JSONObject.NULL)
+                }
+            },
+            token = token,
+        )
+        hardware(host, token)
+    }
+
+    suspend fun startKioskTerminalPayment(
+        host: String,
+        token: String,
+        orderId: Long,
+    ): KioskTerminalPaymentResult = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "kiosk/terminal-payment",
+            body = JSONObject().put("order_id", orderId),
+            token = token,
+        )
+        parseKioskPayment(json)
+    }
+
+    suspend fun refreshKioskTerminalPayment(
+        host: String,
+        token: String,
+        attemptId: Long,
+    ): KioskTerminalPaymentResult = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "kiosk/terminal-payment/refresh",
+            body = JSONObject().put("attempt_id", attemptId),
+            token = token,
+        )
+        parseKioskPayment(json)
+    }
+
+    private fun parseKioskPayment(json: JSONObject): KioskTerminalPaymentResult =
+        KioskTerminalPaymentResult(
+            ok = json.optBoolean("ok", false),
+            orderId = json.optLong("order_id", 0L),
+            attemptId = json.optLong("attempt_id", 0L),
+            status = json.optString("status", "pending").trim().lowercase(),
+            message = json.optString("message", "").trim(),
+            paymentRecorded = json.optBoolean("payment_recorded", false),
+        )
 
     suspend fun log(
         host: String,
