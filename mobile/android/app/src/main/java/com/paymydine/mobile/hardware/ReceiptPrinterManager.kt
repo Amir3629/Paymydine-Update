@@ -1,6 +1,7 @@
 package com.paymydine.mobile.hardware
 
 import android.content.Context
+import org.json.JSONObject
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.nio.charset.Charset
@@ -54,21 +55,39 @@ object ReceiptPrinterManager {
         context: Context,
         restaurantName: String,
         orderId: String,
+        receiptJson: String = "",
     ) {
         val config = load(context)
         if (!config.enabled || !config.autoPrintKiosk || config.host.isBlank()) return
 
         executor.execute {
             runCatching {
+                val payload = runCatching { JSONObject(receiptJson) }.getOrNull()
+                val receiptLines = mutableListOf<String>()
+                receiptLines += restaurantName.ifBlank { "PayMyDine" }
+                receiptLines += "------------------------------"
+                receiptLines += "Order #${payload?.optString("order_number")?.ifBlank { orderId } ?: orderId}"
+                payload?.optJSONArray("lines")?.let { lines ->
+                    for (index in 0 until lines.length()) {
+                        val line = lines.optJSONObject(index) ?: continue
+                        val quantity = line.optInt("quantity", 1).coerceAtLeast(1)
+                        val name = line.optString("name", "Item")
+                        val total = line.optDouble("total", 0.0)
+                        receiptLines += "${quantity}x ${name}  ${"%.2f".format(total)}"
+                    }
+                }
+                val total = payload?.optDouble("total", Double.NaN)
+                if (total != null && total.isFinite()) {
+                    val currency = payload.optString("currency", "EUR")
+                    receiptLines += "------------------------------"
+                    receiptLines += "TOTAL  ${"%.2f".format(total)} ${currency}"
+                }
+                receiptLines += "Payment received"
+                receiptLines += "Thank you"
+
                 printText(
                     config = config,
-                    lines = listOf(
-                        restaurantName.ifBlank { "PayMyDine" },
-                        "------------------------------",
-                        "Order #${orderId.ifBlank { "-" }}",
-                        "Payment received",
-                        "Thank you",
-                    ),
+                    lines = receiptLines,
                 )
             }
         }
