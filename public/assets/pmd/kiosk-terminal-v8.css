@@ -1748,8 +1748,11 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
   box-shadow: none;
   transition: none;
   contain: layout paint style;
-  content-visibility: auto;
-  contain-intrinsic-size: 360px;
+  /* PMD_KIOSK_NO_CONTENT_VISIBILITY_BLINK_V20
+   * Android WebView can briefly blank content-visibility:auto cards while it
+   * promotes/rasterizes them during fast touch scrolling. Keep containment,
+   * but keep the already-rendered cards visually resident.
+   */
 }
 
 .pmd-kiosk-item:active {
@@ -1769,7 +1772,11 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
 
 .pmd-kiosk-menu {
   overscroll-behavior-y: none;
-  transform: translateZ(0);
+  /* PMD_KIOSK_SCROLL_LAYER_STABLE_V20
+   * Do not force the entire long menu into one promoted compositor layer.
+   * Hardware WebView can tile/raster the scroll surface more efficiently.
+   */
+  transform: none;
 }
 
 .pmd-kiosk-menu-hero {
@@ -1886,9 +1893,17 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
   min-height: 54px;
 }
 
-.pmd-kiosk-primary,
-.pmd-kiosk-compact-order {
+/* PMD_KIOSK_COMPACT_CHECKOUT_FIXED_V20
+ * The portrait CTA receives position:fixed in the responsive rules above.
+ * V18 accidentally reset it to relative here, pushing Checkout below the
+ * visible viewport. Only the normal desktop primary button needs relative.
+ */
+.pmd-kiosk-primary {
   position: relative;
+  overflow: hidden;
+}
+
+.pmd-kiosk-compact-order {
   overflow: hidden;
 }
 
@@ -1924,6 +1939,20 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
 .pmd-kiosk-compact-order {
   font-size: 18px !important;
   font-weight: 900 !important;
+}
+
+@media (max-width: 930px) {
+  .pmd-kiosk-compact-order {
+    position: fixed !important;
+    bottom: max(12px, env(safe-area-inset-bottom)) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  .pmd-kiosk-compact-order {
+    left: 12px !important;
+    right: 12px !important;
+  }
 }
 
 .pmd-kiosk-payment-screen {
