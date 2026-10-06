@@ -388,6 +388,7 @@ private fun KioskApp(
                     serviceMode = mode,
                     heroImage = heroImages.firstOrNull().orEmpty(),
                     locale = selectedLocale,
+                    deviceToken = store.token().orEmpty(),
                 ),
             )
             (context as? Activity)?.overridePendingTransition(0, 0)
