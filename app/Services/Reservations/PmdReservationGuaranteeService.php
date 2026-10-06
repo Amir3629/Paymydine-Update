@@ -6,7 +6,9 @@ use Admin\Models\Locations_model;
 use Admin\Models\Payments_model;
 use Admin\Models\Reservations_model;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
@@ -16,15 +18,16 @@ use Throwable;
 
 final class PmdReservationGuaranteeService
 {
-    public function publicConfig(Locations_model $location, string $locale = 'de'): array
-    {
+    public function publicConfig(
+        Locations_model $location,
+        string $locale = 'de'
+    ): array {
         $base = $this->baseSettings();
-        $providerCode = (string)$base['provider'];
-        $providerRegistry = app(PmdReservationGuaranteeProviderRegistry::class);
-        $providerState = $providerRegistry->provider($providerCode);
-        $stripe = $providerCode === 'stripe'
-            ? $this->stripeCredentials(true)
-            : ['ready' => false, 'currency' => 'EUR', 'publishable_key' => ''];
+        $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $methods = $this->runtimeAvailableMethods();
+        $cardProvider = $registry->selectedProvider();
+        $cardProviderState = $registry->provider($cardProvider);
+        $stripe = $this->stripeCredentials(true);
 
         $samplePolicy = $this->policy(
             $location,
@@ -37,16 +40,23 @@ final class PmdReservationGuaranteeService
             'enabled' => $base['enabled'],
             'minGuests' => $base['min_guests'],
             'amountPerGuestCents' => $base['amount_per_guest_cents'],
-            'currency' => $stripe['currency'] ?? 'EUR',
+            'currency' => (string)($stripe['currency'] ?? 'EUR'),
             'freeCancelHours' => $base['free_cancel_hours'],
             'graceMinutes' => $base['grace_minutes'],
             'termsVersion' => $base['terms_version'],
-            'provider' => $providerCode,
-            'providerLabel' => (string)($providerState['label'] ?? $providerCode),
-            'providerReady' => $providerCode === 'stripe'
-                ? (bool)($stripe['ready'] ?? false)
-                : $providerRegistry->canEnable($providerCode),
+            'provider' => $cardProvider,
+            'providerLabel' => (string)(
+                $cardProviderState['label'] ?? $cardProvider
+            ),
+            'providerReady' => !empty($methods),
+            'methods' => array_values($methods),
+            'defaultMethod' => (string)(
+                array_key_exists('card', $methods)
+                    ? 'card'
+                    : (array_key_first($methods) ?? '')
+            ),
             'publishableKey' => (string)($stripe['publishable_key'] ?? ''),
+            'stripeReady' => (bool)($stripe['ready'] ?? false),
             'locale' => $this->locale($locale),
             'termsText' => (string)$samplePolicy['terms_text'],
             'consentText' => (string)$samplePolicy['consent_text'],
@@ -61,12 +71,11 @@ final class PmdReservationGuaranteeService
         string $locale = 'de'
     ): array {
         $base = $this->baseSettings();
-        $providerCode = (string)$base['provider'];
         $providerRegistry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $providerCode = $providerRegistry->selectedProvider();
         $providerState = $providerRegistry->provider($providerCode);
-        $stripe = $providerCode === 'stripe'
-            ? $this->stripeCredentials(true)
-            : ['ready' => false, 'currency' => 'EUR', 'mode' => ($providerState['mode'] ?? null)];
+        $enabledMethods = array_keys($this->runtimeAvailableMethods());
+        $stripe = $this->stripeCredentials(true);
         $guests = max(1, $guests);
         $required = $base['enabled']
             && $base['amount_per_guest_cents'] > 0
@@ -93,10 +102,9 @@ final class PmdReservationGuaranteeService
         $policy = [
             'enabled' => $base['enabled'],
             'required' => $required,
-            'provider_ready' => $providerCode === 'stripe'
-                ? (bool)($stripe['ready'] ?? false)
-                : $providerRegistry->canEnable($providerCode),
+            'provider_ready' => !empty($enabledMethods),
             'provider' => $providerCode,
+            'methods' => $enabledMethods,
             'provider_mode' => (string)($providerState['mode'] ?? ($stripe['mode'] ?? 'test')),
             'min_guests' => $base['min_guests'],
             'guests' => $guests,
@@ -118,13 +126,229 @@ final class PmdReservationGuaranteeService
         return $policy;
     }
 
-    public function createSetupIntent(
+    private function runtimeAvailableMethods(): array
+    {
+        $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $methods = $registry->availableMethods();
+
+        $wallets = array_values(array_intersect(
+            ['apple_pay', 'google_pay'],
+            array_keys($methods)
+        ));
+        if (!$wallets) {
+            return $methods;
+        }
+
+        $stripe = $this->stripeCredentials(true);
+        if (!($stripe['ready'] ?? false)) {
+            unset($methods['apple_pay'], $methods['google_pay']);
+
+            return $methods;
+        }
+
+        $host = '';
+        try {
+            $host = strtolower(trim((string)request()->getHost()));
+        } catch (Throwable $ignored) {
+        }
+
+        if ($host === '') {
+            unset($methods['apple_pay'], $methods['google_pay']);
+
+            return $methods;
+        }
+
+        $cacheKey = 'pmd:guarantee:stripe-wallet-domain:'
+            .sha1((string)($stripe['mode'] ?? 'test').'|'.$host);
+
+        try {
+            $domain = Cache::remember(
+                $cacheKey,
+                now()->addHours(12),
+                fn (): array => $this->ensureStripePaymentMethodDomain(
+                    $host
+                )
+            );
+        } catch (Throwable $error) {
+            Log::warning(
+                'PMD reservation guarantee wallet domain unavailable',
+                [
+                    'host' => $host,
+                    'message' => $error->getMessage(),
+                ]
+            );
+            unset($methods['apple_pay'], $methods['google_pay']);
+
+            return $methods;
+        }
+
+        if (
+            strtolower((string)(
+                $domain['apple_pay_status']
+                ?? ''
+            )) !== 'active'
+        ) {
+            unset($methods['apple_pay']);
+        }
+        if (
+            strtolower((string)(
+                $domain['google_pay_status']
+                ?? ''
+            )) !== 'active'
+        ) {
+            unset($methods['google_pay']);
+        }
+
+        return $methods;
+    }
+
+    public function ensureStripePaymentMethodDomain(
+        string $host
+    ): array {
+        $host = strtolower(trim($host));
+        $host = preg_replace('/:\\d+$/', '', $host) ?? '';
+
+        if (
+            $host === ''
+            || !preg_match(
+                '/^(?:[a-z0-9-]+\\.)*paymydine\\.com$/',
+                $host
+            )
+        ) {
+            throw new RuntimeException(
+                'The PayMyDine wallet domain is invalid.'
+            );
+        }
+
+        $config = $this->stripeCredentials(true);
+        if (!($config['ready'] ?? false)) {
+            throw new RuntimeException(
+                'Stripe must be enabled before Apple Pay or Google Pay can be used.'
+            );
+        }
+
+        $client = Http::withBasicAuth(
+                (string)$config['secret_key'],
+                ''
+            )
+            ->acceptJson()
+            ->asForm()
+            ->timeout(25);
+
+        $list = $client->get(
+            'https://api.stripe.com/v1/payment_method_domains',
+            [
+                'domain_name' => $host,
+                'limit' => 10,
+            ]
+        );
+        $listBody = (array)$list->json();
+
+        if (!$list->successful()) {
+            throw new RuntimeException(
+                $this->stripeApiMessage(
+                    $listBody,
+                    'Stripe could not check the wallet domain.'
+                )
+            );
+        }
+
+        $domain = null;
+        foreach ((array)($listBody['data'] ?? []) as $row) {
+            if (
+                is_array($row)
+                && strtolower(trim((string)($row['domain_name'] ?? '')))
+                    === $host
+            ) {
+                $domain = $row;
+                break;
+            }
+        }
+
+        if (!$domain) {
+            $created = $client->post(
+                'https://api.stripe.com/v1/payment_method_domains',
+                ['domain_name' => $host]
+            );
+            $createdBody = (array)$created->json();
+
+            if (!$created->successful()) {
+                throw new RuntimeException(
+                    $this->stripeApiMessage(
+                        $createdBody,
+                        'Stripe could not register the wallet domain.'
+                    )
+                );
+            }
+            $domain = $createdBody;
+        }
+
+        $domainId = trim((string)($domain['id'] ?? ''));
+        if (
+            $domainId === ''
+            || !preg_match('/^pmd_[A-Za-z0-9_]+$/', $domainId)
+        ) {
+            throw new RuntimeException(
+                'Stripe did not return a valid Payment Method Domain.'
+            );
+        }
+
+        if (array_key_exists('enabled', $domain) && !$domain['enabled']) {
+            $enabled = $client->post(
+                'https://api.stripe.com/v1/payment_method_domains/'
+                    .rawurlencode($domainId),
+                ['enabled' => 'true']
+            );
+            $enabledBody = (array)$enabled->json();
+
+            if (!$enabled->successful()) {
+                throw new RuntimeException(
+                    $this->stripeApiMessage(
+                        $enabledBody,
+                        'Stripe could not enable the wallet domain.'
+                    )
+                );
+            }
+            $domain = $enabledBody;
+        }
+
+        $validated = $client->post(
+            'https://api.stripe.com/v1/payment_method_domains/'
+                .rawurlencode($domainId)
+                .'/validate'
+        );
+        if ($validated->successful()) {
+            $domain = (array)$validated->json();
+        }
+
+        $apple = strtolower(trim((string)(
+            $domain['apple_pay']['status']
+            ?? ''
+        )));
+        $google = strtolower(trim((string)(
+            $domain['google_pay']['status']
+            ?? ''
+        )));
+
+        return [
+            'success' => true,
+            'id' => $domainId,
+            'domain' => $host,
+            'mode' => (string)($config['mode'] ?? 'test'),
+            'apple_pay_status' => $apple,
+            'google_pay_status' => $google,
+        ];
+    }
+
+    public function createSetup(
         Locations_model $location,
         array $booking,
+        string $method,
         string $locale = 'de'
     ): array {
         $start = Carbon::parse(
-            (string)$booking['reserve_date'].' '.(string)$booking['reserve_time'],
+            (string)$booking['reserve_date'].' '
+                .(string)$booking['reserve_time'],
             'Europe/Berlin'
         );
         $policy = $this->policy(
@@ -135,30 +359,240 @@ final class PmdReservationGuaranteeService
         );
 
         if (!$policy['required']) {
-            throw new RuntimeException('A card guarantee is not required for this reservation.');
-        }
-
-        $providerCode = strtolower((string)($policy['provider'] ?? 'stripe'));
-        if ($providerCode !== 'stripe') {
             throw new RuntimeException(
-                app(PmdReservationGuaranteeProviderRegistry::class)
-                    ->assertionMessage($providerCode)
+                'A payment-method guarantee is not required for this reservation.'
             );
         }
 
+        if (empty($policy['provider_ready'])) {
+            throw new RuntimeException(
+                'Reservation guarantee is temporarily unavailable. Please contact the restaurant.'
+            );
+        }
+
+        $method = strtolower(trim($method));
+        if (!in_array($method, (array)($policy['methods'] ?? []), true)) {
+            throw new RuntimeException(
+                'Please choose an available guarantee payment method.'
+            );
+        }
+
+        $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $providerCode = $registry->providerForMethod($method);
+        if ($providerCode === '' || !$registry->canEnable($providerCode)) {
+            throw new RuntimeException(
+                'The selected guarantee payment method is unavailable.'
+            );
+        }
+        $providerState = $registry->provider($providerCode);
+        $policy['provider'] = $providerCode;
+        $policy['provider_mode'] = (string)($providerState['mode'] ?? 'test');
+
+        if ($providerCode !== 'stripe') {
+            $result = app(PmdReservationGuaranteeGateway::class)->begin(
+                $providerCode,
+                $method,
+                $location,
+                $booking,
+                $policy
+            );
+            $result['policy'] = $this->publicPolicyPayload($policy);
+
+            return $result;
+        }
+
+        return $this->createStripeSetup(
+            $location,
+            $booking,
+            $method,
+            $policy
+        );
+    }
+
+    public function setupStatus(
+        Locations_model $location,
+        array $booking,
+        string $provider,
+        string $method,
+        string $setupReference,
+        string $locale = 'de'
+    ): array {
+        $start = Carbon::parse(
+            (string)$booking['reserve_date'].' '
+                .(string)$booking['reserve_time'],
+            'Europe/Berlin'
+        );
+        $policy = $this->policy(
+            $location,
+            (int)$booking['guest_num'],
+            $start,
+            $locale
+        );
+
+        $provider = strtolower(trim($provider));
+        $method = strtolower(trim($method));
+        $expectedProvider = app(PmdReservationGuaranteeProviderRegistry::class)
+            ->providerForMethod($method);
+        if ($provider !== $expectedProvider) {
+            throw new RuntimeException(
+                'The guarantee provider no longer matches this reservation.'
+            );
+        }
+
+        if ($provider === 'stripe') {
+            if (!preg_match('/^seti_[A-Za-z0-9_]+$/', $setupReference)) {
+                return [
+                    'success' => true,
+                    'ready' => false,
+                    'status' => 'PENDING',
+                ];
+            }
+
+            $config = $this->stripeCredentials(true);
+            $stripe = new StripeClient($config['secret_key']);
+            $intent = $stripe->setupIntents->retrieve(
+                $setupReference,
+                []
+            );
+
+            return [
+                'success' => true,
+                'ready' => (string)$intent->status === 'succeeded',
+                'status' => strtoupper((string)$intent->status),
+            ];
+        }
+
+        return app(PmdReservationGuaranteeGateway::class)->status(
+            $provider,
+            $method,
+            $setupReference,
+            $location,
+            $booking,
+            $policy
+        );
+    }
+
+    public function verifySetup(
+        Locations_model $location,
+        array $booking,
+        string $provider,
+        string $method,
+        string $setupReference,
+        string $locale = 'de'
+    ): array {
+        $start = Carbon::parse(
+            (string)$booking['reserve_date'].' '
+                .(string)$booking['reserve_time'],
+            'Europe/Berlin'
+        );
+        $policy = $this->policy(
+            $location,
+            (int)$booking['guest_num'],
+            $start,
+            $locale
+        );
+
+        if (!$policy['required']) {
+            return ['required' => false, 'policy' => $policy];
+        }
+
+        $provider = strtolower(trim($provider));
+        $method = strtolower(trim($method));
+        $expectedProvider = app(PmdReservationGuaranteeProviderRegistry::class)
+            ->providerForMethod($method);
+
+        if ($provider !== $expectedProvider) {
+            throw new RuntimeException(
+                'The guarantee provider no longer matches this reservation.'
+            );
+        }
+        if (!in_array($method, (array)($policy['methods'] ?? []), true)) {
+            throw new RuntimeException(
+                'The selected guarantee method is no longer available.'
+            );
+        }
+
+        $providerState = app(PmdReservationGuaranteeProviderRegistry::class)
+            ->provider($provider);
+        $policy['provider'] = $provider;
+        $policy['provider_mode'] = (string)($providerState['mode'] ?? 'test');
+
+        if ($provider !== 'stripe') {
+            return app(PmdReservationGuaranteeGateway::class)->verify(
+                $provider,
+                $method,
+                $setupReference,
+                $location,
+                $booking,
+                $policy
+            );
+        }
+
+        return $this->verifyStripeSetup(
+            $location,
+            $booking,
+            $setupReference,
+            $policy,
+            $method
+        );
+    }
+
+    public function createSetupIntent(
+        Locations_model $location,
+        array $booking,
+        string $locale = 'de'
+    ): array {
+        return $this->createSetup(
+            $location,
+            $booking,
+            'card',
+            $locale
+        );
+    }
+
+    public function verifySetupIntent(
+        Locations_model $location,
+        array $booking,
+        string $setupIntentId,
+        string $locale = 'de'
+    ): array {
+        return $this->verifySetup(
+            $location,
+            $booking,
+            'stripe',
+            'card',
+            $setupIntentId,
+            $locale
+        );
+    }
+
+    private function createStripeSetup(
+        Locations_model $location,
+        array $booking,
+        string $requestedMethod,
+        array $policy
+    ): array {
         $stripeConfig = $this->stripeCredentials(true);
         if (!($stripeConfig['ready'] ?? false)) {
-            throw new RuntimeException('Card guarantee is temporarily unavailable. Please contact the restaurant.');
+            throw new RuntimeException(
+                'Card guarantee is temporarily unavailable. Please contact the restaurant.'
+            );
         }
 
         $stripe = new StripeClient($stripeConfig['secret_key']);
         $metadata = $this->setupMetadata($location, $booking, $policy);
+        $metadata['pmd_requested_method'] = $requestedMethod;
         $customer = null;
 
         try {
             $customer = $stripe->customers->create([
-                'email' => strtolower(trim((string)($booking['email'] ?? ''))),
-                'name' => trim((string)($booking['first_name'] ?? '').' '.(string)($booking['last_name'] ?? '')),
+                'email' => strtolower(
+                    trim((string)($booking['email'] ?? ''))
+                ),
+                'name' => trim(
+                    (string)($booking['first_name'] ?? '').' '
+                        .(string)($booking['last_name'] ?? '')
+                ),
                 'metadata' => [
                     'pmd_surface' => 'public_reservation_guarantee',
                     'pmd_location_id' => (string)$location->getKey(),
@@ -175,6 +609,8 @@ final class PmdReservationGuaranteeService
             return [
                 'success' => true,
                 'provider' => 'stripe',
+                'method' => $requestedMethod,
+                'integration_mode' => 'stripe_payment_element',
                 'publishable_key' => $stripeConfig['publishable_key'],
                 'client_secret' => (string)$intent->client_secret,
                 'setup_intent_id' => (string)$intent->id,
@@ -183,7 +619,10 @@ final class PmdReservationGuaranteeService
         } catch (Throwable $error) {
             if ($customer && !empty($customer->id)) {
                 try {
-                    $stripe->customers->delete((string)$customer->id, []);
+                    $stripe->customers->delete(
+                        (string)$customer->id,
+                        []
+                    );
                 } catch (Throwable $ignored) {
                 }
             }
@@ -193,50 +632,49 @@ final class PmdReservationGuaranteeService
                 'message' => $error->getMessage(),
             ]);
 
-            throw new RuntimeException('Card verification could not be started. Please try again.');
+            throw new RuntimeException(
+                'Payment-method verification could not be started. Please try again.'
+            );
         }
     }
 
-    public function verifySetupIntent(
+    private function verifyStripeSetup(
         Locations_model $location,
         array $booking,
         string $setupIntentId,
-        string $locale = 'de'
+        array $policy,
+        string $requestedMethod
     ): array {
-        $start = Carbon::parse(
-            (string)$booking['reserve_date'].' '.(string)$booking['reserve_time'],
-            'Europe/Berlin'
-        );
-        $policy = $this->policy(
-            $location,
-            (int)$booking['guest_num'],
-            $start,
-            $locale
-        );
-
-        if (!$policy['required']) {
-            return ['required' => false, 'policy' => $policy];
-        }
-
         $stripeConfig = $this->stripeCredentials(true);
         if (!($stripeConfig['ready'] ?? false)) {
-            throw new RuntimeException('Card guarantee is not configured for this restaurant.');
+            throw new RuntimeException(
+                'Card guarantee is not configured for this restaurant.'
+            );
         }
 
         if (!preg_match('/^seti_[A-Za-z0-9_]+$/', $setupIntentId)) {
-            throw new RuntimeException('Card verification is missing or invalid.');
+            throw new RuntimeException(
+                'Payment-method verification is missing or invalid.'
+            );
         }
 
         $stripe = new StripeClient($stripeConfig['secret_key']);
 
         try {
-            $intent = $stripe->setupIntents->retrieve($setupIntentId, []);
+            $intent = $stripe->setupIntents->retrieve(
+                $setupIntentId,
+                ['expand' => ['payment_method']]
+            );
         } catch (Throwable $error) {
-            throw new RuntimeException('Card verification could not be verified.');
+            throw new RuntimeException(
+                'Payment-method verification could not be verified.'
+            );
         }
 
         if ((string)$intent->status !== 'succeeded') {
-            throw new RuntimeException('Please complete the card verification before confirming the reservation.');
+            throw new RuntimeException(
+                'Please complete payment-method verification before confirming the reservation.'
+            );
         }
 
         $metadata = $this->stripeObjectArray($intent->metadata ?? []);
@@ -252,25 +690,66 @@ final class PmdReservationGuaranteeService
             'pmd_terms_version',
             'pmd_contract_hash',
         ] as $key) {
-            if ((string)($metadata[$key] ?? '') !== (string)($expected[$key] ?? '')) {
-                throw new RuntimeException('The card guarantee no longer matches this reservation. Please verify the card again.');
+            if (
+                (string)($metadata[$key] ?? '')
+                !== (string)($expected[$key] ?? '')
+            ) {
+                throw new RuntimeException(
+                    'The payment-method guarantee no longer matches this reservation. Please verify again.'
+                );
             }
         }
 
-        $paymentMethod = is_object($intent->payment_method ?? null)
-            ? (string)($intent->payment_method->id ?? '')
+        $paymentMethodObject = is_object($intent->payment_method ?? null)
+            ? $intent->payment_method
+            : null;
+        $paymentMethod = $paymentMethodObject
+            ? (string)($paymentMethodObject->id ?? '')
             : (string)($intent->payment_method ?? '');
         $customer = is_object($intent->customer ?? null)
             ? (string)($intent->customer->id ?? '')
             : (string)($intent->customer ?? '');
 
         if ($paymentMethod === '' || $customer === '') {
-            throw new RuntimeException('Card verification did not return a reusable payment reference.');
+            throw new RuntimeException(
+                'Payment-method verification did not return a reusable reference.'
+            );
+        }
+
+        $method = 'card';
+        $walletType = strtolower((string)(
+            $paymentMethodObject->card->wallet->type
+            ?? ''
+        ));
+        if (in_array($walletType, ['apple_pay', 'google_pay'], true)) {
+            $method = $walletType;
+        }
+
+        $requestedMethod = strtolower(trim($requestedMethod));
+        $metadataRequestedMethod = strtolower(trim((string)(
+            $metadata['pmd_requested_method'] ?? ''
+        )));
+
+        if (
+            $metadataRequestedMethod === ''
+            || $metadataRequestedMethod !== $requestedMethod
+            || $method !== $requestedMethod
+        ) {
+            throw new RuntimeException(
+                'The verified Stripe payment method does not match the selected guarantee method. Please verify again.'
+            );
+        }
+
+        if (!in_array($method, (array)($policy['methods'] ?? []), true)) {
+            throw new RuntimeException(
+                'This payment method is not enabled for reservation guarantees.'
+            );
         }
 
         return [
             'required' => true,
             'policy' => $policy,
+            'payment_method_code' => $method,
             'customer_reference' => $customer,
             'payment_method_reference' => $paymentMethod,
             'setup_intent_reference' => (string)$intent->id,
@@ -302,6 +781,7 @@ final class PmdReservationGuaranteeService
                 'location_id' => (int)$reservation->location_id,
                 'provider' => (string)($policy['provider'] ?? 'stripe'),
                 'provider_mode' => (string)($policy['provider_mode'] ?? 'test'),
+                'payment_method_code' => (string)($verified['payment_method_code'] ?? 'card'),
                 'status' => 'active',
                 'amount_per_guest_cents' => max(0, (int)($policy['amount_per_guest_cents'] ?? 0)),
                 'amount_cents' => max(0, (int)($policy['amount_cents'] ?? 0)),
@@ -339,13 +819,19 @@ final class PmdReservationGuaranteeService
             return;
         }
 
+        $policy = (array)($verified['policy'] ?? []);
         $row = (object)[
             'guarantee_id' => 0,
+            'provider' => (string)($policy['provider'] ?? 'stripe'),
             'customer_reference' => (string)($verified['customer_reference'] ?? ''),
             'payment_method_reference' => (string)($verified['payment_method_reference'] ?? ''),
         ];
 
-        $this->cleanupStripeReferences($row);
+        if (strtolower((string)$row->provider) === 'stripe') {
+            $this->cleanupStripeReferences($row);
+        } else {
+            app(PmdReservationGuaranteeGateway::class)->release($row);
+        }
     }
 
     public function guaranteeForReservation(int $reservationId): ?object
@@ -368,6 +854,8 @@ final class PmdReservationGuaranteeService
 
         return [
             'status' => (string)$row->status,
+            'provider' => (string)($row->provider ?? 'stripe'),
+            'payment_method_code' => (string)($row->payment_method_code ?? 'card'),
             'amount_per_guest_cents' => (int)$row->amount_per_guest_cents,
             'amount_cents' => (int)$row->amount_cents,
             'charged_amount_cents' => isset($row->charged_amount_cents)
@@ -549,6 +1037,8 @@ final class PmdReservationGuaranteeService
 
         if (strtolower((string)($row->provider ?? 'stripe')) === 'stripe') {
             $this->cleanupStripeReferences($row);
+        } else {
+            app(PmdReservationGuaranteeGateway::class)->release($row);
         }
 
         $this->guaranteeDb()->table('reservation_guarantees')
@@ -593,6 +1083,8 @@ final class PmdReservationGuaranteeService
 
         return [
             'status' => $status,
+            'provider' => (string)($row->provider ?? 'stripe'),
+            'payment_method_code' => (string)($row->payment_method_code ?? 'card'),
             'amount_cents' => (int)$row->amount_cents,
             'charged_amount_cents' => isset($row->charged_amount_cents)
                 ? (int)$row->charged_amount_cents
@@ -618,10 +1110,13 @@ final class PmdReservationGuaranteeService
         ?string $lossAssessmentNote = null,
         ?int $staffId = null
     ): array {
-
-        $row = $this->guaranteeForReservation((int)$reservation->getKey());
+        $row = $this->guaranteeForReservation(
+            (int)$reservation->getKey()
+        );
         if (!$row) {
-            throw new RuntimeException('This reservation has no card guarantee.');
+            throw new RuntimeException(
+                'This reservation has no payment-method guarantee.'
+            );
         }
 
         if ($reservation->isCanceled()) {
@@ -645,46 +1140,52 @@ final class PmdReservationGuaranteeService
 
         if ((string)$row->status === 'action_required') {
             throw new RuntimeException(
-                'The card issuer requires customer authentication. No charge was completed. Release the guarantee or contact the guest for a new card authorization.'
+                'The payment provider requires customer authentication. No charge was completed. Release the guarantee or ask the guest for a new authorization.'
             );
         }
 
-        if (!in_array((string)$row->status, ['active', 'charge_failed'], true)) {
-            throw new RuntimeException('This card guarantee can no longer be charged.');
-        }
-
-        if (!$row->charge_eligible_at || Carbon::now('UTC')->lessThan(
-            Carbon::parse((string)$row->charge_eligible_at, 'UTC')
+        if (!in_array(
+            (string)$row->status,
+            ['active', 'charge_failed'],
+            true
         )) {
-            throw new RuntimeException('The no-show grace period has not ended yet.');
-        }
-
-        if (
-            trim((string)$row->customer_reference) === ''
-            || trim((string)$row->payment_method_reference) === ''
-        ) {
-            throw new RuntimeException('The saved card reference is unavailable.');
-        }
-
-        $providerCode = strtolower(trim((string)($row->provider ?? 'stripe')));
-        if ($providerCode !== 'stripe') {
             throw new RuntimeException(
-                app(PmdReservationGuaranteeProviderRegistry::class)
-                    ->assertionMessage($providerCode)
+                'This guarantee can no longer be charged.'
             );
         }
 
-        $stripeConfig = $this->stripeCredentials(true);
-        if (!($stripeConfig['ready'] ?? false)) {
-            throw new RuntimeException('Stripe is not enabled for this restaurant.');
+        if (
+            !$row->charge_eligible_at
+            || Carbon::now('UTC')->lessThan(
+                Carbon::parse(
+                    (string)$row->charge_eligible_at,
+                    'UTC'
+                )
+            )
+        ) {
+            throw new RuntimeException(
+                'The no-show grace period has not ended yet.'
+            );
+        }
+
+        $providerCode = strtolower(
+            trim((string)($row->provider ?? 'stripe'))
+        );
+        $paymentReference = trim(
+            (string)$row->payment_method_reference
+        );
+        if ($paymentReference === '') {
+            throw new RuntimeException(
+                'The saved payment-method reference is unavailable.'
+            );
         }
 
         if (
-            trim((string)($row->provider_mode ?? '')) !== ''
-            && (string)$row->provider_mode !== (string)($stripeConfig['mode'] ?? '')
+            in_array($providerCode, ['stripe', 'sumup'], true)
+            && trim((string)$row->customer_reference) === ''
         ) {
             throw new RuntimeException(
-                'Stripe test/live mode changed after this card guarantee was created. Release this guarantee and ask the guest to verify the card again.'
+                'The saved customer reference is unavailable.'
             );
         }
 
@@ -721,13 +1222,47 @@ final class PmdReservationGuaranteeService
             ->where('guarantee_id', (int)$row->guarantee_id)
             ->update([
                 'loss_assessment_note' => $lossAssessmentNote,
-                'loss_assessed_by_staff_id' => $staffId && $staffId > 0 ? $staffId : null,
+                'loss_assessed_by_staff_id' => $staffId && $staffId > 0
+                    ? $staffId
+                    : null,
                 'loss_assessed_at' => now(),
                 'updated_at' => now(),
             ]);
 
+        if ($providerCode !== 'stripe') {
+            return $this->chargeNoShowWithGateway(
+                $providerCode,
+                $row,
+                $reservation,
+                $chargeAmount,
+                $maximumAmount
+            );
+        }
+
+        $stripeConfig = $this->stripeCredentials(true);
+        if (!($stripeConfig['ready'] ?? false)) {
+            throw new RuntimeException(
+                'Stripe is not enabled for this restaurant.'
+            );
+        }
+
+        if (
+            trim((string)($row->provider_mode ?? '')) !== ''
+            && (string)$row->provider_mode
+                !== (string)($stripeConfig['mode'] ?? '')
+        ) {
+            throw new RuntimeException(
+                'Stripe test/live mode changed after this guarantee was created. Release this guarantee and ask the guest to verify again.'
+            );
+        }
+
         $stripe = new StripeClient($stripeConfig['secret_key']);
-        $reference = 'R'.str_pad((string)$reservation->getKey(), 6, '0', STR_PAD_LEFT);
+        $reference = 'R'.str_pad(
+            (string)$reservation->getKey(),
+            6,
+            '0',
+            STR_PAD_LEFT
+        );
 
         try {
             $intent = $stripe->paymentIntents->create([
@@ -743,6 +1278,9 @@ final class PmdReservationGuaranteeService
                     'pmd_reservation_id' => (string)$reservation->getKey(),
                     'pmd_reference' => $reference,
                     'pmd_terms_version' => (string)$row->terms_version,
+                    'pmd_payment_method' => (string)(
+                        $row->payment_method_code ?? 'card'
+                    ),
                 ],
             ], [
                 'idempotency_key' => 'pmd-noshow-'
@@ -752,7 +1290,12 @@ final class PmdReservationGuaranteeService
                     .substr(
                         hash(
                             'sha256',
-                            trim((string)($row->charge_intent_reference ?? '')) !== ''
+                            trim(
+                                (string)(
+                                    $row->charge_intent_reference
+                                    ?? ''
+                                )
+                            ) !== ''
                                 ? (string)$row->charge_intent_reference
                                 : 'first'
                         ),
@@ -763,26 +1306,13 @@ final class PmdReservationGuaranteeService
 
             $status = (string)$intent->status;
             if ($status === 'succeeded') {
-                $this->guaranteeDb()->table('reservation_guarantees')
-                    ->where('guarantee_id', (int)$row->guarantee_id)
-                    ->update([
-                        'status' => 'charged',
-                        'charged_amount_cents' => $chargeAmount,
-                        'charge_intent_reference' => (string)$intent->id,
-                        'charged_at' => now(),
-                        'last_error' => null,
-                        'updated_at' => now(),
-                    ]);
-
+                $this->markGuaranteeCharged(
+                    $row,
+                    $chargeAmount,
+                    (string)$intent->id
+                );
                 $this->cleanupStripeReferences($row);
-
-                $this->guaranteeDb()->table('reservation_guarantees')
-                    ->where('guarantee_id', (int)$row->guarantee_id)
-                    ->update([
-                        'customer_reference' => null,
-                        'payment_method_reference' => null,
-                        'updated_at' => now(),
-                    ]);
+                $this->clearStoredProviderReferences($row);
 
                 return [
                     'success' => true,
@@ -798,15 +1328,12 @@ final class PmdReservationGuaranteeService
                 ? 'action_required'
                 : 'charge_failed';
             $message = 'Stripe returned payment status '.$status.'.';
-
-            $this->guaranteeDb()->table('reservation_guarantees')
-                ->where('guarantee_id', (int)$row->guarantee_id)
-                ->update([
-                    'status' => $nextStatus,
-                    'charge_intent_reference' => (string)$intent->id,
-                    'last_error' => $message,
-                    'updated_at' => now(),
-                ]);
+            $this->markGuaranteeFailed(
+                $row,
+                $nextStatus,
+                (string)$intent->id,
+                $message
+            );
 
             return [
                 'success' => false,
@@ -819,16 +1346,16 @@ final class PmdReservationGuaranteeService
                 'currency' => (string)$row->currency,
             ];
         } catch (Throwable $error) {
-            $this->guaranteeDb()->table('reservation_guarantees')
-                ->where('guarantee_id', (int)$row->guarantee_id)
-                ->update([
-                    'status' => 'charge_failed',
-                    'last_error' => substr($error->getMessage(), 0, 2000),
-                    'updated_at' => now(),
-                ]);
+            $this->markGuaranteeFailed(
+                $row,
+                'charge_failed',
+                '',
+                $error->getMessage()
+            );
 
             Log::warning('PMD reservation no-show charge failed', [
                 'reservation_id' => (int)$reservation->getKey(),
+                'provider' => 'stripe',
                 'message' => $error->getMessage(),
             ]);
 
@@ -838,11 +1365,157 @@ final class PmdReservationGuaranteeService
         }
     }
 
+    private function chargeNoShowWithGateway(
+        string $providerCode,
+        object $row,
+        Reservations_model $reservation,
+        int $chargeAmount,
+        int $maximumAmount
+    ): array {
+        try {
+            $result = app(PmdReservationGuaranteeGateway::class)->charge(
+                $row,
+                $reservation,
+                $chargeAmount
+            );
+            $paymentId = trim((string)(
+                $result['payment_id']
+                ?? ''
+            ));
+            $status = strtolower(trim((string)(
+                $result['status']
+                ?? ''
+            )));
+
+            if (!empty($result['success'])) {
+                $this->markGuaranteeCharged(
+                    $row,
+                    $chargeAmount,
+                    $paymentId
+                );
+                app(PmdReservationGuaranteeGateway::class)->release($row);
+                $this->clearStoredProviderReferences($row);
+
+                return [
+                    'success' => true,
+                    'already_charged' => false,
+                    'payment_intent_id' => $paymentId,
+                    'amount_cents' => $chargeAmount,
+                    'maximum_amount_cents' => $maximumAmount,
+                    'currency' => (string)$row->currency,
+                    'provider' => $providerCode,
+                ];
+            }
+
+            $requiresAction = in_array(
+                $status,
+                [
+                    'requires_action',
+                    'pending_customer_action',
+                    'payer_action_required',
+                ],
+                true
+            );
+            $next = $requiresAction
+                ? 'action_required'
+                : 'charge_failed';
+            $message = ucfirst($providerCode)
+                .' returned payment status '
+                .($status !== '' ? $status : 'not completed').'.';
+
+            $this->markGuaranteeFailed(
+                $row,
+                $next,
+                $paymentId,
+                $message
+            );
+
+            return [
+                'success' => false,
+                'requires_action' => $requiresAction,
+                'payment_intent_id' => $paymentId,
+                'status' => $status,
+                'message' => $message,
+                'amount_cents' => $chargeAmount,
+                'maximum_amount_cents' => $maximumAmount,
+                'currency' => (string)$row->currency,
+                'provider' => $providerCode,
+            ];
+        } catch (Throwable $error) {
+            $this->markGuaranteeFailed(
+                $row,
+                'charge_failed',
+                '',
+                $error->getMessage()
+            );
+
+            Log::warning('PMD reservation no-show charge failed', [
+                'reservation_id' => (int)$reservation->getKey(),
+                'provider' => $providerCode,
+                'message' => $error->getMessage(),
+            ]);
+
+            throw new RuntimeException(
+                'The no-show charge was not completed. No successful charge was recorded.'
+            );
+        }
+    }
+
+    private function markGuaranteeCharged(
+        object $row,
+        int $chargeAmount,
+        string $paymentId
+    ): void {
+        $this->guaranteeDb()->table('reservation_guarantees')
+            ->where('guarantee_id', (int)$row->guarantee_id)
+            ->update([
+                'status' => 'charged',
+                'charged_amount_cents' => $chargeAmount,
+                'charge_intent_reference' => $paymentId !== ''
+                    ? $paymentId
+                    : null,
+                'charged_at' => now(),
+                'last_error' => null,
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function markGuaranteeFailed(
+        object $row,
+        string $status,
+        string $paymentId,
+        string $message
+    ): void {
+        $this->guaranteeDb()->table('reservation_guarantees')
+            ->where('guarantee_id', (int)$row->guarantee_id)
+            ->update([
+                'status' => $status,
+                'charge_intent_reference' => $paymentId !== ''
+                    ? $paymentId
+                    : ($row->charge_intent_reference ?? null),
+                'last_error' => substr($message, 0, 2000),
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function clearStoredProviderReferences(object $row): void
+    {
+        $this->guaranteeDb()->table('reservation_guarantees')
+            ->where('guarantee_id', (int)$row->guarantee_id)
+            ->update([
+                'customer_reference' => null,
+                'payment_method_reference' => null,
+                'updated_at' => now(),
+            ]);
+    }
+
     public function publicPolicyPayload(array $policy): array
     {
         return [
             'required' => (bool)($policy['required'] ?? false),
             'providerReady' => (bool)($policy['provider_ready'] ?? false),
+            'provider' => (string)($policy['provider'] ?? 'stripe'),
+            'methods' => array_values((array)($policy['methods'] ?? [])),
             'amountPerGuestCents' => (int)($policy['amount_per_guest_cents'] ?? 0),
             'amountCents' => (int)($policy['amount_cents'] ?? 0),
             'currency' => (string)($policy['currency'] ?? 'EUR'),
@@ -887,6 +1560,8 @@ final class PmdReservationGuaranteeService
         return [
             'enabled' => $enabled && $amount > 0,
             'provider' => $provider,
+            'methods' => app(PmdReservationGuaranteeProviderRegistry::class)
+                ->selectedMethods(),
             'send_confirmation_email' => $settings->bool('reservation_guarantee_send_confirmation_email', true),
             'min_guests' => max(1, min(100, $settings->int('reservation_guarantee_min_guests', 6))),
             'amount_per_guest_cents' => $amount,
@@ -1076,6 +1751,18 @@ final class PmdReservationGuaranteeService
         return strtoupper($currency) === 'EUR'
             ? $amount.' €'
             : $amount.' '.strtoupper($currency);
+    }
+
+    private function stripeApiMessage(
+        array $body,
+        string $fallback
+    ): string {
+        $error = (array)($body['error'] ?? []);
+        $message = trim((string)($error['message'] ?? ''));
+
+        return $message !== ''
+            ? substr($message, 0, 500)
+            : $fallback;
     }
 
     private function stripeObjectArray($value): array

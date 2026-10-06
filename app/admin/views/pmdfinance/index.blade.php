@@ -13,8 +13,13 @@
     $settings = $data['settings'] ?? [];
     $fiskaly = $data['fiskaly'] ?? [];
     $guaranteeProviders = (array)($data['guarantee_providers'] ?? []);
+    $guaranteeMethods = (array)($data['guarantee_methods'] ?? []);
     $reservationStatuses = (array)($data['reservation_statuses'] ?? []);
     $guaranteeSelected = strtolower((string)($settings['reservation_guarantee_provider'] ?? 'stripe'));
+    $guaranteeSelectedMethods = array_values(array_filter(array_map(
+        static fn ($method) => strtolower(trim((string)$method)),
+        explode(',', (string)($settings['reservation_guarantee_methods'] ?? 'card'))
+    )));
     $checked = fn($value) => !in_array(strtolower((string)$value), ['0','false','off','no',''], true);
 
     $marketCountry = strtoupper((string)($data['market']['country_code'] ?? ''));
@@ -204,9 +209,10 @@
                             <h3>{{ $pmdSettingsText('Policy') }}</h3>
                             <div class="pmd-owner-form-grid">
                                 <div class="pmd-owner-field pmd-owner-field--full">
-                                    <label>{{ $pmdSettingsText('Guarantee payment provider') }}</label>
+                                    <label>{{ $pmdSettingsText('Card guarantee provider') }}</label>
                                     <select name="finance[reservation_guarantee_provider]">
                                         @foreach($guaranteeProviders as $code => $provider)
+                                            @continue((string)$code === 'paypal')
                                             @php
                                                 $marketOk = !empty($provider['market_available']);
                                                 $adapterReady = !empty($provider['adapter_ready']);
@@ -223,7 +229,36 @@
                                             >{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}{{ $suffix }}</option>
                                         @endforeach
                                     </select>
-                                    <small>{{ $pmdSettingsText('A PSP can support ordinary checkout and still not be ready for saved-credential no-show charging. PayMyDine only enables providers with a verified reservation-guarantee adapter.') }}</small>
+                                    <small>{{ $pmdSettingsText('Choose which PSP handles card guarantees: Stripe, SumUp, VR Payment or Worldline. Apple Pay and Google Pay use Stripe; PayPal uses PayPal Vault. Square is not used for reservation guarantees.') }}</small>
+                                </div>
+
+                                <div class="pmd-owner-field pmd-owner-field--full">
+                                    <label>{{ $pmdSettingsText('Guest guarantee methods') }}</label>
+                                    <div style="display:flex;gap:10px;flex-wrap:wrap">
+                                        @foreach($guaranteeMethods as $methodCode => $method)
+                                            @php
+                                                $supporting = [];
+                                                foreach($guaranteeProviders as $providerCode => $provider) {
+                                                    if (in_array((string)$methodCode, (array)($provider['methods'] ?? []), true)) {
+                                                        $supporting[] = (string)($provider['label'] ?? $providerCode);
+                                                    }
+                                                }
+                                            @endphp
+                                            <label style="display:inline-flex;align-items:center;gap:8px;border:1px solid #d8dde0;border-radius:10px;padding:9px 12px;background:#fff">
+                                                <input
+                                                    type="checkbox"
+                                                    name="finance[reservation_guarantee_methods][]"
+                                                    value="{{ $methodCode }}"
+                                                    {{ in_array((string)$methodCode, $guaranteeSelectedMethods, true) ? 'checked' : '' }}
+                                                >
+                                                <span>
+                                                    <strong>{{ $pmdSettingsText($method['label'] ?? ucfirst(str_replace('_',' ',(string)$methodCode))) }}</strong>
+                                                    <small style="display:block">{{ implode(', ', $supporting) }}</small>
+                                                </span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                    <small>{{ $pmdSettingsText('Card uses the selected card provider. Apple Pay and Google Pay route through Stripe. PayPal routes through PayPal Vault. A method is shown to guests only when its provider is enabled and configured.') }}</small>
                                 </div>
 
                                 <div class="pmd-owner-field">
@@ -342,7 +377,7 @@
                         <div class="pmd-owner-panel">
                             <h3>{{ $pmdSettingsText('Safety rules') }}</h3>
                             <div class="pmd-owner-list">
-                                <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('No charge at booking') }}</strong><small>{{ $pmdSettingsText('Only the payment credential is verified and tokenized by the selected provider.') }}</small></div><span class="pmd-owner-status is-active">€0</span></div>
+                                <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('No final charge at booking') }}</strong><small>{{ $pmdSettingsText('The provider only verifies/tokenizes the credential. SumUp may show a temporary €1 authorization which it immediately reimburses; Worldline can use zero-value verification where supported.') }}</small></div><span class="pmd-owner-status is-active">{{ $pmdSettingsText('Guarantee only') }}</span></div>
                                 <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('Manual no-show decision') }}</strong><small>{{ $pmdSettingsText('A staff member with payment permission must explicitly start the charge after the grace period.') }}</small></div><span class="pmd-owner-status is-active">{{ $pmdSettingsText('Required') }}</span></div>
                                 <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('Canceled booking protection') }}</strong><small>{{ $pmdSettingsText('Canceled reservations cannot be charged as a no-show.') }}</small></div><span class="pmd-owner-status is-active">{{ $pmdSettingsText('Blocked') }}</span></div>
                                 <div class="pmd-owner-list-row"><div><strong>{{ $pmdSettingsText('Issuer authentication failure') }}</strong><small>{{ $pmdSettingsText('If the bank requires the guest again, PayMyDine records Action required / Charge failed and never pretends the money was collected.') }}</small></div><span class="pmd-owner-status">{{ $pmdSettingsText('Fail closed') }}</span></div>
