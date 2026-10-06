@@ -11,6 +11,8 @@ on:
       - 'app/Services/PmdTableDisplayService.php'
       - 'app/Services/PmdTableDisplayPairingService.php'
       - 'app/Services/PmdKioskPairingService.php'
+      - 'app/Services/TerminalPayments/TerminalPaymentService.php'
+      - 'app/Services/TerminalPayments/SquareTerminalProvider.php'
       - 'app/Http/Controllers/PmdKioskPublicController.php'
       - 'app/Http/Controllers/PmdDevicePlatformController.php'
       - 'app/admin/controllers/Pmddevices.php'
@@ -110,6 +112,8 @@ jobs:
           php -l app/Services/PmdTableDisplayService.php
           php -l app/Services/PmdTableDisplayPairingService.php
           php -l app/Services/PmdKioskPairingService.php
+          php -l app/Services/TerminalPayments/TerminalPaymentService.php
+          php -l app/Services/TerminalPayments/SquareTerminalProvider.php
           php -l app/Http/Controllers/PmdKioskPublicController.php
           php -l kiosk/index.php
           php -l kiosk-reset/index.php
@@ -202,6 +206,14 @@ jobs:
           grep -Fq 'PMD_KIOSK_TERMINAL_ONLY_V18' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_FULLSCREEN_CHECKOUT_V18' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_NO_TIPS_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_NATIVE_TERMINAL_PAY_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_ANDROID_KIOSK_TERMINAL_BRIDGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
+          grep -Fq 'PMD_KIOSK_NATIVE_TERMINAL_V18' mobile/android/app/src/main/java/com/paymydine/mobile/kiosk/KioskApiClient.kt
+          grep -Fq 'PMD_KIOSK_CONNECTED_TERMINAL_V18' app/Services/PmdKioskPairingService.php
+          grep -Fq 'PMD_KIOSK_CONNECTED_TERMINAL_V18' app/Http/Controllers/PmdKioskPublicController.php
+          grep -Fq 'PMD_KIOSK_CONNECTED_TERMINAL_V18' routes/pmd-kiosk-v1.php
+          grep -Fq 'PMD_TERMINAL_TIP_POLICY_V18' app/Services/TerminalPayments/TerminalPaymentService.php
+          grep -Fq 'PMD_KIOSK_TERMINAL_NO_TIP_V18' app/Services/TerminalPayments/SquareTerminalProvider.php
           grep -Fq 'PMD_ANDROID_PRINTER_SETUP_V18' mobile/android/app/src/main/java/com/paymydine/mobile/hardware/ReceiptPrinterManager.kt
           grep -Fq 'PMD_ANDROID_PRINTER_SETUP_V18' mobile/android/app/src/main/java/com/paymydine/mobile/hardware/PrinterSetupActivity.kt
           grep -Fq 'PMD_ANDROID_STAFF_PRINTER_ENTRY_V18' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PmdStaffLogin.kt
