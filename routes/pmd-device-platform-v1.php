@@ -18,6 +18,22 @@ Route::group([
         ->withoutMiddleware([VerifyCsrfToken::class])
         ->middleware('throttle:120,1,pmd-device-platform-heartbeat');
 
+    Route::post('hardware', [PmdDevicePlatformController::class, 'hardware'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:60,1,pmd-device-platform-hardware');
+
+    Route::post('hardware/configure', [PmdDevicePlatformController::class, 'configureHardware'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:30,1,pmd-device-platform-hardware-config');
+
+    Route::post('kiosk/terminal-payment', [PmdDevicePlatformController::class, 'kioskTerminalPayment'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:30,1,pmd-kiosk-terminal-payment');
+
+    Route::post('kiosk/terminal-payment/refresh', [PmdDevicePlatformController::class, 'kioskTerminalPaymentRefresh'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:120,1,pmd-kiosk-terminal-payment-refresh');
+
     Route::post('logs', [PmdDevicePlatformController::class, 'log'])
         ->withoutMiddleware([VerifyCsrfToken::class])
         ->middleware('throttle:60,1,pmd-device-platform-logs');
