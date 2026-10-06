@@ -27,6 +27,14 @@ Route::post('/book/guarantee/setup', [PmdPublicBookingController::class, 'guaran
     ->middleware('throttle:10,1')
     ->name('pmd.public-booking.guarantee.setup');
 
+Route::post('/book/guarantee/status', [PmdPublicBookingController::class, 'guaranteeStatus'])
+    ->middleware('throttle:60,1')
+    ->name('pmd.public-booking.guarantee.status');
+
+Route::get('/book/guarantee/return', [PmdPublicBookingController::class, 'guaranteeReturn'])
+    ->middleware('throttle:60,1')
+    ->name('pmd.public-booking.guarantee.return');
+
 Route::post('/book', [PmdPublicBookingController::class, 'store'])
     ->middleware('throttle:20,1')
     ->name('pmd.public-booking.store');
