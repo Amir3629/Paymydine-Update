@@ -883,10 +883,13 @@ final class PmdReservationGuaranteeService
         ?string $lossAssessmentNote = null,
         ?int $staffId = null
     ): array {
-
-        $row = $this->guaranteeForReservation((int)$reservation->getKey());
+        $row = $this->guaranteeForReservation(
+            (int)$reservation->getKey()
+        );
         if (!$row) {
-            throw new RuntimeException('This reservation has no card guarantee.');
+            throw new RuntimeException(
+                'This reservation has no payment-method guarantee.'
+            );
         }
 
         if ($reservation->isCanceled()) {
@@ -910,46 +913,52 @@ final class PmdReservationGuaranteeService
 
         if ((string)$row->status === 'action_required') {
             throw new RuntimeException(
-                'The card issuer requires customer authentication. No charge was completed. Release the guarantee or contact the guest for a new card authorization.'
+                'The payment provider requires customer authentication. No charge was completed. Release the guarantee or ask the guest for a new authorization.'
             );
         }
 
-        if (!in_array((string)$row->status, ['active', 'charge_failed'], true)) {
-            throw new RuntimeException('This card guarantee can no longer be charged.');
-        }
-
-        if (!$row->charge_eligible_at || Carbon::now('UTC')->lessThan(
-            Carbon::parse((string)$row->charge_eligible_at, 'UTC')
+        if (!in_array(
+            (string)$row->status,
+            ['active', 'charge_failed'],
+            true
         )) {
-            throw new RuntimeException('The no-show grace period has not ended yet.');
-        }
-
-        if (
-            trim((string)$row->customer_reference) === ''
-            || trim((string)$row->payment_method_reference) === ''
-        ) {
-            throw new RuntimeException('The saved card reference is unavailable.');
-        }
-
-        $providerCode = strtolower(trim((string)($row->provider ?? 'stripe')));
-        if ($providerCode !== 'stripe') {
             throw new RuntimeException(
-                app(PmdReservationGuaranteeProviderRegistry::class)
-                    ->assertionMessage($providerCode)
+                'This guarantee can no longer be charged.'
             );
         }
 
-        $stripeConfig = $this->stripeCredentials(true);
-        if (!($stripeConfig['ready'] ?? false)) {
-            throw new RuntimeException('Stripe is not enabled for this restaurant.');
+        if (
+            !$row->charge_eligible_at
+            || Carbon::now('UTC')->lessThan(
+                Carbon::parse(
+                    (string)$row->charge_eligible_at,
+                    'UTC'
+                )
+            )
+        ) {
+            throw new RuntimeException(
+                'The no-show grace period has not ended yet.'
+            );
+        }
+
+        $providerCode = strtolower(
+            trim((string)($row->provider ?? 'stripe'))
+        );
+        $paymentReference = trim(
+            (string)$row->payment_method_reference
+        );
+        if ($paymentReference === '') {
+            throw new RuntimeException(
+                'The saved payment-method reference is unavailable.'
+            );
         }
 
         if (
-            trim((string)($row->provider_mode ?? '')) !== ''
-            && (string)$row->provider_mode !== (string)($stripeConfig['mode'] ?? '')
+            in_array($providerCode, ['stripe', 'sumup'], true)
+            && trim((string)$row->customer_reference) === ''
         ) {
             throw new RuntimeException(
-                'Stripe test/live mode changed after this card guarantee was created. Release this guarantee and ask the guest to verify the card again.'
+                'The saved customer reference is unavailable.'
             );
         }
 
@@ -986,13 +995,47 @@ final class PmdReservationGuaranteeService
             ->where('guarantee_id', (int)$row->guarantee_id)
             ->update([
                 'loss_assessment_note' => $lossAssessmentNote,
-                'loss_assessed_by_staff_id' => $staffId && $staffId > 0 ? $staffId : null,
+                'loss_assessed_by_staff_id' => $staffId && $staffId > 0
+                    ? $staffId
+                    : null,
                 'loss_assessed_at' => now(),
                 'updated_at' => now(),
             ]);
 
+        if ($providerCode !== 'stripe') {
+            return $this->chargeNoShowWithGateway(
+                $providerCode,
+                $row,
+                $reservation,
+                $chargeAmount,
+                $maximumAmount
+            );
+        }
+
+        $stripeConfig = $this->stripeCredentials(true);
+        if (!($stripeConfig['ready'] ?? false)) {
+            throw new RuntimeException(
+                'Stripe is not enabled for this restaurant.'
+            );
+        }
+
+        if (
+            trim((string)($row->provider_mode ?? '')) !== ''
+            && (string)$row->provider_mode
+                !== (string)($stripeConfig['mode'] ?? '')
+        ) {
+            throw new RuntimeException(
+                'Stripe test/live mode changed after this guarantee was created. Release this guarantee and ask the guest to verify again.'
+            );
+        }
+
         $stripe = new StripeClient($stripeConfig['secret_key']);
-        $reference = 'R'.str_pad((string)$reservation->getKey(), 6, '0', STR_PAD_LEFT);
+        $reference = 'R'.str_pad(
+            (string)$reservation->getKey(),
+            6,
+            '0',
+            STR_PAD_LEFT
+        );
 
         try {
             $intent = $stripe->paymentIntents->create([
@@ -1008,6 +1051,9 @@ final class PmdReservationGuaranteeService
                     'pmd_reservation_id' => (string)$reservation->getKey(),
                     'pmd_reference' => $reference,
                     'pmd_terms_version' => (string)$row->terms_version,
+                    'pmd_payment_method' => (string)(
+                        $row->payment_method_code ?? 'card'
+                    ),
                 ],
             ], [
                 'idempotency_key' => 'pmd-noshow-'
@@ -1017,7 +1063,12 @@ final class PmdReservationGuaranteeService
                     .substr(
                         hash(
                             'sha256',
-                            trim((string)($row->charge_intent_reference ?? '')) !== ''
+                            trim(
+                                (string)(
+                                    $row->charge_intent_reference
+                                    ?? ''
+                                )
+                            ) !== ''
                                 ? (string)$row->charge_intent_reference
                                 : 'first'
                         ),
@@ -1028,26 +1079,13 @@ final class PmdReservationGuaranteeService
 
             $status = (string)$intent->status;
             if ($status === 'succeeded') {
-                $this->guaranteeDb()->table('reservation_guarantees')
-                    ->where('guarantee_id', (int)$row->guarantee_id)
-                    ->update([
-                        'status' => 'charged',
-                        'charged_amount_cents' => $chargeAmount,
-                        'charge_intent_reference' => (string)$intent->id,
-                        'charged_at' => now(),
-                        'last_error' => null,
-                        'updated_at' => now(),
-                    ]);
-
+                $this->markGuaranteeCharged(
+                    $row,
+                    $chargeAmount,
+                    (string)$intent->id
+                );
                 $this->cleanupStripeReferences($row);
-
-                $this->guaranteeDb()->table('reservation_guarantees')
-                    ->where('guarantee_id', (int)$row->guarantee_id)
-                    ->update([
-                        'customer_reference' => null,
-                        'payment_method_reference' => null,
-                        'updated_at' => now(),
-                    ]);
+                $this->clearStoredProviderReferences($row);
 
                 return [
                     'success' => true,
@@ -1063,15 +1101,12 @@ final class PmdReservationGuaranteeService
                 ? 'action_required'
                 : 'charge_failed';
             $message = 'Stripe returned payment status '.$status.'.';
-
-            $this->guaranteeDb()->table('reservation_guarantees')
-                ->where('guarantee_id', (int)$row->guarantee_id)
-                ->update([
-                    'status' => $nextStatus,
-                    'charge_intent_reference' => (string)$intent->id,
-                    'last_error' => $message,
-                    'updated_at' => now(),
-                ]);
+            $this->markGuaranteeFailed(
+                $row,
+                $nextStatus,
+                (string)$intent->id,
+                $message
+            );
 
             return [
                 'success' => false,
@@ -1084,16 +1119,16 @@ final class PmdReservationGuaranteeService
                 'currency' => (string)$row->currency,
             ];
         } catch (Throwable $error) {
-            $this->guaranteeDb()->table('reservation_guarantees')
-                ->where('guarantee_id', (int)$row->guarantee_id)
-                ->update([
-                    'status' => 'charge_failed',
-                    'last_error' => substr($error->getMessage(), 0, 2000),
-                    'updated_at' => now(),
-                ]);
+            $this->markGuaranteeFailed(
+                $row,
+                'charge_failed',
+                '',
+                $error->getMessage()
+            );
 
             Log::warning('PMD reservation no-show charge failed', [
                 'reservation_id' => (int)$reservation->getKey(),
+                'provider' => 'stripe',
                 'message' => $error->getMessage(),
             ]);
 
@@ -1103,11 +1138,157 @@ final class PmdReservationGuaranteeService
         }
     }
 
+    private function chargeNoShowWithGateway(
+        string $providerCode,
+        object $row,
+        Reservations_model $reservation,
+        int $chargeAmount,
+        int $maximumAmount
+    ): array {
+        try {
+            $result = app(PmdReservationGuaranteeGateway::class)->charge(
+                $row,
+                $reservation,
+                $chargeAmount
+            );
+            $paymentId = trim((string)(
+                $result['payment_id']
+                ?? ''
+            ));
+            $status = strtolower(trim((string)(
+                $result['status']
+                ?? ''
+            )));
+
+            if (!empty($result['success'])) {
+                $this->markGuaranteeCharged(
+                    $row,
+                    $chargeAmount,
+                    $paymentId
+                );
+                app(PmdReservationGuaranteeGateway::class)->release($row);
+                $this->clearStoredProviderReferences($row);
+
+                return [
+                    'success' => true,
+                    'already_charged' => false,
+                    'payment_intent_id' => $paymentId,
+                    'amount_cents' => $chargeAmount,
+                    'maximum_amount_cents' => $maximumAmount,
+                    'currency' => (string)$row->currency,
+                    'provider' => $providerCode,
+                ];
+            }
+
+            $requiresAction = in_array(
+                $status,
+                [
+                    'requires_action',
+                    'pending_customer_action',
+                    'payer_action_required',
+                ],
+                true
+            );
+            $next = $requiresAction
+                ? 'action_required'
+                : 'charge_failed';
+            $message = ucfirst($providerCode)
+                .' returned payment status '
+                .($status !== '' ? $status : 'not completed').'.';
+
+            $this->markGuaranteeFailed(
+                $row,
+                $next,
+                $paymentId,
+                $message
+            );
+
+            return [
+                'success' => false,
+                'requires_action' => $requiresAction,
+                'payment_intent_id' => $paymentId,
+                'status' => $status,
+                'message' => $message,
+                'amount_cents' => $chargeAmount,
+                'maximum_amount_cents' => $maximumAmount,
+                'currency' => (string)$row->currency,
+                'provider' => $providerCode,
+            ];
+        } catch (Throwable $error) {
+            $this->markGuaranteeFailed(
+                $row,
+                'charge_failed',
+                '',
+                $error->getMessage()
+            );
+
+            Log::warning('PMD reservation no-show charge failed', [
+                'reservation_id' => (int)$reservation->getKey(),
+                'provider' => $providerCode,
+                'message' => $error->getMessage(),
+            ]);
+
+            throw new RuntimeException(
+                'The no-show charge was not completed. No successful charge was recorded.'
+            );
+        }
+    }
+
+    private function markGuaranteeCharged(
+        object $row,
+        int $chargeAmount,
+        string $paymentId
+    ): void {
+        $this->guaranteeDb()->table('reservation_guarantees')
+            ->where('guarantee_id', (int)$row->guarantee_id)
+            ->update([
+                'status' => 'charged',
+                'charged_amount_cents' => $chargeAmount,
+                'charge_intent_reference' => $paymentId !== ''
+                    ? $paymentId
+                    : null,
+                'charged_at' => now(),
+                'last_error' => null,
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function markGuaranteeFailed(
+        object $row,
+        string $status,
+        string $paymentId,
+        string $message
+    ): void {
+        $this->guaranteeDb()->table('reservation_guarantees')
+            ->where('guarantee_id', (int)$row->guarantee_id)
+            ->update([
+                'status' => $status,
+                'charge_intent_reference' => $paymentId !== ''
+                    ? $paymentId
+                    : ($row->charge_intent_reference ?? null),
+                'last_error' => substr($message, 0, 2000),
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function clearStoredProviderReferences(object $row): void
+    {
+        $this->guaranteeDb()->table('reservation_guarantees')
+            ->where('guarantee_id', (int)$row->guarantee_id)
+            ->update([
+                'customer_reference' => null,
+                'payment_method_reference' => null,
+                'updated_at' => now(),
+            ]);
+    }
+
     public function publicPolicyPayload(array $policy): array
     {
         return [
             'required' => (bool)($policy['required'] ?? false),
             'providerReady' => (bool)($policy['provider_ready'] ?? false),
+            'provider' => (string)($policy['provider'] ?? 'stripe'),
+            'methods' => array_values((array)($policy['methods'] ?? [])),
             'amountPerGuestCents' => (int)($policy['amount_per_guest_cents'] ?? 0),
             'amountCents' => (int)($policy['amount_cents'] ?? 0),
             'currency' => (string)($policy['currency'] ?? 'EUR'),
