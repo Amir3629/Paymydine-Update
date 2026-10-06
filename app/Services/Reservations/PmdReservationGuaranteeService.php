@@ -19,7 +19,12 @@ final class PmdReservationGuaranteeService
     public function publicConfig(Locations_model $location, string $locale = 'de'): array
     {
         $base = $this->baseSettings();
-        $stripe = $this->stripeCredentials(true);
+        $providerCode = (string)$base['provider'];
+        $providerRegistry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $providerState = $providerRegistry->provider($providerCode);
+        $stripe = $providerCode === 'stripe'
+            ? $this->stripeCredentials(true)
+            : ['ready' => false, 'currency' => 'EUR', 'publishable_key' => ''];
 
         $samplePolicy = $this->policy(
             $location,
@@ -36,8 +41,11 @@ final class PmdReservationGuaranteeService
             'freeCancelHours' => $base['free_cancel_hours'],
             'graceMinutes' => $base['grace_minutes'],
             'termsVersion' => $base['terms_version'],
-            'provider' => 'stripe',
-            'providerReady' => (bool)($stripe['ready'] ?? false),
+            'provider' => $providerCode,
+            'providerLabel' => (string)($providerState['label'] ?? $providerCode),
+            'providerReady' => $providerCode === 'stripe'
+                ? (bool)($stripe['ready'] ?? false)
+                : $providerRegistry->canEnable($providerCode),
             'publishableKey' => (string)($stripe['publishable_key'] ?? ''),
             'locale' => $this->locale($locale),
             'termsText' => (string)$samplePolicy['terms_text'],
@@ -53,7 +61,12 @@ final class PmdReservationGuaranteeService
         string $locale = 'de'
     ): array {
         $base = $this->baseSettings();
-        $stripe = $this->stripeCredentials(true);
+        $providerCode = (string)$base['provider'];
+        $providerRegistry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $providerState = $providerRegistry->provider($providerCode);
+        $stripe = $providerCode === 'stripe'
+            ? $this->stripeCredentials(true)
+            : ['ready' => false, 'currency' => 'EUR', 'mode' => ($providerState['mode'] ?? null)];
         $guests = max(1, $guests);
         $required = $base['enabled']
             && $base['amount_per_guest_cents'] > 0
@@ -80,9 +93,11 @@ final class PmdReservationGuaranteeService
         $policy = [
             'enabled' => $base['enabled'],
             'required' => $required,
-            'provider_ready' => (bool)($stripe['ready'] ?? false),
-            'provider' => 'stripe',
-            'provider_mode' => (string)($stripe['mode'] ?? 'test'),
+            'provider_ready' => $providerCode === 'stripe'
+                ? (bool)($stripe['ready'] ?? false)
+                : $providerRegistry->canEnable($providerCode),
+            'provider' => $providerCode,
+            'provider_mode' => (string)($providerState['mode'] ?? ($stripe['mode'] ?? 'test')),
             'min_guests' => $base['min_guests'],
             'guests' => $guests,
             'amount_per_guest_cents' => $base['amount_per_guest_cents'],
@@ -121,6 +136,14 @@ final class PmdReservationGuaranteeService
 
         if (!$policy['required']) {
             throw new RuntimeException('A card guarantee is not required for this reservation.');
+        }
+
+        $providerCode = strtolower((string)($policy['provider'] ?? 'stripe'));
+        if ($providerCode !== 'stripe') {
+            throw new RuntimeException(
+                app(PmdReservationGuaranteeProviderRegistry::class)
+                    ->assertionMessage($providerCode)
+            );
         }
 
         $stripeConfig = $this->stripeCredentials(true);
@@ -277,7 +300,7 @@ final class PmdReservationGuaranteeService
             ['reservation_id' => (int)$reservation->getKey()],
             [
                 'location_id' => (int)$reservation->location_id,
-                'provider' => 'stripe',
+                'provider' => (string)($policy['provider'] ?? 'stripe'),
                 'provider_mode' => (string)($policy['provider_mode'] ?? 'test'),
                 'status' => 'active',
                 'amount_per_guest_cents' => max(0, (int)($policy['amount_per_guest_cents'] ?? 0)),
@@ -365,6 +388,10 @@ final class PmdReservationGuaranteeService
     public function sendGuaranteeConfirmation(
         Reservations_model $reservation
     ): bool {
+        if (!$this->boolSetting('reservation_guarantee_send_confirmation_email', true)) {
+            return false;
+        }
+
         $row = $this->guaranteeForReservation((int)$reservation->getKey());
         if (!$row) {
             return false;
@@ -520,7 +547,9 @@ final class PmdReservationGuaranteeService
             return false;
         }
 
-        $this->cleanupStripeReferences($row);
+        if (strtolower((string)($row->provider ?? 'stripe')) === 'stripe') {
+            $this->cleanupStripeReferences($row);
+        }
 
         DB::table('reservation_guarantees')
             ->where('guarantee_id', (int)$row->guarantee_id)
@@ -628,6 +657,14 @@ final class PmdReservationGuaranteeService
             || trim((string)$row->payment_method_reference) === ''
         ) {
             throw new RuntimeException('The saved card reference is unavailable.');
+        }
+
+        $providerCode = strtolower(trim((string)($row->provider ?? 'stripe')));
+        if ($providerCode !== 'stripe') {
+            throw new RuntimeException(
+                app(PmdReservationGuaranteeProviderRegistry::class)
+                    ->assertionMessage($providerCode)
+            );
         }
 
         $stripeConfig = $this->stripeCredentials(true);
@@ -795,8 +832,13 @@ final class PmdReservationGuaranteeService
         $enabled = $this->boolSetting('reservation_guarantee_enabled', false);
         $amount = max(0, min(1000000, $this->intSetting('reservation_guarantee_amount_cents', 0)));
 
+        $provider = app(PmdReservationGuaranteeProviderRegistry::class)
+            ->selectedProvider();
+
         return [
             'enabled' => $enabled && $amount > 0,
+            'provider' => $provider,
+            'send_confirmation_email' => $this->boolSetting('reservation_guarantee_send_confirmation_email', true),
             'min_guests' => max(1, min(100, $this->intSetting('reservation_guarantee_min_guests', 6))),
             'amount_per_guest_cents' => $amount,
             'free_cancel_hours' => max(1, min(336, $this->intSetting('reservation_guarantee_free_cancel_hours', 24))),
