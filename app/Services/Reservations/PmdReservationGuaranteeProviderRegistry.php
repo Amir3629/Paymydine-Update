@@ -3,6 +3,7 @@
 namespace App\Services\Reservations;
 
 use Admin\Models\Payments_model;
+use App\Services\TerminalPayments\SumupTenantConnectionService;
 use Throwable;
 
 /**
@@ -25,51 +26,165 @@ final class PmdReservationGuaranteeProviderRegistry
                 'label' => 'Stripe',
                 'provider_capable' => true,
                 'adapter_ready' => true,
-                'credential_type' => 'Card',
-                'flow' => 'SetupIntent + off-session PaymentIntent',
-                'note' => 'Production adapter is implemented in R19/R20.',
-            ],
-            'vr_payment' => [
-                'label' => 'VR Payment',
-                'provider_capable' => true,
-                'adapter_ready' => false,
-                'credential_type' => 'Card registration',
-                'flow' => 'Initial customer-initiated registration + later merchant-initiated transaction',
-                'note' => 'Provider capability exists, but the PayMyDine reservation adapter still needs certification against the restaurant VR Payment product/Space API.',
-            ],
-            'worldline' => [
-                'label' => 'Worldline',
-                'provider_capable' => true,
-                'adapter_ready' => false,
-                'credential_type' => 'Tokenized card',
-                'flow' => 'Card-on-file token + subsequent merchant-initiated payment',
-                'note' => 'Provider tokenization exists; PayMyDine reservation-guarantee token/charge adapter is not yet production-certified.',
+                'credential_type' => 'Saved payment method',
+                'methods' => ['card', 'apple_pay', 'google_pay'],
+                'flow' => 'SetupIntent + Payment Element + later off-session PaymentIntent',
+                'note' => 'Card, Apple Pay and Google Pay are routed through Stripe SetupIntent and stored-credential charging.',
             ],
             'sumup' => [
                 'label' => 'SumUp',
                 'provider_capable' => true,
-                'adapter_ready' => false,
+                'adapter_ready' => true,
                 'credential_type' => 'Tokenized customer card',
-                'flow' => 'Customer card token + later recurring/card-on-file payment',
-                'note' => 'Provider tokenization exists; PayMyDine reservation-guarantee adapter is not yet production-certified.',
-            ],
-            'square' => [
-                'label' => 'Square',
-                'provider_capable' => true,
-                'adapter_ready' => false,
-                'credential_type' => 'Card on file',
-                'flow' => 'Customer card-on-file + later Payments API charge',
-                'note' => 'Provider card-on-file exists. PayMyDine uses Square only in supported Square markets and the reservation-guarantee adapter is not yet production-certified.',
+                'methods' => ['card'],
+                'flow' => 'Customer + SETUP_RECURRING_PAYMENT checkout + saved card token',
+                'note' => 'SumUp card tokenization can show a temporary authorization which SumUp reimburses immediately.',
             ],
             'paypal' => [
                 'label' => 'PayPal',
                 'provider_capable' => true,
-                'adapter_ready' => false,
+                'adapter_ready' => true,
                 'credential_type' => 'Vault token',
-                'flow' => 'Vaulted payment method + merchant-initiated/reference payment where the merchant account is eligible',
-                'note' => 'PayPal vault capability depends on merchant product entitlement. The PayMyDine reservation-guarantee adapter is not yet production-certified.',
+                'methods' => ['paypal'],
+                'flow' => 'PayPal Vault setup token + permanent payment token + merchant-initiated order',
+                'note' => 'Requires PayPal Vault / stored-payment entitlement on the merchant account.',
+            ],
+            'vr_payment' => [
+                'label' => 'VR Payment',
+                'provider_capable' => true,
+                'adapter_ready' => true,
+                'credential_type' => 'VR Payment token',
+                'methods' => ['card'],
+                'flow' => 'VR token + token-update transaction + later process-without-interaction',
+                'note' => 'Uses the restaurant VR Payment Space and its tokenization capability.',
+            ],
+            'worldline' => [
+                'label' => 'Worldline',
+                'provider_capable' => true,
+                'adapter_ready' => true,
+                'credential_type' => 'Worldline token',
+                'methods' => ['card'],
+                'flow' => 'Hosted Tokenization Page + token + later merchant-initiated unscheduled card-on-file payment',
+                'note' => 'Uses Worldline Hosted Tokenization so PayMyDine never receives raw card data.',
             ],
         ];
+    }
+
+    public function methodDefinitions(): array
+    {
+        return [
+            'card' => [
+                'label' => 'Card',
+                'providers' => ['stripe', 'sumup', 'vr_payment', 'worldline'],
+            ],
+            'apple_pay' => [
+                'label' => 'Apple Pay',
+                'providers' => ['stripe'],
+            ],
+            'google_pay' => [
+                'label' => 'Google Pay',
+                'providers' => ['stripe'],
+            ],
+            'paypal' => [
+                'label' => 'PayPal',
+                'providers' => ['paypal'],
+            ],
+        ];
+    }
+
+    public function methodsForProvider(string $providerCode): array
+    {
+        $provider = $this->provider($providerCode);
+
+        return array_values(array_filter(
+            array_map(
+                static fn ($method): string => strtolower(trim((string)$method)),
+                (array)($provider['methods'] ?? [])
+            ),
+            fn (string $method): bool => array_key_exists(
+                $method,
+                $this->methodDefinitions()
+            )
+        ));
+    }
+
+    public function selectedMethods(): array
+    {
+        $raw = app(PmdReservationGuaranteeSettings::class)
+            ->string(
+                'reservation_guarantee_methods',
+                'card'
+            );
+
+        $selected = array_values(array_unique(array_filter(array_map(
+            static fn ($method): string => strtolower(trim($method)),
+            explode(',', $raw)
+        ))));
+
+        return array_values(array_intersect(
+            $selected,
+            array_keys($this->methodDefinitions())
+        ));
+    }
+
+    public function enabledMethodsForProvider(string $providerCode): array
+    {
+        $providerCode = strtolower(trim($providerCode));
+
+        return array_values(array_filter(
+            $this->selectedMethods(),
+            fn (string $method): bool => $this->providerForMethod($method)
+                === $providerCode
+                && in_array(
+                    $method,
+                    $this->methodsForProvider($providerCode),
+                    true
+                )
+        ));
+    }
+
+    public function providerForMethod(string $method): string
+    {
+        $method = strtolower(trim($method));
+
+        return match ($method) {
+            'apple_pay', 'google_pay' => 'stripe',
+            'paypal' => 'paypal',
+            'card' => $this->selectedProvider(),
+            default => '',
+        };
+    }
+
+    public function availableMethods(): array
+    {
+        $available = [];
+
+        foreach ($this->selectedMethods() as $method) {
+            $provider = $this->providerForMethod($method);
+            if ($provider === '') {
+                continue;
+            }
+
+            if (
+                !in_array($method, $this->methodsForProvider($provider), true)
+                || !$this->canEnable($provider)
+            ) {
+                continue;
+            }
+
+            $available[$method] = [
+                'code' => $method,
+                'label' => (string)(
+                    $this->methodDefinitions()[$method]['label'] ?? $method
+                ),
+                'provider' => $provider,
+                'provider_label' => (string)(
+                    $this->provider($provider)['label'] ?? $provider
+                ),
+            ];
+        }
+
+        return $available;
     }
 
     public function selectedProvider(): string
@@ -79,7 +194,11 @@ final class PmdReservationGuaranteeProviderRegistry
                 ->string('reservation_guarantee_provider', 'stripe')
         ));
 
-        return array_key_exists($provider, $this->definitions())
+        return in_array(
+            $provider,
+            ['stripe', 'sumup', 'vr_payment', 'worldline'],
+            true
+        )
             ? $provider
             : 'stripe';
     }
@@ -168,11 +287,26 @@ final class PmdReservationGuaranteeProviderRegistry
                 ? (array)$payment->getConfigData()
                 : (array)$payment->data;
 
+            $credentialsReady = $this->credentialsReady($providerCode, $data);
+            $mode = $this->providerMode($providerCode, $data);
+
+            if ($providerCode === 'sumup') {
+                try {
+                    $active = app(SumupTenantConnectionService::class)
+                        ->activeConfig();
+                    if (!empty($active['ready'])) {
+                        $credentialsReady = true;
+                        $mode = (string)($active['environment'] ?? $mode);
+                    }
+                } catch (Throwable $ignored) {
+                }
+            }
+
             return [
                 'provider_record' => true,
                 'provider_enabled' => (int)$payment->status === 1,
-                'credentials_ready' => $this->credentialsReady($providerCode, $data),
-                'mode' => $this->providerMode($providerCode, $data),
+                'credentials_ready' => $credentialsReady,
+                'mode' => $mode,
             ];
         } catch (Throwable $error) {
             logger()->warning('PMD reservation guarantee provider readiness failed', [
@@ -247,20 +381,6 @@ final class PmdReservationGuaranteeProviderRegistry
 
         if ($providerCode === 'sumup') {
             return trim((string)($data['access_token'] ?? '')) !== '';
-        }
-
-        if ($providerCode === 'square') {
-            $live = strtolower(trim((string)($data['transaction_mode'] ?? 'test'))) === 'live';
-
-            return trim((string)($live
-                ? ($data['live_application_id'] ?? '')
-                : ($data['test_application_id'] ?? ''))) !== ''
-                && trim((string)($live
-                    ? ($data['live_access_token'] ?? '')
-                    : ($data['test_access_token'] ?? ''))) !== ''
-                && trim((string)($live
-                    ? ($data['live_location_id'] ?? '')
-                    : ($data['test_location_id'] ?? ''))) !== '';
         }
 
         if ($providerCode === 'vr_payment') {

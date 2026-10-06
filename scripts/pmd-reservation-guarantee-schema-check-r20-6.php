@@ -20,6 +20,7 @@ $requiredColumns = [
     'reservation_id',
     'location_id',
     'provider',
+    'payment_method_code',
     'status',
     'amount_per_guest_cents',
     'amount_cents',

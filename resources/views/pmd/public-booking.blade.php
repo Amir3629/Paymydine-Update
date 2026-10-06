@@ -41,14 +41,14 @@
             'notes' => 'Anything we should know?',
             'notes_hint' => 'Allergies, accessibility, high chair, seating preference…',
             'consent' => 'I agree that the restaurant may use these contact details to manage this reservation.',
-            'guarantee_title' => 'Card guarantee',
+            'guarantee_title' => 'Reservation guarantee',
             'guarantee_intro' => 'No charge today.',
             'guarantee_total' => 'Guarantee limit',
             'guarantee_card' => 'Card details',
-            'guarantee_secure' => 'Secure card verification by Stripe.',
-            'guarantee_unavailable' => 'Card guarantee is temporarily unavailable. Please contact the restaurant.',
-            'guarantee_verifying' => 'Verifying card…',
-            'guarantee_success' => 'Card guarantee active · No charge now',
+            'guarantee_secure' => 'Secure verification by the payment provider.',
+            'guarantee_unavailable' => 'Reservation guarantee is temporarily unavailable. Please contact the restaurant.',
+            'guarantee_verifying' => 'Verifying payment method…',
+            'guarantee_success' => 'Reservation guarantee active · No charge now',
             'book_table' => 'Request this table',
             'booking' => 'Saving your reservation…',
             'summary' => 'Your table',
@@ -118,14 +118,14 @@
             'notes' => 'Gibt es etwas, das wir wissen sollten?',
             'notes_hint' => 'Allergien, Barrierefreiheit, Kinderstuhl, Sitzwunsch…',
             'consent' => 'Ich stimme zu, dass das Restaurant diese Kontaktdaten zur Bearbeitung der Reservierung verwenden darf.',
-            'guarantee_title' => 'Kartengarantie',
+            'guarantee_title' => 'Reservierungsgarantie',
             'guarantee_intro' => 'Jetzt keine Abbuchung.',
             'guarantee_total' => 'Garantielimit',
             'guarantee_card' => 'Kartendaten',
-            'guarantee_secure' => 'Sichere Kartenprüfung über Stripe.',
-            'guarantee_unavailable' => 'Die Kartengarantie ist derzeit nicht verfügbar. Bitte kontaktieren Sie das Restaurant.',
-            'guarantee_verifying' => 'Karte wird bestätigt…',
-            'guarantee_success' => 'Kartengarantie aktiv · Jetzt keine Abbuchung',
+            'guarantee_secure' => 'Sichere Bestätigung über den Zahlungsanbieter.',
+            'guarantee_unavailable' => 'Die Reservierungsgarantie ist derzeit nicht verfügbar. Bitte kontaktieren Sie das Restaurant.',
+            'guarantee_verifying' => 'Zahlungsmethode wird bestätigt…',
+            'guarantee_success' => 'Reservierungsgarantie aktiv · Jetzt keine Abbuchung',
             'book_table' => 'Tisch anfragen',
             'booking' => 'Reservierung wird gespeichert…',
             'summary' => 'Ihre Reservierung',
@@ -195,14 +195,14 @@
             'notes' => 'Bilmemiz gereken bir şey var mı?',
             'notes_hint' => 'Alerji, erişilebilirlik, mama sandalyesi, oturma tercihi…',
             'consent' => 'Restoranın bu iletişim bilgilerini rezervasyonu yönetmek için kullanmasını kabul ediyorum.',
-            'guarantee_title' => 'Kart garantisi',
+            'guarantee_title' => 'Rezervasyon garantisi',
             'guarantee_intro' => 'Şimdi ödeme yok.',
             'guarantee_total' => 'Garanti limiti',
             'guarantee_card' => 'Kart bilgileri',
-            'guarantee_secure' => 'Stripe ile güvenli kart doğrulaması.',
-            'guarantee_unavailable' => 'Kart garantisi şu anda kullanılamıyor. Lütfen restoranla iletişime geçin.',
-            'guarantee_verifying' => 'Kart doğrulanıyor…',
-            'guarantee_success' => 'Kart garantisi aktif · Şimdi ödeme yok',
+            'guarantee_secure' => 'Ödeme sağlayıcısı üzerinden güvenli doğrulama.',
+            'guarantee_unavailable' => 'Rezervasyon garantisi şu anda kullanılamıyor. Lütfen restoranla iletişime geçin.',
+            'guarantee_verifying' => 'Ödeme yöntemi doğrulanıyor…',
+            'guarantee_success' => 'Rezervasyon garantisi aktif · Şimdi ödeme yok',
             'book_table' => 'Masayı talep et',
             'booking' => 'Rezervasyon kaydediliyor…',
             'summary' => 'Masanız',
@@ -272,14 +272,14 @@
             'notes' => 'هل هناك شيء يجب أن نعرفه؟',
             'notes_hint' => 'الحساسية، سهولة الوصول، كرسي طفل، تفضيل الجلوس…',
             'consent' => 'أوافق على استخدام المطعم لبيانات الاتصال هذه لإدارة الحجز.',
-            'guarantee_title' => 'ضمان البطاقة',
+            'guarantee_title' => 'ضمان الحجز',
             'guarantee_intro' => 'لا خصم الآن.',
             'guarantee_total' => 'حد الضمان',
             'guarantee_card' => 'بيانات البطاقة',
-            'guarantee_secure' => 'تحقق آمن للبطاقة عبر Stripe.',
-            'guarantee_unavailable' => 'ضمان البطاقة غير متاح مؤقتاً. يرجى الاتصال بالمطعم.',
-            'guarantee_verifying' => 'جارٍ التحقق من البطاقة…',
-            'guarantee_success' => 'ضمان البطاقة فعال · لا خصم الآن',
+            'guarantee_secure' => 'تحقق آمن عبر مزود الدفع.',
+            'guarantee_unavailable' => 'ضمان الحجز غير متاح مؤقتاً. يرجى الاتصال بالمطعم.',
+            'guarantee_verifying' => 'جارٍ التحقق من طريقة الدفع…',
+            'guarantee_success' => 'ضمان الحجز فعال · لا خصم الآن',
             'book_table' => 'إرسال طلب الحجز',
             'booking' => 'جارٍ حفظ الحجز…',
             'summary' => 'حجزك',
@@ -348,7 +348,11 @@
         'storeUrl' => url('/book'),
         'guarantee' => array_merge(
             (array)($bookingGuarantee ?? []),
-            ['setupUrl' => url('/book/guarantee/setup')]
+            [
+                'setupUrl' => url('/book/guarantee/setup'),
+                'statusUrl' => url('/book/guarantee/status'),
+                'returnUrl' => url('/book/guarantee/return'),
+            ]
         ),
         'guaranteeByLocale' => $bookingGuaranteeByLocale ?? [],
         'restaurantName' => $bookingProfile['name'],
@@ -369,7 +373,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261006-r20-7">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261006-r20-8">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -589,11 +593,24 @@
 
                                 <div id="pmd-booking-guarantee-unavailable" class="pmd-booking-guarantee__unavailable" hidden data-pmd-i18n="guarantee_unavailable">{{ $t['guarantee_unavailable'] }}</div>
 
+                                <div id="pmd-booking-guarantee-methods" class="pmd-booking-guarantee__methods" role="radiogroup" aria-label="Guarantee payment method"></div>
+
                                 <div id="pmd-booking-guarantee-card-wrap" class="pmd-booking-guarantee__card-wrap">
-                                    <span class="pmd-booking-field-label" data-pmd-i18n="guarantee_card">{{ $t['guarantee_card'] }}</span>
+                                    <span id="pmd-booking-guarantee-method-title" class="pmd-booking-field-label" data-pmd-i18n="guarantee_card">{{ $t['guarantee_card'] }}</span>
+
                                     <div id="pmd-booking-guarantee-card" class="pmd-booking-guarantee__card"></div>
+
+                                    <div id="pmd-booking-guarantee-wallet" class="pmd-booking-guarantee__wallet" hidden></div>
+
+                                    <div id="pmd-booking-guarantee-provider-action" class="pmd-booking-guarantee__provider-action" hidden>
+                                        <button id="pmd-booking-guarantee-provider-button" type="button"></button>
+                                        <small id="pmd-booking-guarantee-provider-note"></small>
+                                    </div>
+
+                                    <div id="pmd-booking-guarantee-sumup" class="pmd-booking-guarantee__sumup" hidden></div>
+
                                     <div id="pmd-booking-guarantee-card-error" class="pmd-booking-guarantee__card-error" role="alert"></div>
-                                    <small data-pmd-i18n="guarantee_secure">{{ $t['guarantee_secure'] }}</small>
+                                    <small id="pmd-booking-guarantee-secure" data-pmd-i18n="guarantee_secure">{{ $t['guarantee_secure'] }}</small>
                                 </div>
 
                                 <label class="pmd-booking-consent pmd-booking-guarantee__consent">
@@ -711,6 +728,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261006-r20-4" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261006-r20-8" defer></script>
 </body>
 </html>
