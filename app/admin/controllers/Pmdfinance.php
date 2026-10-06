@@ -293,6 +293,45 @@ class Pmdfinance extends AdminController
         return ['#pmd-owner-save-status' => '<span>Saved</span>'];
     }
 
+    public function onTestReservationGuaranteeProvider()
+    {
+        $input = (array)post('finance', []);
+        $providerCode = strtolower(trim((string)(
+            $input['reservation_guarantee_provider']
+            ?? setting('reservation_guarantee_provider', 'stripe')
+        )));
+
+        $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $provider = $registry->provider($providerCode);
+        $label = (string)($provider['label'] ?? $providerCode);
+
+        if (empty($provider['adapter_ready'])) {
+            flash()->error($registry->assertionMessage($providerCode));
+
+            return [
+                '#pmd-guarantee-provider-test-status' =>
+                    '<span class="pmd-owner-status">Adapter pending · '.e($label).'</span>',
+            ];
+        }
+
+        if (!$registry->canEnable($providerCode)) {
+            flash()->error($registry->assertionMessage($providerCode));
+
+            return [
+                '#pmd-guarantee-provider-test-status' =>
+                    '<span class="pmd-owner-status">Not ready · '.e($label).'</span>',
+            ];
+        }
+
+        $mode = strtoupper((string)($provider['mode'] ?? 'configured'));
+        flash()->success($label.' is ready for reservation guarantee testing in '.$mode.' mode.');
+
+        return [
+            '#pmd-guarantee-provider-test-status' =>
+                '<span class="pmd-owner-status is-active">Ready · '.e($label).' · '.e($mode).'</span>',
+        ];
+    }
+
     public function onTestTurkeyYemeksepeti()
     {
         $locationId = $this->turkeyLocationId();
