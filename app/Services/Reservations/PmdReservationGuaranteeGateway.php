@@ -673,7 +673,6 @@ final class PmdReservationGuaranteeGateway
                         'vault_id' => $vaultId,
                         'stored_credential' => [
                             'payment_initiator' => 'MERCHANT',
-                            'usage' => 'SUBSEQUENT',
                             'usage_pattern' => 'UNSCHEDULED_POSTPAID',
                         ],
                     ],
