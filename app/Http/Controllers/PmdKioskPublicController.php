@@ -108,10 +108,11 @@ final class PmdKioskPublicController
             'paymentReturn' => $request->boolean('pmd_payment_return'),
             'bootstrapUrl' => url('/api/v1/frontend-bootstrap-batch-r1'),
             'orderUrl' => url('/api/v1/orders'),
+            // PMD_KIOSK_NATIVE_TERMINAL_PAY_V18
+            // Browser-wallet/PayPal provider URLs are deliberately not exposed
+            // to the physical kiosk. Card-present payment is owned by the
+            // paired Android terminal bridge.
             'payExistingUrl' => url('/api/v1/orders/pay-existing'),
-            'paypalConfigUrl' => url('/api/v1/payments/config-public'),
-            'paypalCreateUrl' => url('/api/v1/payments/paypal/create-order'),
-            'paypalCaptureUrl' => url('/api/v1/payments/paypal/capture-order'),
             'returnUrl' => url('/kiosk/'),
             'resetUrl' => url('/kiosk-reset/'),
             'restaurant' => [
