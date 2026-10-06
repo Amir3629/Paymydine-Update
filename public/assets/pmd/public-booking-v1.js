@@ -741,6 +741,11 @@
       guaranteeSetupReference = String(setup.setup_reference || "");
       var checkoutId = String(setup.checkout_id || "");
       var sdkUrl = String(setup.sdk_url || "https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js");
+      var setupNotice = String(setup.setup_notice || "");
+
+      if (setupNotice && guaranteeProviderNote) {
+        guaranteeProviderNote.textContent = setupNotice;
+      }
 
       if (!checkoutId || !guaranteeSetupReference) {
         throw new Error("SumUp did not return a complete card-verification session.");
@@ -766,7 +771,7 @@
               : (activeLanguageCode() === "tr" ? "tr-TR" : "en-GB"),
             onLoad: function () {
               guaranteeProviderBusy = false;
-              if (guaranteeProviderNote) {
+              if (guaranteeProviderNote && !setupNotice) {
                 guaranteeProviderNote.textContent = "Complete the secure SumUp card verification below.";
               }
               syncSubmitState();
