@@ -145,6 +145,14 @@ jobs:
           grep -Fq 'PMD_KIOSK_CLEAN_SERVICE_CARDS_V16' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_WELCOME_LANGUAGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_TERMINAL_ONLY_CHECKOUT_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_PLUS_ONLY_V18' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_CHECKOUT_CTA_V18' public/assets/pmd/kiosk-terminal-v8.js
+          ! grep -Fq 'function startStripePayment' public/assets/pmd/kiosk-terminal-v8.js
+          ! grep -Fq 'function startPayPal' public/assets/pmd/kiosk-terminal-v8.js
+          ! grep -Fq 'function startHostedPayment' public/assets/pmd/kiosk-terminal-v8.js
+          ! grep -Fq 'data-tip=' public/assets/pmd/kiosk-terminal-v8.js
+          ! grep -Fq 'data-apply-coupon' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_SCROLL_CATEGORIES_V18' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_NO_TIP_NO_COUPON_V18' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_RECEIPT_PRINT_V18' public/assets/pmd/kiosk-terminal-v8.js
@@ -176,8 +184,6 @@ jobs:
           grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
           grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'committed. qr_pay_later is only the settlement bridge for pay-existing.' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'https://js.stripe.com/v3/' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_BLADE_V8_NGINX_NO_REDIRECT' ops/nginx/pmd-kiosk-blade-v8-location.conf
           grep -Fq 'PMD_KIOSK_DEDICATED_WEB_ACTIVITY_V58' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
           grep -Fq 'PMD_KIOSK_FAST_WEBVIEW_V10' mobile/android/app/src/main/java/com/paymydine/mobile/KioskMenuActivity.kt
