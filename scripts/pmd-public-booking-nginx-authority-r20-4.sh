@@ -5,8 +5,8 @@ ROOT="${PMD_ROOT:-/var/www/paymydine}"
 HOST="${1:-tomo.paymydine.com}"
 CONF="/etc/nginx/sites-available/${HOST}.conf"
 STAMP="$(date +%Y%m%d_%H%M%S)"
-BACKUP_DIR="${ROOT}/storage/pmd-r20-4-booking-nginx-${STAMP}"
-MARKER="PMD_PUBLIC_BOOKING_LARAVEL_AUTHORITY_R20_4_START"
+BACKUP_DIR="${ROOT}/storage/pmd-r20-5-booking-nginx-${STAMP}"
+MARKER="PMD_PUBLIC_BOOKING_SUBPATH_LARAVEL_AUTHORITY_R20_5_START"
 
 if [[ ! "${HOST}" =~ ^[a-z0-9-]+\.paymydine\.com$ ]]; then
   echo "ERROR: expected a tenant host such as tomo.paymydine.com"
@@ -32,8 +32,16 @@ mkdir -p "${BACKUP_DIR}"
 cp -a "${CONF}" "${BACKUP_DIR}/$(basename "${CONF}")"
 
 if grep -Fq "${MARKER}" "${CONF}"; then
-  echo "Booking Laravel authority is already installed for ${HOST}."
+  echo "Booking subpath Laravel authority is already installed for ${HOST}."
 else
+  if grep -Eq '^[[:space:]]*location[[:space:]]+(\^~[[:space:]]+)?/book/[[:space:]]*\{' "${CONF}"; then
+    echo "ERROR: an existing /book/ Nginx location already exists."
+    echo "No changes were made."
+    echo
+    grep -nE '^[[:space:]]*location[[:space:]]+(\^~[[:space:]]+)?/book/[[:space:]]*\{' "${CONF}" || true
+    exit 1
+  fi
+
   python3 - "${CONF}" <<'PY'
 from pathlib import Path
 import sys
@@ -45,24 +53,10 @@ marker = "    # Admin remains TastyIgniter/Laravel.\n"
 if marker not in text:
     raise SystemExit("ERROR: expected HTTPS insertion marker was not found")
 
-block = r'''    # PMD_PUBLIC_BOOKING_LARAVEL_AUTHORITY_R20_4_START
-    # /book is a Laravel/TastyIgniter reservation authority. Keep it out of
-    # the customer Next.js upstream so POST endpoints preserve sessions, CSRF,
-    # reservation validation, Stripe SetupIntent creation and Manage Booking.
-    location = /book {
-        include fastcgi_params;
-        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME /var/www/paymydine/index.php;
-        fastcgi_param SCRIPT_NAME /index.php;
-        fastcgi_param DOCUMENT_ROOT /var/www/paymydine;
-        fastcgi_param REQUEST_URI $request_uri;
-        fastcgi_param HTTP_HOST $host;
-        fastcgi_param SERVER_NAME $host;
-        fastcgi_param HTTPS on;
-        add_header X-PMD-R30F-Vhost $host always;
-        add_header X-PMD-R30F-Route "laravel-booking" always;
-    }
-
+block = r'''    # PMD_PUBLIC_BOOKING_SUBPATH_LARAVEL_AUTHORITY_R20_5_START
+    # The exact /book location already exists in production. Only reserve
+    # /book/* subpaths for Laravel so SetupIntent, availability, Manage Booking
+    # and other reservation endpoints never fall through to the Next.js proxy.
     location ^~ /book/ {
         include fastcgi_params;
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
@@ -76,7 +70,7 @@ block = r'''    # PMD_PUBLIC_BOOKING_LARAVEL_AUTHORITY_R20_4_START
         add_header X-PMD-R30F-Vhost $host always;
         add_header X-PMD-R30F-Route "laravel-booking" always;
     }
-    # PMD_PUBLIC_BOOKING_LARAVEL_AUTHORITY_R20_4_END
+    # PMD_PUBLIC_BOOKING_SUBPATH_LARAVEL_AUTHORITY_R20_5_END
 
 '''
 
@@ -97,9 +91,14 @@ systemctl reload nginx
 echo
 echo "Nginx reloaded successfully."
 echo "Backup: ${BACKUP_DIR}/$(basename "${CONF}")"
+
 echo
-echo "GET /book routing:"
-curl -sS -D - -o /dev/null "https://${HOST}/book?lang=en" | grep -Ei 'HTTP/|X-PMD-R30F-(Vhost|Route)' || true
+echo "Existing exact /book location:"
+grep -nE '^[[:space:]]*location[[:space:]]*=[[:space:]]*/book[[:space:]]*\{' "${CONF}" || true
+
+echo
+echo "Installed /book/ subpath authority:"
+grep -nE '^[[:space:]]*location[[:space:]]*\^~[[:space:]]+/book/[[:space:]]*\{' "${CONF}" || true
 
 echo
 echo "POST /book/guarantee/setup routing probe:"
@@ -107,24 +106,32 @@ PROBE_HEADERS="$(mktemp)"
 PROBE_BODY="$(mktemp)"
 trap 'rm -f "${PROBE_HEADERS}" "${PROBE_BODY}"' EXIT
 
-curl -sS   -D "${PROBE_HEADERS}"   -o "${PROBE_BODY}"   -X POST   -H 'Accept: application/json'   -H 'Content-Type: application/json'   --data '{}'   "https://${HOST}/book/guarantee/setup" || true
+curl -sS \
+  -D "${PROBE_HEADERS}" \
+  -o "${PROBE_BODY}" \
+  -X POST \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  --data '{}' \
+  "https://${HOST}/book/guarantee/setup" || true
 
-cat "${PROBE_HEADERS}" | grep -Ei 'HTTP/|Content-Type:|X-PMD-R30F-(Vhost|Route)' || true
+grep -Ei 'HTTP/|Content-Type:|X-PMD-R30F-(Vhost|Route)' "${PROBE_HEADERS}" || true
 
-if grep -Fqi 'X-PMD-R30F-Route: laravel-booking' "${PROBE_HEADERS}"; then
+if ! grep -Fqi 'X-PMD-R30F-Route: laravel-booking' "${PROBE_HEADERS}"; then
   echo
-  echo "PASS: /book/guarantee/setup now reaches Laravel."
-else
-  echo
-  echo "ERROR: booking setup did not return the Laravel routing header."
-  echo "No automatic rollback was performed because nginx -t and reload succeeded."
+  echo "ERROR: /book/guarantee/setup still did not reach Laravel."
   exit 1
 fi
 
 if grep -Eq '^HTTP/[^ ]+ 404 ' "${PROBE_HEADERS}"; then
-  echo "ERROR: route still returned 404."
+  echo
+  echo "ERROR: /book/guarantee/setup still returned 404."
   exit 1
 fi
 
 echo
-echo "R20.4 booking Nginx authority installed for ${HOST}."
+echo "PASS: /book/guarantee/setup reaches Laravel."
+echo "A 419 or 422 from this empty probe is expected and acceptable."
+
+echo
+echo "R20.5 booking subpath authority installed for ${HOST}."
