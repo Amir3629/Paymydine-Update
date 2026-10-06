@@ -887,6 +887,7 @@ private fun UnifiedFirstRun(
     onKiosk: () -> Unit,
     onTableDisplay: () -> Unit,
 ) {
+    val context = LocalContext.current
     var step by remember { mutableStateOf(1) }
 
     Column(
@@ -1007,7 +1008,6 @@ private fun UnifiedFirstRun(
                     .fillMaxWidth()
                     .padding(top = 26.dp),
                 onClick = {
-                    val context = context
                     context.startActivity(PrinterSetupActivity.intent(context))
                 },
                 shape = RoundedCornerShape(18.dp),
