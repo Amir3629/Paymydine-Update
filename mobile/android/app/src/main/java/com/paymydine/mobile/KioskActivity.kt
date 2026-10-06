@@ -309,12 +309,14 @@ private fun KioskApp(
             profile = current,
             serviceMode = "eat_in",
             heroImage = hero,
+            locale = kioskLocale,
         )
         KioskMenuWarmPool.prewarm(
             context = context,
             profile = current,
             serviceMode = "pickup",
             heroImage = hero,
+            locale = kioskLocale,
         )
     }
 
@@ -366,7 +368,7 @@ private fun KioskApp(
             // partial Chromium paint. Normal taps pass this loop immediately.
             var waits = 0
             while (
-                !KioskMenuWarmPool.isReady(current.menuUrl, mode) &&
+                !KioskMenuWarmPool.isReady(current.menuUrl, mode, kioskLocale) &&
                 waits < 20
             ) {
                 delay(16L)
@@ -379,6 +381,7 @@ private fun KioskApp(
                     profile = current,
                     serviceMode = mode,
                     heroImage = heroImages.firstOrNull().orEmpty(),
+                    locale = kioskLocale,
                 ),
             )
             (context as? Activity)?.overridePendingTransition(0, 0)
