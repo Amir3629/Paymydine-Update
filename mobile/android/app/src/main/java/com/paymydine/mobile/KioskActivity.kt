@@ -221,7 +221,7 @@ private fun KioskApp(
     // PMD_KIOSK_WELCOME_LANGUAGE_V18
     // Guest language is selected before service mode and is carried into the
     // already-prewarmed kiosk menu.
-    var welcomeLocale by remember { mutableStateOf("de") }
+    var welcomeLocale by remember { mutableStateOf("en") }
     var serviceMode by remember { mutableStateOf("eat_in") }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
