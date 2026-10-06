@@ -909,7 +909,19 @@
         guaranteeProviderBusy = true;
         syncSubmitState();
 
-        requestGuaranteeSetup(payload, method)
+        Promise.resolve(
+          stripeWalletElements && stripeWalletElements.submit
+            ? stripeWalletElements.submit()
+            : null
+        ).then(function (submitResult) {
+          if (submitResult && submitResult.error) {
+            throw new Error(
+              submitResult.error.message
+              || "Wallet details could not be submitted."
+            );
+          }
+          return requestGuaranteeSetup(payload, method);
+        })
           .then(function (setup) {
             guaranteeSetupReference = String(
               setup.setup_intent_id || ""
@@ -979,6 +991,14 @@
 
     guaranteeMethodsNode.innerHTML = methods.map(function (method) {
       var active = method.code === guaranteeSelectedMethod;
+      var displayLabel = method.code === "card"
+        ? (
+            activeLanguageCode() === "de"
+              ? "Karte"
+              : (activeLanguageCode() === "tr" ? "Kart" : method.label)
+          )
+        : method.label;
+
       return '<button type="button" class="pmd-booking-guarantee__method'
         + (active ? ' is-active' : '')
         + '" data-pmd-guarantee-method="'
@@ -986,7 +1006,7 @@
         + '" role="radio" aria-checked="'
         + (active ? 'true' : 'false')
         + '"><strong>'
-        + escapeHtml(method.label)
+        + escapeHtml(displayLabel)
         + '</strong><small>'
         + escapeHtml(method.provider_label || guaranteeProviderLabel(method.provider))
         + '</small></button>';
