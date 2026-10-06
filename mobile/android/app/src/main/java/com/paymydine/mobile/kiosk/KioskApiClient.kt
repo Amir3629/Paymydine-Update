@@ -25,6 +25,13 @@ data class KioskProfile(
     val idleTimeoutSeconds: Long,
 )
 
+data class KioskTerminalPayment(
+    val attemptId: Long,
+    val status: String,
+    val message: String,
+    val paymentRecorded: Boolean,
+)
+
 /**
  * PMD_KIOSK_BOOTSTRAP_HANDOFF_V13
  * PMD_KIOSK_MULTI_WARM_BOOTSTRAP_V15
@@ -157,6 +164,53 @@ class KioskApiClient {
         )
     }
 
+
+    /**
+     * PMD_KIOSK_NATIVE_TERMINAL_V18
+     *
+     * Payment terminal calls leave the WebView entirely. Android attaches the
+     * paired kiosk bearer credential, while the server resolves the connected
+     * card-present reader for this kiosk location.
+     */
+    suspend fun startTerminalPayment(
+        host: String,
+        token: String,
+        orderId: Long,
+    ): KioskTerminalPayment = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "terminal-payment/" + orderId,
+            method = "POST",
+            body = JSONObject(),
+            token = token,
+        )
+        KioskTerminalPayment(
+            attemptId = json.optLong("attempt_id", 0L),
+            status = json.optString("status", "pending"),
+            message = json.optString("message", ""),
+            paymentRecorded = json.optBoolean("payment_recorded", false),
+        )
+    }
+
+    suspend fun refreshTerminalPayment(
+        host: String,
+        token: String,
+        attemptId: Long,
+    ): KioskTerminalPayment = withContext(Dispatchers.IO) {
+        val json = request(
+            host = host,
+            endpoint = "terminal-payment/" + attemptId,
+            method = "GET",
+            body = null,
+            token = token,
+        )
+        KioskTerminalPayment(
+            attemptId = json.optLong("attempt_id", attemptId),
+            status = json.optString("status", "pending"),
+            message = json.optString("message", ""),
+            paymentRecorded = json.optBoolean("payment_recorded", false),
+        )
+    }
 
     /**
      * PMD_KIOSK_PREMIUM_WELCOME_V11
