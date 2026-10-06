@@ -129,10 +129,62 @@ final class PmdReservationGuaranteeProviderRegistry
 
     public function enabledMethodsForProvider(string $providerCode): array
     {
-        return array_values(array_intersect(
-            $this->methodsForProvider($providerCode),
-            $this->selectedMethods()
+        $providerCode = strtolower(trim($providerCode));
+
+        return array_values(array_filter(
+            $this->selectedMethods(),
+            fn (string $method): bool => $this->providerForMethod($method)
+                === $providerCode
+                && in_array(
+                    $method,
+                    $this->methodsForProvider($providerCode),
+                    true
+                )
         ));
+    }
+
+    public function providerForMethod(string $method): string
+    {
+        $method = strtolower(trim($method));
+
+        return match ($method) {
+            'apple_pay', 'google_pay' => 'stripe',
+            'paypal' => 'paypal',
+            'card' => $this->selectedProvider(),
+            default => '',
+        };
+    }
+
+    public function availableMethods(): array
+    {
+        $available = [];
+
+        foreach ($this->selectedMethods() as $method) {
+            $provider = $this->providerForMethod($method);
+            if ($provider === '') {
+                continue;
+            }
+
+            if (
+                !in_array($method, $this->methodsForProvider($provider), true)
+                || !$this->canEnable($provider)
+            ) {
+                continue;
+            }
+
+            $available[$method] = [
+                'code' => $method,
+                'label' => (string)(
+                    $this->methodDefinitions()[$method]['label'] ?? $method
+                ),
+                'provider' => $provider,
+                'provider_label' => (string)(
+                    $this->provider($provider)['label'] ?? $provider
+                ),
+            ];
+        }
+
+        return $available;
     }
 
     public function selectedProvider(): string
