@@ -88,7 +88,6 @@ internal object KioskMenuWarmPool {
     // from zero.
     private const val MAX_AGE_MS = 120_000L
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val kioskApi = KioskApiClient()
     private val entries = LinkedHashMap<String, KioskWarmMenuEntry>()
 
     private fun key(
@@ -408,6 +407,7 @@ class KioskMenuActivity : ComponentActivity() {
     private var initialPresentationDone = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val kioskApi = KioskApiClient()
     private var sessionNonce = ""
     private val bridgeSecret = UUID.randomUUID().toString()
 
