@@ -411,6 +411,32 @@
                                         </select>
                                         <button type="submit">{{ $pmdSettingsText('Link payment') }}</button>
                                     </form>
+                                @elseif(($device['kind'] ?? '') === 'kiosk')
+                                    {{-- PMD_KIOSK_TERMINAL_LINK_V18 --}}
+                                    <form
+                                        class="pmd-device-platform-assign pmd-device-platform-terminal-assign"
+                                        data-request="onAssignPmdKioskTerminal"
+                                        data-request-flash
+                                        data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                                    >
+                                        <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                        <select name="terminal_device_id">
+                                            <option value="">{{ $pmdSettingsText('No payment terminal') }}</option>
+                                            @foreach($devicePlatformTerminalOptions as $terminalOption)
+                                                <option
+                                                    value="{{ (int)($terminalOption['id'] ?? 0) }}"
+                                                    {{ (int)($device['payment_terminal_device_id'] ?? 0) === (int)($terminalOption['id'] ?? 0) ? 'selected' : '' }}
+                                                >
+                                                    {{ e(strtoupper((string)($terminalOption['provider_code'] ?? ''))) }}
+                                                    · {{ e($terminalOption['name'] ?? 'Terminal') }}
+                                                    @if(!empty($terminalOption['environment']))
+                                                        · {{ e(strtoupper((string)$terminalOption['environment'])) }}
+                                                    @endif
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <button type="submit">{{ $pmdSettingsText('Link kiosk terminal') }}</button>
+                                    </form>
                                 @endif
 
                                 <form
