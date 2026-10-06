@@ -50,9 +50,17 @@
   var guaranteeTerms = document.getElementById("pmd-booking-guarantee-terms");
   var guaranteeTotal = document.getElementById("pmd-booking-guarantee-total");
   var guaranteeUnavailable = document.getElementById("pmd-booking-guarantee-unavailable");
+  var guaranteeMethodsNode = document.getElementById("pmd-booking-guarantee-methods");
   var guaranteeCardWrap = document.getElementById("pmd-booking-guarantee-card-wrap");
+  var guaranteeMethodTitle = document.getElementById("pmd-booking-guarantee-method-title");
   var guaranteeCardNode = document.getElementById("pmd-booking-guarantee-card");
+  var guaranteeWalletNode = document.getElementById("pmd-booking-guarantee-wallet");
+  var guaranteeProviderAction = document.getElementById("pmd-booking-guarantee-provider-action");
+  var guaranteeProviderButton = document.getElementById("pmd-booking-guarantee-provider-button");
+  var guaranteeProviderNote = document.getElementById("pmd-booking-guarantee-provider-note");
+  var guaranteeSumupNode = document.getElementById("pmd-booking-guarantee-sumup");
   var guaranteeCardError = document.getElementById("pmd-booking-guarantee-card-error");
+  var guaranteeSecure = document.getElementById("pmd-booking-guarantee-secure");
   var guaranteeConsent = document.getElementById("pmd-booking-guarantee-consent");
   var guaranteeConsentCopy = document.getElementById("pmd-booking-guarantee-consent-copy");
 
@@ -74,6 +82,16 @@
   var stripePromise = null;
   var stripeClient = null;
   var stripeCard = null;
+  var stripeWalletElements = null;
+  var stripeWalletElement = null;
+  var stripeWalletMethod = "";
+  var sumupPromise = null;
+  var sumupWidget = null;
+  var guaranteeSelectedMethod = "";
+  var guaranteeSelectedProvider = "";
+  var guaranteeSetupReference = "";
+  var guaranteeVerified = false;
+  var guaranteeProviderBusy = false;
   var guaranteeCardComplete = false;
   var guaranteeCardLoadFailed = false;
   var dateStatuses = {};
@@ -273,9 +291,45 @@
     var base = config.guarantee || {};
     var packs = config.guaranteeByLocale || {};
     var localized = packs[activeLanguageCode()] || {};
+
     return Object.assign({}, base, localized, {
-      setupUrl: base.setupUrl || "/book/guarantee/setup"
+      setupUrl: base.setupUrl || "/book/guarantee/setup",
+      statusUrl: base.statusUrl || "/book/guarantee/status",
+      returnUrl: base.returnUrl || "/book/guarantee/return"
     });
+  }
+
+  function guaranteeMethods() {
+    var guarantee = currentGuaranteeConfig();
+    return (Array.isArray(guarantee.methods) ? guarantee.methods : [])
+      .map(function (row) {
+        if (typeof row === "string") {
+          return {
+            code: row,
+            label: row,
+            provider: row === "paypal" ? "paypal" : String(guarantee.provider || "stripe"),
+            provider_label: ""
+          };
+        }
+        return {
+          code: String(row.code || "").toLowerCase(),
+          label: String(row.label || row.code || ""),
+          provider: String(row.provider || "").toLowerCase(),
+          provider_label: String(row.provider_label || row.provider || "")
+        };
+      })
+      .filter(function (row) {
+        return row.code && row.provider;
+      });
+  }
+
+  function guaranteeMethodDefinition(code) {
+    code = String(code || "").toLowerCase();
+    var rows = guaranteeMethods();
+    for (var index = 0; index < rows.length; index += 1) {
+      if (rows[index].code === code) return rows[index];
+    }
+    return null;
   }
 
   function guaranteeRequired() {
@@ -299,66 +353,147 @@
     }
   }
 
+  function guaranteeProviderLabel(provider) {
+    var method = guaranteeMethodDefinition(guaranteeSelectedMethod);
+    if (method && method.provider_label) return method.provider_label;
+    if (provider === "vr_payment") return "VR Payment";
+    if (provider === "worldline") return "Worldline";
+    if (provider === "sumup") return "SumUp";
+    if (provider === "paypal") return "PayPal";
+    return "Stripe";
+  }
+
+  function resetProviderWidgets() {
+    if (stripeWalletElement && stripeWalletElement.unmount) {
+      try { stripeWalletElement.unmount(); } catch (_) {}
+    }
+    stripeWalletElement = null;
+    stripeWalletElements = null;
+    stripeWalletMethod = "";
+
+    if (sumupWidget && sumupWidget.unmount) {
+      try { sumupWidget.unmount(); } catch (_) {}
+    }
+    sumupWidget = null;
+
+    if (guaranteeWalletNode) {
+      guaranteeWalletNode.innerHTML = "";
+      guaranteeWalletNode.hidden = true;
+    }
+    if (guaranteeSumupNode) {
+      guaranteeSumupNode.innerHTML = "";
+      guaranteeSumupNode.hidden = true;
+    }
+  }
+
+  function invalidateGuaranteeVerification(keepMethod) {
+    guaranteeSetupReference = "";
+    guaranteeVerified = false;
+    guaranteeProviderBusy = false;
+    resetProviderWidgets();
+
+    if (!keepMethod) {
+      guaranteeSelectedMethod = "";
+      guaranteeSelectedProvider = "";
+    }
+
+    if (guaranteeProviderNote) guaranteeProviderNote.textContent = "";
+    if (guaranteeCardError) guaranteeCardError.textContent = "";
+  }
+
+  function stripeCardSelected() {
+    return guaranteeSelectedMethod === "card"
+      && guaranteeSelectedProvider === "stripe";
+  }
+
   function syncSubmitState() {
     var guarantee = currentGuaranteeConfig();
-    var guaranteeBlocked = guaranteeRequired() && (
-      !guarantee.providerReady ||
-      !guaranteeCardComplete ||
-      !guaranteeConsent ||
-      !guaranteeConsent.checked ||
-      guaranteeCardLoadFailed
-    );
+    var blocked = false;
 
-    submit.disabled = !state.time || state.loading || guaranteeBlocked;
+    if (guaranteeRequired()) {
+      blocked = !guarantee.providerReady
+        || !guaranteeSelectedMethod
+        || !guaranteeSelectedProvider
+        || !guaranteeConsent
+        || !guaranteeConsent.checked
+        || guaranteeProviderBusy;
+
+      if (!blocked && stripeCardSelected()) {
+        blocked = !guaranteeCardComplete || guaranteeCardLoadFailed;
+      } else if (!blocked && !stripeCardSelected()) {
+        blocked = !guaranteeVerified;
+      }
+    }
+
+    submit.disabled = !state.time || state.loading || blocked;
+  }
+
+  function loadExternalScript(src) {
+    return new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[src="' + src.replace(/"/g, '\"') + '"]');
+      if (existing) {
+        if (existing.getAttribute("data-pmd-loaded") === "1") {
+          resolve();
+          return;
+        }
+        existing.addEventListener("load", function () { resolve(); }, { once: true });
+        existing.addEventListener("error", function () { reject(new Error("Payment provider could not be loaded.")); }, { once: true });
+        return;
+      }
+
+      var script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = function () {
+        script.setAttribute("data-pmd-loaded", "1");
+        resolve();
+      };
+      script.onerror = function () {
+        reject(new Error("Payment provider could not be loaded."));
+      };
+      document.head.appendChild(script);
+    });
   }
 
   function loadStripeRuntime() {
     if (window.Stripe) return Promise.resolve(window.Stripe);
     if (stripePromise) return stripePromise;
 
-    stripePromise = new Promise(function (resolve, reject) {
-      var existing = document.querySelector('script[src^="https://js.stripe.com/v3"]');
-      if (existing) {
-        existing.addEventListener("load", function () {
-          window.Stripe ? resolve(window.Stripe) : reject(new Error("Stripe could not be loaded."));
-        }, { once: true });
-        existing.addEventListener("error", function () {
-          reject(new Error("Stripe could not be loaded."));
-        }, { once: true });
-        return;
-      }
-
-      var script = document.createElement("script");
-      script.src = "https://js.stripe.com/v3/";
-      script.async = true;
-      script.onload = function () {
-        window.Stripe ? resolve(window.Stripe) : reject(new Error("Stripe could not be loaded."));
-      };
-      script.onerror = function () {
-        reject(new Error("Stripe could not be loaded."));
-      };
-      document.head.appendChild(script);
-    });
+    stripePromise = loadExternalScript("https://js.stripe.com/v3/")
+      .then(function () {
+        if (!window.Stripe) throw new Error("Stripe could not be loaded.");
+        return window.Stripe;
+      });
 
     return stripePromise;
   }
 
-  function ensureStripeCard() {
+  function ensureStripeClient() {
     var guarantee = currentGuaranteeConfig();
-    if (!guaranteeRequired() || !guarantee.providerReady) {
-      return Promise.resolve(null);
-    }
-    if (stripeCard && stripeClient) return Promise.resolve(stripeCard);
-
-    guaranteeCardLoadFailed = false;
 
     return loadStripeRuntime().then(function (StripeFactory) {
       if (!stripeClient) {
-        stripeClient = StripeFactory(String(guarantee.publishableKey || ""));
+        var key = String(guarantee.publishableKey || "");
+        if (!key) throw new Error("Stripe is not configured for wallet verification.");
+        stripeClient = StripeFactory(key);
       }
+      return stripeClient;
+    });
+  }
 
-      if (!stripeClient) throw new Error("Stripe could not be initialized.");
+  function ensureStripeCard() {
+    if (
+      !guaranteeRequired()
+      || !stripeCardSelected()
+      || !currentGuaranteeConfig().providerReady
+    ) {
+      return Promise.resolve(null);
+    }
 
+    if (stripeCard && stripeClient) return Promise.resolve(stripeCard);
+    guaranteeCardLoadFailed = false;
+
+    return ensureStripeClient().then(function () {
       if (!stripeCard) {
         var elements = stripeClient.elements();
         stripeCard = elements.create("card", {
@@ -381,7 +516,6 @@
           syncSubmitState();
         });
       }
-
       return stripeCard;
     }).catch(function (error) {
       guaranteeCardLoadFailed = true;
@@ -389,11 +523,546 @@
       if (guaranteeCardError) {
         guaranteeCardError.textContent = error && error.message
           ? error.message
-          : (labels.guarantee_unavailable || "Card guarantee is unavailable.");
+          : "Stripe card verification is unavailable.";
       }
       syncSubmitState();
       throw error;
     });
+  }
+
+  function setupPayloadFromBooking(payload, method) {
+    return {
+      first_name: payload.first_name || "",
+      last_name: payload.last_name || "",
+      email: payload.email || "",
+      reserve_date: state.date,
+      reserve_time: state.time,
+      guest_num: state.guests,
+      locale: activeLanguageCode(),
+      guarantee_method: method
+    };
+  }
+
+  function requestGuaranteeSetup(payload, method) {
+    var guarantee = currentGuaranteeConfig();
+
+    return fetch(guarantee.setupUrl, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrf ? csrf.getAttribute("content") : ""
+      },
+      body: JSON.stringify(setupPayloadFromBooking(payload, method))
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (body) {
+        if (!response.ok || !body.success) {
+          var messages = responseErrors(body);
+          throw new Error(messages[0] || "Payment-method verification could not be started.");
+        }
+        return body;
+      });
+    });
+  }
+
+  function requestGuaranteeStatus(provider, method, reference) {
+    var guarantee = currentGuaranteeConfig();
+
+    return fetch(guarantee.statusUrl, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": csrf ? csrf.getAttribute("content") : ""
+      },
+      body: JSON.stringify({
+        reserve_date: state.date,
+        reserve_time: state.time,
+        guest_num: state.guests,
+        locale: activeLanguageCode(),
+        guarantee_provider: provider,
+        guarantee_method: method,
+        setup_reference: reference
+      })
+    }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (body) {
+        if (!response.ok || !body.success) {
+          throw new Error(body.message || "Payment-method verification could not be checked.");
+        }
+        return body;
+      });
+    });
+  }
+
+  function pollGuaranteeStatus(provider, method, reference, attempts) {
+    attempts = Number(attempts || 0);
+
+    return requestGuaranteeStatus(provider, method, reference)
+      .then(function (status) {
+        if (status.ready) return status;
+        if (attempts >= 39) {
+          throw new Error("Payment-method verification timed out. Please try again.");
+        }
+        return new Promise(function (resolve) {
+          window.setTimeout(resolve, 1500);
+        }).then(function () {
+          return pollGuaranteeStatus(provider, method, reference, attempts + 1);
+        });
+      });
+  }
+
+  function verifiedPayload(payload) {
+    payload._pmd_guarantee_provider = guaranteeSelectedProvider;
+    payload._pmd_guarantee_method = guaranteeSelectedMethod;
+    payload._pmd_guarantee_setup_reference = guaranteeSetupReference;
+    payload._pmd_guarantee_terms_accepted = "1";
+
+    if (guaranteeSelectedProvider === "stripe") {
+      payload._pmd_guarantee_setup_intent = guaranteeSetupReference;
+    }
+
+    return payload;
+  }
+
+  function requireGuaranteeConsent() {
+    if (!guaranteeConsent || !guaranteeConsent.checked) {
+      throw new Error(
+        currentGuaranteeConfig().consentText
+          || "Please accept the guarantee terms first."
+      );
+    }
+  }
+
+  function providerVerificationPayload() {
+    if (!state.time) {
+      throw new Error(labels.select_date_hint || "Please choose an available time.");
+    }
+    if (!form.reportValidity()) {
+      throw new Error("Please complete your booking details first.");
+    }
+    requireGuaranteeConsent();
+    return formPayload();
+  }
+
+  function markProviderVerified(provider, method, reference) {
+    guaranteeSelectedProvider = provider;
+    guaranteeSelectedMethod = method;
+    guaranteeSetupReference = reference;
+    guaranteeVerified = true;
+    guaranteeProviderBusy = false;
+
+    if (guaranteeProviderNote) {
+      guaranteeProviderNote.textContent = guaranteeProviderLabel(provider) + " verified ✓";
+    }
+    if (guaranteeProviderButton) {
+      guaranteeProviderButton.disabled = true;
+      guaranteeProviderButton.textContent = "Verified ✓";
+    }
+    syncSubmitState();
+  }
+
+  function autoSubmitVerifiedBooking() {
+    window.setTimeout(function () {
+      if (form.requestSubmit) form.requestSubmit();
+      else form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    }, 0);
+  }
+
+  function beginRedirectVerification(payload, provider, method) {
+    var popup = window.open(
+      "about:blank",
+      "pmdGuaranteeProvider",
+      "width=520,height=720,resizable=yes,scrollbars=yes"
+    );
+    if (!popup) {
+      return Promise.reject(new Error("Please allow the payment-provider popup and try again."));
+    }
+
+    try {
+      popup.document.write("<!doctype html><title>PayMyDine</title><p style='font-family:sans-serif;padding:24px'>Opening secure verification…</p>");
+    } catch (_) {}
+
+    guaranteeProviderBusy = true;
+    syncSubmitState();
+
+    return requestGuaranteeSetup(payload, method).then(function (setup) {
+      guaranteeSetupReference = String(setup.setup_reference || "");
+      if (!guaranteeSetupReference) {
+        throw new Error("Payment provider did not return a verification reference.");
+      }
+
+      var approvalUrl = String(
+        setup.approval_url
+        || setup.hosted_tokenization_url
+        || setup.redirect_url
+        || ""
+      );
+      if (!approvalUrl) {
+        throw new Error("Payment provider did not return a secure verification page.");
+      }
+
+      popup.location.href = approvalUrl;
+
+      return pollGuaranteeStatus(provider, method, guaranteeSetupReference, 0);
+    }).then(function () {
+      try { popup.close(); } catch (_) {}
+      markProviderVerified(provider, method, guaranteeSetupReference);
+      autoSubmitVerifiedBooking();
+    }).catch(function (error) {
+      guaranteeProviderBusy = false;
+      try { popup.close(); } catch (_) {}
+      syncSubmitState();
+      throw error;
+    });
+  }
+
+  function loadSumupRuntime(src) {
+    if (window.SumUpCard && window.SumUpCard.mount) {
+      return Promise.resolve(window.SumUpCard);
+    }
+    if (!sumupPromise) {
+      sumupPromise = loadExternalScript(src).then(function () {
+        if (!window.SumUpCard || !window.SumUpCard.mount) {
+          throw new Error("SumUp verification widget is unavailable.");
+        }
+        return window.SumUpCard;
+      });
+    }
+    return sumupPromise;
+  }
+
+  function beginSumupVerification(payload) {
+    guaranteeProviderBusy = true;
+    syncSubmitState();
+
+    return requestGuaranteeSetup(payload, "card").then(function (setup) {
+      guaranteeSetupReference = String(setup.setup_reference || "");
+      var checkoutId = String(setup.checkout_id || "");
+      var sdkUrl = String(setup.sdk_url || "https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js");
+
+      if (!checkoutId || !guaranteeSetupReference) {
+        throw new Error("SumUp did not return a complete card-verification session.");
+      }
+
+      return loadSumupRuntime(sdkUrl).then(function (SumUpCard) {
+        if (sumupWidget && sumupWidget.unmount) {
+          try { sumupWidget.unmount(); } catch (_) {}
+        }
+
+        guaranteeSumupNode.hidden = false;
+        guaranteeSumupNode.innerHTML = "";
+
+        return new Promise(function (resolve, reject) {
+          sumupWidget = SumUpCard.mount({
+            id: "pmd-booking-guarantee-sumup",
+            checkoutId: checkoutId,
+            showAmount: false,
+            showSubmitButton: true,
+            showFooter: true,
+            locale: activeLanguageCode() === "de"
+              ? "de-DE"
+              : (activeLanguageCode() === "tr" ? "tr-TR" : "en-GB"),
+            onLoad: function () {
+              guaranteeProviderBusy = false;
+              if (guaranteeProviderNote) {
+                guaranteeProviderNote.textContent = "Complete the secure SumUp card verification below.";
+              }
+              syncSubmitState();
+            },
+            onResponse: function (type, body) {
+              var responseType = String(type || "").toLowerCase();
+
+              if (responseType === "error" || responseType === "fail" || responseType === "invalid") {
+                reject(new Error(
+                  String(
+                    body && (body.message || body.error_message || body.error)
+                    || "SumUp could not verify the card."
+                  )
+                ));
+                return;
+              }
+
+              if (responseType === "success") {
+                resolve();
+              }
+            }
+          });
+        });
+      });
+    }).then(function () {
+      guaranteeProviderBusy = true;
+      syncSubmitState();
+      return pollGuaranteeStatus(
+        "sumup",
+        "card",
+        guaranteeSetupReference,
+        0
+      );
+    }).then(function () {
+      markProviderVerified("sumup", "card", guaranteeSetupReference);
+      autoSubmitVerifiedBooking();
+    }).catch(function (error) {
+      guaranteeProviderBusy = false;
+      syncSubmitState();
+      throw error;
+    });
+  }
+
+  function beginProviderVerification() {
+    setErrors([]);
+
+    var method = guaranteeMethodDefinition(guaranteeSelectedMethod);
+    if (!method) {
+      setErrors(["Choose a guarantee payment method."]);
+      return;
+    }
+
+    var payload;
+    try {
+      payload = providerVerificationPayload();
+    } catch (error) {
+      setErrors([error.message]);
+      return;
+    }
+
+    if (method.provider === "sumup") {
+      beginSumupVerification(payload).catch(function (error) {
+        setErrors([error.message]);
+      });
+      return;
+    }
+
+    beginRedirectVerification(
+      payload,
+      method.provider,
+      method.code
+    ).catch(function (error) {
+      setErrors([error.message]);
+    });
+  }
+
+  function ensureStripeWallet() {
+    var method = guaranteeSelectedMethod;
+    if (!["apple_pay", "google_pay"].includes(method)) {
+      return Promise.resolve(null);
+    }
+
+    if (stripeWalletElement && stripeWalletMethod === method) {
+      return Promise.resolve(stripeWalletElement);
+    }
+
+    resetProviderWidgets();
+    stripeWalletMethod = method;
+
+    return ensureStripeClient().then(function () {
+      var guarantee = currentGuaranteeConfig();
+      stripeWalletElements = stripeClient.elements({
+        mode: "setup",
+        currency: String(guarantee.currency || "EUR").toLowerCase(),
+        setupFutureUsage: "off_session",
+        paymentMethodTypes: ["card"]
+      });
+
+      var paymentMethods = {
+        applePay: method === "apple_pay" ? "always" : "never",
+        googlePay: method === "google_pay" ? "always" : "never"
+      };
+
+      stripeWalletElement = stripeWalletElements.create(
+        "expressCheckout",
+        {
+          paymentMethods: paymentMethods,
+          buttonHeight: 48
+        }
+      );
+
+      guaranteeWalletNode.hidden = false;
+      stripeWalletElement.mount("#pmd-booking-guarantee-wallet");
+
+      stripeWalletElement.on("ready", function (event) {
+        var available = event && event.availablePaymentMethods
+          ? event.availablePaymentMethods
+          : {};
+        var key = method === "apple_pay" ? "applePay" : "googlePay";
+        if (!available || available[key] === false) {
+          if (guaranteeCardError) {
+            guaranteeCardError.textContent =
+              (method === "apple_pay" ? "Apple Pay" : "Google Pay")
+              + " is not available on this browser/device.";
+          }
+        }
+      });
+
+      stripeWalletElement.on("confirm", function () {
+        setErrors([]);
+
+        var payload;
+        try {
+          payload = providerVerificationPayload();
+        } catch (error) {
+          setErrors([error.message]);
+          return;
+        }
+
+        guaranteeProviderBusy = true;
+        syncSubmitState();
+
+        requestGuaranteeSetup(payload, method)
+          .then(function (setup) {
+            guaranteeSetupReference = String(
+              setup.setup_intent_id || ""
+            );
+            if (!setup.client_secret || !guaranteeSetupReference) {
+              throw new Error("Stripe wallet verification could not be started.");
+            }
+
+            return stripeClient.confirmSetup({
+              elements: stripeWalletElements,
+              clientSecret: String(setup.client_secret),
+              confirmParams: {
+                return_url: window.location.href
+              },
+              redirect: "if_required"
+            });
+          })
+          .then(function (result) {
+            if (result && result.error) {
+              throw new Error(
+                result.error.message || "Wallet verification failed."
+              );
+            }
+
+            var intent = result && result.setupIntent
+              ? result.setupIntent
+              : null;
+            if (!intent || intent.status !== "succeeded" || !intent.id) {
+              throw new Error("Please complete wallet verification.");
+            }
+
+            guaranteeSetupReference = String(intent.id);
+            markProviderVerified("stripe", method, guaranteeSetupReference);
+            autoSubmitVerifiedBooking();
+          })
+          .catch(function (error) {
+            guaranteeProviderBusy = false;
+            syncSubmitState();
+            setErrors([error.message]);
+          });
+      });
+
+      return stripeWalletElement;
+    });
+  }
+
+  function renderGuaranteeMethods() {
+    if (!guaranteeMethodsNode) return;
+
+    var methods = guaranteeMethods();
+    if (!methods.length) {
+      guaranteeMethodsNode.innerHTML = "";
+      return;
+    }
+
+    if (!guaranteeMethodDefinition(guaranteeSelectedMethod)) {
+      var preferred = String(
+        currentGuaranteeConfig().defaultMethod || ""
+      ).toLowerCase();
+      guaranteeSelectedMethod = guaranteeMethodDefinition(preferred)
+        ? preferred
+        : methods[0].code;
+      guaranteeSelectedProvider = guaranteeMethodDefinition(
+        guaranteeSelectedMethod
+      ).provider;
+    }
+
+    guaranteeMethodsNode.innerHTML = methods.map(function (method) {
+      var active = method.code === guaranteeSelectedMethod;
+      return '<button type="button" class="pmd-booking-guarantee__method'
+        + (active ? ' is-active' : '')
+        + '" data-pmd-guarantee-method="'
+        + escapeHtml(method.code)
+        + '" role="radio" aria-checked="'
+        + (active ? 'true' : 'false')
+        + '"><strong>'
+        + escapeHtml(method.label)
+        + '</strong><small>'
+        + escapeHtml(method.provider_label || guaranteeProviderLabel(method.provider))
+        + '</small></button>';
+    }).join("");
+  }
+
+  function renderGuaranteeMethodPanel() {
+    var method = guaranteeMethodDefinition(guaranteeSelectedMethod);
+
+    if (!method) {
+      if (guaranteeCardWrap) guaranteeCardWrap.hidden = true;
+      return;
+    }
+
+    guaranteeSelectedProvider = method.provider;
+
+    if (guaranteeCardWrap) guaranteeCardWrap.hidden = false;
+    if (guaranteeCardNode) guaranteeCardNode.hidden = true;
+    if (guaranteeWalletNode) guaranteeWalletNode.hidden = true;
+    if (guaranteeProviderAction) guaranteeProviderAction.hidden = true;
+    if (guaranteeSumupNode && !sumupWidget) guaranteeSumupNode.hidden = true;
+
+    if (guaranteeMethodTitle) {
+      guaranteeMethodTitle.textContent = method.label;
+    }
+    if (guaranteeSecure) {
+      guaranteeSecure.textContent = "Secure verification by "
+        + guaranteeProviderLabel(method.provider)
+        + ".";
+    }
+
+    if (method.code === "card" && method.provider === "stripe") {
+      if (guaranteeCardNode) guaranteeCardNode.hidden = false;
+      ensureStripeCard().catch(function () {});
+      return;
+    }
+
+    if (method.code === "apple_pay" || method.code === "google_pay") {
+      ensureStripeWallet().catch(function (error) {
+        if (guaranteeCardError) {
+          guaranteeCardError.textContent = error.message;
+        }
+      });
+      return;
+    }
+
+    if (guaranteeProviderAction) guaranteeProviderAction.hidden = false;
+    if (guaranteeProviderButton) {
+      guaranteeProviderButton.disabled = guaranteeVerified || guaranteeProviderBusy;
+      guaranteeProviderButton.textContent = guaranteeVerified
+        ? "Verified ✓"
+        : (
+            method.code === "paypal"
+              ? "Verify with PayPal"
+              : "Verify card with " + guaranteeProviderLabel(method.provider)
+          );
+    }
+    if (guaranteeProviderNote && !guaranteeVerified) {
+      guaranteeProviderNote.textContent =
+        "You will verify securely with "
+        + guaranteeProviderLabel(method.provider)
+        + ". No no-show charge is made now.";
+    }
+  }
+
+  function selectGuaranteeMethod(code) {
+    var method = guaranteeMethodDefinition(code);
+    if (!method || method.code === guaranteeSelectedMethod) return;
+
+    invalidateGuaranteeVerification(true);
+    guaranteeSelectedMethod = method.code;
+    guaranteeSelectedProvider = method.provider;
+
+    renderGuaranteeMethods();
+    renderGuaranteeMethodPanel();
+    syncSubmitState();
   }
 
   function renderGuarantee() {
@@ -401,19 +1070,25 @@
 
     var guarantee = currentGuaranteeConfig();
     var required = guaranteeRequired();
-
     guaranteeSection.hidden = !required;
 
     if (!required) {
+      invalidateGuaranteeVerification(false);
       if (guaranteeConsent) guaranteeConsent.checked = false;
       var normalLabel = submit.querySelector("span");
-      if (normalLabel) normalLabel.textContent = labels.book_table || "Request this table";
+      if (normalLabel) {
+        normalLabel.textContent = labels.book_table || "Request this table";
+      }
       syncSubmitState();
       return;
     }
 
-    if (guaranteeTerms) guaranteeTerms.textContent = String(guarantee.termsText || "");
-    if (guaranteeConsentCopy) guaranteeConsentCopy.textContent = String(guarantee.consentText || "");
+    if (guaranteeTerms) {
+      guaranteeTerms.textContent = String(guarantee.termsText || "");
+    }
+    if (guaranteeConsentCopy) {
+      guaranteeConsentCopy.textContent = String(guarantee.consentText || "");
+    }
     if (guaranteeTotal) {
       guaranteeTotal.textContent = guaranteeMoney(
         Number(guarantee.amountPerGuestCents || 0) * state.guests,
@@ -421,28 +1096,26 @@
       );
     }
 
-    if (guaranteeUnavailable) guaranteeUnavailable.hidden = Boolean(guarantee.providerReady);
-    if (guaranteeCardWrap) guaranteeCardWrap.hidden = !guarantee.providerReady;
+    if (guaranteeUnavailable) {
+      guaranteeUnavailable.hidden = Boolean(guarantee.providerReady);
+    }
 
     var label = submit.querySelector("span");
     if (label) {
       label.textContent = String(
-        guarantee.buttonText ||
-        labels.book_table ||
-        "Confirm reservation"
+        guarantee.buttonText
+        || labels.book_table
+        || "Confirm reservation"
       );
     }
 
-    if (guarantee.providerReady) {
-      ensureStripeCard().catch(function () {});
-    }
-
+    renderGuaranteeMethods();
+    renderGuaranteeMethodPanel();
     syncSubmitState();
   }
 
   function verifyGuaranteeForBooking(payload) {
     var guarantee = currentGuaranteeConfig();
-
     payload._pmd_booking_locale = activeLanguageCode();
 
     if (!guaranteeRequired()) {
@@ -451,81 +1124,93 @@
 
     if (!guarantee.providerReady) {
       return Promise.reject(new Error(
-        labels.guarantee_unavailable || "Card guarantee is unavailable."
+        labels.guarantee_unavailable
+        || "Payment guarantee is unavailable."
       ));
     }
 
-    if (!guaranteeConsent || !guaranteeConsent.checked) {
+    try {
+      requireGuaranteeConsent();
+    } catch (error) {
+      return Promise.reject(error);
+    }
+
+    var method = guaranteeMethodDefinition(guaranteeSelectedMethod);
+    if (!method) {
       return Promise.reject(new Error(
-        guarantee.consentText || "Please accept the card guarantee terms."
+        "Choose a guarantee payment method."
       ));
+    }
+
+    guaranteeSelectedProvider = method.provider;
+
+    if (!stripeCardSelected()) {
+      if (!guaranteeVerified || !guaranteeSetupReference) {
+        return Promise.reject(new Error(
+          "Verify the selected payment method first."
+        ));
+      }
+      return Promise.resolve(verifiedPayload(payload));
     }
 
     if (!guaranteeCardComplete) {
-      return Promise.reject(new Error("Please complete the card details."));
+      return Promise.reject(new Error(
+        "Please complete the card details."
+      ));
     }
 
-    return ensureStripeCard().then(function () {
-      var setupPayload = {
-        first_name: payload.first_name || "",
-        last_name: payload.last_name || "",
-        email: payload.email || "",
-        reserve_date: state.date,
-        reserve_time: state.time,
-        guest_num: state.guests,
-        locale: activeLanguageCode()
-      };
-
-      return fetch(guarantee.setupUrl || "/book/guarantee/setup", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-          "X-CSRF-TOKEN": csrf ? csrf.getAttribute("content") : ""
-        },
-        body: JSON.stringify(setupPayload)
-      });
-    }).then(function (response) {
-      return response.json().catch(function () { return {}; }).then(function (setup) {
-        if (!response.ok || !setup.success || !setup.client_secret) {
-          var messages = responseErrors(setup);
-          throw new Error(messages[0] || "Card verification could not be started.");
+    return ensureStripeCard()
+      .then(function () {
+        return requestGuaranteeSetup(payload, "card");
+      })
+      .then(function (setup) {
+        if (!setup.client_secret) {
+          throw new Error(
+            "Stripe card verification could not be started."
+          );
         }
-        return setup;
-      });
-    }).then(function (setup) {
-      if (!stripeClient || !stripeCard) {
-        throw new Error("Card verification is unavailable.");
-      }
 
-      var holderName = String(
-        (payload.first_name || "") + " " + (payload.last_name || "")
-      ).trim();
+        var holderName = String(
+          (payload.first_name || "")
+          + " "
+          + (payload.last_name || "")
+        ).trim();
 
-      return stripeClient.confirmCardSetup(setup.client_secret, {
-        payment_method: {
-          card: stripeCard,
-          billing_details: {
-            name: holderName,
-            email: payload.email || ""
+        return stripeClient.confirmCardSetup(
+          setup.client_secret,
+          {
+            payment_method: {
+              card: stripeCard,
+              billing_details: {
+                name: holderName,
+                email: payload.email || ""
+              }
+            }
           }
+        );
+      })
+      .then(function (result) {
+        if (result && result.error) {
+          throw new Error(
+            result.error.message || "Card verification failed."
+          );
         }
+
+        var intent = result && result.setupIntent
+          ? result.setupIntent
+          : null;
+        if (!intent || intent.status !== "succeeded" || !intent.id) {
+          throw new Error(
+            "Please complete the card verification."
+          );
+        }
+
+        guaranteeSetupReference = String(intent.id);
+        guaranteeVerified = true;
+        guaranteeSelectedProvider = "stripe";
+
+        return verifiedPayload(payload);
       });
-    }).then(function (result) {
-      if (result && result.error) {
-        throw new Error(result.error.message || "Card verification failed.");
-      }
-
-      var intent = result && result.setupIntent ? result.setupIntent : null;
-      if (!intent || intent.status !== "succeeded" || !intent.id) {
-        throw new Error("Please complete the card verification.");
-      }
-
-      payload._pmd_guarantee_setup_intent = String(intent.id);
-      payload._pmd_guarantee_terms_accepted = "1";
-      return payload;
-    });
   }
 
   function applyLanguage(code, updateUrl) {
@@ -917,6 +1602,9 @@
 
   function selectDate(value) {
     if (!value) return;
+    if (value !== state.date && guaranteeVerified) {
+      invalidateGuaranteeVerification(true);
+    }
     if (value < String(config.today) || value > String(config.maxDate)) return;
 
     state.date = value;
@@ -948,6 +1636,9 @@
   }
 
   function selectTime(value, button) {
+    if (value !== state.time && guaranteeVerified) {
+      invalidateGuaranteeVerification(true);
+    }
     state.time = value;
     timeInput.value = value;
 
@@ -961,7 +1652,11 @@
   }
 
   function applyGuestCount(next) {
-    state.guests = clampGuests(next);
+    var normalizedGuests = clampGuests(next);
+    if (normalizedGuests !== state.guests && guaranteeVerified) {
+      invalidateGuaranteeVerification(true);
+    }
+    state.guests = normalizedGuests;
     state.time = "";
     state.period = "";
     syncDateStatusesForGuests(state.guests);
@@ -1245,6 +1940,23 @@
     guaranteeConsent.addEventListener("change", function () {
       syncSubmitState();
     });
+  }
+
+  if (guaranteeMethodsNode) {
+    guaranteeMethodsNode.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-pmd-guarantee-method]");
+      if (!button) return;
+      selectGuaranteeMethod(
+        button.getAttribute("data-pmd-guarantee-method")
+      );
+    });
+  }
+
+  if (guaranteeProviderButton) {
+    guaranteeProviderButton.addEventListener(
+      "click",
+      beginProviderVerification
+    );
   }
 
   form.addEventListener("submit", submitBooking);
