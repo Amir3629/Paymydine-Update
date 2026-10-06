@@ -532,7 +532,8 @@ final class PmdReservationGuaranteeService
             $location,
             $booking,
             $setupReference,
-            $policy
+            $policy,
+            $method
         );
     }
 
@@ -641,7 +642,8 @@ final class PmdReservationGuaranteeService
         Locations_model $location,
         array $booking,
         string $setupIntentId,
-        array $policy
+        array $policy,
+        string $requestedMethod
     ): array {
         $stripeConfig = $this->stripeCredentials(true);
         if (!($stripeConfig['ready'] ?? false)) {
@@ -723,9 +725,24 @@ final class PmdReservationGuaranteeService
             $method = $walletType;
         }
 
+        $requestedMethod = strtolower(trim($requestedMethod));
+        $metadataRequestedMethod = strtolower(trim((string)(
+            $metadata['pmd_requested_method'] ?? ''
+        )));
+
+        if (
+            $metadataRequestedMethod === ''
+            || $metadataRequestedMethod !== $requestedMethod
+            || $method !== $requestedMethod
+        ) {
+            throw new RuntimeException(
+                'The verified Stripe payment method does not match the selected guarantee method. Please verify again.'
+            );
+        }
+
         if (!in_array($method, (array)($policy['methods'] ?? []), true)) {
             throw new RuntimeException(
-                'This wallet is not enabled for reservation guarantees.'
+                'This payment method is not enabled for reservation guarantees.'
             );
         }
 
