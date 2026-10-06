@@ -144,6 +144,10 @@
   var bootPresented = false;
   var categoryObserver = null;
   var receiptPrintRequested = false;
+  // PMD_KIOSK_DOM_STABLE_V20
+  // Remember the card-tree signature so bootstrap revalidation can update
+  // lightweight labels/totals without replacing every image/card node.
+  var lastRenderedMenuSignature = "";
 
   function copy() {
     return COPY[state.locale] || COPY.en;
@@ -456,7 +460,14 @@
   }
 
   function parseLocales(settings, theme) {
-    var raw = first(theme, ["pmd_v2_enabled_languages", "enabled_languages"], first(settings, ["enabled_languages", "pmd_v2_enabled_languages"], ""));
+    // PMD_KIOSK_TENANT_LOCALES_V20
+    // Customer Menu / tenant language settings are the authority. The kiosk
+    // must never invent globally available languages.
+    var raw = first(
+      theme,
+      ["pmd_v2_enabled_languages", "enabled_languages", "supported_languages"],
+      first(settings, ["enabled_languages", "pmd_v2_enabled_languages", "supported_languages"], "")
+    );
     var list;
     if (Array.isArray(raw)) {
       list = raw;
@@ -613,7 +624,7 @@
     state.couponCode = "";
     state.couponDiscount = 0;
     persistCart();
-    renderAll();
+    renderCartState();
     closeModal();
   }
 
@@ -625,7 +636,7 @@
     state.couponCode = "";
     state.couponDiscount = 0;
     persistCart();
-    renderAll();
+    renderCartState();
   }
 
   function clearCartState() {
@@ -640,7 +651,7 @@
       sessionStorage.removeItem(orderKey);
       sessionStorage.removeItem(paymentKey);
     } catch (error) {}
-    renderAll();
+    renderCartState();
   }
 
 
@@ -727,7 +738,10 @@
       button.classList.toggle("is-active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
       if (active && typeof button.scrollIntoView === "function") {
-        button.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        // PMD_KIOSK_NO_SCROLL_ANIMATION_JANK_V20
+        // Scrollspy must not start a second smooth animation while the guest is
+        // already dragging the vertical menu.
+        button.scrollIntoView({ behavior: "auto", block: "nearest", inline: "center" });
       }
     });
     var category = state.categories.find(function (entry) {
@@ -798,7 +812,7 @@
             '<div class="pmd-kiosk-item__copy"><h2>' + escapeHtml(item.name) + "</h2>" +
               (item.description ? "<p>" + escapeHtml(item.description) + "</p>" : "") +
             "</div>" +
-            '<div class="pmd-kiosk-item__foot"><span class="pmd-kiosk-item__price">' + escapeHtml(money(item.price)) + "</span>" +
+            '<div class="pmd-kiosk-item__foot"><span class="pmd-kiosk-item__price" data-item-price="' + escapeHtml(item.id) + '">' + escapeHtml(money(item.price)) + "</span>" +
               '<button type="button" class="pmd-kiosk-add pmd-kiosk-add--icon" data-add-item="' + escapeHtml(item.id) +
                 '" aria-label="' + escapeHtml(copy().add + " " + item.name) + '">+</button>' +
             "</div>" +
@@ -813,7 +827,63 @@
     }).filter(Boolean);
 
     grid.innerHTML = sections.join("");
+    lastRenderedMenuSignature = menuRenderSignature();
     window.requestAnimationFrame(bindCategoryScrollSpy);
+  }
+
+  function menuRenderSignature() {
+    return JSON.stringify([
+      state.categories.map(function (entry) {
+        return [String(entry.id), String(entry.name || "")];
+      }),
+      state.items.map(function (item) {
+        return [
+          String(item.id),
+          String(item.categoryId),
+          String(item.name || ""),
+          String(item.description || ""),
+          String(item.image || ""),
+          number(item.price),
+          Array.isArray(item.options) ? item.options.length : 0
+        ];
+      })
+    ]);
+  }
+
+  function refreshMenuCartBadges() {
+    grid.querySelectorAll("[data-open-item]").forEach(function (card) {
+      var itemId = card.getAttribute("data-open-item") || "";
+      var quantity = itemCartQuantity(itemId);
+      var image = card.querySelector(".pmd-kiosk-item__image");
+      if (!image) return;
+
+      var badge = image.querySelector(".pmd-kiosk-item__qty");
+      if (quantity > 0) {
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.className = "pmd-kiosk-item__qty";
+          image.appendChild(badge);
+        }
+        badge.textContent = String(quantity);
+      } else if (badge) {
+        badge.remove();
+      }
+    });
+  }
+
+  function refreshMenuPrices() {
+    grid.querySelectorAll("[data-item-price]").forEach(function (node) {
+      var item = findItem(node.getAttribute("data-item-price"));
+      if (item) node.textContent = money(item.price);
+    });
+  }
+
+  function renderCartState() {
+    // PMD_KIOSK_DOM_STABLE_V20
+    // Cart mutations must not replace the menu DOM. Keeping the existing image
+    // elements alive eliminates the visible flash and repeated decode work.
+    refreshMenuCartBadges();
+    renderOrder();
   }
 
 
@@ -874,6 +944,14 @@
     renderLanguages();
     renderCategories();
     renderMenu();
+    renderOrder();
+  }
+
+  function renderLocaleState() {
+    renderBrand();
+    renderLanguages();
+    renderCategories();
+    refreshMenuPrices();
     renderOrder();
   }
 
@@ -2019,7 +2097,21 @@
   function finishBoot() {
     app.setAttribute("aria-busy", "false");
     if (loading) loading.hidden = true;
-    renderAll();
+
+    // PMD_KIOSK_BOOT_REVALIDATE_NO_BLINK_V20
+    // The cached snapshot is already on screen. If the fresh bootstrap has the
+    // same card tree, keep those DOM/image nodes and only refresh light UI.
+    var nextMenuSignature = menuRenderSignature();
+    if (!bootPresented || nextMenuSignature !== lastRenderedMenuSignature) {
+      renderAll();
+    } else {
+      renderBrand();
+      renderLanguages();
+      renderCategories();
+      refreshMenuCartBadges();
+      refreshMenuPrices();
+      renderOrder();
+    }
 
     // Cached menu snapshots are visual-only first paint. Checkout/payment
     // side effects must run once, after the first usable menu is presented.
@@ -2040,7 +2132,7 @@
       .find(function (node) { return String(node.getAttribute("data-category-section")) === String(id); });
     if (!section) return;
     setActiveCategory(id);
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    section.scrollIntoView({ behavior: "auto", block: "start" });
   });
 
   grid.addEventListener("click", function (event) {
@@ -2091,7 +2183,9 @@
 
   languageSelect.addEventListener("change", function () {
     state.locale = languageSelect.value || "en";
-    renderAll();
+    // PMD_KIOSK_DOM_STABLE_V20
+    // Locale changes update labels/prices without destroying the menu cards.
+    renderLocaleState();
     if (!modalLayer.hidden && state.currentModal && state.currentModal.type === "checkout") renderCheckout();
   });
 
