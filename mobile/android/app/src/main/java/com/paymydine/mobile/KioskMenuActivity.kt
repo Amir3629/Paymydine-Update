@@ -36,6 +36,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.paymydine.mobile.kiosk.KioskApiClient
 import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskProfile
+import com.paymydine.mobile.printer.PmdPrinterManager
 import java.io.ByteArrayInputStream
 import java.util.UUID
 
@@ -794,6 +795,7 @@ class KioskMenuActivity : ComponentActivity() {
                 secret = bridgeSecret,
                 onOrderComplete = ::showComplete,
                 onTerminalPayment = ::startAssignedTerminalPayment,
+                onPrintReceipt = ::printReceipt,
             )
 
         fun setBridgeEnabled(enabled: Boolean) {
@@ -1233,6 +1235,22 @@ class KioskMenuActivity : ComponentActivity() {
         }
     }
 
+    // PMD_KIOSK_SHARED_PRINTER_V18
+    private fun printReceipt(receiptJson: String) {
+        val safePayload = receiptJson.take(64_000)
+        Thread {
+            runCatching {
+                PmdPrinterManager(applicationContext)
+                    .printReceiptJson(safePayload)
+                    .getOrThrow()
+            }
+        }.apply {
+            name = "pmd-kiosk-receipt-printer"
+            isDaemon = true
+            start()
+        }
+    }
+
     private fun showComplete(orderId: String) {
         runOnUiThread {
             destroyWebView()
@@ -1335,6 +1353,7 @@ class KioskMenuActivity : ComponentActivity() {
         private val secret: String,
         private val onOrderComplete: (String) -> Unit,
         private val onTerminalPayment: (String, String) -> Unit,
+        private val onPrintReceipt: (String) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
 
@@ -1362,6 +1381,19 @@ class KioskMenuActivity : ComponentActivity() {
             }
             handler.post {
                 onTerminalPayment(orderId.trim(), kioskSession.trim())
+            }
+        }
+
+        @JavascriptInterface
+        fun printReceipt(
+            receiptJson: String,
+            providedSecret: String,
+        ) {
+            if (providedSecret.isBlank() || providedSecret != secret) {
+                return
+            }
+            handler.post {
+                onPrintReceipt(receiptJson)
             }
         }
     }
