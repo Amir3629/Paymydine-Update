@@ -194,7 +194,11 @@ final class PmdReservationGuaranteeProviderRegistry
                 ->string('reservation_guarantee_provider', 'stripe')
         ));
 
-        return array_key_exists($provider, $this->definitions())
+        return in_array(
+            $provider,
+            ['stripe', 'sumup', 'vr_payment', 'worldline'],
+            true
+        )
             ? $provider
             : 'stripe';
     }
