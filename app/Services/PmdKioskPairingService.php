@@ -271,6 +271,12 @@ final class PmdKioskPairingService
 
     private function normalizeLocaleList($raw): array
     {
+        if ($raw instanceof \Illuminate\Support\Collection) {
+            $raw = $raw->all();
+        } elseif ($raw instanceof \Traversable) {
+            $raw = iterator_to_array($raw);
+        }
+
         if (is_string($raw)) {
             $trimmed = trim($raw);
             if ($trimmed === '') {
