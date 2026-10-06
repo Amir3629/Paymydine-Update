@@ -992,6 +992,91 @@ img {
   font-size: 20px;
 }
 
+.pmd-booking-guarantee__methods {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.pmd-booking-guarantee__method {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--pmd-book-line);
+  background: var(--pmd-book-white);
+  color: var(--pmd-book-ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.pmd-booking-guarantee__method strong {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.pmd-booking-guarantee__method small {
+  overflow: hidden;
+  color: var(--pmd-book-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-booking-guarantee__method.is-active {
+  border-color: var(--pmd-book-accent);
+  background: rgba(10, 105, 82, .06);
+  box-shadow: inset 3px 0 0 var(--pmd-book-accent);
+}
+
+.pmd-booking-guarantee__method:focus-visible {
+  outline: 2px solid var(--pmd-book-accent-soft);
+  outline-offset: 2px;
+}
+
+.pmd-booking-guarantee__wallet,
+.pmd-booking-guarantee__sumup,
+.pmd-booking-guarantee__provider-action {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.pmd-booking-guarantee__wallet[hidden],
+.pmd-booking-guarantee__sumup[hidden],
+.pmd-booking-guarantee__provider-action[hidden] {
+  display: none;
+}
+
+.pmd-booking-guarantee__provider-action {
+  display: grid;
+  gap: 7px;
+}
+
+.pmd-booking-guarantee__provider-action button {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--pmd-book-accent-dark);
+  background: var(--pmd-book-accent);
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.pmd-booking-guarantee__provider-action button:disabled {
+  cursor: default;
+  opacity: .65;
+}
+
+.pmd-booking-guarantee__provider-action small {
+  color: var(--pmd-book-muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
 .pmd-booking-guarantee__card-wrap {
   display: grid;
   gap: 8px;
@@ -1713,6 +1798,10 @@ img {
 }
 
 @media (max-width: 760px) {
+  .pmd-booking-guarantee__methods {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   body.pmd-booking-page {
     background: var(--pmd-book-paper);
   }
