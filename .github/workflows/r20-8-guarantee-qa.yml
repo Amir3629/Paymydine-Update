@@ -1,5 +1,8 @@
 name: R20.8 Guarantee QA
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - qa/r20-8-guarantee-methods-final
