@@ -114,7 +114,7 @@
                     <div class="pmd-owner-panel">
                         <h3>{{ $pmdSettingsText('Reservation card guarantee') }}</h3>
                         <p>{{ $pmdSettingsText('Card guarantee, no-show compensation, provider selection and confirmation-email controls now live with the payment providers they depend on.') }}</p>
-                        <a class="pmd-owner-action" href="{{ admin_url('pmdfinance') }}#reservation-guarantee">{{ $pmdSettingsText('Open Payments & finance') }}</a>
+                        <a class="pmd-owner-action" href="{{ admin_url('settings/finance') }}#reservation-guarantee">{{ $pmdSettingsText('Open Payments & finance') }}</a>
                     </div>
                 </div>
             </div>
