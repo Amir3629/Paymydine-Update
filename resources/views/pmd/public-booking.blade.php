@@ -48,7 +48,7 @@
             'guarantee_secure' => 'Secure card verification by Stripe.',
             'guarantee_unavailable' => 'Card guarantee is temporarily unavailable. Please contact the restaurant.',
             'guarantee_verifying' => 'Verifying card…',
-            'guarantee_success' => 'Card guarantee active. Nothing was charged. Maximum guarantee amount:',
+            'guarantee_success' => 'Card guarantee active · No charge now',
             'book_table' => 'Request this table',
             'booking' => 'Saving your reservation…',
             'summary' => 'Your table',
@@ -125,7 +125,7 @@
             'guarantee_secure' => 'Sichere Kartenprüfung über Stripe.',
             'guarantee_unavailable' => 'Die Kartengarantie ist derzeit nicht verfügbar. Bitte kontaktieren Sie das Restaurant.',
             'guarantee_verifying' => 'Karte wird bestätigt…',
-            'guarantee_success' => 'Kartengarantie aktiv. Es wurde nichts abgebucht. Maximaler Garantiebetrag:',
+            'guarantee_success' => 'Kartengarantie aktiv · Jetzt keine Abbuchung',
             'book_table' => 'Tisch anfragen',
             'booking' => 'Reservierung wird gespeichert…',
             'summary' => 'Ihre Reservierung',
@@ -202,7 +202,7 @@
             'guarantee_secure' => 'Stripe ile güvenli kart doğrulaması.',
             'guarantee_unavailable' => 'Kart garantisi şu anda kullanılamıyor. Lütfen restoranla iletişime geçin.',
             'guarantee_verifying' => 'Kart doğrulanıyor…',
-            'guarantee_success' => 'Kart garantisi aktif. Ücret alınmadı. Maksimum garanti tutarı:',
+            'guarantee_success' => 'Kart garantisi aktif · Şimdi ödeme yok',
             'book_table' => 'Masayı talep et',
             'booking' => 'Rezervasyon kaydediliyor…',
             'summary' => 'Masanız',
@@ -279,7 +279,7 @@
             'guarantee_secure' => 'تحقق آمن للبطاقة عبر Stripe.',
             'guarantee_unavailable' => 'ضمان البطاقة غير متاح مؤقتاً. يرجى الاتصال بالمطعم.',
             'guarantee_verifying' => 'جارٍ التحقق من البطاقة…',
-            'guarantee_success' => 'ضمان البطاقة فعال. لم يتم خصم أي مبلغ. الحد الأقصى لمبلغ الضمان:',
+            'guarantee_success' => 'ضمان البطاقة فعال · لا خصم الآن',
             'book_table' => 'إرسال طلب الحجز',
             'booking' => 'جارٍ حفظ الحجز…',
             'summary' => 'حجزك',
@@ -369,7 +369,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261006-r20-4">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261006-r20-7">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">

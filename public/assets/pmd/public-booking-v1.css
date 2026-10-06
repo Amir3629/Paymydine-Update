@@ -36,6 +36,7 @@ body.pmd-booking-page {
   min-width: 0;
   min-height: 100vh;
   margin: 0;
+  overflow-x: hidden;
   color: var(--pmd-book-ink);
   background:
     repeating-linear-gradient(
@@ -652,8 +653,11 @@ img {
 .pmd-booking-time-strip {
   display: flex;
   gap: 7px;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
   padding: 1px 1px 8px;
   scroll-snap-type: inline proximity;
   scrollbar-width: thin;
@@ -741,6 +745,14 @@ img {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.pmd-booking-fields > * {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .pmd-booking-fields label {
@@ -760,6 +772,8 @@ img {
 .pmd-booking-fields select,
 .pmd-booking-fields textarea {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 48px;
   padding: 11px 13px;
   border: 1px solid var(--pmd-book-line);
@@ -883,6 +897,8 @@ img {
 
 .pmd-booking-field--wide {
   grid-column: 1 / -1;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .pmd-booking-consent {
@@ -1364,6 +1380,8 @@ img {
 
 .pmd-booking-manage {
   width: min(860px, 100%);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   padding: 54px 0 72px;
 }
@@ -1388,6 +1406,9 @@ img {
 }
 
 .pmd-booking-manage-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 30px;
   border: 1px solid var(--pmd-book-line);
   background: rgba(255, 253, 248, .78);
@@ -1501,6 +1522,12 @@ img {
 .pmd-booking-manage-current b {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 16px;
+}
+
+.pmd-booking-manage-form {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .pmd-booking-manage-form .pmd-booking-time-strip {
@@ -1783,7 +1810,23 @@ img {
   }
 
   .pmd-booking-fields {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pmd-booking-time-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+    gap: 7px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: visible;
+    padding: 1px 0 8px;
+  }
+
+  .pmd-booking-time-option {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 8px;
   }
 
   .pmd-booking-occasion-grid {
@@ -1878,8 +1921,9 @@ img {
   }
 
   .pmd-booking-time-option {
-    min-width: 78px;
-    padding-inline: 13px;
+    width: 100%;
+    min-width: 0;
+    padding-inline: 9px;
   }
 
   .pmd-booking-occasion-grid {
