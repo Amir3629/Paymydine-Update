@@ -65,7 +65,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -935,13 +934,9 @@ private fun KioskModeButton(
                         .weight(0.46f)
                         .fillMaxHeight()
                         // PMD_KIOSK_SERVICE_ARTWORK_SHADOW_V20
-                        // Restore the softer elevated artwork treatment the
-                        // service cards had before the V18 tight-fade pass.
-                        .shadow(
-                            elevation = 10.dp,
-                            shape = RoundedCornerShape(18.dp),
-                            clip = false,
-                        )
+                        // Exact rollback to the V16/V17 service-artwork treatment:
+                        // the image itself stays crisp while its right edge fades
+                        // softly into the card surface.
                         .clip(RoundedCornerShape(18.dp)),
                 ) {
                     KioskRemoteImage(
@@ -958,12 +953,11 @@ private fun KioskModeButton(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .fillMaxHeight()
-                            .width(72.dp)
+                            .width(52.dp)
                             .background(
                                 Brush.horizontalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.Black.copy(alpha = 0.08f),
                                         background.copy(alpha = 0.55f),
                                         background,
                                     ),
