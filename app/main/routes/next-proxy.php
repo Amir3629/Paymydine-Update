@@ -56,6 +56,10 @@
                 return app(\App\Http\Controllers\PmdPublicBookingController::class)->dateStatuses(request());
             }
 
+            if ($pmdBookingPath === '/book/guarantee/setup' && $pmdBookingMethod === 'POST') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->guaranteeSetup(request());
+            }
+
             if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'POST') {
                 return app(\App\Http\Controllers\PmdPublicBookingController::class)->store(request());
             }
