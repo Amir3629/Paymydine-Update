@@ -60,6 +60,14 @@
                 return app(\App\Http\Controllers\PmdPublicBookingController::class)->guaranteeSetup(request());
             }
 
+            if ($pmdBookingPath === '/book/guarantee/status' && $pmdBookingMethod === 'POST') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->guaranteeStatus(request());
+            }
+
+            if ($pmdBookingPath === '/book/guarantee/return' && $pmdBookingMethod === 'GET') {
+                return app(\App\Http\Controllers\PmdPublicBookingController::class)->guaranteeReturn(request());
+            }
+
             if ($pmdBookingPath === '/book' && $pmdBookingMethod === 'POST') {
                 return app(\App\Http\Controllers\PmdPublicBookingController::class)->store(request());
             }
