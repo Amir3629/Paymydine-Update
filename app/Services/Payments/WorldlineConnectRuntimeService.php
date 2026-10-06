@@ -336,6 +336,246 @@ final class WorldlineConnectRuntimeService
         ];
     }
 
+    public function createGuaranteeTokenization(
+        string $locale = 'en_GB'
+    ): array {
+        $cfg = $this->config(true);
+        $requestClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\CreateHostedTokenizationRequest';
+        if (!class_exists($requestClass)) {
+            throw new \RuntimeException(
+                'Installed Worldline SDK does not support Hosted Tokenization.'
+            );
+        }
+
+        $request = new $requestClass();
+        $this->assignSdkValue($request, 'askConsumerConsent', true);
+        $this->assignSdkValue(
+            $request,
+            'locale',
+            trim($locale) !== '' ? $locale : 'en_GB'
+        );
+        if (trim((string)($cfg['hosted_checkout_variant'] ?? '')) !== '') {
+            $this->assignSdkValue(
+                $request,
+                'variant',
+                (string)$cfg['hosted_checkout_variant']
+            );
+        }
+
+        $client = $this->hostedTokenizationClient($cfg);
+        $response = $this->invokeSdk(
+            $client,
+            ['create', 'createHostedTokenization'],
+            [$request]
+        );
+        $raw = $this->toArray($response);
+
+        $id = trim((string)($raw['hostedTokenizationId'] ?? ''));
+        $url = trim((string)(
+            $raw['hostedTokenizationUrl']
+            ?? $raw['partialRedirectUrl']
+            ?? ''
+        ));
+        $sri = trim((string)($raw['sri'] ?? ''));
+
+        if ($id === '' || $url === '') {
+            throw new \RuntimeException(
+                'Worldline did not return a Hosted Tokenization session.'
+            );
+        }
+
+        if (str_starts_with($url, '//')) {
+            $url = 'https:'.$url;
+        } elseif (!preg_match('#^https://#i', $url)) {
+            $url = 'https://'.ltrim($url, '/');
+        }
+
+        return [
+            'success' => true,
+            'provider' => 'worldline',
+            'environment' => $this->environment($cfg),
+            'hosted_tokenization_id' => $id,
+            'hosted_tokenization_url' => $url,
+            'sri' => $sri,
+            'sdk_url' => rtrim((string)$cfg['api_endpoint'], '/')
+                .'/hostedtokenization/js/client/tokenizer.min.js',
+        ];
+    }
+
+    public function guaranteeTokenizationStatus(
+        string $hostedTokenizationId
+    ): array {
+        $hostedTokenizationId = trim($hostedTokenizationId);
+        if (
+            $hostedTokenizationId === ''
+            || !preg_match('/^[A-Za-z0-9._:-]{8,191}$/', $hostedTokenizationId)
+        ) {
+            throw new \InvalidArgumentException(
+                'Invalid Worldline Hosted Tokenization ID.'
+            );
+        }
+
+        $cfg = $this->config(true);
+        $client = $this->hostedTokenizationClient($cfg);
+        $response = $this->invokeSdk(
+            $client,
+            ['get', 'getHostedTokenization'],
+            [$hostedTokenizationId]
+        );
+        $raw = $this->toArray($response);
+        $token = (array)($raw['token'] ?? []);
+        $tokenId = trim((string)(
+            $token['id']
+            ?? $raw['tokenId']
+            ?? ''
+        ));
+
+        return [
+            'success' => true,
+            'provider' => 'worldline',
+            'ready' => $tokenId !== '',
+            'hosted_tokenization_id' => $hostedTokenizationId,
+            'token_id' => $tokenId,
+        ];
+    }
+
+    public function chargeGuaranteeToken(
+        string $tokenId,
+        int $amountMinor,
+        string $currency,
+        string $merchantReference
+    ): array {
+        $tokenId = trim($tokenId);
+        $currency = strtoupper(trim($currency));
+        $merchantReference = substr(trim($merchantReference), 0, 40);
+
+        if ($tokenId === '' || $amountMinor < 1) {
+            throw new \InvalidArgumentException(
+                'Worldline guarantee charge data is incomplete.'
+            );
+        }
+        if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+            throw new \InvalidArgumentException(
+                'Invalid Worldline guarantee currency.'
+            );
+        }
+
+        $cfg = $this->config(true);
+
+        $requestClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\CreatePaymentRequest';
+        $inputClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\CardPaymentMethodSpecificInput';
+        if (!class_exists($requestClass) || !class_exists($inputClass)) {
+            throw new \RuntimeException(
+                'Installed Worldline SDK cannot create token payments.'
+            );
+        }
+
+        $amount = new AmountOfMoney();
+        $amount->amount = $amountMinor;
+        $amount->currencyCode = $currency;
+
+        $order = new Order();
+        $order->amountOfMoney = $amount;
+
+        $referencesClass = 'Worldline\\Connect\\Sdk\\V1\\Domain\\OrderReferences';
+        if (class_exists($referencesClass) && $merchantReference !== '') {
+            $references = new $referencesClass();
+            $this->assignSdkValue(
+                $references,
+                'merchantReference',
+                $merchantReference
+            );
+            $order->references = $references;
+        }
+
+        $specific = new $inputClass();
+        $this->assignSdkValue($specific, 'token', $tokenId);
+        $this->assignSdkValue($specific, 'authorizationMode', 'SALE');
+        $this->assignSdkValue(
+            $specific,
+            'unscheduledCardOnFileRequestor',
+            'merchantInitiated'
+        );
+        $this->assignSdkValue(
+            $specific,
+            'unscheduledCardOnFileSequenceIndicator',
+            'subsequent'
+        );
+
+        $request = new $requestClass();
+        $this->assignSdkValue($request, 'order', $order);
+        $this->assignSdkValue(
+            $request,
+            'cardPaymentMethodSpecificInput',
+            $specific
+        );
+
+        $payments = $this->merchantClient($cfg)->payments();
+        $response = $this->invokeSdk(
+            $payments,
+            ['create', 'createPayment'],
+            [$request]
+        );
+        $raw = $this->toArray($response);
+        $payment = (array)($raw['payment'] ?? $raw);
+        $status = strtoupper(trim((string)(
+            $payment['status']
+            ?? $raw['status']
+            ?? ''
+        )));
+        $statusOutput = (array)(
+            $payment['statusOutput']
+            ?? $raw['statusOutput']
+            ?? []
+        );
+        $category = strtoupper(trim((string)(
+            $statusOutput['statusCategory']
+            ?? ''
+        )));
+        $paid = in_array(
+            $status,
+            ['CAPTURED', 'PAID', 'COMPLETED', 'CAPTURE_REQUESTED'],
+            true
+        ) || $category === 'COMPLETED';
+
+        return [
+            'success' => $paid,
+            'provider' => 'worldline',
+            'status' => $status !== '' ? $status : 'UNKNOWN',
+            'payment_id' => trim((string)($payment['id'] ?? '')),
+            'is_paid' => $paid,
+        ];
+    }
+
+    public function deleteGuaranteeToken(string $tokenId): void
+    {
+        $tokenId = trim($tokenId);
+        if ($tokenId === '') {
+            return;
+        }
+
+        try {
+            $cfg = $this->config(false);
+            $merchant = $this->merchantClient($cfg);
+            $tokens = null;
+            foreach (['tokens', 'token'] as $method) {
+                if (method_exists($merchant, $method)) {
+                    $tokens = $merchant->{$method}();
+                    break;
+                }
+            }
+            if (!$tokens) {
+                return;
+            }
+            $this->invokeSdk($tokens, ['delete', 'deleteToken'], [$tokenId]);
+        } catch (\Throwable $error) {
+            \Log::warning('WORLDLINE_GUARANTEE_TOKEN_DELETE_FAILED', [
+                'token_id' => $tokenId,
+                'message' => $error->getMessage(),
+            ]);
+        }
+    }
+
     public function verifiedStatus(string $hostedCheckoutId): array
     {
         $hostedCheckoutId = trim($hostedCheckoutId);
@@ -417,6 +657,50 @@ final class WorldlineConnectRuntimeService
         }
         $expected = (string)($session['return_mac'] ?? '');
         return $expected !== '' && $returnMac !== '' && hash_equals($expected, $returnMac);
+    }
+
+    private function hostedTokenizationClient(array $cfg)
+    {
+        $merchant = $this->merchantClient($cfg);
+        foreach (['hostedtokenizations', 'hostedTokenization'] as $method) {
+            if (method_exists($merchant, $method)) {
+                return $merchant->{$method}();
+            }
+        }
+
+        throw new \RuntimeException(
+            'Installed Worldline SDK does not expose Hosted Tokenization.'
+        );
+    }
+
+    private function invokeSdk(
+        object $client,
+        array $methods,
+        array $arguments = []
+    ) {
+        foreach ($methods as $method) {
+            if (method_exists($client, $method)) {
+                return $client->{$method}(...$arguments);
+            }
+        }
+
+        throw new \RuntimeException(
+            'Installed Worldline SDK does not expose the required operation.'
+        );
+    }
+
+    private function assignSdkValue(
+        object $object,
+        string $property,
+        $value
+    ): void {
+        $setter = 'set'.ucfirst($property);
+        if (method_exists($object, $setter)) {
+            $object->{$setter}($value);
+            return;
+        }
+
+        $object->{$property} = $value;
     }
 
     private function classifyProduct(array $product): ?string
