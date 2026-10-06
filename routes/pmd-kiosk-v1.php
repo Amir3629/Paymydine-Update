@@ -29,4 +29,17 @@ Route::group([
 
     Route::get('state', [PmdKioskPublicController::class, 'state'])
         ->middleware('throttle:120,1,pmd-kiosk-state');
+
+    // PMD_KIOSK_TERMINAL_ONLY_PAYMENT_V18
+    // Payment terminals are controlled only through the paired native device.
+    Route::post('terminal-payment', [PmdKioskPublicController::class, 'terminalPayment'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->middleware('throttle:30,1,pmd-kiosk-terminal-pay');
+
+    Route::get(
+        'terminal-payment/{attemptId}',
+        [PmdKioskPublicController::class, 'terminalPaymentStatus']
+    )
+        ->where('attemptId', '[0-9]+')
+        ->middleware('throttle:120,1,pmd-kiosk-terminal-status');
 });
