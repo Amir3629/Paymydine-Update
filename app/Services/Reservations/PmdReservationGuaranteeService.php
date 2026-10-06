@@ -997,18 +997,18 @@ final class PmdReservationGuaranteeService
         $grace = (int)$policy['grace_minutes'];
 
         if ($locale === 'de') {
-            return "Jetzt: 0 €. Bei Nichterscheinen: nach {$grace} Min. bis zu {$perGuest} pro Person. Kostenlos stornierbar bis {$hours} Std. vorher. Bei geringerem Schaden wird weniger oder nichts berechnet.";
+            return "Kostenlose Stornierung: {$hours} Std. vorher · No-Show: bis {$perGuest} pro Person nach {$grace} Min. · Nur tatsächlicher Schaden";
         }
 
         if ($locale === 'tr') {
-            return "Şimdi: 0 €. Gelmeme durumunda: {$grace} dk sonra kişi başı en fazla {$perGuest}. {$hours} saat öncesine kadar ücretsiz iptal. Gerçek zarar daha düşükse daha az veya hiç ücret alınmaz.";
+            return "Ücretsiz iptal: {$hours} saat önce · Gelmeme: {$grace} dk sonra kişi başı en fazla {$perGuest} · Yalnızca gerçek zarar";
         }
 
         if ($locale === 'ar') {
-            return "الآن: 0 €. عند عدم الحضور: بعد {$grace} دقيقة، بحد أقصى {$perGuest} لكل شخص. إلغاء مجاني حتى {$hours} ساعة قبل الحجز. إذا كان الضرر أقل، يكون الخصم أقل أو صفراً.";
+            return "إلغاء مجاني: قبل {$hours} ساعة · عدم الحضور: حتى {$perGuest} لكل شخص بعد {$grace} دقيقة · الضرر الفعلي فقط";
         }
 
-        return "Now: €0. No-show: after {$grace} min, up to {$perGuest} per guest. Free cancellation up to {$hours}h before. If the actual loss is lower, the charge is lower or zero.";
+        return "Free cancellation: {$hours}h before · No-show: up to {$perGuest} per guest after {$grace} min · Actual loss only";
     }
 
     private function consentText(array $policy): string
@@ -1035,16 +1035,16 @@ final class PmdReservationGuaranteeService
         $locale = $this->locale($locale);
 
         if ($locale === 'de') {
-            return 'Reservierung bestätigen – Garantie bis';
+            return 'Mit Kartengarantie reservieren';
         }
         if ($locale === 'tr') {
-            return 'Rezervasyonu onayla – garanti en fazla';
+            return 'Kart garantisiyle onayla';
         }
         if ($locale === 'ar') {
-            return 'تأكيد الحجز – ضمان بحد أقصى';
+            return 'تأكيد الحجز بضمان البطاقة';
         }
 
-        return 'Confirm booking – guarantee up to';
+        return 'Confirm with card guarantee';
     }
 
     private function money(int $cents, string $currency, string $locale): string

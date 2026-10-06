@@ -426,15 +426,11 @@
 
     var label = submit.querySelector("span");
     if (label) {
-      var maximum = guaranteeMoney(
-        Number(guarantee.amountPerGuestCents || 0) * state.guests,
-        guarantee.currency || "EUR"
-      );
       label.textContent = String(
         guarantee.buttonText ||
         labels.book_table ||
         "Confirm reservation"
-      ) + " " + maximum;
+      );
     }
 
     if (guarantee.providerReady) {
