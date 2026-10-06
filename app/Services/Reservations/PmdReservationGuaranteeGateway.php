@@ -971,13 +971,29 @@ final class PmdReservationGuaranteeGateway
     ): array {
         if ($method !== 'card') {
             throw new RuntimeException(
-                'Worldline reservation guarantee currently supports Hosted Tokenization cards only.'
+                'Worldline reservation guarantee currently supports saved cards only.'
             );
         }
 
+        $merchantCustomerId = substr(
+            'PMDG'.strtoupper(substr(hash(
+                'sha256',
+                (string)$location->getKey().'|'
+                    .strtolower(trim((string)($booking['email'] ?? '')))
+            ), 0, 11)),
+            0,
+            15
+        );
+
         $service = app(WorldlineConnectRuntimeService::class);
-        $setup = $service->createGuaranteeTokenization(
-            $this->worldlineLocale((string)($policy['locale'] ?? 'en'))
+        $setup = $service->createGuaranteeCardOnFileCheckout(
+            $this->worldlineLocale(
+                (string)($policy['locale'] ?? 'en')
+            ),
+            strtoupper((string)($policy['currency'] ?? 'EUR')),
+            $merchantCustomerId,
+            url('/book/guarantee/return')
+                .'?provider=worldline&result=approved'
         );
 
         $reference = $this->packReference(
@@ -987,39 +1003,75 @@ final class PmdReservationGuaranteeGateway
             $booking,
             $policy,
             [
-                'hosted_tokenization_id' => (string)$setup[
-                    'hosted_tokenization_id'
+                'hosted_checkout_id' => (string)$setup[
+                    'hosted_checkout_id'
                 ],
+                'merchant_customer_id' => $merchantCustomerId,
             ]
         );
 
         return array_merge($setup, [
             'method' => 'card',
-            'integration_mode' => 'worldline_tokenizer',
+            'integration_mode' => 'worldline_ucof_redirect',
             'setup_reference' => $reference,
+            'approval_url' => (string)$setup['redirect_url'],
         ]);
     }
 
     private function worldlineStatus(array $payload): array
     {
         return app(WorldlineConnectRuntimeService::class)
-            ->guaranteeTokenizationStatus(
-                (string)($payload['data']['hosted_tokenization_id'] ?? '')
+            ->guaranteeCardOnFileStatus(
+                (string)($payload['data']['hosted_checkout_id'] ?? '')
             );
     }
 
-    private function verifyWorldline(array $payload, array $policy): array
-    {
+    private function verifyWorldline(
+        array $payload,
+        array $policy
+    ): array {
         $hostedId = (string)(
-            $payload['data']['hosted_tokenization_id']
+            $payload['data']['hosted_checkout_id']
             ?? ''
         );
-        $status = app(WorldlineConnectRuntimeService::class)
-            ->guaranteeTokenizationStatus($hostedId);
+        $merchantCustomerId = (string)(
+            $payload['data']['merchant_customer_id']
+            ?? ''
+        );
 
-        if (empty($status['ready']) || empty($status['token_id'])) {
+        $status = app(WorldlineConnectRuntimeService::class)
+            ->guaranteeCardOnFileStatus($hostedId);
+
+        if (!empty($status['failed'])) {
+            throw new RuntimeException(
+                'Worldline did not approve the card verification.'
+            );
+        }
+
+        if (
+            empty($status['ready'])
+            || empty($status['token_id'])
+            || empty($status['scheme_transaction_id'])
+            || $merchantCustomerId === ''
+        ) {
             throw new RuntimeException(
                 'Please complete the Worldline card verification before confirming the reservation.'
+            );
+        }
+
+        $customerReference = json_encode([
+            'merchant_customer_id' => $merchantCustomerId,
+            'scheme_transaction_id' => (string)$status[
+                'scheme_transaction_id'
+            ],
+        ], JSON_UNESCAPED_SLASHES);
+
+        if (
+            !is_string($customerReference)
+            || strlen($customerReference) > 191
+        ) {
+            throw new RuntimeException(
+                'Worldline card-on-file reference is invalid.'
             );
         }
 
@@ -1027,7 +1079,7 @@ final class PmdReservationGuaranteeGateway
             'required' => true,
             'policy' => $policy,
             'payment_method_code' => 'card',
-            'customer_reference' => '',
+            'customer_reference' => $customerReference,
             'payment_method_reference' => (string)$status['token_id'],
             'setup_intent_reference' => $hostedId,
         ];
@@ -1038,9 +1090,39 @@ final class PmdReservationGuaranteeGateway
         int $amountCents,
         string $reference
     ): array {
+        $customer = json_decode(
+            (string)$guarantee->customer_reference,
+            true
+        );
+        if (!is_array($customer)) {
+            throw new RuntimeException(
+                'Worldline stored-credential reference is missing.'
+            );
+        }
+
+        $merchantCustomerId = trim((string)(
+            $customer['merchant_customer_id']
+            ?? ''
+        ));
+        $schemeTransactionId = trim((string)(
+            $customer['scheme_transaction_id']
+            ?? ''
+        ));
+
+        if (
+            $merchantCustomerId === ''
+            || $schemeTransactionId === ''
+        ) {
+            throw new RuntimeException(
+                'Worldline initial card-on-file transaction reference is incomplete.'
+            );
+        }
+
         return app(WorldlineConnectRuntimeService::class)
             ->chargeGuaranteeToken(
                 (string)$guarantee->payment_method_reference,
+                $merchantCustomerId,
+                $schemeTransactionId,
                 $amountCents,
                 (string)$guarantee->currency,
                 $reference
