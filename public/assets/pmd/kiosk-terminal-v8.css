@@ -1813,3 +1813,293 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
     height: calc(100% - 154px);
   }
 }
+
+
+/* PMD_KIOSK_CONTINUOUS_CATEGORIES_V18
+ * The kiosk menu is one natural vertical document. Category controls are
+ * shortcuts/live indicators only; no guest must tap a category to continue.
+ */
+.pmd-kiosk-grid {
+  display: block;
+}
+
+.pmd-kiosk-category-section {
+  scroll-margin-top: 18px;
+  padding: 0 0 26px;
+}
+
+.pmd-kiosk-category-section + .pmd-kiosk-category-section {
+  padding-top: 10px;
+}
+
+.pmd-kiosk-category-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 0 14px;
+  padding: 2px 2px 0;
+}
+
+.pmd-kiosk-category-section__head h2 {
+  margin: 0;
+  color: var(--pmd-k-ink);
+  font-size: clamp(25px, 2.5vw, 34px);
+  line-height: 1.04;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+
+.pmd-kiosk-category-section__head span {
+  color: var(--pmd-k-muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pmd-kiosk-category-section__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.pmd-kiosk-item__copy h2 {
+  font-size: 19px;
+  line-height: 1.16;
+}
+
+.pmd-kiosk-item__copy p {
+  font-size: 13px;
+  line-height: 1.42;
+}
+
+.pmd-kiosk-item__price {
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.pmd-kiosk-add.pmd-kiosk-add--icon {
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  min-height: 56px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 18px;
+  font-size: 31px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.pmd-kiosk-item__foot {
+  gap: 12px;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* PMD_KIOSK_CHECKOUT_SHIMMER_V18 */
+.pmd-kiosk-compact-order,
+#pmd-kiosk-checkout {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.pmd-kiosk-compact-order:not([hidden]):not(:disabled)::after,
+#pmd-kiosk-checkout:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: -30%;
+  bottom: -30%;
+  left: -34%;
+  width: 24%;
+  transform: skewX(-20deg);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,.12),
+    rgba(255,255,255,.78),
+    rgba(255,255,255,.12),
+    transparent
+  );
+  pointer-events: none;
+  animation: pmdKioskCheckoutSweepV18 3s ease-in-out infinite;
+}
+
+@keyframes pmdKioskCheckoutSweepV18 {
+  0%, 58% { left: -34%; opacity: 0; }
+  62% { opacity: .82; }
+  88% { left: 112%; opacity: .72; }
+  100% { left: 112%; opacity: 0; }
+}
+
+/* PMD_KIOSK_TERMINAL_ONLY_UI_V18
+ * Checkout is a full-screen kiosk payment surface. There are no browser wallet,
+ * PayPal, coupon or gratuity controls: the physical terminal owns payment.
+ */
+.pmd-kiosk-modal-layer.is-payment-page {
+  z-index: 120;
+  inset: 0;
+  padding: 0 !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  background: var(--pmd-k-panel);
+}
+
+.pmd-kiosk-modal-layer.is-payment-page .pmd-kiosk-modal-backdrop {
+  display: none;
+}
+
+.pmd-kiosk-modal-layer.is-payment-page .pmd-kiosk-modal {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: var(--pmd-k-panel);
+  display: flex;
+  flex-direction: column;
+}
+
+.pmd-kiosk-payment-page__head {
+  flex: 0 0 auto;
+  padding: 30px clamp(24px, 5vw, 64px) 22px;
+}
+
+.pmd-kiosk-payment-page__head h2 {
+  font-size: clamp(34px, 5vw, 50px);
+  line-height: 1;
+}
+
+.pmd-kiosk-payment-page__body {
+  width: min(100%, 820px);
+  margin: 0 auto;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 26px clamp(24px, 5vw, 54px) 44px;
+}
+
+.pmd-kiosk-review-line {
+  min-height: 62px;
+  font-size: 17px;
+}
+
+.pmd-kiosk-review-line strong {
+  font-size: 18px;
+}
+
+.pmd-kiosk-checkout-totals {
+  font-size: 18px;
+}
+
+.pmd-kiosk-checkout-totals .is-total {
+  font-size: 26px;
+}
+
+.pmd-kiosk-terminal-only {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  margin: 24px 0 14px;
+  padding: 20px;
+  border: 1px solid var(--pmd-k-line);
+  border-radius: 20px;
+  background: var(--pmd-k-panel-soft);
+}
+
+.pmd-kiosk-terminal-only__icon {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: var(--pmd-k-accent);
+  color: var(--pmd-k-accent-contrast);
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.pmd-kiosk-terminal-only strong {
+  display: block;
+  color: var(--pmd-k-ink);
+  font-size: 21px;
+  line-height: 1.15;
+}
+
+.pmd-kiosk-terminal-only small {
+  display: block;
+  margin-top: 5px;
+  color: var(--pmd-k-muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.pmd-kiosk-terminal-pay {
+  width: 100%;
+  min-height: 76px;
+  margin-top: 18px;
+  border-radius: 22px;
+  font-size: 23px;
+  font-weight: 900;
+}
+
+.pmd-kiosk-payment-status {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+@media (max-width: 680px) {
+  .pmd-kiosk-category-section__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .pmd-kiosk-category-section__head h2 {
+    font-size: 26px;
+  }
+
+  .pmd-kiosk-item__copy {
+    min-height: 70px;
+  }
+
+  .pmd-kiosk-item__copy h2 {
+    font-size: 17px;
+  }
+
+  .pmd-kiosk-item__copy p {
+    font-size: 12px;
+  }
+
+  .pmd-kiosk-item__price {
+    font-size: 20px;
+  }
+
+  .pmd-kiosk-add.pmd-kiosk-add--icon {
+    width: 52px;
+    min-width: 52px;
+    height: 52px;
+    min-height: 52px;
+    border-radius: 16px;
+    font-size: 29px;
+  }
+
+  .pmd-kiosk-payment-page__head {
+    padding: 22px 22px 18px;
+  }
+
+  .pmd-kiosk-payment-page__body {
+    padding: 20px 22px 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-kiosk-compact-order:not([hidden]):not(:disabled)::after,
+  #pmd-kiosk-checkout:not(:disabled)::after {
+    animation: none !important;
+  }
+}
