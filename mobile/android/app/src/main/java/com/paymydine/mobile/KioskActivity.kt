@@ -376,7 +376,7 @@ private fun KioskApp(
             // partial Chromium paint. Normal taps pass this loop immediately.
             var waits = 0
             while (
-                !KioskMenuWarmPool.isReady(current.menuUrl, mode) &&
+                !KioskMenuWarmPool.isReady(current.menuUrl, mode, guestLocale) &&
                 waits < 20
             ) {
                 delay(16L)
