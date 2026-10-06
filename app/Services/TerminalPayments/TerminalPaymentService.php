@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
 
 class TerminalPaymentService
 {
-    public function createAttempt(int $orderId, string $providerCode, ?string $terminalId = null): array
+    public function createAttempt(int $orderId, string $providerCode, ?string $terminalId = null, bool $allowTip = true): array
     {
         if (!Schema::hasTable('payment_attempts')) return ['success'=>false,'error'=>'payment_attempts table is missing. Run migrations first.'];
         $order=DB::table('orders')->where('order_id',$orderId)->first();
@@ -76,10 +76,14 @@ class TerminalPaymentService
             $config['terminal_device_id']=(int)$terminal->terminal_device_id;
             $terminalId=(string)$terminal->reader_id;
         }
+        // PMD_TERMINAL_TIP_POLICY_V18
+        // Kiosk calls this service with allowTip=false. Existing POS/Waiter
+        // callers keep the historical default (true).
+        $config['allow_tipping']=$allowTip;
         $validation=$provider->validateConfiguration($config);if(!($validation['ok']??false)) return ['success'=>false,'error'=>$validation['message']??'Provider is not configured.'];
         $amount=(float)($order->order_total??$order->total??0);if($amount<=0)return ['success'=>false,'error'=>'Order total must be greater than zero.'];
         $currency=(string)($config['currency']??'EUR');
-        $requestPayload=['order_id'=>$orderId,'amount'=>$amount,'currency'=>$currency,'provider_code'=>$providerCode,'terminal_device_id'=>$config['terminal_device_id']??null,'reader_id'=>$config['reader_id']??$terminalId,'environment'=>$config['environment']??null];
+        $requestPayload=['order_id'=>$orderId,'amount'=>$amount,'currency'=>$currency,'provider_code'=>$providerCode,'terminal_device_id'=>$config['terminal_device_id']??null,'reader_id'=>$config['reader_id']??$terminalId,'environment'=>$config['environment']??null,'allow_tipping'=>$allowTip];
         $id=DB::table('payment_attempts')->insertGetId($this->filterColumns('payment_attempts',['order_id'=>$orderId,'provider_code'=>$providerCode,'terminal_id'=>$terminalId?:($config['terminal_id']??null),'terminal_device_id'=>$config['terminal_device_id']??null,'amount'=>$amount,'currency'=>$currency,'status'=>'pending','request_payload'=>json_encode($requestPayload),'created_at'=>now(),'updated_at'=>now()]));
         Log::info('PMD_TERMINAL_PAYMENT_CREATE',['attempt_id'=>$id,'order_id'=>$orderId,'provider_code'=>$providerCode,'amount'=>$amount,'currency'=>$currency]);
         if($providerCode==='sumup')$config['return_url']=$this->sumupReturnUrl($id);
@@ -89,10 +93,12 @@ class TerminalPaymentService
         /* PMD_TERMINAL_TIP_CREATE_V46
          * Some terminal APIs return gratuity immediately, others only during
          * status refresh. Keep it separate from the restaurant order amount. */
-        $tipAmount=$this->terminalTipAmountFromResultV46(
-            (array)$result,
-            (string)($attempt['currency']??$currency)
-        );
+        $tipAmount=$allowTip
+            ? $this->terminalTipAmountFromResultV46(
+                (array)$result,
+                (string)($attempt['currency']??$currency)
+            )
+            : 0.0;
 
         // PMD_VR_PAYMENT_SAFETY_R6_20260905
         // PMD's local VR simulators are diagnostics only. They MUST NEVER settle
@@ -167,6 +173,11 @@ class TerminalPaymentService
             ];
         }
         $providerCode=strtolower((string)($attempt['provider_code']??''));$provider=$this->provider($providerCode);$config=$this->providerConfig($providerCode);
+        $requestPayloadV18=json_decode((string)($attempt['request_payload']??''),true);
+        $attemptAllowsTipV18=!is_array($requestPayloadV18)
+            || !array_key_exists('allow_tipping',$requestPayloadV18)
+            || (bool)$requestPayloadV18['allow_tipping'];
+        $config['allow_tipping']=$attemptAllowsTipV18;
         if($providerCode==='sumup'){$terminal=$this->resolveSumupTerminal((string)($attempt['terminal_id']??''));if(!$terminal)return ['success'=>false,'error'=>'SumUp terminal for this attempt was not found.'];$config['reader_id']=(string)$terminal->reader_id;$config['terminal_device_id']=(int)$terminal->terminal_device_id;$config['affiliate_key']=trim((string)($terminal->affiliate_key??''))?:($config['affiliate_key']??null);}
         if($providerCode==='vr_payment'){
             $terminal=$this->resolveVrPaymentTerminal((string)($attempt['terminal_id']??''));
@@ -213,11 +224,13 @@ class TerminalPaymentService
         }
         $result=$provider->checkStatus($attempt,$config);
         /* PMD_TERMINAL_TIP_REFRESH_V46 */
-        $tipAmount=$this->terminalTipAmountFromResultV46(
-            (array)$result,
-            (string)($attempt['currency']??($config['currency']??'EUR'))
-        );
-        if($tipAmount===null){
+        $tipAmount=$attemptAllowsTipV18
+            ? $this->terminalTipAmountFromResultV46(
+                (array)$result,
+                (string)($attempt['currency']??($config['currency']??'EUR'))
+            )
+            : 0.0;
+        if($attemptAllowsTipV18&&$tipAmount===null){
             $tipAmount=$this->terminalTipForAttemptV46(
                 $attemptId,
                 $attempt,
