@@ -294,7 +294,7 @@ private fun KioskApp(
         }
     }
 
-    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady) {
+    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady, guestLocale) {
         val current = profile
         if (
             screen != KioskScreen.WELCOME ||
