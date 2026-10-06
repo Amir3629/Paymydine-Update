@@ -2107,7 +2107,6 @@
     } else {
       renderBrand();
       renderLanguages();
-      renderCategories();
       refreshMenuCartBadges();
       refreshMenuPrices();
       renderOrder();
