@@ -997,18 +997,18 @@ final class PmdReservationGuaranteeService
         $grace = (int)$policy['grace_minutes'];
 
         if ($locale === 'de') {
-            return "Jetzt wird nichts abgebucht. Bei Nichterscheinen kann das Restaurant nach {$grace} Minuten bis zu {$perGuest} pro Person berechnen. Kostenlose Stornierung bis {$hours} Stunden vorher. Ist der tatsächliche Schaden geringer oder null, wird entsprechend weniger oder nichts berechnet.";
+            return "Jetzt: 0 €. Bei Nichterscheinen: nach {$grace} Min. bis zu {$perGuest} pro Person. Kostenlos stornierbar bis {$hours} Std. vorher. Bei geringerem Schaden wird weniger oder nichts berechnet.";
         }
 
         if ($locale === 'tr') {
-            return "Şimdi ücret alınmaz. Gelmemeniz durumunda restoran {$grace} dakika sonra kişi başı en fazla {$perGuest} tahsil edebilir. Rezervasyondan {$hours} saat öncesine kadar ücretsiz iptal edebilirsiniz. Gerçek zarar daha düşükse veya yoksa daha az ya da hiç ücret alınmaz.";
+            return "Şimdi: 0 €. Gelmeme durumunda: {$grace} dk sonra kişi başı en fazla {$perGuest}. {$hours} saat öncesine kadar ücretsiz iptal. Gerçek zarar daha düşükse daha az veya hiç ücret alınmaz.";
         }
 
         if ($locale === 'ar') {
-            return "لن يتم خصم أي مبلغ الآن. إذا لم تحضر، يمكن للمطعم بعد {$grace} دقيقة تحصيل ما يصل إلى {$perGuest} لكل شخص. الإلغاء مجاني حتى {$hours} ساعة قبل الحجز. إذا كان الضرر الفعلي أقل أو معدوماً، يكون المبلغ أقل أو لا يتم الخصم.";
+            return "الآن: 0 €. عند عدم الحضور: بعد {$grace} دقيقة، بحد أقصى {$perGuest} لكل شخص. إلغاء مجاني حتى {$hours} ساعة قبل الحجز. إذا كان الضرر أقل، يكون الخصم أقل أو صفراً.";
         }
 
-        return "Nothing is charged now. If you do not show up, after {$grace} minutes the restaurant may charge up to {$perGuest} per guest. Free cancellation until {$hours} hours before the booking. If the actual loss is lower or zero, the charge will be lower or zero.";
+        return "Now: €0. No-show: after {$grace} min, up to {$perGuest} per guest. Free cancellation up to {$hours}h before. If the actual loss is lower, the charge is lower or zero.";
     }
 
     private function consentText(array $policy): string
