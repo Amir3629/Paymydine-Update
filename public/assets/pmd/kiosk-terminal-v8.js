@@ -1096,7 +1096,11 @@
 
     submitOrder({ silent: true, allowWhileBusy: true })
       .then(function (order) {
-        bridge.payWithTerminal(String(order.orderId), secret);
+        bridge.payWithTerminal(
+          String(order.orderId),
+          String(config.session || "kiosk"),
+          secret
+        );
       })
       .catch(function (error) {
         state.busy = false;
