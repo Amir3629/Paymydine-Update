@@ -211,7 +211,7 @@
                                                 $marketOk = !empty($provider['market_available']);
                                                 $adapterReady = !empty($provider['adapter_ready']);
                                                 $providerReady = !empty($provider['provider_enabled']) && !empty($provider['credentials_ready']);
-                                                $selectable = $marketOk && $adapterReady;
+                                                $selectable = $marketOk;
                                                 $suffix = $adapterReady
                                                     ? ($providerReady ? ' · Ready' : ' · Configure provider first')
                                                     : ' · Adapter pending';
@@ -219,7 +219,7 @@
                                             <option
                                                 value="{{ $code }}"
                                                 {{ $guaranteeSelected === (string)$code ? 'selected' : '' }}
-                                                {{ !$selectable && $guaranteeSelected !== (string)$code ? 'disabled' : '' }}
+                                                {{ !$marketOk && $guaranteeSelected !== (string)$code ? 'disabled' : '' }}
                                             >{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}{{ $suffix }}</option>
                                         @endforeach
                                     </select>
