@@ -240,8 +240,10 @@ final class PmdKioskPairingService
         $terminal = $this->preferredTerminalForLocation($locationId);
         if (!$terminal) {
             return [
+                'ok' => false,
                 'success' => false,
                 'status' => 'unavailable',
+                'message' => 'No connected payment terminal is configured for this kiosk.',
                 'error' => 'No connected payment terminal is configured for this kiosk.',
             ];
         }
@@ -255,6 +257,12 @@ final class PmdKioskPairingService
 
         return array_merge(
             [
+                'ok' => (bool)($result['success'] ?? false),
+                'message' => (string)(
+                    $result['message']
+                    ?? $result['error']
+                    ?? 'Terminal payment request failed.'
+                ),
                 'terminal' => [
                     'id' => (int)$terminal->terminal_device_id,
                     'provider_code' => strtolower((string)$terminal->provider_code),
@@ -292,8 +300,20 @@ final class PmdKioskPairingService
             (int)$device->location_id
         );
 
-        return app(TerminalPaymentService::class)
+        $result = app(TerminalPaymentService::class)
             ->refreshAttempt($attemptId);
+
+        return array_merge(
+            [
+                'ok' => (bool)($result['success'] ?? false),
+                'message' => (string)(
+                    $result['message']
+                    ?? $result['error']
+                    ?? 'Terminal payment status is unavailable.'
+                ),
+            ],
+            $result
+        );
     }
 
     private function preferredTerminalForLocation(int $locationId)
