@@ -41,6 +41,7 @@ class Pmdfinance extends AdminController
         $this->addCss('css/pmd-finance-flat-ui-v1.css');
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-settings-inline-detail-v1.js');
+        $this->addJs('js/pmd-finance-guarantee-r20-9.js');
         AdminMenu::setContext('settings', 'system');
     }
 
@@ -235,7 +236,7 @@ class Pmdfinance extends AdminController
         if ($guaranteeEnabled) {
             if ($guaranteeAmountCents < 1) {
                 throw ValidationException::withMessages([
-                    'finance.reservation_guarantee_amount_eur' => 'Set a maximum no-show compensation above 0 before enabling Card Guarantee.',
+                    'reservation_guarantee_amount_eur' => 'Set a maximum no-show compensation above 0 before enabling Card Guarantee.',
                 ]);
             }
 
@@ -247,33 +248,38 @@ class Pmdfinance extends AdminController
 
             if (!in_array($guaranteeProvider, $allowedGuaranteeProviders, true)) {
                 throw ValidationException::withMessages([
-                    'finance.reservation_guarantee_provider' => 'The selected guarantee provider is not available for this restaurant market.',
+                    'reservation_guarantee_provider' => 'The selected guarantee provider is not available for this restaurant market.',
                 ]);
             }
 
             if (!$registry->canEnable($guaranteeProvider)) {
                 throw ValidationException::withMessages([
-                    'finance.reservation_guarantee_provider' => $registry->assertionMessage($guaranteeProvider),
+                    'reservation_guarantee_provider' => $registry->assertionMessage($guaranteeProvider),
                 ]);
             }
 
             if (!$guaranteeMethods) {
                 throw ValidationException::withMessages([
-                    'finance.reservation_guarantee_methods' => 'Enable at least one reservation guarantee method.',
+                    'reservation_guarantee_methods' => 'Enable at least one reservation guarantee method.',
                 ]);
             }
 
             foreach ($guaranteeMethods as $methodCode) {
-                $methodProvider = $registry->providerForMethod($methodCode);
+                $methodProvider = match ($methodCode) {
+                    'card' => $guaranteeProvider,
+                    'apple_pay', 'google_pay' => 'stripe',
+                    'paypal' => 'paypal',
+                    default => '',
+                };
                 if ($methodProvider === '') {
                     throw ValidationException::withMessages([
-                        'finance.reservation_guarantee_methods' => 'One of the selected guarantee methods is not supported.',
+                        'reservation_guarantee_methods' => 'One of the selected guarantee methods is not supported.',
                     ]);
                 }
 
                 if (!$registry->canEnable($methodProvider)) {
                     throw ValidationException::withMessages([
-                        'finance.reservation_guarantee_methods' => $registry->assertionMessage($methodProvider),
+                        'reservation_guarantee_methods' => $registry->assertionMessage($methodProvider),
                     ]);
                 }
             }
@@ -317,7 +323,7 @@ class Pmdfinance extends AdminController
                     }
                 } catch (\Throwable $error) {
                     throw ValidationException::withMessages([
-                        'finance.reservation_guarantee_methods' => 'Apple Pay / Google Pay domain registration failed: '
+                        'reservation_guarantee_methods' => 'Apple Pay / Google Pay domain registration failed: '
                             .$error->getMessage(),
                     ]);
                 }

@@ -639,9 +639,11 @@
       if (!armed || event.isTrusted !== true) return;
       evaluateDirty();
     }, true);
-    form.addEventListener('ajaxDone', resetAfterSave);
+    // A failed AJAX save must remain dirty so the owner can correct the
+    // invalid field and submit again. Only a successful save becomes the
+    // new baseline.
     form.addEventListener('ajaxSuccess', resetAfterSave);
-    if (window.jQuery) window.jQuery(form).on('ajaxDone ajaxSuccess', resetAfterSave);
+    if (window.jQuery) window.jQuery(form).on('ajaxSuccess', resetAfterSave);
     window.requestAnimationFrame(function () {
       window.requestAnimationFrame(function () {
         window.setTimeout(establishBaseline, 80);

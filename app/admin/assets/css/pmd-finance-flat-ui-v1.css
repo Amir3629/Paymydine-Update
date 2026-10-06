@@ -734,3 +734,152 @@ html body.pmd-finance-settings-page
             !important;
     }
 }
+
+
+/* ==========================================================
+   PMD_FINANCE_GUARANTEE_R20_9
+   Compact, scoped reservation-guarantee controls.
+   ========================================================== */
+/* PMD_FINANCE_GUARANTEE_R20_9 */
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-methods {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 2px;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method {
+    min-width: 0;
+    min-height: 62px;
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid #d8e5e1;
+    border-radius: 11px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease, opacity .15s ease;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method:hover {
+    border-color: #a9cfc3;
+    background: #f8fbfa;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method.is-unavailable {
+    opacity: .62;
+    cursor: not-allowed;
+    background: #f7f9f8;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method__input {
+    -webkit-appearance: checkbox !important;
+    appearance: auto !important;
+    width: 18px !important;
+    min-width: 18px !important;
+    max-width: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 4px !important;
+    box-shadow: none !important;
+    flex: 0 0 18px !important;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method__copy {
+    min-width: 0;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method__copy strong {
+    display: block;
+    margin: 0;
+    color: #17332c;
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method__copy small {
+    display: block;
+    margin-top: 3px;
+    color: #788682;
+    font-size: 10px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method__status {
+    max-width: 124px;
+    color: #8a5a21;
+    font-size: 10px;
+    font-weight: 760;
+    line-height: 1.25;
+    text-align: right;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-method__status.is-ready {
+    color: #087052;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-guarantee-methods__message {
+    min-height: 18px;
+    margin-top: 6px;
+    color: #9b3c2f;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+html body.pmd-finance-settings-page
+#reservation-guarantee
+.pmd-owner-list-row {
+    grid-template-columns: minmax(220px, 1.7fr) 56px minmax(118px, .8fr) auto;
+}
+
+@media (max-width: 900px) {
+    html body.pmd-finance-settings-page
+    #reservation-guarantee
+    .pmd-guarantee-methods {
+        grid-template-columns: 1fr;
+    }
+
+    html body.pmd-finance-settings-page
+    #reservation-guarantee
+    .pmd-owner-list-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    html body.pmd-finance-settings-page
+    #reservation-guarantee
+    .pmd-guarantee-method__status {
+        max-width: none;
+        text-align: left;
+    }
+}
