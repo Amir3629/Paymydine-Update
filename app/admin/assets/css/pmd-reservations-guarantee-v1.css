@@ -1,0 +1,68 @@
+/* PMD_RESERVATION_CARD_GUARANTEE_R19 */
+#pmd-reservations-cards-v2-1 .pmd-ops-card__footer {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pmd-reservation-guarantee-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid #b8c8c1;
+  border-radius: 999px;
+  background: #f7faf8;
+  color: #29483f;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+
+.pmd-reservation-guarantee-badge.is-charged {
+  border-color: #d6b15c;
+  background: #fff9e9;
+  color: #76500a;
+}
+
+.pmd-reservation-guarantee-badge.is-released {
+  border-color: #d8dcda;
+  background: #f5f6f5;
+  color: #69736f;
+}
+
+.pmd-reservation-guarantee-badge.is-charge_failed,
+.pmd-reservation-guarantee-badge.is-action_required {
+  border-color: #dcb2b8;
+  background: #fff6f7;
+  color: #8f2938;
+}
+
+.pmd-reservation-guarantee-action {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #b7c6c0;
+  border-radius: 7px;
+  background: #fff;
+  color: #29483f;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.pmd-reservation-guarantee-action:hover,
+.pmd-reservation-guarantee-action:focus-visible {
+  border-color: #0d6c55;
+  outline: none;
+}
+
+.pmd-reservation-guarantee-action.is-charge {
+  border-color: #9b2f3c;
+  color: #9b2f3c;
+}
+
+.pmd-reservation-guarantee-action:disabled {
+  cursor: wait;
+  opacity: .55;
+}

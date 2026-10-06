@@ -23,6 +23,10 @@ Route::get('/book/date-statuses', [PmdPublicBookingController::class, 'dateStatu
     ->middleware('throttle:120,1')
     ->name('pmd.public-booking.date-statuses');
 
+Route::post('/book/guarantee/setup', [PmdPublicBookingController::class, 'guaranteeSetup'])
+    ->middleware('throttle:10,1')
+    ->name('pmd.public-booking.guarantee.setup');
+
 Route::post('/book', [PmdPublicBookingController::class, 'store'])
     ->middleware('throttle:20,1')
     ->name('pmd.public-booking.store');
