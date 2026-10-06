@@ -7,6 +7,7 @@ use Admin\Models\Payments_model;
 use Admin\Models\Reservations_model;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
@@ -122,6 +123,144 @@ final class PmdReservationGuaranteeService
         $policy['button_text'] = $this->buttonText($policy['locale']);
 
         return $policy;
+    }
+
+    public function ensureStripePaymentMethodDomain(
+        string $host
+    ): array {
+        $host = strtolower(trim($host));
+        $host = preg_replace('/:\\d+$/', '', $host) ?? '';
+
+        if (
+            $host === ''
+            || !preg_match(
+                '/^(?:[a-z0-9-]+\\.)*paymydine\\.com$/',
+                $host
+            )
+        ) {
+            throw new RuntimeException(
+                'The PayMyDine wallet domain is invalid.'
+            );
+        }
+
+        $config = $this->stripeCredentials(true);
+        if (!($config['ready'] ?? false)) {
+            throw new RuntimeException(
+                'Stripe must be enabled before Apple Pay or Google Pay can be used.'
+            );
+        }
+
+        $client = Http::withBasicAuth(
+                (string)$config['secret_key'],
+                ''
+            )
+            ->acceptJson()
+            ->asForm()
+            ->timeout(25);
+
+        $list = $client->get(
+            'https://api.stripe.com/v1/payment_method_domains',
+            [
+                'domain_name' => $host,
+                'limit' => 10,
+            ]
+        );
+        $listBody = (array)$list->json();
+
+        if (!$list->successful()) {
+            throw new RuntimeException(
+                $this->stripeApiMessage(
+                    $listBody,
+                    'Stripe could not check the wallet domain.'
+                )
+            );
+        }
+
+        $domain = null;
+        foreach ((array)($listBody['data'] ?? []) as $row) {
+            if (
+                is_array($row)
+                && strtolower(trim((string)($row['domain_name'] ?? '')))
+                    === $host
+            ) {
+                $domain = $row;
+                break;
+            }
+        }
+
+        if (!$domain) {
+            $created = $client->post(
+                'https://api.stripe.com/v1/payment_method_domains',
+                ['domain_name' => $host]
+            );
+            $createdBody = (array)$created->json();
+
+            if (!$created->successful()) {
+                throw new RuntimeException(
+                    $this->stripeApiMessage(
+                        $createdBody,
+                        'Stripe could not register the wallet domain.'
+                    )
+                );
+            }
+            $domain = $createdBody;
+        }
+
+        $domainId = trim((string)($domain['id'] ?? ''));
+        if (
+            $domainId === ''
+            || !preg_match('/^pmd_[A-Za-z0-9_]+$/', $domainId)
+        ) {
+            throw new RuntimeException(
+                'Stripe did not return a valid Payment Method Domain.'
+            );
+        }
+
+        if (array_key_exists('enabled', $domain) && !$domain['enabled']) {
+            $enabled = $client->post(
+                'https://api.stripe.com/v1/payment_method_domains/'
+                    .rawurlencode($domainId),
+                ['enabled' => 'true']
+            );
+            $enabledBody = (array)$enabled->json();
+
+            if (!$enabled->successful()) {
+                throw new RuntimeException(
+                    $this->stripeApiMessage(
+                        $enabledBody,
+                        'Stripe could not enable the wallet domain.'
+                    )
+                );
+            }
+            $domain = $enabledBody;
+        }
+
+        $validated = $client->post(
+            'https://api.stripe.com/v1/payment_method_domains/'
+                .rawurlencode($domainId)
+                .'/validate'
+        );
+        if ($validated->successful()) {
+            $domain = (array)$validated->json();
+        }
+
+        $apple = strtolower(trim((string)(
+            $domain['apple_pay']['status']
+            ?? ''
+        )));
+        $google = strtolower(trim((string)(
+            $domain['google_pay']['status']
+            ?? ''
+        )));
+
+        return [
+            'success' => true,
+            'id' => $domainId,
+            'domain' => $host,
+            'mode' => (string)($config['mode'] ?? 'test'),
+            'apple_pay_status' => $apple,
+            'google_pay_status' => $google,
+        ];
     }
 
     public function createSetup(
@@ -1518,6 +1657,18 @@ final class PmdReservationGuaranteeService
         return strtoupper($currency) === 'EUR'
             ? $amount.' €'
             : $amount.' '.strtoupper($currency);
+    }
+
+    private function stripeApiMessage(
+        array $body,
+        string $fallback
+    ): string {
+        $error = (array)($body['error'] ?? []);
+        $message = trim((string)($error['message'] ?? ''));
+
+        return $message !== ''
+            ? substr($message, 0, 500)
+            : $fallback;
     }
 
     private function stripeObjectArray($value): array
