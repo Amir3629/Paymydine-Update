@@ -193,7 +193,7 @@ final class PmdKioskPairingService
             'theme' => (array)($profile['theme'] ?? []),
             'menu_url' => rtrim($request->getSchemeAndHttpHost(), '/').'/',
             'service_modes' => [
-                ['id' => 'eat_in', 'label' => 'Eat here'],
+                ['id' => 'eat_in', 'label' => 'Dine in'],
                 ['id' => 'pickup', 'label' => 'Take away'],
             ],
             'idle_timeout_seconds' => 120,
