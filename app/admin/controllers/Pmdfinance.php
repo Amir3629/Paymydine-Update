@@ -283,10 +283,38 @@ class Pmdfinance extends AdminController
                 $guaranteeMethods
             )) {
                 try {
-                    app(PmdReservationGuaranteeService::class)
-                        ->ensureStripePaymentMethodDomain(
-                            (string)request()->getHost()
+                    $walletDomain = app(
+                        PmdReservationGuaranteeService::class
+                    )->ensureStripePaymentMethodDomain(
+                        (string)request()->getHost()
+                    );
+
+                    $inactiveWallets = [];
+                    if (
+                        in_array('apple_pay', $guaranteeMethods, true)
+                        && strtolower((string)(
+                            $walletDomain['apple_pay_status'] ?? ''
+                        )) !== 'active'
+                    ) {
+                        $inactiveWallets[] = 'Apple Pay';
+                    }
+                    if (
+                        in_array('google_pay', $guaranteeMethods, true)
+                        && strtolower((string)(
+                            $walletDomain['google_pay_status'] ?? ''
+                        )) !== 'active'
+                    ) {
+                        $inactiveWallets[] = 'Google Pay';
+                    }
+
+                    if ($inactiveWallets) {
+                        throw new \RuntimeException(
+                            implode(' / ', $inactiveWallets)
+                                .' is not active for '
+                                .(string)request()->getHost()
+                                .' in the current Stripe mode.'
                         );
+                    }
                 } catch (\Throwable $error) {
                     throw ValidationException::withMessages([
                         'finance.reservation_guarantee_methods' => 'Apple Pay / Google Pay domain registration failed: '
