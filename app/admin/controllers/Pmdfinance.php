@@ -10,6 +10,7 @@ use Admin\Models\Payments_model;
 use App\Services\Platform\CountryPlatformProfileRegistry;
 use App\Services\Platform\LocationPlatformContext;
 use App\Services\Reservations\PmdReservationGuaranteeProviderRegistry;
+use App\Services\Reservations\PmdReservationGuaranteeService;
 use App\Services\Reservations\PmdReservationGuaranteeSettings;
 use App\Services\Turkey\TurkeyIntegrationConfigurationService;
 use App\Services\Turkey\TurkeyPaymentMethodService;
@@ -161,6 +162,7 @@ class Pmdfinance extends AdminController
             'provider_secret_fields' => $this->inlineProviderSecretFields(),
             'settings' => $this->financeSettings(),
             'guarantee_providers' => $guaranteeProviders,
+            'guarantee_methods' => $guaranteeRegistry->methodDefinitions(),
             'reservation_statuses' => $this->statusOptions('reserve'),
             'fiskaly' => $countryCode === CountryPlatformProfileRegistry::GERMANY ? $this->fiskalyPayload() : [],
             'turkey' => $turkey,
@@ -190,7 +192,9 @@ class Pmdfinance extends AdminController
             'invoice_font_size_preset' => ['nullable', 'in:small,normal'],
             'invoice_logo' => ['nullable', 'string', 'max:500'],
             'invoice_print_hint' => ['nullable', 'string', 'max:1500'],
-            'reservation_guarantee_provider' => ['nullable', 'in:stripe,vr_payment,worldline,sumup,square,paypal'],
+            'reservation_guarantee_provider' => ['nullable', 'in:stripe,vr_payment,worldline,sumup'],
+            'reservation_guarantee_methods' => ['nullable', 'array'],
+            'reservation_guarantee_methods.*' => ['string', 'in:card,apple_pay,google_pay,paypal'],
             'reservation_guarantee_min_guests' => ['nullable', 'integer', 'min:1', 'max:100'],
             'reservation_guarantee_amount_eur' => ['nullable', 'numeric', 'min:0', 'max:10000'],
             'reservation_guarantee_free_cancel_hours' => ['nullable', 'integer', 'min:1', 'max:336'],
@@ -218,6 +222,15 @@ class Pmdfinance extends AdminController
         $guaranteeProvider = strtolower(trim((string)($clean['reservation_guarantee_provider'] ?? 'stripe')));
         $guaranteeEnabled = !empty($input['reservation_guarantee_enabled']);
         $guaranteeAmountCents = (int)round(((float)($clean['reservation_guarantee_amount_eur'] ?? 0)) * 100);
+        $guaranteeRegistry = app(PmdReservationGuaranteeProviderRegistry::class);
+        $guaranteeMethodDefinitions = $guaranteeRegistry->methodDefinitions();
+        $guaranteeMethods = array_values(array_intersect(
+            array_keys($guaranteeMethodDefinitions),
+            array_map(
+                static fn ($method): string => strtolower(trim((string)$method)),
+                (array)($clean['reservation_guarantee_methods'] ?? [])
+            )
+        ));
 
         if ($guaranteeEnabled) {
             if ($guaranteeAmountCents < 1) {
@@ -226,10 +239,9 @@ class Pmdfinance extends AdminController
                 ]);
             }
 
-            $registry = app(PmdReservationGuaranteeProviderRegistry::class);
+            $registry = $guaranteeRegistry;
             $allowedGuaranteeProviders = match ($countryCode) {
-                CountryPlatformProfileRegistry::GERMANY => ['stripe', 'paypal', 'sumup', 'vr_payment', 'worldline'],
-                CountryPlatformProfileRegistry::CANADA => ['square'],
+                CountryPlatformProfileRegistry::GERMANY => ['stripe', 'sumup', 'vr_payment', 'worldline'],
                 default => [],
             };
 
@@ -243,6 +255,72 @@ class Pmdfinance extends AdminController
                 throw ValidationException::withMessages([
                     'finance.reservation_guarantee_provider' => $registry->assertionMessage($guaranteeProvider),
                 ]);
+            }
+
+            if (!$guaranteeMethods) {
+                throw ValidationException::withMessages([
+                    'finance.reservation_guarantee_methods' => 'Enable at least one reservation guarantee method.',
+                ]);
+            }
+
+            foreach ($guaranteeMethods as $methodCode) {
+                $methodProvider = $registry->providerForMethod($methodCode);
+                if ($methodProvider === '') {
+                    throw ValidationException::withMessages([
+                        'finance.reservation_guarantee_methods' => 'One of the selected guarantee methods is not supported.',
+                    ]);
+                }
+
+                if (!$registry->canEnable($methodProvider)) {
+                    throw ValidationException::withMessages([
+                        'finance.reservation_guarantee_methods' => $registry->assertionMessage($methodProvider),
+                    ]);
+                }
+            }
+
+            if (array_intersect(
+                ['apple_pay', 'google_pay'],
+                $guaranteeMethods
+            )) {
+                try {
+                    $walletDomain = app(
+                        PmdReservationGuaranteeService::class
+                    )->ensureStripePaymentMethodDomain(
+                        (string)request()->getHost()
+                    );
+
+                    $inactiveWallets = [];
+                    if (
+                        in_array('apple_pay', $guaranteeMethods, true)
+                        && strtolower((string)(
+                            $walletDomain['apple_pay_status'] ?? ''
+                        )) !== 'active'
+                    ) {
+                        $inactiveWallets[] = 'Apple Pay';
+                    }
+                    if (
+                        in_array('google_pay', $guaranteeMethods, true)
+                        && strtolower((string)(
+                            $walletDomain['google_pay_status'] ?? ''
+                        )) !== 'active'
+                    ) {
+                        $inactiveWallets[] = 'Google Pay';
+                    }
+
+                    if ($inactiveWallets) {
+                        throw new \RuntimeException(
+                            implode(' / ', $inactiveWallets)
+                                .' is not active for '
+                                .(string)request()->getHost()
+                                .' in the current Stripe mode.'
+                        );
+                    }
+                } catch (\Throwable $error) {
+                    throw ValidationException::withMessages([
+                        'finance.reservation_guarantee_methods' => 'Apple Pay / Google Pay domain registration failed: '
+                            .$error->getMessage(),
+                    ]);
+                }
             }
         }
 
@@ -268,6 +346,7 @@ class Pmdfinance extends AdminController
             'invoice_print_hint' => trim((string)($clean['invoice_print_hint'] ?? '')),
             'reservation_guarantee_enabled' => $guaranteeEnabled ? 1 : 0,
             'reservation_guarantee_provider' => $guaranteeProvider,
+            'reservation_guarantee_methods' => implode(',', $guaranteeMethods),
             'reservation_guarantee_min_guests' => (int)($clean['reservation_guarantee_min_guests'] ?? 6),
             'reservation_guarantee_amount_cents' => max(0, $guaranteeAmountCents),
             'reservation_guarantee_free_cancel_hours' => (int)($clean['reservation_guarantee_free_cancel_hours'] ?? 24),
@@ -673,6 +752,7 @@ class Pmdfinance extends AdminController
             'tax_delivery_charge' => (string)($values['tax_delivery_charge'] ?? 0),
             'reservation_guarantee_enabled' => (string)($values['reservation_guarantee_enabled'] ?? 0),
             'reservation_guarantee_provider' => (string)($values['reservation_guarantee_provider'] ?? 'stripe'),
+            'reservation_guarantee_methods' => (string)($values['reservation_guarantee_methods'] ?? 'card,apple_pay,google_pay,paypal'),
             'reservation_guarantee_min_guests' => (string)($values['reservation_guarantee_min_guests'] ?? 6),
             'reservation_guarantee_amount_cents' => (string)($values['reservation_guarantee_amount_cents'] ?? 0),
             'reservation_guarantee_free_cancel_hours' => (string)($values['reservation_guarantee_free_cancel_hours'] ?? 24),
@@ -718,6 +798,7 @@ class Pmdfinance extends AdminController
             'invoice_print_hint' => '',
             'reservation_guarantee_enabled' => 0,
             'reservation_guarantee_provider' => 'stripe',
+            'reservation_guarantee_methods' => 'card,apple_pay,google_pay,paypal',
             'reservation_guarantee_min_guests' => 6,
             'reservation_guarantee_amount_cents' => 0,
             'reservation_guarantee_free_cancel_hours' => 24,
