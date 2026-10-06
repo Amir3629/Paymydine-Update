@@ -33,9 +33,13 @@ import androidx.activity.ComponentActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import com.paymydine.mobile.hardware.ReceiptPrinterManager
+import com.paymydine.mobile.kiosk.KioskApiClient
 import com.paymydine.mobile.kiosk.KioskBootstrapWarmCache
 import com.paymydine.mobile.kiosk.KioskProfile
+import com.paymydine.mobile.tabledisplay.SecureStore
+import kotlinx.coroutines.delay
 import java.io.ByteArrayInputStream
 import java.util.UUID
 
@@ -420,6 +424,15 @@ class KioskMenuActivity : ComponentActivity() {
     private val bridgeSecret = UUID.randomUUID().toString()
 
     private var useSoftwareRendererFallback = false
+    private var terminalPaymentRunning = false
+    private val kioskApi by lazy { KioskApiClient() }
+    private val kioskStore by lazy {
+        SecureStore(
+            context = this,
+            storeName = "pmd-kiosk-v1",
+            keyAlias = "pmd-kiosk-v1",
+        )
+    }
 
     private val menuUrl: String by lazy {
         intent.getStringExtra(EXTRA_MENU_URL).orEmpty().trimEnd('/')
@@ -809,6 +822,9 @@ class KioskMenuActivity : ComponentActivity() {
                     )
                     showComplete(orderId)
                 },
+                onTerminalPay = { orderId ->
+                    startConnectedTerminalPayment(orderId)
+                },
             )
 
         fun setBridgeEnabled(enabled: Boolean) {
@@ -1099,6 +1115,148 @@ class KioskMenuActivity : ComponentActivity() {
         mainHandler.postDelayed(idleRunnable, idleTimeoutMs)
     }
 
+    // PMD_ANDROID_KIOSK_TERMINAL_BRIDGE_V18
+    // Browser checkout owns only order review. The paired Android shell owns
+    // card-present terminal authorization using the Keystore-backed kiosk token.
+    private fun startConnectedTerminalPayment(orderId: Long) {
+        if (terminalPaymentRunning || orderId <= 0L || isFinishing) return
+
+        val host = kioskStore.host().orEmpty().ifBlank { menuUrl }
+        val token = kioskStore.token().orEmpty()
+        if (host.isBlank() || token.isBlank()) {
+            dispatchTerminalResult(
+                paid = false,
+                status = "unpaired",
+                message = "This kiosk must be paired before terminal payment.",
+            )
+            return
+        }
+
+        terminalPaymentRunning = true
+        mainHandler.removeCallbacks(idleRunnable)
+
+        lifecycleScope.launch {
+            try {
+                var payment =
+                    kioskApi.startTerminalPayment(
+                        host = host,
+                        token = token,
+                        orderId = orderId,
+                    )
+
+                fun isPaid(): Boolean =
+                    payment.paymentRecorded ||
+                        payment.status.equals("paid", ignoreCase = true)
+
+                fun isFinalFailure(): Boolean {
+                    val status = payment.status.lowercase()
+                    return status in setOf(
+                        "failed",
+                        "cancelled",
+                        "canceled",
+                        "reconciliation_required",
+                        "simulated_approved",
+                        "simulated_declined",
+                        "simulated_cancelled",
+                    )
+                }
+
+                if (isPaid()) {
+                    dispatchTerminalResult(
+                        paid = true,
+                        status = "paid",
+                        message = payment.message.ifBlank { "Payment approved." },
+                    )
+                    return@launch
+                }
+
+                if (payment.attemptId <= 0L || isFinalFailure()) {
+                    dispatchTerminalResult(
+                        paid = false,
+                        status = payment.status,
+                        message = payment.message.ifBlank {
+                            "Terminal payment was not completed."
+                        },
+                    )
+                    return@launch
+                }
+
+                // Most cloud-reader APIs resolve quickly, but guests may need
+                // time to present a card/PIN. Poll for up to 150 seconds.
+                repeat(150) {
+                    delay(1_000L)
+                    payment =
+                        kioskApi.refreshTerminalPayment(
+                            host = host,
+                            token = token,
+                            attemptId = payment.attemptId,
+                        )
+
+                    if (isPaid()) {
+                        dispatchTerminalResult(
+                            paid = true,
+                            status = "paid",
+                            message = payment.message.ifBlank { "Payment approved." },
+                        )
+                        return@launch
+                    }
+                    if (isFinalFailure()) {
+                        dispatchTerminalResult(
+                            paid = false,
+                            status = payment.status,
+                            message = payment.message.ifBlank {
+                                "Terminal payment was not completed."
+                            },
+                        )
+                        return@launch
+                    }
+                }
+
+                dispatchTerminalResult(
+                    paid = false,
+                    status = "timeout",
+                    message = "The terminal did not confirm the payment in time. Please try again.",
+                )
+            } catch (error: Throwable) {
+                dispatchTerminalResult(
+                    paid = false,
+                    status = "error",
+                    message = error.message ?: "Terminal payment failed.",
+                )
+            } finally {
+                terminalPaymentRunning = false
+                resetIdleTimer()
+            }
+        }
+    }
+
+    private fun dispatchTerminalResult(
+        paid: Boolean,
+        status: String,
+        message: String,
+    ) {
+        val payload =
+            org.json.JSONObject()
+                .put("paid", paid)
+                .put("status", status)
+                .put("message", message)
+                .toString()
+        runOnUiThread {
+            val current = webView ?: return@runOnUiThread
+            val quoted = org.json.JSONObject.quote(payload)
+            current.evaluateJavascript(
+                """
+                (function(){
+                  if (typeof window.__PMD_KIOSK_NATIVE_TERMINAL_RESULT__ === 'function') {
+                    window.__PMD_KIOSK_NATIVE_TERMINAL_RESULT__($quoted);
+                  }
+                })()
+                """.trimIndent(),
+                null,
+            )
+        }
+    }
+
     private fun showComplete(orderId: String) {
         runOnUiThread {
             destroyWebView()
@@ -1200,6 +1358,7 @@ class KioskMenuActivity : ComponentActivity() {
     private class KioskJavascriptBridge(
         private val secret: String,
         private val onOrderComplete: (String, String) -> Unit,
+        private val onTerminalPay: (Long) -> Unit,
     ) {
         private val handler = Handler(Looper.getMainLooper())
 
@@ -1214,6 +1373,18 @@ class KioskMenuActivity : ComponentActivity() {
             }
             handler.post {
                 onOrderComplete(orderId.trim(), receiptJson)
+            }
+        }
+
+        @JavascriptInterface
+        fun terminalPay(
+            orderId: String,
+            providedSecret: String,
+        ) {
+            if (providedSecret.isBlank() || providedSecret != secret) return
+            val parsed = orderId.toLongOrNull() ?: return
+            handler.post {
+                onTerminalPay(parsed)
             }
         }
     }
