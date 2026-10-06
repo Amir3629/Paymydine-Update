@@ -10,7 +10,7 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 68
+        versionCode = 68 // PMD_KIOSK_V19_SOURCE_SYNC
         // PMD_DEVICE_APP_0_5_4_KIOSK_V18
         // PMD_ANDROID_0_3_34_PHONE_WEB_ORIENTATION_V115
         // Phones stay portrait like mobile Web; tablets retain full-sensor rotation.
