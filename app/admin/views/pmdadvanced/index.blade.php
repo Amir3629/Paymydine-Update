@@ -112,59 +112,9 @@
                     <div class="pmd-owner-divider"></div>
 
                     <div class="pmd-owner-panel">
-                        <h3>{{ $pmdSettingsText('Card guarantee & no-show protection') }}</h3>
-                        <p>{{ $pmdSettingsText('Optional card verification for reservations. Nothing is charged when the booking is made. A no-show charge is always a manual staff action after the grace period.') }}</p>
-
-                        <div class="pmd-owner-setting-row">
-                            <div class="pmd-owner-setting-copy">
-                                <strong>{{ $pmdSettingsText('Require card guarantee') }}</strong>
-                                <small>{{ $pmdSettingsText('Enable only after Stripe is connected and the restaurant has approved its no-show policy.') }}</small>
-                            </div>
-                            <label class="pmd-owner-switch">
-                                <input type="checkbox" name="advanced[reservation_guarantee_enabled]" value="1" {{ $checked($s['reservation_guarantee_enabled'] ?? 0) ? 'checked' : '' }}>
-                                <span></span>
-                            </label>
-                        </div>
-
-                        <div class="pmd-owner-form-grid">
-                            <div class="pmd-owner-field">
-                                <label>{{ $pmdSettingsText('Apply from party size') }}</label>
-                                <input type="number" min="1" max="100" name="advanced[reservation_guarantee_min_guests]" value="{{ $s['reservation_guarantee_min_guests'] ?? 6 }}">
-                            </div>
-                            <div class="pmd-owner-field">
-                                <label>{{ $pmdSettingsText('Maximum no-show compensation per guest (€)') }}</label>
-                                <input type="number" min="0" max="10000" step="0.01" name="advanced[reservation_guarantee_amount_eur]" value="{{ $s['reservation_guarantee_amount_eur'] ?? '0.00' }}">
-                            </div>
-                            <div class="pmd-owner-field">
-                                <label>{{ $pmdSettingsText('Free cancellation until (hours before booking)') }}</label>
-                                <input type="number" min="1" max="336" name="advanced[reservation_guarantee_free_cancel_hours]" value="{{ $s['reservation_guarantee_free_cancel_hours'] ?? 24 }}">
-                            </div>
-                            <div class="pmd-owner-field">
-                                <label>{{ $pmdSettingsText('No-show grace period (minutes)') }}</label>
-                                <input type="number" min="0" max="180" name="advanced[reservation_guarantee_grace_minutes]" value="{{ $s['reservation_guarantee_grace_minutes'] ?? 15 }}">
-                            </div>
-                            <div class="pmd-owner-field">
-                                <label>{{ $pmdSettingsText('No-show reservation status (optional)') }}</label>
-                                <select name="advanced[no_show_reservation_status]">
-                                    <option value="0">—</option>
-                                    @foreach($reservationStatuses as $id=>$name)
-                                        <option value="{{ $id }}" {{ (int)($s['no_show_reservation_status'] ?? 0)===(int)$id ? 'selected' : '' }}>{{ $name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="pmd-owner-field">
-                                <label>{{ $pmdSettingsText('Policy / terms version') }}</label>
-                                <input type="text" maxlength="64" name="advanced[reservation_guarantee_terms_version]" value="{{ $s['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01' }}">
-                            </div>
-                        </div>
-
-                        <div class="pmd-owner-setting-row">
-                            <div class="pmd-owner-setting-copy">
-                                <strong>{{ $pmdSettingsText('Stripe card tokenization') }}</strong>
-                                <small>{{ $pmdSettingsText('PayMyDine stores only Stripe references, never card numbers or CVC. The no-show amount must reflect the restaurant’s typical actual loss; customers are explicitly allowed to prove no loss or a substantially lower loss.') }}</small>
-                            </div>
-                            <a class="pmd-owner-header-button" href="{{ admin_url('payments') }}?mode=providers">{{ $pmdSettingsText('Open payments') }}</a>
-                        </div>
+                        <h3>{{ $pmdSettingsText('Reservation card guarantee') }}</h3>
+                        <p>{{ $pmdSettingsText('Card guarantee, no-show compensation, provider selection and confirmation-email controls now live with the payment providers they depend on.') }}</p>
+                        <a class="pmd-owner-action" href="{{ admin_url('pmdfinance') }}#reservation-guarantee">{{ $pmdSettingsText('Open Payments & finance') }}</a>
                     </div>
                 </div>
             </div>
