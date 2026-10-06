@@ -10,6 +10,7 @@ use Admin\Models\Payments_model;
 use App\Services\Platform\CountryPlatformProfileRegistry;
 use App\Services\Platform\LocationPlatformContext;
 use App\Services\Reservations\PmdReservationGuaranteeProviderRegistry;
+use App\Services\Reservations\PmdReservationGuaranteeService;
 use App\Services\Reservations\PmdReservationGuaranteeSettings;
 use App\Services\Turkey\TurkeyIntegrationConfigurationService;
 use App\Services\Turkey\TurkeyPaymentMethodService;
@@ -273,6 +274,23 @@ class Pmdfinance extends AdminController
                 if (!$registry->canEnable($methodProvider)) {
                     throw ValidationException::withMessages([
                         'finance.reservation_guarantee_methods' => $registry->assertionMessage($methodProvider),
+                    ]);
+                }
+            }
+
+            if (array_intersect(
+                ['apple_pay', 'google_pay'],
+                $guaranteeMethods
+            )) {
+                try {
+                    app(PmdReservationGuaranteeService::class)
+                        ->ensureStripePaymentMethodDomain(
+                            (string)request()->getHost()
+                        );
+                } catch (\Throwable $error) {
+                    throw ValidationException::withMessages([
+                        'finance.reservation_guarantee_methods' => 'Apple Pay / Google Pay domain registration failed: '
+                            .$error->getMessage(),
                     ]);
                 }
             }
