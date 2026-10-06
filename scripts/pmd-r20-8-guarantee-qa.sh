@@ -51,6 +51,8 @@ grep -Fq "processWithToken" app/Services/Reservations/PmdReservationGuaranteeGat
 grep -Fq "unscheduledCardOnFileSequenceIndicator" app/Services/Payments/WorldlineConnectRuntimeService.php
 grep -Fq "initialSchemeTransactionId" app/Services/Payments/WorldlineConnectRuntimeService.php
 grep -Fq "stripeWalletElements.submit" public/assets/pmd/public-booking-v1.js
+grep -Fq "ensureStripePaymentMethodDomain" app/Services/Reservations/PmdReservationGuaranteeService.php
+grep -Fq "payment_method_domains" app/Services/Reservations/PmdReservationGuaranteeService.php
 grep -Fq "pmd-booking-guarantee__methods" public/assets/pmd/public-booking-v1.css
 
 echo
