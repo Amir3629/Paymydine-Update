@@ -6,6 +6,7 @@ import com.paymydine.mobile.tabledisplay.DisplayTheme
 import com.paymydine.mobile.tabledisplay.SecureStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -23,6 +24,58 @@ data class KioskProfile(
     val menuUrl: String,
     val idleTimeoutSeconds: Long,
 )
+
+/**
+ * PMD_KIOSK_BOOTSTRAP_HANDOFF_V13
+ * PMD_KIOSK_MULTI_WARM_BOOTSTRAP_V15
+ *
+ * The native welcome already downloads the canonical menu bootstrap to choose
+ * restaurant photography. V15 keeps the fresh response reusable for its short
+ * TTL so both pre-rendered Eat Here / Take Away WebViews can hydrate from the
+ * same canonical payload without racing each other or touching the network.
+ */
+object KioskBootstrapWarmCache {
+    private data class Entry(
+        val host: String,
+        val body: String,
+        val savedAtMs: Long,
+    )
+
+    @Volatile
+    private var entry: Entry? = null
+
+    fun put(
+        host: String,
+        body: String,
+    ) {
+        if (body.isBlank()) return
+        entry =
+            Entry(
+                host = SecureStore.normalizeHost(host).lowercase(),
+                body = body,
+                savedAtMs = System.currentTimeMillis(),
+            )
+    }
+
+    @Synchronized
+    fun peek(host: String): String? {
+        val current = entry ?: return null
+        val normalized = SecureStore.normalizeHost(host).lowercase()
+        val ageMs = System.currentTimeMillis() - current.savedAtMs
+        if (current.host != normalized || ageMs !in 0..90_000L) {
+            entry = null
+            return null
+        }
+
+        return current.body
+    }
+
+    // Backward-compatible alias for older call sites. V15 deliberately does
+    // not consume the snapshot because two service-mode WebViews warm in
+    // parallel from the same restaurant bootstrap.
+    @Synchronized
+    fun consume(host: String): String? = peek(host)
+}
 
 class KioskApiClient {
     suspend fun pair(
@@ -76,13 +129,16 @@ class KioskApiClient {
         )
         val restaurant = json.optJSONObject("restaurant") ?: JSONObject()
         val theme = json.optJSONObject("theme") ?: JSONObject()
+        val restaurantLogo = restaurant.optString("logo", "").trim()
 
         KioskProfile(
             restaurantName = restaurant.optString("name", "PayMyDine"),
-            restaurantLogoUrl = absoluteUrl(
-                host,
-                restaurant.optString("logo", "/brand/paymydine-logo.svg"),
-            ),
+            restaurantLogoUrl =
+                if (restaurantLogo.isBlank()) {
+                    ""
+                } else {
+                    absoluteUrl(host, restaurantLogo)
+                },
             theme = DisplayTheme(
                 id = theme.optString("id", "kazen_japanese"),
                 background = theme.optString("background", "#F5F1EB"),
@@ -100,6 +156,149 @@ class KioskApiClient {
                 .coerceIn(45L, 600L),
         )
     }
+
+
+    /**
+     * PMD_KIOSK_PREMIUM_WELCOME_V11
+     * Reuse the restaurant's existing menu photography for the native welcome
+     * hero. This is intentionally read-only and best-effort; the kiosk still
+     * works when the public bootstrap or an image is temporarily unavailable.
+     */
+    suspend fun heroImages(host: String): List<String> = withContext(Dispatchers.IO) {
+        val normalized = SecureStore.normalizeHost(host)
+        val connection =
+            (URL(normalized + "/api/v1/frontend-bootstrap-batch-r1").openConnection() as HttpURLConnection).apply {
+                requestMethod = "GET"
+                connectTimeout = 8_000
+                readTimeout = 8_000
+                useCaches = true
+                setRequestProperty("Accept", "application/json")
+                setRequestProperty("X-PayMyDine-Kiosk", "1")
+            }
+
+        try {
+            if (connection.responseCode !in 200..299) return@withContext emptyList()
+
+            val text = connection.inputStream.bufferedReader().use { it.readText() }
+            KioskBootstrapWarmCache.put(host, text)
+            val json = runCatching { JSONObject(text) }.getOrNull() ?: return@withContext emptyList()
+            val menu = json.optJSONObject("data")?.opt("menu") ?: return@withContext emptyList()
+            val raw = linkedSetOf<String>()
+            collectHeroImageCandidates(menu, raw, "")
+
+            raw.asSequence()
+                .map { absoluteAssetUrl(host, it) }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .take(3)
+                .toList()
+        } catch (_: Throwable) {
+            emptyList()
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun collectHeroImageCandidates(
+        value: Any?,
+        output: LinkedHashSet<String>,
+        keyHint: String,
+    ) {
+        if (output.size >= 8 || value == null || value === JSONObject.NULL) return
+
+        when (value) {
+            is JSONObject -> {
+                val keys = value.keys()
+                while (keys.hasNext() && output.size < 8) {
+                    val key = keys.next()
+                    collectHeroImageCandidates(value.opt(key), output, key)
+                }
+            }
+
+            is JSONArray -> {
+                for (index in 0 until value.length()) {
+                    if (output.size >= 8) break
+                    collectHeroImageCandidates(value.opt(index), output, keyHint)
+                }
+            }
+
+            is String -> {
+                val key = keyHint.lowercase()
+                val candidate = value.trim()
+                val imageKey =
+                    key.contains("image") ||
+                        key == "src" ||
+                        key == "path" ||
+                        key == "thumbnail" ||
+                        key == "photo"
+                if (
+                    imageKey &&
+                    candidate.isNotBlank() &&
+                    !candidate.startsWith("data:", ignoreCase = true)
+                ) {
+                    output += candidate
+                }
+            }
+        }
+    }
+
+    private fun absoluteAssetUrl(
+        host: String,
+        value: String,
+    ): String {
+        val raw = value.trim()
+        if (raw.isBlank()) return ""
+        if (raw.startsWith("https://", ignoreCase = true)) return raw
+        if (raw.startsWith("http://", ignoreCase = true)) return raw
+
+        val normalized = SecureStore.normalizeHost(host)
+        if (raw.startsWith("/")) return normalized + raw
+
+        val clean = raw.trimStart('/')
+        return when {
+            clean.startsWith("api/media/") ||
+                clean.startsWith("assets/media/") ||
+                clean.startsWith("storage/") ||
+                clean.startsWith("brand/") -> normalized + "/" + clean
+
+            clean.startsWith("uploads/") -> normalized + "/assets/media/" + clean
+            clean.startsWith("images/") -> normalized + "/api/media/" + clean.removePrefix("images/")
+            else -> normalized + "/api/media/" + clean
+        }
+    }
+
+    // PMD_KIOSK_NATIVE_TERMINAL_PAYMENT_V18
+    // Card-present payment is initiated by the trusted native kiosk process.
+    // The bearer credential never enters the WebView/JavaScript context.
+    fun startTerminalPaymentBlocking(
+        host: String,
+        token: String,
+        orderId: Long,
+        kioskSession: String,
+    ): JSONObject =
+        request(
+            host = host,
+            endpoint = "terminal-payment",
+            method = "POST",
+            body = JSONObject()
+                .put("order_id", orderId)
+                .put("kiosk_session", kioskSession),
+            token = token,
+        )
+
+    fun refreshTerminalPaymentBlocking(
+        host: String,
+        token: String,
+        attemptId: Long,
+        kioskSession: String,
+    ): JSONObject =
+        request(
+            host = host,
+            endpoint = "terminal-payment/" + attemptId,
+            method = "POST",
+            body = JSONObject().put("kiosk_session", kioskSession),
+            token = token,
+        )
 
     private fun request(
         host: String,

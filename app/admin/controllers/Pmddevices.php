@@ -423,6 +423,36 @@ class Pmddevices extends AdminController
         }
     }
 
+    /** PMD_KIOSK_TERMINAL_LINK_V18 */
+    public function onAssignPmdKioskTerminal()
+    {
+        $this->assertDevicePlatformManager();
+
+        $deviceId = max(0, (int)post('device_id', 0));
+        $terminalId = max(0, (int)post('terminal_device_id', 0));
+        if ($deviceId < 1) {
+            throw new \RuntimeException('Choose a Kiosk device.');
+        }
+
+        $result = app(PmdDevicePlatformService::class)
+            ->assignGuestDeviceTerminal(
+                $this->devicePlatformLocationId(),
+                $deviceId,
+                'kiosk',
+                $terminalId > 0 ? $terminalId : null,
+                $this->devicePlatformStaffId()
+            );
+
+        if (!empty($result['terminal_device_id'])) {
+            flash()->success(
+                'Payment terminal linked to kiosk #'.$deviceId.': '.
+                (string)($result['terminal_name'] ?? 'Payment terminal').'.'
+            );
+        } else {
+            flash()->success('Payment terminal link removed from kiosk #'.$deviceId.'.');
+        }
+    }
+
     /** PMD_DEVICE_PLATFORM_V1 */
     public function onSavePmdDevicePlatformPolicy()
     {

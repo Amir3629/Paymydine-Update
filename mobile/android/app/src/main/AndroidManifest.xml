@@ -74,7 +74,7 @@
         <activity
             android:name=".KioskMenuActivity"
             android:exported="false"
-            android:hardwareAccelerated="false"
+            android:hardwareAccelerated="true"
             android:screenOrientation="fullSensor"
             android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden" />
 
@@ -83,6 +83,12 @@
             android:exported="false"
             android:screenOrientation="fullSensor"
             android:configChanges="screenLayout|orientation|screenSize|smallestScreenSize|keyboard|keyboardHidden" />
+
+        <!-- PMD_SHARED_PRINTER_SETUP_V18 -->
+        <activity
+            android:name=".PrinterSetupActivity"
+            android:exported="false"
+            android:screenOrientation="fullSensor" />
 
         <activity
             android:name=".KdsActivity"
