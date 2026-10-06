@@ -1095,7 +1095,26 @@ class PmdPublicBookingController extends Controller
             return $guaranteeDecision;
         }
 
-        return $reservation->isCancelable();
+        // PMD_PUBLIC_BOOKING_CANCEL_FALLBACK_R20_1
+        // TastyIgniter's legacy Reservations_model::isCancelable() treats an
+        // empty/zero location cancellation timeout as "online cancellation
+        // disabled". For PayMyDine public reservations that makes a normal
+        // future booking impossible to cancel. Preserve an explicitly
+        // configured timeout, but interpret no timeout as cancellable until
+        // the reservation starts.
+        try {
+            $timeout = (int)$reservation->location
+                ->getReservationCancellationTimeout();
+
+            if ($timeout > 0) {
+                return $reservation->reservation_datetime
+                    ->diffInRealMinutes() > $timeout;
+            }
+        } catch (Throwable $error) {
+            // Fall through to the safe future-reservation default below.
+        }
+
+        return true;
     }
 
     private function availabilityPayloadExcludingReservation(
