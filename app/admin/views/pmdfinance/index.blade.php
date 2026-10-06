@@ -217,13 +217,14 @@
                                                 $marketOk = !empty($provider['market_available']);
                                                 $adapterReady = !empty($provider['adapter_ready']);
                                                 $providerReady = !empty($provider['provider_enabled']) && !empty($provider['credentials_ready']);
-                                                $selectable = $marketOk;
+                                                $fullyReady = $marketOk && $adapterReady && $providerReady;
                                                 $suffix = $adapterReady
                                                     ? ($providerReady ? ' · Ready' : ' · Configure provider first')
                                                     : ' · Adapter pending';
                                             @endphp
                                             <option
                                                 value="{{ $code }}"
+                                                data-pmd-guarantee-ready="{{ $fullyReady ? '1' : '0' }}"
                                                 {{ $guaranteeSelected === (string)$code ? 'selected' : '' }}
                                                 {{ !$marketOk && $guaranteeSelected !== (string)$code ? 'disabled' : '' }}
                                             >{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}{{ $suffix }}</option>
@@ -234,7 +235,7 @@
 
                                 <div class="pmd-owner-field pmd-owner-field--full">
                                     <label>{{ $pmdSettingsText('Guest guarantee methods') }}</label>
-                                    <div style="display:flex;gap:10px;flex-wrap:wrap">
+                                    <div class="pmd-guarantee-methods" data-pmd-guarantee-methods>
                                         @foreach($guaranteeMethods as $methodCode => $method)
                                             @php
                                                 $supporting = [];
@@ -243,21 +244,48 @@
                                                         $supporting[] = (string)($provider['label'] ?? $providerCode);
                                                     }
                                                 }
+
+                                                $methodProvider = match ((string)$methodCode) {
+                                                    'card' => $guaranteeSelected,
+                                                    'apple_pay', 'google_pay' => 'stripe',
+                                                    'paypal' => 'paypal',
+                                                    default => '',
+                                                };
+                                                $methodProviderRow = (array)($guaranteeProviders[$methodProvider] ?? []);
+                                                $methodReady = $methodProvider !== ''
+                                                    && !empty($methodProviderRow['market_available'])
+                                                    && !empty($methodProviderRow['adapter_ready'])
+                                                    && !empty($methodProviderRow['provider_enabled'])
+                                                    && !empty($methodProviderRow['credentials_ready']);
+                                                $methodLabel = (string)($method['label'] ?? ucfirst(str_replace('_',' ',(string)$methodCode)));
+                                                $methodProviderLabel = (string)($methodProviderRow['label'] ?? ucfirst(str_replace('_',' ',$methodProvider)));
                                             @endphp
-                                            <label style="display:inline-flex;align-items:center;gap:8px;border:1px solid #d8dde0;border-radius:10px;padding:9px 12px;background:#fff">
+                                            <label
+                                                class="pmd-guarantee-method {{ $methodReady ? 'is-ready' : 'is-unavailable' }}"
+                                                data-pmd-guarantee-method-row="{{ $methodCode }}"
+                                                data-pmd-guarantee-provider="{{ $methodProvider }}"
+                                                data-pmd-fixed-provider="{{ (string)$methodCode === 'card' ? '0' : '1' }}"
+                                                data-pmd-provider-ready="{{ $methodReady ? '1' : '0' }}"
+                                            >
                                                 <input
+                                                    class="pmd-guarantee-method__input"
                                                     type="checkbox"
                                                     name="finance[reservation_guarantee_methods][]"
                                                     value="{{ $methodCode }}"
                                                     {{ in_array((string)$methodCode, $guaranteeSelectedMethods, true) ? 'checked' : '' }}
+                                                    {{ !$methodReady ? 'disabled' : '' }}
                                                 >
-                                                <span>
-                                                    <strong>{{ $pmdSettingsText($method['label'] ?? ucfirst(str_replace('_',' ',(string)$methodCode))) }}</strong>
-                                                    <small style="display:block">{{ implode(', ', $supporting) }}</small>
+                                                <span class="pmd-guarantee-method__copy">
+                                                    <strong>{{ $pmdSettingsText($methodLabel) }}</strong>
+                                                    <small>{{ implode(', ', $supporting) }}</small>
+                                                </span>
+                                                <span class="pmd-guarantee-method__status {{ $methodReady ? 'is-ready' : '' }}" data-pmd-guarantee-method-status>
+                                                    {{ $methodReady ? $pmdSettingsText('Ready') : $pmdSettingsText('Configure '.$methodProviderLabel.' first') }}
                                                 </span>
                                             </label>
                                         @endforeach
                                     </div>
+                                    <div class="pmd-guarantee-methods__message" data-pmd-guarantee-method-message aria-live="polite"></div>
                                     <small>{{ $pmdSettingsText('Card uses the selected card provider. Apple Pay and Google Pay route through Stripe. PayPal routes through PayPal Vault. A method is shown to guests only when its provider is enabled and configured.') }}</small>
                                 </div>
 
