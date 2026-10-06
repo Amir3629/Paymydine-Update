@@ -1927,10 +1927,11 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
   100% { left: 116%; opacity: 0; }
 }
 
-/* Full screen means full screen: no centered/sheet card and no blurred page
+/* PMD_KIOSK_FULLSCREEN_PAYMENT_V18
+ * Full screen means full screen: no centered/sheet card and no blurred page
  * showing behind the payment decision.
  */
-.pmd-kiosk-modal-layer:has(.pmd-kiosk-modal--payment-fullscreen) {
+.pmd-kiosk-modal-layer.is-payment-fullscreen {
   padding: 0 !important;
   align-items: stretch !important;
   justify-content: stretch !important;
