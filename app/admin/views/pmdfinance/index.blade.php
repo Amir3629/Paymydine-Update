@@ -18,7 +18,7 @@
     $guaranteeSelected = strtolower((string)($settings['reservation_guarantee_provider'] ?? 'stripe'));
     $guaranteeSelectedMethods = array_values(array_filter(array_map(
         static fn ($method) => strtolower(trim((string)$method)),
-        explode(',', (string)($settings['reservation_guarantee_methods'] ?? 'card,apple_pay,google_pay,paypal'))
+        explode(',', (string)($settings['reservation_guarantee_methods'] ?? 'card'))
     )));
     $checked = fn($value) => !in_array(strtolower((string)$value), ['0','false','off','no',''], true);
 
