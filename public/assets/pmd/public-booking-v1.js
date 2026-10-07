@@ -1057,7 +1057,7 @@
     if (stripeWarmScheduled) return;
 
     var guarantee = currentGuaranteeConfig();
-    if (!guarantee.enabled || !guarantee.providerReady) return;
+    if (!guaranteeRequired() || !guarantee.enabled || !guarantee.providerReady) return;
 
     var stripeMethods = guaranteeMethods().filter(function (method) {
       return method.provider === "stripe";
@@ -1217,6 +1217,8 @@
       syncSubmitState();
       return;
     }
+
+    warmGuaranteeStripe();
 
     if (guaranteeTerms) {
       guaranteeTerms.textContent = String(guarantee.termsText || "");
