@@ -1140,10 +1140,14 @@ class PmdPublicBookingController extends Controller
         );
 
         if (!collect($preflight['slots'])->firstWhere('value', $time)) {
+            $guaranteeService->discardVerification($guaranteeVerified);
             throw ValidationException::withMessages([
                 'reserve_time' => ['That time is no longer available. Please choose another time.'],
             ]);
         }
+
+        $updatedReservation = null;
+        $updateCommitted = false;
 
         try {
             $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight, $beforeSnapshot, $guaranteeService, $guaranteeVerified) {
@@ -1237,6 +1241,7 @@ class PmdPublicBookingController extends Controller
             }, 3);
 
             $updatedReservation = $updated['reservation'];
+            $updateCommitted = true;
             $changes = (array)($updated['changes'] ?? []);
             $this->pushReservationAdminNotification($updatedReservation, 'updated', $changes);
 
@@ -1253,12 +1258,48 @@ class PmdPublicBookingController extends Controller
                 'changes' => $changes,
             ]);
         } catch (ValidationException $error) {
+            if (!$updateCommitted) {
+                $guaranteeService->discardVerification($guaranteeVerified);
+            }
             throw $error;
         } catch (Throwable $error) {
             Log::error('PMD public booking update failed', [
                 'reservation_id' => (int)$reservation->getKey(),
+                'committed' => $updateCommitted,
                 'message' => $error->getMessage(),
             ]);
+
+            // Match new-booking semantics: once the reservation transaction
+            // committed, never report a false failure merely because optional
+            // response/notification work failed afterward.
+            if ($updateCommitted && $updatedReservation) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Your reservation has been updated.',
+                    'reservation' => [
+                        'id' => (int)$updatedReservation->getKey(),
+                        'reference' => 'R'.str_pad((string)$updatedReservation->getKey(), 6, '0', STR_PAD_LEFT),
+                        'hash' => (string)$updatedReservation->hash,
+                        'date' => $date->toDateString(),
+                        'time' => $time,
+                        'guests' => $guests,
+                        'duration' => (int)$updatedReservation->duration,
+                        'first_name' => (string)$updatedReservation->first_name,
+                        'last_name' => (string)$updatedReservation->last_name,
+                        'email' => (string)$updatedReservation->email,
+                        'telephone' => (string)$updatedReservation->telephone,
+                        'occasion_id' => (int)$updatedReservation->occasion_id,
+                        'comment' => (string)$updatedReservation->comment,
+                        'canceled' => false,
+                        'can_manage' => true,
+                        'can_cancel' => $this->reservationCanBeCanceledOnline($updatedReservation),
+                        'guarantee' => null,
+                    ],
+                    'changes' => [],
+                ]);
+            }
+
+            $guaranteeService->discardVerification($guaranteeVerified);
 
             return response()->json([
                 'success' => false,
