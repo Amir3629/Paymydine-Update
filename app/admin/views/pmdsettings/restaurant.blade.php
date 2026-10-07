@@ -39,7 +39,7 @@ html.pmd-restaurant-profile-booting #notif-root {
 document.documentElement.classList.add('pmd-restaurant-profile-booting');
 </script>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-v1.css?v=20261007_r27">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-v1.css?v=20261007_r28">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-platform-header-v4.css?v=20260809_4">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-spacing-v7.css?v=20260809_10">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-unified-r19.css?v=20260815_r19">
@@ -206,6 +206,295 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             <span>{{ $pmdSettingsText('Postcode') }}</span>
                             <input type="text" name="profile[postcode]" value="{{ $pmdProfile['postcode'] ?? '' }}" maxlength="32">
                         </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {{-- PMD_RESERVATION_MESSAGING_R28 --}}
+        @php
+            $pmdEmailReady = !empty($pmdProfile['sender_email']) || !empty($pmdProfile['email']);
+            $pmdWhatsappReady = !empty($pmdProfile['whatsapp_phone_number_id'])
+                && !empty($pmdProfile['has_whatsapp_access_token']);
+        @endphp
+        <section class="pmd-profile-section pmd-profile-section--messaging" id="guest-messaging">
+            <div class="pmd-profile-card">
+                <div class="pmd-profile-card__header">
+                    <div class="pmd-profile-section-icon">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v12H8l-4 4Z"></path><path d="M7 9h10M7 13h6"></path></svg>
+                    </div>
+                    <div class="pmd-profile-card__header-copy">
+                        <h2>{{ $pmdSettingsText('Guest messaging') }}</h2>
+                        <p>{{ $pmdSettingsText('Send reservation confirmations and changes by email and WhatsApp.') }}</p>
+                    </div>
+                </div>
+
+                <div class="pmd-profile-card__body">
+                    <div class="pmd-profile-messaging-events">
+                        <div class="pmd-profile-messaging-events__copy">
+                            <strong>{{ $pmdSettingsText('Reservation messages') }}</strong>
+                            <span>{{ $pmdSettingsText('Choose which booking events can send guest notifications.') }}</span>
+                        </div>
+                        <div class="pmd-profile-messaging-event-toggles">
+                            @foreach([
+                                'notify_created' => 'New booking',
+                                'notify_updated' => 'Booking changed',
+                                'notify_canceled' => 'Booking canceled',
+                            ] as $key => $label)
+                                <label class="pmd-profile-messaging-event">
+                                    <input
+                                        type="checkbox"
+                                        name="messaging[{{ $key }}]"
+                                        value="1"
+                                        {{ !empty($pmdProfile['reservation_'.$key]) ? 'checked' : '' }}
+                                    >
+                                    <span>{{ $pmdSettingsText($label) }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="pmd-profile-messaging-channels">
+                        <div class="pmd-profile-messaging-channel">
+                            <div class="pmd-profile-messaging-channel__main">
+                                <div class="pmd-profile-messaging-channel__icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg>
+                                </div>
+                                <div>
+                                    <strong>{{ $pmdSettingsText('Email') }}</strong>
+                                    <span>{{ $pmdSettingsText('Booking receipt, updates and cancellations sent from the restaurant.') }}</span>
+                                </div>
+                            </div>
+                            <div class="pmd-profile-messaging-channel__side">
+                                <span class="pmd-profile-readiness {{ $pmdEmailReady ? 'is-ready' : 'is-incomplete' }}">
+                                    {{ $pmdSettingsText($pmdEmailReady ? 'Ready' : 'Setup needed') }}
+                                </span>
+                                <label class="pmd-profile-switch" aria-label="{{ $pmdSettingsText('Enable reservation email') }}">
+                                    <input type="checkbox" name="messaging[email_enabled]" value="1" {{ !empty($pmdProfile['reservation_email_enabled']) ? 'checked' : '' }}>
+                                    <span></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <details class="pmd-profile-messaging-details" {{ !empty($pmdProfile['reservation_email_enabled']) && !$pmdEmailReady ? 'open' : '' }}>
+                            <summary>
+                                <span>{{ $pmdSettingsText('Email delivery settings') }}</span>
+                                <small>{{ $pmdSettingsText('Sender and provider connection') }}</small>
+                            </summary>
+                            <div class="pmd-profile-messaging-details__body">
+                                <div class="pmd-profile-grid pmd-profile-grid--2">
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Sender name') }}</span>
+                                        <input type="text" name="messaging[sender_name]" value="{{ $pmdProfile['sender_name'] ?? '' }}" maxlength="191" placeholder="{{ $pmdProfile['name'] ?? 'Restaurant' }}">
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Sender email') }}</span>
+                                        <input type="email" name="messaging[sender_email]" value="{{ $pmdProfile['sender_email'] ?? '' }}" maxlength="191" placeholder="{{ $pmdProfile['email'] ?? '' }}">
+                                        <small>{{ $pmdSettingsText('Leave blank to use the Restaurant email above.') }}</small>
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Mail provider') }}</span>
+                                        <select name="messaging[protocol]">
+                                            @foreach(['mail'=>'PHP Mail','smtp'=>'SMTP','sendmail'=>'Sendmail','mailgun'=>'Mailgun','postmark'=>'Postmark','ses'=>'Amazon SES'] as $value=>$label)
+                                                <option value="{{ $value }}" {{ ($pmdProfile['protocol'] ?? 'mail') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Test email address') }}</span>
+                                        <input type="email" name="messaging[test_email]" value="{{ $pmdProfile['reservation_test_email'] ?? '' }}" maxlength="191">
+                                    </label>
+                                </div>
+
+                                <div class="pmd-profile-messaging-provider-grid">
+                                    <div class="pmd-profile-messaging-provider">
+                                        <h3>SMTP</h3>
+                                        <div class="pmd-profile-grid pmd-profile-grid--2">
+                                            <label class="pmd-profile-field pmd-profile-field--wide">
+                                                <span>{{ $pmdSettingsText('Host') }}</span>
+                                                <input type="text" name="messaging[smtp_host]" value="{{ $pmdProfile['smtp_host'] ?? '' }}">
+                                            </label>
+                                            <label class="pmd-profile-field">
+                                                <span>{{ $pmdSettingsText('Port') }}</span>
+                                                <input type="number" name="messaging[smtp_port]" min="1" max="65535" value="{{ $pmdProfile['smtp_port'] ?? 587 }}">
+                                            </label>
+                                            <label class="pmd-profile-field">
+                                                <span>{{ $pmdSettingsText('Encryption') }}</span>
+                                                <input type="text" name="messaging[smtp_encryption]" value="{{ $pmdProfile['smtp_encryption'] ?? 'tls' }}" placeholder="tls">
+                                            </label>
+                                            <label class="pmd-profile-field pmd-profile-field--wide">
+                                                <span>{{ $pmdSettingsText('Username') }}</span>
+                                                <input type="text" name="messaging[smtp_user]" value="{{ $pmdProfile['smtp_user'] ?? '' }}" autocomplete="username">
+                                            </label>
+                                            <label class="pmd-profile-field pmd-profile-field--wide">
+                                                <span>{{ $pmdSettingsText('Password') }}</span>
+                                                <input type="password" name="messaging[smtp_pass]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdProfile['has_smtp_pass']) ? 'Stored — leave blank to keep' : 'Enter password') }}">
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="pmd-profile-messaging-provider">
+                                        <h3>{{ $pmdSettingsText('Other email providers') }}</h3>
+                                        <div class="pmd-profile-grid pmd-profile-grid--2">
+                                            <label class="pmd-profile-field pmd-profile-field--wide">
+                                                <span>{{ $pmdSettingsText('Mailgun domain') }}</span>
+                                                <input type="text" name="messaging[mailgun_domain]" value="{{ $pmdProfile['mailgun_domain'] ?? '' }}">
+                                            </label>
+                                            <label class="pmd-profile-field pmd-profile-field--wide">
+                                                <span>{{ $pmdSettingsText('Mailgun secret') }}</span>
+                                                <input type="password" name="messaging[mailgun_secret]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdProfile['has_mailgun_secret']) ? 'Stored — leave blank to keep' : 'Enter secret') }}">
+                                            </label>
+                                            <label class="pmd-profile-field pmd-profile-field--wide">
+                                                <span>{{ $pmdSettingsText('Postmark token') }}</span>
+                                                <input type="password" name="messaging[postmark_token]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdProfile['has_postmark_token']) ? 'Stored — leave blank to keep' : 'Enter token') }}">
+                                            </label>
+                                            <label class="pmd-profile-field">
+                                                <span>{{ $pmdSettingsText('SES access key') }}</span>
+                                                <input type="password" name="messaging[ses_key]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdProfile['has_ses_key']) ? 'Stored — leave blank to keep' : 'Enter key') }}">
+                                            </label>
+                                            <label class="pmd-profile-field">
+                                                <span>{{ $pmdSettingsText('SES secret') }}</span>
+                                                <input type="password" name="messaging[ses_secret]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdProfile['has_ses_secret']) ? 'Stored — leave blank to keep' : 'Enter secret') }}">
+                                            </label>
+                                            <label class="pmd-profile-field pmd-profile-field--wide">
+                                                <span>{{ $pmdSettingsText('SES region') }}</span>
+                                                <input type="text" name="messaging[ses_region]" value="{{ $pmdProfile['ses_region'] ?? '' }}" placeholder="eu-central-1">
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="pmd-profile-messaging-test-row">
+                                    <button
+                                        type="button"
+                                        class="pmd-profile-messaging-test-button"
+                                        data-request="onTestReservationEmail"
+                                    >{{ $pmdSettingsText('Send test email') }}</button>
+                                    <span id="pmd-reservation-email-test-status">
+                                        <small>{{ $pmdSettingsText('Save changes before testing a new provider connection.') }}</small>
+                                    </span>
+                                </div>
+                            </div>
+                        </details>
+
+                        <div class="pmd-profile-messaging-channel">
+                            <div class="pmd-profile-messaging-channel__main">
+                                <div class="pmd-profile-messaging-channel__icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z"></path><path d="M8.5 8.4c.3 2.8 2.3 4.8 5.1 5.2"></path></svg>
+                                </div>
+                                <div>
+                                    <strong>WhatsApp Business</strong>
+                                    <span>{{ $pmdSettingsText('Transactional reservation updates through Meta WhatsApp Cloud API.') }}</span>
+                                </div>
+                            </div>
+                            <div class="pmd-profile-messaging-channel__side">
+                                <span class="pmd-profile-readiness {{ $pmdWhatsappReady ? 'is-ready' : 'is-incomplete' }}">
+                                    {{ $pmdSettingsText($pmdWhatsappReady ? 'Ready' : 'Setup needed') }}
+                                </span>
+                                <label class="pmd-profile-switch" aria-label="{{ $pmdSettingsText('Enable reservation WhatsApp') }}">
+                                    <input type="checkbox" name="messaging[whatsapp_enabled]" value="1" {{ !empty($pmdProfile['reservation_whatsapp_enabled']) ? 'checked' : '' }}>
+                                    <span></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <details class="pmd-profile-messaging-details" {{ !empty($pmdProfile['reservation_whatsapp_enabled']) && !$pmdWhatsappReady ? 'open' : '' }}>
+                            <summary>
+                                <span>{{ $pmdSettingsText('WhatsApp Business settings') }}</span>
+                                <small>{{ $pmdSettingsText('Meta Cloud API and approved reservation templates') }}</small>
+                            </summary>
+                            <div class="pmd-profile-messaging-details__body">
+                                <div class="pmd-profile-messaging-note">
+                                    <strong>{{ $pmdSettingsText('Guest consent required') }}</strong>
+                                    <span>{{ $pmdSettingsText('WhatsApp is sent only when the guest explicitly opts in during booking. Email can still be used independently.') }}</span>
+                                </div>
+
+                                <div class="pmd-profile-grid pmd-profile-grid--2">
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Phone Number ID') }}</span>
+                                        <input type="text" name="messaging[whatsapp_phone_number_id]" value="{{ $pmdProfile['whatsapp_phone_number_id'] ?? '' }}" autocomplete="off">
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('WhatsApp Business Account ID') }}</span>
+                                        <input type="text" name="messaging[whatsapp_business_account_id]" value="{{ $pmdProfile['whatsapp_business_account_id'] ?? '' }}" autocomplete="off">
+                                    </label>
+                                    <label class="pmd-profile-field pmd-profile-field--wide">
+                                        <span>{{ $pmdSettingsText('Access token') }}</span>
+                                        <input type="password" name="messaging[whatsapp_access_token]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdProfile['has_whatsapp_access_token']) ? 'Stored — leave blank to keep' : 'Enter access token') }}">
+                                        <small>{{ $pmdSettingsText('The token is stored server-side and is never rendered back into the page.') }}</small>
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Graph API version') }}</span>
+                                        <input type="text" name="messaging[whatsapp_graph_version]" value="{{ $pmdProfile['whatsapp_graph_version'] ?? 'v23.0' }}" placeholder="v23.0">
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Template language override') }}</span>
+                                        <input type="text" name="messaging[whatsapp_template_language]" value="{{ $pmdProfile['whatsapp_template_language'] ?? '' }}" placeholder="{{ $pmdSettingsText('Blank = booking language') }}">
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Public WhatsApp number') }}</span>
+                                        <input type="text" name="messaging[whatsapp_public_number]" value="{{ $pmdProfile['whatsapp_public_number'] ?? '' }}" placeholder="+49…">
+                                        <small>{{ $pmdSettingsText('Shown to guests as the “WhatsApp restaurant” contact link.') }}</small>
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Default country calling code') }}</span>
+                                        <input type="text" name="messaging[whatsapp_default_country_code]" value="{{ $pmdProfile['whatsapp_default_country_code'] ?? '' }}" placeholder="49">
+                                        <small>{{ $pmdSettingsText('Used only when a guest enters a local phone number without +country code.') }}</small>
+                                    </label>
+                                </div>
+
+                                <div class="pmd-profile-messaging-template-grid">
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('New booking template') }}</span>
+                                        <input type="text" name="messaging[whatsapp_template_created]" value="{{ $pmdProfile['whatsapp_template_created'] ?? '' }}" placeholder="pmd_reservation_created">
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Booking changed template') }}</span>
+                                        <input type="text" name="messaging[whatsapp_template_updated]" value="{{ $pmdProfile['whatsapp_template_updated'] ?? '' }}" placeholder="pmd_reservation_updated">
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Booking canceled template') }}</span>
+                                        <input type="text" name="messaging[whatsapp_template_canceled]" value="{{ $pmdProfile['whatsapp_template_canceled'] ?? '' }}" placeholder="pmd_reservation_canceled">
+                                    </label>
+                                </div>
+
+                                <div class="pmd-profile-messaging-template-contract">
+                                    <strong>{{ $pmdSettingsText('Template variables') }}</strong>
+                                    <code>1 Restaurant · 2 Reference · 3 Date · 4 Time · 5 Guests · 6 Manage URL</code>
+                                </div>
+
+                                <div class="pmd-profile-messaging-test-row">
+                                    <button
+                                        type="button"
+                                        class="pmd-profile-messaging-test-button"
+                                        data-request="onTestReservationWhatsapp"
+                                    >{{ $pmdSettingsText('Test WhatsApp connection') }}</button>
+                                    <span id="pmd-reservation-whatsapp-test-status">
+                                        <small>{{ $pmdSettingsText('Save changes before testing a new WhatsApp connection.') }}</small>
+                                    </span>
+                                </div>
+                            </div>
+                        </details>
+
+                        <div class="pmd-profile-messaging-channel pmd-profile-messaging-channel--owner">
+                            <div class="pmd-profile-messaging-channel__main">
+                                <div>
+                                    <strong>{{ $pmdSettingsText('Restaurant inbox copy') }}</strong>
+                                    <span>{{ $pmdSettingsText('Send the restaurant an email copy when a guest creates, changes or cancels a reservation.') }}</span>
+                                </div>
+                            </div>
+                            <div class="pmd-profile-messaging-channel__side">
+                                <label class="pmd-profile-switch" aria-label="{{ $pmdSettingsText('Enable restaurant inbox copy') }}">
+                                    <input type="checkbox" name="messaging[owner_email_enabled]" value="1" {{ !empty($pmdProfile['reservation_owner_email_enabled']) ? 'checked' : '' }}>
+                                    <span></span>
+                                </label>
+                            </div>
+                            <label class="pmd-profile-field pmd-profile-messaging-owner-email">
+                                <span>{{ $pmdSettingsText('Restaurant notification email') }}</span>
+                                <input type="email" name="messaging[owner_email]" value="{{ $pmdProfile['reservation_owner_email'] ?? '' }}" maxlength="191" placeholder="{{ $pmdProfile['email'] ?? '' }}">
+                                <small>{{ $pmdSettingsText('Leave blank to use the public Restaurant email.') }}</small>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
