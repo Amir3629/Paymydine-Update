@@ -1147,7 +1147,7 @@
       var inputs = group.values.map(function (value) {
         var checked = (selected[group.id] || []).indexOf(value.id) >= 0;
         var type = group.displayType === "checkbox" ? "checkbox" : "radio";
-        return '<label class="pmd-kiosk-option"><span><input type="' + type + '" name="option-' + escapeHtml(group.id) +
+        return '<label class="pmd-kiosk-option' + (checked ? ' is-selected' : '') + '"><span><input type="' + type + '" name="option-' + escapeHtml(group.id) +
           '" value="' + escapeHtml(value.id) + '" data-option-group="' + escapeHtml(group.id) + '"' +
           (checked ? " checked" : "") + "> " + escapeHtml(value.name) + "</span>" +
           (value.price > 0 ? "<small>+" + escapeHtml(money(value.price)) + "</small>" : "") + "</label>";
@@ -2325,6 +2325,21 @@
   checkoutButton.addEventListener("click", openCheckout);
   compactOrder.addEventListener("click", openCheckout);
   clearOrder.addEventListener("click", clearCartState);
+
+  modalLayer.addEventListener("change", function (event) {
+    var input = event.target.closest("[data-option-group]");
+    if (!input) return;
+    var groupId = input.getAttribute("data-option-group") || "";
+    if (input.type === "radio") {
+      Array.prototype.slice.call(modal.querySelectorAll('[data-option-group="' + CSS.escape(groupId) + '"]')).forEach(function (node) {
+        var label = node.closest(".pmd-kiosk-option");
+        if (label) label.classList.toggle("is-selected", node.checked);
+      });
+    } else {
+      var label = input.closest(".pmd-kiosk-option");
+      if (label) label.classList.toggle("is-selected", input.checked);
+    }
+  });
 
   modalLayer.addEventListener("click", function (event) {
     if (event.target.closest("[data-pmd-close-modal]")) { closeModal(); return; }
