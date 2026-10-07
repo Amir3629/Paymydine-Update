@@ -891,24 +891,53 @@
     }
 
     var cached = stripeWalletCache[method];
-    if (cached && cached.element) {
-      if (show) {
-        stripeWalletMethod = method;
-        stripeWalletElements = cached.elements;
-        stripeWalletElement = cached.element;
-        setStripeWalletVisibility(method);
+    if (cached) {
+      cached.showRequested = cached.showRequested || show;
+
+      if (cached.element) {
+        if (cached.showRequested) {
+          stripeWalletMethod = method;
+          stripeWalletElements = cached.elements;
+          stripeWalletElement = cached.element;
+          setStripeWalletVisibility(method);
+          cached.showRequested = false;
+        }
+        return Promise.resolve(cached.element);
       }
-      return Promise.resolve(cached.element);
+
+      if (cached.promise) {
+        return cached.promise.then(function (element) {
+          if (cached.showRequested) {
+            stripeWalletMethod = method;
+            stripeWalletElements = cached.elements;
+            stripeWalletElement = cached.element;
+            setStripeWalletVisibility(method);
+            cached.showRequested = false;
+          }
+          return element;
+        });
+      }
     }
 
     var slot = stripeWalletSlot(method);
     if (!slot) return Promise.resolve(null);
 
+    var entry = cached || {
+      method: method,
+      elements: null,
+      element: null,
+      slot: slot,
+      available: null,
+      showRequested: show,
+      promise: null
+    };
+    stripeWalletCache[method] = entry;
+
     // The parent must be measurable while Stripe creates its iframe. The
     // inactive slot itself stays off-canvas until selected.
     if (guaranteeWalletNode) guaranteeWalletNode.hidden = false;
 
-    return ensureStripeClient().then(function () {
+    entry.promise = ensureStripeClient().then(function () {
       var guarantee = currentGuaranteeConfig();
       var elements = stripeClient.elements({
         mode: "setup",
@@ -930,14 +959,9 @@
         }
       );
 
-      var entry = {
-        method: method,
-        elements: elements,
-        element: element,
-        slot: slot,
-        available: null
-      };
-      stripeWalletCache[method] = entry;
+      entry.elements = elements;
+      entry.element = element;
+      entry.promise = null;
 
       element.mount(slot);
 
@@ -1036,11 +1060,12 @@
           });
       });
 
-      if (show) {
+      if (entry.showRequested) {
         stripeWalletMethod = method;
         stripeWalletElements = elements;
         stripeWalletElement = element;
         setStripeWalletVisibility(method);
+        entry.showRequested = false;
       } else {
         setStripeWalletVisibility(
           ["apple_pay", "google_pay"].includes(guaranteeSelectedMethod)
@@ -1050,7 +1075,13 @@
       }
 
       return element;
+    }).catch(function (error) {
+      entry.promise = null;
+      delete stripeWalletCache[method];
+      throw error;
     });
+
+    return entry.promise;
   }
 
   function warmGuaranteeStripe() {
