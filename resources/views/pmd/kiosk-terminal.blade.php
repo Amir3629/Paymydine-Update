@@ -7,6 +7,8 @@
     $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Dine in';
     $initialHero = trim((string)($pmdKioskConfig['hero'] ?? ''));
     $initialChooseService = request()->boolean('kiosk_choose_service');
+    $initialLocale = strtolower(substr((string)request()->query('lang', 'en'), 0, 3));
+    if (!preg_match('/^[a-z]{2,3}$/', $initialLocale)) $initialLocale = 'en';
 @endphp
 <!doctype html>
 <html lang="en">
@@ -52,7 +54,7 @@
                 </span>
                 <strong id="pmd-kiosk-service-choice-name">{{ e($initialRestaurantName) }}</strong>
             </div>
-            <button type="button" id="pmd-kiosk-service-language" class="pmd-kiosk-language-cycle" aria-label="Language">EN</button>
+            <button type="button" id="pmd-kiosk-service-language" class="pmd-kiosk-language-cycle" aria-label="Language">{{ e(strtoupper($initialLocale)) }}</button>
         </div>
 
         <div class="pmd-kiosk-service-choice__actions">
@@ -113,7 +115,7 @@
         </label>
 
         <div class="pmd-kiosk-language">
-            <button type="button" id="pmd-kiosk-language" class="pmd-kiosk-language-cycle" aria-label="Language">EN</button>
+            <button type="button" id="pmd-kiosk-language" class="pmd-kiosk-language-cycle" aria-label="Language">{{ e(strtoupper($initialLocale)) }}</button>
         </div>
     </header>
 
