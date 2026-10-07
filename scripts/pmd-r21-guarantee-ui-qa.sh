@@ -22,6 +22,7 @@ grep -Fq "PMD_PUBLIC_BOOKING_GUARANTEE_R21" public/assets/pmd/public-booking-v1.
 grep -Fq "stripeWalletCache" public/assets/pmd/public-booking-v1.js
 grep -Fq "warmGuaranteeStripe" public/assets/pmd/public-booking-v1.js
 grep -Fq "setStripeWalletVisibility" public/assets/pmd/public-booking-v1.js
+grep -Fq "20261007-r21" resources/views/pmd/public-booking.blade.php
 
 echo
 echo "PASS: R21 guarantee UI and provider-switch markers are valid."
