@@ -33,6 +33,11 @@
             'cancel' => 'Cancel reservation',
             'cancel_unavailable' => 'Online cancellation is no longer available for this reservation. Please contact the restaurant.',
             'cancel_confirm' => 'Cancel this reservation? This action cannot be undone.',
+            'cancel_dialog_eyebrow' => 'Reservation',
+            'cancel_dialog_title' => 'Cancel reservation?',
+            'cancel_dialog_body' => 'This reservation will be canceled and this action cannot be undone.',
+            'cancel_dialog_keep' => 'Keep reservation',
+            'cancel_dialog_confirm' => 'Cancel reservation',
             'canceling' => 'Canceling…',
             'updated' => 'Your reservation has been updated.',
             'canceled' => 'Your reservation has been canceled.',
@@ -87,6 +92,11 @@
             'cancel' => 'Reservierung stornieren',
             'cancel_unavailable' => 'Die Online-Stornierungsfrist für diese Reservierung ist abgelaufen. Bitte kontaktieren Sie das Restaurant.',
             'cancel_confirm' => 'Diese Reservierung stornieren? Dies kann nicht rückgängig gemacht werden.',
+            'cancel_dialog_eyebrow' => 'Reservierung',
+            'cancel_dialog_title' => 'Reservierung stornieren?',
+            'cancel_dialog_body' => 'Die Reservierung wird storniert. Dieser Vorgang kann nicht rückgängig gemacht werden.',
+            'cancel_dialog_keep' => 'Reservierung behalten',
+            'cancel_dialog_confirm' => 'Reservierung stornieren',
             'canceling' => 'Wird storniert…',
             'updated' => 'Ihre Reservierung wurde aktualisiert.',
             'canceled' => 'Ihre Reservierung wurde storniert.',
@@ -141,6 +151,11 @@
             'cancel' => 'Rezervasyonu iptal et',
             'cancel_unavailable' => 'Bu rezervasyon için çevrimiçi iptal süresi sona erdi. Lütfen restoranla iletişime geçin.',
             'cancel_confirm' => 'Bu rezervasyonu iptal etmek istiyor musunuz? Bu işlem geri alınamaz.',
+            'cancel_dialog_eyebrow' => 'Rezervasyon',
+            'cancel_dialog_title' => 'Rezervasyon iptal edilsin mi?',
+            'cancel_dialog_body' => 'Bu rezervasyon iptal edilecek ve bu işlem geri alınamayacak.',
+            'cancel_dialog_keep' => 'Rezervasyonu koru',
+            'cancel_dialog_confirm' => 'Rezervasyonu iptal et',
             'canceling' => 'İptal ediliyor…',
             'updated' => 'Rezervasyonunuz güncellendi.',
             'canceled' => 'Rezervasyonunuz iptal edildi.',
@@ -195,6 +210,11 @@
             'cancel' => 'إلغاء الحجز',
             'cancel_unavailable' => 'لم يعد الإلغاء عبر الإنترنت متاحًا لهذا الحجز. يرجى الاتصال بالمطعم.',
             'cancel_confirm' => 'إلغاء هذا الحجز؟ لا يمكن التراجع عن هذا الإجراء.',
+            'cancel_dialog_eyebrow' => 'الحجز',
+            'cancel_dialog_title' => 'إلغاء الحجز؟',
+            'cancel_dialog_body' => 'سيتم إلغاء هذا الحجز ولا يمكن التراجع عن هذا الإجراء.',
+            'cancel_dialog_keep' => 'الاحتفاظ بالحجز',
+            'cancel_dialog_confirm' => 'إلغاء الحجز',
             'canceling' => 'جارٍ الإلغاء…',
             'updated' => 'تم تحديث حجزك.',
             'canceled' => 'تم إلغاء حجزك.',
@@ -278,7 +298,7 @@
     <meta name="theme-color" content="#f4efe4">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $t['manage_booking'] }} · {{ $bookingProfile['name'] }}</title>
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r27">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r27-1">
 </head>
 <body class="pmd-booking-page pmd-booking-manage-page">
     <div class="pmd-booking-shell">
@@ -535,7 +555,27 @@
         </main>
     </div>
 
+    <div id="pmd-manage-cancel-dialog" class="pmd-booking-manage-dialog" hidden aria-hidden="true">
+        <div class="pmd-booking-manage-dialog__backdrop" data-pmd-manage-dialog-close aria-hidden="true"></div>
+        <section
+            class="pmd-booking-manage-dialog__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pmd-manage-cancel-dialog-title"
+            aria-describedby="pmd-manage-cancel-dialog-body"
+            tabindex="-1"
+        >
+            <span class="pmd-booking-manage-dialog__eyebrow" data-pmd-manage-i18n="cancel_dialog_eyebrow">{{ $t['cancel_dialog_eyebrow'] }}</span>
+            <h2 id="pmd-manage-cancel-dialog-title" data-pmd-manage-i18n="cancel_dialog_title">{{ $t['cancel_dialog_title'] }}</h2>
+            <p id="pmd-manage-cancel-dialog-body" data-pmd-manage-i18n="cancel_dialog_body">{{ $t['cancel_dialog_body'] }}</p>
+            <div class="pmd-booking-manage-dialog__actions">
+                <button id="pmd-manage-cancel-dialog-keep" class="pmd-booking-manage-dialog__keep" type="button" data-pmd-manage-i18n="cancel_dialog_keep">{{ $t['cancel_dialog_keep'] }}</button>
+                <button id="pmd-manage-cancel-dialog-confirm" class="pmd-booking-manage-dialog__confirm" type="button" data-pmd-manage-i18n="cancel_dialog_confirm">{{ $t['cancel_dialog_confirm'] }}</button>
+            </div>
+        </section>
+    </div>
+
     <script type="application/json" id="pmd-booking-manage-config">{!! json_encode($manageConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261007-r27" defer></script>
+    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261007-r27-1" defer></script>
 </body>
 </html>
