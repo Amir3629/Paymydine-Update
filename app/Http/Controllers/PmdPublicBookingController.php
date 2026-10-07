@@ -514,6 +514,12 @@ class PmdPublicBookingController extends Controller
             'reserve_time' => ['required', 'date_format:H:i'],
             'guest_num' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
             'occasion_id' => ['nullable', 'integer', 'in:0,3,6'],
+            'pmd_table_features' => ['nullable', 'array', 'max:3'],
+            'pmd_table_features.*' => [
+                'string',
+                'distinct',
+                'in:near_window,quiet_area,accessible',
+            ],
             'comment' => ['nullable', 'string', 'max:1000'],
             'consent' => ['accepted'],
             '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
@@ -542,6 +548,10 @@ class PmdPublicBookingController extends Controller
 
         $date = Carbon::createFromFormat('Y-m-d', (string)$data['reserve_date'], $timezone)->startOfDay();
         $this->guardBookableDate($date, $timezone);
+
+        $tablePreferences = $this->normalizePublicTablePreferences(
+            $data['pmd_table_features'] ?? []
+        );
 
         $guests = (int)$data['guest_num'];
         $time = (string)$data['reserve_time'];
@@ -630,7 +640,8 @@ class PmdPublicBookingController extends Controller
                 $timezone,
                 $availability,
                 $guaranteeVerified,
-                $guaranteeService
+                $guaranteeService,
+                $tablePreferences
             ) {
                 $allTableIds = $location->tables
                     ->pluck('table_id')
@@ -689,6 +700,11 @@ class PmdPublicBookingController extends Controller
                 $reservation->comment = trim((string)($data['comment'] ?? ''));
                 $reservation->status_id = $statusId;
                 $reservation->save();
+
+                $this->persistPublicTablePreferences(
+                    $reservation,
+                    $tablePreferences
+                );
 
                 $reservation->addReservationTables($tableIds);
 
@@ -1561,6 +1577,65 @@ class PmdPublicBookingController extends Controller
             'slots' => $slots,
             'capacity_slots' => $capacitySlots,
         ];
+    }
+
+    private function normalizePublicTablePreferences($features): array
+    {
+        $allowed = ['near_window', 'quiet_area', 'accessible'];
+
+        return collect((array)$features)
+            ->map(static fn ($feature): string => strtolower(trim((string)$feature)))
+            ->filter(static fn (string $feature): bool => in_array(
+                $feature,
+                $allowed,
+                true
+            ))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function persistPublicTablePreferences(
+        Reservations_model $reservation,
+        array $features
+    ): void {
+        if (!Schema::hasTable('pmd_reservation_preferences')) {
+            Log::warning(
+                'PMD public booking preference table is unavailable',
+                ['reservation_id' => (int)$reservation->getKey()]
+            );
+            return;
+        }
+
+        $reservationId = (int)$reservation->getKey();
+        if ($reservationId <= 0) {
+            return;
+        }
+
+        $features = $this->normalizePublicTablePreferences($features);
+        $query = DB::table('pmd_reservation_preferences')
+            ->where('reservation_id', $reservationId);
+
+        if (!$features) {
+            $query->delete();
+            return;
+        }
+
+        $encoded = json_encode(
+            $features,
+            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        );
+
+        if (!is_string($encoded)) {
+            throw new \RuntimeException(
+                'Unable to encode reservation table preferences.'
+            );
+        }
+
+        DB::table('pmd_reservation_preferences')->updateOrInsert(
+            ['reservation_id' => $reservationId],
+            ['table_features' => $encoded]
+        );
     }
 
     private function tableRules(Locations_model $location): array
