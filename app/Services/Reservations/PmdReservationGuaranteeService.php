@@ -1689,18 +1689,18 @@ final class PmdReservationGuaranteeService
         $grace = (int)$policy['grace_minutes'];
 
         if ($locale === 'de') {
-            return "Bis {$hours} Std. vorher kostenlos stornierbar. Bei Nichterscheinen können nach {$grace} Min. höchstens {$perGuest} pro Person berechnet werden – und nur, wenn dem Restaurant tatsächlich ein Schaden entstanden ist.";
+            return "Bis {$hours} Std. vorher kostenlos stornierbar. Bei Nichterscheinen können nach {$grace} Min. bis zu {$perGuest} pro Person berechnet werden.";
         }
 
         if ($locale === 'tr') {
-            return "{$hours} saat öncesine kadar ücretsiz iptal edebilirsiniz. Gelinmemesi durumunda {$grace} dk sonra kişi başı en fazla {$perGuest}, yalnızca restoranın gerçekten bir kaybı varsa tahsil edilebilir.";
+            return "{$hours} saat öncesine kadar ücretsiz iptal edebilirsiniz. Gelinmeme durumunda {$grace} dk sonra kişi başı en fazla {$perGuest} tahsil edilebilir.";
         }
 
         if ($locale === 'ar') {
-            return "يمكن الإلغاء مجاناً حتى {$hours} ساعة قبل الموعد. في حال عدم الحضور، يمكن بعد {$grace} دقيقة تحصيل ما يصل إلى {$perGuest} لكل شخص، وفقط إذا تكبد المطعم خسارة فعلية.";
+            return "يمكن الإلغاء مجاناً حتى {$hours} ساعة قبل الموعد. في حال عدم الحضور، يمكن بعد {$grace} دقيقة تحصيل ما يصل إلى {$perGuest} لكل شخص.";
         }
 
-        return "Cancel free up to {$hours}h before. For a no-show, up to {$perGuest} per guest may be charged after {$grace} min, and only if the restaurant has an actual loss.";
+        return "Cancel free up to {$hours}h before. For a no-show, up to {$perGuest} per guest may be charged after {$grace} min.";
     }
 
     private function consentText(array $policy): string
