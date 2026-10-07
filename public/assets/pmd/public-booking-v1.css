@@ -2869,3 +2869,21 @@ body.pmd-booking-dialog-open {
     transition: none;
   }
 }
+
+
+/* PMD_BOOKING_WHATSAPP_OPTIN_R28 */
+.pmd-booking-whatsapp-consent {
+  margin-top: 9px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--pmd-book-accent);
+  background: rgba(10, 105, 82, .045);
+}
+
+.pmd-booking-whatsapp-consent input:checked + span {
+  color: var(--pmd-book-ink);
+  font-weight: 700;
+}
+
+.pmd-booking-manage-form .pmd-booking-whatsapp-consent {
+  margin: 18px 0 0;
+}
