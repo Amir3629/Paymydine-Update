@@ -566,7 +566,7 @@
   function autoSubmitVerifiedBooking() {
     window.setTimeout(function () {
       if (form.requestSubmit) form.requestSubmit();
-      else form.dispatchEvent(new Event("saveButton", { bubbles: true, cancelable: true }));
+      else form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     }, 0);
   }
 
@@ -1157,9 +1157,8 @@
     var label = saveButton.querySelector("span");
     if (label) {
       label.textContent = String(
-        guarantee.buttonText
-        || labels.book_table
-        || "Confirm reservation"
+        labels.save
+        || "Save changes"
       );
     }
 
@@ -1547,8 +1546,8 @@
       var messages = error && error.payload ? responseMessages(error.payload) : [error.message];
       setMessage(messages[0] || "Update failed.", true);
     }).finally(function () {
-      saveButton.disabled = false;
       if (span) span.textContent = previous || (labels.save || "Save changes");
+      syncSubmitState();
     });
   }
 
