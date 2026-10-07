@@ -2,7 +2,7 @@ name: PayMyDine Device App V17
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, fix/kiosk-v9-theme-payment-sync, feat/kiosk-v18-terminal-printer-ux, fix/kiosk-v18-source-sync-v19, fix/kiosk-v20-performance-locales-checkout, fix/kiosk-v21-atomic-handoff-download-placeholders, fix/kiosk-v22-single-surface-kiosk-ux, fix/kiosk-v22-4-canonical-digital-menu-hero, fix/kiosk-v22-5-fullbleed-hero-food-details, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, fix/kiosk-v9-theme-payment-sync, feat/kiosk-v18-terminal-printer-ux, fix/kiosk-v18-source-sync-v19, fix/kiosk-v20-performance-locales-checkout, fix/kiosk-v21-atomic-handoff-download-placeholders, fix/kiosk-v22-single-surface-kiosk-ux, fix/kiosk-v22-4-canonical-digital-menu-hero, fix/kiosk-v22-5-fullbleed-hero-food-details, fix/kiosk-v22-6-option-only-plus, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
@@ -120,7 +120,7 @@ jobs:
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' app/Http/Controllers/PmdKioskPublicController.php
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.css
-          grep -Fq 'v=22-5-fullbleed-food-details' resources/views/pmd/kiosk-terminal.blade.php
+          grep -Fq 'v=22-6-option-only-plus' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
           grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
@@ -193,6 +193,11 @@ jobs:
           grep -Fq 'PMD_KIOSK_RICH_FOOD_DETAILS_V22_5' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_RICH_FOOD_DETAILS_V22_5' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_RICH_FOOD_DETAILS_V22_5' public/assets/pmd/kiosk-terminal-v8.css
+          grep -Fq 'PMD_KIOSK_OPTION_ONLY_PLUS_V22_6' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'PMD_KIOSK_OPTION_ONLY_PLUS_V22_6' public/assets/pmd/kiosk-terminal-v8.css
+          grep -Fq 'PMD_KIOSK_OPTION_ONLY_PLUS_V22_6' resources/views/pmd/kiosk-terminal.blade.php
+          ! grep -Fq 'pmd-kiosk-food-meta__disclaimer' public/assets/pmd/kiosk-terminal-v8.js
+          grep -Fq 'openOptionPicker(addItem)' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_PRESERVE_CART_ON_MODE_SWITCH_V22_2' public/assets/pmd/kiosk-terminal-v8.js
           ! grep -Fq 'Pay at terminal' public/assets/pmd/kiosk-terminal-v8.js
           ! grep -Fq 'Follow the instructions on the connected card terminal.' public/assets/pmd/kiosk-terminal-v8.js
