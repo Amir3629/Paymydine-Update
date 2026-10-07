@@ -948,7 +948,8 @@
 
       var paymentMethods = {
         applePay: method === "apple_pay" ? "always" : "never",
-        googlePay: method === "google_pay" ? "always" : "never"
+        googlePay: method === "google_pay" ? "always" : "never",
+        link: "never"
       };
 
       var element = elements.create(
