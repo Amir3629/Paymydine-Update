@@ -464,27 +464,45 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
             $table = $reservation->tables ? $reservation->tables->first() : null;
 
-            DB::table('notifications')->insert([
+            $payload = [
+                'reservation_id' => (int)$reservation->getKey(),
+                'reference' => 'R'.str_pad(
+                    (string)$reservation->getKey(),
+                    6,
+                    '0',
+                    STR_PAD_LEFT
+                ),
+                'source' => 'reservation_card_guarantee',
+                'message' => $message,
+                'priority' => $priority,
+            ];
+
+            $notification = [
                 'type' => $type,
                 'title' => $title,
-                'message' => $message,
                 'table_id' => $table ? (int)$table->table_id : null,
                 'table_name' => $table ? (string)$table->table_name : null,
-                'payload' => json_encode([
-                    'reservation_id' => (int)$reservation->getKey(),
-                    'reference' => 'R'.str_pad(
-                        (string)$reservation->getKey(),
-                        6,
-                        '0',
-                        STR_PAD_LEFT
-                    ),
-                    'source' => 'reservation_card_guarantee',
-                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'payload' => json_encode(
+                    $payload,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
                 'status' => 'new',
-                'priority' => $priority,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
+
+            // PMD_NOTIFICATION_SCHEMA_COMPAT_R26
+            // Legacy tenant notification tables do not all have message or
+            // priority columns. Preserve both values in payload and only write
+            // optional columns when they exist on the active tenant.
+            if (IlluminateSupportFacadesSchema::hasColumn('notifications', 'message')) {
+                $notification['message'] = $message;
+            }
+            if (IlluminateSupportFacadesSchema::hasColumn('notifications', 'priority')) {
+                $notification['priority'] = $priority;
+            }
+
+            DB::table('notifications')->insert($notification);
         } catch (Throwable $error) {
             logger()->warning('PMD guarantee notification failed', [
                 'reservation_id' => (int)$reservation->getKey(),
