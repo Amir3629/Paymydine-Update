@@ -138,7 +138,10 @@
       link.removeAttribute("aria-current");
       if (!current) visibleLanguages += 1;
     });
-    if (languageNav) languageNav.hidden = visibleLanguages === 0;
+    if (languageNav) {
+      languageNav.hidden = visibleLanguages === 0;
+      languageNav.classList.toggle("is-single-choice", visibleLanguages === 1);
+    }
 
     var hiddenLang = document.querySelector('input[name="lang"]');
     if (hiddenLang) hiddenLang.value = code;
