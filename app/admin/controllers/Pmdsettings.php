@@ -996,8 +996,9 @@ class Pmdsettings extends AdminController
 
     public function onTestReservationEmail()
     {
+        $messagingInput = (array)post('messaging', []);
         $result = app(PmdReservationMessagingService::class)->testEmail(
-            trim((string)post('messaging.test_email', ''))
+            trim((string)($messagingInput['test_email'] ?? ''))
         );
 
         $class = !empty($result['success']) ? 'is-success' : 'is-error';
