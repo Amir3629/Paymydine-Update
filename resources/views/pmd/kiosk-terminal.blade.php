@@ -244,6 +244,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=22-single-surface-kiosk" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=22-4-canonical-digital-menu-hero" defer></script>
 </body>
 </html>
