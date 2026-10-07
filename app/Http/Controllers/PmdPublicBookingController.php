@@ -1529,32 +1529,51 @@ class PmdPublicBookingController extends Controller
                 $message .= ' · '.implode(', ', array_slice($changes, 0, 3));
             }
 
-            DB::table('notifications')->insert([
+            $priority = $action === 'canceled' ? 'high' : 'medium';
+            $payload = [
+                'reservation_id' => $id,
+                'reference' => $reference,
+                'action' => $action,
+                'customer_name' => $name,
+                'date' => $date,
+                'time' => $time,
+                'guests' => (int)$reservation->guest_num,
+                'status_id' => (int)$reservation->status_id,
+                'status_name' => (string)($reservation->status_name ?? ''),
+                'changes' => array_values($changes),
+                'source' => 'public_booking',
+                'message' => $message,
+                'priority' => $priority,
+                'admin_reservations_url' => '/admin/reservations?pmd_mode=edit&pmd_id='.$id,
+                'pos_reservations_url' => '/admin/pos?workspace=reservations',
+            ];
+
+            $notification = [
                 'type' => $type,
                 'title' => $verb,
-                'message' => $message,
                 'table_id' => $table ? (int)$table->table_id : null,
                 'table_name' => $table ? (string)$table->table_name : null,
-                'payload' => json_encode([
-                    'reservation_id' => $id,
-                    'reference' => $reference,
-                    'action' => $action,
-                    'customer_name' => $name,
-                    'date' => $date,
-                    'time' => $time,
-                    'guests' => (int)$reservation->guest_num,
-                    'status_id' => (int)$reservation->status_id,
-                    'status_name' => (string)($reservation->status_name ?? ''),
-                    'changes' => array_values($changes),
-                    'source' => 'public_booking',
-                    'admin_reservations_url' => '/admin/reservations?pmd_mode=edit&pmd_id='.$id,
-                    'pos_reservations_url' => '/admin/pos?workspace=reservations',
-                ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'payload' => json_encode(
+                    $payload,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                ),
                 'status' => 'new',
-                'priority' => $action === 'canceled' ? 'high' : 'medium',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
+
+            // PMD_NOTIFICATION_SCHEMA_COMPAT_R26
+            // Production tenants still use the legacy notification table on
+            // which message/priority may not exist. Keep rich copy in payload,
+            // and write optional columns only when that tenant actually has them.
+            if (Schema::hasColumn('notifications', 'message')) {
+                $notification['message'] = $message;
+            }
+            if (Schema::hasColumn('notifications', 'priority')) {
+                $notification['priority'] = $priority;
+            }
+
+            DB::table('notifications')->insert($notification);
         } catch (Throwable $error) {
             Log::warning('PMD public booking admin notification failed', [
                 'reservation_id' => (int)$reservation->getKey(),
