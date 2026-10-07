@@ -218,6 +218,7 @@ private fun KioskApp(
     var heroImages by remember { mutableStateOf<List<String>>(emptyList()) }
     var menuBootstrapReady by remember { mutableStateOf(false) }
     var menuOpening by remember { mutableStateOf(false) }
+    var menuActivityStarted by remember { mutableStateOf(false) }
     // PMD_KIOSK_TENANT_LOCALES_V20
     // Locale is resolved only after the paired tenant profile arrives.
     var selectedLocale by remember { mutableStateOf("") }
@@ -298,7 +299,17 @@ private fun KioskApp(
 
         while (true) {
             loadProfile()
-            delay(15_000L)
+            // PMD_KIOSK_FAST_RECOVERY_V22
+            // A transient restaurant/API miss should be almost invisible to the
+            // guest. Retry quickly until the tenant profile is reachable, then
+            // return to the normal low-frequency heartbeat.
+            delay(
+                if (profile == null && !error.isNullOrBlank()) {
+                    3_000L
+                } else {
+                    15_000L
+                },
+            )
         }
     }
 
@@ -310,44 +321,33 @@ private fun KioskApp(
         }
     }
 
-    LaunchedEffect(screen, profile, heroImages, menuBootstrapReady, selectedLocale) {
-        val current = profile
+    LaunchedEffect(screen, profile, selectedLocale, menuActivityStarted) {
+        val current = profile ?: return@LaunchedEffect
         if (
             screen != KioskScreen.WELCOME ||
-            current == null ||
-            !menuBootstrapReady
+            menuActivityStarted
         ) {
             return@LaunchedEffect
         }
 
-        // PMD_KIOSK_EXACT_WEBVIEW_PREWARM_V15
-        // V12 only opened about:blank and destroyed it 220ms later, which
-        // warmed Chromium itself but still left the real menu HTML/JS/render
-        // work for the guest's tap. V15 waits until the native bootstrap is in
-        // memory, then renders both exact service-mode pages
-        // behind the welcome screen and hands the selected ready WebView to the
-        // next Activity.
-        val hero = heroImages.firstOrNull().orEmpty()
-        KioskMenuWarmPool.prewarm(
-            context = context,
-            profile = current,
-            serviceMode = "eat_in",
-            heroImage = hero,
-            locale = selectedLocale,
+        // PMD_KIOSK_SINGLE_SURFACE_V22
+        // Launch the one kiosk WebView surface before the guest chooses a mode.
+        // DINE IN / TAKE AWAY now lives inside that exact document as an overlay,
+        // so tapping a service mode never starts another Activity or reloads
+        // Chromium.
+        menuActivityStarted = true
+        context.startActivity(
+            KioskMenuActivity.intent(
+                context = context,
+                profile = current,
+                serviceMode = "eat_in",
+                heroImage = heroImages.firstOrNull().orEmpty(),
+                locale = selectedLocale,
+                deviceToken = store.token().orEmpty(),
+                showServiceChooser = true,
+            ),
         )
-
-        // PMD_KIOSK_STAGGERED_PREWARM_V20
-        // Two Chromium pre-renders starting in the same frame can stall the
-        // welcome screen on lower-end devices/emulators. Warm the second mode
-        // shortly after the first while the guest is still choosing.
-        delay(420L)
-        KioskMenuWarmPool.prewarm(
-            context = context,
-            profile = current,
-            serviceMode = "pickup",
-            heroImage = hero,
-            locale = selectedLocale,
-        )
+        (context as? Activity)?.overridePendingTransition(0, 0)
     }
 
 
@@ -467,25 +467,13 @@ private fun KioskApp(
 
         KioskScreen.WELCOME -> {
             val current = profile ?: return
-            KioskWelcomeScreen(
-                profile = current,
-                heroImages = heroImages,
-                locale = selectedLocale,
-                supportedLocales = current.supportedLocales,
-                onLocaleChange = { selectedLocale = it },
-                onEatHere = {
-                    lastInteractionMs = SystemClock.elapsedRealtime()
-                    scope.launch {
-                        openPreparedMenu(current, "eat_in")
-                    }
-                },
-                onTakeAway = {
-                    lastInteractionMs = SystemClock.elapsedRealtime()
-                    scope.launch {
-                        openPreparedMenu(current, "pickup")
-                    }
-                },
-            )
+            // The guest-facing service selector is now rendered inside the same
+            // WebView as the menu. Keep only a theme-matched handoff surface
+            // behind KioskMenuActivity; there is no second interactive page.
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = kioskColor(current.theme.background, Color(0xFFF4F8F6)),
+            ) {}
         }
 
         KioskScreen.MENU -> {
@@ -657,37 +645,41 @@ private fun KioskLoadingScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            KioskBrand(72.dp)
-            Spacer(Modifier.height(22.dp))
-            if (error.isNullOrBlank()) {
-                CircularProgressIndicator(color = Color(0xFF0A6B57))
-                Text(
-                    "Opening kiosk…",
+            // PMD_KIOSK_SIMPLE_CONNECTION_V22
+            // Do not show PayMyDine product branding or raw socket diagnostics
+            // on a restaurant guest screen. Recovery is automatic.
+            CircularProgressIndicator(
+                color = Color(0xFF0A6B57),
+                strokeWidth = 3.dp,
+            )
+            Text(
+                if (error.isNullOrBlank()) "Opening…" else "Connection interrupted",
+                modifier = Modifier.padding(top = 20.dp),
+                color = Color(0xFF17342F),
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                if (error.isNullOrBlank()) "Just a moment" else "Reconnecting…",
+                modifier = Modifier.padding(top = 7.dp),
+                color = Color(0xFF6D7C79),
+                fontSize = 17.sp,
+                textAlign = TextAlign.Center,
+            )
+            if (!error.isNullOrBlank()) {
+                TextButton(
                     modifier = Modifier.padding(top = 14.dp),
-                    color = Color(0xFF17342F),
-                    fontWeight = FontWeight.Bold,
-                )
-            } else {
-                Text(
-                    "Connection needed",
-                    color = Color(0xFF17342F),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Black,
-                )
-                Text(
-                    error,
-                    modifier = Modifier.padding(top = 8.dp),
-                    color = Color(0xFF6D7C79),
-                    textAlign = TextAlign.Center,
-                )
-                Button(
-                    modifier = Modifier.padding(top = 18.dp),
-                    onClick = onRetry,
+                    onClick = onBack,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFF0A6B57),
+                    ),
                 ) {
-                    Text("Try again")
-                }
-                TextButton(onClick = onBack) {
-                    Text("Back to device setup")
+                    Text(
+                        "Device setup",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
             }
         }
@@ -864,42 +856,24 @@ private fun KioskLanguageMenu(
         .filter { it.matches(Regex("^[a-z]{2,3}$")) }
         .distinct()
         .ifEmpty { listOf("en") }
-    var expanded by remember { mutableStateOf(false) }
     val active = locale.takeIf { it in locales } ?: locales.first()
 
-    Box {
-        TextButton(
-            onClick = { if (locales.size > 1) expanded = true },
-        ) {
-            Text(
-                active.uppercase(Locale.ROOT) + if (locales.size > 1) "  ▾" else "",
-                color = text,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Black,
-            )
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            containerColor = surface,
-        ) {
-            locales.forEach { code ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            code.uppercase(Locale.ROOT),
-                            color = text,
-                            fontWeight = if (code == active) FontWeight.Black else FontWeight.Medium,
-                        )
-                    },
-                    onClick = {
-                        expanded = false
-                        onLocaleChange(code)
-                    },
-                )
+    // PMD_KIOSK_LANGUAGE_CYCLE_V22
+    // One tap = next restaurant-enabled language. No dropdown/menu.
+    TextButton(
+        onClick = {
+            if (locales.size > 1) {
+                val index = locales.indexOf(active).coerceAtLeast(0)
+                onLocaleChange(locales[(index + 1) % locales.size])
             }
-        }
+        },
+    ) {
+        Text(
+            active.uppercase(Locale.ROOT),
+            color = text,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Black,
+        )
     }
 }
 

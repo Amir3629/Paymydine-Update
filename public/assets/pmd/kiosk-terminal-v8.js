@@ -3,6 +3,7 @@
 // PMD_KIOSK_SMOOTH_SCROLL_V13
 // PMD_KIOSK_TERMINAL_ONLY_V18
 // PMD_KIOSK_SCROLL_CATEGORIES_V18
+// PMD_KIOSK_SINGLE_SURFACE_RUNTIME_V22
 (function () {
   "use strict";
 
@@ -31,6 +32,16 @@
   var checkoutButton = $("pmd-kiosk-checkout");
   var compactOrder = $("pmd-kiosk-compact-order");
   var clearOrder = $("pmd-kiosk-clear-order");
+  var orderModeButton = $("pmd-kiosk-order-mode");
+  var serviceChoice = $("pmd-kiosk-service-choice");
+  var serviceLanguage = $("pmd-kiosk-service-language");
+  var serviceChoiceName = $("pmd-kiosk-service-choice-name");
+  var serviceChoiceLogo = $("pmd-kiosk-service-choice-logo");
+  var serviceDineLabel = $("pmd-kiosk-service-dine-label");
+  var serviceTakeawayLabel = $("pmd-kiosk-service-takeaway-label");
+  var completeScreen = $("pmd-kiosk-complete");
+  var completeOrder = $("pmd-kiosk-complete-order");
+  var completeTimer = null;
 
   var COPY = {
     en: {
@@ -139,6 +150,20 @@
   var cartKey = "pmd-kiosk-v8-cart:" + String(config.session || "kiosk");
   var orderKey = "pmd-kiosk-v8-order:" + String(config.session || "kiosk");
   var paymentKey = "pmd-kiosk-v8-payment:" + String(config.session || "kiosk");
+
+  function nextGuestSession() {
+    var value = "";
+    try {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") value = window.crypto.randomUUID();
+    } catch (error) {}
+    if (!value) {
+      value = "kiosk-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+    }
+    config.session = value;
+    cartKey = "pmd-kiosk-v8-cart:" + value;
+    orderKey = "pmd-kiosk-v8-order:" + value;
+    paymentKey = "pmd-kiosk-v8-payment:" + value;
+  }
   var bootstrapCacheKey = "pmd-kiosk-v13-bootstrap:" + String(window.location.host || "tenant");
   var bootstrapCacheMaxAgeMs = 6 * 60 * 60 * 1000;
   var bootPresented = false;
@@ -335,6 +360,14 @@
     return '<img class="pmd-kiosk-food-placeholder" src="/brand/paymydine-logo.svg" alt="" data-pmd-food-placeholder="true" loading="eager" decoding="async">';
   }
 
+  function isFoodPlaceholderAsset(value) {
+    var clean = String(value || "").trim().toLowerCase().split("#")[0].split("?")[0];
+    if (!clean) return true;
+    return clean.indexOf("/brand/paymydine-logo.svg") >= 0 ||
+      clean.indexOf("images/pasta.png") >= 0 ||
+      /\/(placeholder|no-image|no_image)(\.|\/)/.test(clean);
+  }
+
   function normalizeAsset(value) {
     var raw = String(value || "").trim();
     if (!raw || raw === "null" || raw === "undefined") return "";
@@ -346,7 +379,7 @@
     if (clean.indexOf("uploads/") === 0) return "/assets/media/" + clean;
     if (clean.indexOf("storage/") === 0) return "/" + clean;
     if (clean.indexOf("brand/") === 0) return "/" + clean;
-    if (clean === "images/pasta.png") return "/brand/paymydine-logo.svg";
+    if (clean === "images/pasta.png") return "";
     if (clean.indexOf("images/") === 0) return "/api/media/" + encodeURI(clean.slice(7));
     return "/api/media/" + encodeURI(clean);
   }
@@ -605,13 +638,15 @@
     var suffix = (selections || []).slice().sort(function (a, b) {
       return (a.groupId + ":" + a.valueId).localeCompare(b.groupId + ":" + b.valueId);
     }).map(function (entry) { return entry.groupId + "=" + entry.valueId; }).join("&");
-    return String(item.id) + (suffix ? "?" + suffix : "") + (note ? "#note=" + note : "");
+    return String(item.id) + (suffix ? "?" + suffix : "");
   }
 
   function addConfiguredItem(item, quantity, selections, note) {
     quantity = Math.max(1, number(quantity, 1));
     selections = selections || [];
-    note = cleanText(note, "").slice(0, 500);
+    // PMD_KIOSK_NO_ITEM_NOTES_V22
+    // Self-service kiosk never exposes or submits free-form item notes.
+    note = "";
     var optionPrice = selections.reduce(function (sum, entry) { return sum + number(entry.price); }, 0);
     var unitPrice = Math.max(0, item.price + optionPrice);
     var key = cartKeyFor(item, selections, note);
@@ -696,10 +731,99 @@
   }
 
   function renderLanguages() {
-    languageSelect.innerHTML = state.enabledLocales.map(function (locale) {
-      return '<option value="' + escapeHtml(locale) + '"' + (locale === state.locale ? " selected" : "") + '>' + escapeHtml(locale.toUpperCase()) + "</option>";
-    }).join("");
+    var label = String(state.locale || state.enabledLocales[0] || "en").toUpperCase();
+    languageSelect.textContent = label;
+    languageSelect.setAttribute("aria-label", "Language · " + label);
+    if (serviceLanguage) {
+      serviceLanguage.textContent = label;
+      serviceLanguage.setAttribute("aria-label", "Language · " + label);
+    }
   }
+
+  function cycleLanguage() {
+    var locales = state.enabledLocales.length ? state.enabledLocales : ["en"];
+    if (locales.length < 2) return;
+    var index = locales.indexOf(state.locale);
+    state.locale = locales[(index < 0 ? 0 : index + 1) % locales.length];
+    renderLocaleState();
+    renderServiceChoice();
+    if (!modalLayer.hidden && state.currentModal && state.currentModal.type === "checkout") renderCheckout();
+  }
+
+  function renderServiceChoice() {
+    if (!serviceChoice) return;
+    if (serviceChoiceName) serviceChoiceName.textContent = state.restaurant.name || "Restaurant";
+    if (serviceChoiceLogo) {
+      if (state.restaurant.logo) {
+        serviceChoiceLogo.innerHTML = '<img src="' + escapeHtml(state.restaurant.logo) + '" alt="">';
+      } else {
+        serviceChoiceLogo.innerHTML = '<span>' + escapeHtml((state.restaurant.name || "R").charAt(0).toUpperCase()) + "</span>";
+      }
+    }
+    if (serviceDineLabel) serviceDineLabel.textContent = "DINE IN";
+    if (serviceTakeawayLabel) serviceTakeawayLabel.textContent = copy().takeAway.toUpperCase();
+    renderLanguages();
+  }
+
+  function showServiceChoice() {
+    if (!serviceChoice || state.busy) return;
+    closeModal();
+    if (completeScreen) completeScreen.hidden = true;
+    renderServiceChoice();
+    serviceChoice.hidden = false;
+    document.body.classList.add("pmd-kiosk-service-choice-open");
+  }
+
+  function chooseServiceMode(mode) {
+    var nextMode = mode === "pickup" ? "pickup" : "eat_in";
+    if (nextMode !== config.serviceMode && state.cart.length) clearCartState();
+    config.serviceMode = nextMode;
+    if (serviceChoice) serviceChoice.hidden = true;
+    document.body.classList.remove("pmd-kiosk-service-choice-open");
+    renderBrand();
+    renderOrder();
+  }
+
+  function resetGuestSession() {
+    if (completeTimer) {
+      window.clearTimeout(completeTimer);
+      completeTimer = null;
+    }
+    state.busy = false;
+    state.cart = [];
+    state.order = null;
+    state.paymentStatus = "";
+    state.tipPercent = 0;
+    state.couponCode = "";
+    state.couponDiscount = 0;
+    state.search = "";
+    searchInput.value = "";
+    searchClear.hidden = true;
+    try {
+      sessionStorage.removeItem(cartKey);
+      sessionStorage.removeItem(orderKey);
+      sessionStorage.removeItem(paymentKey);
+    } catch (error) {}
+    // PMD_KIOSK_NEW_GUEST_SESSION_V22
+    // Same WebView, new guest: rotate idempotency/payment session keys without
+    // reloading the document.
+    nextGuestSession();
+    renderCartState();
+    showServiceChoice();
+  }
+
+  window.PMDKioskResetToServiceChoice = resetGuestSession;
+  window.PMDKioskOrderComplete = function (orderId) {
+    state.busy = false;
+    if (completeScreen) {
+      completeScreen.hidden = false;
+      if (completeOrder) completeOrder.textContent = orderId ? "#" + String(orderId) : "";
+    }
+    closeModal();
+    completeTimer = window.setTimeout(function () {
+      resetGuestSession();
+    }, 4000);
+  };
 
   function categoryIcon(name) {
     var value = String(name || "").toLowerCase();
@@ -805,7 +929,7 @@
       var cards = categoryItems.map(function (item) {
         var localIndex = index++;
         var quantity = itemCartQuantity(item.id);
-        var image = item.image
+        var image = item.image && !isFoodPlaceholderAsset(item.image)
           ? '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) +
             '" loading="' + (localIndex < 4 ? "eager" : "lazy") + '" decoding="async"' +
             (localIndex < 2 ? ' fetchpriority="high"' : '') + '>'
@@ -938,7 +1062,6 @@
       return '<article class="pmd-kiosk-order-line">' +
         '<div class="pmd-kiosk-order-line__head"><div><strong>' + escapeHtml(line.item.name) + "</strong>" +
           (options ? "<small>" + escapeHtml(options) + "</small>" : "") +
-          (line.note ? "<small>" + escapeHtml(line.note) + "</small>" : "") +
         '</div><span class="pmd-kiosk-order-line__price">' + escapeHtml(money(line.unitPrice * line.quantity)) + "</span></div>" +
         '<div class="pmd-kiosk-stepper">' +
           '<button type="button" data-line-minus="' + escapeHtml(line.key) + '" aria-label="Decrease">−</button>' +
@@ -951,6 +1074,7 @@
   function renderAll() {
     renderBrand();
     renderLanguages();
+    renderServiceChoice();
     renderCategories();
     renderMenu();
     renderOrder();
@@ -959,6 +1083,7 @@
   function renderLocaleState() {
     renderBrand();
     renderLanguages();
+    renderServiceChoice();
     renderCategories();
     refreshMenuPrices();
     renderOrder();
@@ -1015,14 +1140,14 @@
     if (!item) return;
     state.currentModal = { type: "item", itemId: item.id };
     var selected = defaultSelections(item);
-    var detailImage = item.image
+    var detailImage = item.image && !isFoodPlaceholderAsset(item.image)
       ? '<div class="pmd-kiosk-detail__image"><img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '"></div>'
       : '<div class="pmd-kiosk-detail__image">' + foodPlaceholderHtml() + "</div>";
     var groups = item.options.map(function (group) {
       var inputs = group.values.map(function (value) {
         var checked = (selected[group.id] || []).indexOf(value.id) >= 0;
         var type = group.displayType === "checkbox" ? "checkbox" : "radio";
-        return '<label class="pmd-kiosk-option"><span><input type="' + type + '" name="option-' + escapeHtml(group.id) +
+        return '<label class="pmd-kiosk-option' + (checked ? ' is-selected' : '') + '"><span><input type="' + type + '" name="option-' + escapeHtml(group.id) +
           '" value="' + escapeHtml(value.id) + '" data-option-group="' + escapeHtml(group.id) + '"' +
           (checked ? " checked" : "") + "> " + escapeHtml(value.name) + "</span>" +
           (value.price > 0 ? "<small>+" + escapeHtml(money(value.price)) + "</small>" : "") + "</label>";
@@ -1038,8 +1163,6 @@
       '<div class="pmd-kiosk-modal__body"><div class="pmd-kiosk-detail">' + detailImage +
         '<div class="pmd-kiosk-detail__copy">' + (item.description ? "<p>" + escapeHtml(item.description) + "</p>" : "") +
           groups +
-          '<label class="pmd-kiosk-option-group"><legend>' + escapeHtml(copy().note) + '</legend><textarea id="pmd-kiosk-item-note" rows="3" maxlength="500" placeholder="' +
-            escapeHtml(copy().noteHint) + '" style="width:100%;resize:vertical;border:1px solid var(--pmd-k-line);border-radius:8px;padding:10px;background:#fff;color:var(--pmd-k-ink)"></textarea></label>' +
         "</div></div></div>" +
       '<footer class="pmd-kiosk-modal__foot"><button type="button" class="pmd-kiosk-secondary" data-pmd-close-modal>' +
         escapeHtml(copy().cancel) + '</button><button type="button" class="pmd-kiosk-primary" data-add-configured="' + escapeHtml(item.id) + '">' +
@@ -1126,9 +1249,13 @@
   function reviewLinesHtml() {
     return '<div class="pmd-kiosk-review-list">' + state.cart.map(function (line) {
       var detail = (line.selections || []).map(function (entry) { return entry.valueName; }).join(" · ");
-      return '<div class="pmd-kiosk-review-line"><b>' + line.quantity + "×</b><div><strong>" + escapeHtml(line.item.name) +
-        "</strong>" + (detail ? "<small>" + escapeHtml(detail) + "</small>" : "") + (line.note ? "<small>" + escapeHtml(line.note) + "</small>" : "") +
-        "</div><span>" + escapeHtml(money(line.unitPrice * line.quantity)) + "</span></div>";
+      return '<article class="pmd-kiosk-review-line"><div class="pmd-kiosk-review-line__copy"><strong>' + escapeHtml(line.item.name) +
+        "</strong>" + (detail ? "<small>" + escapeHtml(detail) + "</small>" : "") +
+        '</div><div class="pmd-kiosk-review-line__actions"><div class="pmd-kiosk-stepper">' +
+          '<button type="button" data-line-minus="' + escapeHtml(line.key) + '" aria-label="Decrease">−</button>' +
+          "<b>" + line.quantity + "</b>" +
+          '<button type="button" data-line-plus="' + escapeHtml(line.key) + '" aria-label="Increase">+</button>' +
+        '</div><strong class="pmd-kiosk-review-line__price">' + escapeHtml(money(line.unitPrice * line.quantity)) + "</strong></div></article>";
     }).join("") + "</div>";
   }
 
@@ -1156,13 +1283,8 @@
       "</p><h2>" + escapeHtml(copy().checkout || "Checkout") +
       '</h2></div><button type="button" class="pmd-kiosk-modal__close" data-pmd-close-modal aria-label="Close">×</button></header>' +
       '<div class="pmd-kiosk-modal__body pmd-kiosk-checkout-screen__body">' + body +
-        '<section class="pmd-kiosk-terminal-pay-panel">' +
-          '<div class="pmd-kiosk-terminal-pay-panel__icon" aria-hidden="true">⌁</div>' +
-          '<div><h3>Pay at terminal</h3><p>Use the payment terminal connected to this kiosk.</p></div>' +
-        '</section>' +
         '<button type="button" class="pmd-kiosk-terminal-pay" data-terminal-pay' + (state.busy ? " disabled" : "") + '>PAY</button>' +
-        '<p class="pmd-kiosk-terminal-help">Follow the instructions on the connected card terminal.</p>' +
-        '<div id="pmd-kiosk-provider-slot"></div>' + status +
+        status +
       "</div>",
       true
     );
@@ -1249,7 +1371,7 @@
           quantity: line.quantity,
           price: line.item.price,
           subtotal: Math.round(line.unitPrice * line.quantity * 100) / 100,
-          special_instructions: line.note || "",
+          special_instructions: "",
           options: options
         };
       }),
@@ -2189,20 +2311,50 @@
     renderMenu();
   });
 
-  languageSelect.addEventListener("change", function () {
-    state.locale = languageSelect.value || "en";
-    // PMD_KIOSK_DOM_STABLE_V20
-    // Locale changes update labels/prices without destroying the menu cards.
-    renderLocaleState();
-    if (!modalLayer.hidden && state.currentModal && state.currentModal.type === "checkout") renderCheckout();
-  });
+  languageSelect.addEventListener("click", cycleLanguage);
+  if (serviceLanguage) serviceLanguage.addEventListener("click", cycleLanguage);
+  if (orderModeButton) orderModeButton.addEventListener("click", showServiceChoice);
+  if (serviceChoice) {
+    serviceChoice.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-service-mode]");
+      if (!button) return;
+      chooseServiceMode(button.getAttribute("data-service-mode"));
+    });
+  }
 
   checkoutButton.addEventListener("click", openCheckout);
   compactOrder.addEventListener("click", openCheckout);
   clearOrder.addEventListener("click", clearCartState);
 
+  modalLayer.addEventListener("change", function (event) {
+    var input = event.target.closest("[data-option-group]");
+    if (!input) return;
+    var groupId = input.getAttribute("data-option-group") || "";
+    if (input.type === "radio") {
+      Array.prototype.slice.call(modal.querySelectorAll('[data-option-group="' + CSS.escape(groupId) + '"]')).forEach(function (node) {
+        var label = node.closest(".pmd-kiosk-option");
+        if (label) label.classList.toggle("is-selected", node.checked);
+      });
+    } else {
+      var label = input.closest(".pmd-kiosk-option");
+      if (label) label.classList.toggle("is-selected", input.checked);
+    }
+  });
+
   modalLayer.addEventListener("click", function (event) {
     if (event.target.closest("[data-pmd-close-modal]")) { closeModal(); return; }
+
+    var checkoutMinus = event.target.closest("[data-line-minus]");
+    var checkoutPlus = event.target.closest("[data-line-plus]");
+    if (checkoutMinus || checkoutPlus) {
+      updateLine(
+        (checkoutMinus || checkoutPlus).getAttribute(checkoutMinus ? "data-line-minus" : "data-line-plus"),
+        checkoutMinus ? -1 : 1
+      );
+      if (!state.cart.length) closeModal();
+      else renderCheckout();
+      return;
+    }
 
     if (event.target.closest("[data-terminal-pay]")) {
       startTerminalPayment();
@@ -2215,8 +2367,7 @@
       if (!item) return;
       try {
         var selections = collectSelections(item);
-        var noteNode = $("pmd-kiosk-item-note");
-        addConfiguredItem(item, 1, selections, noteNode ? noteNode.value : "");
+        addConfiguredItem(item, 1, selections, "");
       } catch (error) {
         showToast(error.message || "Choose the required options.", true);
       }
