@@ -5,6 +5,7 @@
 // PMD_KIOSK_SCROLL_CATEGORIES_V18
 // PMD_KIOSK_SINGLE_SURFACE_RUNTIME_V22
 // PMD_KIOSK_RICH_FOOD_DETAILS_V22_5
+// PMD_KIOSK_OPTION_ONLY_PLUS_V22_6
 (function () {
   "use strict";
 
@@ -1288,9 +1289,7 @@
           return '<div class="pmd-kiosk-food-metric"><span class="pmd-kiosk-food-metric__icon">' + foodMetaIcon(entry.kind) +
             '</span><span><small>' + escapeHtml(entry.label) + '</small><strong>' + escapeHtml(entry.value) + '</strong></span></div>';
         }).join("") +
-        '</div>' +
-        (nutrition && nutrition.disclaimer ? '<p class="pmd-kiosk-food-meta__disclaimer">' + escapeHtml(nutrition.disclaimer) + '</p>' : '') +
-        '</section>'
+        '</div></section>'
       );
     }
 
@@ -1307,6 +1306,38 @@
     return result;
   }
 
+  function optionGroupsHtml(item, selected) {
+    return item.options.map(function (group) {
+      var inputs = group.values.map(function (value) {
+        var checked = (selected[group.id] || []).indexOf(value.id) >= 0;
+        var type = group.displayType === "checkbox" ? "checkbox" : "radio";
+        return '<label class="pmd-kiosk-option' + (checked ? ' is-selected' : '') + '"><span><input type="' + type + '" name="option-' + escapeHtml(group.id) +
+          '" value="' + escapeHtml(value.id) + '" data-option-group="' + escapeHtml(group.id) + '"' +
+          (checked ? " checked" : "") + '> ' + escapeHtml(value.name) + "</span>" +
+          (value.price > 0 ? "<small>+" + escapeHtml(money(value.price)) + "</small>" : "") + "</label>";
+      }).join("");
+      return '<fieldset class="pmd-kiosk-option-group" data-required="' + (group.required ? "1" : "0") +
+        '" data-group-id="' + escapeHtml(group.id) + '"><legend>' + escapeHtml(group.name) +
+        " · " + escapeHtml(group.required ? copy().required : copy().optional) + '</legend><div class="pmd-kiosk-option-list">' + inputs + "</div></fieldset>";
+    }).join("");
+  }
+
+  function openOptionPicker(item) {
+    if (!item || !item.options.length) return;
+    state.currentModal = { type: "options", itemId: item.id };
+    var selected = defaultSelections(item);
+    var groups = optionGroupsHtml(item, selected);
+
+    openModal(
+      '<header class="pmd-kiosk-modal__head pmd-kiosk-option-picker__head"><div><p>' + escapeHtml(copy().options) + '</p><h2>' +
+        escapeHtml(item.name) + '</h2></div><button type="button" class="pmd-kiosk-modal__close" data-pmd-close-modal aria-label="Close">×</button></header>' +
+      '<div class="pmd-kiosk-modal__body pmd-kiosk-option-picker"><div class="pmd-kiosk-option-picker__groups">' + groups + '</div></div>' +
+      '<footer class="pmd-kiosk-modal__foot"><button type="button" class="pmd-kiosk-secondary" data-pmd-close-modal>' +
+        escapeHtml(copy().cancel) + '</button><button type="button" class="pmd-kiosk-primary" data-add-configured="' + escapeHtml(item.id) + '">' +
+        "<span>" + escapeHtml(copy().addOrder) + " · " + escapeHtml(money(item.price)) + "</span><span>›</span></button></footer>"
+    );
+  }
+
   function openItem(item) {
     if (!item) return;
     state.currentModal = { type: "item", itemId: item.id };
@@ -1314,19 +1345,7 @@
     var detailImage = item.image && !isFoodPlaceholderAsset(item.image)
       ? '<div class="pmd-kiosk-detail__image"><img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '"></div>'
       : '<div class="pmd-kiosk-detail__image">' + foodPlaceholderHtml() + "</div>";
-    var groups = item.options.map(function (group) {
-      var inputs = group.values.map(function (value) {
-        var checked = (selected[group.id] || []).indexOf(value.id) >= 0;
-        var type = group.displayType === "checkbox" ? "checkbox" : "radio";
-        return '<label class="pmd-kiosk-option' + (checked ? ' is-selected' : '') + '"><span><input type="' + type + '" name="option-' + escapeHtml(group.id) +
-          '" value="' + escapeHtml(value.id) + '" data-option-group="' + escapeHtml(group.id) + '"' +
-          (checked ? " checked" : "") + "> " + escapeHtml(value.name) + "</span>" +
-          (value.price > 0 ? "<small>+" + escapeHtml(money(value.price)) + "</small>" : "") + "</label>";
-      }).join("");
-      return '<fieldset class="pmd-kiosk-option-group" data-required="' + (group.required ? "1" : "0") +
-        '" data-group-id="' + escapeHtml(group.id) + '"><legend>' + escapeHtml(group.name) +
-        " · " + escapeHtml(group.required ? copy().required : copy().optional) + '</legend><div class="pmd-kiosk-option-list">' + inputs + "</div></fieldset>";
-    }).join("");
+    var groups = optionGroupsHtml(item, selected);
 
     openModal(
       '<header class="pmd-kiosk-modal__head"><div><p>' + escapeHtml(item.categoryName) + "</p><h2>" +
@@ -2445,7 +2464,7 @@
       event.stopPropagation();
       var addItem = findItem(adder.getAttribute("data-add-item"));
       if (!addItem) return;
-      if (addItem.options.length) openItem(addItem);
+      if (addItem.options.length) openOptionPicker(addItem);
       else addConfiguredItem(addItem, 1, [], "");
       return;
     }
