@@ -731,6 +731,27 @@ class PmdPublicBookingController extends Controller
             $isConfirmed = $confirmedStatus > 0
                 && (int)$reservation->status_id === $confirmedStatus;
 
+            $successMessages = [
+                'en' => [
+                    'confirmed' => 'The restaurant has confirmed your table.',
+                    'received' => 'Your request was sent to the restaurant.',
+                ],
+                'de' => [
+                    'confirmed' => 'Das Restaurant hat Ihren Tisch bestätigt.',
+                    'received' => 'Ihre Anfrage wurde an das Restaurant gesendet.',
+                ],
+                'tr' => [
+                    'confirmed' => 'Restoran masanızı onayladı.',
+                    'received' => 'Talebiniz restorana gönderildi.',
+                ],
+                'ar' => [
+                    'confirmed' => 'أكد المطعم طاولتك.',
+                    'received' => 'تم إرسال طلبك إلى المطعم.',
+                ],
+            ];
+            $successCopy = $successMessages[$bookingLocale]
+                ?? $successMessages['en'];
+
             $this->pushReservationAdminNotification($reservation, 'created');
 
             $guaranteePayload = $guaranteeService->publicGuaranteePayload(
@@ -747,9 +768,10 @@ class PmdPublicBookingController extends Controller
                 'reference' => 'R'.str_pad((string)$reservation->getKey(), 6, '0', STR_PAD_LEFT),
                 'status' => (string)($reservation->status_name ?: ($isConfirmed ? 'Confirmed' : 'Received')),
                 'confirmed' => $isConfirmed,
+                'locale' => $bookingLocale,
                 'message' => $isConfirmed
-                    ? 'Your table is confirmed.'
-                    : 'Your reservation request has been received.',
+                    ? $successCopy['confirmed']
+                    : $successCopy['received'],
                 'manage_url' => url('/book').'?manage='.rawurlencode((string)$reservation->hash),
                 'reservation' => [
                     'date' => $date->toDateString(),
