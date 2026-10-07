@@ -920,7 +920,7 @@ class KioskMenuActivity : ComponentActivity() {
                             synchronizeVisibleFrame(current)
                         } else {
                             loadingView.text =
-                                "The kiosk page loaded but did not render. Tap Start over and try again."
+                                "Menu could not open. Please try again."
                         }
                     }
                 }
@@ -934,7 +934,7 @@ class KioskMenuActivity : ComponentActivity() {
                     if (request.isForMainFrame) {
                         loadingView.visibility = View.VISIBLE
                         loadingView.text =
-                            "Kiosk connection error. Tap Start over and try again."
+                            "Connection interrupted. Please try again."
                     }
                 }
 
