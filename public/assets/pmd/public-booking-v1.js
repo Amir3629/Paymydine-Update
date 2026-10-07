@@ -262,6 +262,25 @@
     return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
   }
 
+  function finalDateWindowStart() {
+    var today = dateFromIso(config.today);
+    var latest = dateFromIso(config.maxDate || config.today);
+    latest.setDate(latest.getDate() - 6);
+
+    if (latest < today) return String(config.today);
+    return isoDate(latest);
+  }
+
+  function clampDateWindowStart(value) {
+    var next = String(value || config.today);
+    var min = String(config.today);
+    var max = finalDateWindowStart();
+
+    if (next < min) return min;
+    if (next > max) return max;
+    return next;
+  }
+
   function clampGuests(value) {
     var max = Math.max(1, Number(config.maxGuests || 20));
     var number = Number(value || 1);
@@ -269,8 +288,9 @@
     return Math.max(1, Math.min(max, Math.round(number)));
   }
 
-  function partyLabel(count) {
-    var suffix = count === 1 ? (labels.guest || "guest") : (labels.guests || "guests");
+  function partyLabel(count, copy) {
+    copy = copy || labels;
+    var suffix = count === 1 ? (copy.guest || "guest") : (copy.guests || "guests");
     return count + " " + suffix;
   }
 
@@ -382,10 +402,10 @@
     );
   }
 
-  function guaranteeMoney(cents, currency) {
+  function guaranteeMoney(cents, currency, localeOverride) {
     var amount = Math.max(0, Number(cents || 0)) / 100;
     try {
-      return new Intl.NumberFormat(locale, {
+      return new Intl.NumberFormat(localeOverride || locale, {
         style: "currency",
         currency: String(currency || "EUR").toUpperCase()
       }).format(amount);
@@ -1477,13 +1497,13 @@
     return true;
   }
 
-  function formatDate(value, compact) {
+  function formatDate(value, compact, localeOverride) {
     var date = dateFromIso(value);
     var options = compact
       ? { weekday: "short", day: "numeric", month: "short" }
       : { weekday: "long", day: "numeric", month: "long", year: "numeric" };
     try {
-      return new Intl.DateTimeFormat(locale, options).format(date);
+      return new Intl.DateTimeFormat(localeOverride || locale, options).format(date);
     } catch (error) {
       return value;
     }
@@ -1568,7 +1588,6 @@
         + ' aria-label="' + escapeHtml(aria) + '"'
         + (active ? ' aria-current="date"' : '')
         + '><span>' + day + '</span>'
-        + (status && !unavailable ? '<i aria-hidden="true"></i>' : '')
         + '</button>'
       );
     }
@@ -1676,9 +1695,8 @@
       datePrev.disabled = String(state.dateWindowStart) <= String(config.today);
     }
     if (dateNext) {
-      var last = new Date(start);
-      last.setDate(start.getDate() + 7);
-      dateNext.disabled = isoDate(last) > String(config.maxDate);
+      dateNext.disabled =
+        String(state.dateWindowStart) >= finalDateWindowStart();
     }
   }
 
@@ -1738,9 +1756,10 @@
   function moveDateWindow(days) {
     var start = dateFromIso(state.dateWindowStart || config.today);
     start.setDate(start.getDate() + days);
-    var next = isoDate(start);
-    if (next < String(config.today)) next = String(config.today);
-    if (next > String(config.maxDate)) return;
+    var next = clampDateWindowStart(isoDate(start));
+
+    if (next === String(state.dateWindowStart)) return;
+
     state.dateWindowStart = next;
     renderDateStrip();
     loadDateStatuses();
@@ -1947,11 +1966,15 @@
     var windowStart = dateFromIso(state.dateWindowStart || config.today);
     var windowEnd = new Date(windowStart);
     windowEnd.setDate(windowStart.getDate() + 6);
+    var windowChanged = false;
     if (value < isoDate(windowStart) || value > isoDate(windowEnd)) {
-      state.dateWindowStart = value;
+      var nextWindowStart = clampDateWindowStart(value);
+      windowChanged = nextWindowStart !== String(state.dateWindowStart);
+      state.dateWindowStart = nextWindowStart;
     }
 
     renderDateStrip();
+    if (windowChanged) loadDateStatuses();
     if (calendarPopover && !calendarPopover.hidden) {
       calendarViewDate = monthStart(dateFromIso(value));
       renderCalendar();
@@ -2023,14 +2046,6 @@
       var value = isoDate(date);
       if (value > String(config.maxDate)) return;
       if (dateStatuses[value] !== "closed" && dateStatuses[value] !== "full") {
-        if (value >= state.dateWindowStart) {
-          var windowEnd = dateFromIso(state.dateWindowStart);
-          windowEnd.setDate(windowEnd.getDate() + 6);
-          if (value > isoDate(windowEnd)) {
-            state.dateWindowStart = value;
-            loadDateStatuses();
-          }
-        }
         selectDate(value);
         return;
       }
@@ -2148,6 +2163,13 @@
   function calendarHref(payload) {
     var reservation = payload.reservation || {};
     var end = addMinutes(reservation.date, reservation.time, reservation.duration || state.duration);
+    var code = String(
+      payload.locale ||
+      document.documentElement.lang ||
+      activeLanguageCode() ||
+      "en"
+    ).toLowerCase().slice(0, 2);
+    var copy = (config.labelsByLocale || {})[code] || labels;
     var lines = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
@@ -2157,9 +2179,9 @@
       "DTSTAMP:" + compactDateTime(config.today, "00:00") + "Z",
       "DTSTART;TZID=" + escapeIcs(config.timezone) + ":" + compactDateTime(reservation.date, reservation.time),
       "DTEND;TZID=" + escapeIcs(config.timezone) + ":" + compactDateTime(end.date, end.time),
-      "SUMMARY:" + escapeIcs("Reservation at " + config.restaurantName),
+      "SUMMARY:" + escapeIcs((copy.reservations || "Reservations") + " · " + config.restaurantName),
       "LOCATION:" + escapeIcs(config.restaurantAddress || ""),
-      "DESCRIPTION:" + escapeIcs((labels.reference || "Booking reference") + ": " + (payload.reference || "")),
+      "DESCRIPTION:" + escapeIcs((copy.reference || "Booking reference") + ": " + (payload.reference || "")),
       "END:VEVENT",
       "END:VCALENDAR"
     ];
@@ -2172,16 +2194,39 @@
     if (workspace) workspace.hidden = true;
     if (success) success.hidden = false;
 
+    var code = String(
+      payload.locale ||
+      document.documentElement.lang ||
+      activeLanguageCode() ||
+      "en"
+    ).toLowerCase().slice(0, 2);
+    var successLabels = (config.labelsByLocale || {})[code] || labels;
+    var successLocale = (config.localeTags || {})[code] || locale;
+    var localizedGuarantee =
+      (config.guaranteeByLocale || {})[code] ||
+      currentGuaranteeConfig();
+
     var reservation = payload.reservation || {};
     if (successMessage) {
       successMessage.textContent = payload.confirmed
-        ? (labels.success_confirmed || payload.message)
-        : (labels.success_received || payload.message);
+        ? (successLabels.success_confirmed || payload.message)
+        : (successLabels.success_received || payload.message);
     }
     if (successReference) successReference.textContent = payload.reference || String(payload.reservation_id || "");
-    if (successDate) successDate.textContent = formatDate(reservation.date || state.date, true);
+    if (successDate) {
+      successDate.textContent = formatDate(
+        reservation.date || state.date,
+        true,
+        successLocale
+      );
+    }
     if (successTime) successTime.textContent = reservation.time || state.time;
-    if (successParty) successParty.textContent = partyLabel(Number(reservation.guests || state.guests));
+    if (successParty) {
+      successParty.textContent = partyLabel(
+        Number(reservation.guests || state.guests),
+        successLabels
+      );
+    }
 
     var guarantee = payload.guarantee || null;
     if (successGuarantee) {
@@ -2190,19 +2235,24 @@
     if (successGuaranteeAmount && guarantee) {
       successGuaranteeAmount.textContent = guaranteeMoney(
         Number(guarantee.amount_cents || 0),
-        guarantee.currency || "EUR"
+        guarantee.currency || "EUR",
+        successLocale
       );
     }
     if (successGuaranteeTerms) {
       successGuaranteeTerms.textContent = guarantee
-        ? String(guarantee.terms_text || "")
+        ? String(
+            localizedGuarantee.termsText ||
+            guarantee.terms_text ||
+            ""
+          )
         : "";
     }
 
     if (calendarLink) calendarLink.href = calendarHref(payload);
     if (manageLink && payload.manage_url) {
       var manageUrl = new URL(payload.manage_url, window.location.origin);
-      manageUrl.searchParams.set("lang", activeLanguageCode());
+      manageUrl.searchParams.set("lang", code);
       manageLink.href = manageUrl.pathname + manageUrl.search;
     }
 
