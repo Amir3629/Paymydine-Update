@@ -49,6 +49,8 @@
             'notes' => 'Anything we should know?',
             'notes_hint' => 'Business booking, celebration, seating preference, high chair…',
             'consent' => 'I agree that the restaurant may use these contact details to manage this reservation.',
+            'whatsapp_updates' => 'Send reservation updates to me on WhatsApp.',
+            'whatsapp_restaurant' => 'WhatsApp restaurant',
             'guarantee_title' => 'Reservation guarantee',
             'guarantee_intro' => 'No charge today.',
             'guarantee_total' => 'Guarantee limit',
@@ -134,6 +136,8 @@
             'notes' => 'Gibt es etwas, das wir wissen sollten?',
             'notes_hint' => 'Geschäftsessen, Feier, Sitzwunsch, Kinderstuhl…',
             'consent' => 'Ich stimme zu, dass das Restaurant diese Kontaktdaten zur Bearbeitung der Reservierung verwenden darf.',
+            'whatsapp_updates' => 'Reservierungsupdates per WhatsApp erhalten.',
+            'whatsapp_restaurant' => 'Restaurant über WhatsApp',
             'guarantee_title' => 'Reservierungsgarantie',
             'guarantee_intro' => 'Jetzt keine Abbuchung.',
             'guarantee_total' => 'Garantielimit',
@@ -219,6 +223,8 @@
             'notes' => 'Bilmemiz gereken bir şey var mı?',
             'notes_hint' => 'İş yemeği, kutlama, oturma tercihi, mama sandalyesi…',
             'consent' => 'Restoranın bu iletişim bilgilerini rezervasyonu yönetmek için kullanmasını kabul ediyorum.',
+            'whatsapp_updates' => 'Rezervasyon güncellemelerini WhatsApp ile al.',
+            'whatsapp_restaurant' => 'Restorana WhatsApp gönder',
             'guarantee_title' => 'Rezervasyon garantisi',
             'guarantee_intro' => 'Şimdi ödeme yok.',
             'guarantee_total' => 'Garanti limiti',
@@ -304,6 +310,8 @@
             'notes' => 'هل هناك شيء يجب أن نعرفه؟',
             'notes_hint' => 'حجز عمل، احتفال، تفضيل الجلوس، كرسي طفل…',
             'consent' => 'أوافق على استخدام المطعم لبيانات الاتصال هذه لإدارة الحجز.',
+            'whatsapp_updates' => 'أرسل لي تحديثات الحجز عبر واتساب.',
+            'whatsapp_restaurant' => 'مراسلة المطعم عبر واتساب',
             'guarantee_title' => 'ضمان الحجز',
             'guarantee_intro' => 'لا خصم الآن.',
             'guarantee_total' => 'حد الضمان',
@@ -406,7 +414,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r27">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r28">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -637,6 +645,13 @@
                                 <span data-pmd-i18n="consent">{{ $t['consent'] }}</span>
                             </label>
 
+                            @if(!empty($bookingProfile['whatsapp_updates_enabled']))
+                                <label class="pmd-booking-consent pmd-booking-whatsapp-consent">
+                                    <input name="whatsapp_updates" type="checkbox" value="1">
+                                    <span data-pmd-i18n="whatsapp_updates">{{ $t['whatsapp_updates'] }}</span>
+                                </label>
+                            @endif
+
                             <section id="pmd-booking-guarantee" class="pmd-booking-guarantee" hidden aria-live="polite">
                                 <div class="pmd-booking-guarantee__head">
                                     <div>
@@ -725,7 +740,7 @@
                         </div>
                     </div>
 
-                    @if($bookingProfile['telephone'] || $bookingProfile['email'])
+                    @if($bookingProfile['telephone'] || $bookingProfile['email'] || $bookingProfile['whatsapp_number'])
                         <div class="pmd-booking-summary__contact">
                             <span data-pmd-i18n="contact">{{ $t['contact'] }}</span>
                             @if($bookingProfile['telephone'])
@@ -736,6 +751,14 @@
                                     href="mailto:{{ $bookingProfile['email'] }}?subject={{ rawurlencode($t['reservations'].' · '.$bookingProfile['name']) }}"
                                     data-pmd-i18n="email_restaurant"
                                 >{{ $t['email_restaurant'] }}</a>
+                            @endif
+                            @if($bookingProfile['whatsapp_number'])
+                                <a
+                                    href="https://wa.me/{{ $bookingProfile['whatsapp_number'] }}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    data-pmd-i18n="whatsapp_restaurant"
+                                >{{ $t['whatsapp_restaurant'] }}</a>
                             @endif
                         </div>
                     @endif
@@ -792,6 +815,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r27" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r28" defer></script>
 </body>
 </html>
