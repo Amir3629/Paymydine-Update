@@ -1192,7 +1192,7 @@ document.documentElement.classList.add(
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
                 {{-- PMD_SETTINGS_DEVICE_APP_DIRECT_DOWNLOAD_V21 --}}
                 data-pmd-device-app-download-v21
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.5.7.apk"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.5.8.apk"
                 target="_self"
                 rel="noopener noreferrer"
             >
