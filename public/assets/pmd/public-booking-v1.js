@@ -919,8 +919,7 @@
 
       var paymentMethods = {
         applePay: method === "apple_pay" ? "always" : "never",
-        googlePay: method === "google_pay" ? "always" : "never",
-        link: "never"
+        googlePay: method === "google_pay" ? "always" : "never"
       };
 
       var element = elements.create(
@@ -1056,6 +1055,9 @@
 
   function warmGuaranteeStripe() {
     if (stripeWarmScheduled) return;
+
+    var guarantee = currentGuaranteeConfig();
+    if (!guarantee.enabled || !guarantee.providerReady) return;
 
     var stripeMethods = guaranteeMethods().filter(function (method) {
       return method.provider === "stripe";
