@@ -374,6 +374,7 @@
         'maxGuests' => $bookingMaxGuests,
         'stayMinutes' => $bookingStayMinutes,
         'availabilitySeed' => $bookingAvailabilitySeed,
+        'openingHours' => $bookingOpeningHours ?? [],
         'tableRules' => $bookingTableRules,
         'availabilityUrl' => url('/book/availability'),
         'dateStatusesUrl' => url('/book/availability').'?mode=date-statuses',
@@ -405,7 +406,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r24">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r25">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -791,6 +792,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r24" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r25" defer></script>
 </body>
 </html>
