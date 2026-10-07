@@ -234,7 +234,7 @@ html body.pmd-finance-settings-page #reservation-guarantee .pmd-guarantee-r22-di
 
 html body.pmd-finance-settings-page #reservation-guarantee .pmd-guarantee-r22-handling-grid {
   display: grid;
-  grid-template-columns: minmax(220px, .8fr) minmax(260px, 1fr) minmax(300px, 1.2fr);
+  grid-template-columns: minmax(280px, .85fr) minmax(360px, 1.15fr);
   gap: 22px;
   align-items: center;
 }
@@ -301,6 +301,11 @@ html body.pmd-finance-settings-page #reservation-guarantee .pmd-guarantee-r22-ad
   gap: 22px;
   align-items: start;
   padding: 4px 0 6px;
+}
+
+html body.pmd-finance-settings-page #reservation-guarantee .pmd-guarantee-r22-advanced-fields {
+  display: grid;
+  gap: 12px;
 }
 
 html body.pmd-finance-settings-page #reservation-guarantee .pmd-guarantee-r22-readiness {
