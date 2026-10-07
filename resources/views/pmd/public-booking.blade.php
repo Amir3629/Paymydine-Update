@@ -11,6 +11,9 @@
             'choose_date' => 'Choose a date',
             'previous_dates' => 'Previous dates',
             'next_dates' => 'Next dates',
+            'previous_month' => 'Previous month',
+            'next_month' => 'Next month',
+            'calendar_dialog' => 'Choose reservation date',
             'closed_short' => 'Closed',
             'full_short' => 'Fully booked',
             'morning' => 'Morning',
@@ -93,6 +96,9 @@
             'choose_date' => 'Datum wählen',
             'previous_dates' => 'Frühere Tage',
             'next_dates' => 'Spätere Tage',
+            'previous_month' => 'Vorheriger Monat',
+            'next_month' => 'Nächster Monat',
+            'calendar_dialog' => 'Reservierungsdatum wählen',
             'closed_short' => 'Geschlossen',
             'full_short' => 'Ausgebucht',
             'morning' => 'Vormittag',
@@ -175,6 +181,9 @@
             'choose_date' => 'Tarih seçin',
             'previous_dates' => 'Önceki günler',
             'next_dates' => 'Sonraki günler',
+            'previous_month' => 'Önceki ay',
+            'next_month' => 'Sonraki ay',
+            'calendar_dialog' => 'Rezervasyon tarihini seçin',
             'closed_short' => 'Kapalı',
             'full_short' => 'Dolu',
             'morning' => 'Sabah',
@@ -257,6 +266,9 @@
             'choose_date' => 'اختر التاريخ',
             'previous_dates' => 'أيام سابقة',
             'next_dates' => 'أيام لاحقة',
+            'previous_month' => 'الشهر السابق',
+            'next_month' => 'الشهر التالي',
+            'calendar_dialog' => 'اختر تاريخ الحجز',
             'closed_short' => 'مغلق',
             'full_short' => 'مكتمل الحجز',
             'morning' => 'صباحاً',
@@ -393,7 +405,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r22">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r23">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -416,8 +428,7 @@
                     <a
                         href="{{ url('/book') }}?lang={{ $code }}"
                         data-pmd-language="{{ $code }}"
-                        class="{{ $bookingLocale === $code ? 'is-active' : '' }}"
-                        @if($bookingLocale === $code) aria-current="page" @endif
+                        @if($bookingLocale === $code) hidden aria-hidden="true" @endif
                     >{{ $label }}</a>
                 @endforeach
             </nav>
@@ -458,18 +469,50 @@
                                     <p data-pmd-i18n="date_party">{{ $t['date_party'] }}</p>
                                     <h2 id="pmd-booking-step-date" data-pmd-i18n="choose_date">{{ $t['choose_date'] }}</h2>
                                 </div>
-                                <label class="pmd-booking-native-date">
-                                    <span aria-hidden="true">＋</span>
-                                    <span data-pmd-i18n="choose_date">{{ $t['choose_date'] }}</span>
+                                <div class="pmd-booking-calendar-control">
+                                    <button
+                                        type="button"
+                                        class="pmd-booking-calendar-trigger"
+                                        data-pmd-calendar-toggle
+                                        aria-haspopup="dialog"
+                                        aria-expanded="false"
+                                        aria-controls="pmd-booking-calendar-popover"
+                                    >
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <rect x="3.5" y="5.5" width="17" height="15" rx="1.5"></rect>
+                                            <path d="M7 3.5v4M17 3.5v4M3.5 9.5h17"></path>
+                                            <path d="M7.5 13h2M12 13h2M16.5 13h.01M7.5 17h2M12 17h2"></path>
+                                        </svg>
+                                        <span data-pmd-i18n="choose_date">{{ $t['choose_date'] }}</span>
+                                    </button>
                                     <input
                                         id="pmd-booking-date"
                                         name="reserve_date"
-                                        type="date"
-                                        min="{{ $bookingToday }}"
-                                        max="{{ $bookingMaxDate }}"
+                                        type="hidden"
                                         value="{{ $bookingToday }}"
                                     >
-                                </label>
+                                    <div
+                                        id="pmd-booking-calendar-popover"
+                                        class="pmd-booking-calendar"
+                                        role="dialog"
+                                        aria-modal="false"
+                                        aria-label="{{ $t['calendar_dialog'] }}"
+                                        data-pmd-i18n-aria="calendar_dialog"
+                                        hidden
+                                    >
+                                        <div class="pmd-booking-calendar__head">
+                                            <button type="button" data-pmd-calendar-prev-month aria-label="{{ $t['previous_month'] }}" data-pmd-i18n-aria="previous_month">
+                                                <span aria-hidden="true">←</span>
+                                            </button>
+                                            <strong id="pmd-booking-calendar-month"></strong>
+                                            <button type="button" data-pmd-calendar-next-month aria-label="{{ $t['next_month'] }}" data-pmd-i18n-aria="next_month">
+                                                <span aria-hidden="true">→</span>
+                                            </button>
+                                        </div>
+                                        <div id="pmd-booking-calendar-weekdays" class="pmd-booking-calendar__weekdays" aria-hidden="true"></div>
+                                        <div id="pmd-booking-calendar-grid" class="pmd-booking-calendar__grid" role="grid"></div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="pmd-booking-date-browser">
@@ -563,21 +606,21 @@
                                         <label class="pmd-booking-occasion-card">
                                             <input type="checkbox" name="pmd_table_features[]" value="near_window">
                                             <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="6" width="20" height="20" rx="1"/><path d="M6 16h20M16 6v20"/></svg>
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5.5" y="6.5" width="21" height="19" rx="1.5"/><path d="M16 6.5v19M5.5 17h21"/><circle cx="22" cy="11" r="2.2"/><path d="M7.5 25.5h17"/></svg>
                                                 <strong data-pmd-i18n="near_window">{{ $t['near_window'] }}</strong>
                                             </span>
                                         </label>
                                         <label class="pmd-booking-occasion-card">
                                             <input type="checkbox" name="pmd_table_features[]" value="quiet_area">
                                             <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M14 8 10 12H6v8h4l4 4z"/><path d="m21 12 6 8M27 12l-6 8"/></svg>
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M13.5 8.5 9.5 12H6v8h3.5l4 3.5z"/><path d="M18.5 12.5c1.8 1.7 1.8 5.3 0 7"/><path d="M22 9.5c4 3.5 4 9.5 0 13"/><path d="M7 26 26 7"/></svg>
                                                 <strong data-pmd-i18n="quiet_area">{{ $t['quiet_area'] }}</strong>
                                             </span>
                                         </label>
                                         <label class="pmd-booking-occasion-card">
                                             <input type="checkbox" name="pmd_table_features[]" value="accessible">
                                             <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="12" cy="7" r="2.5"/><path d="M10 12h6l2 6h4M12 12v7a5 5 0 1 0 5 5M17 18l2 8h5"/></svg>
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="6.5" r="2.5"/><path d="M12 11.5h5l1.5 5H23"/><path d="M14 11.5v6.5a6 6 0 1 0 6 6"/><path d="M18.5 17 21 25.5h5"/></svg>
                                                 <strong data-pmd-i18n="accessible">{{ $t['accessible'] }}</strong>
                                             </span>
                                         </label>
@@ -600,7 +643,6 @@
                                         <span class="pmd-booking-field-label" data-pmd-i18n="guarantee_title">{{ $t['guarantee_title'] }}</span>
                                         <strong data-pmd-i18n="guarantee_intro">{{ $t['guarantee_intro'] }}</strong>
                                     </div>
-                                    <span class="pmd-booking-guarantee__shield" aria-hidden="true">✓</span>
                                 </div>
 
                                 <p id="pmd-booking-guarantee-terms" class="pmd-booking-guarantee__terms"></p>
@@ -747,6 +789,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r22" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r23" defer></script>
 </body>
 </html>
