@@ -931,7 +931,10 @@ private fun KioskModeButton(
             if (imageUrl.isNotBlank()) {
                 Box(
                     modifier = Modifier
-                        .weight(0.46f)
+                        // PMD_KIOSK_SERVICE_ARTWORK_WIDER_V21
+                        // Give the service artwork more horizontal presence while
+                        // keeping the exact V17 52dp fade treatment unchanged.
+                        .weight(0.58f)
                         .fillMaxHeight()
                         // PMD_KIOSK_SERVICE_ARTWORK_SHADOW_V20
                         // Exact rollback to the V16/V17 service-artwork treatment:
