@@ -2142,3 +2142,65 @@ html[dir="rtl"] .pmd-booking-summary dd {
     transition: none;
   }
 }
+
+
+/* ==========================================================
+   PMD_PUBLIC_BOOKING_R22
+   Remove the decorative intro folio and make table preferences
+   the useful third-step choice instead of generic occasions.
+   ========================================================== */
+/* PMD_PUBLIC_BOOKING_R22 */
+
+.pmd-booking-intro {
+  grid-template-columns: minmax(0, 1.45fr) minmax(240px, .65fr);
+  gap: 34px;
+}
+
+.pmd-booking-hero-intro:empty {
+  display: none;
+}
+
+.pmd-booking-preferences .pmd-booking-occasion-card__surface {
+  min-height: 88px;
+}
+
+.pmd-booking-preferences .pmd-booking-occasion-card strong {
+  font-size: 13.5px;
+}
+
+.pmd-booking-preferences .pmd-booking-occasion-card input:checked + .pmd-booking-occasion-card__surface {
+  border-color: var(--pmd-book-ink);
+  background: var(--pmd-book-ink);
+}
+
+@media (max-width: 980px) {
+  .pmd-booking-intro {
+    grid-template-columns: minmax(0, 1fr) 290px;
+    gap: 24px;
+  }
+
+  .pmd-booking-intro__details {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .pmd-booking-intro {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+
+  .pmd-booking-intro__details {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 430px) {
+  .pmd-booking-preferences .pmd-booking-occasion-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pmd-booking-preferences .pmd-booking-occasion-card__surface {
+    min-height: 68px;
+  }
+}
