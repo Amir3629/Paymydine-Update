@@ -7,6 +7,7 @@ use Admin\Facades\AdminLocation;
 use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use App\Services\GoogleBusiness\PmdGoogleBusinessService;
+use App\Services\Reservations\PmdReservationMessagingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
@@ -779,6 +780,7 @@ class Pmdsettings extends AdminController
         $locationId = $this->currentLocationId();
         $profile = (array)post('profile', []);
         $hours = (array)post('hours', []);
+        $messagingInput = (array)post('messaging', []);
         $googleBusinessInput = (array)post('google_business', []);
 
         $validator = Validator::make($profile, [
@@ -807,6 +809,41 @@ class Pmdsettings extends AdminController
             'pubsub_topic' => ['nullable', 'string', 'max:500'],
             'pubsub_token' => ['nullable', 'string', 'max:1000'],
         ]);
+
+        $messagingValidator = Validator::make($messagingInput, [
+            'owner_email' => ['nullable', 'email', 'max:191'],
+            'sender_name' => ['nullable', 'string', 'max:191'],
+            'sender_email' => ['nullable', 'email', 'max:191'],
+            'protocol' => ['nullable', 'in:mail,smtp,sendmail,mailgun,postmark,ses'],
+            'smtp_host' => ['nullable', 'string', 'max:255'],
+            'smtp_port' => ['nullable', 'integer', 'min:1', 'max:65535'],
+            'smtp_encryption' => ['nullable', 'string', 'max:20'],
+            'smtp_user' => ['nullable', 'string', 'max:255'],
+            'smtp_pass' => ['nullable', 'string', 'max:4096'],
+            'mailgun_domain' => ['nullable', 'string', 'max:255'],
+            'mailgun_secret' => ['nullable', 'string', 'max:4096'],
+            'postmark_token' => ['nullable', 'string', 'max:4096'],
+            'ses_key' => ['nullable', 'string', 'max:4096'],
+            'ses_secret' => ['nullable', 'string', 'max:4096'],
+            'ses_region' => ['nullable', 'string', 'max:100'],
+            'test_email' => ['nullable', 'email', 'max:191'],
+            'whatsapp_phone_number_id' => ['nullable', 'string', 'max:191'],
+            'whatsapp_business_account_id' => ['nullable', 'string', 'max:191'],
+            'whatsapp_access_token' => ['nullable', 'string', 'max:4096'],
+            'whatsapp_graph_version' => ['nullable', 'string', 'max:20'],
+            'whatsapp_public_number' => ['nullable', 'string', 'max:64'],
+            'whatsapp_default_country_code' => ['nullable', 'string', 'max:8'],
+            'whatsapp_template_created' => ['nullable', 'string', 'max:191'],
+            'whatsapp_template_updated' => ['nullable', 'string', 'max:191'],
+            'whatsapp_template_canceled' => ['nullable', 'string', 'max:191'],
+            'whatsapp_template_language' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        if ($messagingValidator->fails()) {
+            throw new ValidationException($messagingValidator);
+        }
+
+        $messagingClean = $messagingValidator->validated();
 
         if ($googleValidator->fails()) {
             throw new ValidationException($googleValidator);
@@ -841,7 +878,7 @@ class Pmdsettings extends AdminController
             }
         }
 
-        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $uploadedLogo, $removeLogo, $resolvedLogo) {
+        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $messagingInput, $messagingClean, $uploadedLogo, $removeLogo, $resolvedLogo) {
             $settings = [
                 'site_name' => trim((string)$clean['name']),
                 'site_email' => trim((string)($clean['email'] ?? '')),
@@ -853,7 +890,57 @@ class Pmdsettings extends AdminController
                 'pmd_social_google_url' => trim((string)($clean['google_url'] ?? '')),
                 'pmd_social_trustpilot_enabled' => !empty($profile['trustpilot_enabled']) ? 1 : 0,
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
+
+                // PMD_RESERVATION_MESSAGING_R28
+                'pmd_reservation_email_enabled' => !empty($messagingInput['email_enabled']) ? 1 : 0,
+                'pmd_reservation_whatsapp_enabled' => !empty($messagingInput['whatsapp_enabled']) ? 1 : 0,
+                'pmd_reservation_owner_email_enabled' => !empty($messagingInput['owner_email_enabled']) ? 1 : 0,
+                'pmd_reservation_notify_created' => !empty($messagingInput['notify_created']) ? 1 : 0,
+                'pmd_reservation_notify_updated' => !empty($messagingInput['notify_updated']) ? 1 : 0,
+                'pmd_reservation_notify_canceled' => !empty($messagingInput['notify_canceled']) ? 1 : 0,
+                'pmd_reservation_owner_email' => strtolower(trim((string)($messagingClean['owner_email'] ?? ''))),
+                'pmd_reservation_test_email' => strtolower(trim((string)($messagingClean['test_email'] ?? ''))),
+
+                // Reuse PayMyDine/TastyIgniter mail authority so every mail path
+                // uses the same configured restaurant sender.
+                'sender_name' => trim((string)($messagingClean['sender_name'] ?? '')),
+                'sender_email' => strtolower(trim((string)($messagingClean['sender_email'] ?? ''))),
+                'protocol' => (string)($messagingClean['protocol'] ?? 'mail'),
+                'smtp_host' => trim((string)($messagingClean['smtp_host'] ?? '')),
+                'smtp_port' => (int)($messagingClean['smtp_port'] ?? 587),
+                'smtp_encryption' => trim((string)($messagingClean['smtp_encryption'] ?? 'tls')),
+                'smtp_user' => trim((string)($messagingClean['smtp_user'] ?? '')),
+                'mailgun_domain' => trim((string)($messagingClean['mailgun_domain'] ?? '')),
+                'ses_region' => trim((string)($messagingClean['ses_region'] ?? '')),
+
+                'pmd_whatsapp_phone_number_id' => trim((string)($messagingClean['whatsapp_phone_number_id'] ?? '')),
+                'pmd_whatsapp_business_account_id' => trim((string)($messagingClean['whatsapp_business_account_id'] ?? '')),
+                'pmd_whatsapp_graph_version' => trim((string)($messagingClean['whatsapp_graph_version'] ?? 'v23.0')),
+                'pmd_whatsapp_public_number' => trim((string)($messagingClean['whatsapp_public_number'] ?? '')),
+                'pmd_whatsapp_default_country_code' => trim((string)($messagingClean['whatsapp_default_country_code'] ?? '')),
+                'pmd_whatsapp_template_created' => trim((string)($messagingClean['whatsapp_template_created'] ?? '')),
+                'pmd_whatsapp_template_updated' => trim((string)($messagingClean['whatsapp_template_updated'] ?? '')),
+                'pmd_whatsapp_template_canceled' => trim((string)($messagingClean['whatsapp_template_canceled'] ?? '')),
+                'pmd_whatsapp_template_language' => trim((string)($messagingClean['whatsapp_template_language'] ?? '')),
             ];
+
+            foreach ([
+                'smtp_pass',
+                'mailgun_secret',
+                'postmark_token',
+                'ses_key',
+                'ses_secret',
+            ] as $secretKey) {
+                $secretValue = trim((string)($messagingClean[$secretKey] ?? ''));
+                if ($secretValue !== '') {
+                    $settings[$secretKey] = $secretValue;
+                }
+            }
+
+            $whatsappAccessToken = trim((string)($messagingClean['whatsapp_access_token'] ?? ''));
+            if ($whatsappAccessToken !== '') {
+                $settings['pmd_whatsapp_access_token'] = $whatsappAccessToken;
+            }
 
             $settings['site_logo'] = $resolvedLogo;
             $settings['pmd_restaurant_identity_name'] = trim((string)$clean['name']);
@@ -904,6 +991,31 @@ class Pmdsettings extends AdminController
 
         return [
             '#pmd-profile-save-status' => '<span class="pmd-profile-save-status is-success">'.\Admin\Classes\PmdPlatformI18n::fromEnglish('Saved', 'settings.').'</span>',
+        ];
+    }
+
+    public function onTestReservationEmail()
+    {
+        $result = app(PmdReservationMessagingService::class)->testEmail(
+            trim((string)post('messaging.test_email', ''))
+        );
+
+        $class = !empty($result['success']) ? 'is-success' : 'is-error';
+        $message = e((string)($result['message'] ?? 'Email test finished.'));
+
+        return [
+            '#pmd-reservation-email-test-status' => '<span class="pmd-profile-messaging-test '.$class.'">'.$message.'</span>',
+        ];
+    }
+
+    public function onTestReservationWhatsapp()
+    {
+        $result = app(PmdReservationMessagingService::class)->testWhatsapp();
+        $class = !empty($result['success']) ? 'is-success' : 'is-error';
+        $message = e((string)($result['message'] ?? 'WhatsApp test finished.'));
+
+        return [
+            '#pmd-reservation-whatsapp-test-status' => '<span class="pmd-profile-messaging-test '.$class.'">'.$message.'</span>',
         ];
     }
 
@@ -1030,6 +1142,40 @@ class Pmdsettings extends AdminController
             'google_url' => (string)$value('pmd_social_google_url', ''),
             'trustpilot_enabled' => (bool)$value('pmd_social_trustpilot_enabled', 0),
             'trustpilot_url' => (string)$value('pmd_social_trustpilot_url', ''),
+
+            // PMD_RESERVATION_MESSAGING_R28
+            'reservation_email_enabled' => (bool)$value('pmd_reservation_email_enabled', 0),
+            'reservation_whatsapp_enabled' => (bool)$value('pmd_reservation_whatsapp_enabled', 0),
+            'reservation_owner_email_enabled' => (bool)$value('pmd_reservation_owner_email_enabled', 0),
+            'reservation_notify_created' => (bool)$value('pmd_reservation_notify_created', 1),
+            'reservation_notify_updated' => (bool)$value('pmd_reservation_notify_updated', 1),
+            'reservation_notify_canceled' => (bool)$value('pmd_reservation_notify_canceled', 1),
+            'reservation_owner_email' => (string)$value('pmd_reservation_owner_email', ''),
+            'reservation_test_email' => (string)$value('pmd_reservation_test_email', ''),
+            'sender_name' => (string)$value('sender_name', ''),
+            'sender_email' => (string)$value('sender_email', ''),
+            'protocol' => (string)$value('protocol', 'mail'),
+            'smtp_host' => (string)$value('smtp_host', ''),
+            'smtp_port' => (int)$value('smtp_port', 587),
+            'smtp_encryption' => (string)$value('smtp_encryption', 'tls'),
+            'smtp_user' => (string)$value('smtp_user', ''),
+            'has_smtp_pass' => trim((string)$value('smtp_pass', '')) !== '',
+            'mailgun_domain' => (string)$value('mailgun_domain', ''),
+            'has_mailgun_secret' => trim((string)$value('mailgun_secret', '')) !== '',
+            'has_postmark_token' => trim((string)$value('postmark_token', '')) !== '',
+            'has_ses_key' => trim((string)$value('ses_key', '')) !== '',
+            'has_ses_secret' => trim((string)$value('ses_secret', '')) !== '',
+            'ses_region' => (string)$value('ses_region', ''),
+            'whatsapp_phone_number_id' => (string)$value('pmd_whatsapp_phone_number_id', ''),
+            'whatsapp_business_account_id' => (string)$value('pmd_whatsapp_business_account_id', ''),
+            'has_whatsapp_access_token' => trim((string)$value('pmd_whatsapp_access_token', '')) !== '',
+            'whatsapp_graph_version' => (string)$value('pmd_whatsapp_graph_version', 'v23.0'),
+            'whatsapp_public_number' => (string)$value('pmd_whatsapp_public_number', ''),
+            'whatsapp_default_country_code' => (string)$value('pmd_whatsapp_default_country_code', ''),
+            'whatsapp_template_created' => (string)$value('pmd_whatsapp_template_created', ''),
+            'whatsapp_template_updated' => (string)$value('pmd_whatsapp_template_updated', ''),
+            'whatsapp_template_canceled' => (string)$value('pmd_whatsapp_template_canceled', ''),
+            'whatsapp_template_language' => (string)$value('pmd_whatsapp_template_language', ''),
             'site_logo' => (string)($siteLogoR24 = $identity['logo']),
             'site_logo_preview' => $this->restaurantLogoPreviewR20((string)$siteLogoR24),
         ];
