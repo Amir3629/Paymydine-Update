@@ -400,8 +400,7 @@ img {
 
 .pmd-booking-date-strip {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(82px, 1fr);
+  grid-template-columns: repeat(7, minmax(82px, 1fr));
   gap: 7px;
   min-width: 0;
   overflow-x: auto;
@@ -2411,16 +2410,6 @@ html[dir="rtl"] .pmd-booking-summary dd {
   text-decoration-thickness: 1px;
 }
 
-.pmd-booking-calendar__day i {
-  position: absolute;
-  right: 5px;
-  bottom: 4px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--pmd-book-accent);
-}
-
 .pmd-booking-guarantee__head {
   align-items: center;
 }
@@ -2554,7 +2543,7 @@ html[dir="rtl"] .pmd-booking-summary dd {
   }
 
   .pmd-booking-date-strip {
-    grid-auto-columns: 73px;
+    grid-template-columns: repeat(7, 73px);
   }
 
   .pmd-booking-time-option {
@@ -2575,5 +2564,26 @@ html[dir="rtl"] .pmd-booking-summary dd {
 
   .pmd-booking-summary {
     margin-left: 0 !important;
+  }
+}
+
+
+/* ==========================================================
+   PMD_PUBLIC_BOOKING_R24
+   Keep the final date window stable and remove calendar noise.
+   ========================================================== */
+/* PMD_PUBLIC_BOOKING_R24 */
+
+.pmd-booking-calendar__day {
+  overflow: hidden;
+}
+
+.pmd-booking-date-strip {
+  align-content: start;
+}
+
+@media (max-width: 760px) {
+  .pmd-booking-date-strip {
+    justify-content: start;
   }
 }
