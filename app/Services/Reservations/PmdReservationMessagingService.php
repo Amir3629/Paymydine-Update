@@ -528,6 +528,35 @@ class PmdReservationMessagingService
             $changesHtml = '<div style="margin-top:20px"><strong>'.e($copy['changes_label']).'</strong><ul style="padding-inline-start:20px;margin:8px 0 0">'.$items.'</ul></div>';
         }
 
+        $guaranteeHtml = '';
+        try {
+            $guarantee = app(PmdReservationGuaranteeService::class)
+                ->publicGuaranteePayload((int)$reservation->getKey());
+
+            if ($guarantee && in_array((string)($guarantee['status'] ?? ''), ['active', 'charge_failed', 'action_required'], true)) {
+                $amount = number_format(
+                    max(0, (int)($guarantee['amount_cents'] ?? 0)) / 100,
+                    2,
+                    $locale === 'de' ? ',' : '.',
+                    $locale === 'de' ? '.' : ','
+                ).' '.strtoupper((string)($guarantee['currency'] ?? 'EUR'));
+
+                $guaranteeLabel = $locale === 'de'
+                    ? 'Reservierungsgarantie'
+                    : ($locale === 'tr'
+                        ? 'Rezervasyon garantisi'
+                        : ($locale === 'ar' ? 'ضمان الحجز' : 'Reservation guarantee'));
+
+                $terms = trim((string)($guarantee['terms_text'] ?? ''));
+                $guaranteeHtml = '<div style="margin-top:20px;padding:14px 16px;border:1px solid #b7c9c1;background:#f4f8f6">'
+                    .'<strong style="color:#0a6952">'.e($guaranteeLabel).'</strong>'
+                    .'<div style="margin-top:4px;font-family:Georgia,serif;font-size:18px">'.e($amount).'</div>'
+                    .($terms !== '' ? '<p style="margin:8px 0 0;color:#64716b;font-size:13px">'.e($terms).'</p>' : '')
+                    .'</div>';
+            }
+        } catch (Throwable $ignored) {
+        }
+
         return '<div dir="'.e($dir).'" style="font-family:Arial,sans-serif;color:#1d2722;line-height:1.6;max-width:620px;margin:0 auto;padding:28px">'
             .'<div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0a6952;font-weight:700">'.e($copy['restaurant']).'</div>'
             .'<h1 style="font-family:Georgia,serif;font-size:34px;font-weight:400;line-height:1.1;margin:10px 0 14px">'.e($copy['headline']).'</h1>'
@@ -537,6 +566,7 @@ class PmdReservationMessagingService
             .'<div>'.e(implode(' · ', $details)).'</div>'
             .'</div>'
             .$changesHtml
+            .$guaranteeHtml
             .'<p style="margin:24px 0 0"><a href="'.e($copy['manage_url']).'" style="display:inline-block;background:#1d2722;color:#fff;text-decoration:none;padding:13px 18px;font-weight:700">'.e($copy['manage_label']).'</a></p>'
             .'</div>';
     }
