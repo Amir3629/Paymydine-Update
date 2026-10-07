@@ -293,7 +293,7 @@
           reservation_guarantee_released: 'Card guarantee released'
         };
         title = reference || 'Reservation';
-        message = notif.message || actionLabels[notif.type] || 'Reservation changed';
+        message = notif.message || payload.message || actionLabels[notif.type] || 'Reservation changed';
         statusName = notif.type === 'reservation_canceled'
           ? 'Canceled'
           : (notif.type === 'reservation_created'
@@ -317,7 +317,7 @@
         message = notif.title || 'Item stock status changed';
       } else {
         title = tableName;
-        message = notif.message || notif.type || 'New notification';
+        message = notif.message || payload.message || notif.type || 'New notification';
       }
 
       const text = (title + ' ' + message + ' ' + (notif.type || '')).toLowerCase();

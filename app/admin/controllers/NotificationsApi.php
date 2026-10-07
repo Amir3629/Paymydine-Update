@@ -39,12 +39,27 @@ class NotificationsApi extends Controller
             $status = $request->query('status', 'new');
             $limit  = min((int)$request->query('limit', 20), 50);
 
-            // Use the correct table name - notifications (Laravel will add ti_ prefix) and match JavaScript expected format
+            // PMD_NOTIFICATION_SCHEMA_COMPAT_R26
+            // Current production tenants use "id"; older/newer installs may
+            // expose "notification_id". Normalize every row to "id" because
+            // the admin bell cursor intentionally has one browser contract.
+            $idColumn = Schema::hasColumn('notifications', 'id')
+                ? 'id'
+                : (Schema::hasColumn('notifications', 'notification_id')
+                    ? 'notification_id'
+                    : null);
+
             $rows = \Illuminate\Support\Facades\DB::table('notifications')
                 ->when($status, fn($q) => $q->where('status', $status))
                 ->orderByDesc('created_at')
                 ->limit($limit)
                 ->get();
+
+            if ($idColumn && $idColumn !== 'id') {
+                $rows->each(function ($row) use ($idColumn) {
+                    $row->id = (int)($row->{$idColumn} ?? 0);
+                });
+            }
 
             return response()->json([
                 'ok' => true,
@@ -61,11 +76,27 @@ class NotificationsApi extends Controller
         try {
             $status = $request->input('status', 'seen');
             
-            // Use the correct table name - notifications (Laravel will add ti_ prefix)
-            \Illuminate\Support\Facades\DB::table('notifications')->where('id', $id)->update([
-                'status'     => $status,
-                'updated_at' => now(),
-            ]);
+            $idColumn = Schema::hasColumn('notifications', 'id')
+                ? 'id'
+                : (Schema::hasColumn('notifications', 'notification_id')
+                    ? 'notification_id'
+                    : null);
+
+            if (!$idColumn) {
+                return response()->json([
+                    'ok' => false,
+                    'error' => 'Notification identifier column is missing.',
+                ], 500);
+            }
+
+            $update = ['status' => $status];
+            if (Schema::hasColumn('notifications', 'updated_at')) {
+                $update['updated_at'] = now();
+            }
+
+            \Illuminate\Support\Facades\DB::table('notifications')
+                ->where($idColumn, $id)
+                ->update($update);
             
             return response()->json(['ok' => true, 'id' => (int)$id, 'status' => $status]);
         } catch (\Throwable $e) {
@@ -76,12 +107,18 @@ class NotificationsApi extends Controller
     public function markAllSeen()
     {
         try {
-            // Use the correct table name - notifications (Laravel will add ti_ prefix)
-            \Illuminate\Support\Facades\DB::table('notifications')->where('status', 'new')->update([
-                'status' => 'seen', 
-                'seen_at' => now(),
-                'updated_at' => now()
-            ]);
+            $update = ['status' => 'seen'];
+            if (Schema::hasColumn('notifications', 'seen_at')) {
+                $update['seen_at'] = now();
+            }
+            if (Schema::hasColumn('notifications', 'updated_at')) {
+                $update['updated_at'] = now();
+            }
+
+            \Illuminate\Support\Facades\DB::table('notifications')
+                ->where('status', 'new')
+                ->update($update);
+
             return response()->json(['ok' => true]);
         } catch (\Throwable $e) {
             return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
