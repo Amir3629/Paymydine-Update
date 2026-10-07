@@ -1024,7 +1024,12 @@ class PmdPublicBookingController extends Controller
             'reserve_date' => ['required', 'date_format:Y-m-d'],
             'reserve_time' => ['required', 'date_format:H:i'],
             'guest_num' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
-            'occasion_id' => ['nullable', 'integer', 'in:0,3,6'],
+            'pmd_table_features' => ['nullable', 'array', 'max:3'],
+            'pmd_table_features.*' => [
+                'string',
+                'distinct',
+                'in:near_window,quiet_area,accessible',
+            ],
             'comment' => ['nullable', 'string', 'max:1000'],
             'whatsapp_updates' => ['nullable'],
             '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
@@ -1055,6 +1060,9 @@ class PmdPublicBookingController extends Controller
         $this->guardBookableDate($date, $timezone);
         $guests = (int)$data['guest_num'];
         $time = (string)$data['reserve_time'];
+        $tablePreferences = $this->normalizePublicTablePreferences(
+            $data['pmd_table_features'] ?? []
+        );
 
         $guaranteeService = app(PmdReservationGuaranteeService::class);
         $activeGuarantee = $guaranteeService
@@ -1171,7 +1179,7 @@ class PmdPublicBookingController extends Controller
         $updateCommitted = false;
 
         try {
-            $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight, $beforeSnapshot, $guaranteeService, $guaranteeVerified) {
+            $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight, $beforeSnapshot, $guaranteeService, $guaranteeVerified, $tablePreferences) {
                 $allTableIds = $location->tables
                     ->pluck('table_id')
                     ->map(static fn ($id) => (int)$id)
@@ -1227,10 +1235,15 @@ class PmdPublicBookingController extends Controller
                 $locked->reserve_time = $time;
                 $locked->guest_num = $guests;
                 $locked->duration = $duration;
-                $locked->occasion_id = (int)($data['occasion_id'] ?? 0);
+                // PMD_MANAGE_TABLE_PREFERENCES_R28
+                $locked->occasion_id = 0;
                 $locked->comment = trim((string)($data['comment'] ?? ''));
                 $locked->save();
                 $locked->addReservationTables($tableIds);
+                $this->persistPublicTablePreferences(
+                    $locked,
+                    $tablePreferences
+                );
 
                 $guaranteeService->recordGuarantee(
                     $locked,
@@ -1326,6 +1339,9 @@ class PmdPublicBookingController extends Controller
                         'email' => (string)$updatedReservation->email,
                         'telephone' => (string)$updatedReservation->telephone,
                         'occasion_id' => (int)$updatedReservation->occasion_id,
+                        'table_preferences' => $this->publicTablePreferences(
+                            (int)$updatedReservation->getKey()
+                        ),
                         'comment' => (string)$updatedReservation->comment,
                         'canceled' => false,
                         'can_manage' => true,
@@ -1566,6 +1582,9 @@ class PmdPublicBookingController extends Controller
             'email' => (string)$reservation->email,
             'telephone' => (string)$reservation->telephone,
             'occasion_id' => (int)$reservation->occasion_id,
+            'table_preferences' => $this->publicTablePreferences(
+                (int)$reservation->getKey()
+            ),
             'comment' => (string)$reservation->comment,
             'canceled' => $reservation->isCanceled(),
             'can_manage' => $this->reservationCanBeManaged($reservation),
@@ -1912,6 +1931,39 @@ class PmdPublicBookingController extends Controller
             'slots' => $slots,
             'capacity_slots' => $capacitySlots,
         ];
+    }
+
+    private function publicTablePreferences(int $reservationId): array
+    {
+        if (
+            $reservationId < 1
+            || !Schema::hasTable('pmd_reservation_preferences')
+        ) {
+            return [];
+        }
+
+        try {
+            $raw = DB::table('pmd_reservation_preferences')
+                ->where('reservation_id', $reservationId)
+                ->value('table_features');
+
+            if (!is_string($raw) || trim($raw) === '') {
+                return [];
+            }
+
+            $decoded = json_decode($raw, true);
+
+            return $this->normalizePublicTablePreferences(
+                is_array($decoded) ? $decoded : []
+            );
+        } catch (Throwable $error) {
+            Log::warning('PMD public booking preference read failed', [
+                'reservation_id' => $reservationId,
+                'message' => $error->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     private function normalizePublicTablePreferences($features): array
