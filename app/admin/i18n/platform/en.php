@@ -648,6 +648,7 @@ return [
     'settings.ui.used_for_the_call_restaurant_link_r24' => 'Used for the “Call restaurant” link.',
     'settings.ui.street_number_r24' => 'Street & number',
     'settings.ui.main_address_shown_on_the_booking_page_r24' => 'Main address shown on the booking page.',
+    'settings.ui.open_booking_page_r25' => 'Open booking page',
     'settings.ui.restaurant_details' => 'Restaurant details',
     'settings.ui.shown_on_your_digital_menu' => 'Shown on your digital menu.',
     'settings.ui.restaurant_name' => 'Restaurant name',

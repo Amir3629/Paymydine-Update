@@ -646,6 +646,7 @@ return [
     'settings.ui.used_for_the_call_restaurant_link_r24' => 'Wird für den Link „Restaurant anrufen“ verwendet.',
     'settings.ui.street_number_r24' => 'Straße & Hausnummer',
     'settings.ui.main_address_shown_on_the_booking_page_r24' => 'Hauptadresse auf der Reservierungsseite.',
+    'settings.ui.open_booking_page_r25' => 'Reservierungsseite öffnen',
     'settings.ui.restaurant_details' => 'Restaurantdetails',
     'settings.ui.shown_on_your_digital_menu' => 'Wird in Ihrem digitalen Menü angezeigt.',
     'settings.ui.restaurant_name' => 'Restaurantname',

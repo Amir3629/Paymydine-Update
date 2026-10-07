@@ -91,6 +91,7 @@ class PmdPublicBookingController extends Controller
                 'bookingMaxGuests' => $maxGuests,
                 'bookingStayMinutes' => $stayMinutes,
                 'bookingAvailabilitySeed' => $availabilitySeed,
+                'bookingOpeningHours' => $openingHours,
                 'bookingTableRules' => $this->tableRules($location),
                 'bookingGuarantee' => $guaranteeByLocale[$locale]
                     ?? $guaranteeService->publicConfig($location, $locale),
@@ -630,6 +631,9 @@ class PmdPublicBookingController extends Controller
             }
         }
 
+        $reservation = null;
+        $bookingStage = 'transaction';
+
         try {
             $reservation = DB::transaction(function () use (
                 $location,
@@ -701,10 +705,19 @@ class PmdPublicBookingController extends Controller
                 $reservation->status_id = $statusId;
                 $reservation->save();
 
-                $this->persistPublicTablePreferences(
-                    $reservation,
-                    $tablePreferences
-                );
+                try {
+                    $this->persistPublicTablePreferences(
+                        $reservation,
+                        $tablePreferences
+                    );
+                } catch (Throwable $preferenceError) {
+                    // Table preferences are optional metadata and must never
+                    // make an otherwise valid reservation fail.
+                    Log::warning('PMD public booking preference persistence failed', [
+                        'reservation_id' => (int)$reservation->getKey(),
+                        'message' => $preferenceError->getMessage(),
+                    ]);
+                }
 
                 $reservation->addReservationTables($tableIds);
 
@@ -726,6 +739,8 @@ class PmdPublicBookingController extends Controller
 
                 return $reservation->fresh(['tables', 'status', 'location']);
             }, 3);
+
+            $bookingStage = 'post_commit';
 
             $confirmedStatus = (int)setting('confirmed_reservation_status', 0);
             $isConfirmed = $confirmedStatus > 0
@@ -754,9 +769,17 @@ class PmdPublicBookingController extends Controller
 
             $this->pushReservationAdminNotification($reservation, 'created');
 
-            $guaranteePayload = $guaranteeService->publicGuaranteePayload(
-                (int)$reservation->getKey()
-            );
+            $guaranteePayload = null;
+            try {
+                $guaranteePayload = $guaranteeService->publicGuaranteePayload(
+                    (int)$reservation->getKey()
+                );
+            } catch (Throwable $guaranteePayloadError) {
+                Log::warning('PMD public booking guarantee payload failed after commit', [
+                    'reservation_id' => (int)$reservation->getKey(),
+                    'message' => $guaranteePayloadError->getMessage(),
+                ]);
+            }
 
             if ($guaranteePayload) {
                 $guaranteeService->sendGuaranteeConfirmation($reservation);
@@ -783,15 +806,56 @@ class PmdPublicBookingController extends Controller
                 'guarantee' => $guaranteePayload,
             ]);
         } catch (ValidationException $error) {
-            $guaranteeService->discardVerification($guaranteeVerified);
+            if (!$reservation || !(int)$reservation->getKey()) {
+                $guaranteeService->discardVerification($guaranteeVerified);
+            }
             throw $error;
         } catch (Throwable $error) {
-            $guaranteeService->discardVerification($guaranteeVerified);
+            $persistedReservationId = $reservation
+                ? (int)$reservation->getKey()
+                : 0;
+
             Log::error('PMD public booking create failed', [
                 'host' => $request->getHost(),
                 'location_id' => (int)$location->getKey(),
+                'reservation_id' => $persistedReservationId,
+                'stage' => $bookingStage,
                 'message' => $error->getMessage(),
             ]);
+
+            // Once the DB transaction committed, never tell the guest that
+            // the reservation failed and never detach an already-recorded
+            // guarantee merely because nonessential response work failed.
+            if ($persistedReservationId > 0) {
+                $fallbackMessages = [
+                    'de' => 'Ihre Anfrage wurde an das Restaurant gesendet.',
+                    'tr' => 'Talebiniz restorana gönderildi.',
+                    'ar' => 'تم إرسال طلبك إلى المطعم.',
+                    'en' => 'Your request was sent to the restaurant.',
+                ];
+
+                return response()->json([
+                    'success' => true,
+                    'reservation_id' => $persistedReservationId,
+                    'reference' => 'R'.str_pad((string)$persistedReservationId, 6, '0', STR_PAD_LEFT),
+                    'status' => (string)($reservation->status_name ?: 'Received'),
+                    'confirmed' => false,
+                    'locale' => $bookingLocale,
+                    'message' => $fallbackMessages[$bookingLocale]
+                        ?? $fallbackMessages['en'],
+                    'manage_url' => url('/book').'?manage='.rawurlencode((string)$reservation->hash),
+                    'reservation' => [
+                        'date' => $date->toDateString(),
+                        'time' => $time,
+                        'guests' => $guests,
+                        'duration' => (int)$reservation->duration,
+                        'name' => trim($reservation->first_name.' '.$reservation->last_name),
+                    ],
+                    'guarantee' => null,
+                ]);
+            }
+
+            $guaranteeService->discardVerification($guaranteeVerified);
 
             return response()->json([
                 'success' => false,

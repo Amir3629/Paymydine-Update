@@ -44,7 +44,7 @@ if grep -Fq "tatsächlich ein Schaden entstanden" app/Services/Reservations/PmdR
   exit 1
 fi
 
-grep -Fq "'locale' => $bookingLocale" app/Http/Controllers/PmdPublicBookingController.php
+grep -Fq '$bookingLocale' app/Http/Controllers/PmdPublicBookingController.php
 grep -Fq "payload.locale ||" public/assets/pmd/public-booking-v1.js
 grep -Fq "successLocale" public/assets/pmd/public-booking-v1.js
 grep -Fq "localizedGuarantee.termsText" public/assets/pmd/public-booking-v1.js

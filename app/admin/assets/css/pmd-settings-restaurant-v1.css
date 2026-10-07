@@ -858,3 +858,65 @@ html.pmd-restaurant-profile-ready .page-wrapper {
     gap: 3px;
   }
 }
+
+
+/* ==========================================================
+   PMD_RESTAURANT_PROFILE_R25
+   Make the public-booking contact authority unmistakable.
+   ========================================================== */
+/* PMD_RESTAURANT_PROFILE_R25 */
+
+.pmd-profile-section--booking .pmd-profile-card {
+  border-color: #b9d9d0;
+  box-shadow: 0 14px 34px rgba(13, 77, 66, .08);
+}
+
+.pmd-profile-section--booking .pmd-profile-card__header {
+  background: linear-gradient(90deg, #e7f5f1 0, #f6fbf9 56%, #fff 100%);
+}
+
+.pmd-profile-card__header-copy {
+  min-width: 0;
+}
+
+.pmd-profile-booking-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 8px 11px;
+  border: 1px solid #a9cec3;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--pmd-profile-green) !important;
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+
+.pmd-profile-booking-preview:hover,
+.pmd-profile-booking-preview:focus-visible {
+  border-color: var(--pmd-profile-green);
+  background: #f3faf7;
+  outline: none;
+}
+
+.pmd-profile-booking-note[data-pmd-public-booking-contact="r25"] {
+  border: 1px solid #cfe4de;
+  border-left: 4px solid var(--pmd-profile-green);
+  background: #f4faf8;
+}
+
+@media (max-width: 720px) {
+  .pmd-profile-section--booking .pmd-profile-card__header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .pmd-profile-booking-preview {
+    width: 100%;
+    margin-left: 58px;
+    justify-content: space-between;
+  }
+}

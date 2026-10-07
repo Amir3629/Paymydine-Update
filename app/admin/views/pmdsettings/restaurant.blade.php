@@ -39,7 +39,7 @@ html.pmd-restaurant-profile-booting #notif-root {
 document.documentElement.classList.add('pmd-restaurant-profile-booting');
 </script>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-v1.css?v=20261007_r24">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-v1.css?v=20261007_r25">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-platform-header-v4.css?v=20260809_4">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-spacing-v7.css?v=20260809_10">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-unified-r19.css?v=20260815_r19">
@@ -148,14 +148,23 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                     <div class="pmd-profile-section-icon">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"></path><path d="m4 7 8 6 8-6"></path><path d="M18 17.5c0 1.9-3 4.5-3 4.5s-3-2.6-3-4.5a3 3 0 1 1 6 0Z"></path></svg>
                     </div>
-                    <div>
+                    <div class="pmd-profile-card__header-copy">
                         <h2>{{ $pmdSettingsText('Public booking contact') }}</h2>
                         <p>{{ $pmdSettingsText('Address, email and phone shown to guests on the booking page.') }}</p>
                     </div>
+                    <a
+                        class="pmd-profile-booking-preview"
+                        href="{{ url('/book') }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <span>{{ $pmdSettingsText('Open booking page') }}</span>
+                        <span aria-hidden="true">↗</span>
+                    </a>
                 </div>
 
                 <div class="pmd-profile-card__body">
-                    <div class="pmd-profile-booking-note">
+                    <div class="pmd-profile-booking-note" data-pmd-public-booking-contact="r25">
                         <strong>{{ $pmdSettingsText('Used on /book') }}</strong>
                         <span>{{ $pmdSettingsText('These details power the address, call and email links guests see while reserving.') }}</span>
                     </div>
