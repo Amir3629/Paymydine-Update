@@ -21,10 +21,11 @@
             :root { --pmd-k-hero-image: url({!! json_encode($initialHero, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) !!}); }
         </style>
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=20-fixed-checkout-dom-stable">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=21-placeholder-category-cleanup">
 </head>
 <!-- PMD_KIOSK_TERMINAL_CHECKOUT_V18 -->
 <!-- PMD_KIOSK_PERF_LOCALES_V20 -->
+<!-- PMD_KIOSK_ATOMIC_UI_V21 -->
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
     data-pmd-kiosk-terminal="blade-v8"
@@ -79,7 +80,6 @@
             <div class="pmd-kiosk-menu-head">
                 <div>
                     <p class="pmd-kiosk-kicker" id="pmd-kiosk-context-label">DINE IN</p>
-                    <h1 id="pmd-kiosk-category-title">Menu</h1>
                 </div>
                 <span id="pmd-kiosk-result-count" class="pmd-kiosk-result-count"></span>
             </div>
@@ -137,6 +137,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=20-dom-stable-tenant-locales" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=21-placeholder-category-cleanup" defer></script>
 </body>
 </html>

@@ -281,17 +281,40 @@ internal object KioskMenuWarmPool {
                         return
                     }
 
-                    view.evaluateJavascript(
+                    awaitInteractiveKiosk(view, 0)
+                }
+
+                // PMD_KIOSK_TRUE_READY_PREWARM_V21
+                // The static Blade marker exists before bootstrap/menu data is
+                // usable. Only mark a warm page ready after the kiosk runtime
+                // has completed finishBoot and hidden its loading overlay.
+                private fun awaitInteractiveKiosk(
+                    current: WebView,
+                    attempt: Int,
+                ) {
+                    if (entries[entry.key] !== entry) return
+
+                    current.evaluateJavascript(
                         """
                         (function(){
-                          return !!document.querySelector(
-                            '[data-pmd-kiosk-terminal="blade-v8"]'
+                          var app = document.getElementById('pmd-kiosk-app');
+                          var loading = document.getElementById('pmd-kiosk-loading');
+                          return !!(
+                            app &&
+                            app.getAttribute('aria-busy') === 'false' &&
+                            (!loading || loading.hidden)
                           );
                         })()
                         """.trimIndent(),
                     ) { result ->
-                        if (entries[entry.key] === entry && result == "true") {
+                        if (entries[entry.key] !== entry) return@evaluateJavascript
+                        if (result == "true") {
                             entry.ready = true
+                        } else if (attempt < 50) {
+                            mainHandler.postDelayed(
+                                { awaitInteractiveKiosk(current, attempt + 1) },
+                                40L,
+                            )
                         }
                     }
                 }
@@ -475,6 +498,11 @@ class KioskMenuActivity : ComponentActivity() {
         enterKioskMode()
         buildNativeShell()
 
+        // PMD_KIOSK_ATOMIC_ACTIVITY_HANDOFF_V21
+        // Build and populate the destination hierarchy before the first
+        // setContentView so Android never presents an empty themed shell for
+        // one frame between Welcome and the already-warm menu.
+        
         // PMD_KIOSK_INSTANT_HANDOFF_V15
         // The welcome screen pre-renders both service modes. On a normal guest
         // tap this Activity only re-parents the already-ready WebView, so there
@@ -494,6 +522,8 @@ class KioskMenuActivity : ComponentActivity() {
             sessionNonce = UUID.randomUUID().toString()
             createCanonicalKioskWebView()
         }
+
+        setContentView(root)
         resetIdleTimer()
     }
 
@@ -626,8 +656,6 @@ class KioskMenuActivity : ComponentActivity() {
                 1f,
             ),
         )
-
-        setContentView(root)
     }
 
     private fun createWebViewWhenReady() {

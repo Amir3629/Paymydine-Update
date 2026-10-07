@@ -328,6 +328,13 @@
     });
   }
 
+  // PMD_KIOSK_BRAND_PLACEHOLDER_V21
+  // Match the Digital Menu no-photo treatment: the PayMyDine mark is neutral,
+  // smaller and grayscale rather than a colored restaurant/item substitute.
+  function foodPlaceholderHtml() {
+    return '<img class="pmd-kiosk-food-placeholder" src="/brand/paymydine-logo.svg" alt="" data-pmd-food-placeholder="true" loading="eager" decoding="async">';
+  }
+
   function normalizeAsset(value) {
     var raw = String(value || "").trim();
     if (!raw || raw === "null" || raw === "undefined") return "";
@@ -727,7 +734,8 @@
     var current = entries.find(function (entry) {
       return String(entry.id) === String(state.category);
     }) || entries[0];
-    $("pmd-kiosk-category-title").textContent = current.name;
+    var categoryTitle = $("pmd-kiosk-category-title");
+    if (categoryTitle) categoryTitle.textContent = current.name;
   }
 
   function setActiveCategory(categoryId) {
@@ -747,7 +755,8 @@
     var category = state.categories.find(function (entry) {
       return String(entry.id) === state.category;
     });
-    if (category) $("pmd-kiosk-category-title").textContent = category.name;
+    var categoryTitle = $("pmd-kiosk-category-title");
+    if (category && categoryTitle) categoryTitle.textContent = category.name;
   }
 
   function bindCategoryScrollSpy() {
@@ -800,7 +809,7 @@
           ? '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) +
             '" loading="' + (localIndex < 4 ? "eager" : "lazy") + '" decoding="async"' +
             (localIndex < 2 ? ' fetchpriority="high"' : '') + '>'
-          : '<span class="pmd-kiosk-item__placeholder">' + escapeHtml(item.name.charAt(0).toUpperCase()) + "</span>";
+          : foodPlaceholderHtml();
 
         return '<article class="pmd-kiosk-item" data-open-item="' + escapeHtml(item.id) + '" tabindex="0" role="button" aria-label="' +
             escapeHtml(item.name) + '">' +
@@ -1008,7 +1017,7 @@
     var selected = defaultSelections(item);
     var detailImage = item.image
       ? '<div class="pmd-kiosk-detail__image"><img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '"></div>'
-      : '<div class="pmd-kiosk-detail__image"><span class="pmd-kiosk-item__placeholder">' + escapeHtml(item.name.charAt(0).toUpperCase()) + "</span></div>";
+      : '<div class="pmd-kiosk-detail__image">' + foodPlaceholderHtml() + "</div>";
     var groups = item.options.map(function (group) {
       var inputs = group.values.map(function (value) {
         var checked = (selected[group.id] || []).indexOf(value.id) >= 0;

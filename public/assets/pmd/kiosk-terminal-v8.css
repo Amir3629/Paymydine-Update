@@ -407,6 +407,29 @@ img { display: block; max-width: 100%; }
   font-weight: 900;
 }
 
+/* PMD_KIOSK_BRAND_PLACEHOLDER_V21
+ * Keep no-photo food cards consistent with Digital Menu: a smaller neutral
+ * PayMyDine mark, never a colored logo or arbitrary first-letter placeholder.
+ */
+.pmd-kiosk-item__image img.pmd-kiosk-food-placeholder,
+.pmd-kiosk-detail__image img.pmd-kiosk-food-placeholder {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  object-fit: contain !important;
+  object-position: center !important;
+  padding: clamp(30px, 18%, 64px) !important;
+  background:
+    radial-gradient(circle at 32% 22%, rgba(255,255,255,.24), transparent 48%),
+    linear-gradient(145deg, rgba(255,255,255,.13), rgba(127,127,127,.06)) !important;
+  filter:
+    grayscale(1)
+    saturate(0)
+    contrast(.82)
+    opacity(.48)
+    drop-shadow(0 8px 14px rgba(0,0,0,.14)) !important;
+}
+
 .pmd-kiosk-item__qty {
   position: absolute;
   top: 9px;
@@ -857,6 +880,8 @@ img { display: block; max-width: 100%; }
 .pmd-kiosk-option {
   min-height: 46px;
   display: flex;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
