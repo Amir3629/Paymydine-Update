@@ -6,6 +6,7 @@
     $initialRestaurantLetter = mb_strtoupper(mb_substr($initialRestaurantName, 0, 1));
     $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Dine in';
     $initialHero = trim((string)($pmdKioskConfig['hero'] ?? ''));
+    $initialServiceHero = trim((string)($pmdKioskConfig['serviceHero'] ?? ''));
     $initialChooseService = request()->boolean('kiosk_choose_service');
     $initialLocale = strtolower(substr((string)request()->query('lang', 'en'), 0, 3));
     if (!preg_match('/^[a-z]{2,3}$/', $initialLocale)) $initialLocale = 'en';
@@ -24,12 +25,58 @@
             :root { --pmd-k-hero-image: url({!! json_encode($initialHero, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) !!}); }
         </style>
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=22-single-surface-kiosk">
+    @if ($initialServiceHero !== '')
+        <link rel="preload" as="image" href="{{ e($initialServiceHero) }}" fetchpriority="high">
+    @endif
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=22-4-canonical-digital-menu-hero">
+    <style id="pmd-kiosk-v22-4-service-choice-polish">
+        /* PMD_KIOSK_SERVICE_LABEL_FIT_V22_1 */
+        /* PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4 */
+        .pmd-kiosk-service-choice__hero {
+            width: 100%;
+            margin: 12px 0 22px;
+        }
+        .pmd-kiosk-service-choice__hero img {
+            display: block;
+            width: 100%;
+            height: clamp(138px, 22vh, 190px);
+            object-fit: cover;
+            object-position: center;
+        }
+        @media (max-width: 760px) {
+            .pmd-kiosk-service-card {
+                grid-template-columns: minmax(0, 1.05fr) minmax(148px, .95fr);
+            }
+            .pmd-kiosk-service-card > strong {
+                min-width: 0;
+                padding: 16px 10px;
+                overflow: hidden;
+                font-size: clamp(26px, 8vw, 30px);
+            }
+            #pmd-kiosk-service-takeaway-label {
+                padding-inline: 8px;
+                font-size: clamp(20px, 6.2vw, 24px);
+                line-height: 1.05;
+                letter-spacing: -.055em;
+                white-space: nowrap;
+            }
+            .pmd-kiosk-service-card__fade {
+                width: 34px;
+            }
+            .pmd-kiosk-service-choice__hero {
+                margin: 8px 0 18px;
+            }
+            .pmd-kiosk-service-choice__hero img {
+                height: 148px;
+            }
+        }
+    </style>
 </head>
 <!-- PMD_KIOSK_TERMINAL_CHECKOUT_V18 -->
 <!-- PMD_KIOSK_PERF_LOCALES_V20 -->
 <!-- PMD_KIOSK_ATOMIC_UI_V21 -->
 <!-- PMD_KIOSK_SINGLE_SURFACE_UI_V22 -->
+<!-- PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4 -->
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
     data-pmd-kiosk-terminal="blade-v8"
@@ -56,6 +103,17 @@
             </div>
             <button type="button" id="pmd-kiosk-service-language" class="pmd-kiosk-language-cycle" aria-label="Language">{{ e(strtoupper($initialLocale)) }}</button>
         </div>
+
+        @if ($initialServiceHero !== '')
+            <div class="pmd-kiosk-service-choice__hero" aria-hidden="true">
+                <img
+                    src="{{ e($initialServiceHero) }}"
+                    alt=""
+                    fetchpriority="high"
+                    decoding="async"
+                >
+            </div>
+        @endif
 
         <div class="pmd-kiosk-service-choice__actions">
             <button type="button" class="pmd-kiosk-service-card" data-service-mode="eat_in">
