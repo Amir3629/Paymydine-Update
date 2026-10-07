@@ -30,20 +30,24 @@ if grep -Fq '<p class="pmd-booking-kicker" data-pmd-manage-i18n="manage_booking"
   exit 1
 fi
 
-grep -Fq "data-pmd-manage-occasion-grid" resources/views/pmd/public-booking-manage.blade.php
+if ! grep -Fq "data-pmd-manage-occasion-grid" resources/views/pmd/public-booking-manage.blade.php \
+  && ! grep -Fq "data-pmd-manage-table-preferences" resources/views/pmd/public-booking-manage.blade.php; then
+  echo "ERROR: managed reservation preference controls are missing."
+  exit 1
+fi
 grep -Fq 'id="pmd-manage-cancel-dialog"' resources/views/pmd/public-booking-manage.blade.php
 grep -Fq "PMD_MANAGE_CANCEL_DIALOG_R27_1" public/assets/pmd/public-booking-v1.css
 grep -Fq "openCancelDialog()" public/assets/pmd/public-booking-manage-v1.js
 grep -Fq "performCancelReservation()" public/assets/pmd/public-booking-manage-v1.js
-grep -Fq "20261007-r27-1" resources/views/pmd/public-booking-manage.blade.php
+grep -Eq "20261007-r(27-1|28)" resources/views/pmd/public-booking-manage.blade.php
 if grep -Fq "window.confirm(labels.cancel_confirm" public/assets/pmd/public-booking-manage-v1.js; then
   echo "ERROR: native browser reservation-cancel confirmation returned."
   exit 1
 fi
 
 grep -Fq "PMD_PUBLIC_BOOKING_R27" public/assets/pmd/public-booking-v1.css
-grep -Fq "20261007-r27" resources/views/pmd/public-booking.blade.php
-grep -Fq "20261007-r27" resources/views/pmd/public-booking-manage.blade.php
+grep -Eq "20261007-r(27|28)" resources/views/pmd/public-booking.blade.php
+grep -Eq "20261007-r(27|27-1|28)" resources/views/pmd/public-booking-manage.blade.php
 
 grep -Fq "PMD_RESTAURANT_PUBLIC_BOOKING_CONTACT_R27" app/admin/assets/css/pmd-settings-simplify-r1.css
 grep -Fq "PMD_RESTAURANT_PUBLIC_BOOKING_CONTACT_R27" app/admin/assets/css/pmd-settings-restaurant-v1.css
