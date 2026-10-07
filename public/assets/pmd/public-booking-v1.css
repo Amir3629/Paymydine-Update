@@ -2659,3 +2659,65 @@ body.pmd-booking-page *::-webkit-scrollbar {
     font-size: 11.5px;
   }
 }
+
+
+/* ==========================================================
+   PMD_PUBLIC_BOOKING_R27
+   Reservation-management clarity and zero-regression polish.
+   ========================================================== */
+
+/* The management page deliberately shows distinct occasion choices. Older
+   cached rules could collapse their labels into one text run. */
+.pmd-booking-manage-page [data-pmd-manage-occasion-grid] {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+
+.pmd-booking-manage-page [data-pmd-manage-occasion-grid] .pmd-booking-occasion-card {
+  display: block !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+.pmd-booking-manage-page [data-pmd-manage-occasion-grid] .pmd-booking-occasion-card__surface {
+  min-height: 88px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 12px 10px !important;
+}
+
+.pmd-booking-manage-page [data-pmd-manage-occasion-grid] .pmd-booking-occasion-card__surface strong {
+  display: block !important;
+  text-align: center !important;
+  line-height: 1.25 !important;
+}
+
+/* When only one alternate language is visible, it is one clean action rather
+   than half of a segmented control. */
+.pmd-booking-language.is-single-choice a:not([hidden]) {
+  border-right: 0 !important;
+}
+
+/* New guarantee requirements triggered by an edited party size belong inside
+   the reservation ledger, not in a detached modal/card. */
+.pmd-booking-manage-new-guarantee {
+  margin-top: 22px !important;
+}
+
+@media (max-width: 720px) {
+  .pmd-booking-manage-page [data-pmd-manage-occasion-grid] {
+    grid-template-columns: 1fr !important;
+  }
+
+  .pmd-booking-manage-page [data-pmd-manage-occasion-grid] .pmd-booking-occasion-card__surface {
+    min-height: 64px !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+}
