@@ -20,6 +20,12 @@
             'last_name' => 'Last name',
             'phone' => 'Phone',
             'occasion' => 'Occasion',
+            'table_preferences' => 'Table preferences',
+            'near_window' => 'Near window',
+            'quiet_area' => 'Quiet area',
+            'accessible' => 'Accessible',
+            'whatsapp_updates' => 'Send reservation updates to me on WhatsApp.',
+            'whatsapp_restaurant' => 'WhatsApp restaurant',
             'occasion_none' => 'No special occasion',
             'celebration' => 'Celebration',
             'business' => 'Business',
@@ -79,6 +85,12 @@
             'last_name' => 'Nachname',
             'phone' => 'Telefon',
             'occasion' => 'Anlass',
+            'table_preferences' => 'Tischwunsch',
+            'near_window' => 'Am Fenster',
+            'quiet_area' => 'Ruhiger Bereich',
+            'accessible' => 'Barrierefrei',
+            'whatsapp_updates' => 'Reservierungsupdates per WhatsApp erhalten.',
+            'whatsapp_restaurant' => 'Restaurant über WhatsApp',
             'occasion_none' => 'Kein besonderer Anlass',
             'celebration' => 'Feier',
             'business' => 'Geschäftlich',
@@ -138,6 +150,12 @@
             'last_name' => 'Soyad',
             'phone' => 'Telefon',
             'occasion' => 'Özel gün',
+            'table_preferences' => 'Masa tercihi',
+            'near_window' => 'Pencere yanı',
+            'quiet_area' => 'Sessiz alan',
+            'accessible' => 'Erişilebilir',
+            'whatsapp_updates' => 'Rezervasyon güncellemelerini WhatsApp ile al.',
+            'whatsapp_restaurant' => 'Restorana WhatsApp gönder',
             'occasion_none' => 'Özel bir gün değil',
             'celebration' => 'Kutlama',
             'business' => 'İş',
@@ -197,6 +215,12 @@
             'last_name' => 'اسم العائلة',
             'phone' => 'الهاتف',
             'occasion' => 'المناسبة',
+            'table_preferences' => 'تفضيلات الطاولة',
+            'near_window' => 'بالقرب من النافذة',
+            'quiet_area' => 'منطقة هادئة',
+            'accessible' => 'مهيأة للوصول',
+            'whatsapp_updates' => 'أرسل لي تحديثات الحجز عبر واتساب.',
+            'whatsapp_restaurant' => 'مراسلة المطعم عبر واتساب',
             'occasion_none' => 'لا توجد مناسبة خاصة',
             'celebration' => 'احتفال',
             'business' => 'عمل',
@@ -298,7 +322,7 @@
     <meta name="theme-color" content="#f4efe4">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $t['manage_booking'] }} · {{ $bookingProfile['name'] }}</title>
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r27-1">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r28">
 </head>
 <body class="pmd-booking-page pmd-booking-manage-page">
     <div class="pmd-booking-shell">
@@ -441,30 +465,33 @@
                                     <span data-pmd-manage-i18n="phone">{{ $t['phone'] }}</span>
                                     <input name="telephone" type="tel" value="{{ $reservationPayload['telephone'] }}" maxlength="64" required>
                                 </label>
-                                <fieldset class="pmd-booking-occasion pmd-booking-field--wide">
-                                    <legend data-pmd-manage-i18n="occasion">{{ $t['occasion'] }}</legend>
-                                    <div class="pmd-booking-occasion-grid" data-pmd-manage-occasion-grid>
-                                        <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="0" {{ (int)$reservationPayload['occasion_id'] === 0 ? 'checked' : '' }}>
-                                            <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"/><path d="M10 22 22 10"/></svg>
-                                                <strong data-pmd-manage-i18n="occasion_none">{{ $t['occasion_none'] }}</strong>
-                                            </span>
-                                        </label>
-                                        <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="3" {{ (int)$reservationPayload['occasion_id'] === 3 ? 'checked' : '' }}>
-                                            <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 5 2.5 6.5L25 14l-6.5 2.5L16 23l-2.5-6.5L7 14l6.5-2.5L16 5Z"/></svg>
-                                                <strong data-pmd-manage-i18n="celebration">{{ $t['celebration'] }}</strong>
-                                            </span>
-                                        </label>
-                                        <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="6" {{ (int)$reservationPayload['occasion_id'] === 6 ? 'checked' : '' }}>
-                                            <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="10" width="20" height="15" rx="1"/><path d="M12 10V7h8v3M6 15h20M13 15v2h6v-2"/></svg>
-                                                <strong data-pmd-manage-i18n="business">{{ $t['business'] }}</strong>
-                                            </span>
-                                        </label>
+                                <fieldset class="pmd-booking-field--wide pmd-booking-preferences">
+                                    <legend data-pmd-manage-i18n="table_preferences">{{ $t['table_preferences'] }}</legend>
+                                    <div class="pmd-booking-occasion-grid pmd-booking-table-preference-grid" data-pmd-manage-table-preferences>
+                                        @foreach([
+                                            'near_window' => ['near_window', 'window'],
+                                            'quiet_area' => ['quiet_area', 'quiet'],
+                                            'accessible' => ['accessible', 'accessible'],
+                                        ] as $value => [$labelKey, $icon])
+                                            <label class="pmd-booking-occasion-card">
+                                                <input
+                                                    type="checkbox"
+                                                    name="pmd_table_features[]"
+                                                    value="{{ $value }}"
+                                                    {{ in_array($value, (array)($reservationPayload['table_preferences'] ?? []), true) ? 'checked' : '' }}
+                                                >
+                                                <span class="pmd-booking-occasion-card__surface">
+                                                    @if($icon === 'window')
+                                                        <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="6" width="20" height="20"></rect><path d="M16 6v20M6 16h20"></path></svg>
+                                                    @elseif($icon === 'quiet')
+                                                        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M13.5 8.5 9.5 12H6v8h3.5l4 3.5z"></path><path d="M18.5 12.5c1.8 1.7 1.8 5.3 0 7"></path><path d="M22 9.5c4 3.5 4 9.5 0 13"></path><path d="M7 26 26 7"></path></svg>
+                                                    @else
+                                                        <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="13" cy="6.5" r="2.5"></circle><path d="M12 11.5h5l1.5 5H23"></path><path d="M14 11.5v6.5a6 6 0 1 0 6 6"></path><path d="M18.5 17 21 25.5h5"></path></svg>
+                                                    @endif
+                                                    <strong data-pmd-manage-i18n="{{ $labelKey }}">{{ $t[$labelKey] }}</strong>
+                                                </span>
+                                            </label>
+                                        @endforeach
                                     </div>
                                 </fieldset>
                                 <label class="pmd-booking-field--wide">
@@ -472,6 +499,18 @@
                                     <textarea name="comment" rows="4" maxlength="1000" data-pmd-manage-placeholder="notes_hint" placeholder="{{ $t['notes_hint'] }}">{{ $reservationPayload['comment'] }}</textarea>
                                 </label>
                             </div>
+
+                            @if(!empty($bookingProfile['whatsapp_updates_enabled']))
+                                <label class="pmd-booking-consent pmd-booking-whatsapp-consent">
+                                    <input
+                                        name="whatsapp_updates"
+                                        type="checkbox"
+                                        value="1"
+                                        {{ !empty($bookingMessagingPreference['whatsapp_opt_in']) ? 'checked' : '' }}
+                                    >
+                                    <span data-pmd-manage-i18n="whatsapp_updates">{{ $t['whatsapp_updates'] }}</span>
+                                </label>
+                            @endif
 
                             <section id="pmd-booking-guarantee" class="pmd-booking-guarantee pmd-booking-manage-new-guarantee" hidden aria-live="polite">
                                 <div class="pmd-booking-guarantee__head">
@@ -551,6 +590,9 @@
                 @if($bookingProfile['email'])
                     <a href="mailto:{{ $bookingProfile['email'] }}" data-pmd-manage-i18n="email_restaurant">{{ $t['email_restaurant'] }}</a>
                 @endif
+                @if($bookingProfile['whatsapp_number'])
+                    <a href="https://wa.me/{{ $bookingProfile['whatsapp_number'] }}" target="_blank" rel="noopener noreferrer" data-pmd-manage-i18n="whatsapp_restaurant">{{ $t['whatsapp_restaurant'] }}</a>
+                @endif
             </div>
         </main>
     </div>
@@ -576,6 +618,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-manage-config">{!! json_encode($manageConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261007-r27-1" defer></script>
+    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261007-r28" defer></script>
 </body>
 </html>
