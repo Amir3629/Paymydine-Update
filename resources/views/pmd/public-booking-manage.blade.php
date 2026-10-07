@@ -42,6 +42,13 @@
             'email_restaurant' => 'Email restaurant',
             'status_canceled' => 'Canceled',
             'status_active' => 'Active',
+            'guarantee_title' => 'Reservation guarantee',
+            'guarantee_intro' => 'No charge today.',
+            'guarantee_total' => 'Guarantee limit',
+            'guarantee_card' => 'Card details',
+            'guarantee_secure' => 'Secure verification by the payment provider.',
+            'guarantee_unavailable' => 'Reservation guarantee is temporarily unavailable. Please contact the restaurant.',
+            'guarantee_verifying' => 'Verifying payment method…',
             'guarantee_active' => 'Card guarantee active',
             'guarantee_charged' => 'No-show compensation charged',
             'guarantee_released' => 'Card guarantee released',
@@ -89,6 +96,13 @@
             'email_restaurant' => 'Restaurant mailen',
             'status_canceled' => 'Storniert',
             'status_active' => 'Aktiv',
+            'guarantee_title' => 'Reservierungsgarantie',
+            'guarantee_intro' => 'Jetzt keine Abbuchung.',
+            'guarantee_total' => 'Garantielimit',
+            'guarantee_card' => 'Kartendaten',
+            'guarantee_secure' => 'Sichere Bestätigung über den Zahlungsanbieter.',
+            'guarantee_unavailable' => 'Die Reservierungsgarantie ist derzeit nicht verfügbar. Bitte kontaktieren Sie das Restaurant.',
+            'guarantee_verifying' => 'Zahlungsmethode wird bestätigt…',
             'guarantee_active' => 'Kartengarantie aktiv',
             'guarantee_charged' => 'Ausfallentschädigung belastet',
             'guarantee_released' => 'Kartengarantie freigegeben',
@@ -136,6 +150,13 @@
             'email_restaurant' => 'Restorana e-posta',
             'status_canceled' => 'İptal edildi',
             'status_active' => 'Aktif',
+            'guarantee_title' => 'Rezervasyon garantisi',
+            'guarantee_intro' => 'Şimdi ödeme yok.',
+            'guarantee_total' => 'Garanti limiti',
+            'guarantee_card' => 'Kart bilgileri',
+            'guarantee_secure' => 'Ödeme sağlayıcısı üzerinden güvenli doğrulama.',
+            'guarantee_unavailable' => 'Rezervasyon garantisi şu anda kullanılamıyor. Lütfen restoranla iletişime geçin.',
+            'guarantee_verifying' => 'Ödeme yöntemi doğrulanıyor…',
             'guarantee_active' => 'Kart garantisi aktif',
             'guarantee_charged' => 'No-show tazminatı tahsil edildi',
             'guarantee_released' => 'Kart garantisi serbest bırakıldı',
@@ -183,6 +204,13 @@
             'email_restaurant' => 'راسل المطعم',
             'status_canceled' => 'ملغى',
             'status_active' => 'نشط',
+            'guarantee_title' => 'ضمان الحجز',
+            'guarantee_intro' => 'لا خصم الآن.',
+            'guarantee_total' => 'حد الضمان',
+            'guarantee_card' => 'بيانات البطاقة',
+            'guarantee_secure' => 'تحقق آمن عبر مزود الدفع.',
+            'guarantee_unavailable' => 'ضمان الحجز غير متاح مؤقتاً. يرجى الاتصال بالمطعم.',
+            'guarantee_verifying' => 'جارٍ التحقق من طريقة الدفع…',
             'guarantee_active' => 'ضمان البطاقة فعال',
             'guarantee_charged' => 'تم تحصيل تعويض عدم الحضور',
             'guarantee_released' => 'تم تحرير ضمان البطاقة',
@@ -218,6 +246,7 @@
         'localeDirections' => $localeDirections,
         'reservation' => $reservationPayload,
         'initialAvailability' => $initialAvailability,
+        'tableRules' => $bookingTableRules ?? [],
         'maxGuests' => $bookingMaxGuests,
         'today' => $bookingToday,
         'maxDate' => $bookingMaxDate,
@@ -229,6 +258,15 @@
         'cancelUrl' => $reservation ? url('/book') : null,
         'restaurantName' => $bookingProfile['name'],
         'guaranteeLocksSchedule' => $guaranteeLocksSchedule,
+        'guarantee' => array_merge(
+            (array)($bookingGuarantee ?? []),
+            [
+                'setupUrl' => url('/book/guarantee/setup'),
+                'statusUrl' => url('/book/guarantee/status'),
+                'returnUrl' => url('/book/guarantee/return'),
+            ]
+        ),
+        'guaranteeByLocale' => $bookingGuaranteeByLocale ?? [],
     ];
 @endphp
 <!doctype html>
@@ -240,7 +278,7 @@
     <meta name="theme-color" content="#f4efe4">
     <meta name="robots" content="noindex,nofollow">
     <title>{{ $t['manage_booking'] }} · {{ $bookingProfile['name'] }}</title>
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261006-r20-7">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r27">
 </head>
 <body class="pmd-booking-page pmd-booking-manage-page">
     <div class="pmd-booking-shell">
@@ -256,14 +294,17 @@
             </a>
             <nav class="pmd-booking-language" aria-label="{{ $t['language'] }}" data-pmd-manage-language-nav>
                 @foreach($bookingLanguages as $code)
-                    <a href="{{ url('/book') }}?manage={{ $reservation ? rawurlencode((string)$reservation->hash) : '1' }}&lang={{ $code }}" data-pmd-manage-language="{{ $code }}" class="{{ $bookingLocale === $code ? 'is-active' : '' }}" @if($bookingLocale === $code) aria-current="page" @endif>{{ strtoupper($code) }}</a>
+                    <a
+                        href="{{ url('/book') }}?manage={{ $reservation ? rawurlencode((string)$reservation->hash) : '1' }}&lang={{ $code }}"
+                        data-pmd-manage-language="{{ $code }}"
+                        @if($bookingLocale === $code) hidden aria-hidden="true" @endif
+                    >{{ strtoupper($code) }}</a>
                 @endforeach
             </nav>
         </header>
 
         <main class="pmd-booking-manage">
             <section class="pmd-booking-manage__intro">
-                <p class="pmd-booking-kicker" data-pmd-manage-i18n="manage_booking">{{ $t['manage_booking'] }}</p>
                 <h1 data-pmd-manage-i18n="{{ $reservation ? 'manage_booking' : 'find_booking' }}">{{ $reservation ? $t['manage_booking'] : $t['find_booking'] }}</h1>
                 <p data-pmd-manage-i18n="{{ $reservation ? 'manage_intro' : 'find_intro' }}">{{ $reservation ? $t['manage_intro'] : $t['find_intro'] }}</p>
             </section>
@@ -382,7 +423,7 @@
                                 </label>
                                 <fieldset class="pmd-booking-occasion pmd-booking-field--wide">
                                     <legend data-pmd-manage-i18n="occasion">{{ $t['occasion'] }}</legend>
-                                    <div class="pmd-booking-occasion-grid">
+                                    <div class="pmd-booking-occasion-grid" data-pmd-manage-occasion-grid>
                                         <label class="pmd-booking-occasion-card">
                                             <input type="radio" name="occasion_id" value="0" {{ (int)$reservationPayload['occasion_id'] === 0 ? 'checked' : '' }}>
                                             <span class="pmd-booking-occasion-card__surface">
@@ -411,6 +452,46 @@
                                     <textarea name="comment" rows="4" maxlength="1000" data-pmd-manage-placeholder="notes_hint" placeholder="{{ $t['notes_hint'] }}">{{ $reservationPayload['comment'] }}</textarea>
                                 </label>
                             </div>
+
+                            <section id="pmd-booking-guarantee" class="pmd-booking-guarantee pmd-booking-manage-new-guarantee" hidden aria-live="polite">
+                                <div class="pmd-booking-guarantee__head">
+                                    <div>
+                                        <span class="pmd-booking-field-label" data-pmd-manage-i18n="guarantee_title">{{ $t['guarantee_title'] }}</span>
+                                        <strong data-pmd-manage-i18n="guarantee_intro">{{ $t['guarantee_intro'] }}</strong>
+                                    </div>
+                                </div>
+
+                                <p id="pmd-booking-guarantee-terms" class="pmd-booking-guarantee__terms"></p>
+
+                                <div class="pmd-booking-guarantee__amount">
+                                    <span data-pmd-manage-i18n="guarantee_total">{{ $t['guarantee_total'] }}</span>
+                                    <strong id="pmd-booking-guarantee-total">—</strong>
+                                </div>
+
+                                <div id="pmd-booking-guarantee-unavailable" class="pmd-booking-guarantee__unavailable" hidden data-pmd-manage-i18n="guarantee_unavailable">{{ $t['guarantee_unavailable'] }}</div>
+
+                                <div id="pmd-booking-guarantee-methods" class="pmd-booking-guarantee__methods" role="radiogroup" aria-label="Guarantee payment method"></div>
+
+                                <div id="pmd-booking-guarantee-card-wrap" class="pmd-booking-guarantee__card-wrap">
+                                    <span id="pmd-booking-guarantee-method-title" class="pmd-booking-field-label" data-pmd-manage-i18n="guarantee_card">{{ $t['guarantee_card'] }}</span>
+                                    <div id="pmd-booking-guarantee-card" class="pmd-booking-guarantee__card"></div>
+                                    <div id="pmd-booking-guarantee-wallet" class="pmd-booking-guarantee__wallet" hidden></div>
+
+                                    <div id="pmd-booking-guarantee-provider-action" class="pmd-booking-guarantee__provider-action" hidden>
+                                        <button id="pmd-booking-guarantee-provider-button" type="button"></button>
+                                        <small id="pmd-booking-guarantee-provider-note"></small>
+                                    </div>
+
+                                    <div id="pmd-booking-guarantee-sumup" class="pmd-booking-guarantee__sumup" hidden></div>
+                                    <div id="pmd-booking-guarantee-card-error" class="pmd-booking-guarantee__card-error" role="alert"></div>
+                                    <small id="pmd-booking-guarantee-secure" data-pmd-manage-i18n="guarantee_secure">{{ $t['guarantee_secure'] }}</small>
+                                </div>
+
+                                <label class="pmd-booking-consent pmd-booking-guarantee__consent">
+                                    <input id="pmd-booking-guarantee-consent" type="checkbox" value="1">
+                                    <span id="pmd-booking-guarantee-consent-copy">{{ $bookingGuarantee['consentText'] ?? '' }}</span>
+                                </label>
+                            </section>
 
                             <div id="pmd-manage-message" class="pmd-booking-manage-message" aria-live="polite"></div>
 
@@ -455,6 +536,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-manage-config">{!! json_encode($manageConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261005-r19" defer></script>
+    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261007-r27" defer></script>
 </body>
 </html>
