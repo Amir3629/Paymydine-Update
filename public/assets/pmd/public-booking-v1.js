@@ -85,6 +85,8 @@
   var stripeWalletElements = null;
   var stripeWalletElement = null;
   var stripeWalletMethod = "";
+  var stripeWalletCache = Object.create(null);
+  var stripeWarmScheduled = false;
   var sumupPromise = null;
   var sumupWidget = null;
   var guaranteeSelectedMethod = "";
@@ -363,23 +365,38 @@
     return "Stripe";
   }
 
-  function resetProviderWidgets() {
-    if (stripeWalletElement && stripeWalletElement.unmount) {
-      try { stripeWalletElement.unmount(); } catch (_) {}
+  function setStripeWalletVisibility(method) {
+    var active = false;
+
+    Object.keys(stripeWalletCache).forEach(function (code) {
+      var entry = stripeWalletCache[code];
+      if (!entry || !entry.slot) return;
+
+      var visible = Boolean(method && code === method);
+      entry.slot.classList.toggle("is-active", visible);
+      entry.slot.setAttribute("aria-hidden", visible ? "false" : "true");
+      active = active || visible;
+    });
+
+    if (guaranteeWalletNode) {
+      guaranteeWalletNode.hidden = !active;
     }
+  }
+
+  function resetProviderWidgets() {
+    // Stripe wallet Elements are intentionally kept mounted and warm.
+    // Verification state changes must not force Apple Pay / Google Pay
+    // iframes to be recreated on every method switch.
     stripeWalletElement = null;
     stripeWalletElements = null;
     stripeWalletMethod = "";
+    setStripeWalletVisibility("");
 
     if (sumupWidget && sumupWidget.unmount) {
       try { sumupWidget.unmount(); } catch (_) {}
     }
     sumupWidget = null;
 
-    if (guaranteeWalletNode) {
-      guaranteeWalletNode.innerHTML = "";
-      guaranteeWalletNode.hidden = true;
-    }
     if (guaranteeSumupNode) {
       guaranteeSumupNode.innerHTML = "";
       guaranteeSumupNode.hidden = true;
@@ -848,22 +865,81 @@
     });
   }
 
-  function ensureStripeWallet() {
-    var method = guaranteeSelectedMethod;
+  function stripeWalletSlot(method) {
+    if (!guaranteeWalletNode) return null;
+
+    var selector = '[data-pmd-stripe-wallet-slot="' + method + '"]';
+    var slot = guaranteeWalletNode.querySelector(selector);
+    if (slot) return slot;
+
+    slot = document.createElement("div");
+    slot.className = "pmd-booking-guarantee__wallet-slot";
+    slot.setAttribute("data-pmd-stripe-wallet-slot", method);
+    slot.setAttribute("aria-hidden", "true");
+    guaranteeWalletNode.appendChild(slot);
+
+    return slot;
+  }
+
+  function ensureStripeWallet(methodCode, options) {
+    var method = String(methodCode || guaranteeSelectedMethod || "").toLowerCase();
+    options = options || {};
+    var show = options.show !== false;
+
     if (!["apple_pay", "google_pay"].includes(method)) {
       return Promise.resolve(null);
     }
 
-    if (stripeWalletElement && stripeWalletMethod === method) {
-      return Promise.resolve(stripeWalletElement);
+    var cached = stripeWalletCache[method];
+    if (cached) {
+      cached.showRequested = cached.showRequested || show;
+
+      if (cached.element) {
+        if (cached.showRequested) {
+          stripeWalletMethod = method;
+          stripeWalletElements = cached.elements;
+          stripeWalletElement = cached.element;
+          setStripeWalletVisibility(method);
+          cached.showRequested = false;
+        }
+        return Promise.resolve(cached.element);
+      }
+
+      if (cached.promise) {
+        return cached.promise.then(function (element) {
+          if (cached.showRequested) {
+            stripeWalletMethod = method;
+            stripeWalletElements = cached.elements;
+            stripeWalletElement = cached.element;
+            setStripeWalletVisibility(method);
+            cached.showRequested = false;
+          }
+          return element;
+        });
+      }
     }
 
-    resetProviderWidgets();
-    stripeWalletMethod = method;
+    var slot = stripeWalletSlot(method);
+    if (!slot) return Promise.resolve(null);
 
-    return ensureStripeClient().then(function () {
+    var entry = cached || {
+      method: method,
+      elements: null,
+      element: null,
+      slot: slot,
+      available: null,
+      showRequested: show,
+      promise: null
+    };
+    stripeWalletCache[method] = entry;
+
+    // The parent must be measurable while Stripe creates its iframe. The
+    // inactive slot itself stays off-canvas until selected.
+    if (guaranteeWalletNode) guaranteeWalletNode.hidden = false;
+
+    entry.promise = ensureStripeClient().then(function () {
       var guarantee = currentGuaranteeConfig();
-      stripeWalletElements = stripeClient.elements({
+      var elements = stripeClient.elements({
         mode: "setup",
         currency: String(guarantee.currency || "EUR").toLowerCase(),
         setupFutureUsage: "off_session",
@@ -875,7 +951,7 @@
         googlePay: method === "google_pay" ? "always" : "never"
       };
 
-      stripeWalletElement = stripeWalletElements.create(
+      var element = elements.create(
         "expressCheckout",
         {
           paymentMethods: paymentMethods,
@@ -883,24 +959,37 @@
         }
       );
 
-      guaranteeWalletNode.hidden = false;
-      stripeWalletElement.mount("#pmd-booking-guarantee-wallet");
+      entry.elements = elements;
+      entry.element = element;
+      entry.promise = null;
 
-      stripeWalletElement.on("ready", function (event) {
+      element.mount(slot);
+
+      element.on("ready", function (event) {
         var available = event && event.availablePaymentMethods
           ? event.availablePaymentMethods
           : {};
         var key = method === "apple_pay" ? "applePay" : "googlePay";
-        if (!available || available[key] === false) {
-          if (guaranteeCardError) {
-            guaranteeCardError.textContent =
-              (method === "apple_pay" ? "Apple Pay" : "Google Pay")
-              + " is not available on this browser/device.";
-          }
+        entry.available = !available || available[key] !== false;
+        slot.setAttribute(
+          "data-pmd-wallet-ready",
+          entry.available ? "1" : "0"
+        );
+
+        if (
+          guaranteeSelectedMethod === method
+          && guaranteeCardError
+        ) {
+          guaranteeCardError.textContent = entry.available
+            ? ""
+            : (
+                (method === "apple_pay" ? "Apple Pay" : "Google Pay")
+                + " is not available on this browser/device."
+              );
         }
       });
 
-      stripeWalletElement.on("confirm", function () {
+      element.on("confirm", function () {
         setErrors([]);
 
         var payload;
@@ -911,12 +1000,14 @@
           return;
         }
 
+        guaranteeSelectedMethod = method;
+        guaranteeSelectedProvider = "stripe";
         guaranteeProviderBusy = true;
         syncSubmitState();
 
         Promise.resolve(
-          stripeWalletElements && stripeWalletElements.submit
-            ? stripeWalletElements.submit()
+          elements && elements.submit
+            ? elements.submit()
             : null
         ).then(function (submitResult) {
           if (submitResult && submitResult.error) {
@@ -936,7 +1027,7 @@
             }
 
             return stripeClient.confirmSetup({
-              elements: stripeWalletElements,
+              elements: elements,
               clientSecret: String(setup.client_secret),
               confirmParams: {
                 return_url: window.location.href
@@ -969,7 +1060,57 @@
           });
       });
 
-      return stripeWalletElement;
+      if (entry.showRequested) {
+        stripeWalletMethod = method;
+        stripeWalletElements = elements;
+        stripeWalletElement = element;
+        setStripeWalletVisibility(method);
+        entry.showRequested = false;
+      } else {
+        setStripeWalletVisibility(
+          ["apple_pay", "google_pay"].includes(guaranteeSelectedMethod)
+            ? guaranteeSelectedMethod
+            : ""
+        );
+      }
+
+      return element;
+    }).catch(function (error) {
+      entry.promise = null;
+      delete stripeWalletCache[method];
+      throw error;
+    });
+
+    return entry.promise;
+  }
+
+  function warmGuaranteeStripe() {
+    if (stripeWarmScheduled) return;
+
+    var guarantee = currentGuaranteeConfig();
+    if (!guaranteeRequired() || !guarantee.enabled || !guarantee.providerReady) return;
+
+    var stripeMethods = guaranteeMethods().filter(function (method) {
+      return method.provider === "stripe";
+    });
+    if (!stripeMethods.length) return;
+
+    stripeWarmScheduled = true;
+
+    ensureStripeClient().then(function () {
+      var walletMethods = stripeMethods
+        .map(function (method) { return method.code; })
+        .filter(function (code) {
+          return code === "apple_pay" || code === "google_pay";
+        });
+
+      return Promise.all(walletMethods.map(function (code) {
+        return ensureStripeWallet(code, {show: false}).catch(function () {
+          return null;
+        });
+      }));
+    }).catch(function () {
+      // The visible payment control will surface provider errors if needed.
     });
   }
 
@@ -1050,7 +1191,7 @@
     }
 
     if (method.code === "apple_pay" || method.code === "google_pay") {
-      ensureStripeWallet().catch(function (error) {
+      ensureStripeWallet(method.code, {show: true}).catch(function (error) {
         if (guaranteeCardError) {
           guaranteeCardError.textContent = error.message;
         }
@@ -1107,6 +1248,8 @@
       syncSubmitState();
       return;
     }
+
+    warmGuaranteeStripe();
 
     if (guaranteeTerms) {
       guaranteeTerms.textContent = String(guarantee.termsText || "");
@@ -2012,6 +2155,15 @@
   translateStaticContent();
   renderDateStrip();
   renderSummary();
+
+  // Start Stripe.js and both wallet iframes immediately after first paint.
+  // Method switching then becomes a local visibility change instead of a
+  // fresh provider bootstrap.
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(warmGuaranteeStripe, {timeout: 700});
+  } else {
+    window.setTimeout(warmGuaranteeStripe, 0);
+  }
 
   var initialAvailability = cachedAvailability(state.date, state.guests);
   if (initialAvailability) {
