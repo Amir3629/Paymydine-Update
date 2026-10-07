@@ -6,6 +6,7 @@ use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
 use App\Services\Platform\LocationPlatformContext;
 use App\Services\Reservations\PmdReservationGuaranteeService;
+use App\Services\Reservations\PmdReservationMessagingService;
 use Carbon\Carbon;
 use DateTimeInterface;
 use DateTimeZone;
@@ -544,6 +545,7 @@ class PmdPublicBookingController extends Controller
             ],
             'comment' => ['nullable', 'string', 'max:1000'],
             'consent' => ['accepted'],
+            'whatsapp_updates' => ['nullable'],
             '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
             '_pmd_guarantee_provider' => [
                 'nullable',
@@ -790,6 +792,18 @@ class PmdPublicBookingController extends Controller
 
             $this->pushReservationAdminNotification($reservation, 'created');
 
+            $messagingService = app(PmdReservationMessagingService::class);
+            $messagingService->savePreference(
+                (int)$reservation->getKey(),
+                !empty($data['whatsapp_updates']),
+                $bookingLocale
+            );
+            $messagingService->notify(
+                $reservation,
+                'created',
+                $bookingLocale
+            );
+
             $guaranteePayload = null;
             try {
                 $guaranteePayload = $guaranteeService->publicGuaranteePayload(
@@ -802,7 +816,13 @@ class PmdPublicBookingController extends Controller
                 ]);
             }
 
-            if ($guaranteePayload) {
+            if (
+                $guaranteePayload
+                && !$messagingService->guestEmailOperational()
+            ) {
+                // Backward-compatible fallback when the new reservation email
+                // channel is not configured. R28 guest email already includes
+                // the active guarantee summary, so it must not be duplicated.
                 $guaranteeService->sendGuaranteeConfirmation($reservation);
             }
 
@@ -1006,6 +1026,7 @@ class PmdPublicBookingController extends Controller
             'guest_num' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
             'occasion_id' => ['nullable', 'integer', 'in:0,3,6'],
             'comment' => ['nullable', 'string', 'max:1000'],
+            'whatsapp_updates' => ['nullable'],
             '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
             '_pmd_guarantee_provider' => [
                 'nullable',
@@ -1245,7 +1266,23 @@ class PmdPublicBookingController extends Controller
             $changes = (array)($updated['changes'] ?? []);
             $this->pushReservationAdminNotification($updatedReservation, 'updated', $changes);
 
-            if (!empty($guaranteeVerified['required'])) {
+            $messagingService = app(PmdReservationMessagingService::class);
+            $messagingService->savePreference(
+                (int)$updatedReservation->getKey(),
+                !empty($data['whatsapp_updates']),
+                $bookingLocale
+            );
+            $messagingService->notify(
+                $updatedReservation,
+                'updated',
+                $bookingLocale,
+                $changes
+            );
+
+            if (
+                !empty($guaranteeVerified['required'])
+                && !$messagingService->guestEmailOperational()
+            ) {
                 $guaranteeService->sendGuaranteeConfirmation(
                     $updatedReservation
                 );
@@ -1375,6 +1412,16 @@ class PmdPublicBookingController extends Controller
                         'guest_canceled_before_deadline'
                     );
                 $this->pushReservationAdminNotification($canceledReservation, 'canceled');
+
+                $messagingService = app(PmdReservationMessagingService::class);
+                $preference = $messagingService->preferenceForReservation(
+                    (int)$canceledReservation->getKey()
+                );
+                $messagingService->notify(
+                    $canceledReservation,
+                    'canceled',
+                    (string)($preference['locale'] ?? 'de')
+                );
             }
 
             return response()->json([
@@ -1446,6 +1493,10 @@ class PmdPublicBookingController extends Controller
                 'bookingGuarantee' => $guaranteeByLocale[$locale]
                     ?? $guaranteeService->publicConfig($location, $locale),
                 'bookingGuaranteeByLocale' => $guaranteeByLocale,
+                'bookingMessagingPreference' => $reservation
+                    ? app(PmdReservationMessagingService::class)
+                        ->preferenceForReservation((int)$reservation->getKey())
+                    : ['whatsapp_opt_in' => false, 'locale' => $locale],
                 'reservation' => $reservation,
                 'reservationPayload' => $reservationPayload,
                 'initialAvailability' => $initialAvailability,
@@ -2337,6 +2388,8 @@ class PmdPublicBookingController extends Controller
             'telephone' => trim((string)$location->location_telephone),
             'email' => $email,
             'address' => implode(', ', $addressParts),
+            'whatsapp_number' => app(PmdReservationMessagingService::class)
+                ->publicWhatsappNumber(),
             'website_url' => !empty($settings['pmd_social_website_enabled'])
                 ? trim((string)($settings['pmd_social_website_url'] ?? ''))
                 : '',
