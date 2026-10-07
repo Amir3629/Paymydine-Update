@@ -2204,3 +2204,376 @@ html[dir="rtl"] .pmd-booking-summary dd {
     min-height: 68px;
   }
 }
+
+
+/* ==========================================================
+   PMD_PUBLIC_BOOKING_R23
+   Mobile ledger cleanup, custom date calendar and denser booking controls.
+   ========================================================== */
+/* PMD_PUBLIC_BOOKING_R23 */
+
+.pmd-booking-language {
+  gap: 0;
+}
+
+.pmd-booking-language a {
+  width: 44px;
+  min-width: 44px;
+  height: 36px;
+  font-size: 11.5px;
+}
+
+.pmd-booking-kicker,
+.pmd-booking-step__heading p {
+  font-size: 12px;
+}
+
+.pmd-booking-step__heading h2 {
+  font-size: clamp(27px, 3vw, 37px);
+}
+
+.pmd-booking-field-label,
+.pmd-booking-fields > label > span,
+.pmd-booking-occasion > legend {
+  font-size: 12px;
+}
+
+.pmd-booking-time-option {
+  font-size: 16px;
+}
+
+.pmd-booking-preferences .pmd-booking-occasion-card__surface svg {
+  width: 29px;
+  height: 29px;
+  stroke-width: 1.7;
+}
+
+.pmd-booking-preferences .pmd-booking-occasion-card strong {
+  font-size: 14px;
+}
+
+.pmd-booking-calendar-control {
+  position: relative;
+  z-index: 30;
+}
+
+.pmd-booking-calendar-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 9px 0 7px;
+  border: 0;
+  border-bottom: 1px solid var(--pmd-book-ink);
+  background: transparent;
+  color: var(--pmd-book-ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.pmd-booking-calendar-trigger svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pmd-booking-calendar-trigger:hover,
+.pmd-booking-calendar-trigger:focus-visible {
+  color: var(--pmd-book-accent);
+  border-bottom-color: var(--pmd-book-accent);
+  outline: none;
+}
+
+.pmd-booking-calendar {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(354px, calc(100vw - 28px));
+  padding: 16px;
+  border: 1px solid var(--pmd-book-line);
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 43px,
+      rgba(93, 104, 97, .07) 44px
+    ),
+    var(--pmd-book-white);
+  box-shadow: 0 18px 42px rgba(45, 47, 40, .16);
+}
+
+.pmd-booking-calendar__head {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--pmd-book-line);
+}
+
+.pmd-booking-calendar__head strong {
+  overflow: hidden;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pmd-booking-calendar__head button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--pmd-book-line);
+  background: rgba(244, 239, 228, .48);
+  color: var(--pmd-book-accent);
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.pmd-booking-calendar__head button:disabled {
+  opacity: .28;
+  cursor: default;
+}
+
+.pmd-booking-calendar__head button:focus-visible,
+.pmd-booking-calendar__day:focus-visible {
+  outline: 2px solid var(--pmd-book-accent);
+  outline-offset: 2px;
+}
+
+.pmd-booking-calendar__weekdays,
+.pmd-booking-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.pmd-booking-calendar__weekdays {
+  margin: 12px 0 5px;
+}
+
+.pmd-booking-calendar__weekdays span {
+  color: var(--pmd-book-muted);
+  font-size: 9.5px;
+  font-weight: 850;
+  letter-spacing: .05em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.pmd-booking-calendar__day,
+.pmd-booking-calendar__empty {
+  min-height: 38px;
+}
+
+.pmd-booking-calendar__day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--pmd-book-ink);
+  cursor: pointer;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+}
+
+.pmd-booking-calendar__day:hover:not(:disabled) {
+  border-color: var(--pmd-book-line);
+  background: rgba(244, 239, 228, .72);
+}
+
+.pmd-booking-calendar__day.is-active {
+  border-color: var(--pmd-book-ink);
+  background: var(--pmd-book-ink);
+  color: var(--pmd-book-white);
+}
+
+.pmd-booking-calendar__day:disabled {
+  color: #a9aaa5;
+  cursor: default;
+  opacity: .52;
+}
+
+.pmd-booking-calendar__day.is-closed span,
+.pmd-booking-calendar__day.is-full span {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.pmd-booking-calendar__day i {
+  position: absolute;
+  right: 5px;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--pmd-book-accent);
+}
+
+.pmd-booking-guarantee__head {
+  align-items: center;
+}
+
+.pmd-booking-guarantee__terms {
+  max-width: 840px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.pmd-booking-guarantee__methods {
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+}
+
+.pmd-booking-guarantee__method {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+}
+
+.pmd-booking-guarantee__method strong {
+  font-size: 14px;
+}
+
+.pmd-booking-guarantee__method small {
+  display: none;
+}
+
+.pmd-booking-summary__contact a,
+.pmd-booking-summary__restaurant span {
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .pmd-booking-shell {
+    width: min(100% - 22px, 680px);
+  }
+
+  .pmd-booking-main {
+    padding-top: 28px;
+  }
+
+  .pmd-booking-step {
+    display: block;
+    padding: 27px 0 31px;
+  }
+
+  .pmd-booking-step__rail {
+    display: none !important;
+  }
+
+  .pmd-booking-step__body {
+    width: 100%;
+  }
+
+  .pmd-booking-step__heading {
+    gap: 12px;
+  }
+
+  .pmd-booking-calendar-trigger > span {
+    display: none;
+  }
+
+  .pmd-booking-calendar-trigger {
+    width: 40px;
+    min-width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .pmd-booking-calendar {
+    right: 0;
+    width: min(350px, calc(100vw - 22px));
+  }
+
+  .pmd-booking-time-strip {
+    display: flex !important;
+    gap: 7px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    padding: 1px 1px 10px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pmd-booking-time-option {
+    flex: 0 0 106px;
+    width: 106px !important;
+    min-width: 106px !important;
+    min-height: 50px;
+    padding-inline: 9px;
+    scroll-snap-align: start;
+  }
+
+  .pmd-booking-summary {
+    margin: 28px 0 0 !important;
+  }
+
+  .pmd-booking-summary__folio,
+  .pmd-booking-summary h2,
+  .pmd-booking-summary dl,
+  .pmd-booking-summary__rule,
+  .pmd-booking-summary__restaurant,
+  .pmd-booking-summary__contact {
+    margin-left: 24px;
+  }
+}
+
+@media (max-width: 430px) {
+  .pmd-booking-language a {
+    width: 38px;
+    min-width: 38px;
+    height: 32px;
+    font-size: 10px;
+  }
+
+  .pmd-booking-step__heading h2 {
+    font-size: 29px;
+  }
+
+  .pmd-booking-date-browser {
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+  }
+
+  .pmd-booking-date-nav {
+    height: 82px;
+    min-height: 82px;
+  }
+
+  .pmd-booking-date-strip {
+    grid-auto-columns: 73px;
+  }
+
+  .pmd-booking-time-option {
+    flex-basis: 100px;
+    width: 100px !important;
+    min-width: 100px !important;
+  }
+
+  .pmd-booking-calendar {
+    position: fixed;
+    top: 88px;
+    right: 11px;
+    left: 11px;
+    width: auto;
+    max-height: calc(100vh - 110px);
+    overflow: auto;
+  }
+
+  .pmd-booking-summary {
+    margin-left: 0 !important;
+  }
+}
