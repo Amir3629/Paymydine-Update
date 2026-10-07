@@ -903,8 +903,12 @@ class Pmdsettings extends AdminController
 
                 // Reuse PayMyDine/TastyIgniter mail authority so every mail path
                 // uses the same configured restaurant sender.
-                'sender_name' => trim((string)($messagingClean['sender_name'] ?? '')),
-                'sender_email' => strtolower(trim((string)($messagingClean['sender_email'] ?? ''))),
+                'sender_name' => trim((string)($messagingClean['sender_name'] ?? '')) !== ''
+                    ? trim((string)$messagingClean['sender_name'])
+                    : trim((string)$clean['name']),
+                'sender_email' => strtolower(trim((string)($messagingClean['sender_email'] ?? ''))) !== ''
+                    ? strtolower(trim((string)$messagingClean['sender_email']))
+                    : strtolower(trim((string)($clean['email'] ?? ''))),
                 'protocol' => (string)($messagingClean['protocol'] ?? 'mail'),
                 'smtp_host' => trim((string)($messagingClean['smtp_host'] ?? '')),
                 'smtp_port' => (int)($messagingClean['smtp_port'] ?? 587),
