@@ -2093,3 +2093,52 @@ html[dir="rtl"] .pmd-booking-summary dd {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* ==========================================================
+   PMD_PUBLIC_BOOKING_GUARANTEE_R21
+   Keep Stripe wallet iframes mounted so method switching is instant.
+   ========================================================== */
+/* PMD_PUBLIC_BOOKING_GUARANTEE_R21 */
+
+.pmd-booking-guarantee__wallet {
+  position: relative;
+  min-width: 0;
+}
+
+.pmd-booking-guarantee__wallet-slot {
+  position: absolute;
+  top: 0;
+  left: -10000px;
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pmd-booking-guarantee__wallet-slot.is-active {
+  position: relative;
+  top: auto;
+  left: auto;
+  height: auto;
+  min-height: 48px;
+  overflow: visible;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.pmd-booking-guarantee__card-wrap {
+  min-height: 82px;
+}
+
+.pmd-booking-guarantee__method {
+  transition: border-color .1s ease, background-color .1s ease, box-shadow .1s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pmd-booking-guarantee__method {
+    transition: none;
+  }
+}
