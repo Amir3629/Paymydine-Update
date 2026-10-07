@@ -629,9 +629,48 @@ final class PmdTableDisplayService
             }
         }
 
+        // PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4
+        // Use the exact same hero authority as Customer Menu. An explicitly
+        // uploaded restaurant hero wins; otherwise use the canonical hero asset
+        // of the currently selected Customer Menu theme.
+        $hero = trim((string)(
+            $get('pmd_hero_image_url')
+            ?: $get('hero_image_url')
+            ?: $get('hero_image')
+            ?: ''
+        ));
+
+        if ($hero !== '') {
+            if (!preg_match('#^https?://#i', $hero)) {
+                $heroPath = '/'.ltrim(
+                    str_replace('\\\\', '/', (string)(parse_url($hero, PHP_URL_PATH) ?: $hero)),
+                    '/'
+                );
+
+                if (
+                    str_starts_with($heroPath, '/api/media/')
+                    || str_starts_with($heroPath, '/assets/media/')
+                    || str_starts_with($heroPath, '/brand/')
+                    || str_starts_with($heroPath, '/theme-heroes/')
+                ) {
+                    $hero = $heroPath;
+                } elseif (str_starts_with($heroPath, '/uploads/')) {
+                    $hero = '/assets/media'.$heroPath;
+                } else {
+                    $hero = '/api/media/'.basename($heroPath);
+                }
+            }
+        } else {
+            $themeId = (string)($this->customerMenuTheme()['id'] ?? 'kazen_japanese');
+            $hero = '/theme-heroes/'
+                .str_replace('_', '-', $themeId)
+                .'-hero.webp';
+        }
+
         return [
             'name' => $name ?: 'PayMyDine',
             'logo' => $logo,
+            'hero' => $hero,
         ];
     }
 
