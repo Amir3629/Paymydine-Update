@@ -341,7 +341,10 @@
       }
     );
 
-    if (languageNav) languageNav.hidden = visibleCount === 0;
+    if (languageNav) {
+      languageNav.hidden = visibleCount === 0;
+      languageNav.classList.toggle("is-single-choice", visibleCount === 1);
+    }
   }
 
   function activeLanguageCode() {
@@ -1959,6 +1962,10 @@
         return payload;
       });
     }).then(function (payload) {
+      // PMD_PUBLIC_BOOKING_ZERO_WAIT_R27
+      // A single date fetch now returns the full free-table capacity map.
+      // Cache it so every later party-size change is calculated locally.
+      cacheCapacity(requestDate, payload);
       cacheAvailability(requestDate, requestGuests, payload);
 
       if (state.date === requestDate && state.guests === requestGuests) {
@@ -2050,7 +2057,10 @@
     if (instant) {
       renderTimes(instant);
     } else {
-      loadAvailability();
+      // Never replace the hour buttons with a spinner just because party size
+      // changed. The request is a one-time capacity warm-up; after it returns,
+      // all further guest-count changes are fully local.
+      loadAvailability({ silent: true });
       loadDateStatuses();
     }
   }

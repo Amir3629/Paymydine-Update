@@ -920,3 +920,29 @@ html.pmd-restaurant-profile-ready .page-wrapper {
     justify-content: space-between;
   }
 }
+
+
+/* ==========================================================
+   PMD_RESTAURANT_PUBLIC_BOOKING_CONTACT_R27
+   Defeat the legacy global Settings simplifier that used the
+   second Restaurant Profile section as a positional hide target.
+   The R24/R25 Public booking contact section now owns that slot.
+   ========================================================== */
+#pmd-restaurant-profile .pmd-profile-form > .pmd-profile-section.pmd-profile-section--booking:nth-of-type(2),
+#pmd-restaurant-profile .pmd-profile-form > .pmd-profile-section.pmd-profile-section--booking:nth-of-type(2)[hidden] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field:has(input[name="profile[email]"]),
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field:has(input[name="profile[telephone]"]),
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field:has(input[name="profile[address_1]"]),
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field:has(input[name="profile[address_2]"]),
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field:has(input[name="profile[city]"]),
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field:has(input[name="profile[state]"]),
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field:has(input[name="profile[postcode]"]) {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
