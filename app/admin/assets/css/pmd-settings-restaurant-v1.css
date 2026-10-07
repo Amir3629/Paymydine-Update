@@ -806,3 +806,55 @@ html.pmd-restaurant-profile-ready .page-wrapper {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================
+   PMD_RESTAURANT_PROFILE_R24
+   Make guest-facing booking contact settings obvious.
+   ========================================================== */
+/* PMD_RESTAURANT_PROFILE_R24 */
+
+.pmd-profile-section--booking {
+  --section: #0b6b57;
+  --section-soft: #e9f6f2;
+}
+
+.pmd-profile-field > small {
+  display: block;
+  margin-top: 1px;
+  color: var(--pmd-profile-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.pmd-profile-booking-note {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--pmd-profile-green);
+  background: #f1f8f5;
+}
+
+.pmd-profile-booking-note strong {
+  flex: 0 0 auto;
+  color: var(--pmd-profile-green);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.pmd-profile-booking-note span {
+  color: #415650;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .pmd-profile-booking-note {
+    display: grid;
+    gap: 3px;
+  }
+}
