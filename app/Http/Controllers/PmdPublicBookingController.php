@@ -1693,7 +1693,10 @@ class PmdPublicBookingController extends Controller
             'last_name' => trim((string)$reservation->last_name),
             'email' => strtolower(trim((string)$reservation->email)),
             'telephone' => trim((string)$reservation->telephone),
-            'occasion_id' => (int)$reservation->occasion_id,
+            'table_preferences' => implode(
+                ',',
+                $this->publicTablePreferences((int)$reservation->getKey())
+            ),
             'comment' => trim((string)$reservation->comment),
         ];
     }
@@ -1709,7 +1712,7 @@ class PmdPublicBookingController extends Controller
             'last_name' => 'last name',
             'email' => 'email',
             'telephone' => 'phone',
-            'occasion_id' => 'occasion',
+            'table_preferences' => 'table preferences',
             'comment' => 'notes',
         ];
 
@@ -1721,7 +1724,7 @@ class PmdPublicBookingController extends Controller
                 continue;
             }
 
-            if (in_array($key, ['comment'], true)) {
+            if (in_array($key, ['comment', 'table_preferences'], true)) {
                 $changes[] = $label.' changed';
                 continue;
             }
