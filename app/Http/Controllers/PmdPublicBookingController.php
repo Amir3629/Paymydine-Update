@@ -2390,6 +2390,8 @@ class PmdPublicBookingController extends Controller
             'address' => implode(', ', $addressParts),
             'whatsapp_number' => app(PmdReservationMessagingService::class)
                 ->publicWhatsappNumber(),
+            'whatsapp_updates_enabled' => app(PmdReservationMessagingService::class)
+                ->whatsappEnabled(),
             'website_url' => !empty($settings['pmd_social_website_enabled'])
                 ? trim((string)($settings['pmd_social_website_url'] ?? ''))
                 : '',
