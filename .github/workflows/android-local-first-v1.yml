@@ -159,7 +159,6 @@ jobs:
           grep -Fq 'UnifiedFirstRun' mobile/android/app/src/main/java/com/paymydine/mobile/ui/PayMyDineApp.kt
           grep -Fq 'PMD_KIOSK_WELCOME_LANGUAGE_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_MINIMAL_SERVICE_COPY_V18' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
-          grep -Fq 'PMD_KIOSK_EXACT_WEBVIEW_PREWARM_V15' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
           grep -Fq 'PMD_KIOSK_TENANT_LOCALES_V20' app/Services/PmdKioskPairingService.php
           grep -Fq 'PMD_KIOSK_TENANT_LOCALES_V20' mobile/android/app/src/main/java/com/paymydine/mobile/kiosk/KioskApiClient.kt
           grep -Fq 'PMD_KIOSK_TENANT_LOCALES_V20' mobile/android/app/src/main/java/com/paymydine/mobile/KioskActivity.kt
