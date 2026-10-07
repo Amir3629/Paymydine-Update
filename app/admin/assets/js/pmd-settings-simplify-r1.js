@@ -73,19 +73,23 @@
     var root = document.getElementById('pmd-restaurant-profile');
     if (!root) return;
 
-    // UI removal only: keep stored contact/address values untouched by leaving
-    // their existing form controls in the form but out of the visible UI.
-    ['profile[email]', 'profile[telephone]'].forEach(function (name) {
-      var input = root.querySelector('[name="' + name + '"]');
-      if (input) hideNode(input.closest('label'));
-    });
+    // PMD_RESTAURANT_PUBLIC_BOOKING_CONTACT_R27
+    // The Restaurant Profile now owns guest-facing contact/address settings.
+    // Do not hide those fields or any section by historic visual position.
+    var bookingSection = root.querySelector('.pmd-profile-section--booking');
+    if (bookingSection) {
+      bookingSection.hidden = false;
+      bookingSection.removeAttribute('hidden');
+      bookingSection.removeAttribute('aria-hidden');
 
-    Array.prototype.slice.call(root.querySelectorAll('.pmd-profile-section')).forEach(function (section) {
-      var heading = section.querySelector('.pmd-profile-card__header h2');
-      if (heading && String(heading.textContent || '').trim().toLowerCase() === 'address') {
-        hideNode(section);
-      }
-    });
+      Array.prototype.slice.call(
+        bookingSection.querySelectorAll('.pmd-profile-field')
+      ).forEach(function (field) {
+        field.hidden = false;
+        field.removeAttribute('hidden');
+        field.removeAttribute('aria-hidden');
+      });
+    }
 
     var container = root.querySelector('.pmd-profile-logo-input-r19') || root;
     var inputs = Array.prototype.slice.call(container.querySelectorAll('input[name="profile[remove_logo]"]'));
