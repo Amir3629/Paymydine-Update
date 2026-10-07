@@ -22,6 +22,12 @@
   var saveButton = document.getElementById("pmd-manage-save");
   var cancelButton = document.getElementById("pmd-manage-cancel");
   var cancelNote = document.getElementById("pmd-manage-cancel-note");
+  var cancelDialog = document.getElementById("pmd-manage-cancel-dialog");
+  var cancelDialogPanel = cancelDialog ? cancelDialog.querySelector(".pmd-booking-manage-dialog__panel") : null;
+  var cancelDialogBackdrop = cancelDialog ? cancelDialog.querySelector("[data-pmd-manage-dialog-close]") : null;
+  var cancelDialogKeep = document.getElementById("pmd-manage-cancel-dialog-keep");
+  var cancelDialogConfirm = document.getElementById("pmd-manage-cancel-dialog-confirm");
+  var cancelDialogLastFocus = null;
   var message = document.getElementById("pmd-manage-message");
   var currentDate = document.getElementById("pmd-manage-current-date");
   var currentTime = document.getElementById("pmd-manage-current-time");
@@ -85,6 +91,68 @@
     message.textContent = text || "";
     message.classList.toggle("is-visible", Boolean(text));
     message.classList.toggle("is-error", Boolean(error));
+  }
+
+  function openCancelDialog() {
+    if (!cancelDialog) return;
+    cancelDialogLastFocus = document.activeElement;
+    cancelDialog.hidden = false;
+    cancelDialog.setAttribute("aria-hidden", "false");
+    document.body.classList.add("pmd-booking-dialog-open");
+
+    window.requestAnimationFrame(function () {
+      cancelDialog.classList.add("is-open");
+      if (cancelDialogKeep) cancelDialogKeep.focus();
+      else if (cancelDialogPanel) cancelDialogPanel.focus();
+    });
+  }
+
+  function closeCancelDialog(restoreFocus) {
+    if (!cancelDialog) return;
+    cancelDialog.classList.remove("is-open");
+    cancelDialog.hidden = true;
+    cancelDialog.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("pmd-booking-dialog-open");
+
+    if (
+      restoreFocus !== false
+      && cancelDialogLastFocus
+      && typeof cancelDialogLastFocus.focus === "function"
+      && document.documentElement.contains(cancelDialogLastFocus)
+    ) {
+      cancelDialogLastFocus.focus();
+    }
+
+    cancelDialogLastFocus = null;
+  }
+
+  function trapCancelDialogFocus(event) {
+    if (!cancelDialog || cancelDialog.hidden) return;
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCancelDialog(true);
+      return;
+    }
+
+    if (event.key !== "Tab") return;
+
+    var focusable = [cancelDialogKeep, cancelDialogConfirm].filter(function (node) {
+      return node && !node.disabled && !node.hidden;
+    });
+
+    if (!focusable.length) return;
+
+    var first = focusable[0];
+    var last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   }
 
   function translateStaticContent() {
@@ -1554,14 +1622,22 @@
     });
   }
 
-  function cancelReservation() {
+  function performCancelReservation() {
     if (!config.cancelUrl || !cancelButton) return;
-    if (!window.confirm(labels.cancel_confirm || "Cancel this reservation?")) return;
 
     setMessage("", false);
     cancelButton.disabled = true;
-    var previous = cancelButton.textContent;
+
+    var previousButtonText = cancelButton.textContent;
+    var previousConfirmText = cancelDialogConfirm ? cancelDialogConfirm.textContent : "";
+
     cancelButton.textContent = labels.canceling || "Canceling…";
+
+    if (cancelDialogKeep) cancelDialogKeep.disabled = true;
+    if (cancelDialogConfirm) {
+      cancelDialogConfirm.disabled = true;
+      cancelDialogConfirm.textContent = labels.canceling || "Canceling…";
+    }
 
     fetch(config.cancelUrl, {
       method: "POST",
@@ -1586,22 +1662,43 @@
         return payload;
       });
     }).then(function () {
+      closeCancelDialog(false);
       setMessage(labels.canceled || "Reservation canceled.", false);
+
       if (statusNode) {
         statusNode.textContent = labels.status_canceled || "Canceled";
         statusNode.classList.add("is-canceled");
       }
-      Array.prototype.forEach.call(form.querySelectorAll("input, textarea, button"), function (node) {
-        node.disabled = true;
-      });
+
+      Array.prototype.forEach.call(
+        form.querySelectorAll("input, textarea, select, button"),
+        function (node) {
+          node.disabled = true;
+        }
+      );
+
       cancelButton.hidden = true;
       if (cancelNote) cancelNote.hidden = true;
     }).catch(function (error) {
       var messages = error && error.payload ? responseMessages(error.payload) : [error.message];
+
       setMessage(messages[0] || "Cancellation failed.", true);
       cancelButton.disabled = false;
-      cancelButton.textContent = previous || (labels.cancel || "Cancel reservation");
+      cancelButton.textContent = previousButtonText || (labels.cancel || "Cancel reservation");
+
+      if (cancelDialogKeep) cancelDialogKeep.disabled = false;
+      if (cancelDialogConfirm) {
+        cancelDialogConfirm.disabled = false;
+        cancelDialogConfirm.textContent = previousConfirmText || (labels.cancel_dialog_confirm || labels.cancel || "Cancel reservation");
+      }
+
+      closeCancelDialog(true);
     });
+  }
+
+  function cancelReservation() {
+    if (!config.cancelUrl || !cancelButton || cancelButton.disabled) return;
+    openCancelDialog();
   }
 
   if (languageNav) {
@@ -1714,6 +1811,26 @@
 
   form.addEventListener("submit", submitUpdate);
   if (cancelButton) cancelButton.addEventListener("click", cancelReservation);
+
+  if (cancelDialogKeep) {
+    cancelDialogKeep.addEventListener("click", function () {
+      closeCancelDialog(true);
+    });
+  }
+
+  if (cancelDialogBackdrop) {
+    cancelDialogBackdrop.addEventListener("click", function () {
+      closeCancelDialog(true);
+    });
+  }
+
+  if (cancelDialogConfirm) {
+    cancelDialogConfirm.addEventListener("click", performCancelReservation);
+  }
+
+  if (cancelDialog) {
+    cancelDialog.addEventListener("keydown", trapCancelDialogFocus);
+  }
 
   translateStaticContent();
 
