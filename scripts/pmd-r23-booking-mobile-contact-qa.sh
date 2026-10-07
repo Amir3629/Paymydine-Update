@@ -19,8 +19,9 @@ grep -Fq 'data-pmd-calendar-toggle' resources/views/pmd/public-booking.blade.php
 grep -Fq 'id="pmd-booking-calendar-popover"' resources/views/pmd/public-booking.blade.php
 grep -Fq 'function renderCalendar()' public/assets/pmd/public-booking-v1.js
 grep -Fq 'function syncLanguageSwitcher()' public/assets/pmd/public-booking-v1.js
+grep -Fq 'link.hidden = isCurrent;' public/assets/pmd/public-booking-v1.js
 
-if grep -Fq 'id="pmd-booking-date"' resources/views/pmd/public-booking.blade.php    && grep -F 'id="pmd-booking-date"' resources/views/pmd/public-booking.blade.php | grep -Fq 'type="date"'; then
+if grep -Fq 'type="date"' resources/views/pmd/public-booking.blade.php; then
   echo "ERROR: Native browser date input returned."
   exit 1
 fi
@@ -29,12 +30,17 @@ grep -Fq '.pmd-booking-step__rail {' public/assets/pmd/public-booking-v1.css
 grep -Fq 'display: flex !important;' public/assets/pmd/public-booking-v1.css
 grep -Fq 'scroll-snap-type: x proximity;' public/assets/pmd/public-booking-v1.css
 
+if grep -Fq "'</strong><small>'" public/assets/pmd/public-booking-v1.js; then
+  echo "ERROR: Provider label returned inside guarantee method buttons."
+  exit 1
+fi
+
 if grep -Fq 'pmd-booking-guarantee__shield' resources/views/pmd/public-booking.blade.php; then
   echo "ERROR: Guarantee shield returned."
   exit 1
 fi
 
-grep -Fq "Bis {$hours} Std. vorher kostenlos stornierbar." app/Services/Reservations/PmdReservationGuaranteeService.php
+grep -Fq 'Bis {$hours} Std. vorher kostenlos stornierbar.' app/Services/Reservations/PmdReservationGuaranteeService.php
 
 grep -Fq "Restaurant email" app/admin/views/pmdsettings/restaurant.blade.php
 grep -Fq "Street & number" app/admin/views/pmdsettings/restaurant.blade.php
