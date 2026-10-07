@@ -10,11 +10,27 @@
 }
 
 /* First-paint removal for owner-facing fields requested out of the UI. */
-#pmd-settings-center a[data-pmd-settings-card][href*="/admin/pmdmenu"],
-#pmd-restaurant-profile .pmd-profile-field:has(input[name="profile[email]"]),
-#pmd-restaurant-profile .pmd-profile-field:has(input[name="profile[telephone]"]),
-#pmd-restaurant-profile .pmd-profile-form > .pmd-profile-section:nth-of-type(2) {
+#pmd-settings-center a[data-pmd-settings-card][href*="/admin/pmdmenu"] {
   display: none !important;
+}
+
+/* PMD_RESTAURANT_PUBLIC_BOOKING_CONTACT_R27
+ * R1 used nth-of-type(2) and hid contact fields because the second Restaurant
+ * Profile section used to be the legacy Address block. R24/R25 inserted the
+ * canonical Public booking contact card in that position, so the old selector
+ * hid the new production UI. The booking contact card and every one of its
+ * form fields are now explicitly visible.
+ */
+#pmd-restaurant-profile .pmd-profile-section--booking,
+#pmd-restaurant-profile .pmd-profile-section--booking[hidden] {
+  display: block !important;
+  visibility: visible !important;
+}
+
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field,
+#pmd-restaurant-profile .pmd-profile-section--booking .pmd-profile-field[hidden] {
+  display: flex !important;
+  visibility: visible !important;
 }
 
 /* Restaurant logo removal: one obvious, clickable control. */
