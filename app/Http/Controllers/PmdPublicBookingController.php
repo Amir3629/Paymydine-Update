@@ -798,7 +798,7 @@ class PmdPublicBookingController extends Controller
                 !empty($data['whatsapp_updates']),
                 $bookingLocale
             );
-            $messagingService->notify(
+            $messagingService->notifyAfterResponse(
                 $reservation,
                 'created',
                 $bookingLocale
@@ -1285,7 +1285,7 @@ class PmdPublicBookingController extends Controller
                 !empty($data['whatsapp_updates']),
                 $bookingLocale
             );
-            $messagingService->notify(
+            $messagingService->notifyAfterResponse(
                 $updatedReservation,
                 'updated',
                 $bookingLocale,
@@ -1433,7 +1433,7 @@ class PmdPublicBookingController extends Controller
                 $preference = $messagingService->preferenceForReservation(
                     (int)$canceledReservation->getKey()
                 );
-                $messagingService->notify(
+                $messagingService->notifyAfterResponse(
                     $canceledReservation,
                     'canceled',
                     (string)($preference['locale'] ?? 'de')
