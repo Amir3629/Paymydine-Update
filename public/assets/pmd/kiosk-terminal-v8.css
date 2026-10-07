@@ -2388,6 +2388,7 @@ body.pmd-kiosk-v8 {
   pointer-events: none !important;
 }
 
+.pmd-kiosk-option.is-selected,
 .pmd-kiosk-option:has(input:checked) {
   border-color: var(--pmd-k-accent);
   background: var(--pmd-k-accent-soft);
