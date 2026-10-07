@@ -28,7 +28,7 @@
 
       if (/\/admin\/pmdsettings\/restaurant(?:$|\?)/.test(href)) {
         if (description) {
-          description.textContent = 'Name, logo, opening hours, website and social links.';
+          description.textContent = 'Name, logo, booking contact, opening hours, website and social links.';
         }
       }
 
