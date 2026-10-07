@@ -19,6 +19,11 @@ class PmdReservationMessagingService
         return $this->boolSetting('pmd_reservation_email_enabled', false);
     }
 
+    public function guestEmailOperational(): bool
+    {
+        return $this->guestEmailEnabled() && $this->mailReady();
+    }
+
     public function notify(
         Reservations_model $reservation,
         string $event,
@@ -57,15 +62,29 @@ class PmdReservationMessagingService
             return;
         }
 
-        DB::table('pmd_reservation_message_preferences')->updateOrInsert(
-            ['reservation_id' => $reservationId],
-            [
-                'whatsapp_opt_in' => $whatsappOptIn ? 1 : 0,
-                'locale' => $this->locale($locale),
-                'updated_at' => now(),
-                'created_at' => now(),
-            ]
-        );
+        try {
+            $now = now();
+            $existing = DB::table('pmd_reservation_message_preferences')
+                ->where('reservation_id', $reservationId)
+                ->exists();
+
+            DB::table('pmd_reservation_message_preferences')->updateOrInsert(
+                ['reservation_id' => $reservationId],
+                [
+                    'whatsapp_opt_in' => $whatsappOptIn ? 1 : 0,
+                    'locale' => $this->locale($locale),
+                    'updated_at' => $now,
+                    'created_at' => $existing
+                        ? DB::raw('created_at')
+                        : $now,
+                ]
+            );
+        } catch (Throwable $error) {
+            Log::warning('PMD reservation messaging preference save failed', [
+                'reservation_id' => $reservationId,
+                'message' => $error->getMessage(),
+            ]);
+        }
     }
 
     public function preferenceForReservation(int $reservationId): array
