@@ -1673,7 +1673,7 @@
   }
 
   function statusForDate(value) {
-    return dateStatuses[value] || recurringDateStatus(value) || "";
+    return recurringDateStatus(value) || dateStatuses[value] || "";
   }
 
   function renderDateStrip() {
