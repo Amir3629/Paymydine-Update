@@ -213,9 +213,30 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 
         {{-- PMD_RESERVATION_MESSAGING_R28 --}}
         @php
-            $pmdEmailReady = !empty($pmdProfile['sender_email']) || !empty($pmdProfile['email']);
+            $pmdMailProtocol = strtolower((string)($pmdProfile['protocol'] ?? 'mail'));
+            $pmdEmailHasSender = !empty($pmdProfile['sender_email']) || !empty($pmdProfile['email']);
+            $pmdEmailReady = $pmdEmailHasSender && (
+                in_array($pmdMailProtocol, ['mail', 'sendmail'], true)
+                || ($pmdMailProtocol === 'smtp' && !empty($pmdProfile['smtp_host']))
+                || ($pmdMailProtocol === 'mailgun' && !empty($pmdProfile['mailgun_domain']) && !empty($pmdProfile['has_mailgun_secret']))
+                || ($pmdMailProtocol === 'postmark' && !empty($pmdProfile['has_postmark_token']))
+                || ($pmdMailProtocol === 'ses'
+                    && !empty($pmdProfile['has_ses_key'])
+                    && !empty($pmdProfile['has_ses_secret'])
+                    && !empty($pmdProfile['ses_region']))
+            );
+
+            $pmdWhatsappHasTemplate = (
+                !empty($pmdProfile['reservation_notify_created']) && !empty($pmdProfile['whatsapp_template_created'])
+            ) || (
+                !empty($pmdProfile['reservation_notify_updated']) && !empty($pmdProfile['whatsapp_template_updated'])
+            ) || (
+                !empty($pmdProfile['reservation_notify_canceled']) && !empty($pmdProfile['whatsapp_template_canceled'])
+            );
+
             $pmdWhatsappReady = !empty($pmdProfile['whatsapp_phone_number_id'])
-                && !empty($pmdProfile['has_whatsapp_access_token']);
+                && !empty($pmdProfile['has_whatsapp_access_token'])
+                && $pmdWhatsappHasTemplate;
         @endphp
         <section class="pmd-profile-section pmd-profile-section--messaging" id="guest-messaging">
             <div class="pmd-profile-card">
