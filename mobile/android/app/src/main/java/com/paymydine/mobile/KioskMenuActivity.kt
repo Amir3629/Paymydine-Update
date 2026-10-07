@@ -54,6 +54,7 @@ private fun buildKioskTargetUrl(
     surface: String,
     heroImage: String,
     locale: String,
+    showServiceChooser: Boolean = false,
 ): String {
     val base = menuUrl.trimEnd('/')
     return base +
@@ -68,7 +69,8 @@ private fun buildKioskTargetUrl(
         "&kiosk_accent=" + Uri.encode(accent) +
         "&kiosk_surface=" + Uri.encode(surface) +
         "&kiosk_hero=" + Uri.encode(heroImage) +
-        "&lang=" + Uri.encode(locale)
+        "&lang=" + Uri.encode(locale) +
+        if (showServiceChooser) "&kiosk_choose_service=1" else ""
 }
 
 internal data class KioskWarmMenuEntry(
@@ -470,6 +472,9 @@ class KioskMenuActivity : ComponentActivity() {
     private val deviceToken: String by lazy {
         intent.getStringExtra(EXTRA_DEVICE_TOKEN).orEmpty()
     }
+    private val showServiceChooser: Boolean by lazy {
+        intent.getBooleanExtra(EXTRA_SHOW_SERVICE_CHOOSER, false)
+    }
     private val surfaceColor: Int by lazy {
         parseColor(intent.getStringExtra(EXTRA_SURFACE), Color.rgb(244, 246, 248))
     }
@@ -486,7 +491,8 @@ class KioskMenuActivity : ComponentActivity() {
 
     private val idleRunnable = Runnable {
         if (!isFinishing) {
-            finishWithoutTransition()
+            // PMD_KIOSK_SINGLE_SURFACE_RESET_V22
+            resetToServiceChoice()
         }
     }
 
@@ -509,12 +515,16 @@ class KioskMenuActivity : ComponentActivity() {
         // is no blank Chromium startup frame and no second HTML/JS/bootstrap
         // load. Cold creation remains a correctness fallback.
         val warm =
-            KioskMenuWarmPool.acquire(
-                context = this,
-                menuUrl = menuUrl,
-                serviceMode = serviceMode,
-                locale = locale,
-            )
+            if (showServiceChooser) {
+                null
+            } else {
+                KioskMenuWarmPool.acquire(
+                    context = this,
+                    menuUrl = menuUrl,
+                    serviceMode = serviceMode,
+                    locale = locale,
+                )
+            }
         if (warm != null) {
             sessionNonce = warm.sessionNonce
             attachWarmWebView(warm)
@@ -574,58 +584,21 @@ class KioskMenuActivity : ComponentActivity() {
     }
 
     private fun buildNativeShell() {
+        // PMD_KIOSK_FULL_WEB_SURFACE_V22
+        // The web kiosk owns the full guest screen. No native Start over/mode
+        // header is inserted above it.
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(surfaceColor)
         }
 
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), 0, dp(12), 0)
-            setBackgroundColor(surfaceColor)
-        }
-
-        val startOver = TextView(this).apply {
-            text = "← Start over"
-            setTextColor(accentColor)
-            textSize = 16f
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), 0, dp(12), 0)
-            setOnClickListener { finishWithoutTransition() }
-        }
-
-        val mode = TextView(this).apply {
-            text = if (serviceMode == "pickup") "TAKE AWAY" else "DINE IN"
-            setTextColor(textColor)
-            textSize = 12f
-            gravity = Gravity.CENTER
-            letterSpacing = 0.08f
-        }
-
-        val spacer = View(this)
-
-        header.addView(
-            startOver,
-            LinearLayout.LayoutParams(0, dp(56), 1f),
-        )
-        header.addView(
-            mode,
-            LinearLayout.LayoutParams(0, dp(56), 1f),
-        )
-        header.addView(
-            spacer,
-            LinearLayout.LayoutParams(0, dp(56), 1f),
-        )
-
         webContainer = FrameLayout(this).apply {
             setBackgroundColor(surfaceColor)
         }
 
-        // Error-only overlay. V12 deliberately has no "Opening menu" screen.
         loadingView = TextView(this).apply {
             text = ""
-            textSize = 15f
+            textSize = 17f
             gravity = Gravity.CENTER
             setTextColor(textColor)
             setBackgroundColor(surfaceColor)
@@ -642,18 +615,10 @@ class KioskMenuActivity : ComponentActivity() {
         )
 
         root.addView(
-            header,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(56),
-            ),
-        )
-        root.addView(
             webContainer,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                0,
-                1f,
+                ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
     }
@@ -1108,6 +1073,7 @@ class KioskMenuActivity : ComponentActivity() {
             surface = intent.getStringExtra(EXTRA_SURFACE).orEmpty(),
             heroImage = heroImage,
             locale = locale,
+            showServiceChooser = showServiceChooser,
         )
 
     private fun applyKioskRenderLayer(view: WebView) {
@@ -1293,34 +1259,24 @@ class KioskMenuActivity : ComponentActivity() {
 
     private fun showComplete(orderId: String) {
         runOnUiThread {
-            destroyWebView()
-            webContainer.removeAllViews()
-
-            val complete = TextView(this).apply {
-                text =
-                    "Order received\\n\\n#" +
-                        orderId.trim().ifBlank { "—" } +
-                        "\\n\\nThank you"
-                gravity = Gravity.CENTER
-                textSize = 24f
-                setTextColor(textColor)
-                setBackgroundColor(Color.rgb(243, 245, 247))
-            }
-            webContainer.addView(
-                complete,
-                FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                ),
+            // PMD_KIOSK_SAME_SURFACE_COMPLETE_V22
+            // Confirmation and reset happen inside the existing kiosk document.
+            webView?.evaluateJavascript(
+                "window.PMDKioskOrderComplete && window.PMDKioskOrderComplete(" +
+                    org.json.JSONObject.quote(orderId.trim()) +
+                    ");",
+                null,
             )
-
-            mainHandler.postDelayed(
-                {
-                    if (!isFinishing) finishWithoutTransition()
-                },
-                10_000L,
-            )
+            resetIdleTimer()
         }
+    }
+
+    private fun resetToServiceChoice() {
+        webView?.evaluateJavascript(
+            "window.PMDKioskResetToServiceChoice && window.PMDKioskResetToServiceChoice();",
+            null,
+        )
+        resetIdleTimer()
     }
 
     private fun showFatal(message: String) {
@@ -1452,6 +1408,7 @@ class KioskMenuActivity : ComponentActivity() {
         private const val EXTRA_ACCENT = "pmd.kiosk.accent"
         private const val EXTRA_SURFACE = "pmd.kiosk.surface"
         private const val EXTRA_IDLE_TIMEOUT_SECONDS = "pmd.kiosk.idle_timeout_seconds"
+        private const val EXTRA_SHOW_SERVICE_CHOOSER = "pmd.kiosk.show_service_chooser"
 
         fun intent(
             context: Context,
@@ -1460,6 +1417,7 @@ class KioskMenuActivity : ComponentActivity() {
             heroImage: String = "",
             locale: String = "de",
             deviceToken: String = "",
+            showServiceChooser: Boolean = false,
         ): Intent =
             Intent(context, KioskMenuActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -1470,6 +1428,7 @@ class KioskMenuActivity : ComponentActivity() {
                 putExtra(EXTRA_HERO_IMAGE, heroImage)
                 putExtra(EXTRA_LOCALE, locale)
                 putExtra(EXTRA_DEVICE_TOKEN, deviceToken)
+                putExtra(EXTRA_SHOW_SERVICE_CHOOSER, showServiceChooser)
                 putExtra(EXTRA_BACKGROUND, profile.theme.background)
                 putExtra(EXTRA_TEXT, profile.theme.text)
                 putExtra(EXTRA_MUTED, profile.theme.muted)
