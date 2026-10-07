@@ -140,4 +140,9 @@
   'Admin\\Requests\\ReservationComposer' => 'app/admin/requests/ReservationComposer.php',
   'Admin\\Controllers\\pmdquicksetup' => 'app/admin/controllers/Pmdquicksetup.php',
   'Admin\\Controllers\\pmdsettings' => 'app/admin/controllers/Pmdsettings.php',
+  'Admin\\Controllers\\pmdmenus' => 'app/admin/controllers/Pmdmenus.php',
+  'Admin\\Models\\Allergens_model' => 'app/admin/models/Allergens_model.php',
+  'Admin\\Models\\Menu_images_model' => 'app/admin/models/Menu_images_model.php',
+  'Admin\\Models\\Menu_combos_model' => 'app/admin/models/Menu_combos_model.php',
+  'Admin\\Controllers\\pmdinventory' => 'app/admin/controllers/Pmdinventory.php',
 );
