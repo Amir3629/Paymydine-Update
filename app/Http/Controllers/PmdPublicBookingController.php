@@ -2053,19 +2053,29 @@ class PmdPublicBookingController extends Controller
             }
         }
 
+        $cityLine = implode(' ', array_values(array_filter([
+            trim((string)$location->location_postcode),
+            trim((string)$location->location_city),
+        ], static fn ($value) => $value !== '')));
+
         $addressParts = array_values(array_filter([
             trim((string)$location->location_address_1),
             trim((string)$location->location_address_2),
-            trim((string)$location->location_postcode).' '.trim((string)$location->location_city),
+            $cityLine,
             trim((string)$location->location_state),
         ], static fn ($value) => trim((string)$value) !== ''));
+
+        $email = trim((string)($location->location_email ?: ($settings['site_email'] ?? '')));
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $email = '';
+        }
 
         return [
             'name' => $name,
             'logo' => $this->logoUrl($logo),
             'description' => trim(strip_tags((string)($location->description ?? ''))),
             'telephone' => trim((string)$location->location_telephone),
-            'email' => trim((string)($location->location_email ?: ($settings['site_email'] ?? ''))),
+            'email' => $email,
             'address' => implode(', ', $addressParts),
             'website_url' => !empty($settings['pmd_social_website_enabled'])
                 ? trim((string)($settings['pmd_social_website_url'] ?? ''))
