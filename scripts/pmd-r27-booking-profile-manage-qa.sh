@@ -31,6 +31,16 @@ if grep -Fq '<p class="pmd-booking-kicker" data-pmd-manage-i18n="manage_booking"
 fi
 
 grep -Fq "data-pmd-manage-occasion-grid" resources/views/pmd/public-booking-manage.blade.php
+grep -Fq 'id="pmd-manage-cancel-dialog"' resources/views/pmd/public-booking-manage.blade.php
+grep -Fq "PMD_MANAGE_CANCEL_DIALOG_R27_1" public/assets/pmd/public-booking-v1.css
+grep -Fq "openCancelDialog()" public/assets/pmd/public-booking-manage-v1.js
+grep -Fq "performCancelReservation()" public/assets/pmd/public-booking-manage-v1.js
+grep -Fq "20261007-r27-1" resources/views/pmd/public-booking-manage.blade.php
+if grep -Fq "window.confirm(labels.cancel_confirm" public/assets/pmd/public-booking-manage-v1.js; then
+  echo "ERROR: native browser reservation-cancel confirmation returned."
+  exit 1
+fi
+
 grep -Fq "PMD_PUBLIC_BOOKING_R27" public/assets/pmd/public-booking-v1.css
 grep -Fq "20261007-r27" resources/views/pmd/public-booking.blade.php
 grep -Fq "20261007-r27" resources/views/pmd/public-booking-manage.blade.php
@@ -49,4 +59,4 @@ if grep -Fq '#pmd-restaurant-profile .pmd-profile-form > .pmd-profile-section:nt
 fi
 
 echo
-echo "PASS: R27 restores Restaurant Profile contact fields, keeps party-size availability local, cleans management UI, and enforces new guarantee thresholds on managed reservations."
+echo "PASS: R27/R27.1 restores Restaurant Profile contact fields, keeps party-size availability local, cleans management UI, replaces native cancellation confirm with the PMD dialog, and enforces new guarantee thresholds on managed reservations."
