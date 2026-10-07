@@ -341,7 +341,10 @@
       }
     );
 
-    if (languageNav) languageNav.hidden = visibleCount === 0;
+    if (languageNav) {
+      languageNav.hidden = visibleCount === 0;
+      languageNav.classList.toggle("is-single-choice", visibleCount === 1);
+    }
   }
 
   function activeLanguageCode() {
