@@ -2587,11 +2587,41 @@ body.pmd-kiosk-v8 {
   font-weight: 950;
 }
 
-.pmd-kiosk-food-meta__disclaimer {
-  margin: 0 !important;
-  color: var(--pmd-k-muted) !important;
-  font-size: 12px !important;
-  line-height: 1.45 !important;
+/* PMD_KIOSK_OPTION_ONLY_PLUS_V22_6 */
+.pmd-kiosk-option-picker {
+  padding-top: 12px;
+  padding-bottom: 18px;
+}
+
+.pmd-kiosk-option-picker__groups {
+  display: grid;
+  gap: 14px;
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option-group {
+  padding: 0;
+  border-top: 0;
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option-group + .pmd-kiosk-option-group {
+  padding-top: 16px;
+  border-top: 1px solid var(--pmd-k-line);
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option-group legend {
+  margin-bottom: 12px;
+  font-size: clamp(18px, 2.6vw, 22px);
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option {
+  min-height: 72px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  font-size: clamp(18px, 2.5vw, 22px);
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option small {
+  font-size: 18px;
 }
 
 @media (max-width: 760px) {
