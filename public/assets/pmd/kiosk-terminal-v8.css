@@ -500,6 +500,17 @@ img { display: block; max-width: 100%; }
 
 .pmd-kiosk-add:hover { background: var(--pmd-k-accent-dark); }
 
+/* PMD_KIOSK_STRICT_PLUS_HIT_TARGET_V22_7
+ * Keep the add button as the topmost touch target inside a clickable food card.
+ */
+.pmd-kiosk-add--icon {
+  position: relative;
+  z-index: 8;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .pmd-kiosk-order {
   min-height: 0;
   display: grid;
