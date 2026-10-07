@@ -6,6 +6,7 @@
 // PMD_KIOSK_SINGLE_SURFACE_RUNTIME_V22
 // PMD_KIOSK_RICH_FOOD_DETAILS_V22_5
 // PMD_KIOSK_OPTION_ONLY_PLUS_V22_6
+// PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7
 (function () {
   "use strict";
 
@@ -1322,6 +1323,15 @@
     }).join("");
   }
 
+  function openAddFlow(item) {
+    if (!item) return;
+    if (item.options && item.options.length) {
+      openOptionPicker(item);
+      return;
+    }
+    addConfiguredItem(item, 1, [], "");
+  }
+
   function openOptionPicker(item) {
     if (!item || !item.options.length) return;
     state.currentModal = { type: "options", itemId: item.id };
@@ -2331,9 +2341,18 @@
     state.categories = normalizedMenu.categories;
     state.payments = normalizePayments(data.payments);
 
+    // PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7
+    // Menu and service-choice screens must use one canonical Digital Menu hero.
+    // Only fall back to the first food image when no canonical hero exists.
     var heroItem = state.items.find(function (entry) { return entry.image; });
-    if (heroItem && heroItem.image) {
-      document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(heroItem.image).replace(/"/g, "%22") + '")');
+    var menuHero = String(
+      config.serviceHero ||
+      config.hero ||
+      (heroItem && heroItem.image) ||
+      ""
+    ).trim();
+    if (menuHero) {
+      document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + menuHero.replace(/"/g, "%22") + '")');
       var heroNode = $("pmd-kiosk-menu-hero");
       if (heroNode) heroNode.classList.add("is-ready");
       document.body.classList.add("pmd-kiosk-hero-ready");
@@ -2457,19 +2476,28 @@
     section.scrollIntoView({ behavior: "auto", block: "start" });
   });
 
+  // PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7
+  // Capture the + control before the parent food card can receive the click.
+  // This is intentionally separate from the card-details click path for older
+  // Android WebViews where nested button taps can otherwise resolve to the card.
   grid.addEventListener("click", function (event) {
-    var adder = event.target.closest("[data-add-item]");
-    if (adder) {
-      event.preventDefault();
-      event.stopPropagation();
-      var addItem = findItem(adder.getAttribute("data-add-item"));
-      if (!addItem) return;
-      if (addItem.options.length) openOptionPicker(addItem);
-      else addConfiguredItem(addItem, 1, [], "");
-      return;
-    }
+    var target = event.target;
+    var adder = target && target.closest ? target.closest("[data-add-item]") : null;
+    if (!adder || !grid.contains(adder)) return;
 
-    var opener = event.target.closest("[data-open-item]");
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+
+    openAddFlow(findItem(adder.getAttribute("data-add-item")));
+  }, true);
+
+  grid.addEventListener("click", function (event) {
+    var target = event.target;
+    if (!target || !target.closest) return;
+    if (target.closest("[data-add-item]")) return;
+
+    var opener = target.closest("[data-open-item]");
     if (!opener) return;
     openItem(findItem(opener.getAttribute("data-open-item")));
   });
