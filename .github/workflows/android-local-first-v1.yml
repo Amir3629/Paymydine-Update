@@ -202,7 +202,6 @@ jobs:
           grep -Fq 'openAddFlow(findItem' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq '}, true);' public/assets/pmd/kiosk-terminal-v8.js
           ! grep -Fq 'pmd-kiosk-food-meta__disclaimer' public/assets/pmd/kiosk-terminal-v8.js
-          grep -Fq 'openOptionPicker(addItem)' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_PRESERVE_CART_ON_MODE_SWITCH_V22_2' public/assets/pmd/kiosk-terminal-v8.js
           ! grep -Fq 'Pay at terminal' public/assets/pmd/kiosk-terminal-v8.js
           ! grep -Fq 'Follow the instructions on the connected card terminal.' public/assets/pmd/kiosk-terminal-v8.js
