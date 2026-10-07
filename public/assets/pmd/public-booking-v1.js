@@ -22,6 +22,13 @@
   var dateStrip = document.getElementById("pmd-booking-date-strip");
   var datePrev = document.querySelector("[data-pmd-date-prev]");
   var dateNext = document.querySelector("[data-pmd-date-next]");
+  var calendarToggle = document.querySelector("[data-pmd-calendar-toggle]");
+  var calendarPopover = document.getElementById("pmd-booking-calendar-popover");
+  var calendarMonthLabel = document.getElementById("pmd-booking-calendar-month");
+  var calendarWeekdays = document.getElementById("pmd-booking-calendar-weekdays");
+  var calendarGrid = document.getElementById("pmd-booking-calendar-grid");
+  var calendarPrevMonth = document.querySelector("[data-pmd-calendar-prev-month]");
+  var calendarNextMonth = document.querySelector("[data-pmd-calendar-next-month]");
   var guestInput = document.getElementById("pmd-booking-guests");
   var partyCopy = document.getElementById("pmd-booking-party-copy");
   var timeInput = document.getElementById("pmd-booking-time");
@@ -97,6 +104,16 @@
   var guaranteeCardComplete = false;
   var guaranteeCardLoadFailed = false;
   var dateStatuses = {};
+  var calendarSeed = dateFromIso(config.today);
+  var calendarViewDate = new Date(
+    calendarSeed.getFullYear(),
+    calendarSeed.getMonth(),
+    1,
+    12,
+    0,
+    0,
+    0
+  );
   var availabilityCache = Object.create(null);
   var capacityCache = Object.create(null);
 
@@ -283,6 +300,28 @@
     if (titleSub) titleSub.textContent = (labels.at || "at") + " " + (config.restaurantName || "");
     if (descriptionMeta) descriptionMeta.setAttribute("content", labels.intro || "");
     document.title = (labels.reservations || "Reservations") + " · " + (config.restaurantName || "");
+  }
+
+  function syncLanguageSwitcher() {
+    var visibleCount = 0;
+
+    Array.prototype.forEach.call(
+      document.querySelectorAll("[data-pmd-language]"),
+      function (link) {
+        var isCurrent =
+          String(link.getAttribute("data-pmd-language") || "") ===
+          activeLanguageCode();
+
+        link.hidden = isCurrent;
+        link.setAttribute("aria-hidden", isCurrent ? "true" : "false");
+        link.classList.remove("is-active");
+        link.removeAttribute("aria-current");
+
+        if (!isCurrent) visibleCount += 1;
+      }
+    );
+
+    if (languageNav) languageNav.hidden = visibleCount === 0;
   }
 
   function activeLanguageCode() {
@@ -1158,9 +1197,7 @@
         + (active ? 'true' : 'false')
         + '"><strong>'
         + escapeHtml(displayLabel)
-        + '</strong><small>'
-        + escapeHtml(method.provider_label || guaranteeProviderLabel(method.provider))
-        + '</small></button>';
+        + '</strong></button>';
     }).join("");
   }
 
@@ -1402,15 +1439,11 @@
     document.documentElement.lang = locale;
     document.documentElement.dir = direction;
 
-    Array.prototype.forEach.call(document.querySelectorAll("[data-pmd-language]"), function (link) {
-      var isActive = String(link.getAttribute("data-pmd-language") || "") === code;
-      link.classList.toggle("is-active", isActive);
-      if (isActive) link.setAttribute("aria-current", "page");
-      else link.removeAttribute("aria-current");
-    });
+    syncLanguageSwitcher();
 
     translateStaticContent();
     renderDateStrip();
+    renderCalendar();
     renderSummary();
     renderGuarantee();
 
@@ -1454,6 +1487,129 @@
     } catch (error) {
       return value;
     }
+  }
+
+  function monthStart(date) {
+    return new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      1,
+      12,
+      0,
+      0,
+      0
+    );
+  }
+
+  function monthCompare(left, right) {
+    var a = left.getFullYear() * 12 + left.getMonth();
+    var b = right.getFullYear() * 12 + right.getMonth();
+    return a - b;
+  }
+
+  function renderCalendar() {
+    if (!calendarGrid || !calendarMonthLabel || !calendarWeekdays) return;
+
+    var today = dateFromIso(config.today);
+    var maxDate = dateFromIso(config.maxDate || config.today);
+    var selected = dateFromIso(state.date || config.today);
+
+    calendarViewDate = monthStart(calendarViewDate || selected);
+
+    calendarMonthLabel.textContent = new Intl.DateTimeFormat(locale, {
+      month: "long",
+      year: "numeric"
+    }).format(calendarViewDate);
+
+    var weekdayFormatter = new Intl.DateTimeFormat(locale, {
+      weekday: "short"
+    });
+    var monday = new Date(2024, 0, 1, 12, 0, 0, 0);
+    var weekdayLabels = [];
+    for (var weekdayIndex = 0; weekdayIndex < 7; weekdayIndex += 1) {
+      var weekdayDate = new Date(monday);
+      weekdayDate.setDate(monday.getDate() + weekdayIndex);
+      weekdayLabels.push(
+        "<span>" + escapeHtml(weekdayFormatter.format(weekdayDate)) + "</span>"
+      );
+    }
+    calendarWeekdays.innerHTML = weekdayLabels.join("");
+
+    var year = calendarViewDate.getFullYear();
+    var month = calendarViewDate.getMonth();
+    var first = new Date(year, month, 1, 12, 0, 0, 0);
+    var firstOffset = (first.getDay() + 6) % 7;
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var cells = [];
+
+    for (var emptyIndex = 0; emptyIndex < firstOffset; emptyIndex += 1) {
+      cells.push('<span class="pmd-booking-calendar__empty" aria-hidden="true"></span>');
+    }
+
+    for (var day = 1; day <= daysInMonth; day += 1) {
+      var date = new Date(year, month, day, 12, 0, 0, 0);
+      var value = isoDate(date);
+      var outOfRange =
+        value < String(config.today) ||
+        value > String(config.maxDate || value);
+      var status = dateStatuses[value] || "";
+      var unavailable = outOfRange || status === "closed" || status === "full";
+      var active = value === state.date;
+      var statusLabel = dateStatusLabel(status);
+      var aria = formatDate(value, false);
+      if (statusLabel) aria += " · " + statusLabel;
+
+      cells.push(
+        '<button type="button" class="pmd-booking-calendar__day'
+        + (active ? ' is-active' : '')
+        + (status ? ' is-' + status : '')
+        + '" data-pmd-calendar-date="' + value + '"'
+        + (unavailable ? ' disabled aria-disabled="true"' : '')
+        + ' aria-label="' + escapeHtml(aria) + '"'
+        + (active ? ' aria-current="date"' : '')
+        + '><span>' + day + '</span>'
+        + (status && !unavailable ? '<i aria-hidden="true"></i>' : '')
+        + '</button>'
+      );
+    }
+
+    calendarGrid.innerHTML = cells.join("");
+
+    if (calendarPrevMonth) {
+      calendarPrevMonth.disabled =
+        monthCompare(calendarViewDate, monthStart(today)) <= 0;
+    }
+    if (calendarNextMonth) {
+      calendarNextMonth.disabled =
+        monthCompare(calendarViewDate, monthStart(maxDate)) >= 0;
+    }
+  }
+
+  function openCalendar() {
+    if (!calendarPopover || !calendarToggle) return;
+
+    calendarViewDate = monthStart(dateFromIso(state.date || config.today));
+    renderCalendar();
+    calendarPopover.hidden = false;
+    calendarToggle.setAttribute("aria-expanded", "true");
+
+    var selected = calendarGrid
+      ? calendarGrid.querySelector('[aria-current="date"]')
+      : null;
+    var firstEnabled = calendarGrid
+      ? calendarGrid.querySelector("button:not(:disabled)")
+      : null;
+
+    window.setTimeout(function () {
+      (selected || firstEnabled || calendarPopover).focus();
+    }, 0);
+  }
+
+  function closeCalendar(returnFocus) {
+    if (!calendarPopover || !calendarToggle) return;
+    calendarPopover.hidden = true;
+    calendarToggle.setAttribute("aria-expanded", "false");
+    if (returnFocus) calendarToggle.focus();
   }
 
   function setErrors(messages) {
@@ -1568,6 +1724,7 @@
 
       syncDateStatusesForGuests(state.guests);
       renderDateStrip();
+      renderCalendar();
 
       var instant = cachedAvailability(state.date, state.guests);
       if (state.loading && instant) {
@@ -1695,6 +1852,7 @@
     if (!openingData.enabled) {
       dateStatuses[state.date] = "closed";
       renderDateStrip();
+      renderCalendar();
       emptyState(labels.closed || "The restaurant is closed for online reservations on this date.", true);
       renderSummary();
       return;
@@ -1703,6 +1861,7 @@
     if (!slots.length) {
       dateStatuses[state.date] = "full";
       renderDateStrip();
+      renderCalendar();
       emptyState(labels.no_times || "No online tables are available for this date.", true);
       renderSummary();
       return;
@@ -1710,6 +1869,7 @@
 
     dateStatuses[state.date] = "available";
     renderDateStrip();
+    renderCalendar();
     renderTimeChoices(slots);
     renderSummary();
   }
@@ -1792,6 +1952,10 @@
     }
 
     renderDateStrip();
+    if (calendarPopover && !calendarPopover.hidden) {
+      calendarViewDate = monthStart(dateFromIso(value));
+      renderCalendar();
+    }
     renderSummary();
 
     var instant = cachedAvailability(value, state.guests);
@@ -1835,6 +1999,7 @@
     syncDateStatusesForGuests(state.guests);
     renderSummary();
     renderDateStrip();
+    renderCalendar();
 
     var instant = cachedAvailability(state.date, state.guests);
     if (instant) {
@@ -2086,6 +2251,72 @@
   if (datePrev) datePrev.addEventListener("click", function () { moveDateWindow(-7); });
   if (dateNext) dateNext.addEventListener("click", function () { moveDateWindow(7); });
 
+  if (calendarToggle) {
+    calendarToggle.addEventListener("click", function () {
+      if (!calendarPopover) return;
+      if (calendarPopover.hidden) openCalendar();
+      else closeCalendar(false);
+    });
+  }
+
+  if (calendarPrevMonth) {
+    calendarPrevMonth.addEventListener("click", function () {
+      calendarViewDate = new Date(
+        calendarViewDate.getFullYear(),
+        calendarViewDate.getMonth() - 1,
+        1,
+        12,
+        0,
+        0,
+        0
+      );
+      renderCalendar();
+    });
+  }
+
+  if (calendarNextMonth) {
+    calendarNextMonth.addEventListener("click", function () {
+      calendarViewDate = new Date(
+        calendarViewDate.getFullYear(),
+        calendarViewDate.getMonth() + 1,
+        1,
+        12,
+        0,
+        0,
+        0
+      );
+      renderCalendar();
+    });
+  }
+
+  if (calendarGrid) {
+    calendarGrid.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-pmd-calendar-date]");
+      if (!button || button.disabled) return;
+      selectDate(button.getAttribute("data-pmd-calendar-date"));
+      closeCalendar(true);
+    });
+  }
+
+  document.addEventListener("click", function (event) {
+    if (
+      !calendarPopover ||
+      calendarPopover.hidden ||
+      !calendarToggle
+    ) return;
+
+    var control = calendarToggle.closest(".pmd-booking-calendar-control");
+    if (control && !control.contains(event.target)) {
+      closeCalendar(false);
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && calendarPopover && !calendarPopover.hidden) {
+      closeCalendar(true);
+    }
+  });
+
   times.addEventListener("click", function (event) {
     var periodButton = event.target.closest("[data-pmd-time-period]");
     if (periodButton) {
@@ -2105,9 +2336,11 @@
     }
   });
 
-  dateInput.addEventListener("change", function () {
-    selectDate(dateInput.value);
-  });
+  if (dateInput) {
+    dateInput.addEventListener("change", function () {
+      selectDate(dateInput.value);
+    });
+  }
 
   guestInput.addEventListener("change", function () {
     applyGuestCount(guestInput.value);
@@ -2167,7 +2400,9 @@
 
   hydrateAvailabilitySeed(config.availabilitySeed, state.guests);
   translateStaticContent();
+  syncLanguageSwitcher();
   renderDateStrip();
+  renderCalendar();
   renderSummary();
 
   // Start Stripe.js and both wallet iframes immediately after first paint.
