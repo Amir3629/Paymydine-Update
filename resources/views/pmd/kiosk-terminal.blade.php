@@ -33,8 +33,8 @@
         /* PMD_KIOSK_SERVICE_LABEL_FIT_V22_1 */
         /* PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4 */
         .pmd-kiosk-service-choice__hero {
-            width: 100%;
-            margin: 12px 0 22px;
+            width: min(1040px, 100%);
+            margin: 12px auto 22px;
         }
         .pmd-kiosk-service-choice__hero img {
             display: block;
