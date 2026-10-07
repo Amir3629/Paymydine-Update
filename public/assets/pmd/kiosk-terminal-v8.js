@@ -150,6 +150,20 @@
   var cartKey = "pmd-kiosk-v8-cart:" + String(config.session || "kiosk");
   var orderKey = "pmd-kiosk-v8-order:" + String(config.session || "kiosk");
   var paymentKey = "pmd-kiosk-v8-payment:" + String(config.session || "kiosk");
+
+  function nextGuestSession() {
+    var value = "";
+    try {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") value = window.crypto.randomUUID();
+    } catch (error) {}
+    if (!value) {
+      value = "kiosk-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 12);
+    }
+    config.session = value;
+    cartKey = "pmd-kiosk-v8-cart:" + value;
+    orderKey = "pmd-kiosk-v8-order:" + value;
+    paymentKey = "pmd-kiosk-v8-payment:" + value;
+  }
   var bootstrapCacheKey = "pmd-kiosk-v13-bootstrap:" + String(window.location.host || "tenant");
   var bootstrapCacheMaxAgeMs = 6 * 60 * 60 * 1000;
   var bootPresented = false;
@@ -790,6 +804,10 @@
       sessionStorage.removeItem(orderKey);
       sessionStorage.removeItem(paymentKey);
     } catch (error) {}
+    // PMD_KIOSK_NEW_GUEST_SESSION_V22
+    // Same WebView, new guest: rotate idempotency/payment session keys without
+    // reloading the document.
+    nextGuestSession();
     renderCartState();
     showServiceChoice();
   }
