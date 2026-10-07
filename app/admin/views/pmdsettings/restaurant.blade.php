@@ -138,13 +138,15 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         </label>
 
                         <label class="pmd-profile-field">
-                            <span>{{ $pmdSettingsText('Public email') }}</span>
-                            <input type="email" name="profile[email]" value="{{ $pmdProfile['email'] ?? '' }}" maxlength="191">
+                            <span>{{ $pmdSettingsText('Restaurant email') }}</span>
+                            <input type="email" name="profile[email]" value="{{ $pmdProfile['email'] ?? '' }}" maxlength="191" autocomplete="email">
+                            <small>{{ $pmdSettingsText('Shown as the restaurant contact on the booking page and used as the restaurant reservation email address.') }}</small>
                         </label>
 
                         <label class="pmd-profile-field">
                             <span>{{ $pmdSettingsText('Phone') }}</span>
-                            <input type="text" name="profile[telephone]" value="{{ $pmdProfile['telephone'] ?? '' }}" maxlength="64">
+                            <input type="text" name="profile[telephone]" value="{{ $pmdProfile['telephone'] ?? '' }}" maxlength="64" autocomplete="tel">
+                            <small>{{ $pmdSettingsText('Shown to guests who need to call the restaurant about a reservation.') }}</small>
                         </label>
                     </div>
                 </div>
@@ -158,16 +160,17 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
                     </div>
                     <div>
-                        <h2>{{ $pmdSettingsText('Address') }}</h2>
-                        <p>{{ $pmdSettingsText('Physical location details shown to guests and staff.') }}</p>
+                        <h2>{{ $pmdSettingsText('Restaurant address') }}</h2>
+                        <p>{{ $pmdSettingsText('Shown on the public booking page and reservation details.') }}</p>
                     </div>
                 </div>
 
                 <div class="pmd-profile-card__body">
                     <div class="pmd-profile-grid pmd-profile-grid--2">
                         <label class="pmd-profile-field">
-                            <span>{{ $pmdSettingsText('Address line 1') }}</span>
-                            <input type="text" name="profile[address_1]" value="{{ $pmdProfile['address_1'] ?? '' }}" maxlength="191">
+                            <span>{{ $pmdSettingsText('Street & number') }}</span>
+                            <input type="text" name="profile[address_1]" value="{{ $pmdProfile['address_1'] ?? '' }}" maxlength="191" autocomplete="street-address">
+                            <small>{{ $pmdSettingsText('This is the main guest-facing restaurant address.') }}</small>
                         </label>
 
                         <label class="pmd-profile-field">
