@@ -577,8 +577,91 @@ class PmdReservationMessagingService
             'time' => $time,
             'guests' => (int)$reservation->guest_num,
             'manage_url' => $manageUrl,
-            'changes' => array_values(array_filter(array_map('strval', $changes))),
+            'changes' => $this->localizedChanges($changes, $locale),
         ];
+    }
+
+    private function localizedChanges(array $changes, string $locale): array
+    {
+        $maps = [
+            'de' => [
+                'date' => 'Datum',
+                'time' => 'Uhrzeit',
+                'party size' => 'Personenzahl',
+                'first name' => 'Vorname',
+                'last name' => 'Nachname',
+                'email' => 'E-Mail',
+                'phone' => 'Telefon',
+                'table preferences' => 'Tischwunsch',
+                'notes' => 'Hinweise',
+                'changed' => 'geändert',
+            ],
+            'tr' => [
+                'date' => 'Tarih',
+                'time' => 'Saat',
+                'party size' => 'Kişi sayısı',
+                'first name' => 'Ad',
+                'last name' => 'Soyad',
+                'email' => 'E-posta',
+                'phone' => 'Telefon',
+                'table preferences' => 'Masa tercihi',
+                'notes' => 'Notlar',
+                'changed' => 'değiştirildi',
+            ],
+            'ar' => [
+                'date' => 'التاريخ',
+                'time' => 'الوقت',
+                'party size' => 'عدد الأشخاص',
+                'first name' => 'الاسم الأول',
+                'last name' => 'اسم العائلة',
+                'email' => 'البريد الإلكتروني',
+                'phone' => 'الهاتف',
+                'table preferences' => 'تفضيلات الطاولة',
+                'notes' => 'ملاحظات',
+                'changed' => 'تم التغيير',
+            ],
+        ];
+
+        $map = $maps[$locale] ?? [];
+        $result = [];
+
+        foreach ($changes as $change) {
+            $change = trim((string)$change);
+            if ($change === '') {
+                continue;
+            }
+
+            if (!$map) {
+                $result[] = $change;
+                continue;
+            }
+
+            $translated = $change;
+            foreach ([
+                'table preferences',
+                'party size',
+                'first name',
+                'last name',
+                'date',
+                'time',
+                'email',
+                'phone',
+                'notes',
+            ] as $label) {
+                if (str_starts_with($translated, $label.' ')) {
+                    $translated = $map[$label].substr($translated, strlen($label));
+                    break;
+                }
+            }
+
+            if (str_ends_with($translated, ' changed')) {
+                $translated = substr($translated, 0, -8).' '.$map['changed'];
+            }
+
+            $result[] = $translated;
+        }
+
+        return $result;
     }
 
     private function emailHtml(
