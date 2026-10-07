@@ -5,8 +5,8 @@
             'language' => 'Language',
             'table_request' => 'Table request',
             'find_table' => 'Find your table',
-            'intro' => 'Choose a date, party size and an available time. Your reservation goes directly to the restaurant.',
-            'hero_intro' => 'Choose a date, party size and an available time. Your reservation goes directly to the restaurant.',
+            'intro' => 'Reserve a table online.',
+            'hero_intro' => '',
             'date_party' => 'Date & party',
             'choose_date' => 'Choose a date',
             'previous_dates' => 'Previous dates',
@@ -90,7 +90,7 @@
             'language' => 'Sprache',
             'table_request' => 'Tischanfrage',
             'find_table' => 'Finde deinen Tisch',
-            'intro' => 'Datum, Personenzahl und verfügbare Uhrzeit wählen. Die Reservierung geht direkt an das Restaurant.',
+            'intro' => 'Tisch online reservieren.',
             'hero_intro' => '',
             'date_party' => 'Datum & Personen',
             'choose_date' => 'Datum wählen',
@@ -175,8 +175,8 @@
             'language' => 'Dil',
             'table_request' => 'Masa talebi',
             'find_table' => 'Masanızı ayırtın',
-            'intro' => 'Tarih, kişi sayısı ve uygun bir saat seçin. Rezervasyon doğrudan restorana ulaşır.',
-            'hero_intro' => 'Tarih, kişi sayısı ve uygun bir saat seçin. Rezervasyon doğrudan restorana ulaşır.',
+            'intro' => 'Online masa rezervasyonu.',
+            'hero_intro' => '',
             'date_party' => 'Tarih ve kişi',
             'choose_date' => 'Tarih seçin',
             'previous_dates' => 'Önceki günler',
@@ -260,8 +260,8 @@
             'language' => 'اللغة',
             'table_request' => 'طلب طاولة',
             'find_table' => 'احجز طاولتك',
-            'intro' => 'اختر التاريخ وعدد الأشخاص والوقت المتاح. يصل حجزك مباشرة إلى المطعم.',
-            'hero_intro' => 'اختر التاريخ وعدد الأشخاص والوقت المتاح. يصل حجزك مباشرة إلى المطعم.',
+            'intro' => 'احجز طاولة عبر الإنترنت.',
+            'hero_intro' => '',
             'date_party' => 'التاريخ والأشخاص',
             'choose_date' => 'اختر التاريخ',
             'previous_dates' => 'أيام سابقة',
@@ -405,7 +405,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r23">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r24">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -439,7 +439,6 @@
                 <div class="pmd-booking-intro__copy">
                     <p class="pmd-booking-kicker" data-pmd-i18n="reservations">{{ $t['reservations'] }}</p>
                     <h1 id="pmd-booking-title"><b id="pmd-booking-title-main">{{ $t['find_table'] }}</b><span id="pmd-booking-title-sub">{{ $t['at'] }} {{ $bookingProfile['name'] }}</span></h1>
-                    <p class="pmd-booking-hero-intro" data-pmd-i18n="hero_intro">{{ $t['hero_intro'] }}</p>
                 </div>
 
                 <div class="pmd-booking-intro__details">
@@ -792,6 +791,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r23" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r24" defer></script>
 </body>
 </html>
