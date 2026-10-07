@@ -1572,7 +1572,7 @@
       var outOfRange =
         value < String(config.today) ||
         value > String(config.maxDate || value);
-      var status = dateStatuses[value] || "";
+      var status = statusForDate(value);
       var unavailable = outOfRange || status === "closed" || status === "full";
       var active = value === state.date;
       var statusLabel = dateStatusLabel(status);
@@ -1658,6 +1658,24 @@
     return "";
   }
 
+  function recurringDateStatus(value) {
+    var openingHours = Array.isArray(config.openingHours)
+      ? config.openingHours
+      : [];
+    if (!openingHours.length) return "";
+
+    var date = dateFromIso(value);
+    var weekday = (date.getDay() + 6) % 7;
+    var row = openingHours[weekday] || null;
+
+    if (row && row.enabled === false) return "closed";
+    return "";
+  }
+
+  function statusForDate(value) {
+    return dateStatuses[value] || recurringDateStatus(value) || "";
+  }
+
   function renderDateStrip() {
     if (!dateStrip) return;
 
@@ -1673,18 +1691,22 @@
       var weekday = new Intl.DateTimeFormat(locale, { weekday: "short" }).format(date);
       var month = new Intl.DateTimeFormat(locale, { month: "short" }).format(date);
       var active = value === state.date ? " is-active" : "";
-      var status = dateStatuses[value] || "";
+      var status = statusForDate(value);
       var unavailable = status === "closed" || status === "full";
-      var statusClass = status ? " has-status is-" + status : "";
       var statusLabel = dateStatusLabel(status);
+      var visibleStatusLabel = status === "closed" ? "" : statusLabel;
+      var statusClass = status
+        ? " is-" + status + (visibleStatusLabel ? " has-status" : "")
+        : "";
 
       html.push(
         '<button type="button" class="pmd-booking-date-option' + active + statusClass + '" data-pmd-booking-date="' + value + '" role="listitem"' +
-          (unavailable ? ' aria-disabled="true"' : '') + '>' +
+          (unavailable ? ' aria-disabled="true"' : '') +
+          (statusLabel ? ' aria-label="' + escapeHtml(formatDate(value, false) + " · " + statusLabel) + '"' : '') + '>' +
           "<span>" + escapeHtml(weekday) + "</span>" +
           "<strong>" + date.getDate() + "</strong>" +
           "<small>" + escapeHtml(month) + "</small>" +
-          (statusLabel ? '<em>' + escapeHtml(statusLabel) + '</em>' : '') +
+          (visibleStatusLabel ? '<em>' + escapeHtml(visibleStatusLabel) + '</em>' : '') +
         "</button>"
       );
     }
@@ -2045,7 +2067,8 @@
       date.setDate(date.getDate() + 1);
       var value = isoDate(date);
       if (value > String(config.maxDate)) return;
-      if (dateStatuses[value] !== "closed" && dateStatuses[value] !== "full") {
+      var nextStatus = statusForDate(value);
+      if (nextStatus !== "closed" && nextStatus !== "full") {
         selectDate(value);
         return;
       }
