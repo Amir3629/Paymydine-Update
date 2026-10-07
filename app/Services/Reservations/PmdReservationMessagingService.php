@@ -29,6 +29,31 @@ class PmdReservationMessagingService
         return $this->boolSetting('pmd_reservation_whatsapp_enabled', false);
     }
 
+    public function whatsappOperational(): bool
+    {
+        if (!$this->whatsappEnabled()) {
+            return false;
+        }
+
+        $phoneNumberId = trim((string)$this->setting('pmd_whatsapp_phone_number_id', ''));
+        $token = trim((string)$this->setting('pmd_whatsapp_access_token', ''));
+
+        if ($phoneNumberId === '' || $token === '') {
+            return false;
+        }
+
+        foreach (self::EVENTS as $event) {
+            if (
+                $this->eventEnabled($event)
+                && trim((string)$this->setting('pmd_whatsapp_template_'.$event, '')) !== ''
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function notify(
         Reservations_model $reservation,
         string $event,
@@ -125,7 +150,7 @@ class PmdReservationMessagingService
 
     public function publicWhatsappNumber(): string
     {
-        if (!$this->boolSetting('pmd_reservation_whatsapp_enabled', false)) {
+        if (!$this->whatsappEnabled()) {
             return '';
         }
 
@@ -585,7 +610,32 @@ class PmdReservationMessagingService
             $sender = strtolower(trim((string)$this->setting('site_email', '')));
         }
 
-        return filter_var($sender, FILTER_VALIDATE_EMAIL) !== false;
+        if (filter_var($sender, FILTER_VALIDATE_EMAIL) === false) {
+            return false;
+        }
+
+        $protocol = strtolower(trim((string)$this->setting('protocol', 'mail'))) ?: 'mail';
+
+        if ($protocol === 'smtp') {
+            return trim((string)$this->setting('smtp_host', '')) !== '';
+        }
+
+        if ($protocol === 'mailgun') {
+            return trim((string)$this->setting('mailgun_domain', '')) !== ''
+                && trim((string)$this->setting('mailgun_secret', '')) !== '';
+        }
+
+        if ($protocol === 'postmark') {
+            return trim((string)$this->setting('postmark_token', '')) !== '';
+        }
+
+        if ($protocol === 'ses') {
+            return trim((string)$this->setting('ses_key', '')) !== ''
+                && trim((string)$this->setting('ses_secret', '')) !== ''
+                && trim((string)$this->setting('ses_region', '')) !== '';
+        }
+
+        return in_array($protocol, ['mail', 'sendmail'], true);
     }
 
     private function applyMailConfig(): void
