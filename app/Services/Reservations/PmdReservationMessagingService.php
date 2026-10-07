@@ -73,16 +73,18 @@ class PmdReservationMessagingService
                 ->where('reservation_id', $reservationId)
                 ->exists();
 
+            $values = [
+                'whatsapp_opt_in' => $whatsappOptIn ? 1 : 0,
+                'locale' => $this->locale($locale),
+                'updated_at' => $now,
+            ];
+            if (!$existing) {
+                $values['created_at'] = $now;
+            }
+
             DB::table('pmd_reservation_message_preferences')->updateOrInsert(
                 ['reservation_id' => $reservationId],
-                [
-                    'whatsapp_opt_in' => $whatsappOptIn ? 1 : 0,
-                    'locale' => $this->locale($locale),
-                    'updated_at' => $now,
-                    'created_at' => $existing
-                        ? DB::raw('created_at')
-                        : $now,
-                ]
+                $values
             );
         } catch (Throwable $error) {
             Log::warning('PMD reservation messaging preference save failed', [
