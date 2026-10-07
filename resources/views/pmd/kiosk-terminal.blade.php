@@ -28,22 +28,104 @@
     @if ($initialServiceHero !== '')
         <link rel="preload" as="image" href="{{ e($initialServiceHero) }}" fetchpriority="high">
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=22-4-canonical-digital-menu-hero">
-    <style id="pmd-kiosk-v22-4-service-choice-polish">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=22-5-fullbleed-food-details">
+    <style id="pmd-kiosk-v22-5-service-choice-polish">
         /* PMD_KIOSK_SERVICE_LABEL_FIT_V22_1 */
         /* PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4 */
-        .pmd-kiosk-service-choice__hero {
-            width: min(1040px, 100%);
-            margin: 12px auto 22px;
+        /* PMD_KIOSK_FULLBLEED_SERVICE_HERO_V22_5 */
+        .pmd-kiosk-service-choice {
+            padding: 0 0 max(30px, env(safe-area-inset-bottom)) !important;
         }
-        .pmd-kiosk-service-choice__hero img {
+        .pmd-kiosk-service-choice__hero {
+            position: relative;
+            width: 100%;
+            height: clamp(250px, 32vh, 390px);
+            margin: 0 0 26px;
+            overflow: hidden;
+            background: color-mix(in srgb, var(--pmd-k-bg) 88%, #000 12%);
+        }
+        .pmd-kiosk-service-choice__hero > img {
+            position: absolute;
+            inset: 0;
             display: block;
             width: 100%;
-            height: clamp(138px, 22vh, 190px);
+            height: 100%;
             object-fit: cover;
             object-position: center;
         }
+        .pmd-kiosk-service-choice__hero::after {
+            content: "";
+            position: absolute;
+            z-index: 1;
+            inset: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(180deg, rgba(5,22,32,.52) 0%, rgba(5,22,32,.16) 38%, rgba(5,22,32,0) 68%),
+                linear-gradient(0deg, rgba(5,22,32,.12), rgba(5,22,32,0) 38%);
+        }
+        .pmd-kiosk-service-choice__hero.is-empty {
+            height: 150px;
+            background: var(--pmd-k-bg);
+        }
+        .pmd-kiosk-service-choice__hero.is-empty::after {
+            display: none;
+        }
+        .pmd-kiosk-service-choice__top {
+            position: absolute;
+            z-index: 3;
+            top: 0;
+            left: 0;
+            right: 0;
+            max-width: none;
+            margin: 0;
+            padding:
+                max(24px, env(safe-area-inset-top))
+                clamp(22px, 5vw, 54px)
+                56px;
+        }
+        .pmd-kiosk-service-choice__hero:not(.is-empty) .pmd-kiosk-service-choice__brand strong {
+            color: #fff;
+            text-shadow: 0 2px 14px rgba(0,0,0,.42);
+        }
+        .pmd-kiosk-service-choice__hero:not(.is-empty) .pmd-kiosk-service-choice__logo {
+            border-color: rgba(255,255,255,.72);
+            background: rgba(255,255,255,.94);
+            box-shadow: 0 8px 28px rgba(0,0,0,.16);
+        }
+        .pmd-kiosk-service-choice__hero:not(.is-empty) #pmd-kiosk-service-language {
+            border-color: rgba(255,255,255,.72);
+            background: rgba(255,255,255,.92);
+            color: #073b55;
+            box-shadow: 0 8px 28px rgba(0,0,0,.14);
+            backdrop-filter: blur(12px);
+        }
+        .pmd-kiosk-service-choice__actions {
+            width: min(1120px, 100%);
+            box-sizing: border-box;
+            padding-inline: clamp(18px, 5vw, 54px);
+        }
         @media (max-width: 760px) {
+            .pmd-kiosk-service-choice {
+                padding-inline: 0 !important;
+            }
+            .pmd-kiosk-service-choice__hero {
+                height: clamp(250px, 31vh, 320px);
+                margin-bottom: 18px;
+            }
+            .pmd-kiosk-service-choice__top {
+                padding:
+                    max(22px, env(safe-area-inset-top))
+                    18px
+                    48px;
+            }
+            .pmd-kiosk-service-choice__logo {
+                width: 60px;
+                height: 60px;
+                flex-basis: 60px;
+            }
+            .pmd-kiosk-service-choice__actions {
+                padding-inline: 18px;
+            }
             .pmd-kiosk-service-card {
                 grid-template-columns: minmax(0, 1.05fr) minmax(148px, .95fr);
             }
@@ -63,12 +145,6 @@
             .pmd-kiosk-service-card__fade {
                 width: 34px;
             }
-            .pmd-kiosk-service-choice__hero {
-                margin: 8px 0 18px;
-            }
-            .pmd-kiosk-service-choice__hero img {
-                height: 148px;
-            }
         }
     </style>
 </head>
@@ -77,6 +153,8 @@
 <!-- PMD_KIOSK_ATOMIC_UI_V21 -->
 <!-- PMD_KIOSK_SINGLE_SURFACE_UI_V22 -->
 <!-- PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4 -->
+<!-- PMD_KIOSK_FULLBLEED_SERVICE_HERO_V22_5 -->
+<!-- PMD_KIOSK_RICH_FOOD_DETAILS_V22_5 -->
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
     data-pmd-kiosk-terminal="blade-v8"
@@ -90,30 +168,30 @@
         aria-label="Order type"
         {{ $initialChooseService ? '' : 'hidden' }}
     >
-        <div class="pmd-kiosk-service-choice__top">
-            <div class="pmd-kiosk-service-choice__brand">
-                <span class="pmd-kiosk-service-choice__logo" id="pmd-kiosk-service-choice-logo">
-                    @if ($initialRestaurantLogo !== '')
-                        <img src="{{ e($initialRestaurantLogo) }}" alt="">
-                    @else
-                        <span>{{ e($initialRestaurantLetter) }}</span>
-                    @endif
-                </span>
-                <strong id="pmd-kiosk-service-choice-name">{{ e($initialRestaurantName) }}</strong>
-            </div>
-            <button type="button" id="pmd-kiosk-service-language" class="pmd-kiosk-language-cycle" aria-label="Language">{{ e(strtoupper($initialLocale)) }}</button>
-        </div>
-
-        @if ($initialServiceHero !== '')
-            <div class="pmd-kiosk-service-choice__hero" aria-hidden="true">
+        <div class="pmd-kiosk-service-choice__hero{{ $initialServiceHero === '' ? ' is-empty' : '' }}">
+            @if ($initialServiceHero !== '')
                 <img
                     src="{{ e($initialServiceHero) }}"
                     alt=""
+                    loading="eager"
                     fetchpriority="high"
-                    decoding="async"
                 >
+            @endif
+
+            <div class="pmd-kiosk-service-choice__top">
+                <div class="pmd-kiosk-service-choice__brand">
+                    <span class="pmd-kiosk-service-choice__logo" id="pmd-kiosk-service-choice-logo">
+                        @if ($initialRestaurantLogo !== '')
+                            <img src="{{ e($initialRestaurantLogo) }}" alt="">
+                        @else
+                            <span>{{ e($initialRestaurantLetter) }}</span>
+                        @endif
+                    </span>
+                    <strong id="pmd-kiosk-service-choice-name">{{ e($initialRestaurantName) }}</strong>
+                </div>
+                <button type="button" id="pmd-kiosk-service-language" class="pmd-kiosk-language-cycle" aria-label="Language">{{ e(strtoupper($initialLocale)) }}</button>
             </div>
-        @endif
+        </div>
 
         <div class="pmd-kiosk-service-choice__actions">
             <button type="button" class="pmd-kiosk-service-card" data-service-mode="eat_in">
@@ -244,6 +322,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=22-4-canonical-digital-menu-hero" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=22-5-fullbleed-food-details" defer></script>
 </body>
 </html>

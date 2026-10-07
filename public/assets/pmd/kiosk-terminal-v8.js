@@ -4,6 +4,7 @@
 // PMD_KIOSK_TERMINAL_ONLY_V18
 // PMD_KIOSK_SCROLL_CATEGORIES_V18
 // PMD_KIOSK_SINGLE_SURFACE_RUNTIME_V22
+// PMD_KIOSK_RICH_FOOD_DETAILS_V22_5
 (function () {
   "use strict";
 
@@ -51,6 +52,9 @@
       emptyHint: "Choose something from the menu to begin.", clear: "Clear order", subtotal: "Subtotal",
       tax: "Tax", service: "Service charge", total: "Total", reviewPay: "Checkout", checkout: "Checkout",
       noResults: "Nothing found", noResultsHint: "Try another category or search.",
+      dietary: "Dietary", allergens: "Allergens", nutrition: "Nutrition", calories: "Calories",
+      serving: "Serving", protein: "Protein", carbs: "Carbs", fat: "Fat", sugar: "Sugar", prepTime: "Prep time",
+      halal: "Halal", vegetarian: "Vegetarian", vegan: "Vegan", chefRecommended: "Chef recommended", bestseller: "Bestseller",
       options: "Choose options", required: "Required", optional: "Optional", note: "Item note",
       noteHint: "e.g. no onions, sauce on the side", cancel: "Cancel", addOrder: "Add to order",
       review: "Review order", continueMenu: "Continue ordering", placeOrder: "Place order",
@@ -69,6 +73,9 @@
       emptyHint: "Wähle etwas aus der Speisekarte.", clear: "Bestellung leeren", subtotal: "Zwischensumme",
       tax: "Steuer", service: "Servicegebühr", total: "Gesamt", reviewPay: "Checkout", checkout: "Checkout",
       noResults: "Nichts gefunden", noResultsHint: "Andere Kategorie oder Suche wählen.",
+      dietary: "Ernährung", allergens: "Allergene", nutrition: "Nährwerte", calories: "Kalorien",
+      serving: "Portion", protein: "Protein", carbs: "Kohlenhydrate", fat: "Fett", sugar: "Zucker", prepTime: "Zubereitungszeit",
+      halal: "Halal", vegetarian: "Vegetarisch", vegan: "Vegan", chefRecommended: "Empfehlung", bestseller: "Bestseller",
       options: "Optionen wählen", required: "Erforderlich", optional: "Optional", note: "Hinweis zum Artikel",
       noteHint: "z. B. ohne Zwiebeln, Sauce separat", cancel: "Abbrechen", addOrder: "Zur Bestellung",
       review: "Bestellung prüfen", continueMenu: "Weiter bestellen", placeOrder: "Bestellung aufgeben",
@@ -87,6 +94,9 @@
       emptyHint: "برای شروع یک آیتم از منو انتخاب کنید.", clear: "پاک کردن سفارش", subtotal: "جمع جزء",
       tax: "مالیات", service: "هزینه سرویس", total: "جمع کل", reviewPay: "Checkout", checkout: "Checkout",
       noResults: "چیزی پیدا نشد", noResultsHint: "دسته یا عبارت دیگری را امتحان کنید.",
+      dietary: "ویژگی‌های غذایی", allergens: "آلرژن‌ها", nutrition: "ارزش غذایی", calories: "کالری",
+      serving: "اندازه سرو", protein: "پروتئین", carbs: "کربوهیدرات", fat: "چربی", sugar: "قند", prepTime: "زمان آماده‌سازی",
+      halal: "حلال", vegetarian: "گیاه‌خواری", vegan: "وگان", chefRecommended: "پیشنهاد سرآشپز", bestseller: "پرفروش",
       options: "انتخاب گزینه‌ها", required: "الزامی", optional: "اختیاری", note: "یادداشت آیتم",
       noteHint: "مثلاً بدون پیاز، سس جدا", cancel: "لغو", addOrder: "افزودن به سفارش",
       review: "بررسی سفارش", continueMenu: "ادامه سفارش", placeOrder: "ثبت سفارش",
@@ -105,6 +115,9 @@
       emptyHint: "Başlamak için menüden bir ürün seçin.", clear: "Siparişi temizle", subtotal: "Ara toplam",
       tax: "Vergi", service: "Servis ücreti", total: "Toplam", reviewPay: "Checkout", checkout: "Checkout",
       noResults: "Sonuç bulunamadı", noResultsHint: "Başka kategori veya arama deneyin.",
+      dietary: "Beslenme", allergens: "Alerjenler", nutrition: "Besin değerleri", calories: "Kalori",
+      serving: "Porsiyon", protein: "Protein", carbs: "Karbonhidrat", fat: "Yağ", sugar: "Şeker", prepTime: "Hazırlama süresi",
+      halal: "Helal", vegetarian: "Vejetaryen", vegan: "Vegan", chefRecommended: "Şef önerisi", bestseller: "Çok satan",
       options: "Seçenekleri seçin", required: "Zorunlu", optional: "İsteğe bağlı", note: "Ürün notu",
       noteHint: "örn. soğansız, sos ayrı", cancel: "İptal", addOrder: "Siparişe ekle",
       review: "Siparişi kontrol et", continueMenu: "Siparişe devam et", placeOrder: "Siparişi ver",
@@ -202,6 +215,51 @@
     if (typeof value === "boolean") return value;
     if (typeof value === "number") return value !== 0;
     return ["1", "true", "yes", "on", "enabled"].indexOf(String(value).trim().toLowerCase()) >= 0;
+  }
+
+  function nullableNumber(value) {
+    if (value === undefined || value === null || value === "") return null;
+    var parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function textList(value) {
+    var out = [];
+    function add(entry) {
+      if (entry === undefined || entry === null || entry === "") return;
+      if (Array.isArray(entry)) {
+        entry.forEach(add);
+        return;
+      }
+      if (typeof entry === "object") {
+        add(first(entry, ["name", "label", "title", "value"], ""));
+        return;
+      }
+      String(entry).split("||").forEach(function (part) {
+        var cleaned = cleanText(part, "");
+        if (cleaned && !out.some(function (current) { return current.toLowerCase() === cleaned.toLowerCase(); })) {
+          out.push(cleaned);
+        }
+      });
+    }
+    add(value);
+    return out;
+  }
+
+  function nutritionFrom(source) {
+    var nested = object(source && source.nutrition);
+    var result = {
+      calories: nullableNumber(first(nested, ["calories"], source.calories)),
+      protein: nullableNumber(first(nested, ["protein"], source.protein)),
+      carbs: nullableNumber(first(nested, ["carbs"], source.carbs)),
+      fat: nullableNumber(first(nested, ["fat"], source.fat)),
+      sugar: nullableNumber(first(nested, ["sugar"], source.sugar)),
+      servingSize: cleanText(first(nested, ["serving_size", "servingSize"], source.serving_size), ""),
+      disclaimer: cleanText(first(nested, ["disclaimer"], ""), "")
+    };
+    var hasValue = result.calories !== null || result.protein !== null || result.carbs !== null ||
+      result.fat !== null || result.sugar !== null || Boolean(result.servingSize);
+    return hasValue ? result : null;
   }
 
   function object(value) {
@@ -448,6 +506,8 @@
         if (normalized && rawImages.indexOf(normalized) < 0) rawImages.push(normalized);
       });
       var stock = source.stock_qty;
+      var allergens = textList(first(source, ["allergens", "allergy_tags"], source.allergy_names || []));
+      var nutrition = nutritionFrom(source);
       var available = source.available === undefined
         ? !boolish(source.is_stock_out, false)
         : boolish(source.available, true);
@@ -462,6 +522,14 @@
         categoryName: categoryName,
         image: rawImages[0] || "",
         available: available,
+        allergens: allergens,
+        halal: boolish(first(source, ["halal", "is_halal"], false), false),
+        vegetarian: boolish(first(source, ["vegetarian", "is_vegetarian"], false), false),
+        vegan: boolish(first(source, ["vegan", "is_vegan"], false), false),
+        prepTimeMinutes: nullableNumber(first(source, ["prep_time_minutes", "prepTimeMinutes"], null)),
+        nutrition: nutrition,
+        chefRecommended: boolish(first(source, ["is_chef_recommended", "is_recommended", "is_featured"], false), false),
+        bestseller: boolish(first(source, ["is_bestseller", "is_manual_bestseller"], false), false),
         options: normalizeOptions(source.options)
       };
     }).filter(function (item) { return item.id && item.available; });
@@ -981,6 +1049,14 @@
           String(item.description || ""),
           String(item.image || ""),
           number(item.price),
+          Boolean(item.halal),
+          Boolean(item.vegetarian),
+          Boolean(item.vegan),
+          (item.allergens || []).join("|"),
+          item.prepTimeMinutes == null ? "" : number(item.prepTimeMinutes),
+          item.nutrition ? JSON.stringify(item.nutrition) : "",
+          Boolean(item.chefRecommended),
+          Boolean(item.bestseller),
           Array.isArray(item.options) ? item.options.length : 0
         ];
       })
@@ -1130,6 +1206,97 @@
     return state.items.find(function (item) { return String(item.id) === String(id); }) || null;
   }
 
+  function foodMetaIcon(kind) {
+    var body = {
+      halal: '<path d="M14.8 3.4a8.4 8.4 0 1 0 5.8 13.9A7.2 7.2 0 1 1 14.8 3.4Z"></path>',
+      vegetarian: '<path d="M19.5 4.5C11.8 4.7 6.2 8.1 5 14.1c-.4 2.1.5 4 2.1 5.1 1.4-5.2 5.1-8.8 10.5-11.2-4 3-6.8 6.6-8.2 11.1 6.1.7 10.5-4.4 10.1-14.6Z"></path>',
+      vegan: '<path d="M12 21V9"></path><path d="M12 13c-4.1 0-7-2.5-7-6 4.1 0 7 2.5 7 6Z"></path><path d="M12 10c3.5 0 6-2.1 6-5-3.5 0-6 2.1-6 5Z"></path>',
+      allergen: '<path d="M12 3 2.8 20h18.4L12 3Z"></path><path d="M12 9v5"></path><circle cx="12" cy="17" r=".8"></circle>',
+      calories: '<path d="M13.5 3.5c.6 3-1.1 4.4-2.5 5.9-1.1 1.2-1.9 2.4-1.6 4 .3 1.5 1.4 2.5 2.9 2.7-1.1-1.4-.7-2.8.4-4 1.5-1.6 3.2-3.3 2.7-6.4 2.9 2.3 4.2 5.2 3.4 8.5-.9 3.8-3.6 6.1-7 6.1-3.7 0-6.8-2.7-6.8-6.4 0-3.1 1.8-5.2 4.3-7.2-.1 2 .5 3.2 1.4 4.1.1-3.1 1.4-5.2 2.8-7.3Z"></path>',
+      serving: '<circle cx="12" cy="12" r="7.5"></circle><circle cx="12" cy="12" r="3.8"></circle><path d="M3 20h18"></path>',
+      protein: '<path d="M5 9v6M8 7v10M16 7v10M19 9v6M8 12h8"></path>',
+      carbs: '<path d="M12 21V6"></path><path d="M12 9c-3 0-5-1.8-5-4 3 0 5 1.8 5 4ZM12 13c3 0 5-1.8 5-4-3 0-5 1.8-5 4ZM12 17c-3 0-5-1.8-5-4 3 0 5 1.8 5 4Z"></path>',
+      fat: '<path d="M12 3c3.3 4.5 6 7.7 6 11a6 6 0 1 1-12 0c0-3.3 2.7-6.5 6-11Z"></path>',
+      sugar: '<path d="m12 3 7 4v10l-7 4-7-4V7l7-4Z"></path><path d="m5 7 7 4 7-4M12 11v10"></path>',
+      prep: '<circle cx="12" cy="13" r="7"></circle><path d="M12 13V9M12 13l3 2M9 3h6"></path>',
+      star: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"></path>'
+    }[kind] || '<circle cx="12" cy="12" r="7"></circle>';
+    return '<svg class="pmd-kiosk-food-meta__icon" viewBox="0 0 24 24" aria-hidden="true">' + body + '</svg>';
+  }
+
+  function metricText(value) {
+    var n = Number(value);
+    if (!Number.isFinite(n)) return "";
+    return Number.isInteger(n) ? String(n) : String(Math.round(n * 10) / 10);
+  }
+
+  function foodInfoHtml(item) {
+    var labels = copy();
+    var features = [];
+    if (item.halal) features.push({ kind: "halal", label: labels.halal });
+    if (item.vegetarian) features.push({ kind: "vegetarian", label: labels.vegetarian });
+    if (item.vegan) features.push({ kind: "vegan", label: labels.vegan });
+    if (item.chefRecommended) features.push({ kind: "star", label: labels.chefRecommended });
+    if (item.bestseller) features.push({ kind: "star", label: labels.bestseller });
+
+    var parts = [];
+    if (features.length) {
+      parts.push(
+        '<section class="pmd-kiosk-food-meta__section"><h3>' + foodMetaIcon("vegetarian") + escapeHtml(labels.dietary) +
+        '</h3><div class="pmd-kiosk-food-meta__chips">' +
+        features.map(function (entry) {
+          return '<span class="pmd-kiosk-food-chip">' + foodMetaIcon(entry.kind) + '<span>' + escapeHtml(entry.label) + '</span></span>';
+        }).join("") +
+        '</div></section>'
+      );
+    }
+
+    var allergens = Array.isArray(item.allergens) ? item.allergens.filter(Boolean) : [];
+    if (allergens.length) {
+      parts.push(
+        '<section class="pmd-kiosk-food-meta__section"><h3>' + foodMetaIcon("allergen") + escapeHtml(labels.allergens) +
+        '</h3><div class="pmd-kiosk-food-meta__chips pmd-kiosk-food-meta__chips--allergens">' +
+        allergens.map(function (name) {
+          return '<span class="pmd-kiosk-food-chip pmd-kiosk-food-chip--allergen">' +
+            foodMetaIcon("allergen") + '<span>' + escapeHtml(name) + '</span></span>';
+        }).join("") +
+        '</div></section>'
+      );
+    }
+
+    var metrics = [];
+    var nutrition = item.nutrition || null;
+    if (nutrition) {
+      if (nutrition.calories !== null && nutrition.calories !== undefined) metrics.push({ kind: "calories", label: labels.calories, value: metricText(nutrition.calories) + " kcal" });
+      if (nutrition.servingSize) metrics.push({ kind: "serving", label: labels.serving, value: nutrition.servingSize });
+      if (nutrition.protein !== null && nutrition.protein !== undefined) metrics.push({ kind: "protein", label: labels.protein, value: metricText(nutrition.protein) + " g" });
+      if (nutrition.carbs !== null && nutrition.carbs !== undefined) metrics.push({ kind: "carbs", label: labels.carbs, value: metricText(nutrition.carbs) + " g" });
+      if (nutrition.fat !== null && nutrition.fat !== undefined) metrics.push({ kind: "fat", label: labels.fat, value: metricText(nutrition.fat) + " g" });
+      if (nutrition.sugar !== null && nutrition.sugar !== undefined) metrics.push({ kind: "sugar", label: labels.sugar, value: metricText(nutrition.sugar) + " g" });
+    }
+
+    var prep = Number(item.prepTimeMinutes || 0);
+    if (Number.isFinite(prep) && prep > 0 && Math.round(prep) !== 15) {
+      metrics.push({ kind: "prep", label: labels.prepTime, value: "~" + metricText(prep) + " min" });
+    }
+
+    if (metrics.length) {
+      parts.push(
+        '<section class="pmd-kiosk-food-meta__section"><h3>' + foodMetaIcon("calories") + escapeHtml(labels.nutrition) +
+        '</h3><div class="pmd-kiosk-food-meta__nutrition">' +
+        metrics.map(function (entry) {
+          return '<div class="pmd-kiosk-food-metric"><span class="pmd-kiosk-food-metric__icon">' + foodMetaIcon(entry.kind) +
+            '</span><span><small>' + escapeHtml(entry.label) + '</small><strong>' + escapeHtml(entry.value) + '</strong></span></div>';
+        }).join("") +
+        '</div>' +
+        (nutrition && nutrition.disclaimer ? '<p class="pmd-kiosk-food-meta__disclaimer">' + escapeHtml(nutrition.disclaimer) + '</p>' : '') +
+        '</section>'
+      );
+    }
+
+    return parts.length ? '<div class="pmd-kiosk-food-meta">' + parts.join("") + '</div>' : "";
+  }
+
   function defaultSelections(item) {
     var result = {};
     item.options.forEach(function (group) {
@@ -1165,7 +1332,9 @@
       '<header class="pmd-kiosk-modal__head"><div><p>' + escapeHtml(item.categoryName) + "</p><h2>" +
         escapeHtml(item.name) + '</h2></div><button type="button" class="pmd-kiosk-modal__close" data-pmd-close-modal aria-label="Close">×</button></header>' +
       '<div class="pmd-kiosk-modal__body"><div class="pmd-kiosk-detail">' + detailImage +
-        '<div class="pmd-kiosk-detail__copy">' + (item.description ? "<p>" + escapeHtml(item.description) + "</p>" : "") +
+        '<div class="pmd-kiosk-detail__copy">' +
+          (item.description ? '<p class="pmd-kiosk-detail__description">' + escapeHtml(item.description) + "</p>" : "") +
+          foodInfoHtml(item) +
           groups +
         "</div></div></div>" +
       '<footer class="pmd-kiosk-modal__foot"><button type="button" class="pmd-kiosk-secondary" data-pmd-close-modal>' +
