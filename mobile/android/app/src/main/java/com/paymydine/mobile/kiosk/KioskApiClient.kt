@@ -129,6 +129,10 @@ class KioskApiClient {
             method = "GET",
             body = null,
             token = token,
+            // PMD_KIOSK_FAST_PROFILE_TIMEOUT_V22
+            // Guest startup must fail fast and let KioskActivity auto-retry.
+            connectTimeoutMs = 6_000,
+            readTimeoutMs = 8_000,
         )
         val restaurant = json.optJSONObject("restaurant") ?: JSONObject()
         val theme = json.optJSONObject("theme") ?: JSONObject()
@@ -336,6 +340,8 @@ class KioskApiClient {
         method: String,
         body: JSONObject?,
         token: String?,
+        connectTimeoutMs: Int = 12_000,
+        readTimeoutMs: Int = 12_000,
     ): JSONObject {
         val normalized = SecureStore.normalizeHost(host)
         val url = URL(
@@ -347,8 +353,8 @@ class KioskApiClient {
         val connection =
             (url.openConnection() as HttpURLConnection).apply {
                 requestMethod = method
-                connectTimeout = 12_000
-                readTimeout = 12_000
+                connectTimeout = connectTimeoutMs
+                readTimeout = readTimeoutMs
                 useCaches = false
                 setRequestProperty("Accept", "application/json")
                 setRequestProperty("X-PayMyDine-Kiosk", "1")
