@@ -946,3 +946,382 @@ html.pmd-restaurant-profile-ready .page-wrapper {
   visibility: visible !important;
   opacity: 1 !important;
 }
+
+
+/* PMD_RESTAURANT_MESSAGING_R28 */
+#pmd-restaurant-profile .pmd-profile-section--messaging .pmd-profile-section-icon {
+    color: #0a6952;
+    background: #edf7f3;
+    border-color: #a8d2c5;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-events {
+    display: grid;
+    grid-template-columns: minmax(220px, .72fr) minmax(0, 1.28fr);
+    gap: 24px;
+    align-items: center;
+    padding: 16px 18px;
+    border: 1px solid #d7e4df;
+    background: #f7fbf9;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-events__copy {
+    display: grid;
+    gap: 4px;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-events__copy strong {
+    color: #12372e;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-events__copy span {
+    color: #64736d;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-event-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-event {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 13px;
+    border: 1px solid #cbd9d4;
+    background: #fff;
+    cursor: pointer;
+    color: #27352f;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-event input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-event:has(input:checked) {
+    border-color: #0a6952;
+    background: #eaf5f1;
+    color: #075441;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channels {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: center;
+    min-height: 84px;
+    padding: 15px 18px;
+    border: 1px solid #d7e0dd;
+    background: #fff;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel__main {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel__main > div:last-child {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel__main strong {
+    color: #102a23;
+    font-size: 14px;
+    font-weight: 850;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel__main span {
+    color: #687670;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel__icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #bdd5cc;
+    background: #f1f8f5;
+    color: #0a6952;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel__icon svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel__side {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 14px;
+}
+
+#pmd-restaurant-profile .pmd-profile-readiness {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #748079;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+#pmd-restaurant-profile .pmd-profile-readiness::before {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #b2bdb8;
+    content: "";
+}
+
+#pmd-restaurant-profile .pmd-profile-readiness.is-ready {
+    color: #0a6952;
+}
+
+#pmd-restaurant-profile .pmd-profile-readiness.is-ready::before {
+    background: #11a77d;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-details {
+    border: 1px solid #d7e0dd;
+    background: #fbfcfb;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-details > summary {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    min-height: 52px;
+    padding: 0 46px 0 18px;
+    cursor: pointer;
+    list-style: none;
+    color: #20312b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-details > summary::after {
+    position: absolute;
+    right: 19px;
+    top: 50%;
+    transform: translateY(-50%);
+    content: "+";
+    color: #0a6952;
+    font-size: 20px;
+    font-weight: 400;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-details[open] > summary::after {
+    content: "−";
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-details > summary small {
+    color: #7a8782;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-details__body {
+    padding: 18px;
+    border-top: 1px solid #e0e7e4;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-provider-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-provider {
+    padding: 16px;
+    border: 1px solid #dfe6e3;
+    background: #fff;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-provider h3 {
+    margin: 0 0 13px;
+    color: #1b3029;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-note {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border-left: 3px solid #0a6952;
+    background: #eef7f3;
+    color: #40534b;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-note strong {
+    flex: 0 0 auto;
+    color: #075441;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-template-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-template-contract {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px 14px;
+    align-items: center;
+    margin-top: 14px;
+    padding: 11px 13px;
+    border: 1px dashed #cbd7d2;
+    color: #5f6d67;
+    font-size: 11px;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-template-contract strong {
+    color: #23352e;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-template-contract code {
+    color: #0a6952;
+    font: 700 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-test-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-test-button {
+    min-height: 40px;
+    padding: 0 15px;
+    border: 1px solid #0a6952;
+    background: transparent;
+    color: #075441;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-test-button:hover,
+#pmd-restaurant-profile .pmd-profile-messaging-test-button:focus-visible {
+    background: #edf7f3;
+    outline: none;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-test {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-test.is-success {
+    color: #0a6952;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-test.is-error {
+    color: #b42318;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-channel--owner {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+#pmd-restaurant-profile .pmd-profile-messaging-owner-email {
+    grid-column: 1 / -1;
+    margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+    #pmd-restaurant-profile .pmd-profile-messaging-events,
+    #pmd-restaurant-profile .pmd-profile-messaging-provider-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #pmd-restaurant-profile .pmd-profile-messaging-event-toggles {
+        justify-content: flex-start;
+    }
+
+    #pmd-restaurant-profile .pmd-profile-messaging-template-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 620px) {
+    #pmd-restaurant-profile .pmd-profile-messaging-channel {
+        grid-template-columns: 1fr auto;
+        padding: 14px;
+    }
+
+    #pmd-restaurant-profile .pmd-profile-messaging-channel__main {
+        align-items: flex-start;
+    }
+
+    #pmd-restaurant-profile .pmd-profile-messaging-channel__main span {
+        max-width: 32ch;
+    }
+
+    #pmd-restaurant-profile .pmd-profile-readiness {
+        display: none;
+    }
+
+    #pmd-restaurant-profile .pmd-profile-messaging-details > summary {
+        grid-template-columns: 1fr;
+        gap: 2px;
+        min-height: 60px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    #pmd-restaurant-profile .pmd-profile-messaging-note {
+        display: grid;
+    }
+
+    #pmd-restaurant-profile .pmd-profile-messaging-event-toggles {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+}
