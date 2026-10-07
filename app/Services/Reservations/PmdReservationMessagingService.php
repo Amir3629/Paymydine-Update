@@ -24,6 +24,11 @@ class PmdReservationMessagingService
         return $this->guestEmailEnabled() && $this->mailReady();
     }
 
+    public function whatsappEnabled(): bool
+    {
+        return $this->boolSetting('pmd_reservation_whatsapp_enabled', false);
+    }
+
     public function notify(
         Reservations_model $reservation,
         string $event,
