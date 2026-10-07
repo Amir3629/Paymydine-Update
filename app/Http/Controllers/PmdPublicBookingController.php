@@ -149,6 +149,7 @@ class PmdPublicBookingController extends Controller
             'duration' => $payload['duration'],
             'interval' => $payload['interval'],
             'slots' => $payload['slots'],
+            'capacity_slots' => (array)($payload['capacity_slots'] ?? []),
         ]);
     }
 
@@ -203,6 +204,7 @@ class PmdPublicBookingController extends Controller
                 'max:'.$maxGuests,
             ],
             'locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
+            'manage_hash' => ['nullable', 'string', 'regex:/^[a-f0-9]{32}$/i'],
             'guarantee_method' => [
                 'required',
                 'string',
@@ -261,6 +263,7 @@ class PmdPublicBookingController extends Controller
                 'max:'.$maxGuests,
             ],
             'locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
+            'manage_hash' => ['nullable', 'string', 'regex:/^[a-f0-9]{32}$/i'],
             'guarantee_provider' => [
                 'required',
                 'string',
@@ -358,11 +361,29 @@ class PmdPublicBookingController extends Controller
         )->startOfDay();
         $this->guardBookableDate($date, $timezone);
 
-        $availability = $this->availabilityPayload(
-            $location,
-            $date,
-            (int)$data['guest_num']
-        );
+        $manageHash = trim((string)($data['manage_hash'] ?? ''));
+        if ($manageHash !== '') {
+            $manageReservation = $this->reservationByPublicHash(
+                $location,
+                $manageHash
+            );
+            if (!$manageReservation) {
+                abort(404);
+            }
+
+            $availability = $this->availabilityPayloadExcludingReservation(
+                $location,
+                $date,
+                (int)$data['guest_num'],
+                (int)$manageReservation->getKey()
+            );
+        } else {
+            $availability = $this->availabilityPayload(
+                $location,
+                $date,
+                (int)$data['guest_num']
+            );
+        }
 
         if (!collect($availability['slots'])->firstWhere(
             'value',
@@ -952,6 +973,7 @@ class PmdPublicBookingController extends Controller
             'duration' => (int)$payload['duration'],
             'opening' => $payload['opening'],
             'slots' => $payload['slots'],
+            'capacity_slots' => (array)($payload['capacity_slots'] ?? []),
         ]);
     }
 
@@ -984,6 +1006,28 @@ class PmdPublicBookingController extends Controller
             'guest_num' => ['required', 'integer', 'min:1', 'max:'.$maxGuests],
             'occasion_id' => ['nullable', 'integer', 'in:0,3,6'],
             'comment' => ['nullable', 'string', 'max:1000'],
+            '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
+            '_pmd_guarantee_provider' => [
+                'nullable',
+                'string',
+                'in:stripe,sumup,paypal,vr_payment,worldline',
+            ],
+            '_pmd_guarantee_method' => [
+                'nullable',
+                'string',
+                'in:card,apple_pay,google_pay,paypal',
+            ],
+            '_pmd_guarantee_setup_reference' => [
+                'nullable',
+                'string',
+                'max:8192',
+            ],
+            '_pmd_guarantee_setup_intent' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            '_pmd_guarantee_terms_accepted' => ['nullable'],
         ])->validate();
 
         $date = Carbon::createFromFormat('Y-m-d', (string)$data['reserve_date'], $timezone)->startOfDay();
@@ -991,16 +1035,18 @@ class PmdPublicBookingController extends Controller
         $guests = (int)$data['guest_num'];
         $time = (string)$data['reserve_time'];
 
-        $activeGuarantee = app(PmdReservationGuaranteeService::class)
+        $guaranteeService = app(PmdReservationGuaranteeService::class);
+        $activeGuarantee = $guaranteeService
             ->guaranteeForReservation((int)$reservation->getKey());
-
-        if (
-            $activeGuarantee
+        $hasLiveGuarantee = $activeGuarantee
             && in_array(
                 (string)$activeGuarantee->status,
                 ['active', 'charge_failed', 'action_required'],
                 true
-            )
+            );
+
+        if (
+            $hasLiveGuarantee
             && (
                 (string)($beforeSnapshot['date'] ?? '') !== $date->toDateString()
                 || (string)($beforeSnapshot['time'] ?? '') !== $time
@@ -1017,6 +1063,75 @@ class PmdPublicBookingController extends Controller
             ]);
         }
 
+        $bookingLocale = (string)($data['_pmd_booking_locale'] ?? 'de');
+        $reservationStart = Carbon::parse(
+            $date->toDateString().' '.$time,
+            $timezone
+        );
+        $guaranteePolicy = $guaranteeService->policy(
+            $location,
+            $guests,
+            $reservationStart,
+            $bookingLocale
+        );
+        $guaranteeVerified = [
+            'required' => false,
+            'policy' => $guaranteePolicy,
+        ];
+
+        // PMD_MANAGE_GUARANTEE_THRESHOLD_R27
+        // An old booking may have been created below the no-show threshold.
+        // If an edit now crosses the configured threshold, it must complete the
+        // same payment-method guarantee contract as a brand-new reservation.
+        if (!$hasLiveGuarantee && !empty($guaranteePolicy['required'])) {
+            if (empty($data['_pmd_guarantee_terms_accepted'])) {
+                throw ValidationException::withMessages([
+                    '_pmd_guarantee_terms_accepted' => [
+                        'Please accept the payment guarantee terms before saving this reservation.',
+                    ],
+                ]);
+            }
+
+            if (empty($guaranteePolicy['provider_ready'])) {
+                throw ValidationException::withMessages([
+                    'reservation' => [
+                        'Payment guarantee is temporarily unavailable. Please contact the restaurant.',
+                    ],
+                ]);
+            }
+
+            $guaranteeProvider = strtolower(trim((string)(
+                $data['_pmd_guarantee_provider']
+                ?? $guaranteePolicy['provider']
+                ?? 'stripe'
+            )));
+            $guaranteeMethod = strtolower(trim((string)(
+                $data['_pmd_guarantee_method'] ?? 'card'
+            )));
+            $setupReference = trim((string)(
+                $data['_pmd_guarantee_setup_reference']
+                ?? $data['_pmd_guarantee_setup_intent']
+                ?? ''
+            ));
+
+            try {
+                $guaranteeVerified = $guaranteeService->verifySetup(
+                    $location,
+                    $data,
+                    $guaranteeProvider,
+                    $guaranteeMethod,
+                    $setupReference,
+                    $bookingLocale
+                );
+            } catch (Throwable $error) {
+                throw ValidationException::withMessages([
+                    '_pmd_guarantee_setup_reference' => [
+                        $error->getMessage(),
+                    ],
+                ]);
+            }
+        }
+
         $preflight = $this->availabilityPayloadExcludingReservation(
             $location,
             $date,
@@ -1031,7 +1146,7 @@ class PmdPublicBookingController extends Controller
         }
 
         try {
-            $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight, $beforeSnapshot) {
+            $updated = DB::transaction(function () use ($location, $reservation, $hash, $date, $time, $guests, $data, $timezone, $preflight, $beforeSnapshot, $guaranteeService, $guaranteeVerified) {
                 $allTableIds = $location->tables
                     ->pluck('table_id')
                     ->map(static fn ($id) => (int)$id)
@@ -1092,6 +1207,11 @@ class PmdPublicBookingController extends Controller
                 $locked->save();
                 $locked->addReservationTables($tableIds);
 
+                $guaranteeService->recordGuarantee(
+                    $locked,
+                    $guaranteeVerified
+                );
+
                 $fresh = $locked->fresh(['tables', 'status', 'location']);
                 $changes = $this->reservationChangeList($beforeSnapshot, $fresh);
                 $historyComment = 'Updated by guest via public booking manager';
@@ -1119,6 +1239,12 @@ class PmdPublicBookingController extends Controller
             $updatedReservation = $updated['reservation'];
             $changes = (array)($updated['changes'] ?? []);
             $this->pushReservationAdminNotification($updatedReservation, 'updated', $changes);
+
+            if (!empty($guaranteeVerified['required'])) {
+                $guaranteeService->sendGuaranteeConfirmation(
+                    $updatedReservation
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -1238,6 +1364,13 @@ class PmdPublicBookingController extends Controller
         $timezone = $this->timezone();
         $today = Carbon::now($timezone)->startOfDay();
 
+        $guaranteeService = app(PmdReservationGuaranteeService::class);
+        $guaranteeByLocale = [];
+        foreach ((array)$languageContext['eligible'] as $guaranteeLocale) {
+            $guaranteeByLocale[$guaranteeLocale] = $guaranteeService
+                ->publicConfig($location, (string)$guaranteeLocale);
+        }
+
         $reservationPayload = null;
         $initialAvailability = null;
         if ($reservation) {
@@ -1268,6 +1401,10 @@ class PmdPublicBookingController extends Controller
                 'bookingMaxDate' => $today->copy()->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
                 'bookingMaxGuests' => $this->maxBookableGuests($location),
                 'bookingStayMinutes' => $this->stayMinutes($location),
+                'bookingTableRules' => $this->tableRules($location),
+                'bookingGuarantee' => $guaranteeByLocale[$locale]
+                    ?? $guaranteeService->publicConfig($location, $locale),
+                'bookingGuaranteeByLocale' => $guaranteeByLocale,
                 'reservation' => $reservation,
                 'reservationPayload' => $reservationPayload,
                 'initialAvailability' => $initialAvailability,
@@ -1402,6 +1539,7 @@ class PmdPublicBookingController extends Controller
                 'duration' => $duration,
                 'interval' => $interval,
                 'slots' => [],
+                'capacity_slots' => [],
             ];
         }
 
@@ -1789,62 +1927,38 @@ class PmdPublicBookingController extends Controller
                 'duration' => $duration,
                 'interval' => $interval,
                 'slots' => [],
+                'capacity_slots' => [],
             ];
         }
 
         $timezone = $this->timezone();
-        $opensAt = Carbon::parse($date->toDateString().' '.$opening['opening_time'], $timezone);
-        $closesAt = Carbon::parse($date->toDateString().' '.$opening['closing_time'], $timezone);
+        $opensAt = Carbon::parse(
+            $date->toDateString().' '.$opening['opening_time'],
+            $timezone
+        );
+        $closesAt = Carbon::parse(
+            $date->toDateString().' '.$opening['closing_time'],
+            $timezone
+        );
         if ($closesAt->lessThanOrEqualTo($opensAt)) {
             $closesAt->addDay();
         }
 
-        $lastStart = $closesAt->copy()->subMinutes($duration);
-        if ($lastStart->lessThan($opensAt)) {
-            return [
-                'opening' => $opening,
-                'duration' => $duration,
-                'interval' => $interval,
-                'slots' => [],
-            ];
-        }
-
         $activeReservations = $activeReservationsOverride
             ?? $this->activeReservations($location, $opensAt, $closesAt);
-        $now = Carbon::now($timezone);
-        $slots = [];
 
-        for ($cursor = $opensAt->copy(); $cursor->lessThanOrEqualTo($lastStart); $cursor->addMinutes($interval)) {
-            if ($cursor->lessThanOrEqualTo($now)) {
-                continue;
-            }
-
-            $slotEnd = $cursor->copy()->addMinutes($duration);
-            $tableIds = $this->selectTableIds(
-                $location,
-                $cursor,
-                $slotEnd,
-                $guests,
-                $activeReservations
-            );
-
-            if (!$tableIds) {
-                continue;
-            }
-
-            $slots[] = [
-                'value' => $cursor->format('H:i'),
-                'label' => $cursor->format('H:i'),
-                'period' => ((int)$cursor->format('H') < 16) ? 'day' : 'evening',
-            ];
-        }
-
-        return [
-            'opening' => $opening,
-            'duration' => $duration,
-            'interval' => $interval,
-            'slots' => $slots,
-        ];
+        // PMD_PUBLIC_BOOKING_ZERO_WAIT_R27
+        // Always return the full free-table capacity map. The browser can then
+        // recalculate every party-size change locally without another request.
+        return $this->availabilityTablePayload(
+            $location,
+            $date,
+            $guests,
+            $opening,
+            $duration,
+            $interval,
+            $activeReservations
+        );
     }
 
     private function activeReservations(Locations_model $location, Carbon $windowStart, Carbon $windowEnd): Collection
