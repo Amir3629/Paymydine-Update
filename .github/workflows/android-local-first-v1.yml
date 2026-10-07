@@ -2,7 +2,7 @@ name: PayMyDine Device App V17
 
 on:
   push:
-    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, fix/kiosk-v9-theme-payment-sync, feat/kiosk-v18-terminal-printer-ux, fix/kiosk-v18-source-sync-v19, fix/kiosk-v20-performance-locales-checkout, fix/kiosk-v21-atomic-handoff-download-placeholders, fix/kiosk-v22-single-surface-kiosk-ux, fix/kiosk-v22-6-restore-current-main, fix/kiosk-v22-7-unified-hero-strict-plus, main]
+    branches: [feature/unified-device-app-v2, feature/device-app-ui-theme-v3, feature/device-app-kiosk-v4, feature/kiosk-dedicated-fast-ui-v5, fix/kiosk-v2-production-authority-v6, fix/kiosk-v6-1-complete, restore/kiosk-v6-2-after-vps-sync, fix/live-release-kiosk-v6-3, feat/kiosk-dedicated-terminal-v7, fix/kiosk-v8-native-direct-load-v57, fix/kiosk-v8-dedicated-web-activity-v58, fix/kiosk-v8-software-render-v59, fix/device-app-046-restore-android-project, fix/kiosk-v9-theme-payment-sync, feat/kiosk-v18-terminal-printer-ux, fix/kiosk-v18-source-sync-v19, fix/kiosk-v20-performance-locales-checkout, fix/kiosk-v21-atomic-handoff-download-placeholders, fix/kiosk-v22-single-surface-kiosk-ux, fix/kiosk-v22-6-restore-current-main, fix/kiosk-v22-7-unified-hero-strict-plus, fix/kiosk-v22-8-fullbleed-menu-hero, main]
     paths:
       - 'mobile/android/**'
       - 'app/admin/views/pmdsettings/index.blade.php'
@@ -120,7 +120,7 @@ jobs:
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' app/Http/Controllers/PmdKioskPublicController.php
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.css
-          grep -Fq 'v=22-7-unified-hero-strict-plus' resources/views/pmd/kiosk-terminal.blade.php
+          grep -Fq 'v=22-8-fullbleed-menu-hero' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
           grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
@@ -198,6 +198,9 @@ jobs:
           grep -Fq 'PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_STRICT_PLUS_HIT_TARGET_V22_7' public/assets/pmd/kiosk-terminal-v8.css
+          grep -Fq 'PMD_KIOSK_FULLBLEED_MENU_HERO_V22_8' public/assets/pmd/kiosk-terminal-v8.css
+          grep -Fq 'PMD_KIOSK_FULLBLEED_MENU_HERO_V22_8' resources/views/pmd/kiosk-terminal.blade.php
+          grep -Fq 'width: calc(100% + 24px)' public/assets/pmd/kiosk-terminal-v8.css
           grep -Fq 'config.serviceHero ||' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'openAddFlow(findItem' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq '}, true);' public/assets/pmd/kiosk-terminal-v8.js
