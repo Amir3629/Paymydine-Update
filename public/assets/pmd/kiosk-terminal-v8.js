@@ -4,6 +4,7 @@
 // PMD_KIOSK_TERMINAL_ONLY_V18
 // PMD_KIOSK_SCROLL_CATEGORIES_V18
 // PMD_KIOSK_SINGLE_SURFACE_RUNTIME_V22
+// PMD_KIOSK_RICH_FOOD_DETAILS_V22_5
 (function () {
   "use strict";
 
@@ -51,6 +52,9 @@
       emptyHint: "Choose something from the menu to begin.", clear: "Clear order", subtotal: "Subtotal",
       tax: "Tax", service: "Service charge", total: "Total", reviewPay: "Checkout", checkout: "Checkout",
       noResults: "Nothing found", noResultsHint: "Try another category or search.",
+      dietary: "Dietary", allergens: "Allergens", nutrition: "Nutrition", calories: "Calories",
+      serving: "Serving", protein: "Protein", carbs: "Carbs", fat: "Fat", sugar: "Sugar", prepTime: "Prep time",
+      halal: "Halal", vegetarian: "Vegetarian", vegan: "Vegan", chefRecommended: "Chef recommended", bestseller: "Bestseller",
       options: "Choose options", required: "Required", optional: "Optional", note: "Item note",
       noteHint: "e.g. no onions, sauce on the side", cancel: "Cancel", addOrder: "Add to order",
       review: "Review order", continueMenu: "Continue ordering", placeOrder: "Place order",
@@ -69,6 +73,9 @@
       emptyHint: "Wähle etwas aus der Speisekarte.", clear: "Bestellung leeren", subtotal: "Zwischensumme",
       tax: "Steuer", service: "Servicegebühr", total: "Gesamt", reviewPay: "Checkout", checkout: "Checkout",
       noResults: "Nichts gefunden", noResultsHint: "Andere Kategorie oder Suche wählen.",
+      dietary: "Ernährung", allergens: "Allergene", nutrition: "Nährwerte", calories: "Kalorien",
+      serving: "Portion", protein: "Protein", carbs: "Kohlenhydrate", fat: "Fett", sugar: "Zucker", prepTime: "Zubereitungszeit",
+      halal: "Halal", vegetarian: "Vegetarisch", vegan: "Vegan", chefRecommended: "Empfehlung", bestseller: "Bestseller",
       options: "Optionen wählen", required: "Erforderlich", optional: "Optional", note: "Hinweis zum Artikel",
       noteHint: "z. B. ohne Zwiebeln, Sauce separat", cancel: "Abbrechen", addOrder: "Zur Bestellung",
       review: "Bestellung prüfen", continueMenu: "Weiter bestellen", placeOrder: "Bestellung aufgeben",
@@ -87,6 +94,9 @@
       emptyHint: "برای شروع یک آیتم از منو انتخاب کنید.", clear: "پاک کردن سفارش", subtotal: "جمع جزء",
       tax: "مالیات", service: "هزینه سرویس", total: "جمع کل", reviewPay: "Checkout", checkout: "Checkout",
       noResults: "چیزی پیدا نشد", noResultsHint: "دسته یا عبارت دیگری را امتحان کنید.",
+      dietary: "ویژگی‌های غذایی", allergens: "آلرژن‌ها", nutrition: "ارزش غذایی", calories: "کالری",
+      serving: "اندازه سرو", protein: "پروتئین", carbs: "کربوهیدرات", fat: "چربی", sugar: "قند", prepTime: "زمان آماده‌سازی",
+      halal: "حلال", vegetarian: "گیاه‌خواری", vegan: "وگان", chefRecommended: "پیشنهاد سرآشپز", bestseller: "پرفروش",
       options: "انتخاب گزینه‌ها", required: "الزامی", optional: "اختیاری", note: "یادداشت آیتم",
       noteHint: "مثلاً بدون پیاز، سس جدا", cancel: "لغو", addOrder: "افزودن به سفارش",
       review: "بررسی سفارش", continueMenu: "ادامه سفارش", placeOrder: "ثبت سفارش",
@@ -105,6 +115,9 @@
       emptyHint: "Başlamak için menüden bir ürün seçin.", clear: "Siparişi temizle", subtotal: "Ara toplam",
       tax: "Vergi", service: "Servis ücreti", total: "Toplam", reviewPay: "Checkout", checkout: "Checkout",
       noResults: "Sonuç bulunamadı", noResultsHint: "Başka kategori veya arama deneyin.",
+      dietary: "Beslenme", allergens: "Alerjenler", nutrition: "Besin değerleri", calories: "Kalori",
+      serving: "Porsiyon", protein: "Protein", carbs: "Karbonhidrat", fat: "Yağ", sugar: "Şeker", prepTime: "Hazırlama süresi",
+      halal: "Helal", vegetarian: "Vejetaryen", vegan: "Vegan", chefRecommended: "Şef önerisi", bestseller: "Çok satan",
       options: "Seçenekleri seçin", required: "Zorunlu", optional: "İsteğe bağlı", note: "Ürün notu",
       noteHint: "örn. soğansız, sos ayrı", cancel: "İptal", addOrder: "Siparişe ekle",
       review: "Siparişi kontrol et", continueMenu: "Siparişe devam et", placeOrder: "Siparişi ver",
@@ -202,6 +215,51 @@
     if (typeof value === "boolean") return value;
     if (typeof value === "number") return value !== 0;
     return ["1", "true", "yes", "on", "enabled"].indexOf(String(value).trim().toLowerCase()) >= 0;
+  }
+
+  function nullableNumber(value) {
+    if (value === undefined || value === null || value === "") return null;
+    var parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function textList(value) {
+    var out = [];
+    function add(entry) {
+      if (entry === undefined || entry === null || entry === "") return;
+      if (Array.isArray(entry)) {
+        entry.forEach(add);
+        return;
+      }
+      if (typeof entry === "object") {
+        add(first(entry, ["name", "label", "title", "value"], ""));
+        return;
+      }
+      String(entry).split("||").forEach(function (part) {
+        var cleaned = cleanText(part, "");
+        if (cleaned && !out.some(function (current) { return current.toLowerCase() === cleaned.toLowerCase(); })) {
+          out.push(cleaned);
+        }
+      });
+    }
+    add(value);
+    return out;
+  }
+
+  function nutritionFrom(source) {
+    var nested = object(source && source.nutrition);
+    var result = {
+      calories: nullableNumber(first(nested, ["calories"], source.calories)),
+      protein: nullableNumber(first(nested, ["protein"], source.protein)),
+      carbs: nullableNumber(first(nested, ["carbs"], source.carbs)),
+      fat: nullableNumber(first(nested, ["fat"], source.fat)),
+      sugar: nullableNumber(first(nested, ["sugar"], source.sugar)),
+      servingSize: cleanText(first(nested, ["serving_size", "servingSize"], source.serving_size), ""),
+      disclaimer: cleanText(first(nested, ["disclaimer"], ""), "")
+    };
+    var hasValue = result.calories !== null || result.protein !== null || result.carbs !== null ||
+      result.fat !== null || result.sugar !== null || Boolean(result.servingSize);
+    return hasValue ? result : null;
   }
 
   function object(value) {
@@ -448,6 +506,8 @@
         if (normalized && rawImages.indexOf(normalized) < 0) rawImages.push(normalized);
       });
       var stock = source.stock_qty;
+      var allergens = textList(first(source, ["allergens", "allergy_tags"], source.allergy_names || []));
+      var nutrition = nutritionFrom(source);
       var available = source.available === undefined
         ? !boolish(source.is_stock_out, false)
         : boolish(source.available, true);
@@ -462,6 +522,14 @@
         categoryName: categoryName,
         image: rawImages[0] || "",
         available: available,
+        allergens: allergens,
+        halal: boolish(first(source, ["halal", "is_halal"], false), false),
+        vegetarian: boolish(first(source, ["vegetarian", "is_vegetarian"], false), false),
+        vegan: boolish(first(source, ["vegan", "is_vegan"], false), false),
+        prepTimeMinutes: nullableNumber(first(source, ["prep_time_minutes", "prepTimeMinutes"], null)),
+        nutrition: nutrition,
+        chefRecommended: boolish(first(source, ["is_chef_recommended", "is_recommended", "is_featured"], false), false),
+        bestseller: boolish(first(source, ["is_bestseller", "is_manual_bestseller"], false), false),
         options: normalizeOptions(source.options)
       };
     }).filter(function (item) { return item.id && item.available; });
@@ -981,6 +1049,14 @@
           String(item.description || ""),
           String(item.image || ""),
           number(item.price),
+          Boolean(item.halal),
+          Boolean(item.vegetarian),
+          Boolean(item.vegan),
+          (item.allergens || []).join("|"),
+          item.prepTimeMinutes == null ? "" : number(item.prepTimeMinutes),
+          item.nutrition ? JSON.stringify(item.nutrition) : "",
+          Boolean(item.chefRecommended),
+          Boolean(item.bestseller),
           Array.isArray(item.options) ? item.options.length : 0
         ];
       })
