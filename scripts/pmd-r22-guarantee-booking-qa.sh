@@ -39,6 +39,7 @@ grep -Fq "20261007-r22" resources/views/pmd/public-booking.blade.php
 grep -Fq 'buttonType: {' public/assets/pmd/public-booking-v1.js
 grep -Fq 'applePay: "plain"' public/assets/pmd/public-booking-v1.js
 grep -Fq 'googlePay: "plain"' public/assets/pmd/public-booking-v1.js
+grep -Fq 'link: "never"' public/assets/pmd/public-booking-v1.js
 grep -Fq 'pmd_table_features' app/Http/Controllers/PmdPublicBookingController.php
 grep -Fq 'persistPublicTablePreferences' app/Http/Controllers/PmdPublicBookingController.php
 grep -Fq 'pmd_reservation_preferences' app/Http/Controllers/PmdPublicBookingController.php
