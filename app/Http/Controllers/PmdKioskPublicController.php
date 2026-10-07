@@ -87,6 +87,23 @@ final class PmdKioskPublicController
             $restaurantLogo = '';
         }
 
+        // PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4
+        // This is the hero used by Customer Menu (uploaded restaurant hero or
+        // selected-theme hero fallback). It is independent from Android's old
+        // prefetched menu-photo hero so the service chooser never falls back to
+        // the first food image.
+        $serviceHero = trim((string)($serverRestaurant['hero'] ?? ''));
+        if (
+            strlen($serviceHero) > 2048 ||
+            (
+                $serviceHero !== '' &&
+                !str_starts_with($serviceHero, '/') &&
+                !preg_match('#^https?://#i', $serviceHero)
+            )
+        ) {
+            $serviceHero = '';
+        }
+
         // PMD_KIOSK_INITIAL_HERO_V13
         // Android already prefetches restaurant menu photography on the welcome
         // screen. Pass that image into the first Blade frame so the menu never
@@ -121,6 +138,7 @@ final class PmdKioskPublicController
                 'logo' => $restaurantLogo,
             ],
             'hero' => $initialHero,
+            'serviceHero' => $serviceHero,
             'theme' => $theme,
         ];
 
