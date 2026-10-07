@@ -180,23 +180,23 @@
         </section>
 
         <section class="pmd-owner-section" id="reservation-guarantee">
-            <div class="pmd-owner-card pmd-guarantee-admin-card" data-accent="emerald">
+            <div class="pmd-owner-card pmd-guarantee-r22-card" data-accent="emerald">
                 <div class="pmd-owner-card__header">
                     <div class="pmd-owner-card__icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 10h18M7 15h4M16 15h1"></path></svg></div>
                     <div class="pmd-owner-card__title">
                         <h2>{{ $pmdSettingsText('Reservation guarantee') }}</h2>
-                        <p>{{ $pmdSettingsText('Set the rule guests accept before booking, choose the card provider, and see exactly which guarantee methods are ready.') }}</p>
+                        <p>{{ $pmdSettingsText('For larger parties, save a payment method at booking and decide any no-show charge manually later.') }}</p>
                     </div>
                     <div class="pmd-owner-card__actions">
                         <span class="pmd-owner-status {{ $checked($settings['reservation_guarantee_enabled'] ?? 0) ? 'is-active' : '' }}" data-pmd-guarantee-master-status>{{ $pmdSettingsText($checked($settings['reservation_guarantee_enabled'] ?? 0) ? 'Enabled' : 'Disabled') }}</span>
                     </div>
                 </div>
 
-                <div class="pmd-owner-card__body pmd-guarantee-admin">
-                    <div class="pmd-owner-setting-row pmd-guarantee-master-row">
+                <div class="pmd-owner-card__body pmd-guarantee-r22">
+                    <div class="pmd-owner-setting-row pmd-guarantee-r22-master">
                         <div class="pmd-owner-setting-copy">
-                            <strong>{{ $pmdSettingsText('Require a saved payment method for larger reservations') }}</strong>
-                            <small>{{ $pmdSettingsText('Nothing is charged when the reservation is created. The guest only approves a stored credential that may be used later for an assessed no-show charge.') }}</small>
+                            <strong>{{ $pmdSettingsText('Require a reservation guarantee') }}</strong>
+                            <small>{{ $pmdSettingsText('Nothing is charged when the reservation is created. The guest only saves a payment method for a possible later no-show assessment.') }}</small>
                         </div>
                         <label class="pmd-owner-switch">
                             <input type="checkbox" name="finance[reservation_guarantee_enabled]" value="1" {{ $checked($settings['reservation_guarantee_enabled'] ?? 0) ? 'checked' : '' }} data-pmd-guarantee-master-toggle>
@@ -204,18 +204,52 @@
                         </label>
                     </div>
 
-                    <div class="pmd-guarantee-console">
-                        <div class="pmd-guarantee-pane pmd-guarantee-pane--policy">
-                            <div class="pmd-guarantee-pane__head">
-                                <div>
-                                    <span class="pmd-guarantee-pane__eyebrow">{{ $pmdSettingsText('Policy') }}</span>
-                                    <h3>{{ $pmdSettingsText('What the guest agrees to') }}</h3>
-                                </div>
-                                <p>{{ $pmdSettingsText('One rule, one card provider, and only methods that are actually configured.') }}</p>
+                    <div class="pmd-guarantee-r22-grid">
+                        <section class="pmd-guarantee-r22-section" aria-labelledby="pmd-guarantee-r22-rule-title">
+                            <div class="pmd-guarantee-r22-heading">
+                                <span>{{ $pmdSettingsText('1 · Rule') }}</span>
+                                <h3 id="pmd-guarantee-r22-rule-title">{{ $pmdSettingsText('When the guarantee applies') }}</h3>
                             </div>
 
-                            <div class="pmd-owner-field pmd-guarantee-provider-field">
-                                <label>{{ $pmdSettingsText('Card guarantee provider') }}</label>
+                            <div class="pmd-guarantee-r22-fields">
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('From party size') }}</label>
+                                    <input type="number" min="1" max="100" name="finance[reservation_guarantee_min_guests]" value="{{ $settings['reservation_guarantee_min_guests'] ?? 6 }}">
+                                    <small>{{ $pmdSettingsText('Smaller parties skip the guarantee.') }}</small>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('Maximum per guest (€)') }}</label>
+                                    <input type="number" min="0" max="10000" step="0.01" name="finance[reservation_guarantee_amount_eur]" value="{{ $settings['reservation_guarantee_amount_eur'] ?? '0.00' }}">
+                                    <small>{{ $pmdSettingsText('Guest-approved ceiling only.') }}</small>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('Free cancellation') }}</label>
+                                    <div class="pmd-guarantee-r22-unit">
+                                        <input type="number" min="1" max="336" name="finance[reservation_guarantee_free_cancel_hours]" value="{{ $settings['reservation_guarantee_free_cancel_hours'] ?? 24 }}">
+                                        <span>{{ $pmdSettingsText('hours before') }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('No-show grace') }}</label>
+                                    <div class="pmd-guarantee-r22-unit">
+                                        <input type="number" min="0" max="180" name="finance[reservation_guarantee_grace_minutes]" value="{{ $settings['reservation_guarantee_grace_minutes'] ?? 15 }}">
+                                        <span>{{ $pmdSettingsText('minutes after') }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="pmd-guarantee-r22-section pmd-guarantee-r22-payments" aria-labelledby="pmd-guarantee-r22-payment-title">
+                            <div class="pmd-guarantee-r22-heading">
+                                <span>{{ $pmdSettingsText('2 · Payment methods') }}</span>
+                                <h3 id="pmd-guarantee-r22-payment-title">{{ $pmdSettingsText('What guests can use') }}</h3>
+                            </div>
+
+                            <div class="pmd-owner-field pmd-guarantee-r22-provider">
+                                <label>{{ $pmdSettingsText('Card provider') }}</label>
                                 <select name="finance[reservation_guarantee_provider]" data-pmd-guarantee-provider-select>
                                     @foreach($guaranteeProviders as $code => $provider)
                                         @continue((string)$code === 'paypal')
@@ -224,9 +258,7 @@
                                             $adapterReady = !empty($provider['adapter_ready']);
                                             $providerReady = !empty($provider['provider_enabled']) && !empty($provider['credentials_ready']);
                                             $fullyReady = $marketOk && $adapterReady && $providerReady;
-                                            $suffix = $adapterReady
-                                                ? ($providerReady ? ' · Ready' : ' · Configure first')
-                                                : ' · Adapter pending';
+                                            $suffix = $fullyReady ? ' · Ready' : ' · Setup required';
                                         @endphp
                                         <option
                                             value="{{ $code }}"
@@ -236,132 +268,104 @@
                                         >{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}{{ $suffix }}</option>
                                     @endforeach
                                 </select>
-                                <small>{{ $pmdSettingsText('This provider is used only for Card. Apple Pay and Google Pay use Stripe. PayPal uses a separate PayPal Vault connection.') }}</small>
                             </div>
 
-                            <fieldset class="pmd-guarantee-method-group">
-                                <legend>{{ $pmdSettingsText('Guest guarantee methods') }}</legend>
-                                <div class="pmd-guarantee-methods" data-pmd-guarantee-methods>
-                                    @foreach($guaranteeMethods as $methodCode => $method)
-                                        @php
-                                            $methodProvider = match ((string)$methodCode) {
-                                                'card' => $guaranteeSelected,
-                                                'apple_pay', 'google_pay' => 'stripe',
-                                                'paypal' => 'paypal',
-                                                default => '',
-                                            };
-                                            $methodProviderRow = (array)($guaranteeProviders[$methodProvider] ?? []);
-                                            $methodReady = $methodProvider !== ''
-                                                && !empty($methodProviderRow['market_available'])
-                                                && !empty($methodProviderRow['adapter_ready'])
-                                                && !empty($methodProviderRow['provider_enabled'])
-                                                && !empty($methodProviderRow['credentials_ready']);
-                                            $methodLabel = (string)($method['label'] ?? ucfirst(str_replace('_',' ',(string)$methodCode)));
-                                            $methodProviderLabel = (string)($methodProviderRow['label'] ?? ucfirst(str_replace('_',' ',$methodProvider)));
-                                            $methodStatus = $methodReady
-                                                ? 'Ready via '.$methodProviderLabel
-                                                : $methodProviderLabel.' not configured';
-                                        @endphp
-                                        <label
-                                            class="pmd-guarantee-method {{ $methodReady ? 'is-ready' : 'is-unavailable' }}"
-                                            data-pmd-guarantee-method-row="{{ $methodCode }}"
-                                            data-pmd-guarantee-provider="{{ $methodProvider }}"
-                                            data-pmd-fixed-provider="{{ (string)$methodCode === 'card' ? '0' : '1' }}"
-                                            data-pmd-provider-ready="{{ $methodReady ? '1' : '0' }}"
+                            <div class="pmd-guarantee-r22-methods" data-pmd-guarantee-methods>
+                                @foreach($guaranteeMethods as $methodCode => $method)
+                                    @php
+                                        $methodProvider = match ((string)$methodCode) {
+                                            'card' => $guaranteeSelected,
+                                            'apple_pay', 'google_pay' => 'stripe',
+                                            'paypal' => 'paypal',
+                                            default => '',
+                                        };
+                                        $methodProviderRow = (array)($guaranteeProviders[$methodProvider] ?? []);
+                                        $methodReady = $methodProvider !== ''
+                                            && !empty($methodProviderRow['market_available'])
+                                            && !empty($methodProviderRow['adapter_ready'])
+                                            && !empty($methodProviderRow['provider_enabled'])
+                                            && !empty($methodProviderRow['credentials_ready']);
+                                        $methodLabel = (string)($method['label'] ?? ucfirst(str_replace('_',' ',(string)$methodCode)));
+                                        $methodProviderLabel = (string)($methodProviderRow['label'] ?? ucfirst(str_replace('_',' ',$methodProvider)));
+                                    @endphp
+                                    <label
+                                        class="pmd-guarantee-r22-method {{ $methodReady ? 'is-ready' : 'is-unavailable' }}"
+                                        data-pmd-guarantee-method-row="{{ $methodCode }}"
+                                        data-pmd-guarantee-provider="{{ $methodProvider }}"
+                                        data-pmd-fixed-provider="{{ (string)$methodCode === 'card' ? '0' : '1' }}"
+                                        data-pmd-provider-ready="{{ $methodReady ? '1' : '0' }}"
+                                    >
+                                        <input
+                                            class="pmd-guarantee-r22-method__input"
+                                            type="checkbox"
+                                            name="finance[reservation_guarantee_methods][]"
+                                            value="{{ $methodCode }}"
+                                            {{ in_array((string)$methodCode, $guaranteeSelectedMethods, true) ? 'checked' : '' }}
+                                            {{ !$methodReady ? 'disabled' : '' }}
                                         >
-                                            <input
-                                                class="pmd-guarantee-method__input"
-                                                type="checkbox"
-                                                name="finance[reservation_guarantee_methods][]"
-                                                value="{{ $methodCode }}"
-                                                {{ in_array((string)$methodCode, $guaranteeSelectedMethods, true) ? 'checked' : '' }}
-                                                {{ !$methodReady ? 'disabled' : '' }}
-                                            >
-                                            <span class="pmd-guarantee-method__copy">
-                                                <strong>{{ $pmdSettingsText($methodLabel) }}</strong>
-                                                <small>{{ $pmdSettingsText($methodStatus) }}</small>
-                                            </span>
-                                            <span class="pmd-guarantee-method__mark" aria-hidden="true"></span>
-                                        </label>
+                                        <span class="pmd-guarantee-r22-method__copy">
+                                            <strong>{{ $pmdSettingsText($methodLabel) }}</strong>
+                                            <small data-pmd-guarantee-method-status>{{ $methodReady ? $pmdSettingsText('Ready via '.$methodProviderLabel) : $pmdSettingsText($methodProviderLabel.' setup required') }}</small>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+
+                            <p class="pmd-guarantee-r22-routing">{{ $pmdSettingsText('Card uses the provider above. Apple Pay and Google Pay use Stripe. PayPal uses PayPal Vault.') }}</p>
+                            <div class="pmd-guarantee-r22-message" data-pmd-guarantee-method-message aria-live="polite"></div>
+                        </section>
+                    </div>
+
+                    <div class="pmd-guarantee-r22-divider"></div>
+
+                    <section class="pmd-guarantee-r22-section pmd-guarantee-r22-handling" aria-labelledby="pmd-guarantee-r22-handling-title">
+                        <div class="pmd-guarantee-r22-heading">
+                            <span>{{ $pmdSettingsText('3 · No-show handling') }}</span>
+                            <h3 id="pmd-guarantee-r22-handling-title">{{ $pmdSettingsText('What happens afterwards') }}</h3>
+                        </div>
+
+                        <div class="pmd-guarantee-r22-handling-grid">
+                            <div class="pmd-owner-field">
+                                <label>{{ $pmdSettingsText('No-show reservation status') }}</label>
+                                <select name="finance[no_show_reservation_status]">
+                                    <option value="0">— {{ $pmdSettingsText('Keep current status') }} —</option>
+                                    @foreach($reservationStatuses as $id => $name)
+                                        <option value="{{ $id }}" {{ (int)($settings['no_show_reservation_status'] ?? 0) === (int)$id ? 'selected' : '' }}>{{ $name }}</option>
                                     @endforeach
-                                </div>
-                                <div class="pmd-guarantee-methods__message" data-pmd-guarantee-method-message aria-live="polite"></div>
-                            </fieldset>
-
-                            <div class="pmd-guarantee-rule-divider"></div>
-                            <div class="pmd-guarantee-subhead">
-                                <strong>{{ $pmdSettingsText('Rule') }}</strong>
-                                <span>{{ $pmdSettingsText('When it applies and the maximum the guest accepts.') }}</span>
+                                </select>
                             </div>
 
-                            <div class="pmd-guarantee-rule-grid">
-                                <div class="pmd-owner-field">
-                                    <label>{{ $pmdSettingsText('Apply from party size') }}</label>
-                                    <input type="number" min="1" max="100" name="finance[reservation_guarantee_min_guests]" value="{{ $settings['reservation_guarantee_min_guests'] ?? 6 }}">
-                                    <small>{{ $pmdSettingsText('Smaller parties book without a guarantee step.') }}</small>
-                                </div>
-
-                                <div class="pmd-owner-field">
-                                    <label>{{ $pmdSettingsText('Maximum per guest (€)') }}</label>
-                                    <input type="number" min="0" max="10000" step="0.01" name="finance[reservation_guarantee_amount_eur]" value="{{ $settings['reservation_guarantee_amount_eur'] ?? '0.00' }}">
-                                    <small>{{ $pmdSettingsText('A guest-approved ceiling, never an automatic charge.') }}</small>
-                                </div>
-
-                                <div class="pmd-owner-field">
-                                    <label>{{ $pmdSettingsText('Free cancellation until') }}</label>
-                                    <div class="pmd-guarantee-unit-field">
-                                        <input type="number" min="1" max="336" name="finance[reservation_guarantee_free_cancel_hours]" value="{{ $settings['reservation_guarantee_free_cancel_hours'] ?? 24 }}">
-                                        <span>{{ $pmdSettingsText('hours before') }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="pmd-owner-field">
-                                    <label>{{ $pmdSettingsText('No-show grace period') }}</label>
-                                    <div class="pmd-guarantee-unit-field">
-                                        <input type="number" min="0" max="180" name="finance[reservation_guarantee_grace_minutes]" value="{{ $settings['reservation_guarantee_grace_minutes'] ?? 15 }}">
-                                        <span>{{ $pmdSettingsText('minutes after') }}</span>
-                                    </div>
-                                </div>
-
-                                <div class="pmd-owner-field">
-                                    <label>{{ $pmdSettingsText('No-show reservation status') }}</label>
-                                    <select name="finance[no_show_reservation_status]">
-                                        <option value="0">— {{ $pmdSettingsText('Keep current status') }} —</option>
-                                        @foreach($reservationStatuses as $id => $name)
-                                            <option value="{{ $id }}" {{ (int)($settings['no_show_reservation_status'] ?? 0) === (int)$id ? 'selected' : '' }}>{{ $name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                <div class="pmd-owner-field">
-                                    <label>{{ $pmdSettingsText('Policy / terms version') }}</label>
-                                    <input type="text" maxlength="64" name="finance[reservation_guarantee_terms_version]" value="{{ $settings['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01' }}">
-                                    <small>{{ $pmdSettingsText('Stored with every accepted guarantee.') }}</small>
-                                </div>
-                            </div>
-
-                            <div class="pmd-owner-setting-row pmd-guarantee-email-row">
-                                <div class="pmd-owner-setting-copy">
-                                    <strong>{{ $pmdSettingsText('Email guarantee confirmation') }}</strong>
-                                    <small>{{ $pmdSettingsText('Send the accepted amount, cancellation deadline, terms and Manage Booking link to the guest.') }}</small>
+                            <div class="pmd-guarantee-r22-email">
+                                <div>
+                                    <strong>{{ $pmdSettingsText('Email confirmation') }}</strong>
+                                    <small>{{ $pmdSettingsText('Send the accepted limit, cancellation deadline and Manage Booking link.') }}</small>
                                 </div>
                                 <label class="pmd-owner-switch">
                                     <input type="checkbox" name="finance[reservation_guarantee_send_confirmation_email]" value="1" {{ $checked($settings['reservation_guarantee_send_confirmation_email'] ?? 1) ? 'checked' : '' }}>
                                     <span></span>
                                 </label>
                             </div>
-                        </div>
 
-                        <aside class="pmd-guarantee-pane pmd-guarantee-pane--readiness" aria-label="{{ $pmdSettingsText('Provider readiness') }}">
-                            <div class="pmd-guarantee-pane__head">
-                                <div>
-                                    <span class="pmd-guarantee-pane__eyebrow">{{ $pmdSettingsText('Connections') }}</span>
-                                    <h3>{{ $pmdSettingsText('Provider readiness') }}</h3>
-                                </div>
-                                <p>{{ $pmdSettingsText('Only ready providers can be offered to guests.') }}</p>
+                            <div class="pmd-guarantee-r22-safety">
+                                <strong>{{ $pmdSettingsText('No automatic charge') }}</strong>
+                                <span>{{ $pmdSettingsText('After the grace period, authorized staff decides whether to charge. Canceled reservations stay blocked from no-show charging.') }}</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <details class="pmd-guarantee-r22-advanced">
+                        <summary>
+                            <span>{{ $pmdSettingsText('Advanced & provider diagnostics') }}</span>
+                            <small>{{ $pmdSettingsText('Policy version, connection readiness and provider test') }}</small>
+                        </summary>
+
+                        <div class="pmd-guarantee-r22-advanced-body">
+                            <div class="pmd-owner-field">
+                                <label>{{ $pmdSettingsText('Policy / terms version') }}</label>
+                                <input type="text" maxlength="64" name="finance[reservation_guarantee_terms_version]" value="{{ $settings['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01' }}">
                             </div>
 
-                            <div class="pmd-guarantee-readiness-list">
+                            <div class="pmd-guarantee-r22-readiness">
                                 @foreach($guaranteeProviders as $code => $provider)
                                     @php
                                         $adapterReady = !empty($provider['adapter_ready']);
@@ -374,69 +378,31 @@
                                             : (!$adapterReady
                                                 ? 'Adapter pending'
                                                 : (!$providerEnabled
-                                                    ? 'Provider disabled'
+                                                    ? 'Disabled'
                                                     : (!$credentialsReady ? 'Credentials incomplete' : 'Ready')));
                                     @endphp
-                                    <div class="pmd-guarantee-readiness-row {{ $fullyReady ? 'is-ready' : '' }}">
-                                        <div class="pmd-guarantee-readiness-row__main">
-                                            <div class="pmd-guarantee-readiness-row__title">
-                                                <strong>{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}</strong>
-                                                <span>{{ strtoupper((string)($provider['mode'] ?? '—')) }}</span>
-                                            </div>
-                                            <small>{{ $provider['credential_type'] ?? '' }}</small>
-                                        </div>
-                                        <div class="pmd-guarantee-readiness-row__state">
-                                            <span class="pmd-owner-status {{ $fullyReady ? 'is-active' : '' }}">{{ $pmdSettingsText($readinessLabel) }}</span>
-                                            @if($marketOk)
-                                                <a href="#payment-providers">{{ $pmdSettingsText('Setup') }}</a>
-                                            @endif
-                                        </div>
+                                    <div class="pmd-guarantee-r22-readiness-row">
+                                        <strong>{{ $provider['label'] ?? ucfirst(str_replace('_',' ',(string)$code)) }}</strong>
+                                        <span class="pmd-owner-status {{ $fullyReady ? 'is-active' : '' }}">{{ $pmdSettingsText($readinessLabel) }}</span>
+                                        @if($marketOk)
+                                            <a href="#payment-providers">{{ $pmdSettingsText('Setup') }}</a>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
 
-                            <button
-                                type="button"
-                                class="pmd-owner-action pmd-guarantee-readiness-test"
-                                data-request="onTestReservationGuaranteeProvider"
-                                data-request-form="#pmd-finance-form"
-                                data-request-flash
-                            >{{ $pmdSettingsText('Test selected provider') }}</button>
-                            <span id="pmd-guarantee-provider-test-status" class="pmd-guarantee-readiness-result"></span>
-                        </aside>
-                    </div>
-
-                    <div class="pmd-guarantee-operations">
-                        <div class="pmd-guarantee-operations__note">
-                            <span class="pmd-guarantee-pane__eyebrow">{{ $pmdSettingsText('No-show handling') }}</span>
-                            <h3>{{ $pmdSettingsText('The maximum is never charged automatically') }}</h3>
-                            <p>{{ $pmdSettingsText('After the grace period, an authorized staff member opens that reservation, chooses “No-show & charge”, and enters the actual compensation for that case. PayMyDine rejects anything above the guest-approved maximum.') }}</p>
-                            <p>{{ $pmdSettingsText('If the table was refilled, there was no compensable loss, or staff decides not to charge, use “Release card”.') }}</p>
-                        </div>
-
-                        <div class="pmd-guarantee-safety" aria-label="{{ $pmdSettingsText('Safety rules') }}">
-                            <div class="pmd-guarantee-safety-row">
-                                <strong>{{ $pmdSettingsText('Booking') }}</strong>
-                                <span>{{ $pmdSettingsText('Verify / tokenize only') }}</span>
-                                <em>{{ $pmdSettingsText('No final charge') }}</em>
-                            </div>
-                            <div class="pmd-guarantee-safety-row">
-                                <strong>{{ $pmdSettingsText('No-show') }}</strong>
-                                <span>{{ $pmdSettingsText('Staff starts the charge after the grace period') }}</span>
-                                <em>{{ $pmdSettingsText('Manual') }}</em>
-                            </div>
-                            <div class="pmd-guarantee-safety-row">
-                                <strong>{{ $pmdSettingsText('Canceled') }}</strong>
-                                <span>{{ $pmdSettingsText('A canceled reservation cannot be charged as a no-show') }}</span>
-                                <em>{{ $pmdSettingsText('Blocked') }}</em>
-                            </div>
-                            <div class="pmd-guarantee-safety-row">
-                                <strong>{{ $pmdSettingsText('Issuer action') }}</strong>
-                                <span>{{ $pmdSettingsText('If guest authentication is required again, the charge stays failed / action required') }}</span>
-                                <em>{{ $pmdSettingsText('Fail closed') }}</em>
+                            <div class="pmd-guarantee-r22-test">
+                                <button
+                                    type="button"
+                                    class="pmd-owner-action"
+                                    data-request="onTestReservationGuaranteeProvider"
+                                    data-request-form="#pmd-finance-form"
+                                    data-request-flash
+                                >{{ $pmdSettingsText('Test selected provider') }}</button>
+                                <span id="pmd-guarantee-provider-test-status"></span>
                             </div>
                         </div>
-                    </div>
+                    </details>
                 </div>
             </div>
         </section>
