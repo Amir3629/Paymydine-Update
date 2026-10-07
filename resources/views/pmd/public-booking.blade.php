@@ -732,7 +732,10 @@
                                 <a href="tel:{{ preg_replace('/\s+/', '', $bookingProfile['telephone']) }}" data-pmd-i18n="call">{{ $t['call'] }}</a>
                             @endif
                             @if($bookingProfile['email'])
-                                <a href="mailto:{{ $bookingProfile['email'] }}" data-pmd-i18n="email_restaurant">{{ $t['email_restaurant'] }}</a>
+                                <a
+                                    href="mailto:{{ $bookingProfile['email'] }}?subject={{ rawurlencode($t['reservations'].' · '.$bookingProfile['name']) }}"
+                                    data-pmd-i18n="email_restaurant"
+                                >{{ $t['email_restaurant'] }}</a>
                             @endif
                         </div>
                     @endif
