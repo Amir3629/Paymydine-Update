@@ -5,6 +5,7 @@ namespace App\Helpers;
 use Admin\Models\Notifications_model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class NotificationHelper
 {
@@ -17,57 +18,125 @@ class NotificationHelper
     public static function createNotification($data)
     {
         try {
-            // Ensure we're using tenant database
             self::ensureTenantDatabase();
-            
-            // Check for duplicate notifications within 60 seconds
-            $duplicate = Notifications_model::where('tenant_id', $data['tenant_id'])
-                ->where('type', $data['type'])
-                ->where('table_id', $data['table_id'])
-                ->where('created_at', '>=', now()->subMinutes(1))
-                ->exists();
 
-            if ($duplicate) {
+            if (!Schema::hasTable('notifications')) {
+                return null;
+            }
+
+            $columns = array_fill_keys(
+                Schema::getColumnListing('notifications'),
+                true
+            );
+            $has = static fn (string $column): bool => isset($columns[$column]);
+
+            // PMD_NOTIFICATION_SCHEMA_COMPAT_R26
+            // Live tenant databases can use either the older compact
+            // notification table (id, no tenant_id/message/priority) or the
+            // newer expanded schema. Never make a guest action depend on one
+            // particular generation of that table.
+            $duplicateQuery = DB::table('notifications');
+            if ($has('tenant_id') && isset($data['tenant_id'])) {
+                $duplicateQuery->where('tenant_id', $data['tenant_id']);
+            }
+            if ($has('type')) {
+                $duplicateQuery->where('type', $data['type']);
+            }
+            if ($has('table_id')) {
+                $duplicateQuery->where('table_id', $data['table_id'] ?? null);
+            }
+            if ($has('created_at')) {
+                $duplicateQuery->where('created_at', '>=', now()->subMinutes(1));
+            }
+
+            if ($duplicateQuery->exists()) {
                 Log::info('Duplicate notification ignored', [
-                    'tenant_id' => $data['tenant_id'],
-                    'type' => $data['type'],
-                    'table_id' => $data['table_id']
+                    'tenant_id' => $data['tenant_id'] ?? null,
+                    'type' => $data['type'] ?? null,
+                    'table_id' => $data['table_id'] ?? null,
                 ]);
                 return null;
             }
 
-            // Check rate limit (max 5 notifications per table per hour)
-            $recentCount = Notifications_model::where('tenant_id', $data['tenant_id'])
-                ->where('table_id', $data['table_id'])
-                ->where('created_at', '>=', now()->subHour())
-                ->count();
+            if ($has('table_id') && $has('created_at')) {
+                $recentQuery = DB::table('notifications')
+                    ->where('table_id', $data['table_id'] ?? null)
+                    ->where('created_at', '>=', now()->subHour());
 
-            if ($recentCount >= 5) {
-                Log::warning('Rate limit exceeded for table notifications', [
-                    'tenant_id' => $data['tenant_id'],
-                    'table_id' => $data['table_id'],
-                    'count' => $recentCount
-                ]);
-                return null;
+                if ($has('tenant_id') && isset($data['tenant_id'])) {
+                    $recentQuery->where('tenant_id', $data['tenant_id']);
+                }
+
+                $recentCount = (int)$recentQuery->count();
+                if ($recentCount >= 5) {
+                    Log::warning('Rate limit exceeded for table notifications', [
+                        'tenant_id' => $data['tenant_id'] ?? null,
+                        'table_id' => $data['table_id'] ?? null,
+                        'count' => $recentCount,
+                    ]);
+                    return null;
+                }
             }
 
-            // Create notification
-            $notification = Notifications_model::createNotification($data);
+            $payload = $data['payload'] ?? [];
+            if (is_string($payload)) {
+                $decoded = json_decode($payload, true);
+                $payload = is_array($decoded) ? $decoded : ['raw' => $payload];
+            } elseif (!is_array($payload)) {
+                $payload = (array)$payload;
+            }
+
+            if (array_key_exists('message', $data)) {
+                $payload['message'] = (string)$data['message'];
+            }
+            if (array_key_exists('priority', $data)) {
+                $payload['priority'] = (string)$data['priority'];
+            }
+
+            $insert = [];
+            $assign = static function (string $column, $value) use (&$insert, $has): void {
+                if ($has($column)) {
+                    $insert[$column] = $value;
+                }
+            };
+
+            $assign('tenant_id', $data['tenant_id'] ?? null);
+            $assign('type', $data['type'] ?? 'system_alert');
+            $assign('title', $data['title'] ?? 'Notification');
+            $assign('message', $data['message'] ?? '');
+            $assign('table_id', $data['table_id'] ?? null);
+            $assign('table_name', $data['table_name'] ?? null);
+            $assign(
+                'payload',
+                json_encode(
+                    $payload,
+                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+                )
+            );
+            $assign('status', $data['status'] ?? 'new');
+            $assign('priority', $data['priority'] ?? 'medium');
+            $assign('created_at', now());
+            $assign('updated_at', now());
+
+            $notificationId = DB::table('notifications')->insertGetId($insert);
 
             Log::info('Notification created', [
-                'notification_id' => $notification->notification_id,
-                'tenant_id' => $data['tenant_id'],
-                'type' => $data['type'],
-                'table_id' => $data['table_id']
+                'notification_id' => $notificationId,
+                'tenant_id' => $data['tenant_id'] ?? null,
+                'type' => $data['type'] ?? null,
+                'table_id' => $data['table_id'] ?? null,
             ]);
 
-            return $notification;
-
-        } catch (\Exception $e) {
+            // Existing API call sites use both ->id and ->notification_id.
+            return (object)[
+                'id' => (int)$notificationId,
+                'notification_id' => (int)$notificationId,
+            ];
+        } catch (\Throwable $e) {
             Log::error('Failed to create notification', [
                 'error' => $e->getMessage(),
                 'data' => $data,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
             return null;
         }
