@@ -6,6 +6,7 @@
             'table_request' => 'Table request',
             'find_table' => 'Find your table',
             'intro' => 'Choose a date, party size and an available time. Your reservation goes directly to the restaurant.',
+            'hero_intro' => 'Choose a date, party size and an available time. Your reservation goes directly to the restaurant.',
             'date_party' => 'Date & party',
             'choose_date' => 'Choose a date',
             'previous_dates' => 'Previous dates',
@@ -31,6 +32,10 @@
             'email' => 'Email',
             'phone' => 'Phone',
             'occasion' => 'Occasion',
+            'table_preferences' => 'Table preferences',
+            'near_window' => 'Near window',
+            'quiet_area' => 'Quiet area',
+            'accessible' => 'Accessible',
             'occasion_none' => 'No special occasion',
             'birthday' => 'Birthday',
             'anniversary' => 'Anniversary',
@@ -39,7 +44,7 @@
             'hen_party' => 'Hen party',
             'stag_party' => 'Stag party',
             'notes' => 'Anything we should know?',
-            'notes_hint' => 'Allergies, accessibility, high chair, seating preference…',
+            'notes_hint' => 'Business booking, celebration, seating preference, high chair…',
             'consent' => 'I agree that the restaurant may use these contact details to manage this reservation.',
             'guarantee_title' => 'Reservation guarantee',
             'guarantee_intro' => 'No charge today.',
@@ -81,8 +86,9 @@
             'reservations' => 'Reservierungen',
             'language' => 'Sprache',
             'table_request' => 'Tischanfrage',
-            'find_table' => 'Tisch reservieren',
+            'find_table' => 'Finde deinen Tisch',
             'intro' => 'Datum, Personenzahl und verfügbare Uhrzeit wählen. Die Reservierung geht direkt an das Restaurant.',
+            'hero_intro' => '',
             'date_party' => 'Datum & Personen',
             'choose_date' => 'Datum wählen',
             'previous_dates' => 'Frühere Tage',
@@ -108,6 +114,10 @@
             'email' => 'E-Mail',
             'phone' => 'Telefon',
             'occasion' => 'Anlass',
+            'table_preferences' => 'Tischwunsch',
+            'near_window' => 'Am Fenster',
+            'quiet_area' => 'Ruhiger Bereich',
+            'accessible' => 'Barrierefrei',
             'occasion_none' => 'Kein besonderer Anlass',
             'birthday' => 'Geburtstag',
             'anniversary' => 'Jahrestag',
@@ -116,7 +126,7 @@
             'hen_party' => 'Junggesellinnenabschied',
             'stag_party' => 'Junggesellenabschied',
             'notes' => 'Gibt es etwas, das wir wissen sollten?',
-            'notes_hint' => 'Allergien, Barrierefreiheit, Kinderstuhl, Sitzwunsch…',
+            'notes_hint' => 'Geschäftsessen, Feier, Sitzwunsch, Kinderstuhl…',
             'consent' => 'Ich stimme zu, dass das Restaurant diese Kontaktdaten zur Bearbeitung der Reservierung verwenden darf.',
             'guarantee_title' => 'Reservierungsgarantie',
             'guarantee_intro' => 'Jetzt keine Abbuchung.',
@@ -160,6 +170,7 @@
             'table_request' => 'Masa talebi',
             'find_table' => 'Masanızı ayırtın',
             'intro' => 'Tarih, kişi sayısı ve uygun bir saat seçin. Rezervasyon doğrudan restorana ulaşır.',
+            'hero_intro' => 'Tarih, kişi sayısı ve uygun bir saat seçin. Rezervasyon doğrudan restorana ulaşır.',
             'date_party' => 'Tarih ve kişi',
             'choose_date' => 'Tarih seçin',
             'previous_dates' => 'Önceki günler',
@@ -185,6 +196,10 @@
             'email' => 'E-posta',
             'phone' => 'Telefon',
             'occasion' => 'Özel gün',
+            'table_preferences' => 'Masa tercihi',
+            'near_window' => 'Pencere yanı',
+            'quiet_area' => 'Sessiz alan',
+            'accessible' => 'Erişilebilir',
             'occasion_none' => 'Özel bir gün değil',
             'birthday' => 'Doğum günü',
             'anniversary' => 'Yıldönümü',
@@ -193,7 +208,7 @@
             'hen_party' => 'Bekarlığa veda',
             'stag_party' => 'Bekarlığa veda',
             'notes' => 'Bilmemiz gereken bir şey var mı?',
-            'notes_hint' => 'Alerji, erişilebilirlik, mama sandalyesi, oturma tercihi…',
+            'notes_hint' => 'İş yemeği, kutlama, oturma tercihi, mama sandalyesi…',
             'consent' => 'Restoranın bu iletişim bilgilerini rezervasyonu yönetmek için kullanmasını kabul ediyorum.',
             'guarantee_title' => 'Rezervasyon garantisi',
             'guarantee_intro' => 'Şimdi ödeme yok.',
@@ -237,6 +252,7 @@
             'table_request' => 'طلب طاولة',
             'find_table' => 'احجز طاولتك',
             'intro' => 'اختر التاريخ وعدد الأشخاص والوقت المتاح. يصل حجزك مباشرة إلى المطعم.',
+            'hero_intro' => 'اختر التاريخ وعدد الأشخاص والوقت المتاح. يصل حجزك مباشرة إلى المطعم.',
             'date_party' => 'التاريخ والأشخاص',
             'choose_date' => 'اختر التاريخ',
             'previous_dates' => 'أيام سابقة',
@@ -262,6 +278,10 @@
             'email' => 'البريد الإلكتروني',
             'phone' => 'الهاتف',
             'occasion' => 'المناسبة',
+            'table_preferences' => 'تفضيلات الطاولة',
+            'near_window' => 'بالقرب من النافذة',
+            'quiet_area' => 'منطقة هادئة',
+            'accessible' => 'مهيأة للوصول',
             'occasion_none' => 'لا توجد مناسبة خاصة',
             'birthday' => 'عيد ميلاد',
             'anniversary' => 'ذكرى سنوية',
@@ -270,7 +290,7 @@
             'hen_party' => 'حفلة توديع عزوبية',
             'stag_party' => 'حفلة توديع عزوبية',
             'notes' => 'هل هناك شيء يجب أن نعرفه؟',
-            'notes_hint' => 'الحساسية، سهولة الوصول، كرسي طفل، تفضيل الجلوس…',
+            'notes_hint' => 'حجز عمل، احتفال، تفضيل الجلوس، كرسي طفل…',
             'consent' => 'أوافق على استخدام المطعم لبيانات الاتصال هذه لإدارة الحجز.',
             'guarantee_title' => 'ضمان الحجز',
             'guarantee_intro' => 'لا خصم الآن.',
@@ -373,7 +393,7 @@
     <meta name="robots" content="index,follow">
     <title>{{ $t['reservations'] }} · {{ $bookingProfile['name'] }}</title>
     <meta name="description" content="{{ $t['intro'] }}">
-    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r21">
+    <link rel="stylesheet" href="/public/assets/pmd/public-booking-v1.css?v=20261007-r22">
 </head>
 <body class="pmd-booking-page">
     <div class="pmd-booking-shell">
@@ -405,11 +425,10 @@
 
         <main class="pmd-booking-main">
             <section class="pmd-booking-intro" aria-labelledby="pmd-booking-title">
-                <div class="pmd-booking-intro__index" aria-hidden="true">01</div>
                 <div class="pmd-booking-intro__copy">
                     <p class="pmd-booking-kicker" data-pmd-i18n="reservations">{{ $t['reservations'] }}</p>
                     <h1 id="pmd-booking-title"><b id="pmd-booking-title-main">{{ $t['find_table'] }}</b><span id="pmd-booking-title-sub">{{ $t['at'] }} {{ $bookingProfile['name'] }}</span></h1>
-                    <p data-pmd-i18n="intro">{{ $t['intro'] }}</p>
+                    <p class="pmd-booking-hero-intro" data-pmd-i18n="hero_intro">{{ $t['hero_intro'] }}</p>
                 </div>
 
                 <div class="pmd-booking-intro__details">
@@ -538,28 +557,28 @@
                                     <span data-pmd-i18n="phone">{{ $t['phone'] }}</span>
                                     <input name="telephone" type="tel" autocomplete="tel" maxlength="64" required>
                                 </label>
-                                <fieldset class="pmd-booking-occasion pmd-booking-field--wide">
-                                    <legend data-pmd-i18n="occasion">{{ $t['occasion'] }}</legend>
+                                <fieldset class="pmd-booking-occasion pmd-booking-preferences pmd-booking-field--wide">
+                                    <legend data-pmd-i18n="table_preferences">{{ $t['table_preferences'] }}</legend>
                                     <div class="pmd-booking-occasion-grid">
                                         <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="0" checked>
+                                            <input type="checkbox" name="pmd_table_features[]" value="near_window">
                                             <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="10"/><path d="M10 22 22 10"/></svg>
-                                                <strong data-pmd-i18n="occasion_none">{{ $t['occasion_none'] }}</strong>
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="6" width="20" height="20" rx="1"/><path d="M6 16h20M16 6v20"/></svg>
+                                                <strong data-pmd-i18n="near_window">{{ $t['near_window'] }}</strong>
                                             </span>
                                         </label>
                                         <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="3">
+                                            <input type="checkbox" name="pmd_table_features[]" value="quiet_area">
                                             <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 5 2.5 6.5L25 14l-6.5 2.5L16 23l-2.5-6.5L7 14l6.5-2.5L16 5Z"/><path d="m25 5 .8 2.2L28 8l-2.2.8L25 11l-.8-2.2L22 8l2.2-.8L25 5ZM7 21l1 2.5 2.5 1L8 25.5 7 28l-1-2.5-2.5-1 2.5-1L7 21Z"/></svg>
-                                                <strong data-pmd-i18n="celebration">{{ $t['celebration'] }}</strong>
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M14 8 10 12H6v8h4l4 4z"/><path d="m21 12 6 8M27 12l-6 8"/></svg>
+                                                <strong data-pmd-i18n="quiet_area">{{ $t['quiet_area'] }}</strong>
                                             </span>
                                         </label>
                                         <label class="pmd-booking-occasion-card">
-                                            <input type="radio" name="occasion_id" value="6">
+                                            <input type="checkbox" name="pmd_table_features[]" value="accessible">
                                             <span class="pmd-booking-occasion-card__surface">
-                                                <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="10" width="20" height="15" rx="1"/><path d="M12 10V7h8v3M6 15h20M13 15v2h6v-2"/></svg>
-                                                <strong data-pmd-i18n="business">{{ $t['business'] }}</strong>
+                                                <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="12" cy="7" r="2.5"/><path d="M10 12h6l2 6h4M12 12v7a5 5 0 1 0 5 5M17 18l2 8h5"/></svg>
+                                                <strong data-pmd-i18n="accessible">{{ $t['accessible'] }}</strong>
                                             </span>
                                         </label>
                                     </div>
@@ -728,6 +747,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r21" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r22" defer></script>
 </body>
 </html>

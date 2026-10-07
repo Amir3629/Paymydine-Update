@@ -948,13 +948,18 @@
 
       var paymentMethods = {
         applePay: method === "apple_pay" ? "always" : "never",
-        googlePay: method === "google_pay" ? "always" : "never"
+        googlePay: method === "google_pay" ? "always" : "never",
+        link: "never"
       };
 
       var element = elements.create(
         "expressCheckout",
         {
           paymentMethods: paymentMethods,
+          buttonType: {
+            applePay: "plain",
+            googlePay: "plain"
+          },
           buttonHeight: 48
         }
       );
@@ -1871,9 +1876,18 @@
   function formPayload() {
     var data = new FormData(form);
     var payload = {};
+
     data.forEach(function (value, key) {
+      if (String(key).slice(-2) === "[]") {
+        var arrayKey = String(key).slice(0, -2);
+        if (!Array.isArray(payload[arrayKey])) payload[arrayKey] = [];
+        payload[arrayKey].push(value);
+        return;
+      }
+
       payload[key] = value;
     });
+
     payload.reserve_date = state.date;
     payload.reserve_time = state.time;
     payload.guest_num = state.guests;
