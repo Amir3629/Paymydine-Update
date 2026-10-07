@@ -1515,7 +1515,15 @@
   function formPayload() {
     var data = new FormData(form);
     var payload = {};
-    data.forEach(function (value, key) { payload[key] = value; });
+    data.forEach(function (value, key) {
+      if (/\[\]$/.test(key)) {
+        var arrayKey = key.slice(0, -2);
+        if (!Array.isArray(payload[arrayKey])) payload[arrayKey] = [];
+        payload[arrayKey].push(value);
+        return;
+      }
+      payload[key] = value;
+    });
     payload.reserve_date = state.date;
     payload.reserve_time = state.time;
     payload.guest_num = state.guests;
