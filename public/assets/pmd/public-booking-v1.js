@@ -303,6 +303,8 @@
   }
 
   function syncLanguageSwitcher() {
+    var visibleCount = 0;
+
     Array.prototype.forEach.call(
       document.querySelectorAll("[data-pmd-language]"),
       function (link) {
@@ -314,8 +316,12 @@
         link.setAttribute("aria-hidden", isCurrent ? "true" : "false");
         link.classList.remove("is-active");
         link.removeAttribute("aria-current");
+
+        if (!isCurrent) visibleCount += 1;
       }
     );
+
+    if (languageNav) languageNav.hidden = visibleCount === 0;
   }
 
   function activeLanguageCode() {
@@ -1718,6 +1724,7 @@
 
       syncDateStatusesForGuests(state.guests);
       renderDateStrip();
+      renderCalendar();
 
       var instant = cachedAvailability(state.date, state.guests);
       if (state.loading && instant) {
@@ -1845,6 +1852,7 @@
     if (!openingData.enabled) {
       dateStatuses[state.date] = "closed";
       renderDateStrip();
+      renderCalendar();
       emptyState(labels.closed || "The restaurant is closed for online reservations on this date.", true);
       renderSummary();
       return;
@@ -1853,6 +1861,7 @@
     if (!slots.length) {
       dateStatuses[state.date] = "full";
       renderDateStrip();
+      renderCalendar();
       emptyState(labels.no_times || "No online tables are available for this date.", true);
       renderSummary();
       return;
@@ -1860,6 +1869,7 @@
 
     dateStatuses[state.date] = "available";
     renderDateStrip();
+    renderCalendar();
     renderTimeChoices(slots);
     renderSummary();
   }
@@ -1989,6 +1999,7 @@
     syncDateStatusesForGuests(state.guests);
     renderSummary();
     renderDateStrip();
+    renderCalendar();
 
     var instant = cachedAvailability(state.date, state.guests);
     if (instant) {
