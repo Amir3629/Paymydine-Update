@@ -54,6 +54,54 @@ class PmdReservationMessagingService
         return false;
     }
 
+    public function notifyAfterResponse(
+        Reservations_model $reservation,
+        string $event,
+        string $locale = 'de',
+        array $changes = []
+    ): void {
+        $reservationId = (int)$reservation->getKey();
+        if ($reservationId < 1) {
+            return;
+        }
+
+        $event = strtolower(trim($event));
+        $locale = $this->locale($locale);
+        $changes = array_values(array_map('strval', $changes));
+
+        try {
+            app()->terminating(function () use (
+                $reservationId,
+                $event,
+                $locale,
+                $changes
+            ): void {
+                try {
+                    $fresh = Reservations_model::query()
+                        ->with(['location'])
+                        ->where('reservation_id', $reservationId)
+                        ->first();
+
+                    if ($fresh) {
+                        $this->notify($fresh, $event, $locale, $changes);
+                    }
+                } catch (Throwable $error) {
+                    Log::warning('PMD reservation after-response messaging failed', [
+                        'reservation_id' => $reservationId,
+                        'event' => $event,
+                        'message' => $error->getMessage(),
+                    ]);
+                }
+            });
+        } catch (Throwable $error) {
+            Log::warning('PMD reservation after-response hook unavailable', [
+                'reservation_id' => $reservationId,
+                'event' => $event,
+                'message' => $error->getMessage(),
+            ]);
+        }
+    }
+
     public function notify(
         Reservations_model $reservation,
         string $event,
