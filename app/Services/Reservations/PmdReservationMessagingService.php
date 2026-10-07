@@ -672,10 +672,17 @@ class PmdReservationMessagingService
     ): string {
         $dir = $locale === 'ar' ? 'rtl' : 'ltr';
         $name = trim((string)$reservation->first_name.' '.(string)$reservation->last_name);
+        $partyLabel = [
+            'de' => 'Personen',
+            'tr' => 'kişi',
+            'ar' => 'أشخاص',
+            'en' => 'guests',
+        ][$locale] ?? 'guests';
+
         $details = [
             $copy['reference'],
             $copy['date'].' · '.$copy['time'],
-            (string)$copy['guests'].' '.($locale === 'de' ? 'Personen' : 'guests'),
+            (string)$copy['guests'].' '.$partyLabel,
         ];
 
         if ($ownerCopy && $name !== '') {
