@@ -661,24 +661,36 @@ class KitchenDisplay extends AdminController
         }
         $message .= " marked as {$statusName} by {$stationName}";
         
-        // Insert notification
-        DB::table('notifications')->insert([
+        $priority = 'medium';
+        $payload = [
+            'order_id' => $order->order_id,
+            'station_name' => $stationName,
+            'status_name' => $statusName,
+            'timestamp' => now()->toISOString(),
+            'message' => $message,
+            'priority' => $priority,
+        ];
+
+        $notification = [
             'type' => 'kds_status_update',
             'title' => $title,
-            'message' => $message,
             'table_id' => $order->order_type ?? '',
             'table_name' => $tableName,
-            'payload' => json_encode([
-                'order_id' => $order->order_id,
-                'station_name' => $stationName,
-                'status_name' => $statusName,
-                'timestamp' => now()->toISOString()
-            ], JSON_UNESCAPED_UNICODE),
+            'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE),
             'status' => 'new',
-            'priority' => 'medium',
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        // PMD_NOTIFICATION_SCHEMA_COMPAT_R26
+        if (Schema::hasColumn('notifications', 'message')) {
+            $notification['message'] = $message;
+        }
+        if (Schema::hasColumn('notifications', 'priority')) {
+            $notification['priority'] = $priority;
+        }
+
+        DB::table('notifications')->insert($notification);
     }
 
 
