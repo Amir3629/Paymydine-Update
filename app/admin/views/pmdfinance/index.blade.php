@@ -325,16 +325,6 @@
                         </div>
 
                         <div class="pmd-guarantee-r22-handling-grid">
-                            <div class="pmd-owner-field">
-                                <label>{{ $pmdSettingsText('No-show reservation status') }}</label>
-                                <select name="finance[no_show_reservation_status]">
-                                    <option value="0">— {{ $pmdSettingsText('Keep current status') }} —</option>
-                                    @foreach($reservationStatuses as $id => $name)
-                                        <option value="{{ $id }}" {{ (int)($settings['no_show_reservation_status'] ?? 0) === (int)$id ? 'selected' : '' }}>{{ $name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
                             <div class="pmd-guarantee-r22-email">
                                 <div>
                                     <strong>{{ $pmdSettingsText('Email confirmation') }}</strong>
@@ -360,9 +350,20 @@
                         </summary>
 
                         <div class="pmd-guarantee-r22-advanced-body">
-                            <div class="pmd-owner-field">
-                                <label>{{ $pmdSettingsText('Policy / terms version') }}</label>
-                                <input type="text" maxlength="64" name="finance[reservation_guarantee_terms_version]" value="{{ $settings['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01' }}">
+                            <div class="pmd-guarantee-r22-advanced-fields">
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('No-show reservation status') }}</label>
+                                    <select name="finance[no_show_reservation_status]">
+                                        <option value="0">— {{ $pmdSettingsText('Keep current status') }} —</option>
+                                        @foreach($reservationStatuses as $id => $name)
+                                            <option value="{{ $id }}" {{ (int)($settings['no_show_reservation_status'] ?? 0) === (int)$id ? 'selected' : '' }}>{{ $name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="pmd-owner-field">
+                                    <label>{{ $pmdSettingsText('Policy / terms version') }}</label>
+                                    <input type="text" maxlength="64" name="finance[reservation_guarantee_terms_version]" value="{{ $settings['reservation_guarantee_terms_version'] ?? 'DE-NOSHOW-2026-01' }}">
+                                </div>
                             </div>
 
                             <div class="pmd-guarantee-r22-readiness">
