@@ -776,8 +776,12 @@
 
   function chooseServiceMode(mode) {
     var nextMode = mode === "pickup" ? "pickup" : "eat_in";
-    if (nextMode !== config.serviceMode && state.cart.length) clearCartState();
+
+    // PMD_KIOSK_PRESERVE_CART_ON_MODE_SWITCH_V22_2
+    // Switching DINE IN / TAKE AWAY changes only the service mode.
+    // Existing cart items, quantities and option selections stay untouched.
     config.serviceMode = nextMode;
+
     if (serviceChoice) serviceChoice.hidden = true;
     document.body.classList.remove("pmd-kiosk-service-choice-open");
     renderBrand();
