@@ -101,8 +101,8 @@
       var dash=data.dashboard||{};
       var cards=el('div',null,'pmd-group-report-cards');
       cards.appendChild(metric('Revenue',total?money(total.revenue,total.currency):(totals.length?'Multiple currencies':'0'),'settled'));
-      cards.appendChild(metric('Orders',total?String(total.orders):String((data.locations||[]).reduce(function(sum,row){return sum+Number(row.orders||0);},0)),'selected period'));
       cards.appendChild(metric('Guests served',String(dash.guests||0),'recorded covers'));
+      cards.appendChild(metric('Table turnover',dash.turnover_minutes==null?'—':String(dash.turnover_minutes)+' min',String(dash.turnover_samples||0)+' visits'));
       cards.appendChild(metric('Dine in / Take away',String((dash.channels||{}).dine_in||0)+' / '+String((dash.channels||{}).takeaway||0),'orders'));
       panel.appendChild(cards);
 
@@ -117,6 +117,15 @@
       if(!methodKeys.length)payment.appendChild(el('p','No payment method data in this period.','pmd-group-muted'));
       methodKeys.forEach(function(name){var row=el('div',null,'pmd-group-series-row');row.appendChild(el('span',name));row.appendChild(el('strong',methods[name]));payment.appendChild(row);});
       grid.appendChild(payment);panel.appendChild(grid);
+
+      var detailGrid=el('div',null,'pmd-group-report-grid');
+      var hourly=el('section',null,'pmd-group-report-section');hourly.appendChild(el('h3','Sales by hour'));var hourlyData=dash.sales_by_hour||{};var hourlyAny=false;
+      Object.keys(hourlyData).forEach(function(currency){Object.keys(hourlyData[currency]||{}).forEach(function(bucket){hourlyAny=true;var row=el('div',null,'pmd-group-series-row');row.appendChild(el('span',bucket));row.appendChild(el('strong',money(hourlyData[currency][bucket],currency)));hourly.appendChild(row);});});
+      if(!hourlyAny)hourly.appendChild(el('p','No hourly sales data in this period.','pmd-group-muted'));detailGrid.appendChild(hourly);
+
+      var category=el('section',null,'pmd-group-report-section');category.appendChild(el('h3','Sales by category'));var categoryData=dash.category_sales||{};var categoryAny=false;
+      Object.keys(categoryData).forEach(function(currency){Object.keys(categoryData[currency]||{}).slice(0,12).forEach(function(name){categoryAny=true;var row=el('div',null,'pmd-group-series-row');row.appendChild(el('span',name));row.appendChild(el('strong',money(categoryData[currency][name],currency)));category.appendChild(row);});});
+      if(!categoryAny)category.appendChild(el('p','No category sales data in this period.','pmd-group-muted'));detailGrid.appendChild(category);panel.appendChild(detailGrid);
 
       var restaurants=el('section',null,'pmd-group-report-section');restaurants.appendChild(el('h3','Restaurants'));
       (data.locations||[]).forEach(function(row){var line=el('div',null,'pmd-group-location-result'+(row.available?'':' is-error'));line.appendChild(el('strong',row.label));line.appendChild(el('span',row.available?(row.revenue+' '+row.currency+' · '+row.orders+' orders'):row.message));restaurants.appendChild(line);});

@@ -20,9 +20,13 @@ final class GroupScopeReadModel
         $details = [];
         $series = [];
         $payments = [];
+        $hourly = [];
+        $categories = [];
         $guests = 0;
         $dineIn = 0;
         $takeaway = 0;
+        $turnoverSeconds = 0;
+        $turnoverSamples = 0;
 
         foreach ($ids as $tenantId) {
             $label = $this->label($tenantId, $context);
@@ -42,10 +46,25 @@ final class GroupScopeReadModel
                         $payments[$method] = ($payments[$method] ?? 0) + (int)$count;
                     }
 
+                    $turnoverSeconds += (int)($extra['turnover_seconds_total'] ?? 0);
+                    $turnoverSamples += (int)($extra['turnover_samples'] ?? 0);
+
                     $currency = (string)($extra['currency'] ?? 'EUR');
                     foreach ((array)($extra['sales_series'] ?? []) as $bucket => $amount) {
                         $series[$currency][$bucket] = round(
                             (float)($series[$currency][$bucket] ?? 0) + (float)$amount,
+                            2
+                        );
+                    }
+                    foreach ((array)($extra['sales_by_hour'] ?? []) as $bucket => $amount) {
+                        $hourly[$currency][$bucket] = round(
+                            (float)($hourly[$currency][$bucket] ?? 0) + (float)$amount,
+                            2
+                        );
+                    }
+                    foreach ((array)($extra['category_sales'] ?? []) as $category => $amount) {
+                        $categories[$currency][$category] = round(
+                            (float)($categories[$currency][$category] ?? 0) + (float)$amount,
                             2
                         );
                     }
@@ -66,6 +85,14 @@ final class GroupScopeReadModel
             ksort($currencySeries);
         }
         unset($currencySeries);
+        foreach ($hourly as &$currencyHourly) {
+            ksort($currencyHourly);
+        }
+        unset($currencyHourly);
+        foreach ($categories as &$currencyCategories) {
+            arsort($currencyCategories);
+        }
+        unset($currencyCategories);
         arsort($payments);
 
         return $base + [
@@ -74,9 +101,15 @@ final class GroupScopeReadModel
                 : $this->label((int)$ids[0], $context),
             'dashboard' => [
                 'guests' => $guests,
+                'turnover_minutes' => $turnoverSamples > 0
+                    ? round(($turnoverSeconds / $turnoverSamples) / 60, 1)
+                    : null,
+                'turnover_samples' => $turnoverSamples,
                 'channels' => ['dine_in' => $dineIn, 'takeaway' => $takeaway],
                 'payment_methods' => $payments,
                 'sales_series' => $series,
+                'sales_by_hour' => $hourly,
+                'category_sales' => $categories,
                 'restaurants' => $details,
             ],
         ];
@@ -234,7 +267,14 @@ final class GroupScopeReadModel
         }
 
         $select = ['order_id', $dateColumn];
-        foreach (array_filter([$amountColumn, $guestColumn, $paymentColumn, isset($columns['order_type']) ? 'order_type' : null]) as $column) {
+        foreach (array_filter([
+            $amountColumn,
+            $guestColumn,
+            $paymentColumn,
+            isset($columns['order_type']) ? 'order_type' : null,
+            isset($columns['created_at']) ? 'created_at' : null,
+            isset($columns['settled_at']) ? 'settled_at' : null,
+        ]) as $column) {
             if (!in_array($column, $select, true)) $select[] = $column;
         }
 
@@ -252,6 +292,10 @@ final class GroupScopeReadModel
         $channels = ['dine_in' => 0, 'takeaway' => 0];
         $payments = [];
         $seriesMinor = [];
+        $hourlyMinor = [];
+        $turnoverSecondsTotal = 0;
+        $turnoverSamples = 0;
+        $orderIds = [];
 
         $query->select($select)->orderBy('order_id')->chunkById(
             500,
@@ -264,9 +308,14 @@ final class GroupScopeReadModel
                 &$guests,
                 &$channels,
                 &$payments,
-                &$seriesMinor
+                &$seriesMinor,
+                &$hourlyMinor,
+                &$turnoverSecondsTotal,
+                &$turnoverSamples,
+                &$orderIds
             ) {
                 foreach ($orders as $order) {
+                    if (count($orderIds) < 5000) $orderIds[] = (int)$order->order_id;
                     if ($guestColumn) $guests += max(0, (int)($order->{$guestColumn} ?? 0));
 
                     $type = strtolower(trim((string)($order->order_type ?? '')));
@@ -285,11 +334,27 @@ final class GroupScopeReadModel
                         try {
                             $at = Carbon::parse((string)$order->{$dateColumn}, $profile['storage_timezone'])
                                 ->setTimezone($profile['timezone']);
+                            $minor = ReportMath::minor((string)($order->{$amountColumn} ?? '0'), $profile['decimals']);
                             $bucket = $at->format('Y-m-d');
-                            $seriesMinor[$bucket] = ReportMath::add(
-                                $seriesMinor[$bucket] ?? 0,
-                                ReportMath::minor((string)($order->{$amountColumn} ?? '0'), $profile['decimals'])
-                            );
+                            $seriesMinor[$bucket] = ReportMath::add($seriesMinor[$bucket] ?? 0, $minor);
+                            $hour = $at->format('H:00');
+                            $hourlyMinor[$hour] = ReportMath::add($hourlyMinor[$hour] ?? 0, $minor);
+                        } catch (\Throwable $ignored) {
+                        }
+                    }
+
+                    if (
+                        isset($order->created_at, $order->settled_at)
+                        && !in_array($type, ['delivery', 'collection', 'takeaway', 'take-away', 'pickup', 'cashier'], true)
+                    ) {
+                        try {
+                            $opened = Carbon::parse((string)$order->created_at, $profile['storage_timezone']);
+                            $closed = Carbon::parse((string)$order->settled_at, $profile['storage_timezone']);
+                            $seconds = $closed->timestamp - $opened->timestamp;
+                            if ($seconds >= 60 && $seconds <= 43200) {
+                                $turnoverSecondsTotal += $seconds;
+                                $turnoverSamples++;
+                            }
                         } catch (\Throwable $ignored) {
                         }
                     }
@@ -303,16 +368,83 @@ final class GroupScopeReadModel
             $series[$bucket] = (float)ReportMath::decimal($minor, $profile['decimals']);
         }
         ksort($series);
+
+        $hourly = [];
+        foreach ($hourlyMinor as $bucket => $minor) {
+            $hourly[$bucket] = (float)ReportMath::decimal($minor, $profile['decimals']);
+        }
+        ksort($hourly);
         arsort($payments);
+
+        $categorySales = [];
+        if (
+            $orderIds
+            && $schema->hasTable('order_menus')
+            && $schema->hasTable('menu_categories')
+            && $schema->hasTable('categories')
+        ) {
+            $itemColumns = array_flip($schema->getColumnListing('order_menus'));
+            $pivotColumns = array_flip($schema->getColumnListing('menu_categories'));
+            $categoryColumns = array_flip($schema->getColumnListing('categories'));
+
+            if (
+                isset($itemColumns['order_id'], $itemColumns['menu_id'])
+                && isset($pivotColumns['menu_id'], $pivotColumns['category_id'])
+                && isset($categoryColumns['category_id'], $categoryColumns['name'])
+            ) {
+                $menuCategory = [];
+                foreach (
+                    $db->table('menu_categories as mc')
+                        ->join('categories as c', 'c.category_id', '=', 'mc.category_id')
+                        ->orderBy('c.name')
+                        ->get(['mc.menu_id', 'c.name'])
+                    as $relation
+                ) {
+                    $menuId = (int)$relation->menu_id;
+                    if (!isset($menuCategory[$menuId])) $menuCategory[$menuId] = (string)$relation->name;
+                }
+
+                $itemSelect = ['order_id', 'menu_id'];
+                foreach (['subtotal', 'price', 'quantity'] as $column) {
+                    if (isset($itemColumns[$column])) $itemSelect[] = $column;
+                }
+
+                foreach (
+                    $db->table('order_menus')
+                        ->whereIn('order_id', array_values(array_unique($orderIds)))
+                        ->get($itemSelect)
+                    as $item
+                ) {
+                    $category = $menuCategory[(int)$item->menu_id] ?? 'Uncategorised';
+                    $amount = isset($item->subtotal)
+                        ? (string)$item->subtotal
+                        : (string)((float)($item->price ?? 0) * (float)($item->quantity ?? 1));
+                    try {
+                        $minor = ReportMath::minor($amount, $profile['decimals']);
+                        $categorySales[$category] = ReportMath::add($categorySales[$category] ?? 0, $minor);
+                    } catch (\Throwable $ignored) {
+                    }
+                }
+            }
+        }
+
+        foreach ($categorySales as $category => $minor) {
+            $categorySales[$category] = (float)ReportMath::decimal($minor, $profile['decimals']);
+        }
+        arsort($categorySales);
 
         return [
             'available' => true,
             'currency' => (string)$profile['currency'],
             'timezone' => (string)$profile['timezone'],
             'guests' => $guests,
+            'turnover_seconds_total' => $turnoverSecondsTotal,
+            'turnover_samples' => $turnoverSamples,
             'channels' => $channels,
             'payments' => $payments,
             'sales_series' => $series,
+            'sales_by_hour' => $hourly,
+            'category_sales' => $categorySales,
         ];
     }
 
