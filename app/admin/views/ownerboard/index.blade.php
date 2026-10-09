@@ -220,7 +220,6 @@
         </div>
 
         <div class="pmd-ownerboard-v2__header-actions">
-            @include('admin::_partials.pmd_group_scope_firstpaint')
             <a
                 class="pmd-ownerboard-v2__header-button"
                 href="{{ admin_url('reservations') }}"
