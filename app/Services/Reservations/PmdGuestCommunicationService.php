@@ -18,7 +18,14 @@ final class PmdGuestCommunicationService
         $emailEnabled = $this->boolSetting('pmd_reservation_messages_email_enabled', true);
         $whatsappEnabled = $this->boolSetting('pmd_reservation_messages_whatsapp_enabled', false);
         $senderEmail = strtolower(trim((string)$this->setting('sender_email', '')));
+        if ($senderEmail === '') {
+            $senderEmail = strtolower(trim((string)$this->setting('site_email', '')));
+        }
+
         $senderName = trim((string)$this->setting('sender_name', ''));
+        if ($senderName === '') {
+            $senderName = trim((string)$this->setting('site_name', ''));
+        }
         $whatsappProvider = strtolower(trim((string)$this->setting(
             'pmd_reservation_messages_whatsapp_provider',
             'meta_cloud'
