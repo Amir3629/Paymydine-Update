@@ -80,6 +80,19 @@ class Pmdsettings extends AdminController
         $this->resolvedRestaurantIdentityR25(true);
 
         $this->vars['pmdProfile'] = $this->restaurantProfilePayload($locationId);
+        // /book always uses the tenant's default enabled location; the admin
+        // selector may be on a different location in multi-location accounts.
+        $this->vars['pmdPublicBookingLocationMismatch'] = false;
+        $this->vars['pmdPublicBookingLocationName'] = '';
+        try {
+            $publicLocation = \Admin\Models\Locations_model::getDefault();
+            if ($publicLocation && (int)$publicLocation->location_id !== $locationId) {
+                $this->vars['pmdPublicBookingLocationMismatch'] = true;
+                $this->vars['pmdPublicBookingLocationName'] = (string)$publicLocation->location_name;
+            }
+        } catch (\Throwable $error) {
+            // Leave the profile editable if public booking is unavailable.
+        }
         $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
         $this->vars['pmdProfileLocationId'] = $locationId;
         $this->vars['pmdGuestCommunications'] = app(PmdGuestCommunicationService::class)
