@@ -297,6 +297,37 @@ try {
         throw new RuntimeException('Restaurant scope switcher must not navigate to another tenant subdomain.');
     }
 
+    // R18: existing Dashboard Lab/Menu geometry must remain the only renderer.
+    // Preflight the real deployment sources to avoid an R13 duplicate panel
+    // returning accidentally with a future merge or partial deployment.
+    $stage = 'native-scoped-dashboard-ui';
+    $firstPaint = (string)@file_get_contents($root.'/app/admin/views/_partials/pmd_group_scope_firstpaint.blade.php');
+    $labView = (string)@file_get_contents($root.'/app/admin/views/dashboardlab/index.blade.php');
+    $menuView = (string)@file_get_contents($root.'/app/admin/views/pmdmenus/index.blade.php');
+    $nativeKpis = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-dashboard-lab-kpis-v1.js');
+    $nativeAnalytics = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-dashboard-lab-analytics-v1.js');
+    $nativeLive = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-dashboard-live-refresh-v1.js');
+    $scopeCss = (string)@file_get_contents($root.'/app/admin/assets/css/pmd-restaurant-groups-v1.css');
+    foreach ([$labView, $menuView] as $view) {
+        if (strpos($view, "@include('admin::_partials.pmd_group_scope_firstpaint')") === false) {
+            throw new RuntimeException('Existing Dashboard/Menu header lacks the first-paint restaurant selector.');
+        }
+    }
+    if (strpos($firstPaint, 'context(false)') === false
+        || strpos($firstPaint, 'ManagedIdentity::isManaged') === false
+        || strpos($firstPaint, 'data-pmd-group-firstpaint') === false
+        || strpos($nativeKpis, 'pmd_group_scoped') === false
+        || strpos($nativeAnalytics, 'setScopeProvider: function') === false
+        || strpos($nativeLive, 'isRemoteScope()') === false
+        || strpos($dashboardSource, "window.PMDRestaurantGroupsV1=") === false
+        || strpos($dashboardSource, "PMDDashboardLabKpisV1.applyLivePayload") === false
+        || strpos($dashboardSource, "pmd-group-dashboard-panel") !== false
+        || strpos($dashboardSource, "Business account',account") !== false
+        || strpos($scopeCss, 'pmd-group-dashboard-scope-active>:not(') !== false
+        || strpos($scopeCss, 'pmd-group-menu-scope-active>:not(') !== false) {
+        throw new RuntimeException('Restaurant Groups native-only scope contract is incomplete.');
+    }
+
     echo "PASS /admin/group/context route matches Restaurant Groups before the greedy Admin catch-all\n";
     echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";
     echo "PASS managed Group Owner workspace MFA uses the central factor authority without tenant-local factor duplication\n";
