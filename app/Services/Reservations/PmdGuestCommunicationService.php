@@ -80,6 +80,18 @@ final class PmdGuestCommunicationService
                 'pmd_reservation_messages_whatsapp_test_recipient',
                 ''
             ),
+            'whatsapp_template_created' => (string)$this->setting(
+                'pmd_reservation_messages_whatsapp_template_created',
+                ''
+            ),
+            'whatsapp_template_updated' => (string)$this->setting(
+                'pmd_reservation_messages_whatsapp_template_updated',
+                ''
+            ),
+            'whatsapp_template_canceled' => (string)$this->setting(
+                'pmd_reservation_messages_whatsapp_template_canceled',
+                ''
+            ),
             'events' => $events,
         ];
     }
@@ -134,9 +146,14 @@ final class PmdGuestCommunicationService
                     (string)$message['whatsapp_text'],
                     [
                         'event' => $event,
+                        'locale' => $locale,
                         'reservation_id' => (int)$reservation->getKey(),
                         'reference' => (string)$message['reference'],
                         'restaurant_name' => (string)$message['restaurant_name'],
+                        'reservation_date' => (string)$message['reservation_date'],
+                        'reservation_time' => (string)$message['reservation_time'],
+                        'reservation_guests' => (int)$message['reservation_guests'],
+                        'manage_url' => (string)$message['manage_url'],
                     ],
                     $config
                 ) ? 'sent' : 'failed';
@@ -216,6 +233,7 @@ final class PmdGuestCommunicationService
             'PayMyDine WhatsApp test: reservation messaging is connected.',
             [
                 'event' => 'test',
+                'locale' => 'en',
                 'reservation_id' => 0,
                 'reference' => 'TEST',
                 'restaurant_name' => '',
@@ -250,7 +268,8 @@ final class PmdGuestCommunicationService
                     $email,
                     $reservation,
                     $restaurantEmail,
-                    $config
+                    $config,
+                    $message
                 ) {
                     $name = trim(
                         (string)$reservation->first_name.' '
@@ -338,16 +357,55 @@ final class PmdGuestCommunicationService
                     ],
                 ];
             } else {
-                $payload = [
-                    'messaging_product' => 'whatsapp',
-                    'recipient_type' => 'individual',
-                    'to' => $recipient,
-                    'type' => 'text',
-                    'text' => [
-                        'preview_url' => false,
-                        'body' => $text,
-                    ],
-                ];
+                $event = strtolower((string)($context['event'] ?? ''));
+                $templateKey = in_array($event, self::EVENTS, true)
+                    ? 'whatsapp_template_'.$event
+                    : '';
+                $templateName = $templateKey !== ''
+                    ? trim((string)($config[$templateKey] ?? ''))
+                    : '';
+
+                if ($templateName !== '') {
+                    $payload = [
+                        'messaging_product' => 'whatsapp',
+                        'recipient_type' => 'individual',
+                        'to' => $recipient,
+                        'type' => 'template',
+                        'template' => [
+                            'name' => $templateName,
+                            'language' => [
+                                'code' => $this->whatsappTemplateLanguage(
+                                    (string)($context['locale'] ?? 'en')
+                                ),
+                            ],
+                            'components' => [[
+                                'type' => 'body',
+                                'parameters' => [
+                                    ['type' => 'text', 'text' => (string)($context['restaurant_name'] ?? '')],
+                                    ['type' => 'text', 'text' => (string)($context['reference'] ?? '')],
+                                    ['type' => 'text', 'text' => (string)($context['reservation_date'] ?? '')],
+                                    ['type' => 'text', 'text' => (string)($context['reservation_time'] ?? '')],
+                                    ['type' => 'text', 'text' => (string)($context['reservation_guests'] ?? '')],
+                                    ['type' => 'text', 'text' => (string)($context['manage_url'] ?? '')],
+                                ],
+                            ]],
+                        ],
+                    ];
+                } else {
+                    // Text messages work only when the provider permits a free-form
+                    // customer-service conversation. For proactive confirmations,
+                    // configure approved WhatsApp templates in Restaurant Profile.
+                    $payload = [
+                        'messaging_product' => 'whatsapp',
+                        'recipient_type' => 'individual',
+                        'to' => $recipient,
+                        'type' => 'text',
+                        'text' => [
+                            'preview_url' => false,
+                            'body' => $text,
+                        ],
+                    ];
+                }
             }
 
             $response = $request->post($endpoint, $payload);
@@ -616,6 +674,18 @@ final class PmdGuestCommunicationService
         }
 
         return true;
+    }
+
+    private function whatsappTemplateLanguage(string $locale): string
+    {
+        $locale = $this->locale($locale);
+
+        return [
+            'de' => 'de_DE',
+            'en' => 'en_GB',
+            'tr' => 'tr',
+            'ar' => 'ar',
+        ][$locale] ?? 'en_GB';
     }
 
     private function locale(string $locale): string
