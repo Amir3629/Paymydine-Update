@@ -73,6 +73,9 @@ try {
     $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
 
+    $stage = 'template-preflight';
+    $app->make(\App\Services\SuperAdminTenantLifecycleService::class)->assertGroupTemplateReady();
+
     $stage = 'provider-registration';
     if (!$app->getProvider(\App\Providers\RestaurantGroupsServiceProvider::class)) {
         throw new RuntimeException('RestaurantGroupsServiceProvider is not registered by the System bootstrap authority.');
@@ -194,8 +197,9 @@ try {
     }
 
     $tenantLifecycleSource = (string)@file_get_contents($root.'/app/Services/SuperAdminTenantLifecycleService.php');
-    if (strpos($tenantLifecycleSource, 'assertGroupTemplateReady') === false) {
-        throw new RuntimeException('Business Account template preflight is missing.');
+    if (strpos($tenantLifecycleSource, 'assertGroupTemplateReady') === false
+        || strpos($tenantLifecycleSource, 'getTablePrefix()') === false) {
+        throw new RuntimeException('Prefix-aware Business Account template preflight is missing.');
     }
 
     if (strpos($tenantLifecycleSource, 'applyIndependentOwnerAccess') === false
@@ -213,6 +217,7 @@ try {
         throw new RuntimeException('Multi-location dashboard does not default to the current location.');
     }
 
+    echo "PASS live Restaurant template preflight resolved configured table prefix\n";
     echo "PASS two-step Create Restaurant flow and group dashboard rendered\n";
     echo "PASS routes, Super Admin authentication middleware and native security bindings resolved\n";
     echo "PASS central feature storage enabled\n";
