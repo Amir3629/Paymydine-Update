@@ -456,7 +456,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                 <div class="pmd-profile-day-card__top">
                                     <div>
                                         <strong>{{ $pmdSettingsText($day['label']) }}</strong>
-                                        <span data-pmd-hours-state>{{ !empty($day['enabled']) ? 'Open' : 'Closed' }}</span>
+                                        <span data-pmd-hours-state>{{ $pmdSettingsText(!empty($day['enabled']) ? 'Open' : 'Closed') }}</span>
                                     </div>
 
                                     <label class="pmd-profile-switch" aria-label="{{ $pmdSettingsText($day['label']) }} open">
