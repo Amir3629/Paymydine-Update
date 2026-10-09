@@ -5,6 +5,8 @@
 // PMD_KIOSK_SCROLL_CATEGORIES_V18
 // PMD_KIOSK_SINGLE_SURFACE_RUNTIME_V22
 // PMD_KIOSK_RICH_FOOD_DETAILS_V22_5
+// PMD_KIOSK_OPTION_ONLY_PLUS_V22_6
+// PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7
 (function () {
   "use strict";
 
@@ -1288,9 +1290,7 @@
           return '<div class="pmd-kiosk-food-metric"><span class="pmd-kiosk-food-metric__icon">' + foodMetaIcon(entry.kind) +
             '</span><span><small>' + escapeHtml(entry.label) + '</small><strong>' + escapeHtml(entry.value) + '</strong></span></div>';
         }).join("") +
-        '</div>' +
-        (nutrition && nutrition.disclaimer ? '<p class="pmd-kiosk-food-meta__disclaimer">' + escapeHtml(nutrition.disclaimer) + '</p>' : '') +
-        '</section>'
+        '</div></section>'
       );
     }
 
@@ -1307,6 +1307,47 @@
     return result;
   }
 
+  function optionGroupsHtml(item, selected) {
+    return item.options.map(function (group) {
+      var inputs = group.values.map(function (value) {
+        var checked = (selected[group.id] || []).indexOf(value.id) >= 0;
+        var type = group.displayType === "checkbox" ? "checkbox" : "radio";
+        return '<label class="pmd-kiosk-option' + (checked ? ' is-selected' : '') + '"><span><input type="' + type + '" name="option-' + escapeHtml(group.id) +
+          '" value="' + escapeHtml(value.id) + '" data-option-group="' + escapeHtml(group.id) + '"' +
+          (checked ? " checked" : "") + '> ' + escapeHtml(value.name) + "</span>" +
+          (value.price > 0 ? "<small>+" + escapeHtml(money(value.price)) + "</small>" : "") + "</label>";
+      }).join("");
+      return '<fieldset class="pmd-kiosk-option-group" data-required="' + (group.required ? "1" : "0") +
+        '" data-group-id="' + escapeHtml(group.id) + '"><legend>' + escapeHtml(group.name) +
+        " · " + escapeHtml(group.required ? copy().required : copy().optional) + '</legend><div class="pmd-kiosk-option-list">' + inputs + "</div></fieldset>";
+    }).join("");
+  }
+
+  function openAddFlow(item) {
+    if (!item) return;
+    if (item.options && item.options.length) {
+      openOptionPicker(item);
+      return;
+    }
+    addConfiguredItem(item, 1, [], "");
+  }
+
+  function openOptionPicker(item) {
+    if (!item || !item.options.length) return;
+    state.currentModal = { type: "options", itemId: item.id };
+    var selected = defaultSelections(item);
+    var groups = optionGroupsHtml(item, selected);
+
+    openModal(
+      '<header class="pmd-kiosk-modal__head pmd-kiosk-option-picker__head"><div><p>' + escapeHtml(copy().options) + '</p><h2>' +
+        escapeHtml(item.name) + '</h2></div><button type="button" class="pmd-kiosk-modal__close" data-pmd-close-modal aria-label="Close">×</button></header>' +
+      '<div class="pmd-kiosk-modal__body pmd-kiosk-option-picker"><div class="pmd-kiosk-option-picker__groups">' + groups + '</div></div>' +
+      '<footer class="pmd-kiosk-modal__foot"><button type="button" class="pmd-kiosk-secondary" data-pmd-close-modal>' +
+        escapeHtml(copy().cancel) + '</button><button type="button" class="pmd-kiosk-primary" data-add-configured="' + escapeHtml(item.id) + '">' +
+        "<span>" + escapeHtml(copy().addOrder) + " · " + escapeHtml(money(item.price)) + "</span><span>›</span></button></footer>"
+    );
+  }
+
   function openItem(item) {
     if (!item) return;
     state.currentModal = { type: "item", itemId: item.id };
@@ -1314,19 +1355,7 @@
     var detailImage = item.image && !isFoodPlaceholderAsset(item.image)
       ? '<div class="pmd-kiosk-detail__image"><img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '"></div>'
       : '<div class="pmd-kiosk-detail__image">' + foodPlaceholderHtml() + "</div>";
-    var groups = item.options.map(function (group) {
-      var inputs = group.values.map(function (value) {
-        var checked = (selected[group.id] || []).indexOf(value.id) >= 0;
-        var type = group.displayType === "checkbox" ? "checkbox" : "radio";
-        return '<label class="pmd-kiosk-option' + (checked ? ' is-selected' : '') + '"><span><input type="' + type + '" name="option-' + escapeHtml(group.id) +
-          '" value="' + escapeHtml(value.id) + '" data-option-group="' + escapeHtml(group.id) + '"' +
-          (checked ? " checked" : "") + "> " + escapeHtml(value.name) + "</span>" +
-          (value.price > 0 ? "<small>+" + escapeHtml(money(value.price)) + "</small>" : "") + "</label>";
-      }).join("");
-      return '<fieldset class="pmd-kiosk-option-group" data-required="' + (group.required ? "1" : "0") +
-        '" data-group-id="' + escapeHtml(group.id) + '"><legend>' + escapeHtml(group.name) +
-        " · " + escapeHtml(group.required ? copy().required : copy().optional) + '</legend><div class="pmd-kiosk-option-list">' + inputs + "</div></fieldset>";
-    }).join("");
+    var groups = optionGroupsHtml(item, selected);
 
     openModal(
       '<header class="pmd-kiosk-modal__head"><div><p>' + escapeHtml(item.categoryName) + "</p><h2>" +
@@ -2312,9 +2341,18 @@
     state.categories = normalizedMenu.categories;
     state.payments = normalizePayments(data.payments);
 
+    // PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7
+    // Menu and service-choice screens must use one canonical Digital Menu hero.
+    // Only fall back to the first food image when no canonical hero exists.
     var heroItem = state.items.find(function (entry) { return entry.image; });
-    if (heroItem && heroItem.image) {
-      document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + String(heroItem.image).replace(/"/g, "%22") + '")');
+    var menuHero = String(
+      config.serviceHero ||
+      config.hero ||
+      (heroItem && heroItem.image) ||
+      ""
+    ).trim();
+    if (menuHero) {
+      document.documentElement.style.setProperty("--pmd-k-hero-image", 'url("' + menuHero.replace(/"/g, "%22") + '")');
       var heroNode = $("pmd-kiosk-menu-hero");
       if (heroNode) heroNode.classList.add("is-ready");
       document.body.classList.add("pmd-kiosk-hero-ready");
@@ -2438,19 +2476,28 @@
     section.scrollIntoView({ behavior: "auto", block: "start" });
   });
 
+  // PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7
+  // Capture the + control before the parent food card can receive the click.
+  // This is intentionally separate from the card-details click path for older
+  // Android WebViews where nested button taps can otherwise resolve to the card.
   grid.addEventListener("click", function (event) {
-    var adder = event.target.closest("[data-add-item]");
-    if (adder) {
-      event.preventDefault();
-      event.stopPropagation();
-      var addItem = findItem(adder.getAttribute("data-add-item"));
-      if (!addItem) return;
-      if (addItem.options.length) openItem(addItem);
-      else addConfiguredItem(addItem, 1, [], "");
-      return;
-    }
+    var target = event.target;
+    var adder = target && target.closest ? target.closest("[data-add-item]") : null;
+    if (!adder || !grid.contains(adder)) return;
 
-    var opener = event.target.closest("[data-open-item]");
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+
+    openAddFlow(findItem(adder.getAttribute("data-add-item")));
+  }, true);
+
+  grid.addEventListener("click", function (event) {
+    var target = event.target;
+    if (!target || !target.closest) return;
+    if (target.closest("[data-add-item]")) return;
+
+    var opener = target.closest("[data-open-item]");
     if (!opener) return;
     openItem(findItem(opener.getAttribute("data-open-item")));
   });

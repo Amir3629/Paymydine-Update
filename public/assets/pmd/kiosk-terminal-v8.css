@@ -500,6 +500,17 @@ img { display: block; max-width: 100%; }
 
 .pmd-kiosk-add:hover { background: var(--pmd-k-accent-dark); }
 
+/* PMD_KIOSK_STRICT_PLUS_HIT_TARGET_V22_7
+ * Keep the add button as the topmost touch target inside a clickable food card.
+ */
+.pmd-kiosk-add--icon {
+  position: relative;
+  z-index: 8;
+  pointer-events: auto !important;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .pmd-kiosk-order {
   min-height: 0;
   display: grid;
@@ -1670,21 +1681,22 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
  * The shell itself is visible immediately; photography hydrates from the
  * restaurant's own menu once the bootstrap response arrives.
  */
+/* PMD_KIOSK_FULLBLEED_MENU_HERO_V22_8
+ * The Menu hero is a background band, not a framed card.
+ */
 .pmd-kiosk-menu-hero {
   display: none;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--pmd-k-accent) 24%, var(--pmd-k-line));
-  border-radius: 18px;
+  border: 0;
+  border-radius: 0;
   background:
-    linear-gradient(90deg,
-      color-mix(in srgb, var(--pmd-k-panel) 22%, transparent),
-      color-mix(in srgb, var(--pmd-k-panel) 2%, transparent)),
     var(--pmd-k-hero-image),
     var(--pmd-k-panel-soft);
   background-position: center;
   background-size: cover;
-  box-shadow: 0 12px 30px rgba(0,0,0,.13);
+  background-repeat: no-repeat;
+  box-shadow: none;
 }
 
 @media (max-width: 930px) {
@@ -1710,8 +1722,13 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
   .pmd-kiosk-menu-hero {
     grid-area: hero;
     display: block;
-    width: 100%;
+    justify-self: center;
+    width: calc(100% + 24px);
     height: 136px;
+    margin-inline: -12px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
   }
   .pmd-kiosk-search { grid-area: search; }
 
@@ -1730,7 +1747,7 @@ body[data-pmd-kiosk-theme="ember_steakhouse"] .pmd-kiosk-item__copy h2 {
 
   .pmd-kiosk-menu-hero {
     height: 140px;
-    border-radius: 16px;
+    border-radius: 0;
   }
 
   .pmd-kiosk-workspace {
@@ -2587,11 +2604,41 @@ body.pmd-kiosk-v8 {
   font-weight: 950;
 }
 
-.pmd-kiosk-food-meta__disclaimer {
-  margin: 0 !important;
-  color: var(--pmd-k-muted) !important;
-  font-size: 12px !important;
-  line-height: 1.45 !important;
+/* PMD_KIOSK_OPTION_ONLY_PLUS_V22_6 */
+.pmd-kiosk-option-picker {
+  padding-top: 12px;
+  padding-bottom: 18px;
+}
+
+.pmd-kiosk-option-picker__groups {
+  display: grid;
+  gap: 14px;
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option-group {
+  padding: 0;
+  border-top: 0;
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option-group + .pmd-kiosk-option-group {
+  padding-top: 16px;
+  border-top: 1px solid var(--pmd-k-line);
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option-group legend {
+  margin-bottom: 12px;
+  font-size: clamp(18px, 2.6vw, 22px);
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option {
+  min-height: 72px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  font-size: clamp(18px, 2.5vw, 22px);
+}
+
+.pmd-kiosk-option-picker .pmd-kiosk-option small {
+  font-size: 18px;
 }
 
 @media (max-width: 760px) {

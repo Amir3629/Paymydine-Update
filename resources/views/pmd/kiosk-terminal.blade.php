@@ -5,8 +5,13 @@
     $initialRestaurantLogo = trim((string)($initialRestaurant['logo'] ?? ''));
     $initialRestaurantLetter = mb_strtoupper(mb_substr($initialRestaurantName, 0, 1));
     $initialServiceMode = (($pmdKioskConfig['serviceMode'] ?? '') === 'pickup') ? 'Take away' : 'Dine in';
-    $initialHero = trim((string)($pmdKioskConfig['hero'] ?? ''));
     $initialServiceHero = trim((string)($pmdKioskConfig['serviceHero'] ?? ''));
+    // PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7
+    // The menu hero must be the exact same canonical Digital Menu hero used
+    // on the DINE IN / TAKE AWAY screen. Legacy Android hero is fallback only.
+    $initialHero = $initialServiceHero !== ''
+        ? $initialServiceHero
+        : trim((string)($pmdKioskConfig['hero'] ?? ''));
     $initialChooseService = request()->boolean('kiosk_choose_service');
     $initialLocale = strtolower(substr((string)request()->query('lang', 'en'), 0, 3));
     if (!preg_match('/^[a-z]{2,3}$/', $initialLocale)) $initialLocale = 'en';
@@ -28,7 +33,7 @@
     @if ($initialServiceHero !== '')
         <link rel="preload" as="image" href="{{ e($initialServiceHero) }}" fetchpriority="high">
     @endif
-    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=22-5-fullbleed-food-details">
+    <link rel="stylesheet" href="/public/assets/pmd/kiosk-terminal-v8.css?v=22-8-fullbleed-menu-hero">
     <style id="pmd-kiosk-v22-5-service-choice-polish">
         /* PMD_KIOSK_SERVICE_LABEL_FIT_V22_1 */
         /* PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4 */
@@ -155,6 +160,9 @@
 <!-- PMD_KIOSK_CANONICAL_DIGITAL_MENU_HERO_V22_4 -->
 <!-- PMD_KIOSK_FULLBLEED_SERVICE_HERO_V22_5 -->
 <!-- PMD_KIOSK_RICH_FOOD_DETAILS_V22_5 -->
+<!-- PMD_KIOSK_OPTION_ONLY_PLUS_V22_6 -->
+<!-- PMD_KIOSK_UNIFIED_HERO_STRICT_PLUS_V22_7 -->
+<!-- PMD_KIOSK_FULLBLEED_MENU_HERO_V22_8 -->
 <body
     class="pmd-kiosk-v8{{ $initialHero !== '' ? ' pmd-kiosk-hero-ready' : '' }}"
     data-pmd-kiosk-terminal="blade-v8"
@@ -322,6 +330,6 @@
 </div>
 
 <script id="pmd-kiosk-config" type="application/json">{!! json_encode($pmdKioskConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=22-5-fullbleed-food-details" defer></script>
+<script src="/public/assets/pmd/kiosk-terminal-v8.js?v=22-8-fullbleed-menu-hero" defer></script>
 </body>
 </html>
