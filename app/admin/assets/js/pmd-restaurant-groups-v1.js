@@ -25,7 +25,10 @@
     if(body!==undefined){options.method='POST';options.headers['Content-Type']='application/json';options.headers['X-CSRF-TOKEN']=token;options.body=JSON.stringify(body);}
     return fetch('/admin/group/'+endpoint,options).then(function(response){
       return response.json().catch(function(){return {};}).then(function(data){
-        if(!response.ok||data.ok===false)throw new Error(data.message||'The request could not be completed.');
+        if(!response.ok||data.ok===false){
+          var error=new Error(data.message||'The request could not be completed.');
+          error.pmdData=data;error.pmdStatus=response.status;throw error;
+        }
         return data;
       });
     });
@@ -184,11 +187,24 @@
     var bar=el('div',null,'pmd-group-toolbar');bar.appendChild(el('strong',context.group.name));bar.appendChild(button('Business account',account));if(type&&context.capabilities.publish)bar.appendChild(button('Apply to locations',share));root.prepend(bar);
   }
 
+  function contextFailure(error){
+    try{console.error('[PMD Restaurant Groups] context failed:',error&&error.message?error.message:error);}catch(ignored){}
+    if(!(error&&error.pmdData&&error.pmdData.enabled))return;
+    var root=document.querySelector('#pmd-dashboard-lab,#pmd-ownerboard,[data-pmd-ownerboard-v2],[data-pmd-menu-manager],.page-content,main');
+    var header=root&&root.querySelector('#pmd-r2-clean-header,.pmd-ownerboard-v2__header,.pmd-menu-manager__topbar,header');
+    var actions=header&&header.querySelector('.pmd-owner-header__actions,.pmd-ownerboard-v2__header-actions,[data-pmd-dashboard-lab-header-actions],[data-pmd-menu-header-actions]');
+    if(!actions||actions.querySelector('[data-pmd-group-reauth]'))return;
+    var notice=button('Reconnect business account',function(){window.location.assign('/admin/logout');},'pmd-group-header-button pmd-group-reauth');
+    notice.setAttribute('data-pmd-group-reauth','1');
+    notice.title=error.message||'Sign in again with the shared Owner account.';
+    actions.prepend(notice);
+  }
+
   request('context').then(function(data){
     if(!data.enabled)return;
     context=data;
     if(dashboard){dashboardMount();return;}
     if(menuPage){menuMount();return;}
     genericMount();
-  }).catch(function(){});
+  }).catch(contextFailure);
 })();

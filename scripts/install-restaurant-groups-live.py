@@ -509,6 +509,7 @@ def main():
             print('[PMD] Provisioning issues no longer render as a top-page attention card; Retry setup lives in the affected restaurant row.', flush=True)
             print('[PMD] Normal restaurants require a chosen Owner username/password; inherited template credentials are rotated before activation.', flush=True)
             print('[PMD] Pending/failed group locations stay disabled until Retry provisioning reaches ready.', flush=True)
+            print('[PMD] R14 loads the group switcher on supported Dashboard/Menu routes without depending on stale session-marker bootstrap state.', flush=True)
             print('[PMD] Group Owners get an in-header Current / restaurant / All restaurants switcher on Dashboard and Menu without subdomain navigation.', flush=True)
             print('[PMD] Dashboard cross-tenant scopes are read-only reports; Menu cross-tenant scopes are read-only catalogs and writes still use Apply to locations.', flush=True)
             print('[PMD] Live health now verifies the real newtenantdb template using the configured MySQL table prefix before installation succeeds.', flush=True)

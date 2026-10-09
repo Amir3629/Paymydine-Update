@@ -29,7 +29,7 @@ final class AdminController extends BaseAdminController
         }
 
         try {
-            return response()->json(['ok' => true] + $snapshot->context());
+            return response()->json(['ok' => true] + $snapshot->context(false));
         } catch (\Throwable $error) {
             return response()->json([
                 'ok' => false,

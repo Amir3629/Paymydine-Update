@@ -219,6 +219,21 @@ try {
         throw new RuntimeException('Prepared-template repair path is missing.');
     }
 
+    $loaderSource = (string)@file_get_contents($root.'/app/admin/views/_partials/pmd_admin_i18n.blade.php');
+    if (strpos($loaderSource, '$pmdGroupsSessionActive && (') !== false) {
+        throw new RuntimeException('Restaurant Groups assets are still incorrectly gated by session markers.');
+    }
+
+    $snapshotSource = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/Snapshot.php');
+    if (strpos($snapshotSource, 'context(bool $requireMfa = true)') === false) {
+        throw new RuntimeException('Restaurant Groups context does not separate selector discovery from MFA-protected cross-tenant reads.');
+    }
+
+    $adminControllerSource = (string)@file_get_contents($root.'/app/Http/Controllers/RestaurantGroups/AdminController.php');
+    if (strpos($adminControllerSource, '$snapshot->context(false)') === false) {
+        throw new RuntimeException('Restaurant Groups selector context is still blocked by MFA.');
+    }
+
     $dashboardSource = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-restaurant-groups-v1.js');
     foreach ([
         "'/admin/ownerdashboard'",
@@ -238,6 +253,8 @@ try {
         throw new RuntimeException('Restaurant scope switcher must not navigate to another tenant subdomain.');
     }
 
+    echo "PASS Restaurant Groups assets load by supported route, independent of fragile session markers\n";
+    echo "PASS selector discovery is password-authenticated while cross-tenant data remains MFA-protected\n";
     echo "PASS in-place Dashboard/Menu restaurant scope switcher wired without tenant-subdomain navigation\n";
     echo "PASS live Restaurant template preflight resolved configured table prefix\n";
     echo "PASS two-step Create Restaurant flow and group dashboard rendered\n";

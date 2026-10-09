@@ -403,19 +403,10 @@
 {{-- PMD_RESTAURANT_GROUPS_R6_ROUTE_SCOPED_LOADER --}}
 @php
     $pmdGroupsRoute = trim((string)request()->path(), '/');
-    $pmdGroupsMode = (array)session()->get(
-        \App\Services\RestaurantGroups\Auth::MODE_SESSION,
-        []
-    );
-    $pmdGroupsProof = (array)session()->get(
-        \App\Services\RestaurantGroups\Auth::SESSION,
-        []
-    );
-    $pmdGroupsSessionActive =
-        ($pmdGroupsMode['mode'] ?? '') === 'group'
-        || !empty($pmdGroupsProof['owner_id']);
-
-    $pmdGroupsAssetsActive = $pmdGroupsSessionActive && (
+    // R14: load the tiny Restaurant Groups bootstrap on supported routes
+    // regardless of session markers. /admin/group/context remains the
+    // authorization authority and returns enabled=false for ordinary tenants.
+    $pmdGroupsAssetsActive = (
         in_array(
             $pmdGroupsRoute,
             [
