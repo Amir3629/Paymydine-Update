@@ -41,7 +41,7 @@
 
 
 
-    function share(){
+  function share(){
     var node=dialog('Apply saved changes to restaurants');
     node.appendChild(el('p','Save in the current restaurant first. Then choose exactly which other restaurants receive this saved item.'));
     var item=el('select');node.appendChild(field('Saved item',item));
@@ -72,7 +72,7 @@
     return {wrap:wrap,select:select};
   }
 
-    function dashboardMount(){
+  function dashboardMount(){
     var root=document.querySelector('#pmd-dashboard-lab, #pmd-ownerboard, [data-pmd-ownerboard-v2]');
     if(!root)return;
     var header=root.querySelector('#pmd-r2-clean-header, .pmd-ownerboard-v2__header, header');
@@ -82,6 +82,7 @@
     var current=String(context.current_tenant_id), selectedScope=current, sequence=0;
     var reportCache=Object.create(null);
     var nativeLab=root.id==='pmd-dashboard-lab';
+    var floor=root.querySelector('#pmd-r2-shared-floor-canvas-v310, [data-pmd-floor]');
     var kpiTemplate={};
     try{
       var kpiData=document.getElementById('pmd-dashboard-lab-kpi-data');
@@ -145,8 +146,9 @@
       });
       return result;
     }
-    function scopedAnalytics(data){
+    function scopedAnalytics(data,todayForHour){
       var problem=issue(data),dash=data&&data.dashboard||{};
+      var hourData=todayForHour||data, hourProblem=issue(hourData),hourDash=hourData&&hourData.dashboard||{};
       var totals=Array.isArray(data&&data.totals)?data.totals:[];
       var financial=!problem&&!data.mixed_currency&&totals.length===1;
       var currency=financial?totals[0].currency:'EUR';
@@ -154,8 +156,9 @@
       function missing(why){return {available:false,reason:why||reason};}
       function moneySeries(source){var rows=(source||{})[currency]||{};return Object.keys(rows).sort().map(function(key){return {bucket:key,sales:Number(rows[key]),orders:0};});}
       var series=financial?moneySeries(dash.sales_series):[];
-      var hours=financial?Object.keys((dash.sales_by_hour||{})[currency]||{}).sort().map(function(key){
-        return {hour:Number(String(key).split(':')[0]),sales:Number(dash.sales_by_hour[currency][key]),orders:0};
+      var hourlyValid=financial&&!hourProblem&&!hourData.mixed_currency;
+      var hours=hourlyValid?Object.keys((hourDash.sales_by_hour||{})[currency]||{}).sort().map(function(key){
+        return {hour:Number(String(key).split(':')[0]),sales:Number(hourDash.sales_by_hour[currency][key]),orders:0};
       }):[];
       var cat=financial?Object.keys((dash.category_sales||{})[currency]||{}).map(function(name){
         return {category:name,revenue:Number(dash.category_sales[currency][name])};
@@ -164,7 +167,7 @@
         success:true,pmd_group_scoped:true,period:data&&data.period||'today',
         currency:currency,currency_symbol:currency==='EUR'?'€':currency==='GBP'?'£':currency==='USD'?'$':currency,
         sales_over_time:financial?{available:true,empty:!series.length,buckets:series}:missing(reason),
-        sales_by_hour:financial?{available:true,empty:!hours.length,hours:hours}:missing(reason),
+        sales_by_hour:hourlyValid?{available:true,empty:!hours.length,hours:hours}:missing(hourProblem||reason),
         sales_by_category:financial?{available:true,empty:!cat.length,categories:cat}:missing(reason),
         // The current Group API has payment counts but not monetary totals.
         // It would be incorrect to feed counts into the native sales donut.
@@ -190,6 +193,13 @@
       selectedScope=scope;
       var remote=scope!==current;
       root.classList.toggle('pmd-group-dashboard-scope-active',remote);
+      if(floor){
+        floor.inert=remote;
+        floor.setAttribute('aria-disabled',remote?'true':'false');
+        floor.title=remote
+          ? 'Floor controls belong to the signed-in restaurant. Select the current restaurant to use them.'
+          : '';
+      }
       control.select.setAttribute('aria-busy',remote?'true':'false');
       if(!nativeLab){
         // Never render a duplicate panel or replace native local data on an
@@ -212,7 +222,10 @@
       applyKpis(null,null,true);
       if(analytics){
         analytics.setScopeProvider(function(period){
-          return report(scope,period).then(scopedAnalytics);
+          return Promise.all([
+            report(scope,period),
+            period==='last30'?report(scope,'today'):Promise.resolve(null)
+          ]).then(function(results){return scopedAnalytics(results[0],results[1]);});
         });
         analytics.refresh().catch(function(error){
           if(version===sequence)control.select.title=String(error&&error.message||'Restaurant reports unavailable');
@@ -231,7 +244,7 @@
     control.select.addEventListener('change',load);
   }
 
-    function menuMount(){
+  function menuMount(){
     var root=document.querySelector('[data-pmd-menu-manager]');if(!root)return;
     var header=root.querySelector('#pmd-r2-clean-header, .pmd-menu-manager__topbar, header');
     var actions=header&&header.querySelector('[data-pmd-menu-header-actions], .pmd-owner-header__actions');
@@ -315,7 +328,7 @@
     control.select.addEventListener('change',load);
   }
 
-    function genericMount(){
+  function genericMount(){
     var root=document.querySelector('.page-content, main');if(!root)return;
     if(type&&context.capabilities.publish){var bar=el('div',null,'pmd-group-toolbar');bar.appendChild(button('Apply to locations',share));root.prepend(bar);}
   }
