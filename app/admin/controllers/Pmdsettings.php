@@ -784,6 +784,7 @@ class Pmdsettings extends AdminController
         $hours = (array)post('hours', []);
         $googleBusinessInput = (array)post('google_business', []);
         $communicationInput = (array)post('communication', []);
+        $hasCommunicationInput = !empty($communicationInput);
 
         $validator = Validator::make($profile, [
             'name' => ['required', 'string', 'max:191'],
@@ -885,7 +886,7 @@ class Pmdsettings extends AdminController
             }
         }
 
-        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $uploadedLogo, $removeLogo, $resolvedLogo, $communicationClean, $communicationInput) {
+        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $uploadedLogo, $removeLogo, $resolvedLogo, $communicationClean, $communicationInput, $hasCommunicationInput) {
             $settings = [
                 'site_name' => trim((string)$clean['name']),
                 'site_email' => trim((string)($clean['email'] ?? '')),
@@ -898,42 +899,50 @@ class Pmdsettings extends AdminController
                 'pmd_social_trustpilot_enabled' => !empty($profile['trustpilot_enabled']) ? 1 : 0,
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
 
-                // PMD_GUEST_COMMUNICATIONS_R28
-                'pmd_reservation_messages_email_enabled' => !empty($communicationInput['email_enabled']) ? 1 : 0,
-                'pmd_reservation_messages_whatsapp_enabled' => !empty($communicationInput['whatsapp_enabled']) ? 1 : 0,
-                'pmd_reservation_messages_event_created' => !empty($communicationInput['event_created']) ? 1 : 0,
-                'pmd_reservation_messages_event_updated' => !empty($communicationInput['event_updated']) ? 1 : 0,
-                'pmd_reservation_messages_event_canceled' => !empty($communicationInput['event_canceled']) ? 1 : 0,
-                'sender_name' => trim((string)($communicationClean['sender_name'] ?? '')),
-                'sender_email' => trim((string)($communicationClean['sender_email'] ?? '')),
-                'protocol' => (string)($communicationClean['protocol'] ?? 'mail'),
-                'smtp_host' => trim((string)($communicationClean['smtp_host'] ?? '')),
-                'smtp_port' => (int)($communicationClean['smtp_port'] ?? 587),
-                'smtp_encryption' => trim((string)($communicationClean['smtp_encryption'] ?? 'tls')),
-                'smtp_user' => trim((string)($communicationClean['smtp_user'] ?? '')),
-                'mailgun_domain' => trim((string)($communicationClean['mailgun_domain'] ?? '')),
-                'ses_region' => trim((string)($communicationClean['ses_region'] ?? '')),
-                'test_email' => trim((string)($communicationClean['test_email'] ?? '')),
-                'pmd_reservation_messages_whatsapp_provider' => (string)($communicationClean['whatsapp_provider'] ?? 'meta_cloud'),
-                'pmd_reservation_messages_whatsapp_endpoint' => trim((string)($communicationClean['whatsapp_endpoint'] ?? '')),
-                'pmd_reservation_messages_whatsapp_sender_reference' => trim((string)($communicationClean['whatsapp_sender_reference'] ?? '')),
-                'pmd_reservation_messages_whatsapp_test_recipient' => trim((string)($communicationClean['whatsapp_test_recipient'] ?? '')),
-                'pmd_reservation_messages_whatsapp_template_created' => trim((string)($communicationClean['whatsapp_template_created'] ?? '')),
-                'pmd_reservation_messages_whatsapp_template_updated' => trim((string)($communicationClean['whatsapp_template_updated'] ?? '')),
-                'pmd_reservation_messages_whatsapp_template_canceled' => trim((string)($communicationClean['whatsapp_template_canceled'] ?? '')),
             ];
 
-            foreach ([
-                'smtp_pass' => 'smtp_pass',
-                'mailgun_secret' => 'mailgun_secret',
-                'postmark_token' => 'postmark_token',
-                'ses_key' => 'ses_key',
-                'ses_secret' => 'ses_secret',
-                'whatsapp_token' => 'pmd_reservation_messages_whatsapp_token',
-            ] as $inputKey => $settingKey) {
-                $secretValue = trim((string)($communicationClean[$inputKey] ?? ''));
-                if ($secretValue !== '') {
-                    $settings[$settingKey] = $secretValue;
+            // PMD_GUEST_COMMUNICATIONS_R28
+            // Old tabs loaded before R28 do not contain a communication section.
+            // In that case preserve the existing communication settings rather
+            // than interpreting missing checkboxes as "disable everything".
+            if ($hasCommunicationInput) {
+                $settings = array_merge($settings, [
+                    'pmd_reservation_messages_email_enabled' => !empty($communicationInput['email_enabled']) ? 1 : 0,
+                    'pmd_reservation_messages_whatsapp_enabled' => !empty($communicationInput['whatsapp_enabled']) ? 1 : 0,
+                    'pmd_reservation_messages_event_created' => !empty($communicationInput['event_created']) ? 1 : 0,
+                    'pmd_reservation_messages_event_updated' => !empty($communicationInput['event_updated']) ? 1 : 0,
+                    'pmd_reservation_messages_event_canceled' => !empty($communicationInput['event_canceled']) ? 1 : 0,
+                    'sender_name' => trim((string)($communicationClean['sender_name'] ?? '')),
+                    'sender_email' => trim((string)($communicationClean['sender_email'] ?? '')),
+                    'protocol' => (string)($communicationClean['protocol'] ?? 'mail'),
+                    'smtp_host' => trim((string)($communicationClean['smtp_host'] ?? '')),
+                    'smtp_port' => (int)($communicationClean['smtp_port'] ?? 587),
+                    'smtp_encryption' => trim((string)($communicationClean['smtp_encryption'] ?? 'tls')),
+                    'smtp_user' => trim((string)($communicationClean['smtp_user'] ?? '')),
+                    'mailgun_domain' => trim((string)($communicationClean['mailgun_domain'] ?? '')),
+                    'ses_region' => trim((string)($communicationClean['ses_region'] ?? '')),
+                    'test_email' => trim((string)($communicationClean['test_email'] ?? '')),
+                    'pmd_reservation_messages_whatsapp_provider' => (string)($communicationClean['whatsapp_provider'] ?? 'meta_cloud'),
+                    'pmd_reservation_messages_whatsapp_endpoint' => trim((string)($communicationClean['whatsapp_endpoint'] ?? '')),
+                    'pmd_reservation_messages_whatsapp_sender_reference' => trim((string)($communicationClean['whatsapp_sender_reference'] ?? '')),
+                    'pmd_reservation_messages_whatsapp_test_recipient' => trim((string)($communicationClean['whatsapp_test_recipient'] ?? '')),
+                    'pmd_reservation_messages_whatsapp_template_created' => trim((string)($communicationClean['whatsapp_template_created'] ?? '')),
+                    'pmd_reservation_messages_whatsapp_template_updated' => trim((string)($communicationClean['whatsapp_template_updated'] ?? '')),
+                    'pmd_reservation_messages_whatsapp_template_canceled' => trim((string)($communicationClean['whatsapp_template_canceled'] ?? '')),
+                ]);
+
+                foreach ([
+                    'smtp_pass' => 'smtp_pass',
+                    'mailgun_secret' => 'mailgun_secret',
+                    'postmark_token' => 'postmark_token',
+                    'ses_key' => 'ses_key',
+                    'ses_secret' => 'ses_secret',
+                    'whatsapp_token' => 'pmd_reservation_messages_whatsapp_token',
+                ] as $inputKey => $settingKey) {
+                    $secretValue = trim((string)($communicationClean[$inputKey] ?? ''));
+                    if ($secretValue !== '') {
+                        $settings[$settingKey] = $secretValue;
+                    }
                 }
             }
 
