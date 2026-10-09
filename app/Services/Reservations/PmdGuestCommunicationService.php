@@ -257,7 +257,7 @@ final class PmdGuestCommunicationService
             'PayMyDine WhatsApp test: reservation messaging is connected.',
             [
                 'event' => $testEvent,
-                'locale' => 'en',
+                'locale' => $this->locale((string)$this->setting('default_language', 'de')),
                 'reservation_id' => 0,
                 'reference' => 'TEST',
                 'restaurant_name' => (string)($config['sender_name'] ?: 'PayMyDine'),
@@ -701,7 +701,10 @@ final class PmdGuestCommunicationService
             return false;
         }
         if ($provider === 'meta_cloud') {
-            return strtolower((string)parse_url($endpoint, PHP_URL_HOST)) === 'graph.facebook.com';
+            $host = strtolower((string)parse_url($endpoint, PHP_URL_HOST));
+            $path = (string)parse_url($endpoint, PHP_URL_PATH);
+            return $host === 'graph.facebook.com'
+                && preg_match('#^/v[0-9]+\.[0-9]+/[0-9]+/messages/?$#', $path) === 1;
         }
         return $provider === 'webhook';
     }
