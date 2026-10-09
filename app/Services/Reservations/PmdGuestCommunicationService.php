@@ -15,7 +15,7 @@ final class PmdGuestCommunicationService
     public function settingsPayload(): array
     {
         $protocol = strtolower(trim((string)$this->setting('protocol', 'mail')));
-        $emailEnabled = $this->boolSetting('pmd_reservation_messages_email_enabled', true);
+        $emailEnabled = $this->boolSetting('pmd_reservation_messages_email_enabled', false);
         $whatsappEnabled = $this->boolSetting('pmd_reservation_messages_whatsapp_enabled', false);
         $senderEmail = strtolower(trim((string)$this->setting('sender_email', '')));
         if ($senderEmail === '') {
@@ -77,7 +77,7 @@ final class PmdGuestCommunicationService
             'test_email' => (string)$this->setting('test_email', ''),
             'whatsapp_enabled' => $whatsappEnabled,
             'whatsapp_ready' => $whatsappEnabled
-                && $this->safeHttpsUrl($whatsappEndpoint)
+                && $this->isAllowedWhatsappEndpoint($whatsappEndpoint, $whatsappProvider)
                 && ($whatsappProvider !== 'meta_cloud' || ($hasWhatsappToken
                     && $this->hasApprovedTemplatesForEnabledEvents($events))),
             'whatsapp_provider' => $whatsappProvider,
@@ -236,15 +236,35 @@ final class PmdGuestCommunicationService
             );
         }
 
+        // Outside the 24-hour service window, Meta requires an approved
+        // template. Reuse an enabled event template for the test message.
+        $testEvent = 'test';
+        if (($config['whatsapp_provider'] ?? '') === 'meta_cloud') {
+            foreach (self::EVENTS as $candidate) {
+                if (!empty($config['events'][$candidate])
+                    && trim((string)($config['whatsapp_template_'.$candidate] ?? '')) !== '') {
+                    $testEvent = $candidate;
+                    break;
+                }
+            }
+            if ($testEvent === 'test') {
+                throw new \RuntimeException('Enable an event and configure its approved Meta template.');
+            }
+        }
+
         return $this->sendWhatsApp(
             $recipient,
             'PayMyDine WhatsApp test: reservation messaging is connected.',
             [
-                'event' => 'test',
+                'event' => $testEvent,
                 'locale' => 'en',
                 'reservation_id' => 0,
                 'reference' => 'TEST',
-                'restaurant_name' => '',
+                'restaurant_name' => (string)($config['sender_name'] ?: 'PayMyDine'),
+                'reservation_date' => date('Y-m-d'),
+                'reservation_time' => date('H:i'),
+                'reservation_guests' => 2,
+                'manage_url' => url('/book'),
             ],
             $config
         );
@@ -327,7 +347,8 @@ final class PmdGuestCommunicationService
         }
 
         $endpoint = trim((string)($config['whatsapp_endpoint'] ?? ''));
-        if (!$this->safeHttpsUrl($endpoint)) {
+        if (!$this->isAllowedWhatsappEndpoint($endpoint, (string)($config['whatsapp_provider'] ?? 'meta_cloud'))
+            || !$this->resolvesToPublicAddress($endpoint)) {
             return false;
         }
 
@@ -341,7 +362,8 @@ final class PmdGuestCommunicationService
             $request = Http::asJson()
                 ->acceptJson()
                 ->timeout(5)
-                ->connectTimeout(3);
+                ->connectTimeout(3)
+                ->withOptions(['allow_redirects' => false]);
 
             if ($token !== '') {
                 $request = $request->withToken($token);
@@ -423,7 +445,6 @@ final class PmdGuestCommunicationService
                     'reservation_id' => (int)($context['reservation_id'] ?? 0),
                     'provider' => $provider,
                     'http_status' => $response->status(),
-                    'body' => mb_substr((string)$response->body(), 0, 1000),
                 ]);
                 return false;
             }
@@ -616,15 +637,20 @@ final class PmdGuestCommunicationService
 
     private function hasApprovedTemplatesForEnabledEvents(array $events): bool
     {
+        $anyEnabled = false;
         foreach (self::EVENTS as $event) {
-            if (!empty($events[$event]) && trim((string)$this->setting(
+            if (empty($events[$event])) {
+                continue;
+            }
+            $anyEnabled = true;
+            if (trim((string)$this->setting(
                 'pmd_reservation_messages_whatsapp_template_'.$event,
                 ''
             )) === '') {
                 return false;
             }
         }
-        return true;
+        return $anyEnabled;
     }
 
     private function emailProtocolReady(string $protocol): bool
@@ -667,6 +693,51 @@ final class PmdGuestCommunicationService
         return $digits;
     }
 
+    // Tenant-configured endpoints are not trusted. Meta Cloud must be Graph,
+    // while custom bot webhooks must have a safe HTTPS destination.
+    private function isAllowedWhatsappEndpoint(string $endpoint, string $provider): bool
+    {
+        if (!$this->safeHttpsUrl($endpoint)) {
+            return false;
+        }
+        if ($provider === 'meta_cloud') {
+            return strtolower((string)parse_url($endpoint, PHP_URL_HOST)) === 'graph.facebook.com';
+        }
+        return $provider === 'webhook';
+    }
+
+    private function resolvesToPublicAddress(string $endpoint): bool
+    {
+        $host = trim((string)parse_url($endpoint, PHP_URL_HOST));
+        if ($host === '') {
+            return false;
+        }
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return filter_var($host, FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+        }
+
+        // Check A and AAAA results; reject private, loopback and reserved
+        // destinations. Redirect following is separately disabled.
+        $records = @dns_get_record($host, DNS_A | DNS_AAAA);
+        if (!is_array($records) || $records === []) {
+            return false;
+        }
+        $found = false;
+        foreach ($records as $record) {
+            $ip = (string)($record['ip'] ?? ($record['ipv6'] ?? ''));
+            if ($ip === '') {
+                continue;
+            }
+            $found = true;
+            if (!filter_var($ip, FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return false;
+            }
+        }
+        return $found;
+    }
+
     private function safeHttpsUrl(string $url): bool
     {
         if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
@@ -682,7 +753,11 @@ final class PmdGuestCommunicationService
         }
 
         $host = strtolower((string)$parts['host']);
-        if ($host === 'localhost' || str_ends_with($host, '.local')) {
+        if (isset($parts['user']) || isset($parts['pass']) || isset($parts['fragment'])
+            || substr_count($host, '.') < 1 || str_ends_with($host, '.')
+            || in_array($host, ['localhost', 'localhost.localdomain'], true)
+            || str_ends_with($host, '.local') || str_ends_with($host, '.internal')
+            || str_ends_with($host, '.localhost')) {
             return false;
         }
 
