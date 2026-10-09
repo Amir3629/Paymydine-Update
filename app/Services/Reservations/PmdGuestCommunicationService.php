@@ -140,7 +140,7 @@ final class PmdGuestCommunicationService
                     $reservation,
                     $message,
                     $config
-                ) ? 'queued' : 'failed';
+                ) ? 'sent' : 'failed';
             }
         }
 
@@ -268,7 +268,7 @@ final class PmdGuestCommunicationService
                 ? strtolower(trim((string)$reservation->location->location_email))
                 : '';
 
-            Mail::queue(
+            Mail::send(
                 'admin::_mail.reservation_guest_message',
                 $message,
                 function ($mail) use (
