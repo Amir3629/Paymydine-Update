@@ -63,18 +63,18 @@ ALLOWED_FILES=(
 )
 
 declare -A APPROVED_PATHS
-for file in "\${ALLOWED_FILES[@]}"; do
+for file in "${ALLOWED_FILES[@]}"; do
     APPROVED_PATHS["$file"]=1
 done
 
 mapfile -d '' -t MODIFIED_PATHS < <(git diff --name-only -z "$CURRENT" "$TARGET")
-if [ "\${#MODIFIED_PATHS[@]}" -lt 1 ]; then
+if [ "${#MODIFIED_PATHS[@]}" -lt 1 ]; then
     echo "STOP: No reviewed changes found."
     exit 1
 fi
 
-for file in "\${MODIFIED_PATHS[@]}"; do
-    if [ -z "\${APPROVED_PATHS[$file]+yes}" ]; then
+for file in "${MODIFIED_PATHS[@]}"; do
+    if [ -z "${APPROVED_PATHS[$file]+yes}" ]; then
         echo "STOP: Unreviewed file would change: $file"
         echo "Nothing installed; Kiosk/other modules are protected."
         exit 1
@@ -88,7 +88,7 @@ mkdir -p "$BACKUP"
 printf 'BASE=%s\nTARGET=%s\n' "$CURRENT" "$TARGET" > "$BACKUP/commits.txt"
 git diff --name-status "$CURRENT" "$TARGET" > "$BACKUP/changed-files.txt"
 
-for file in "\${MODIFIED_PATHS[@]}"; do
+for file in "${MODIFIED_PATHS[@]}"; do
     if [ -e "$file" ]; then
         if [ ! -f "$file" ]; then
             echo "STOP: Not a normal file: $file"
