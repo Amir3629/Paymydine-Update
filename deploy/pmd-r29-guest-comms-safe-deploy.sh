@@ -58,6 +58,7 @@ ALLOWED_FILES=(
     "public/assets/pmd/public-booking-manage-v1.js"
     "resources/views/pmd/public-booking-manage.blade.php"
     "scripts/pmd-r28-guest-communications-qa.sh"
+    "scripts/pmd-r29-communications-contract-qa.php"
     "deploy/pmd-r29-guest-comms-safe-deploy.sh"
 )
 
