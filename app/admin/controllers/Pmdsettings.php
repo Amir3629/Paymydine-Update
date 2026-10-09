@@ -837,6 +837,9 @@ class Pmdsettings extends AdminController
             'whatsapp_sender_reference' => ['nullable', 'string', 'max:255'],
             'whatsapp_token' => ['nullable', 'string', 'max:4096'],
             'whatsapp_test_recipient' => ['nullable', 'string', 'max:64'],
+            'whatsapp_template_created' => ['nullable', 'regex:/^[a-z0-9_]+$/', 'max:512'],
+            'whatsapp_template_updated' => ['nullable', 'regex:/^[a-z0-9_]+$/', 'max:512'],
+            'whatsapp_template_canceled' => ['nullable', 'regex:/^[a-z0-9_]+$/', 'max:512'],
         ]);
 
         if ($communicationValidator->fails()) {
@@ -915,6 +918,9 @@ class Pmdsettings extends AdminController
                 'pmd_reservation_messages_whatsapp_endpoint' => trim((string)($communicationClean['whatsapp_endpoint'] ?? '')),
                 'pmd_reservation_messages_whatsapp_sender_reference' => trim((string)($communicationClean['whatsapp_sender_reference'] ?? '')),
                 'pmd_reservation_messages_whatsapp_test_recipient' => trim((string)($communicationClean['whatsapp_test_recipient'] ?? '')),
+                'pmd_reservation_messages_whatsapp_template_created' => trim((string)($communicationClean['whatsapp_template_created'] ?? '')),
+                'pmd_reservation_messages_whatsapp_template_updated' => trim((string)($communicationClean['whatsapp_template_updated'] ?? '')),
+                'pmd_reservation_messages_whatsapp_template_canceled' => trim((string)($communicationClean['whatsapp_template_canceled'] ?? '')),
             ];
 
             foreach ([
@@ -985,7 +991,8 @@ class Pmdsettings extends AdminController
 
     public function onTestReservationEmail()
     {
-        $recipient = strtolower(trim((string)post('communication.test_email', '')));
+        $communication = (array)post('communication', []);
+        $recipient = strtolower(trim((string)($communication['test_email'] ?? '')));
         if ($recipient === '') {
             $recipient = strtolower(trim((string)$this->restaurantSettingValueR24('test_email', '')));
         }
@@ -1014,10 +1021,8 @@ class Pmdsettings extends AdminController
 
     public function onTestReservationWhatsApp()
     {
-        $recipient = trim((string)post(
-            'communication.whatsapp_test_recipient',
-            ''
-        ));
+        $communication = (array)post('communication', []);
+        $recipient = trim((string)($communication['whatsapp_test_recipient'] ?? ''));
         if ($recipient === '') {
             $recipient = trim((string)$this->restaurantSettingValueR24(
                 'pmd_reservation_messages_whatsapp_test_recipient',
