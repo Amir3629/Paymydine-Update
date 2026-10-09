@@ -173,10 +173,17 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                 </div>
 
                 <div class="pmd-profile-card__body">
-                    <div class="pmd-profile-booking-note" data-pmd-public-booking-contact="r25">
-                        <strong>{{ $pmdSettingsText('Used on /book') }}</strong>
-                        <span>{{ $pmdSettingsText('These details power the address, call and email links guests see while reserving.') }}</span>
-                    </div>
+                    @if(!empty($pmdPublicBookingLocationMismatch))
+                        <div class="pmd-profile-booking-note" role="alert" style="border-color:#d99d4c;background:#fff9ed;color:#68430b">
+                            <strong>{{ $pmdSettingsText('Different location selected') }}</strong>
+                            <span>{{ $pmdSettingsText('The public /book page uses the default restaurant location:') }} <b>{{ $pmdPublicBookingLocationName ?? '' }}</b>. {{ $pmdSettingsText('Select that location in the admin location switcher to change booking contact details.') }}</span>
+                        </div>
+                    @else
+                        <div class="pmd-profile-booking-note" data-pmd-public-booking-contact="r25">
+                            <strong>{{ $pmdSettingsText('Used on /book') }}</strong>
+                            <span>{{ $pmdSettingsText('These details power the address, call and email links guests see while reserving.') }}</span>
+                        </div>
+                    @endif
 
                     <div class="pmd-profile-grid pmd-profile-grid--2">
                         <label class="pmd-profile-field">
@@ -984,7 +991,14 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                     var msg = data && (data.X_IGNITER_ERROR_MESSAGE || data.message) || text || ('HTTP ' + response.status);
                     throw new Error(msg);
                 }
-                return data || {};
+                // A redirect or an HTML 200 response is not proof that the
+                // AJAX handler persisted this restaurant's information.
+                if (response.redirected || !data || typeof data !== 'object'
+                    || typeof data['#pmd-profile-save-status'] !== 'string'
+                    || data['#pmd-profile-save-status'].indexOf('is-success') === -1) {
+                    throw new Error('The server did not confirm the save. Check your session and try again.');
+                }
+                return data;
             });
         }).then(function () {
             window.location.reload();
