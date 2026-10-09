@@ -78,7 +78,8 @@ final class PmdGuestCommunicationService
             'whatsapp_enabled' => $whatsappEnabled,
             'whatsapp_ready' => $whatsappEnabled
                 && $this->safeHttpsUrl($whatsappEndpoint)
-                && ($whatsappProvider !== 'meta_cloud' || $hasWhatsappToken),
+                && ($whatsappProvider !== 'meta_cloud' || ($hasWhatsappToken
+                    && $this->hasApprovedTemplatesForEnabledEvents($events))),
             'whatsapp_provider' => $whatsappProvider,
             'whatsapp_endpoint' => $whatsappEndpoint,
             'whatsapp_sender_reference' => $whatsappSenderReference,
@@ -611,6 +612,19 @@ final class PmdGuestCommunicationService
         }
 
         return $guests === 1 ? 'guest' : 'guests';
+    }
+
+    private function hasApprovedTemplatesForEnabledEvents(array $events): bool
+    {
+        foreach (self::EVENTS as $event) {
+            if (!empty($events[$event]) && trim((string)$this->setting(
+                'pmd_reservation_messages_whatsapp_template_'.$event,
+                ''
+            )) === '') {
+                return false;
+            }
+        }
+        return true;
     }
 
     private function emailProtocolReady(string $protocol): bool
