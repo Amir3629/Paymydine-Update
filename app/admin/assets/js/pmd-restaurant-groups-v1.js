@@ -244,6 +244,10 @@
     var header=root.querySelector('#pmd-r2-clean-header, .pmd-menu-manager__topbar, header');
     var actions=header&&header.querySelector('[data-pmd-menu-header-actions], .pmd-owner-header__actions');
     var grid=root.querySelector('[data-pmd-menu-grid]');
+    var menuPanel=root.querySelector('[data-pmd-unified-menu-panel]');
+    var menuWasHidden=menuPanel?menuPanel.hidden:false;
+    var emptyResults=root.querySelector('[data-pmd-menu-no-results]');
+    var emptyWasHidden=emptyResults?emptyResults.hidden:true;
     if(!header||!actions||!grid)return;
     var control=scopeControl();if(!control.wrap.isConnected)actions.prepend(control.wrap);
     var applyButton=null;
@@ -310,7 +314,15 @@
       var scope=String(control.select.value),local=scope===String(context.current_tenant_id),seq=++version;
       root.classList.toggle('pmd-group-menu-scope-active',!local);
       if(applyButton)applyButton.hidden=!local;
-      if(local){restore();control.select.removeAttribute('aria-busy');return;}
+      if(local){
+        restore();
+        if(menuPanel)menuPanel.hidden=menuWasHidden;
+        if(emptyResults)emptyResults.hidden=emptyWasHidden;
+        control.select.removeAttribute('aria-busy');
+        return;
+      }
+      if(menuPanel)menuPanel.hidden=false;
+      if(emptyResults)emptyResults.hidden=true;
       showMessage('Loading restaurant menu…');control.select.setAttribute('aria-busy','true');
       request('menu?scope='+encodeURIComponent(scope)).then(function(data){
         if(seq===version)render(data);
