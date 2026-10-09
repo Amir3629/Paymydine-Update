@@ -65,5 +65,20 @@ if grep -Eq 'name="communication\[(smtp_pass|mailgun_secret|postmark_token|ses_k
   exit 1
 fi
 
+# R29 regression guards: defaults, destination safety, and real save responses.
+grep -Fq "pmd_reservation_messages_email_enabled', false" app/Services/Reservations/PmdGuestCommunicationService.php
+grep -Fq "hasApprovedTemplatesForEnabledEvents" app/Services/Reservations/PmdGuestCommunicationService.php
+grep -Fq "resolvesToPublicAddress" app/Services/Reservations/PmdGuestCommunicationService.php
+grep -Fq "isAllowedWhatsappEndpoint" app/Services/Reservations/PmdGuestCommunicationService.php
+grep -Fq "allow_redirects' => false" app/Services/Reservations/PmdGuestCommunicationService.php
+grep -Fq "public function onTestReservationEmail" app/admin/controllers/Pmdsettings.php
+grep -Fq "pmdPublicBookingLocationMismatch" app/admin/controllers/Pmdsettings.php
+grep -Fq "pmdPublicBookingLocationMismatch" app/admin/views/pmdsettings/restaurant.blade.php
+grep -Fq "response.redirected" app/admin/views/pmdsettings/restaurant.blade.php
+grep -Fq "data['#pmd-profile-save-status']" app/admin/views/pmdsettings/restaurant.blade.php
+
+echo
+echo "PASS: R29 guest communications opt-in, WhatsApp safety, profile location visibility and strict save acknowledgment."
+
 echo
 echo "PASS: R28 exposes restaurant email/WhatsApp delivery settings, keeps secrets write-only, sends created/updated/canceled guest messages after the booking response, and supports approved Meta WhatsApp templates or a custom bot gateway."
