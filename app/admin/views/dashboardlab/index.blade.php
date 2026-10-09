@@ -382,6 +382,7 @@
             data-pmd-dashboard-lab-header-actions
             aria-label="Dashboard actions"
         >
+            @include('admin::_partials.pmd_group_scope_firstpaint')
             <a
                 id="pmd-dashboard-lab-calendar-v4"
                 class="pmd-dashboard-lab__header-action"
