@@ -1,0 +1,30 @@
+name: R28 guest communications QA
+
+on:
+  pull_request:
+    paths:
+      - 'app/Http/Controllers/PmdPublicBookingController.php'
+      - 'app/Services/Reservations/PmdGuestCommunicationService.php'
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/admin/ServiceProvider.php'
+      - 'app/admin/views/_mail/reservation_guest_message.blade.php'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'app/admin/assets/css/pmd-settings-restaurant-v1.css'
+      - 'app/admin/i18n/platform/**'
+      - 'public/assets/pmd/public-booking-manage-v1.js'
+      - 'resources/views/pmd/public-booking-manage.blade.php'
+      - 'scripts/pmd-r28-guest-communications-qa.sh'
+      - '.github/workflows/r28-guest-communications-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax and R28 contract checks
+        run: bash scripts/pmd-r28-guest-communications-qa.sh
