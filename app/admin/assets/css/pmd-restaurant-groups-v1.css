@@ -56,6 +56,8 @@
 /* R18: never hide or replace the native Dashboard/Floor/analytics geometry.
    The already-existing KPI/chart widgets receive scoped read-only data instead. */
 .pmd-group-dashboard-scope-active .pmd-group-scope-switch select{font-weight:850!important}
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-unified-inventory-panel],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-stock-usage-workspace]{display:none!important}
 [data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-create],
 [data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-header-primary],
 [data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-header-secondary],
