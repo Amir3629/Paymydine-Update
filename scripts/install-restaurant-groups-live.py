@@ -45,7 +45,6 @@ EXACT = {
     'app/admin/views/_partials/pmd_group_scope_firstpaint.blade.php',
     'app/admin/views/dashboardlab/index.blade.php',
     'app/admin/views/pmdmenus/index.blade.php',
-    'app/admin/views/ownerboard/index.blade.php',
     'app/admin/assets/js/pmd-dashboard-lab-kpis-v1.js',
     'app/admin/assets/js/pmd-dashboard-lab-analytics-v1.js',
     'app/admin/assets/js/pmd-dashboard-live-refresh-v1.js',
