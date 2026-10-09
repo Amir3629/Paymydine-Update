@@ -14,7 +14,6 @@
   if (!dashboard && !type) return;
 
   var context = null;
-  var reportSequence = 0;
 
   function el(tag,text,className){var n=document.createElement(tag);if(text!=null)n.textContent=String(text);if(className)n.className=className;return n;}
   function button(text,handler,className){var n=el('button',text,className||'pmd-group-btn');n.type='button';n.addEventListener('click',handler);return n;}
@@ -61,8 +60,6 @@
   function scopeControl(){
     // Server-first-paint controls are already present in Dashboard Lab and Menu.
     // Never append a second copy after the async context request.
-    var existing=document.querySelector('[data-pmd-group-firstpaint] .pmd-group-scope-switch select');
-    existing=null; // The label itself carries the first-paint marker.
     var preloaded=document.querySelector('[data-pmd-group-firstpaint] select');
     if(preloaded)return {wrap:preloaded.closest('.pmd-group-scope-switch'),select:preloaded};
     var wrap=el('label',null,'pmd-group-scope-switch');
@@ -234,21 +231,7 @@
     control.select.addEventListener('change',load);
   }
 
-    function renderMenuPanel(panel,data){
-    panel.replaceChildren();
-    var head=el('div',null,'pmd-group-menu-panel__head');var copy=el('div');copy.appendChild(el('span',context.group.name,'pmd-group-eyebrow'));copy.appendChild(el('h2',data.scope_label||'Menu'));head.appendChild(copy);panel.appendChild(head);
-    panel.appendChild(el('p','This cross-restaurant view is read-only. Edit the current restaurant normally, then use “Apply to locations” to publish saved changes to selected restaurants.','pmd-group-note'));
-    (data.locations||[]).forEach(function(location){
-      var section=el('section',null,'pmd-group-menu-location');var title=el('div',null,'pmd-group-menu-location__title');title.appendChild(el('h3',location.label));title.appendChild(el('span',String((location.items||[]).length)+' items'));section.appendChild(title);
-      if(!location.available){section.appendChild(el('p',location.message||'Menu unavailable.','is-error'));panel.appendChild(section);return;}
-      var list=el('div',null,'pmd-group-menu-items');
-      (location.items||[]).forEach(function(item){var row=el('article',null,'pmd-group-menu-item');var copy2=el('div');copy2.appendChild(el('strong',item.name));var meta=[];if(item.categories&&item.categories.length)meta.push(item.categories.join(', '));meta.push(item.published?'Published':'Hidden');if(item.stock_out)meta.push('Stock out');copy2.appendChild(el('span',meta.join(' · ')));row.appendChild(copy2);row.appendChild(el('b',item.price==null?'—':item.price));list.appendChild(row);});
-      if(!(location.items||[]).length)list.appendChild(el('p','No menu items.','pmd-group-muted'));
-      section.appendChild(list);panel.appendChild(section);
-    });
-  }
-
-  function menuMount(){
+    function menuMount(){
     var root=document.querySelector('[data-pmd-menu-manager]');if(!root)return;
     var header=root.querySelector('#pmd-r2-clean-header, .pmd-menu-manager__topbar, header');
     var actions=header&&header.querySelector('[data-pmd-menu-header-actions], .pmd-owner-header__actions');
