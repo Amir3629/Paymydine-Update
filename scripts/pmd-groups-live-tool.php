@@ -105,7 +105,8 @@ try {
     }
 
     foreach (['pmd.superadmin.groups','pmd.superadmin.groups.store','pmd.superadmin.groups.retry',
-        'pmd.group.context','pmd.group.snapshot','pmd.group.catalog','pmd.group.publish.preview','pmd.group.publish.apply'] as $name) {
+        'pmd.group.context','pmd.group.snapshot','pmd.group.dashboard','pmd.group.menu',
+        'pmd.group.catalog','pmd.group.publish.preview','pmd.group.publish.apply'] as $name) {
         if (!$routes->getByName($name)) throw new RuntimeException('Missing route: '.$name);
     }
     $stage = 'superadmin-route-match';
@@ -213,10 +214,25 @@ try {
     }
 
     $dashboardSource = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-restaurant-groups-v1.js');
-    if (strpos($dashboardSource, "scope.value=String(context.current_tenant_id)") === false) {
-        throw new RuntimeException('Multi-location dashboard does not default to the current location.');
+    foreach ([
+        "'/admin/ownerdashboard'",
+        "'/admin/ownerboard'",
+        "'/admin/menu'",
+        "'/admin/pmdmenus'",
+        "'All restaurants'",
+        "request('dashboard?scope='",
+        "request('menu?scope='"
+    ] as $needle) {
+        if (strpos($dashboardSource, $needle) === false) {
+            throw new RuntimeException('Restaurant scope switcher runtime is incomplete.');
+        }
+    }
+    if (strpos($dashboardSource, "location.assign(site") !== false
+        || strpos($dashboardSource, "window.location.href=site") !== false) {
+        throw new RuntimeException('Restaurant scope switcher must not navigate to another tenant subdomain.');
     }
 
+    echo "PASS in-place Dashboard/Menu restaurant scope switcher wired without tenant-subdomain navigation\n";
     echo "PASS live Restaurant template preflight resolved configured table prefix\n";
     echo "PASS two-step Create Restaurant flow and group dashboard rendered\n";
     echo "PASS routes, Super Admin authentication middleware and native security bindings resolved\n";

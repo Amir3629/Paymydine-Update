@@ -50,6 +50,14 @@ Route::middleware(['web', 'tenant.database'])
             'as' => 'pmd.group.snapshot',
             'uses' => AdminController::class.'@snapshot',
         ]);
+        Route::get('/group/dashboard', [
+            'as' => 'pmd.group.dashboard',
+            'uses' => AdminController::class.'@dashboardScope',
+        ]);
+        Route::get('/group/menu', [
+            'as' => 'pmd.group.menu',
+            'uses' => AdminController::class.'@menuScope',
+        ]);
         Route::get('/group/catalog', [
             'as' => 'pmd.group.catalog',
             'uses' => AdminController::class.'@catalog',

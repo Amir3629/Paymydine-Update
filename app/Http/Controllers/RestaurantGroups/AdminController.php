@@ -6,6 +6,7 @@ use Admin\Classes\AdminController as BaseAdminController;
 use Admin\Facades\AdminAuth;
 use App\Services\RestaurantGroups\Auth;
 use App\Services\RestaurantGroups\FoodCourtQueue;
+use App\Services\RestaurantGroups\GroupScopeReadModel;
 use App\Services\RestaurantGroups\Policy;
 use App\Services\RestaurantGroups\Publisher;
 use App\Services\RestaurantGroups\Snapshot;
@@ -46,6 +47,37 @@ final class AdminController extends BaseAdminController
                     (string)$request->query('scope', 'all'),
                     (string)$request->query('period', 'today')
                 )
+            );
+        } catch (\Throwable $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+            ], 403);
+        }
+    }
+
+    public function dashboardScope(Request $request, GroupScopeReadModel $readModel)
+    {
+        try {
+            return response()->json(
+                $readModel->dashboard(
+                    (string)$request->query('scope', 'all'),
+                    (string)$request->query('period', 'today')
+                )
+            );
+        } catch (\Throwable $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+            ], 403);
+        }
+    }
+
+    public function menuScope(Request $request, GroupScopeReadModel $readModel)
+    {
+        try {
+            return response()->json(
+                $readModel->menu((string)$request->query('scope', 'all'))
             );
         } catch (\Throwable $error) {
             return response()->json([
