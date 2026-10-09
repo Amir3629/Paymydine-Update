@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\RestaurantGroups;
 
-use Admin\Classes\AdminController as BaseAdminController;
+use App\Http\Controllers\Controller as BaseAdminController;
 use Admin\Facades\AdminAuth;
 use App\Services\RestaurantGroups\Auth;
 use App\Services\RestaurantGroups\FoodCourtQueue;
+use App\Services\RestaurantGroups\GroupScopeReadModel;
 use App\Services\RestaurantGroups\Policy;
 use App\Services\RestaurantGroups\Publisher;
 use App\Services\RestaurantGroups\Snapshot;
@@ -14,27 +15,59 @@ use Illuminate\Http\Request;
 
 final class AdminController extends BaseAdminController
 {
-    protected $requiredPermissions = 'Admin.Dashboard';
+    public function __construct()
+    {
+        // These are JSON endpoints, not renderable Admin pages. Using the
+        // TastyIgniter page controller here initialized menus/widgets before
+        // the action and could fail with an HTML 500 before context() ran.
+        $this->middleware(function ($request, $next) {
+            if (!AdminAuth::isLogged()) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Authentication required.',
+                ], 401);
+            }
+
+            $user = AdminAuth::getUser();
+            if (!$user || !$user->hasAnyPermission('Admin.Dashboard')) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => 'Dashboard access is required.',
+                ], 403);
+            }
+
+            return $next($request);
+        });
+    }
 
     public function context(Store $store, Snapshot $snapshot)
     {
-        $user = AdminAuth::getUser();
-
-        if (!$user || !$store->managedLocalUser((int)$user->getKey())) {
-            return response()->json([
-                'ok' => true,
-                'enabled' => false,
-            ]);
-        }
-
         try {
-            return response()->json(['ok' => true] + $snapshot->context());
+            $user = AdminAuth::getUser();
+
+            if (!$user || !$store->managedLocalUser((int)$user->getKey())) {
+                return response()->json([
+                    'ok' => true,
+                    'enabled' => false,
+                ]);
+            }
+
+            return response()->json(['ok' => true] + $snapshot->context(false));
         } catch (\Throwable $error) {
+            $reference = 'rgctx-'.bin2hex(random_bytes(5));
+            logger()->warning('PMD group context refused', [
+                'reference' => $reference,
+                'exception' => get_class($error),
+                'message' => $error->getMessage(),
+            ]);
+
             return response()->json([
                 'ok' => false,
                 'enabled' => true,
-                'message' => $error->getMessage(),
-            ], 403);
+                'message' => $error instanceof \DomainException
+                    ? $error->getMessage()
+                    : 'Business account context could not be loaded. Reference '.$reference.'.',
+            ], $error instanceof \DomainException ? 403 : 409);
         }
     }
 
@@ -46,6 +79,37 @@ final class AdminController extends BaseAdminController
                     (string)$request->query('scope', 'all'),
                     (string)$request->query('period', 'today')
                 )
+            );
+        } catch (\Throwable $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+            ], 403);
+        }
+    }
+
+    public function dashboardScope(Request $request, GroupScopeReadModel $readModel)
+    {
+        try {
+            return response()->json(
+                $readModel->dashboard(
+                    (string)$request->query('scope', 'all'),
+                    (string)$request->query('period', 'today')
+                )
+            );
+        } catch (\Throwable $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+            ], 403);
+        }
+    }
+
+    public function menuScope(Request $request, GroupScopeReadModel $readModel)
+    {
+        try {
+            return response()->json(
+                $readModel->menu((string)$request->query('scope', 'all'))
             );
         } catch (\Throwable $error) {
             return response()->json([

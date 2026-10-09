@@ -212,29 +212,54 @@ class PmdSiteAccessWorkspaceGateService
                 } else {
                     $proof = (array)session()->get(PmdOwnerTotpService::SESSION_VERIFIED, []);
                     $verifiedAt = (int)($proof['verified_at'] ?? 0);
-                    $confirmedAt = 0;
+                    $managedGroupOwner = false;
 
                     try {
-                        $confirmed = DB::table(PmdOwnerTotpService::TABLE)
-                            ->where('user_id', $ownerUserId)
-                            ->whereNotNull('confirmed_at')
-                            ->whereNull('disabled_at')
-                            ->orderByDesc('updated_at')
-                            ->orderByDesc('id')
-                            ->value('confirmed_at');
-                        $confirmedAt = $confirmed ? (int)strtotime((string)$confirmed) : 0;
+                        $managedGroupOwner = app(\App\Services\RestaurantGroups\Store::class)
+                            ->managedLocalUser($ownerUserId);
                     } catch (\Throwable $error) {
-                        $confirmedAt = 0;
+                        $managedGroupOwner = false;
                     }
 
-                    $ownerSessionValid = $ownerTotp->sessionVerified(
-                            $ownerUserId,
-                            $locationId,
-                            86400
-                        )
-                        && $verifiedAt > 0
-                        && $confirmedAt > 0
-                        && $confirmedAt <= ($verifiedAt + 1);
+                    if ($managedGroupOwner) {
+                        // Group Owners store the active Authenticator generation
+                        // in central pmd_group_owners. RestaurantGroups\Totp::
+                        // sessionVerified() revalidates the central auth_version,
+                        // central factor, tenant binding, user and session id.
+                        // Never require a duplicate tenant-local pmd_owner_mfa
+                        // row: doing so falsely reported a Support reset right
+                        // after a valid shared-Owner TOTP verification.
+                        $ownerSessionValid = $verifiedAt > 0
+                            && $ownerTotp->sessionVerified(
+                                $ownerUserId,
+                                $locationId,
+                                86400
+                            );
+                    } else {
+                        $confirmedAt = 0;
+
+                        try {
+                            $confirmed = DB::table(PmdOwnerTotpService::TABLE)
+                                ->where('user_id', $ownerUserId)
+                                ->whereNotNull('confirmed_at')
+                                ->whereNull('disabled_at')
+                                ->orderByDesc('updated_at')
+                                ->orderByDesc('id')
+                                ->value('confirmed_at');
+                            $confirmedAt = $confirmed ? (int)strtotime((string)$confirmed) : 0;
+                        } catch (\Throwable $error) {
+                            $confirmedAt = 0;
+                        }
+
+                        $ownerSessionValid = $ownerTotp->sessionVerified(
+                                $ownerUserId,
+                                $locationId,
+                                86400
+                            )
+                            && $verifiedAt > 0
+                            && $confirmedAt > 0
+                            && $confirmedAt <= ($verifiedAt + 1);
+                    }
                 }
             }
 

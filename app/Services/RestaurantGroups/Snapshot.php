@@ -6,9 +6,9 @@ final class Snapshot
 {
     public function __construct(private Store $store,private Auth $auth) {}
 
-    public function context(): array
+    public function context(bool $requireMfa = true): array
     {
-        $owner=$this->auth->owner(true);$id=$this->store->currentTenantId();
+        $owner=$this->auth->owner($requireMfa);$id=$this->store->currentTenantId();
         $site=$this->store->site($id);$group=$this->store->group((int)$site->group_id);
         $sites=array_values(array_filter($this->store->sitesForOwner((int)$owner->id),fn($row)=>(int)$row['group_id']===(int)$group->id));
         return ['enabled'=>true,'owner'=>['id'=>(int)$owner->id,'name'=>(string)$owner->name,'username'=>(string)$owner->username],

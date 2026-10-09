@@ -73,6 +73,15 @@ try {
     $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
 
+    $stage = 'template-preflight';
+    $app->make(\App\Services\SuperAdminTenantLifecycleService::class)->assertGroupTemplateReady();
+
+    $stage = 'group-scope-read-model';
+    if (!class_exists(\App\Services\RestaurantGroups\GroupScopeReadModel::class)) {
+        throw new RuntimeException('GroupScopeReadModel could not be autoloaded.');
+    }
+    $app->make(\App\Services\RestaurantGroups\GroupScopeReadModel::class);
+
     $stage = 'provider-registration';
     if (!$app->getProvider(\App\Providers\RestaurantGroupsServiceProvider::class)) {
         throw new RuntimeException('RestaurantGroupsServiceProvider is not registered by the System bootstrap authority.');
@@ -80,8 +89,14 @@ try {
 
     $stage = 'routes';
     $adminRoutesSource = (string)@file_get_contents($root.'/app/admin/routes.php');
-    if (strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1') === false) {
-        throw new RuntimeException('Admin route authority is missing the Restaurant Groups loader.');
+    if (strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1') === false
+        || strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_PRIORITY_ROUTE_LOADER_R16') === false) {
+        throw new RuntimeException('Admin route authority is missing the Restaurant Groups priority loader.');
+    }
+    $groupPriorityPos = strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_PRIORITY_ROUTE_LOADER_R16');
+    $adminCatchAllPackPos = strpos($adminRoutesSource, "require_once base_path('routes/admin-app-before.php')");
+    if ($groupPriorityPos === false || $adminCatchAllPackPos === false || $groupPriorityPos > $adminCatchAllPackPos) {
+        throw new RuntimeException('Restaurant Groups routes are registered after the Admin catch-all authority.');
     }
     if (method_exists($app, 'routesAreCached') && $app->routesAreCached()) {
         $cached = method_exists($app, 'getCachedRoutesPath')
@@ -102,7 +117,8 @@ try {
     }
 
     foreach (['pmd.superadmin.groups','pmd.superadmin.groups.store','pmd.superadmin.groups.retry',
-        'pmd.group.context','pmd.group.snapshot','pmd.group.catalog','pmd.group.publish.preview','pmd.group.publish.apply'] as $name) {
+        'pmd.group.context','pmd.group.snapshot','pmd.group.dashboard','pmd.group.menu',
+        'pmd.group.catalog','pmd.group.publish.preview','pmd.group.publish.apply'] as $name) {
         if (!$routes->getByName($name)) throw new RuntimeException('Missing route: '.$name);
     }
     $stage = 'superadmin-route-match';
@@ -112,6 +128,20 @@ try {
         || !in_array(\App\Http\Middleware\SuperAdminAuth::class, $matched->gatherMiddleware(), true)) {
         throw new RuntimeException('Super Admin page route/authentication wiring is not correct.');
     }
+
+    $stage = 'group-context-route-match';
+    $groupRequest = \Illuminate\Http\Request::create(
+        'https://pmd-route-health.paymydine.com/admin/group/context',
+        'GET'
+    );
+    $groupMatched = $routes->match($groupRequest);
+    if ($groupMatched->getName() !== 'pmd.group.context') {
+        throw new RuntimeException(
+            'Admin catch-all still shadows Restaurant Groups context route; matched: '.
+            ((string)$groupMatched->getName() ?: 'unnamed')
+        );
+    }
+
     $stage = 'security-bindings';
     foreach ([
         \App\Services\PmdOwnerTotpService::class => \App\Services\RestaurantGroups\Totp::class,
@@ -194,8 +224,9 @@ try {
     }
 
     $tenantLifecycleSource = (string)@file_get_contents($root.'/app/Services/SuperAdminTenantLifecycleService.php');
-    if (strpos($tenantLifecycleSource, 'assertGroupTemplateReady') === false) {
-        throw new RuntimeException('Business Account template preflight is missing.');
+    if (strpos($tenantLifecycleSource, 'assertGroupTemplateReady') === false
+        || strpos($tenantLifecycleSource, 'getTablePrefix()') === false) {
+        throw new RuntimeException('Prefix-aware Business Account template preflight is missing.');
     }
 
     if (strpos($tenantLifecycleSource, 'applyIndependentOwnerAccess') === false
@@ -208,11 +239,60 @@ try {
         throw new RuntimeException('Prepared-template repair path is missing.');
     }
 
-    $dashboardSource = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-restaurant-groups-v1.js');
-    if (strpos($dashboardSource, "scope.value=String(context.current_tenant_id)") === false) {
-        throw new RuntimeException('Multi-location dashboard does not default to the current location.');
+    $groupAdminControllerSource = (string)@file_get_contents($root.'/app/Http/Controllers/RestaurantGroups/AdminController.php');
+    if (strpos($groupAdminControllerSource, 'use App\\Http\\Controllers\\Controller as BaseAdminController;') === false
+        || strpos($groupAdminControllerSource, "AdminAuth::isLogged()") === false
+        || strpos($groupAdminControllerSource, "hasAnyPermission('Admin.Dashboard')") === false) {
+        throw new RuntimeException('Restaurant Groups JSON controller is still coupled to the Admin page-controller lifecycle or lacks explicit auth.');
     }
 
+    $workspaceGateSource = (string)@file_get_contents($root.'/app/Services/PmdSiteAccessWorkspaceGateService.php');
+    if (strpos($workspaceGateSource, 'managedLocalUser($ownerUserId)') === false
+        || strpos($workspaceGateSource, 'Never require a duplicate tenant-local pmd_owner_mfa') === false) {
+        throw new RuntimeException('Managed Group Owner MFA workspace validation is not using the central factor authority.');
+    }
+
+    $loaderSource = (string)@file_get_contents($root.'/app/admin/views/_partials/pmd_admin_i18n.blade.php');
+    if (strpos($loaderSource, '$pmdGroupsSessionActive && (') !== false) {
+        throw new RuntimeException('Restaurant Groups assets are still incorrectly gated by session markers.');
+    }
+
+    $snapshotSource = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/Snapshot.php');
+    if (strpos($snapshotSource, 'context(bool $requireMfa = true)') === false) {
+        throw new RuntimeException('Restaurant Groups context does not separate selector discovery from MFA-protected cross-tenant reads.');
+    }
+
+    $adminControllerSource = (string)@file_get_contents($root.'/app/Http/Controllers/RestaurantGroups/AdminController.php');
+    if (strpos($adminControllerSource, '$snapshot->context(false)') === false) {
+        throw new RuntimeException('Restaurant Groups selector context is still blocked by MFA.');
+    }
+
+    $dashboardSource = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-restaurant-groups-v1.js');
+    foreach ([
+        "'/admin/ownerdashboard'",
+        "'/admin/ownerboard'",
+        "'/admin/menu'",
+        "'/admin/pmdmenus'",
+        "'All restaurants'",
+        "request('dashboard?scope='",
+        "request('menu?scope='"
+    ] as $needle) {
+        if (strpos($dashboardSource, $needle) === false) {
+            throw new RuntimeException('Restaurant scope switcher runtime is incomplete.');
+        }
+    }
+    if (strpos($dashboardSource, "location.assign(site") !== false
+        || strpos($dashboardSource, "window.location.href=site") !== false) {
+        throw new RuntimeException('Restaurant scope switcher must not navigate to another tenant subdomain.');
+    }
+
+    echo "PASS /admin/group/context route matches Restaurant Groups before the greedy Admin catch-all\n";
+    echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";
+    echo "PASS managed Group Owner workspace MFA uses the central factor authority without tenant-local factor duplication\n";
+    echo "PASS Restaurant Groups assets load by supported route, independent of fragile session markers\n";
+    echo "PASS selector discovery is password-authenticated while cross-tenant data remains MFA-protected\n";
+    echo "PASS in-place Dashboard/Menu restaurant scope switcher wired without tenant-subdomain navigation\n";
+    echo "PASS live Restaurant template preflight resolved configured table prefix\n";
     echo "PASS two-step Create Restaurant flow and group dashboard rendered\n";
     echo "PASS routes, Super Admin authentication middleware and native security bindings resolved\n";
     echo "PASS central feature storage enabled\n";

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
 use App\Services\Platform\LocationPlatformContext;
+use App\Services\Reservations\PmdGuestCommunicationService;
 use App\Services\Reservations\PmdReservationGuaranteeService;
 use Carbon\Carbon;
 use DateTimeInterface;
@@ -789,6 +790,11 @@ class PmdPublicBookingController extends Controller
                 ?? $successMessages['en'];
 
             $this->pushReservationAdminNotification($reservation, 'created');
+            $this->queueGuestCommunication(
+                $reservation,
+                'created',
+                $bookingLocale
+            );
 
             $guaranteePayload = null;
             try {
@@ -1244,6 +1250,11 @@ class PmdPublicBookingController extends Controller
             $updateCommitted = true;
             $changes = (array)($updated['changes'] ?? []);
             $this->pushReservationAdminNotification($updatedReservation, 'updated', $changes);
+            $this->queueGuestCommunication(
+                $updatedReservation,
+                'updated',
+                $bookingLocale
+            );
 
             if (!empty($guaranteeVerified['required'])) {
                 $guaranteeService->sendGuaranteeConfirmation(
@@ -1312,6 +1323,14 @@ class PmdPublicBookingController extends Controller
     {
         $location = $this->location();
         $reservation = $this->reservationByPublicHash($location, $hash);
+        $cancelLocale = strtolower(substr(
+            trim((string)$request->input('_pmd_booking_locale', 'de')),
+            0,
+            2
+        ));
+        if (!in_array($cancelLocale, self::PUBLIC_LOCALES, true)) {
+            $cancelLocale = 'de';
+        }
 
         if (!$reservation) {
             abort(404);
@@ -1375,6 +1394,11 @@ class PmdPublicBookingController extends Controller
                         'guest_canceled_before_deadline'
                     );
                 $this->pushReservationAdminNotification($canceledReservation, 'canceled');
+                $this->queueGuestCommunication(
+                    $canceledReservation,
+                    'canceled',
+                    $cancelLocale
+                );
             }
 
             return response()->json([
@@ -1660,6 +1684,66 @@ class PmdPublicBookingController extends Controller
         }
 
         return $changes;
+    }
+
+    private function queueGuestCommunication(
+        Reservations_model $reservation,
+        string $event,
+        string $locale = 'de'
+    ): void {
+        $reservationId = (int)$reservation->getKey();
+        if ($reservationId < 1) {
+            return;
+        }
+
+        $event = strtolower(trim($event));
+        $locale = strtolower(substr(trim($locale), 0, 2));
+        if (!in_array($locale, self::PUBLIC_LOCALES, true)) {
+            $locale = 'de';
+        }
+
+        // PMD_GUEST_COMMUNICATIONS_AFTER_RESPONSE_R28
+        // Email and WhatsApp must never add provider latency to /book.
+        // Run after the HTTP response is ready; failures are logged only.
+        try {
+            app()->terminating(function () use (
+                $reservationId,
+                $event,
+                $locale
+            ) {
+                try {
+                    $fresh = Reservations_model::query()
+                        ->where('reservation_id', $reservationId)
+                        ->with('location')
+                        ->first();
+
+                    if (!$fresh) {
+                        return;
+                    }
+
+                    app(PmdGuestCommunicationService::class)
+                        ->sendReservationEvent($fresh, $event, $locale);
+                } catch (Throwable $error) {
+                    Log::warning(
+                        'PMD reservation guest communication failed after response',
+                        [
+                            'reservation_id' => $reservationId,
+                            'event' => $event,
+                            'message' => $error->getMessage(),
+                        ]
+                    );
+                }
+            });
+        } catch (Throwable $error) {
+            Log::warning(
+                'PMD reservation guest communication could not be scheduled',
+                [
+                    'reservation_id' => $reservationId,
+                    'event' => $event,
+                    'message' => $error->getMessage(),
+                ]
+            );
+        }
     }
 
     private function pushReservationAdminNotification(

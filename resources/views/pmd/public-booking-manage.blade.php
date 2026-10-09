@@ -576,6 +576,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-manage-config">{!! json_encode($manageConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261007-r27-1" defer></script>
+    <script src="/public/assets/pmd/public-booking-manage-v1.js?v=20261009-r28" defer></script>
 </body>
 </html>

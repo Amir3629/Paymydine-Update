@@ -946,3 +946,226 @@ html.pmd-restaurant-profile-ready .page-wrapper {
   visibility: visible !important;
   opacity: 1 !important;
 }
+
+
+/* PMD_GUEST_COMMUNICATIONS_R28 */
+#pmd-restaurant-profile .pmd-profile-section--communications .pmd-profile-card {
+  overflow: visible;
+}
+
+#pmd-restaurant-profile .pmd-communication-readiness {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+#pmd-restaurant-profile .pmd-communication-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid #d9e3e0;
+  border-radius: 999px;
+  background: #f7faf9;
+  color: #65746f;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+#pmd-restaurant-profile .pmd-communication-status::before {
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #b9c5c1;
+  content: "";
+}
+
+#pmd-restaurant-profile .pmd-communication-status.is-ready {
+  border-color: #b9dbd0;
+  background: #f2fbf7;
+  color: #0f715b;
+}
+
+#pmd-restaurant-profile .pmd-communication-status.is-ready::before {
+  background: #11a47d;
+}
+
+#pmd-restaurant-profile .pmd-communication-note {
+  margin-bottom: 18px;
+}
+
+#pmd-restaurant-profile .pmd-communication-events {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  margin-bottom: 18px;
+  padding: 13px 15px;
+  border: 1px solid #dce6e3;
+  border-radius: 12px;
+  background: #fbfdfd;
+}
+
+#pmd-restaurant-profile .pmd-communication-events > span {
+  margin-right: 2px;
+  color: #63706c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+#pmd-restaurant-profile .pmd-communication-events label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  cursor: pointer;
+}
+
+#pmd-restaurant-profile .pmd-communication-events input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #08765e;
+}
+
+#pmd-restaurant-profile .pmd-communication-events b {
+  color: #24342f;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+#pmd-restaurant-profile .pmd-communication-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+#pmd-restaurant-profile .pmd-communication-channel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #d9e3e0;
+  border-radius: 16px;
+  background: #fff;
+}
+
+#pmd-restaurant-profile .pmd-communication-channel__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 16px;
+}
+
+#pmd-restaurant-profile .pmd-communication-channel__top h3 {
+  margin: 3px 0 5px;
+  color: #172721;
+  font-size: 18px;
+  font-weight: 850;
+}
+
+#pmd-restaurant-profile .pmd-communication-channel__top p {
+  max-width: 560px;
+  margin: 0;
+  color: #71807b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+#pmd-restaurant-profile .pmd-communication-kicker {
+  color: #0b755f;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+#pmd-restaurant-profile .pmd-communication-details {
+  margin-top: 15px;
+  border-top: 1px solid #e5ecea;
+}
+
+#pmd-restaurant-profile .pmd-communication-details summary {
+  padding: 14px 0 3px;
+  color: #0f6553;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  list-style-position: inside;
+}
+
+#pmd-restaurant-profile .pmd-communication-details[open] summary {
+  margin-bottom: 12px;
+}
+
+#pmd-restaurant-profile .pmd-communication-template-help {
+  margin: 0 0 12px;
+  color: #71807b;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+#pmd-restaurant-profile .pmd-communication-test-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+#pmd-restaurant-profile .pmd-communication-test-row .pmd-profile-booking-preview {
+  width: auto;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid #afd3ca;
+  border-radius: 10px;
+  background: #fff;
+  color: #0a6955;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+#pmd-restaurant-profile .pmd-communication-test-status {
+  color: #0c775e;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+#pmd-restaurant-profile .pmd-communication-footnote {
+  margin-top: 14px;
+  color: #788580;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+@media (max-width: 980px) {
+  #pmd-restaurant-profile .pmd-communication-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #pmd-restaurant-profile .pmd-communication-readiness {
+    width: 100%;
+    margin: 8px 0 0;
+  }
+}
+
+@media (max-width: 640px) {
+  #pmd-restaurant-profile .pmd-communication-events {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  #pmd-restaurant-profile .pmd-communication-channel {
+    padding: 15px;
+  }
+
+  #pmd-restaurant-profile .pmd-communication-channel__top {
+    gap: 12px;
+  }
+}

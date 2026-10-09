@@ -54,24 +54,54 @@ class SuperAdminTenantLifecycleService
         $db = DB::connection('mysql');
         $database = self::TEMPLATE_DB;
         $required = ['users', 'staffs', 'staff_roles', 'locations'];
+        $prefix = (string)$db->getTablePrefix();
 
+        // Query physical table names because INFORMATION_SCHEMA does not know
+        // Laravel's configured table prefix (PayMyDine normally uses "ti_").
         $rows = $db->select(
-            'SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME IN (?,?,?,?)',
-            array_merge([$database], $required)
+            'SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = ?',
+            [$database]
         );
 
-        $present = array_map(
-            static fn ($row) => strtolower((string)($row->TABLE_NAME ?? '')),
-            $rows
-        );
-
-        foreach ($required as $table) {
-            if (!in_array($table, $present, true)) {
-                throw new \DomainException('Restaurant template is missing required table: '.$table.'.');
+        $present = [];
+        foreach ($rows as $row) {
+            $physical = (string)($row->TABLE_NAME ?? '');
+            if ($physical !== '') {
+                $present[strtolower($physical)] = $physical;
             }
         }
 
-        $q = fn (string $table) => $this->quoteIdentifier($database).'.'.$this->quoteIdentifier($table);
+        $resolved = [];
+        foreach ($required as $logical) {
+            $candidates = [];
+
+            if ($prefix !== '') {
+                $candidates[] = $prefix.$logical;
+            }
+
+            // Keep compatibility with an explicitly unprefixed template.
+            $candidates[] = $logical;
+
+            foreach ($candidates as $candidate) {
+                $key = strtolower($candidate);
+
+                if (isset($present[$key])) {
+                    $resolved[$logical] = $present[$key];
+                    break;
+                }
+            }
+
+            if (!isset($resolved[$logical])) {
+                $expected = $prefix !== '' ? $prefix.$logical : $logical;
+
+                throw new \DomainException(
+                    'Restaurant template is missing required table: '.$expected.'.'
+                );
+            }
+        }
+
+        $q = fn (string $logical) =>
+            $this->quoteIdentifier($database).'.'.$this->quoteIdentifier($resolved[$logical]);
 
         $candidate = $db->selectOne(
             'SELECT u.user_id, u.staff_id, s.staff_role_id, r.staff_role_id AS role_exists, r.code '
