@@ -40,6 +40,15 @@ EXACT = {
     'app/admin/views/superadmin_r2/side_menu.blade.php',
     'app/admin/assets/css/pmd-restaurant-groups-v1.css',
     'app/admin/assets/js/pmd-restaurant-groups-v1.js',
+    # R18: only the native Dashboard/Menu files required for in-place
+    # read-only scope rendering. Do not touch unrelated Admin controllers.
+    'app/admin/views/_partials/pmd_group_scope_firstpaint.blade.php',
+    'app/admin/views/dashboardlab/index.blade.php',
+    'app/admin/views/pmdmenus/index.blade.php',
+    'app/admin/views/ownerboard/index.blade.php',
+    'app/admin/assets/js/pmd-dashboard-lab-kpis-v1.js',
+    'app/admin/assets/js/pmd-dashboard-lab-analytics-v1.js',
+    'app/admin/assets/js/pmd-dashboard-live-refresh-v1.js',
     'scripts/pmd-groups-live-tool.php',
 }
 PREFIXES = ('app/Services/RestaurantGroups/',
