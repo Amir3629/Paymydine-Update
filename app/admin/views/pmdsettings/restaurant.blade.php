@@ -400,6 +400,27 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                 </label>
                             </div>
 
+                            <details class="pmd-communication-details">
+                                <summary>{{ $pmdSettingsText('Approved WhatsApp templates') }}</summary>
+                                <p class="pmd-communication-template-help">
+                                    {{ $pmdSettingsText('For proactive WhatsApp messages, configure approved Meta template names. Each template receives restaurant name, booking reference, date, time, guest count and manage link in that order.') }}
+                                </p>
+                                <div class="pmd-profile-grid pmd-profile-grid--2">
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('New reservation template') }}</span>
+                                        <input type="text" name="communication[whatsapp_template_created]" value="{{ $pmdGuestCommunications['whatsapp_template_created'] ?? '' }}" maxlength="512" placeholder="reservation_created">
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Reservation changed template') }}</span>
+                                        <input type="text" name="communication[whatsapp_template_updated]" value="{{ $pmdGuestCommunications['whatsapp_template_updated'] ?? '' }}" maxlength="512" placeholder="reservation_updated">
+                                    </label>
+                                    <label class="pmd-profile-field">
+                                        <span>{{ $pmdSettingsText('Reservation canceled template') }}</span>
+                                        <input type="text" name="communication[whatsapp_template_canceled]" value="{{ $pmdGuestCommunications['whatsapp_template_canceled'] ?? '' }}" maxlength="512" placeholder="reservation_canceled">
+                                    </label>
+                                </div>
+                            </details>
+
                             <div class="pmd-communication-test-row">
                                 <button type="button" class="pmd-profile-booking-preview" data-request="onTestReservationWhatsApp" data-request-form="#pmd-restaurant-profile-form" data-request-flash>
                                     {{ $pmdSettingsText('Send test WhatsApp') }}
