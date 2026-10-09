@@ -1102,6 +1102,13 @@ html.pmd-restaurant-profile-ready .page-wrapper {
   margin-bottom: 12px;
 }
 
+#pmd-restaurant-profile .pmd-communication-template-help {
+  margin: 0 0 12px;
+  color: #71807b;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
 #pmd-restaurant-profile .pmd-communication-test-row {
   display: flex;
   flex-wrap: wrap;
