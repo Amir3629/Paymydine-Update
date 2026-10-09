@@ -219,6 +219,19 @@ try {
         throw new RuntimeException('Prepared-template repair path is missing.');
     }
 
+    $groupAdminControllerSource = (string)@file_get_contents($root.'/app/Http/Controllers/RestaurantGroups/AdminController.php');
+    if (strpos($groupAdminControllerSource, 'use App\\Http\\Controllers\\Controller as BaseAdminController;') === false
+        || strpos($groupAdminControllerSource, "AdminAuth::isLogged()") === false
+        || strpos($groupAdminControllerSource, "hasAnyPermission('Admin.Dashboard')") === false) {
+        throw new RuntimeException('Restaurant Groups JSON controller is still coupled to the Admin page-controller lifecycle or lacks explicit auth.');
+    }
+
+    $workspaceGateSource = (string)@file_get_contents($root.'/app/Services/PmdSiteAccessWorkspaceGateService.php');
+    if (strpos($workspaceGateSource, 'managedLocalUser($ownerUserId)') === false
+        || strpos($workspaceGateSource, 'Never require a duplicate tenant-local pmd_owner_mfa') === false) {
+        throw new RuntimeException('Managed Group Owner MFA workspace validation is not using the central factor authority.');
+    }
+
     $loaderSource = (string)@file_get_contents($root.'/app/admin/views/_partials/pmd_admin_i18n.blade.php');
     if (strpos($loaderSource, '$pmdGroupsSessionActive && (') !== false) {
         throw new RuntimeException('Restaurant Groups assets are still incorrectly gated by session markers.');
@@ -253,6 +266,8 @@ try {
         throw new RuntimeException('Restaurant scope switcher must not navigate to another tenant subdomain.');
     }
 
+    echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";
+    echo "PASS managed Group Owner workspace MFA uses the central factor authority without tenant-local factor duplication\n";
     echo "PASS Restaurant Groups assets load by supported route, independent of fragile session markers\n";
     echo "PASS selector discovery is password-authenticated while cross-tenant data remains MFA-protected\n";
     echo "PASS in-place Dashboard/Menu restaurant scope switcher wired without tenant-subdomain navigation\n";

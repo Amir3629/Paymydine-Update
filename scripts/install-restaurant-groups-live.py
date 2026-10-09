@@ -32,6 +32,7 @@ EXACT = {
     'app/Services/RestaurantGroups/Auth.php',
     'app/Services/RestaurantGroups/ManagedIdentity.php',
     'app/admin/controllers/SuperAdminR2Controller.php',
+    'app/Services/PmdSiteAccessWorkspaceGateService.php',
     'app/admin/views/superadmin_r2/restaurants.blade.php',
     'config/app.php', 'config/pmd_groups.php',
     'routes/pmd-groups.php',
@@ -509,6 +510,8 @@ def main():
             print('[PMD] Provisioning issues no longer render as a top-page attention card; Retry setup lives in the affected restaurant row.', flush=True)
             print('[PMD] Normal restaurants require a chosen Owner username/password; inherited template credentials are rotated before activation.', flush=True)
             print('[PMD] Pending/failed group locations stay disabled until Retry provisioning reaches ready.', flush=True)
+            print('[PMD] R15 uses a dedicated authenticated JSON controller for Restaurant Group context/dashboard/menu APIs.', flush=True)
+            print('[PMD] R15 validates managed Group Owner MFA against the central factor authority without requiring tenant-local pmd_owner_mfa.', flush=True)
             print('[PMD] R14 loads the group switcher on supported Dashboard/Menu routes without depending on stale session-marker bootstrap state.', flush=True)
             print('[PMD] Group Owners get an in-header Current / restaurant / All restaurants switcher on Dashboard and Menu without subdomain navigation.', flush=True)
             print('[PMD] Dashboard cross-tenant scopes are read-only reports; Menu cross-tenant scopes are read-only catalogs and writes still use Apply to locations.', flush=True)
