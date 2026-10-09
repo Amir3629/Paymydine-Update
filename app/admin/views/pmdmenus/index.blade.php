@@ -218,6 +218,7 @@
         data-pmd-menu-header-actions
         aria-label="{{ $pmdT('menu_actions') }}"
     >
+        @include('admin::_partials.pmd_group_scope_firstpaint')
         @if(!empty($pmdMenuCanManageInventoryR20))
             <button
                 type="button"
