@@ -65,6 +65,9 @@ if grep -Eq 'name="communication\[(smtp_pass|mailgun_secret|postmark_token|ses_k
   exit 1
 fi
 
+# The production installer is shell-syntax checked but is not executed by CI.
+bash -n deploy/pmd-r29-guest-comms-safe-deploy.sh
+
 # R29 regression guards: defaults, destination safety, and real save responses.
 grep -Fq "pmd_reservation_messages_email_enabled', false" app/Services/Reservations/PmdGuestCommunicationService.php
 grep -Fq "hasApprovedTemplatesForEnabledEvents" app/Services/Reservations/PmdGuestCommunicationService.php
