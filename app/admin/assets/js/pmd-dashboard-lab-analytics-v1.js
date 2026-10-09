@@ -20,6 +20,15 @@
   var requests = Object.create(null);
   var requestCount = 0;
   var errors = Object.create(null);
+  // R18: a Group Owner can supply authenticated read-only data to the
+  // existing 12 analytics widgets without mounting a second dashboard.
+  var scopeProvider = null;
+  var scopeRevision = 0;
+  function scopeAccepts(payload) {
+    return scopeProvider
+      ? !!(payload && payload.pmd_group_scoped === true)
+      : !(payload && payload.pmd_group_scoped === true);
+  }
   var chartMode = 'line';
   var salesVisible = null;
   var hourVisible = null;
@@ -242,6 +251,18 @@
   }
 
   function request(period, forceFresh) {
+    if (scopeProvider) {
+      var expectedRevision = scopeRevision;
+      return Promise.resolve().then(function () {
+        return scopeProvider(period);
+      }).then(function (payload) {
+        if (expectedRevision !== scopeRevision) throw new Error('Restaurant selection changed.');
+        if (!payload || payload.success !== true || payload.pmd_group_scoped !== true) {
+          throw new Error('Restaurant reporting data is unavailable.');
+        }
+        return payload;
+      });
+    }
     period = ['today', 'week', 'month', 'last30'].indexOf(period) !== -1
       ? period
       : 'month';
@@ -901,6 +922,7 @@
   }
 
   function renderBase(payload) {
+    if (!scopeAccepts(payload)) return;
     renderSales(payload);
     renderHour(payload);
     renderLive(payload);
@@ -912,6 +934,7 @@
   }
 
   function renderPeriodWidget(key, payload) {
+    if (!scopeAccepts(payload)) return;
     if (key === 'categorySales') renderCategory(payload);
     if (key === 'paymentMethods') renderPayments(payload);
     if (key === 'channelSplit') renderChannels(payload);
@@ -929,17 +952,18 @@
   }
 
   function loadPeriodWidget(key, period) {
+    var expectedRevision = scopeRevision;
     if (PERIOD_KEYS.indexOf(period) === -1) return;
     periodByWidget[key] = period;
     markPeriod(key, period);
     setBusy(key, true);
     request(period)
       .then(function (payload) {
-        if (periodByWidget[key] !== period) return;
+        if (expectedRevision !== scopeRevision || periodByWidget[key] !== period) return;
         renderPeriodWidget(key, payload);
       })
       .catch(function (error) {
-        if (periodByWidget[key] !== period) return;
+        if (expectedRevision !== scopeRevision || periodByWidget[key] !== period) return;
         var body = bodyFor(key);
         if (body) body.innerHTML = empty({reason: 'Analytics source unavailable'});
         setBusy(key, false);
@@ -1196,6 +1220,7 @@
   }
 
   function markFreshFailureV132(keys, error, label) {
+    if (scopeProvider) return;
     keys.forEach(function (key) {
       // When a stale snapshot is already visible, never replace truthful
       // existing content with an error/zero flash merely because revalidate
@@ -1281,6 +1306,18 @@
 
   window.PMDDashboardLabAnalyticsV1 = {
     version: VERSION,
+    setScopeProvider: function (provider) {
+      scopeProvider = typeof provider === 'function' ? provider : null;
+      scopeRevision += 1;
+      if (scopeProvider) {
+        // Reuse existing card bodies. No new panels, cards or layout writers.
+        root.querySelectorAll('[data-pmd-lab-widget-body]').forEach(function (body) {
+          body.innerHTML = empty({reason: 'Loading restaurant data…'});
+          body.setAttribute('data-pmd-lab-state', 'loading');
+        });
+      }
+      return scopeRevision;
+    },
     refresh: function () {
       requests = Object.create(null);
       errors = Object.create(null);
