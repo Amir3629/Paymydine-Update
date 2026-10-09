@@ -510,6 +510,7 @@ def main():
             print('[PMD] Provisioning issues no longer render as a top-page attention card; Retry setup lives in the affected restaurant row.', flush=True)
             print('[PMD] Normal restaurants require a chosen Owner username/password; inherited template credentials are rotated before activation.', flush=True)
             print('[PMD] Pending/failed group locations stay disabled until Retry provisioning reaches ready.', flush=True)
+            print('[PMD] R16 registers Restaurant Group Admin APIs before the greedy legacy Admin catch-all and health-checks the real tenant URL match.', flush=True)
             print('[PMD] R15 uses a dedicated authenticated JSON controller for Restaurant Group context/dashboard/menu APIs.', flush=True)
             print('[PMD] R15 validates managed Group Owner MFA against the central factor authority without requiring tenant-local pmd_owner_mfa.', flush=True)
             print('[PMD] R14 loads the group switcher on supported Dashboard/Menu routes without depending on stale session-marker bootstrap state.', flush=True)

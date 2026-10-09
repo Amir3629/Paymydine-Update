@@ -89,8 +89,14 @@ try {
 
     $stage = 'routes';
     $adminRoutesSource = (string)@file_get_contents($root.'/app/admin/routes.php');
-    if (strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1') === false) {
-        throw new RuntimeException('Admin route authority is missing the Restaurant Groups loader.');
+    if (strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1') === false
+        || strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_PRIORITY_ROUTE_LOADER_R16') === false) {
+        throw new RuntimeException('Admin route authority is missing the Restaurant Groups priority loader.');
+    }
+    $groupPriorityPos = strpos($adminRoutesSource, 'PMD_RESTAURANT_GROUPS_PRIORITY_ROUTE_LOADER_R16');
+    $adminCatchAllPackPos = strpos($adminRoutesSource, "require_once base_path('routes/admin-app-before.php')");
+    if ($groupPriorityPos === false || $adminCatchAllPackPos === false || $groupPriorityPos > $adminCatchAllPackPos) {
+        throw new RuntimeException('Restaurant Groups routes are registered after the Admin catch-all authority.');
     }
     if (method_exists($app, 'routesAreCached') && $app->routesAreCached()) {
         $cached = method_exists($app, 'getCachedRoutesPath')
@@ -122,6 +128,20 @@ try {
         || !in_array(\App\Http\Middleware\SuperAdminAuth::class, $matched->gatherMiddleware(), true)) {
         throw new RuntimeException('Super Admin page route/authentication wiring is not correct.');
     }
+
+    $stage = 'group-context-route-match';
+    $groupRequest = \Illuminate\Http\Request::create(
+        'https://pmd-route-health.paymydine.com/admin/group/context',
+        'GET'
+    );
+    $groupMatched = $routes->match($groupRequest);
+    if ($groupMatched->getName() !== 'pmd.group.context') {
+        throw new RuntimeException(
+            'Admin catch-all still shadows Restaurant Groups context route; matched: '.
+            ((string)$groupMatched->getName() ?: 'unnamed')
+        );
+    }
+
     $stage = 'security-bindings';
     foreach ([
         \App\Services\PmdOwnerTotpService::class => \App\Services\RestaurantGroups\Totp::class,
@@ -266,6 +286,7 @@ try {
         throw new RuntimeException('Restaurant scope switcher must not navigate to another tenant subdomain.');
     }
 
+    echo "PASS /admin/group/context route matches Restaurant Groups before the greedy Admin catch-all\n";
     echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";
     echo "PASS managed Group Owner workspace MFA uses the central factor authority without tenant-local factor duplication\n";
     echo "PASS Restaurant Groups assets load by supported route, independent of fragile session markers\n";

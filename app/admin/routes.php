@@ -236,6 +236,15 @@ $__pmdUiKitHandler = function () {
  */
 require_once base_path('app/system/helpers/r2o_outbound_dryrun_helper.php');
 require_once base_path('routes/helpers.php');
+
+// PMD_RESTAURANT_GROUPS_PRIORITY_ROUTE_LOADER_R16
+// routes/admin-app-before.php registers the greedy Admin catch-all:
+//   Route::any('{slug}', ...)->where('slug', '(.*)?');
+// Group JSON endpoints must exist before that route or /admin/group/context
+// is swallowed by System\\Classes\\Controller@runAdmin and returns HTML 500.
+require_once base_path('routes/pmd-groups.php');
+// PMD_RESTAURANT_GROUPS_PRIORITY_ROUTE_LOADER_R16_END
+
 require_once base_path('routes/admin-app-before.php');
 require_once base_path('routes/pmd-staff-portal-v1.php');
 require_once base_path('routes/pmd-mobile-sync-v1.php');
@@ -3844,9 +3853,9 @@ if (file_exists(base_path('routes/pmd-tenant-runtime-guard-r1.php'))) {
 require_once base_path('routes/pmd-superadmin-r2.php');
 
 // PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1
-// Admin\ServiceProvider loads this file in HTTP and Console bootstrap.
-// Keep Restaurant Groups routes on the same proven route authority as the
-// existing Super Admin and Admin route packs.
+// Backwards-compatible loader marker. R16 already loads this route pack in
+// the priority section before admin-app-before.php's greedy Admin catch-all.
+// require_once makes this second call intentionally idempotent.
 require_once base_path('routes/pmd-groups.php');
 // PMD_RESTAURANT_GROUPS_ROUTE_LOADER_R1_END
 
