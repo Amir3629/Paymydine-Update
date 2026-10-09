@@ -24,6 +24,8 @@
   // existing 12 analytics widgets without mounting a second dashboard.
   var scopeProvider = null;
   var scopeRevision = 0;
+  var scopedCache = Object.create(null);
+  function visibleCache() { return scopeProvider ? scopedCache : cache; }
   function scopeAccepts(payload) {
     return scopeProvider
       ? !!(payload && payload.pmd_group_scoped === true)
@@ -260,6 +262,7 @@
         if (!payload || payload.success !== true || payload.pmd_group_scoped !== true) {
           throw new Error('Restaurant reporting data is unavailable.');
         }
+        scopedCache[period] = payload;
         return payload;
       });
     }
@@ -983,7 +986,8 @@
           encodeURIComponent(chartMode) +
           '; path=/admin; max-age=31536000; samesite=lax';
       } catch (error) {}
-      if (cache.last30) renderSales(cache.last30);
+      var active = visibleCache().last30;
+      if (active) renderSales(active);
       return;
     }
 
@@ -1084,20 +1088,18 @@
     if (key === 'salesOverTime') {
       salesVisible = value;
 
-      if (cache.last30) {
-        renderSales(
-          cache.last30
-        );
+      var activeSales = visibleCache().last30;
+      if (activeSales) {
+        renderSales(activeSales);
       }
     }
 
     if (key === 'salesByHour') {
       hourVisible = value;
 
-      if (cache.last30) {
-        renderHour(
-          cache.last30
-        );
+      var activeHourly = visibleCache().last30;
+      if (activeHourly) {
+        renderHour(activeHourly);
       }
     }
   }
@@ -1309,6 +1311,7 @@
     setScopeProvider: function (provider) {
       scopeProvider = typeof provider === 'function' ? provider : null;
       scopeRevision += 1;
+      scopedCache = Object.create(null);
       if (scopeProvider) {
         // Reuse existing card bodies. No new panels, cards or layout writers.
         root.querySelectorAll('[data-pmd-lab-widget-body]').forEach(function (body) {
@@ -1319,6 +1322,7 @@
       return scopeRevision;
     },
     refresh: function () {
+      var expectedRevision = scopeRevision;
       requests = Object.create(null);
       errors = Object.create(null);
       backgroundRevalidateStartedV132 = false;
@@ -1327,6 +1331,7 @@
         request('last30', true),
         request('month', true)
       ]).then(function (payloads) {
+        if (expectedRevision !== scopeRevision) return window.PMDDashboardLabAnalyticsV1.audit();
         renderBase(payloads[0]);
         Object.keys(periodByWidget).forEach(function (key) {
           if (periodByWidget[key] === 'month') {
@@ -1335,7 +1340,7 @@
             loadPeriodWidget(key, periodByWidget[key]);
           }
         });
-        persistAnalyticsBootstrapV132();
+        if (!scopeProvider) persistAnalyticsBootstrapV132();
         return window.PMDDashboardLabAnalyticsV1.audit();
       });
     },
