@@ -73,7 +73,10 @@
   }
 
   function dashboardMount(){
-    var root=document.querySelector('#pmd-dashboard-lab, #pmd-ownerboard, [data-pmd-ownerboard-v2]');
+    var root=document.getElementById('pmd-dashboard-lab');
+    // The canonical Owner Dashboard is Dashboard Lab. An old/alternate
+    // Ownerboard renderer has a different data contract; do not offer a
+    // nonfunctional selector there.
     if(!root)return;
     var header=root.querySelector('#pmd-r2-clean-header, .pmd-ownerboard-v2__header, header');
     var actions=header&&header.querySelector('[data-pmd-dashboard-lab-header-actions], .pmd-ownerboard-v2__header-actions, .pmd-owner-header__actions');
@@ -81,7 +84,6 @@
     var control=scopeControl();if(!control.wrap.isConnected)actions.prepend(control.wrap);
     var current=String(context.current_tenant_id), selectedScope=current, sequence=0;
     var reportCache=Object.create(null);
-    var nativeLab=root.id==='pmd-dashboard-lab';
     var floor=root.querySelector('#pmd-r2-shared-floor-canvas-v310, [data-pmd-floor]');
     var kpiTemplate={};
     try{
@@ -201,13 +203,6 @@
           : '';
       }
       control.select.setAttribute('aria-busy',remote?'true':'false');
-      if(!nativeLab){
-        // Never render a duplicate panel or replace native local data on an
-        // unsupported legacy Dashboard route.
-        if(remote){control.select.value=current;selectedScope=current;root.classList.remove('pmd-group-dashboard-scope-active');}
-        control.select.removeAttribute('aria-busy');
-        return;
-      }
       var analytics=window.PMDDashboardLabAnalyticsV1;
       if(!remote){
         control.select.removeAttribute('aria-busy');
