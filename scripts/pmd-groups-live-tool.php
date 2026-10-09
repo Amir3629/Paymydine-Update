@@ -76,6 +76,12 @@ try {
     $stage = 'template-preflight';
     $app->make(\App\Services\SuperAdminTenantLifecycleService::class)->assertGroupTemplateReady();
 
+    $stage = 'group-scope-read-model';
+    if (!class_exists(\App\Services\RestaurantGroups\GroupScopeReadModel::class)) {
+        throw new RuntimeException('GroupScopeReadModel could not be autoloaded.');
+    }
+    $app->make(\App\Services\RestaurantGroups\GroupScopeReadModel::class);
+
     $stage = 'provider-registration';
     if (!$app->getProvider(\App\Providers\RestaurantGroupsServiceProvider::class)) {
         throw new RuntimeException('RestaurantGroupsServiceProvider is not registered by the System bootstrap authority.');
