@@ -143,12 +143,12 @@ try {
     }
 
     // The public bootstrap binds Igniter's HTTP kernel. An alias declared
-    // only in App\\Http\\Kernel cannot safely be assumed to exist at runtime.
+    // only in App\Http\Kernel cannot safely be assumed to exist at runtime.
     // R16 checked route matching but did not detect an unresolved middleware
     // alias, which can throw HTTP 500 before AdminController::context() runs.
     $stage = 'group-context-middleware';
     $groupMiddleware = $groupMatched->gatherMiddleware();
-    if (!in_array(\\App\\Http\\Middleware\\TenantDatabaseMiddleware::class, $groupMiddleware, true)
+    if (!in_array(\App\Http\Middleware\TenantDatabaseMiddleware::class, $groupMiddleware, true)
         || in_array('tenant.database', $groupMiddleware, true)) {
         throw new RuntimeException('Group context must use the concrete tenant database middleware class.');
     }
