@@ -1649,7 +1649,8 @@
       },
       body: JSON.stringify({
         _pmd_manage_action: "cancel",
-        _pmd_manage_hash: config.manageHash || ""
+        _pmd_manage_hash: config.manageHash || "",
+        _pmd_booking_locale: activeLanguageCode()
       })
     }).then(function (response) {
       return response.json().catch(function () { return {}; }).then(function (payload) {
