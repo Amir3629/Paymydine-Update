@@ -53,6 +53,7 @@ grep -Fq "whatsappTemplateLanguage" app/Services/Reservations/PmdGuestCommunicat
 grep -Fq "'type' => 'template'" app/Services/Reservations/PmdGuestCommunicationService.php
 grep -Fq "'type' => 'text'" app/Services/Reservations/PmdGuestCommunicationService.php
 grep -Fq "safeHttpsUrl" app/Services/Reservations/PmdGuestCommunicationService.php
+grep -Fq "Mail::send(" app/Services/Reservations/PmdGuestCommunicationService.php
 
 grep -Fq "settings.communication.guest_communications_r28" app/admin/i18n/platform/en.php
 grep -Fq "settings.communication.guest_communications_r28" app/admin/i18n/platform/de.php
