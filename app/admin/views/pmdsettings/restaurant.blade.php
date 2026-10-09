@@ -280,11 +280,11 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             <div class="pmd-profile-grid pmd-profile-grid--2">
                                 <label class="pmd-profile-field">
                                     <span>{{ $pmdSettingsText('Sender name') }}</span>
-                                    <input type="text" name="communication[sender_name]" value="{{ $pmdGuestCommunications['sender_name'] ?? ($pmdProfile['name'] ?? '') }}" maxlength="191" autocomplete="organization">
+                                    <input type="text" name="communication[sender_name]" value="{{ ($pmdGuestCommunications['sender_name'] ?? '') ?: ($pmdProfile['name'] ?? '') }}" maxlength="191" autocomplete="organization">
                                 </label>
                                 <label class="pmd-profile-field">
                                     <span>{{ $pmdSettingsText('Sender email') }}</span>
-                                    <input type="email" name="communication[sender_email]" value="{{ $pmdGuestCommunications['sender_email'] ?? ($pmdProfile['email'] ?? '') }}" maxlength="191" autocomplete="email">
+                                    <input type="email" name="communication[sender_email]" value="{{ ($pmdGuestCommunications['sender_email'] ?? '') ?: ($pmdProfile['email'] ?? '') }}" maxlength="191" autocomplete="email">
                                     <small>{{ $pmdSettingsText('Guest replies still go to the Restaurant email above.') }}</small>
                                 </label>
                             </div>
