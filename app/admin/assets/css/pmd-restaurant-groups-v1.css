@@ -53,8 +53,23 @@
 .pmd-group-header-button{min-height:40px;padding:0 12px;border:1px solid #d8e5e0;border-radius:10px;background:#fff;color:#174d3e;font:800 12px/1 system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 .pmd-group-dashboard-panel,.pmd-group-menu-panel{margin:0 0 18px;padding:18px;border:1px solid #dce8e4;border-radius:16px;background:#fff;color:#17372f}
 .pmd-group-dashboard-panel[hidden],.pmd-group-menu-panel[hidden]{display:none!important}
-#pmd-ownerboard.pmd-group-dashboard-scope-active>:not(.pmd-ownerboard-v2__header):not(.pmd-group-dashboard-panel){display:none!important}
-[data-pmd-menu-manager].pmd-group-menu-scope-active>:not(#pmd-r2-clean-header):not(.pmd-group-menu-panel){display:none!important}
+/* R18: never hide or replace the native Dashboard/Floor/analytics geometry.
+   The already-existing KPI/chart widgets receive scoped read-only data instead. */
+.pmd-group-dashboard-scope-active .pmd-group-scope-switch select{font-weight:850!important}
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-create],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-header-primary],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-header-secondary],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-workspace-toggle-r23],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-food-categories],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-stock-filter],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-sort-toggle],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-smart-server-action-card],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-header-expand-search]{display:none!important}
+.pmd-group-menu-readonly-item{cursor:default!important}
+.pmd-group-menu-readonly-item .pmd-menu-card__media{pointer-events:none}
+.pmd-group-menu-readonly-item .pmd-menu-card__availability{padding:9px 0;min-height:28px}
+.pmd-group-menu-message{padding:22px!important;min-height:100px;display:flex;align-items:center;color:#546b61}
+
 .pmd-group-dashboard-panel__head,.pmd-group-menu-panel__head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
 .pmd-group-dashboard-panel h2,.pmd-group-menu-panel h2{margin:2px 0 0;font-size:22px;line-height:1.2}
 .pmd-group-period{display:grid;gap:4px;margin:0;min-width:140px}.pmd-group-period>span{font-size:10px;font-weight:850;text-transform:uppercase;color:#71857e}.pmd-group-period select{min-height:36px;border:1px solid #d8e5e0;border-radius:8px;background:#fff;padding:6px 9px}
