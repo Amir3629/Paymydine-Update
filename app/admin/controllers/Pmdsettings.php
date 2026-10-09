@@ -780,6 +780,12 @@ class Pmdsettings extends AdminController
     public function onSaveRestaurantProfile()
     {
         $locationId = $this->currentLocationId();
+        // A settings save must not report success when its target location is missing.
+        if ($locationId < 1 || !DB::table('locations')->where('location_id', $locationId)->exists()) {
+            throw ValidationException::withMessages([
+                'profile.name' => ['The selected restaurant location does not exist.'],
+            ]);
+        }
         $profile = (array)post('profile', []);
         $hours = (array)post('hours', []);
         $googleBusinessInput = (array)post('google_business', []);
@@ -1177,7 +1183,7 @@ class Pmdsettings extends AdminController
 
         return [
             'name' => (string)$identity['name'],
-            'email' => (string)($value('site_email') ?: ($location->location_email ?? '')),
+            'email' => (string)(($location->location_email ?? '') ?: $value('site_email')),
             'telephone' => (string)($location->location_telephone ?? ''),
             'address_1' => (string)($location->location_address_1 ?? ''),
             'address_2' => (string)($location->location_address_2 ?? ''),
