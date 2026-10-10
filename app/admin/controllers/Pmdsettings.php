@@ -96,7 +96,7 @@ class Pmdsettings extends AdminController
         $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
         $this->vars['pmdProfileLocationId'] = $locationId;
         $this->vars['pmdGuestCommunications'] = app(PmdGuestCommunicationService::class)
-            ->settingsPayload();
+            ->settingsPayload($locationId);
 
         try {
             $this->vars['pmdGoogleBusiness'] = app(PmdGoogleBusinessService::class)->status($locationId);
@@ -852,7 +852,7 @@ class Pmdsettings extends AdminController
             'ses_secret' => ['nullable', 'string', 'max:4096'],
             'ses_region' => ['nullable', 'string', 'max:100'],
             'test_email' => ['nullable', 'email', 'max:191'],
-            'whatsapp_provider' => ['nullable', 'in:meta_cloud,webhook'],
+            'whatsapp_provider' => ['nullable', 'in:managed,meta_cloud,webhook'],
             'whatsapp_endpoint' => ['nullable', 'url', 'max:1000'],
             'whatsapp_sender_reference' => ['nullable', 'string', 'max:255'],
             'whatsapp_token' => ['nullable', 'string', 'max:4096'],
@@ -941,7 +941,7 @@ class Pmdsettings extends AdminController
                     'mailgun_domain' => trim((string)($communicationClean['mailgun_domain'] ?? '')),
                     'ses_region' => trim((string)($communicationClean['ses_region'] ?? '')),
                     'test_email' => trim((string)($communicationClean['test_email'] ?? '')),
-                    'pmd_reservation_messages_whatsapp_provider' => (string)($communicationClean['whatsapp_provider'] ?? 'meta_cloud'),
+                    'pmd_reservation_messages_whatsapp_provider' => (string)($communicationClean['whatsapp_provider'] ?? 'managed'),
                     'pmd_reservation_messages_whatsapp_endpoint' => trim((string)($communicationClean['whatsapp_endpoint'] ?? '')),
                     'pmd_reservation_messages_whatsapp_sender_reference' => trim((string)($communicationClean['whatsapp_sender_reference'] ?? '')),
                     'pmd_reservation_messages_whatsapp_test_recipient' => trim((string)($communicationClean['whatsapp_test_recipient'] ?? '')),
@@ -1047,6 +1047,31 @@ class Pmdsettings extends AdminController
         ];
     }
 
+    /**
+     * R31: owner requests PayMyDine-managed onboarding without handling API
+     * keys or claiming that Meta granted access. This creates an operator
+     * queue entry only; the phone remains inactive until explicitly bound.
+     */
+    public function onRequestManagedWhatsApp()
+    {
+        try {
+            $managed = app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class);
+            $tenantId = $managed->currentTenantId();
+            $managed->requestConnection($tenantId, $this->currentLocationId());
+        } catch (\Throwable $error) {
+            throw ValidationException::withMessages([
+                'communication.whatsapp_provider' => [
+                    'WhatsApp connection requests are not available yet. Contact PayMyDine support.',
+                ],
+            ]);
+        }
+
+        flash()->success('Your WhatsApp connection request is saved. PayMyDine will verify the business number before activation.');
+        return [
+            '#pmd-managed-wa-request-status' => '<span role="status">Connection requested. Awaiting Meta authorization and PayMyDine activation.</span>',
+        ];
+    }
+
     public function onTestReservationWhatsApp()
     {
         $communication = (array)post('communication', []);
@@ -1060,7 +1085,7 @@ class Pmdsettings extends AdminController
 
         try {
             $sent = app(PmdGuestCommunicationService::class)
-                ->sendTestWhatsApp($recipient);
+                ->sendTestWhatsApp($recipient, $this->currentLocationId());
             if (!$sent) {
                 throw new \RuntimeException(
                     'WhatsApp provider did not accept the test message.'
