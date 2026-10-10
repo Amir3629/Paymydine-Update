@@ -368,12 +368,57 @@ class ReservationComposerService
                 return $reservation->fresh(['location.all_options', 'tables', 'status']);
             });
 
+            $warnings = [];
+            if ($staffConsent) {
+                try {
+                    $tenantId = app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class)
+                        ->currentTenantId();
+                    $recorded = app(\App\Services\WhatsApp\PmdSharedWhatsAppService::class)
+                        ->recordBookingConsent(
+                            $tenantId,
+                            (int)$saved->location_id,
+                            (int)$saved->getKey(),
+                            (string)$saved->telephone,
+                            $staffLocale,
+                            'admin_verified_guest_consent'
+                        );
+                    if ($recorded) {
+                        $reservationId = (int)$saved->getKey();
+                        app()->terminating(static function () use ($reservationId, $staffLocale): void {
+                            try {
+                                $fresh = Reservations_model::query()
+                                    ->whereKey($reservationId)->with('location')->first();
+                                if ($fresh) {
+                                    app(\App\Services\Reservations\PmdGuestCommunicationService::class)
+                                        ->sendReservationEvent(
+                                            $fresh, 'created', $staffLocale, ['whatsapp']
+                                        );
+                                }
+                            } catch (Throwable $exception) {
+                                Log::warning('PMD R34 admin WhatsApp send failed', [
+                                    'reservation_id' => $reservationId,
+                                    'error_type' => get_class($exception),
+                                ]);
+                            }
+                        });
+                    } else {
+                        $warnings[] = 'Reservation saved; WhatsApp consent was not recorded.';
+                    }
+                } catch (Throwable $exception) {
+                    Log::warning('PMD R34 admin WhatsApp consent unavailable', [
+                        'reservation_id' => (int)$saved->getKey(),
+                        'error_type' => get_class($exception),
+                    ]);
+                    $warnings[] = 'Reservation saved; WhatsApp notification was not scheduled.';
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'mode' => $mode,
                 'reservation' => $this->serialize($saved),
                 'source' => (string)($validated['source'] ?? ''),
-                'warnings' => [],
+                'warnings' => $warnings,
             ]);
         } catch (Throwable $exception) {
             return $this->error($exception);
