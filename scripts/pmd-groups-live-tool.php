@@ -702,7 +702,7 @@ try {
         || strpos($nativeAnalytics, 'var wasScoped = !!scopeProvider;') === false
         || strpos($nativeAnalytics, 'if (!scopeProvider && wasScoped)') === false
         || strpos($nativeAnalytics, "body.innerHTML = empty({reason: 'Loading restaurant data…'});") !== false
-        || strpos($nativeAnalytics, 'if (body.innerHTML !== markup) body.innerHTML = markup;') === false
+        || strpos($nativeAnalytics, 'body._pmdLastChartMarkupR25 !== markup') === false
         || strpos($nativeKpis, 'data-pmd-kpi-rendered-icon') === false
         || strpos($dashboardSource, 'Promise.allSettled([') === false
         || strpos($dashboardSource, "report(scope,'last30')") === false
