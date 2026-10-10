@@ -24,10 +24,15 @@ grep -Fq "PMD_GUEST_COMMUNICATIONS_R28" app/admin/assets/css/pmd-settings-restau
 grep -Fq "Guest communications" app/admin/views/pmdsettings/restaurant.blade.php
 grep -Fq 'communication[email_enabled]' app/admin/views/pmdsettings/restaurant.blade.php
 grep -Fq 'communication[whatsapp_enabled]' app/admin/views/pmdsettings/restaurant.blade.php
-grep -Fq 'communication[whatsapp_endpoint]' app/admin/views/pmdsettings/restaurant.blade.php
-grep -Fq 'communication[whatsapp_template_created]' app/admin/views/pmdsettings/restaurant.blade.php
-grep -Fq 'communication[whatsapp_template_updated]' app/admin/views/pmdsettings/restaurant.blade.php
-grep -Fq 'communication[whatsapp_template_canceled]' app/admin/views/pmdsettings/restaurant.blade.php
+# R32: channel is handled by PayMyDine; remove the owner-facing technical
+# fields without losing the existing direct integration's backend contract.
+if grep -Fq 'communication[whatsapp_endpoint]' app/admin/views/pmdsettings/restaurant.blade.php ||
+   grep -Fq 'communication[whatsapp_token]' app/admin/views/pmdsettings/restaurant.blade.php ||
+   grep -Fq 'communication[whatsapp_template_created]' app/admin/views/pmdsettings/restaurant.blade.php; then
+    echo "ERROR: owner profile exposes Meta API credentials or template config."
+    exit 1
+fi
+grep -Fq 'pmd-wa-owner-r32' app/admin/views/pmdsettings/restaurant.blade.php
 
 grep -Fq "PmdGuestCommunicationService" app/admin/controllers/Pmdsettings.php
 grep -Fq "pmd_reservation_messages_email_enabled" app/admin/controllers/Pmdsettings.php
@@ -47,7 +52,7 @@ test -f app/admin/views/_mail/reservation_guest_message.blade.php
 
 grep -Fq "_pmd_booking_locale: activeLanguageCode()" public/assets/pmd/public-booking-manage-v1.js
 grep -Fq "public-booking-manage-v1.js?v=20261009-r28" resources/views/pmd/public-booking-manage.blade.php
-grep -Fq "pmd-settings-restaurant-v1.css?v=20261009_r28" app/admin/views/pmdsettings/restaurant.blade.php
+grep -Fq "pmd-settings-restaurant-v1.css?v=20261010_r32" app/admin/views/pmdsettings/restaurant.blade.php
 
 grep -Fq "whatsappTemplateLanguage" app/Services/Reservations/PmdGuestCommunicationService.php
 grep -Fq "'type' => 'template'" app/Services/Reservations/PmdGuestCommunicationService.php
@@ -94,4 +99,4 @@ echo
 echo "PASS: R29 guest communications opt-in, WhatsApp safety, profile location visibility and strict save acknowledgment."
 
 echo
-echo "PASS: R28 exposes restaurant email/WhatsApp delivery settings, keeps secrets write-only, sends created/updated/canceled guest messages after the booking response, and supports approved Meta WhatsApp templates or a custom bot gateway."
+echo "PASS: R28/R32 exposes email and simple WhatsApp preferences, preserves existing direct channel contracts without displaying API secrets, and sends booking event messages after the booking response."
