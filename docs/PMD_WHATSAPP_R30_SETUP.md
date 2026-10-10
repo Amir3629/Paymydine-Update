@@ -17,6 +17,9 @@ publish Meta, modify production databases, or enable an autonomous bot.
   Site.Settings permission gates access; each read is tenant+location scoped.
 - Manual replies only to existing incoming conversations while Meta's
   24-hour customer-service window is open.
+- Booking-confirmation templates accepted by Meta can also be recorded in the
+  central Inbox after the channel is explicitly enabled; later Meta delivery
+  statuses update the matching accepted message receipt.
 - Unknown or inactive phone mappings receive no storage/action.
   No message triggers autonomous replies or reservation modification.
 
