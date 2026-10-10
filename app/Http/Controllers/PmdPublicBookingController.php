@@ -78,9 +78,26 @@ class PmdPublicBookingController extends Controller
         // resources/views path on this deployment. Render this standalone
         // public Blade by absolute file path so /book remains independent
         // from the active TastyIgniter theme/view namespace.
+        // Only offer WhatsApp opt-in when THIS tenant/location has an
+        // activated PayMyDine sender, owner opted into notifications, and
+        // all enabled Meta template names are configured. Default FALSE.
+        $bookingWhatsAppOptInEnabled = false;
+        if (config('pmd_whatsapp.shared_enabled', false)
+            && config('pmd_whatsapp.shared_consent_form_enabled', false)) {
+            try {
+                $waSettings = app(\App\Services\Reservations\PmdGuestCommunicationService::class)
+                    ->settingsPayload((int)$location->getKey());
+                $bookingWhatsAppOptInEnabled = !empty($waSettings['whatsapp_ready'])
+                    && (string)($waSettings['whatsapp_provider'] ?? '') === 'managed';
+            } catch (Throwable $ignored) {
+                // Public booking must remain available if Meta is offline.
+            }
+        }
+
         $html = view()->file(
             base_path('resources/views/pmd/public-booking.blade.php'),
             [
+                'bookingWhatsAppOptInEnabled' => $bookingWhatsAppOptInEnabled,
                 'bookingProfile' => $this->profile($location),
                 'bookingLocale' => $locale,
                 'bookingLocaleTag' => $languageContext['locale_tags'][$locale] ?? $this->defaultLocaleTag($locale),
