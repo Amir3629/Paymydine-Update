@@ -286,6 +286,10 @@ class SuperAdminTenantLifecycleService
             $this->ensureWorkplaceSecuritySchema();
             $this->ensureMobileSyncSchema();
             $this->sanitizeTenantBusinessData($group);
+            // R21: a cloned template is not "ready" merely because identity,
+            // Menu and TLS work. Require core KDS, payments and order storage
+            // BEFORE announcing the location prepared/ready to Super Admin.
+            $this->ensureTenantProductReadiness($database);
 
             if (!$group) {
                 $this->applyIndependentOwnerAccess($data);
@@ -301,6 +305,56 @@ class SuperAdminTenantLifecycleService
             $this->applyTenantIdentity($data);
         } finally {
             $this->restoreCentralConnection($centralDatabase);
+        }
+    }
+
+    /**
+     * R21: prepare the new tenant's operational product schema before group
+     * activation. The static newtenantdb template often predates newer KDS
+     * and split-payment tables; provisioning must not publish an incomplete
+     * site. Only the newly-created mysql database is writable here.
+     *
+     * This runs outside application-data transactions because MySQL DDL
+     * implicitly commits. Existing data remains preserved by the idempotent
+     * product baseline, and failure keeps the site disabled for review.
+     */
+    private function ensureTenantProductReadiness(string $database): void
+    {
+        $connection = DB::connection('mysql');
+        if (DB::getDefaultConnection() !== 'mysql'
+            || (string)$connection->getDatabaseName() !== $database) {
+            throw new \RuntimeException('Tenant product preparation resolved an unexpected database.');
+        }
+
+        $report = app(PmdTenantProductBaselineR1::class)
+            ->repairCurrentTenant(['payment_runtime', 'kds', 'orders']);
+
+        $requiredSteps = [
+            'payment_runtime', 'kds_stations', 'order_notes',
+            'order_settlement', 'order_guest_count', 'table_lifecycle',
+        ];
+        $healthy = !empty($report['ok'])
+            && (string)($report['database'] ?? '') === $database;
+        foreach ($requiredSteps as $step) {
+            if (empty($report['steps'][$step]['ok'])) $healthy = false;
+        }
+
+        $schema = $connection->getSchemaBuilder();
+        foreach ([
+            'orders', 'tables', 'order_payment_transactions',
+            'order_payment_transaction_items', 'payment_attempts',
+            'kds_stations', 'order_notes',
+        ] as $table) {
+            if (!$schema->hasTable($table)) $healthy = false;
+        }
+        if (!$healthy) {
+            Log::error('PMD newly cloned tenant product baseline incomplete', [
+                'database' => $database,
+                'warnings' => $report['warnings'] ?? [],
+            ]);
+            throw new \RuntimeException(
+                'Restaurant database preparation is incomplete; activation is blocked.'
+            );
         }
     }
 
