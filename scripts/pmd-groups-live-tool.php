@@ -645,6 +645,7 @@ try {
     $stage = 'verified-history-and-floor-geometry-r23';
     if (strpos($dashboardSource, 'node.style.left=(18+(index%perRow)*128+54)') === false
         || strpos($dashboardSource, 'node.style.top=(14+Math.floor(index/perRow)*112+44)') === false
+        || strpos($dashboardSource, "floor.classList.contains('is-strip-mode')") === false
         || strpos($toolSource, "'confirm-verified-history-clock'") === false
         || strpos($toolSource, 'PMD CLOCK EVIDENCE SITE') === false
         || strpos($toolSource, 'I_VERIFIED_EXISTING_SETTLEMENT_TIMESTAMPS_ARE_UTC') === false
