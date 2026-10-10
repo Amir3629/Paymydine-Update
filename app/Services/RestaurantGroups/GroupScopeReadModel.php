@@ -489,9 +489,59 @@ final class GroupScopeReadModel
         }
 
         $columns = array_flip($schema->getColumnListing('tables'));
-        if (!isset($columns['location_id']) || !isset($columns['table_id'])) {
+        if (!isset($columns['table_id'])) {
             return ['tenant_id'=>$tenantId, 'label'=>$label, 'available'=>false,
                 'message'=>'Restaurant table schema is incomplete.', 'tables'=>[]];
+        }
+
+        $query = $db->table('tables');
+        if (isset($columns['location_id'])) {
+            $query->where('location_id', (int)$site->location_id);
+        } else {
+            // TastyIgniter normally attaches tables through polymorphic
+            // locationables, not a location_id column on "tables".
+            // Only use all tables when this tenant has ONE location; never
+            // accidentally expose another location within the same DB.
+            $mapped = false;
+            if ($schema->hasTable('locationables')) {
+                $rel = array_flip($schema->getColumnListing('locationables'));
+                if (isset($rel['location_id'], $rel['locationable_type'], $rel['locationable_id'])) {
+                    $ids = $db->table('locationables')
+                        ->where('location_id', (int)$site->location_id)
+                        ->whereIn('locationable_type', ['tables', 'Admin\\Models\\Tables_model'])
+                        ->pluck('locationable_id')->map(static fn ($value) => (int)$value)
+                        ->filter()->unique()->values()->all();
+                    if ($ids) {
+                        $query->whereIn('table_id', $ids);
+                        $mapped = true;
+                    } elseif ($db->table('locationables')
+                        ->whereIn('locationable_type', ['tables', 'Admin\\Models\\Tables_model'])
+                        ->exists()) {
+                        $query->whereRaw('1 = 0');
+                        $mapped = true;
+                    }
+                }
+            }
+            if (!$mapped && $schema->hasTable('location_tables')) {
+                $rel = array_flip($schema->getColumnListing('location_tables'));
+                if (isset($rel['location_id'], $rel['table_id'])) {
+                    $ids = $db->table('location_tables')
+                        ->where('location_id', (int)$site->location_id)
+                        ->pluck('table_id')->map(static fn ($value) => (int)$value)
+                        ->filter()->unique()->values()->all();
+                    if ($ids) {
+                        $query->whereIn('table_id', $ids);
+                        $mapped = true;
+                    }
+                }
+            }
+            if (!$mapped) {
+                if (!$schema->hasTable('locations')
+                    || (int)$db->table('locations')->count() !== 1) {
+                    return ['tenant_id'=>$tenantId, 'label'=>$label, 'available'=>false,
+                        'message'=>'Table location mapping cannot be verified.', 'tables'=>[]];
+                }
+            }
         }
 
         $nameColumn = isset($columns['table_name']) ? 'table_name'
@@ -499,17 +549,21 @@ final class GroupScopeReadModel
         $fields = ['table_id', $nameColumn];
         if (isset($columns['table_no']) && !in_array('table_no', $fields, true)) $fields[] = 'table_no';
         if (isset($columns['operational_status'])) $fields[] = 'operational_status';
-        $records = $db->table('tables')->where('location_id', (int)$site->location_id)
-            ->orderBy('table_id')->limit(251)->get($fields);
+        if (isset($columns['table_status'])) $fields[] = 'table_status';
+        $records = $query->orderBy('table_id')->limit(251)->get($fields);
         $statusAllowed = ['occupied', 'reserved', 'cleaning', 'attention', 'disabled'];
         $tables = [];
         foreach ($records->take(250) as $row) {
             $status = strtolower(trim((string)($row->operational_status ?? '')));
+            if (isset($columns['table_status']) && !(bool)($row->table_status ?? true)) {
+                $status = 'disabled';
+            }
             // "available" does not prove absence of a simultaneous booking.
             // Show it neutrally until a reservation-aware remote state exists.
             if (!in_array($status, $statusAllowed, true)) $status = 'unknown';
             $number = trim((string)($row->table_no ?? ''));
             $name = trim((string)($row->{$nameColumn} ?? ''));
+            if (in_array(strtolower($name), ['cashier','delivery'], true)) continue;
             $tables[] = [
                 'number' => mb_substr($number !== '' ? $number : $name, 0, 50),
                 'name' => mb_substr($name !== '' ? $name : $number, 0, 100),
