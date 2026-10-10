@@ -133,11 +133,34 @@ final class PmdWhatsAppSchema
                 $table->string('direction', 12);
                 $table->string('kind', 24);
                 $table->text('body_ciphertext');
+                $table->text('manage_url_ciphertext')->nullable();
                 $table->string('delivery_status', 24)->default('received');
                 $table->timestamp('received_at');
                 $table->timestamps();
                 $table->index(['tenant_id', 'location_id', 'received_at'], 'pmd_wa_shared_inbox_idx');
                 $table->index(['sender_id', 'wa_id_hash', 'direction'], 'pmd_wa_shared_thread_idx');
+            });
+        }
+
+        // R34: safe additive upgrade for already-installed R33 schema.
+        if ($schema->hasTable('pmd_wa_shared_messages')
+            && !$schema->hasColumn('pmd_wa_shared_messages', 'manage_url_ciphertext')) {
+            $schema->table('pmd_wa_shared_messages', function (Blueprint $table): void {
+                $table->text('manage_url_ciphertext')->nullable();
+            });
+        }
+        if (!$schema->hasTable('pmd_wa_shared_action_jobs')) {
+            $schema->create('pmd_wa_shared_action_jobs', function (Blueprint $table): void {
+                $table->engine = 'InnoDB';
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('incoming_message_id')->unique();
+                $table->unsignedBigInteger('tenant_id');
+                $table->unsignedBigInteger('location_id');
+                $table->string('action', 16);
+                $table->string('status', 16)->default('pending');
+                $table->unsignedTinyInteger('attempts')->default(0);
+                $table->timestamps();
+                $table->index(['status', 'created_at'], 'pmd_wa_actions_queue_idx');
             });
         }
 
