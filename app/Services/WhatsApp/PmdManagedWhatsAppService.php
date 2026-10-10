@@ -215,7 +215,8 @@ final class PmdManagedWhatsAppService
                 // templates MUST have two buttons at indices 0 and 1.
                 // The payload has NO reservation token or customer data.
                 if (PmdWhatsAppButtonPolicy::safeManageUrl(
-                    (string)($context['manage_url'] ?? '')
+                    (string)($context['manage_url'] ?? ''),
+                    (string)config('pmd_whatsapp.shared_booking_hosts', '')
                 ) === null) {
                     return false;
                 }
