@@ -18,6 +18,7 @@ final class GroupScopeReadModel
         $ids = $this->scopeIds($scope, $context);
         $base = $this->snapshot->snapshot($scope, $period);
         $details = [];
+        $floorSites = [];
         $series = [];
         $payments = [];
         $hourly = [];
@@ -30,6 +31,23 @@ final class GroupScopeReadModel
 
         foreach ($ids as $tenantId) {
             $label = $this->label($tenantId, $context);
+
+            // R22: Floor discovery is intentionally independent of settlement
+            // reporting. A missing historical clock must not leave the signed-in
+            // restaurant's operational cards under a different site label.
+            try {
+                $floorSites[] = $this->readOnlyFloorSite($tenantId, $label, $context);
+            } catch (\Throwable $floorError) {
+                $floorSites[] = [
+                    'tenant_id' => $tenantId,
+                    'label' => $label,
+                    'available' => false,
+                    'message' => $floorError instanceof \DomainException
+                        ? $floorError->getMessage()
+                        : 'Restaurant floor data is unavailable.',
+                    'tables' => [],
+                ];
+            }
 
             try {
                 $extra = $this->dashboardSite($tenantId, $period);
@@ -99,6 +117,9 @@ final class GroupScopeReadModel
             'scope_label' => $scope === 'all'
                 ? 'All restaurants'
                 : $this->label((int)$ids[0], $context),
+            // R22: read-only native Floor projection, not an operational
+            // cross-tenant login or an editable dashboard replacement.
+            'floor' => ['read_only' => true, 'restaurants' => $floorSites],
             'dashboard' => [
                 'guests' => $guests,
                 'turnover_minutes' => $turnoverSamples > 0
@@ -445,6 +466,63 @@ final class GroupScopeReadModel
             'sales_series' => $series,
             'sales_by_hour' => $hourly,
             'category_sales' => $categorySales,
+        ];
+    }
+
+    /**
+     * R22: bounded, tenant-isolated Floor projection for an authorized Group
+     * Owner. Never include guest/order/customer data, remote action URLs or
+     * table IDs usable for writes. Occupancy is not claimed without an
+     * explicit operational status; native reservations may further constrain
+     * availability and are deliberately not inferred here.
+     */
+    private function readOnlyFloorSite(int $tenantId, string $label, array $context): array
+    {
+        $this->store->access((int)$context['owner']['id'], $tenantId);
+        $site = $this->store->site($tenantId);
+        PublicationRules::member($site, (int)$context['group']['id']);
+        $db = $this->store->connection($tenantId);
+        $schema = $db->getSchemaBuilder();
+        if (!$schema->hasTable('tables')) {
+            return ['tenant_id'=>$tenantId, 'label'=>$label, 'available'=>false,
+                'message'=>'Restaurant table storage is unavailable.', 'tables'=>[]];
+        }
+
+        $columns = array_flip($schema->getColumnListing('tables'));
+        if (!isset($columns['location_id']) || !isset($columns['table_id'])) {
+            return ['tenant_id'=>$tenantId, 'label'=>$label, 'available'=>false,
+                'message'=>'Restaurant table schema is incomplete.', 'tables'=>[]];
+        }
+
+        $nameColumn = isset($columns['table_name']) ? 'table_name'
+            : (isset($columns['table_no']) ? 'table_no' : 'table_id');
+        $fields = ['table_id', $nameColumn];
+        if (isset($columns['table_no']) && !in_array('table_no', $fields, true)) $fields[] = 'table_no';
+        if (isset($columns['operational_status'])) $fields[] = 'operational_status';
+        $records = $db->table('tables')->where('location_id', (int)$site->location_id)
+            ->orderBy('table_id')->limit(251)->get($fields);
+        $statusAllowed = ['occupied', 'reserved', 'cleaning', 'attention', 'disabled'];
+        $tables = [];
+        foreach ($records->take(250) as $row) {
+            $status = strtolower(trim((string)($row->operational_status ?? '')));
+            // "available" does not prove absence of a simultaneous booking.
+            // Show it neutrally until a reservation-aware remote state exists.
+            if (!in_array($status, $statusAllowed, true)) $status = 'unknown';
+            $number = trim((string)($row->table_no ?? ''));
+            $name = trim((string)($row->{$nameColumn} ?? ''));
+            $tables[] = [
+                'number' => mb_substr($number !== '' ? $number : $name, 0, 50),
+                'name' => mb_substr($name !== '' ? $name : $number, 0, 100),
+                'status' => $status,
+            ];
+        }
+        return [
+            'tenant_id' => $tenantId,
+            'label' => $label,
+            'available' => true,
+            'read_only' => true,
+            'tables' => $tables,
+            'truncated' => $records->count() > 250,
         ];
     }
 
