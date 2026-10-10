@@ -348,6 +348,62 @@ final class PmdWhatsAppGateway
         ]);
     }
 
+    /**
+     * Track successfully accepted outbound reservation templates too, so Meta
+     * delivery/read/failed status callbacks can be linked to their receipts.
+     * This is inert unless the central gateway is enabled AND number mapped.
+     */
+    public function recordAcceptedReservationMessage(
+        int $tenantId,
+        int $locationId,
+        string $phoneNumberId,
+        string $recipient,
+        string $externalMessageId,
+        string $displayText
+    ): void {
+        if (!config('pmd_whatsapp.enabled', false)
+            || $tenantId < 1 || $locationId < 1
+            || !preg_match('/^[0-9]{5,32}$/D', $phoneNumberId)
+            || !app(PmdWhatsAppSchema::class)->installed()) {
+            return;
+        }
+
+        $waId = preg_replace('/[^0-9]/', '', $recipient);
+        if (!preg_match('/^[0-9]{6,20}$/D', $waId)
+            || $externalMessageId === '' || strlen($externalMessageId) > 190) {
+            return;
+        }
+
+        $db = DB::connection('mysql');
+        $channel = $db->table('pmd_whatsapp_channels as c')
+            ->join('tenants as t', 't.id', '=', 'c.tenant_id')
+            ->where('c.tenant_id', $tenantId)
+            ->where('c.location_id', $locationId)
+            ->where('c.phone_number_id', $phoneNumberId)
+            ->where('c.enabled', 1)
+            ->where('t.status', 'active')
+            ->first(['c.id']);
+        if (!$channel) {
+            return;
+        }
+
+        $db->table('pmd_whatsapp_messages')->insertOrIgnore([
+            'channel_id' => (int)$channel->id,
+            'tenant_id' => $tenantId,
+            'location_id' => $locationId,
+            'external_message_id' => $externalMessageId,
+            'wa_id_hash' => $this->phoneHash($waId),
+            'wa_id_ciphertext' => Crypt::encryptString($waId),
+            'direction' => 'out',
+            'kind' => 'template',
+            'body_ciphertext' => Crypt::encryptString(mb_substr($displayText, 0, 4000)),
+            'delivery_status' => 'accepted',
+            'received_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     public function purgeOlderThan(int $days): int
     {
         if ($days < 30 || $days > 365 || !app(PmdWhatsAppSchema::class)->installed()) {
