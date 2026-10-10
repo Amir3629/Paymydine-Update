@@ -81,6 +81,7 @@ final class PmdWhatsAppWebhookController extends Controller
     {
         $host = strtolower(trim((string)config('pmd_whatsapp.webhook_host', '')));
         return config('pmd_whatsapp.enabled', false) === true
+            && $request->isSecure()
             && $host !== ''
             && $host === strtolower((string)$request->getHost());
     }
