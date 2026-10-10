@@ -144,6 +144,18 @@ body.pmd-dashboard-lab-page
     pointer-events:none!important;
     cursor:default!important;
 }
+/* If the native Floor refreshes in the background, never show the
+   signed-in tenant's operational cards under a DIFFERENT selected label.
+   This visibility guard applies only in remote Group scope, not locally. */
+#pmd-dashboard-lab.pmd-group-dashboard-scope-active
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-canvas] > .pmd-floor-v1__table:not(.pmd-group-floor-readonly-table){
+    display:none!important;
+}
+#pmd-r2-shared-floor-canvas-v310.pmd-group-floor-all-disabled
+[data-floor-canvas] > .pmd-floor-v1__table{
+    display:none!important;
+}
 /* Only unknown operational status is neutral; never imply availability. */
 body.pmd-dashboard-lab-page
 #pmd-dashboard-lab
