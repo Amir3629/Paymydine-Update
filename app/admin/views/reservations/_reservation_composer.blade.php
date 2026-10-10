@@ -147,3 +147,34 @@
   <symbol id="pmd-composer-icon-preferences" viewBox="0 0 24 24"><path d="M4 6h6M14 6h6M10 4v4M4 12h10M18 12h2M14 10v4M4 18h2M10 18h10M6 16v4"/></symbol>
   <symbol id="pmd-composer-icon-device-floppy" viewBox="0 0 24 24"><path d="M6 4h11l3 3v13H4V6a2 2 0 0 1 2-2M8 4v6h8V4M8 20v-6h8v6"/></symbol>
 </defs></svg>
+
+<style id="pmd-r34-consent-style">
+.pmd-composer-wa-consent-r34{display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr);gap:14px;padding:14px;border:1px solid #cbe5d8;background:#f6fbf8;border-radius:12px;font-size:12px;color:#28473d;margin-top:12px}
+.pmd-composer-wa-consent-r34__check{display:flex!important;align-items:flex-start!important;gap:10px!important;min-width:0}
+.pmd-composer-wa-consent-r34__check input{flex:none;margin-top:4px}
+.pmd-composer-wa-consent-r34__language{min-width:0;display:flex!important;flex-direction:column;gap:5px}
+.pmd-composer-wa-consent-r34__language select{width:100%;min-height:39px;border:1px solid #cbded6;border-radius:8px;background:white;color:#18382d}
+@media(max-width:600px){.pmd-composer-wa-consent-r34{grid-template-columns:minmax(0,1fr)}}
+</style>
+<script id="pmd-r34-consent-reset">
+(function(){
+  var root=document.getElementById('pmd-reservation-composer-v1');
+  if(!root||!root.querySelector('input[name="whatsapp_guest_consent"]'))return;
+  var oldOpen=root.classList.contains('show');
+  function reset(){
+    var checkbox=root.querySelector('input[name="whatsapp_guest_consent"]');
+    var locale=root.querySelector('select[name="whatsapp_guest_locale"]');
+    if(checkbox)checkbox.checked=false;
+    if(locale)locale.value=locale.getAttribute('data-default-locale')||'de';
+  }
+  new MutationObserver(function(){
+    var nowOpen=root.classList.contains('show');
+    if(nowOpen&&!oldOpen)reset();
+    oldOpen=nowOpen;
+  }).observe(root,{attributes:true,attributeFilter:['class']});
+  root.addEventListener('click',function(ev){
+    if(ev.target.closest('[data-pmd-composer-cancel],[data-pmd-composer-close]'))reset();
+  });
+  document.addEventListener('pmd:reservation-saved',reset);
+})();
+</script>
