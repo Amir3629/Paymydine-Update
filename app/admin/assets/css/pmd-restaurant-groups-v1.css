@@ -84,3 +84,53 @@
 .pmd-group-menu-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.pmd-group-menu-item{display:flex;justify-content:space-between;gap:14px;padding:11px 12px;border:1px solid #e1ebe7;border-radius:10px;background:#fafcfb}.pmd-group-menu-item strong,.pmd-group-menu-item span{display:block}.pmd-group-menu-item strong{font-size:13px}.pmd-group-menu-item span{margin-top:3px;color:#71857e;font-size:10px}.pmd-group-menu-item b{font-size:12px;white-space:nowrap}
 @media(max-width:980px){.pmd-group-report-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-group-report-grid{grid-template-columns:1fr}.pmd-group-menu-items{grid-template-columns:1fr}.pmd-group-scope-caption{display:none}.pmd-group-scope-switch{grid-template-columns:minmax(120px,1fr)}}
 @media(max-width:620px){.pmd-group-report-cards{grid-template-columns:1fr}.pmd-group-dashboard-panel__head,.pmd-group-menu-panel__head{flex-direction:column}.pmd-group-scope-switch{max-width:165px}.pmd-group-header-button{display:none}}
+
+/* PMD QUICK SETUP R19 — a single, persistent action in the EXISTING header.
+   Shown by the tenant's server-side unfinished status; never a popup reminder. */
+#pmd-dashboard-lab [data-pmd-quick-setup-return],
+[data-pmd-menu-manager] [data-pmd-quick-setup-return] {
+    appearance: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    width: auto !important;
+    min-width: 100px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    border: 1px solid #bfd9ce !important;
+    border-radius: 10px !important;
+    background: #edf8f3 !important;
+    color: #0b523c !important;
+    font-size: 12px !important;
+    font-weight: 750 !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    cursor: pointer !important;
+}
+#pmd-dashboard-lab [data-pmd-quick-setup-return]:hover,
+[data-pmd-menu-manager] [data-pmd-quick-setup-return]:hover {
+    background: #dff2e8 !important;
+    border-color: #8fc1ab !important;
+}
+#pmd-dashboard-lab [data-pmd-quick-setup-return]:focus-visible,
+[data-pmd-menu-manager] [data-pmd-quick-setup-return]:focus-visible {
+    outline: 3px solid #318b68 !important;
+    outline-offset: 3px !important;
+}
+@media (max-width: 680px) {
+    #pmd-dashboard-lab [data-pmd-quick-setup-return],
+    [data-pmd-menu-manager] [data-pmd-quick-setup-return] {
+        min-width: 0 !important;
+        padding: 0 8px !important;
+        font-size: 11px !important;
+    }
+}
