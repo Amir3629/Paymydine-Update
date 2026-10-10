@@ -186,7 +186,13 @@
     card.title = data.source || '';
 
     if (iconNode) {
-      iconNode.innerHTML = icon(data.icon || 'money');
+      // R25: Rebuilding an unchanged KPI SVG on every restaurant-scope
+      // update causes a visible icon blink even though its type is identical.
+      var iconKey = String(data.icon || 'money');
+      if (iconNode.getAttribute('data-pmd-kpi-rendered-icon') !== iconKey) {
+        iconNode.innerHTML = icon(iconKey);
+        iconNode.setAttribute('data-pmd-kpi-rendered-icon', iconKey);
+      }
     }
 
     if (titleNode) titleNode.textContent = data.title || key;
