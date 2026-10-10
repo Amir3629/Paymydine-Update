@@ -13,6 +13,71 @@ use Illuminate\Validation\ValidationException;
 
 trait PmdWaiterPosPaymentTransactionConcern
 {
+    /**
+     * R21: a cloned group restaurant can reach POS before its old template's
+     * split-payment tables exist. Bootstrap only this signed-in tenant's
+     * settlement schema, BEFORE any order/payment DB transaction begins.
+     *
+     * Never alter the payment provider/catalog configuration. Never infer
+     * that switching the dashboard report scope changes the POS database.
+     */
+    protected function pmdEnsurePaymentStorageR21(): void
+    {
+        if (DB::getDefaultConnection() !== 'tenant'
+            || trim((string)DB::connection('tenant')->getDatabaseName()) === '') {
+            throw ValidationException::withMessages([
+                'payment' => 'Restaurant payment database context is unavailable.',
+            ]);
+        }
+
+        $schema = DB::connection('tenant')->getSchemaBuilder();
+        $required = [
+            'order_payment_transactions' => [
+                'id', 'order_id', 'amount', 'idempotency_key',
+                'settlement_status', 'payment_method',
+            ],
+            'order_payment_transaction_items' => [
+                'id', 'transaction_id', 'order_menu_id',
+                'quantity_paid', 'unit_price', 'line_total',
+            ],
+            'payment_attempts' => ['id', 'order_id', 'provider_code', 'amount', 'status'],
+            'orders' => ['order_id', 'settlement_status', 'settled_amount'],
+        ];
+        $missing = false;
+        foreach ($required as $table => $columns) {
+            if (!$schema->hasTable($table)
+                || array_diff($columns, $schema->getColumnListing($table))) {
+                $missing = true;
+                break;
+            }
+        }
+
+        if (!$missing) return;
+
+        $report = app(\App\Services\PmdTenantProductBaselineR1::class)
+            ->repairCurrentTenant(['payment_runtime', 'orders']);
+        $healthy = !empty($report['ok'])
+            && !empty($report['steps']['payment_runtime']['ok'])
+            && !empty($report['steps']['order_settlement']['ok']);
+        foreach ($required as $table => $columns) {
+            if (!$schema->hasTable($table)
+                || array_diff($columns, $schema->getColumnListing($table))) {
+                $healthy = false;
+                break;
+            }
+        }
+        // Quick POS uses schema memoization for performance. A missing-table
+        // result cached before repair must not persist in this request.
+        $this->pmdPosSchemaTableCache = [];
+        $this->pmdPosSchemaColumnCache = [];
+
+        if (!$healthy) {
+            throw ValidationException::withMessages([
+                'payment' => 'Restaurant payment storage is incomplete. No payment was recorded; contact support.',
+            ]);
+        }
+    }
+
     protected function insertPaymentTransaction(array $data): int
     {
         if (!Schema::hasTable('order_payment_transactions')) {
