@@ -267,8 +267,10 @@ final class PmdSharedWhatsAppService
                     continue;
                 }
                 $value = $change['value'] ?? [];
-                $numberId = is_array($value)
-                    ? (string)($value['metadata']['phone_number_id'] ?? '') : '';
+                if (!is_array($value)) {
+                    continue;
+                }
+                $numberId = (string)($value['metadata']['phone_number_id'] ?? '');
                 if (!preg_match('/^[0-9]{5,32}$/D', $numberId)) {
                     continue;
                 }
