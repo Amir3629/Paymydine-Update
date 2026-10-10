@@ -633,7 +633,12 @@ try {
         || strpos($reportingProfile, 'storage_timezone_source') === false
         || strpos($newTenantLifecycle, '$this->initializeEmptyGroupStorageClock($database);') === false
         || strpos($newTenantLifecycle, "->table('orders')->exists()") === false
-        || strpos($toolSource, "if (\$action === 'audit-reporting' || \$action === 'confirm-empty-clock')") === false
+        // R23.1: Do not match a literal R22 two-action `if` statement.
+        // R23 deliberately expanded the dispatcher to a third, guarded action.
+        // Check both required command names; R23 guard below independently
+        // checks the historical-payment clock confirmation contract.
+        || strpos($toolSource, "'audit-reporting'") === false
+        || strpos($toolSource, "'confirm-empty-clock'") === false
         || strpos($toolSource, 'CONFIRM_EMPTY_ORDER_HISTORY') === false
         || strpos($toolSource, 'ordersCount !== 0') === false) {
         throw new RuntimeException('Restaurant Groups selected Floor and safe reporting clock contract is incomplete.');
