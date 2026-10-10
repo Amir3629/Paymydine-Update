@@ -206,6 +206,28 @@ final class PmdManagedWhatsAppService
                     'text' => mb_substr((string)($context[$key] ?? ''), 0, 1024),
                 ];
             }
+            $components = [[
+                'type' => 'body',
+                'parameters' => $parameters,
+            ]];
+            if ($isShared && config('pmd_whatsapp.shared_quick_reply_enabled', false) === true) {
+                // These are native Meta quick-reply buttons. The approved
+                // templates MUST have two buttons at indices 0 and 1.
+                // The payload has NO reservation token or customer data.
+                if (PmdWhatsAppButtonPolicy::safeManageUrl(
+                    (string)($context['manage_url'] ?? '')
+                ) === null) {
+                    return false;
+                }
+                $components[] = [
+                    'type' => 'button', 'sub_type' => 'quick_reply', 'index' => '0',
+                    'parameters' => [['type' => 'payload', 'payload' => 'PMD_MANAGE']],
+                ];
+                $components[] = [
+                    'type' => 'button', 'sub_type' => 'quick_reply', 'index' => '1',
+                    'parameters' => [['type' => 'payload', 'payload' => 'PMD_NEW_BOOKING']],
+                ];
+            }
             $res = Http::asJson()->acceptJson()
                 ->withToken($transport['token'])->timeout(8)->connectTimeout(3)
                 ->withOptions(['allow_redirects' => false])
@@ -217,10 +239,7 @@ final class PmdManagedWhatsAppService
                     'template' => [
                         'name' => $name,
                         'language' => ['code' => $language],
-                        'components' => [[
-                            'type' => 'body',
-                            'parameters' => $parameters,
-                        ]],
+                        'components' => $components,
                     ],
                 ]);
             if (!$res->successful()) {
@@ -238,7 +257,8 @@ final class PmdManagedWhatsAppService
                 if ($isShared) {
                     app(PmdSharedWhatsAppService::class)->recordAccepted(
                         (int)$transport['sender_id'], $tenantId, $locationId,
-                        $reservationId, $to, $metaId, $previewText
+                        $reservationId, $to, $metaId, $previewText,
+                        (string)($context['manage_url'] ?? '')
                     );
                 } else {
                     app(PmdWhatsAppGateway::class)->recordAcceptedReservationMessage(
