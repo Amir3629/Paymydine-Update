@@ -54,8 +54,7 @@ grep -Fq 'shared_approved_template_locales' app/Http/Controllers/PmdPublicBookin
 grep -Fq 'waLocale' app/Services/Reservations/PmdGuestCommunicationService.php
 grep -Fq 'shared-dispatch-buttons' app/Console/Commands/PmdWhatsAppCommand.php
 grep -Fq 'pmd_wa_shared_action_jobs' app/Services/WhatsApp/PmdSharedWhatsAppButtonDispatcher.php
-grep -Fq "->where('kind', 'template')" app/Services/WhatsApp/PmdSharedWhatsAppButtonDispatcher.php || \
-    grep -Fq -- "->where('kind', 'template')" app/Services/WhatsApp/PmdSharedWhatsAppButtonDispatcher.php
+grep -Fq -- "->where('kind', 'template')" app/Services/WhatsApp/PmdSharedWhatsAppButtonDispatcher.php
 
 bash scripts/pmd-r33-shared-whatsapp-qa.sh
 bash scripts/pmd-r32-owner-whatsapp-ui-qa.sh
