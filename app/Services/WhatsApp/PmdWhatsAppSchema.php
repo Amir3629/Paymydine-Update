@@ -97,6 +97,18 @@ final class PmdWhatsAppSchema
             });
         }
 
+        // STOP is global to the single PayMyDine sender: never continue
+        // sending another restaurant's reservation after a shared opt-out.
+        if (!$schema->hasTable('pmd_wa_shared_optouts')) {
+            $schema->create('pmd_wa_shared_optouts', function (Blueprint $table): void {
+                $table->engine = 'InnoDB';
+                $table->bigIncrements('id');
+                $table->char('wa_id_hash', 64)->unique();
+                $table->timestamp('stopped_at');
+                $table->timestamps();
+            });
+        }
+
         if (!$schema->hasTable('pmd_wa_shared_messages')) {
             $schema->create('pmd_wa_shared_messages', function (Blueprint $table): void {
                 $table->engine = 'InnoDB';
