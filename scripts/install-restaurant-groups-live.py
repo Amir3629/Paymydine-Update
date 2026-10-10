@@ -43,6 +43,10 @@ EXACT = {
     # R18: only the native Dashboard/Menu files required for in-place
     # read-only scope rendering. Do not touch unrelated Admin controllers.
     'app/admin/views/_partials/pmd_group_scope_firstpaint.blade.php',
+    # R19: existing onboarding wizard and the server-first persistent return.
+    'app/admin/views/_partials/pmd_quick_setup_return.blade.php',
+    'app/admin/assets/js/pmd-onboarding-welcome-v1.js',
+    'app/admin/assets/js/pmd-tenant-quick-setup-v3.js',
     'app/admin/views/dashboardlab/index.blade.php',
     'app/admin/views/pmdmenus/index.blade.php',
     'app/admin/assets/js/pmd-dashboard-lab-kpis-v1.js',
