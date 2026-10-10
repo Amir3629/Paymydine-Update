@@ -35,6 +35,10 @@ final class PmdManagedWhatsAppService
 
     public function state(int $tenantId, int $locationId): array
     {
+        if (config('pmd_whatsapp.shared_enabled', false) === true) {
+            return app(PmdSharedWhatsAppService::class)->state($tenantId, $locationId);
+        }
+
         $result = [
             'connected' => false,
             'ready' => false,
