@@ -49,6 +49,7 @@
             'notes' => 'Anything we should know?',
             'notes_hint' => 'Business booking, celebration, seating preference, high chair…',
             'consent' => 'I agree that the restaurant may use these contact details to manage this reservation.',
+            'whatsapp_opt_in' => 'Optional: Send reservation confirmations and updates to my WhatsApp from PayMyDine on behalf of this restaurant. No marketing messages.',
             'guarantee_title' => 'Reservation guarantee',
             'guarantee_intro' => 'No charge today.',
             'guarantee_total' => 'Guarantee limit',
@@ -134,6 +135,7 @@
             'notes' => 'Gibt es etwas, das wir wissen sollten?',
             'notes_hint' => 'Geschäftsessen, Feier, Sitzwunsch, Kinderstuhl…',
             'consent' => 'Ich stimme zu, dass das Restaurant diese Kontaktdaten zur Bearbeitung der Reservierung verwenden darf.',
+            'whatsapp_opt_in' => 'Optional: PayMyDine darf mir im Namen dieses Restaurants Reservierungsbestätigungen und Änderungen per WhatsApp senden. Keine Werbung.',
             'guarantee_title' => 'Reservierungsgarantie',
             'guarantee_intro' => 'Jetzt keine Abbuchung.',
             'guarantee_total' => 'Garantielimit',
@@ -219,6 +221,7 @@
             'notes' => 'Bilmemiz gereken bir şey var mı?',
             'notes_hint' => 'İş yemeği, kutlama, oturma tercihi, mama sandalyesi…',
             'consent' => 'Restoranın bu iletişim bilgilerini rezervasyonu yönetmek için kullanmasını kabul ediyorum.',
+            'whatsapp_opt_in' => 'İsteğe bağlı: PayMyDine bu restoran adına WhatsApp üzerinden rezervasyon onayları ve güncellemeleri gönderebilir. Reklam mesajı gönderilmez.',
             'guarantee_title' => 'Rezervasyon garantisi',
             'guarantee_intro' => 'Şimdi ödeme yok.',
             'guarantee_total' => 'Garanti limiti',
@@ -304,6 +307,7 @@
             'notes' => 'هل هناك شيء يجب أن نعرفه؟',
             'notes_hint' => 'حجز عمل، احتفال، تفضيل الجلوس، كرسي طفل…',
             'consent' => 'أوافق على استخدام المطعم لبيانات الاتصال هذه لإدارة الحجز.',
+            'whatsapp_opt_in' => 'اختياري: أوافق على استلام تأكيدات الحجز وتحديثاته عبر واتساب من PayMyDine بالنيابة عن هذا المطعم. دون رسائل تسويقية.',
             'guarantee_title' => 'ضمان الحجز',
             'guarantee_intro' => 'لا خصم الآن.',
             'guarantee_total' => 'حد الضمان',
@@ -636,6 +640,16 @@
                                 <input name="consent" type="checkbox" value="1" required>
                                 <span data-pmd-i18n="consent">{{ $t['consent'] }}</span>
                             </label>
+
+                            {{-- R33: entirely optional, separately checked Meta
+                                 WhatsApp business-initiated booking notifications.
+                                 Unavailable until PayMyDine enables the pilot. --}}
+                            @if(config('pmd_whatsapp.shared_enabled', false) && config('pmd_whatsapp.shared_consent_form_enabled', false))
+                                <label class="pmd-booking-consent pmd-booking-consent--whatsapp">
+                                    <input name="whatsapp_opt_in" type="checkbox" value="1">
+                                    <span data-pmd-i18n="whatsapp_opt_in">{{ $t['whatsapp_opt_in'] }}</span>
+                                </label>
+                            @endif
 
                             <section id="pmd-booking-guarantee" class="pmd-booking-guarantee" hidden aria-live="polite">
                                 <div class="pmd-booking-guarantee__head">
