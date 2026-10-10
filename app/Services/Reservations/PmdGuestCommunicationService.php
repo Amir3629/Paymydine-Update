@@ -82,6 +82,14 @@ final class PmdGuestCommunicationService
                 : (string)$this->setting('pmd_reservation_messages_whatsapp_template_'.$event, '');
         };
 
+        $legacyChannelReady = $this->isAllowedWhatsappEndpoint(
+            $whatsappEndpoint, $whatsappProvider
+        ) && ($whatsappProvider !== 'meta_cloud' || ($hasWhatsappToken
+            && $this->hasApprovedTemplatesForEnabledEvents($events)));
+        $whatsappChannelReady = $whatsappProvider === 'managed'
+            ? (!empty($managedStatus['ready']) && $managedTemplatesReady)
+            : $legacyChannelReady;
+
         return [
             'email_enabled' => $emailEnabled,
             'email_ready' => $emailEnabled
@@ -103,13 +111,11 @@ final class PmdGuestCommunicationService
             'has_ses_secret' => trim((string)$this->setting('ses_secret', '')) !== '',
             'test_email' => (string)$this->setting('test_email', ''),
             'whatsapp_enabled' => $whatsappEnabled,
-            'whatsapp_ready' => $whatsappEnabled && (
-                $whatsappProvider === 'managed'
-                    ? (!empty($managedStatus['ready']) && $managedTemplatesReady)
-                    : ($this->isAllowedWhatsappEndpoint($whatsappEndpoint, $whatsappProvider)
-                        && ($whatsappProvider !== 'meta_cloud' || ($hasWhatsappToken
-                            && $this->hasApprovedTemplatesForEnabledEvents($events))))
-            ),
+            // Technical readiness differs from an owner's opt-in preference.
+            // A disabled but fully provisioned channel should not be labelled
+            // as awaiting Meta authorization in Restaurant Settings.
+            'whatsapp_channel_ready' => $whatsappChannelReady,
+            'whatsapp_ready' => $whatsappEnabled && $whatsappChannelReady,
             'managed_status' => $managedStatus,
             'managed_templates_ready' => $managedTemplatesReady,
             'managed_location_id' => $managedLocationId,
