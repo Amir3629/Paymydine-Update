@@ -1,0 +1,256 @@
+<?php
+
+namespace App\Services\WhatsApp;
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use RuntimeException;
+use Throwable;
+
+/**
+ * R31 PayMyDine-managed WhatsApp connector.
+ *
+ * One Meta App, one operator-managed system-user credential, separate Meta
+ * business numbers per location. NEVER take a phone ID, tenant ID, sender URL
+ * or token from an owner form or a customer webhook.
+ *
+ * All sending is fail-closed until an operator binds and activates a
+ * phone_number_id + WABA for an active tenant and config is enabled.
+ */
+final class PmdManagedWhatsAppService
+{
+    public function currentTenantId(): int
+    {
+        try {
+            $tenant = request()->attributes->get('tenant');
+            if (!$tenant && app()->bound('tenant')) {
+                $tenant = app('tenant');
+            }
+            return (int)($tenant->id ?? 0);
+        } catch (Throwable $error) {
+            return 0;
+        }
+    }
+
+    public function state(int $tenantId, int $locationId): array
+    {
+        $result = [
+            'connected' => false,
+            'ready' => false,
+            'requested' => false,
+            'status' => 'not_connected',
+            'phone_last4' => '',
+        ];
+
+        if ($tenantId < 1 || $locationId < 1) {
+            return $result;
+        }
+
+        try {
+            if (!app(PmdWhatsAppSchema::class)->installed()) {
+                $result['status'] = 'not_installed';
+                return $result;
+            }
+            $db = DB::connection('mysql');
+            $channel = $db->table('pmd_whatsapp_channels as c')
+                ->join('tenants as t', 't.id', '=', 'c.tenant_id')
+                ->where('c.tenant_id', $tenantId)
+                ->where('c.location_id', $locationId)
+                ->where('c.enabled', 1)
+                ->where('t.status', 'active')
+                ->first(['c.phone_number_id']);
+            if ($channel) {
+                $result['connected'] = true;
+                $result['phone_last4'] = substr((string)$channel->phone_number_id, -4);
+            }
+
+            if ($db->getSchemaBuilder()->hasTable('pmd_whatsapp_connection_requests')) {
+                $result['requested'] = $db->table('pmd_whatsapp_connection_requests')
+                    ->where('tenant_id', $tenantId)
+                    ->where('location_id', $locationId)
+                    ->exists();
+            }
+
+            $result['ready'] = $result['connected'] && $this->credentialsReady()
+                && (bool)config('pmd_whatsapp.enabled', false)
+                && strlen((string)config('pmd_whatsapp.verify_token', '')) >= 32
+                && strlen((string)config('pmd_whatsapp.app_secret', '')) >= 16
+                && trim((string)config('pmd_whatsapp.webhook_host', '')) !== '';
+
+            $result['status'] = $result['ready'] ? 'ready'
+                : ($result['connected'] ? 'awaiting_platform'
+                    : ($result['requested'] ? 'requested' : 'not_connected'));
+        } catch (Throwable $error) {
+            // Fail closed when central DB is unavailable; no tokens or
+            // provider diagnostics are rendered into restaurant settings.
+            $result['status'] = 'unavailable';
+        }
+
+        return $result;
+    }
+
+    public function requestConnection(int $tenantId, int $locationId): void
+    {
+        if ($tenantId < 1 || $locationId < 1
+            || !app(PmdWhatsAppSchema::class)->installed()) {
+            throw new RuntimeException('WhatsApp connection requests are not available.');
+        }
+        $tenant = DB::connection('mysql')->table('tenants')
+            ->where('id', $tenantId)->where('status', 'active')->first();
+        if (!$tenant) {
+            throw new RuntimeException('Active restaurant not found.');
+        }
+        $location = DB::connection('tenant')->table('locations')
+            ->where('location_id', $locationId)
+            ->where('location_status', 1)
+            ->exists();
+        if (!$location) {
+            throw new RuntimeException('Active location not found.');
+        }
+        $db = DB::connection('mysql');
+        if (!$db->getSchemaBuilder()->hasTable('pmd_whatsapp_connection_requests')) {
+            throw new RuntimeException('Connection request schema needs installation.');
+        }
+        $db->table('pmd_whatsapp_connection_requests')->updateOrInsert(
+            ['tenant_id' => $tenantId, 'location_id' => $locationId],
+            ['status' => 'requested', 'updated_at' => now(), 'created_at' => now()]
+        );
+    }
+
+    public function credentialsReady(): bool
+    {
+        return config('pmd_whatsapp.managed_enabled', false) === true
+            && strlen((string)config('pmd_whatsapp.system_user_token', '')) >= 32
+            && preg_match('/^v[0-9]+\.[0-9]+$/D',
+                (string)config('pmd_whatsapp.graph_version', '')) === 1;
+    }
+
+    public function transport(int $tenantId, int $locationId): array
+    {
+        if ($tenantId < 1 || $locationId < 1
+            || $this->state($tenantId, $locationId)['ready'] !== true) {
+            throw new RuntimeException('PayMyDine WhatsApp channel is not ready.');
+        }
+        $channel = DB::connection('mysql')->table('pmd_whatsapp_channels')
+            ->where('tenant_id', $tenantId)
+            ->where('location_id', $locationId)
+            ->where('enabled', 1)
+            ->first(['phone_number_id']);
+        if (!$channel) {
+            throw new RuntimeException('The WhatsApp sender is not provisioned.');
+        }
+        $phone = (string)$channel->phone_number_id;
+        if (!preg_match('/^[0-9]{5,32}$/D', $phone)) {
+            throw new RuntimeException('Invalid managed WhatsApp sender.');
+        }
+
+        // Only Graph endpoint derived from a central operator-provisioned ID.
+        return [
+            'url' => 'https://graph.facebook.com/'
+                .(string)config('pmd_whatsapp.graph_version')
+                .'/'.$phone.'/messages',
+            'token' => (string)config('pmd_whatsapp.system_user_token'),
+            'phone_number_id' => $phone,
+        ];
+    }
+
+    public function hasTemplatesForEvents(array $events): bool
+    {
+        $any = false;
+        foreach (['created', 'updated', 'canceled'] as $event) {
+            if (empty($events[$event])) {
+                continue;
+            }
+            $any = true;
+            $name = trim((string)config('pmd_whatsapp.templates.'.$event, ''));
+            if (!preg_match('/^[a-z0-9_]{1,512}$/D', $name)) {
+                return false;
+            }
+        }
+
+        // This only validates NAMES. Meta still must approve each template on
+        // the sending WABA; validate approval during operator activation.
+        return $any;
+    }
+
+    public function sendTemplate(
+        int $tenantId,
+        int $locationId,
+        string $recipient,
+        string $event,
+        array $context,
+        string $previewText
+    ): bool {
+        if (!in_array($event, ['created', 'updated', 'canceled'], true)) {
+            return false;
+        }
+        $name = trim((string)config('pmd_whatsapp.templates.'.$event, ''));
+        $language = trim((string)config('pmd_whatsapp.template_language', ''));
+        $to = preg_replace('/[^0-9]/', '', $recipient);
+        if (!preg_match('/^[a-z0-9_]{1,512}$/D', $name)
+            || !preg_match('/^[a-z]{2}(?:_[A-Z]{2})?$/D', $language)
+            || !preg_match('/^[0-9]{6,20}$/D', $to)) {
+            return false;
+        }
+
+        try {
+            $transport = $this->transport($tenantId, $locationId);
+            $parameters = [];
+            foreach ([
+                'restaurant_name', 'reference', 'reservation_date',
+                'reservation_time', 'reservation_guests', 'manage_url',
+            ] as $key) {
+                $parameters[] = [
+                    'type' => 'text',
+                    'text' => mb_substr((string)($context[$key] ?? ''), 0, 1024),
+                ];
+            }
+            $res = Http::asJson()->acceptJson()
+                ->withToken($transport['token'])->timeout(8)->connectTimeout(3)
+                ->withOptions(['allow_redirects' => false])
+                ->post($transport['url'], [
+                    'messaging_product' => 'whatsapp',
+                    'recipient_type' => 'individual',
+                    'to' => $to,
+                    'type' => 'template',
+                    'template' => [
+                        'name' => $name,
+                        'language' => ['code' => $language],
+                        'components' => [[
+                            'type' => 'body',
+                            'parameters' => $parameters,
+                        ]],
+                    ],
+                ]);
+            if (!$res->successful()) {
+                Log::warning('PMD managed WhatsApp template was rejected', [
+                    'event' => $event,
+                    'http_status' => $res->status(),
+                ]);
+                return false;
+            }
+
+            // A successful Meta API request is an accepted message, NOT proof
+            // the customer received it. Actual delivery arrives via webhook.
+            try {
+                app(PmdWhatsAppGateway::class)->recordAcceptedReservationMessage(
+                    $tenantId,
+                    $locationId,
+                    $transport['phone_number_id'],
+                    $to,
+                    (string)$res->json('messages.0.id', ''),
+                    $previewText
+                );
+            } catch (Throwable $ignored) {
+                // A receipt write failure must not re-send a delivered template.
+            }
+            return true;
+        } catch (Throwable $error) {
+            Log::warning('PMD managed WhatsApp send unavailable', [
+                'error_type' => get_class($error),
+            ]);
+            return false;
+        }
+    }
+}
