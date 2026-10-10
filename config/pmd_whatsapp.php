@@ -20,5 +20,10 @@ return [
         'updated' => (string)env('PMD_WA_TEMPLATE_UPDATED', ''),
         'canceled' => (string)env('PMD_WA_TEMPLATE_CANCELED', ''),
     ],
+    // R33: one PayMyDine-owned business sender for all authorized tenants.
+    // Both flags remain FALSE until the official Meta account and callback
+    // are configured and the booking opt-in is explicitly enabled.
+    'shared_enabled' => filter_var(env('PMD_WA_SHARED_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+    'shared_consent_form_enabled' => filter_var(env('PMD_WA_SHARED_CONSENT_FORM', false), FILTER_VALIDATE_BOOLEAN),
     'retention_days' => 90,
 ];
