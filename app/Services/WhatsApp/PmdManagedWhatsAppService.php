@@ -38,7 +38,6 @@ final class PmdManagedWhatsAppService
         $result = [
             'connected' => false,
             'ready' => false,
-            'requested' => false,
             'status' => 'not_connected',
             'phone_last4' => '',
         ];
@@ -65,13 +64,6 @@ final class PmdManagedWhatsAppService
                 $result['phone_last4'] = substr((string)$channel->phone_number_id, -4);
             }
 
-            if ($db->getSchemaBuilder()->hasTable('pmd_whatsapp_connection_requests')) {
-                $result['requested'] = $db->table('pmd_whatsapp_connection_requests')
-                    ->where('tenant_id', $tenantId)
-                    ->where('location_id', $locationId)
-                    ->exists();
-            }
-
             $result['ready'] = $result['connected'] && $this->credentialsReady()
                 && (bool)config('pmd_whatsapp.enabled', false)
                 && strlen((string)config('pmd_whatsapp.verify_token', '')) >= 32
@@ -79,8 +71,7 @@ final class PmdManagedWhatsAppService
                 && trim((string)config('pmd_whatsapp.webhook_host', '')) !== '';
 
             $result['status'] = $result['ready'] ? 'ready'
-                : ($result['connected'] ? 'awaiting_platform'
-                    : ($result['requested'] ? 'requested' : 'not_connected'));
+                : ($result['connected'] ? 'awaiting_platform' : 'not_connected');
         } catch (Throwable $error) {
             // Fail closed when central DB is unavailable; no tokens or
             // provider diagnostics are rendered into restaurant settings.
@@ -88,34 +79,6 @@ final class PmdManagedWhatsAppService
         }
 
         return $result;
-    }
-
-    public function requestConnection(int $tenantId, int $locationId): void
-    {
-        if ($tenantId < 1 || $locationId < 1
-            || !app(PmdWhatsAppSchema::class)->installed()) {
-            throw new RuntimeException('WhatsApp connection requests are not available.');
-        }
-        $tenant = DB::connection('mysql')->table('tenants')
-            ->where('id', $tenantId)->where('status', 'active')->first();
-        if (!$tenant) {
-            throw new RuntimeException('Active restaurant not found.');
-        }
-        $location = DB::connection('tenant')->table('locations')
-            ->where('location_id', $locationId)
-            ->where('location_status', 1)
-            ->exists();
-        if (!$location) {
-            throw new RuntimeException('Active location not found.');
-        }
-        $db = DB::connection('mysql');
-        if (!$db->getSchemaBuilder()->hasTable('pmd_whatsapp_connection_requests')) {
-            throw new RuntimeException('Connection request schema needs installation.');
-        }
-        $db->table('pmd_whatsapp_connection_requests')->updateOrInsert(
-            ['tenant_id' => $tenantId, 'location_id' => $locationId],
-            ['status' => 'requested', 'updated_at' => now(), 'created_at' => now()]
-        );
     }
 
     public function credentialsReady(): bool
