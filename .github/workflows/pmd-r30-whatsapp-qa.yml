@@ -1,0 +1,31 @@
+name: R30 central WhatsApp gateway QA
+
+on:
+  pull_request:
+    paths:
+      - 'app/Http/Controllers/PmdWhatsAppWebhookController.php'
+      - 'app/Services/WhatsApp/**'
+      - 'app/Console/Commands/PmdWhatsAppCommand.php'
+      - 'app/admin/controllers/Pmdwhatsappinbox.php'
+      - 'app/admin/views/pmdwhatsappinbox/**'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'config/pmd_whatsapp.php'
+      - 'routes/pmd-whatsapp-webhook-v1.php'
+      - 'routes.php'
+      - 'app/system/ServiceProvider.php'
+      - 'scripts/pmd-r30-*.sh'
+      - 'scripts/pmd-r30-*.php'
+      - '.github/workflows/pmd-r30-whatsapp-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: R30 syntax, signature and isolation contracts
+        run: bash scripts/pmd-r30-whatsapp-webhook-qa.sh
