@@ -19,6 +19,7 @@ do
 done
 
 bash -n scripts/pmd-r30-guarded-vps-sync.sh
+bash scripts/pmd-r30-guarded-vps-sync-selftest.sh
 php scripts/pmd-r30-whatsapp-signature-qa.php
 
 # The VPS installer must fail closed on conflicts and preserve an archive.
