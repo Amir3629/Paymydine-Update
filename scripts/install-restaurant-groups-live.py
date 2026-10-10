@@ -517,6 +517,26 @@ def main():
                 except Exception:
                     pass
                 raise
+            # R21: source health alone does not establish operational readiness
+            # of pre-existing group sites. An actual per-tenant schema audit is
+            # strictly read-only. Incomplete historical sites (return code 3)
+            # are reported, NOT hidden or treated as a deployment failure.
+            product_audit_summary = '[PMD] R21 read-only tenant audit unavailable; run the CLI check.'
+            try:
+                audit = subprocess.run(
+                    appcmd(str(root/'scripts/pmd-groups-live-tool.php'), 'audit-products', str(root)),
+                    cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    timeout=45
+                )
+                if audit.returncode in (0, 3):
+                    for line in audit.stdout.decode(errors='replace').splitlines():
+                        if line.startswith('PMD readiness audit:'):
+                            product_audit_summary = '[PMD] '+line[:300]
+                else:
+                    log.write(b'R21 ready-site product audit unavailable; see separate read-only CLI diagnostics.\\n')
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+
             # Health renders Blade. Remove compiled views once more so PHP-FPM
             # recreates them under its normal runtime identity.
             clear_framework_caches()
@@ -529,6 +549,8 @@ def main():
             print('[PMD] R19 preserves the existing Quick Setup wizard: its Dashboard/Menu header link stays until server-confirmed completion, even after Not now.', flush=True)
             print('[PMD] R20 initializes missing tenant KDS storage using the existing product baseline before Quick Setup creates stations, staff, floors or menu data.', flush=True)
             print('[PMD] R21 validates KDS, order and split-payment schema on new restaurants and repairs missing tenant settlement storage before Quick Setup or POS payment transactions.', flush=True)
+            print(product_audit_summary, flush=True)
+            print('[PMD] Read-only site detail: php scripts/pmd-groups-live-tool.php audit-products /var/www/paymydine', flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/new', flush=True)
             print('[PMD] Create chooser uses non-button interactive rows, scanner hard-exclusion and a fresh browser cache key.', flush=True)
             print('[PMD] Provisioning issues no longer render as a top-page attention card; Retry setup lives in the affected restaurant row.', flush=True)
