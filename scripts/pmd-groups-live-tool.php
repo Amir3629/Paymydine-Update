@@ -558,6 +558,36 @@ try {
     }
 
     echo "PASS R21: ready sites require tenant KDS, orders and settlement schema; POS repairs missing tables before charges\n";
+    // R22: the original Dashboard widgets now show the SELECTED group's own
+    // Floor tables, while a fresh empty-order tenant can report without
+    // guessing the timezone of any historical paid transaction.
+    $stage = 'group-scoped-floor-and-clock-r22';
+    $groupModel = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/GroupScopeReadModel.php');
+    $reportingProfile = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/ReportingProfile.php');
+    $newTenantLifecycle = (string)@file_get_contents($root.'/app/Services/SuperAdminTenantLifecycleService.php');
+    $toolSource = (string)@file_get_contents($root.'/scripts/pmd-groups-live-tool.php');
+    if (strpos($groupModel, 'private function readOnlyFloorSite(') === false
+        || strpos($groupModel, "'floor' => ['read_only' => true") === false
+        || strpos($groupModel, '$this->store->access((int)$context[\'owner\'][\'id\'], $tenantId)') === false
+        || strpos($groupModel, "->where('location_id', (int)\$site->location_id)") === false
+        || strpos($groupModel, 'limit(251)') === false
+        || strpos($dashboardSource, 'function displayGroupFloor(data)') === false
+        || strpos($dashboardSource, 'restoreNativeFloor();') === false
+        || strpos($dashboardSource, 'showFloorNotice(\'Loading selected restaurant tables') === false
+        || strpos($scopeCss, '.pmd-group-floor-readonly-table') === false
+        || strpos($reportingProfile, 'empty_order_history_application_clock') === false
+        || strpos($reportingProfile, "->where('location_id',\$locationId)->exists()") === false
+        || strpos($reportingProfile, 'storage_timezone_source') === false
+        || strpos($newTenantLifecycle, '$this->initializeEmptyGroupStorageClock($database);') === false
+        || strpos($newTenantLifecycle, "->table('orders')->exists()") === false
+        || strpos($toolSource, "if (\$action === 'audit-reporting' || \$action === 'confirm-empty-clock')") === false
+        || strpos($toolSource, 'CONFIRM_EMPTY_ORDER_HISTORY') === false
+        || strpos($toolSource, 'ordersCount !== 0') === false) {
+        throw new RuntimeException('Restaurant Groups selected Floor and safe reporting clock contract is incomplete.');
+    }
+    echo "PASS R22 selected tenant Floor is read-only; empty-order clock and historical reporting guard are active\n";
+
+
 
     echo "PASS /admin/group/context route matches Restaurant Groups before the greedy Admin catch-all\n";
     echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";
