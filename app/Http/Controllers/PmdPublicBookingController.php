@@ -545,6 +545,9 @@ class PmdPublicBookingController extends Controller
             ],
             'comment' => ['nullable', 'string', 'max:1000'],
             'consent' => ['accepted'],
+            // R33: independent and optional WhatsApp opt-in, not the general
+            // terms consent. Never infer WhatsApp permission from telephone.
+            'whatsapp_opt_in' => ['nullable', 'in:1'],
             '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
             '_pmd_guarantee_provider' => [
                 'nullable',
@@ -790,6 +793,31 @@ class PmdPublicBookingController extends Controller
                 ?? $successMessages['en'];
 
             $this->pushReservationAdminNotification($reservation, 'created');
+
+            // Consent is recorded only after the tenant reservation committed.
+            // Failure must NEVER roll back a booking or synthesize consent.
+            // Shared proactive sends independently recheck the consent record.
+            if (($data['whatsapp_opt_in'] ?? null) === '1'
+                && config('pmd_whatsapp.shared_enabled', false)
+                && config('pmd_whatsapp.shared_consent_form_enabled', false)) {
+                try {
+                    $tenantId = app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class)
+                        ->currentTenantId();
+                    app(\App\Services\WhatsApp\PmdSharedWhatsAppService::class)
+                        ->recordBookingConsent(
+                            $tenantId,
+                            (int)$reservation->location_id,
+                            (int)$reservation->getKey(),
+                            (string)$reservation->telephone
+                        );
+                } catch (Throwable $consentError) {
+                    Log::warning('PMD shared WhatsApp consent record unavailable', [
+                        'reservation_id' => (int)$reservation->getKey(),
+                        'error_type' => get_class($consentError),
+                    ]);
+                }
+            }
+
             $this->queueGuestCommunication(
                 $reservation,
                 'created',
