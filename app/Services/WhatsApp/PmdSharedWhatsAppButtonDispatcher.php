@@ -62,7 +62,7 @@ final class PmdSharedWhatsAppButtonDispatcher
                     ->where('kind', 'button')
                     ->first();
                 if (!$incoming
-                    || Carbon::parse((string)$incoming->received_at)->lte(now()->subMinutes(15))) {
+                    || Carbon::parse((string)$incoming->received_at)->lte(now()->subHours(23))) {
                     throw new RuntimeException('Button has expired or is not from this tenant.');
                 }
 
