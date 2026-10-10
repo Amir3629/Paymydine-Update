@@ -3,8 +3,8 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 $action = $argv[1] ?? '';
 $root = realpath($argv[2] ?? '');
-if (!$root || !in_array($action, ['info', 'backup', 'install', 'health'], true)) {
-    fwrite(STDERR, "Usage: php pmd-groups-live-tool.php info|backup|install|health APP_ROOT\n");
+if (!$root || !in_array($action, ['info', 'backup', 'install', 'health', 'audit-products'], true)) {
+    fwrite(STDERR, "Usage: php pmd-groups-live-tool.php info|backup|install|health|audit-products APP_ROOT\n");
     exit(2);
 }
 // Suppress accidental bootstrap output. SQL backup stdout must contain SQL only.
@@ -72,6 +72,57 @@ try {
     }
     $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
+
+    if ($action === 'audit-products') {
+        // R21 read-only acceptance: audit ACTUAL group databases without
+        // changing the default connection, orders, identity or provider setup.
+        // A successful code/route health-check alone cannot prove old tenants
+        // were provisioned with operational product schema.
+        $stage = 'ready-group-tenant-product-audit';
+        $sites = $store->central()->table('pmd_group_sites as s')
+            ->join('tenants as t', 't.id', '=', 's.tenant_id')
+            ->select('s.id as site_id', 's.tenant_id', 's.label', 't.database')
+            ->where('s.state', 'ready')
+            ->orderBy('s.id')->get();
+        $requirements = [
+            'orders' => ['order_id', 'settlement_status', 'settled_amount'],
+            'tables' => ['table_id'],
+            'order_payment_transactions' => ['id', 'order_id', 'payment_method', 'amount', 'idempotency_key'],
+            'order_payment_transaction_items' => ['id', 'transaction_id', 'order_menu_id', 'line_total'],
+            'payment_attempts' => ['id', 'order_id', 'provider_code', 'amount', 'status'],
+            'kds_stations' => ['station_id', 'name', 'slug'],
+            'order_notes' => ['note_id', 'order_id'],
+        ];
+        $failures = 0;
+        foreach ($sites as $site) {
+            $missing = [];
+            try {
+                $schema = $store->connection((int)$site->tenant_id, false)->getSchemaBuilder();
+                foreach ($requirements as $table => $columns) {
+                    if (!$schema->hasTable($table)) {
+                        $missing[] = $table.' (table)';
+                        continue;
+                    }
+                    $actualColumns = $schema->getColumnListing($table);
+                    foreach (array_diff($columns, $actualColumns) as $column) {
+                        $missing[] = $table.'.'.$column;
+                    }
+                }
+            } catch (Throwable $error) {
+                $missing[] = 'tenant database unavailable';
+            }
+            if ($missing) $failures++;
+            $label = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', (string)$site->label));
+            echo sprintf(
+                "PMD SITE %d %s: %s\n",
+                (int)$site->site_id,
+                substr($label, 0, 55),
+                $missing ? 'INCOMPLETE '.implode(', ', $missing) : 'READY (required tables and columns exist)'
+            );
+        }
+        echo sprintf("PMD readiness audit: %d ready-group sites checked; %d incomplete; READ ONLY\n", $sites->count(), $failures);
+        exit($failures ? 3 : 0);
+    }
 
     $stage = 'template-preflight';
     $app->make(\App\Services\SuperAdminTenantLifecycleService::class)->assertGroupTemplateReady();
