@@ -352,6 +352,25 @@ try {
     }
     echo "PASS Quick Setup remains in the original Dashboard/Menu header after Not now, closes only on completed state\n";
 
+    // R20: Quick Setup must repair only the signed-in tenant KDS schema
+    // before the data transaction, using the existing idempotent product
+    // baseline. A static cloned newtenantdb template may omit kds_stations.
+    $stage = 'quick-setup-tenant-kds-preflight';
+    $setupServiceCode = (string)@file_get_contents($root.'/app/admin/Services/PmdTenantQuickSetupService.php');
+    $productBaselineCode = (string)@file_get_contents($root.'/app/Services/PmdTenantProductBaselineR1.php');
+    $preflightPos = strpos($setupServiceCode, "repairCurrentTenant(['kds'])");
+    $transactionPos = strpos($setupServiceCode, '$result = DB::transaction(function () use (');
+    if ($preflightPos === false || $transactionPos === false
+        || $preflightPos >= $transactionPos
+        || strpos($setupServiceCode, 'PMD_QUICK_SETUP_R20_KDS_SELF_HEAL') === false
+        || strpos($setupServiceCode, "DB::getDefaultConnection() !== 'tenant'") === false
+        || strpos($setupServiceCode, "['station_id', 'name', 'slug', 'location_id']") === false
+        || strpos($productBaselineCode, 'protected function ensureKdsStations(): array') === false
+        || strpos($productBaselineCode, "\$schema->create('kds_stations'") === false) {
+        throw new RuntimeException('Quick Setup KDS preparation must run on the tenant only, before data writes.');
+    }
+    echo "PASS Quick Setup repairs missing tenant KDS table safely before its data transaction\n";
+
     echo "PASS /admin/group/context route matches Restaurant Groups before the greedy Admin catch-all\n";
     echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";
     echo "PASS managed Group Owner workspace MFA uses the central factor authority without tenant-local factor duplication\n";
