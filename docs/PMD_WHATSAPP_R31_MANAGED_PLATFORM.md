@@ -1,5 +1,7 @@
 # R31 | PayMyDine-managed WhatsApp for restaurant owners
 
+**Superseded for restaurant-owner UI by R32.** The connection-request button and Advanced fields described below were removed from the restaurant screen in R32; owners now see only status, notification preference and Inbox. Read docs/PMD_WHATSAPP_R32_OWNER_EXPERIENCE.md for the current UI. This historical document still describes R31 architecture.
+
 R31 replaces mandatory per-restaurant token/endpoint entry with an option
 to request connection to the centrally operated PayMyDine Meta sender.
 A single Meta App/backend serves multiple independently owned WhatsApp
