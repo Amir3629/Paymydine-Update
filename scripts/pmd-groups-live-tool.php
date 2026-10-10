@@ -328,6 +328,30 @@ try {
         throw new RuntimeException('Restaurant Groups native-only scope contract is incomplete.');
     }
 
+    // R19: first-paint Quick Setup return is not dismissed by Not now.
+    // Only server-side "completed" removes the header link.
+    $stage = 'quick-setup-persistent-return';
+    $quickReturn = (string)@file_get_contents($root.'/app/admin/views/_partials/pmd_quick_setup_return.blade.php');
+    $quickWelcome = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-onboarding-welcome-v1.js');
+    $quickFormRuntime = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-tenant-quick-setup-v3.js');
+    if (strpos($quickReturn, "hasPermission('Site.Settings')") === false
+        || strpos($quickReturn, "setting('pmd_onboarding_status', 'pending')") === false
+        || strpos($quickReturn, "!== 'completed'") === false
+        || strpos($quickReturn, 'data-pmd-quick-setup-return') === false
+        || strpos($labView, "@include('admin::_partials.pmd_quick_setup_return')") === false
+        || strpos($menuView, "@include('admin::_partials.pmd_quick_setup_return')") === false
+        || strpos($labView, 'data-pmd-onboarding-welcome-r19') === false
+        || strpos($quickWelcome, "event.target.closest('[data-pmd-quick-setup-return]')") !== false
+        || strpos($quickWelcome, "target.closest('[data-pmd-quick-setup-return]')") === false
+        || strpos($quickWelcome, 'prior.remove()') === false
+        || strpos($quickWelcome, "pmd:quick-setup-completed") === false
+        || strpos($quickFormRuntime, "response.status.status === 'completed'") === false
+        || strpos($quickFormRuntime, "pmd:quick-setup-completed") === false
+    ) {
+        throw new RuntimeException('Quick Setup return is not durable, permission-checked, or completion-gated.');
+    }
+    echo "PASS Quick Setup remains in the original Dashboard/Menu header after Not now, closes only on completed state\n";
+
     echo "PASS /admin/group/context route matches Restaurant Groups before the greedy Admin catch-all\n";
     echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";
     echo "PASS managed Group Owner workspace MFA uses the central factor authority without tenant-local factor duplication\n";
