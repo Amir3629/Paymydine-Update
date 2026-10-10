@@ -3,8 +3,8 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 $action = $argv[1] ?? '';
 $root = realpath($argv[2] ?? '');
-if (!$root || !in_array($action, ['info', 'backup', 'install', 'health', 'audit-products'], true)) {
-    fwrite(STDERR, "Usage: php pmd-groups-live-tool.php info|backup|install|health|audit-products APP_ROOT\n");
+if (!$root || !in_array($action, ['info', 'backup', 'install', 'health', 'audit-products', 'audit-reporting', 'confirm-empty-clock'], true)) {
+    fwrite(STDERR, "Usage: php pmd-groups-live-tool.php info|backup|install|health|audit-products|audit-reporting|confirm-empty-clock APP_ROOT [SITE_ID UTC CONFIRM_EMPTY_ORDER_HISTORY]\n");
     exit(2);
 }
 // Suppress accidental bootstrap output. SQL backup stdout must contain SQL only.
@@ -72,6 +72,117 @@ try {
     }
     $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
+
+    if ($action === 'audit-reporting' || $action === 'confirm-empty-clock') {
+        // R22: product-site reporting storage clock has to be based on real
+        // order history and the known application timestamp writer, not the
+        // display timezone, a static guessed UTC, or another tenant's data.
+        $stage = 'group-reporting-clock';
+        $sites = $store->central()->table('pmd_group_sites as s')
+            ->join('tenants as t', 't.id', '=', 's.tenant_id')
+            ->select('s.id as site_id', 's.tenant_id', 's.label', 's.state', 't.database', 't.status')
+            ->where('s.state','ready')->orderBy('s.id')->get();
+        $applicationClock = trim((string)config('app.timezone', ''));
+        $globalClock = trim((string)config('pmd_groups.reporting_storage_timezone', ''));
+        $siteFilter = 0;
+        if ($action === 'confirm-empty-clock') {
+            $siteText = (string)($argv[3] ?? '');
+            $targetClock = (string)($argv[4] ?? '');
+            $phrase = (string)($argv[5] ?? '');
+            if (!preg_match('/^[1-9][0-9]*$/D', $siteText)
+                || $targetClock === ''
+                || $phrase !== 'CONFIRM_EMPTY_ORDER_HISTORY'
+                || $targetClock !== $applicationClock) {
+                throw new RuntimeException(
+                    'Usage: confirm-empty-clock APP_ROOT SITE_ID APP_WRITER_TIMEZONE CONFIRM_EMPTY_ORDER_HISTORY. '
+                    .'The timezone must exactly match the verified application writer.'
+                );
+            }
+            $siteFilter = (int)$siteText;
+        }
+        if ($siteFilter && !$sites->first(fn ($site) => (int)$site->site_id === $siteFilter)) {
+            throw new RuntimeException('Specified ready group site was not found.');
+        }
+        foreach ($sites as $site) {
+            if ($siteFilter && (int)$site->site_id !== $siteFilter) continue;
+            $tenantId = (int)$site->tenant_id;
+            $connection = $store->connection($tenantId, false);
+            if ((string)$connection->getDatabaseName() !== (string)$site->database) {
+                throw new RuntimeException('Site database mapping mismatch.');
+            }
+            $schema = $connection->getSchemaBuilder();
+            if (!$schema->hasTable('settings') || !$schema->hasTable('orders')) {
+                throw new RuntimeException('Restaurant settings/order schema is incomplete.');
+            }
+            $settingsColumns = array_flip($schema->getColumnListing('settings'));
+            foreach (['item', 'sort', 'value'] as $column) {
+                if (!isset($settingsColumns[$column])) {
+                    throw new RuntimeException('Restaurant reporting settings schema is incomplete.');
+                }
+            }
+            $configRows = $connection->table('settings')
+                ->where('sort','config')->where('item','pmd_groups_storage_timezone')->get();
+            if ($configRows->count() > 1) {
+                throw new RuntimeException('Duplicate reporting storage clocks require manual review.');
+            }
+            $configured = trim((string)($configRows->first()->value ?? ''));
+            $ordersCount = (int)$connection->table('orders')->count();
+            $ordersColumns = array_flip($schema->getColumnListing('orders'));
+            $settled = (isset($ordersColumns['settlement_status'],$ordersColumns['settled_at']))
+                ? (int)$connection->table('orders')
+                    ->whereIn('settlement_status',['paid','settled'])
+                    ->whereNotNull('settled_at')->count()
+                : -1;
+            $label = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', (string)$site->label));
+            if ($action === 'audit-reporting') {
+                echo sprintf(
+                    "PMD REPORT SITE %d %s: orders=%d settled=%s storage=%s app_writer=%s global=%s %s\n",
+                    (int)$site->site_id, substr($label,0,55), $ordersCount,
+                    $settled>=0?(string)$settled:'schema_incomplete',
+                    $configured!==''?$configured:'not_confirmed',
+                    $applicationClock!==''?$applicationClock:'unknown',
+                    $globalClock!==''?$globalClock:'not_configured',
+                    $ordersCount===0 && $configured===''?'eligible_for_empty_site_confirmation':'verify_existing_history'
+                );
+                continue;
+            }
+
+            // Explicit, named, single-site mutation only. Never modify
+            // historical tenant DATETIME data or the global .env setting.
+            if ($ordersCount !== 0 || $configured !== '' || !in_array((string)$site->status,['active'],true)) {
+                throw new RuntimeException('Clock can only be confirmed automatically for an active site with zero orders and no prior configuration.');
+            }
+            try { new DateTimeZone($applicationClock); }
+            catch (Throwable $error) {
+                throw new RuntimeException('Application timestamp clock is invalid.');
+            }
+            $update = ['value'=>$applicationClock];
+            if (isset($settingsColumns['updated_at'])) $update['updated_at']=now();
+            $connection->transaction(function () use ($connection,$configRows,$update,$settingsColumns,$applicationClock): void {
+                if ($configRows->isNotEmpty()) {
+                    $connection->table('settings')->where('sort','config')
+                        ->where('item','pmd_groups_storage_timezone')->update($update);
+                } else {
+                    $row=['item'=>'pmd_groups_storage_timezone','sort'=>'config','value'=>$applicationClock];
+                    if (isset($settingsColumns['serialized'])) $row['serialized']=0;
+                    if (isset($settingsColumns['created_at'])) $row['created_at']=now();
+                    if (isset($settingsColumns['updated_at'])) $row['updated_at']=now();
+                    $connection->table('settings')->insert($row);
+                }
+            });
+            $verified = (string)$connection->table('settings')
+                ->where('sort','config')->where('item','pmd_groups_storage_timezone')->value('value');
+            if ($verified!==$applicationClock) throw new RuntimeException('Saved reporting clock could not be verified.');
+            echo sprintf(
+                "PMD REPORT CLOCK CONFIRMED site=%d label=%s clock=%s orders=0 (site-only setting, no order mutations)\n",
+                (int)$site->site_id, substr($label,0,55), $applicationClock
+            );
+        }
+        if ($action === 'audit-reporting') {
+            echo "PMD reporting clock audit complete; READ ONLY. No historical timezone was guessed.\n";
+        }
+        exit;
+    }
 
     if ($action === 'audit-products') {
         // R21 read-only acceptance: audit ACTUAL group databases without
