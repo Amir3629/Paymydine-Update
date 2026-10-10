@@ -517,6 +517,7 @@ def main():
             down = False
             (directory/'INSTALLED').write_text(args.commit+'\n')
             print('[PMD] INSTALLED: '+args.commit, flush=True)
+            print('[PMD] R19 preserves the existing Quick Setup wizard: its Dashboard/Menu header link stays until server-confirmed completion, even after Not now.', flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/new', flush=True)
             print('[PMD] Create chooser uses non-button interactive rows, scanner hard-exclusion and a fresh browser cache key.', flush=True)
             print('[PMD] Provisioning issues no longer render as a top-page attention card; Retry setup lives in the affected restaurant row.', flush=True)
