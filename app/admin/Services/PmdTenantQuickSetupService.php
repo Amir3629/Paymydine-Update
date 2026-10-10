@@ -104,37 +104,43 @@ class PmdTenantQuickSetupService
         }
 
         /*
-         * PMD_QUICK_SETUP_R20_KDS_SELF_HEAL
-         * New tenants are cloned from a static template that can predate the
-         * KDS product schema. The KDS runtime guard only visits KDS/Devices
-         * routes, so Quick Setup must bootstrap its own requested stations.
-         *
-         * MySQL DDL implicitly commits transactions: run the existing,
-         * idempotent tenant product baseline BEFORE the data transaction.
-         * Never repair the central database or another tenant.
+         * PMD_QUICK_SETUP_R21_TENANT_PRODUCT_READINESS
+         * R20 solved the KDS table only. Existing cloned restaurants may
+         * still lack split-payment settlement tables and order fields, which
+         * otherwise fail later in POS. Repair all required product structures
+         * before Quick Setup writes *any* floors, tables, staff or menu data.
+         * DDL stays OUTSIDE the MySQL transaction. This must be the signed-in
+         * tenant connection, never the central registry or another group site.
          */
-        if ($kdsStations) {
-            if (DB::getDefaultConnection() !== 'tenant'
-                || trim((string)DB::connection('tenant')->getDatabaseName()) === '') {
-                throw new \RuntimeException('Restaurant database context is unavailable for Quick Setup.');
-            }
+        if (DB::getDefaultConnection() !== 'tenant'
+            || trim((string)DB::connection('tenant')->getDatabaseName()) === '') {
+            throw new \RuntimeException('Restaurant database context is unavailable for Quick Setup.');
+        }
 
-            $kdsBaseline = app(PmdTenantProductBaselineR1::class)
-                ->repairCurrentTenant(['kds']);
+        $productScopes = ['payment_runtime', 'orders'];
+        if ($kdsStations) $productScopes[] = 'kds';
+        $productBaseline = app(PmdTenantProductBaselineR1::class)
+            ->repairCurrentTenant($productScopes);
 
-            if (empty($kdsBaseline['steps']['kds_stations']['ok'])
+        if (empty($productBaseline['ok'])
+            || empty($productBaseline['steps']['payment_runtime']['ok'])
+            || empty($productBaseline['steps']['order_settlement']['ok'])
+            || !Schema::hasTable('order_payment_transactions')
+            || !Schema::hasTable('order_payment_transaction_items')
+            || !Schema::hasTable('payment_attempts')
+            || !Schema::hasTable('orders')
+            || ($kdsStations && (
+                empty($productBaseline['steps']['kds_stations']['ok'])
                 || !Schema::hasTable('kds_stations')
                 || array_diff(
                     ['station_id', 'name', 'slug', 'location_id'],
                     Schema::getColumnListing('kds_stations')
                 )
-            ) {
-                // The central product baseline logs the exact failing step;
-                // return a safe message without leaking SQL or DB credentials.
-                throw new \RuntimeException(
-                    'Kitchen display storage could not be prepared. Retry Quick Setup or contact support.'
-                );
-            }
+            ))
+        ) {
+            throw new \RuntimeException(
+                'Restaurant product database is incomplete. Quick Setup made no new restaurant data; contact support.'
+            );
         }
 
         $result = DB::transaction(function () use (
