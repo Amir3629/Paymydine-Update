@@ -626,7 +626,9 @@ try {
         || strpos($groupModel, 'limit(251)') === false
         || strpos($dashboardSource, 'function displayGroupFloor(data)') === false
         || strpos($dashboardSource, 'restoreNativeFloor();') === false
-        || strpos($dashboardSource, "'Loading selected restaurant tables") === false
+        // R25: Loading text was deliberately removed to prevent flicker;
+        // verify the reusable Floor notice helper instead.
+        || strpos($dashboardSource, 'function showFloorNotice(text)') === false
         || strpos($scopeCss, '.pmd-group-floor-readonly-table') === false
         || strpos($reportingProfile, 'empty_order_history_application_clock') === false
         || strpos($reportingProfile, "->where('location_id',\$locationId)->exists()") === false
