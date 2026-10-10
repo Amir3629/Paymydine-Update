@@ -49,6 +49,13 @@ EXACT = {
     'app/admin/assets/js/pmd-tenant-quick-setup-v3.js',
     # R20: tenant-only KDS schema bootstrap before Quick Setup writes.
     'app/admin/Services/PmdTenantQuickSetupService.php',
+    # R21: audited product readiness for new group tenants, existing Quick
+    # Setup and explicit pre-transaction POS settlement endpoints.
+    'app/Services/PmdTenantProductBaselineR1.php',
+    'app/admin/controllers/concerns/PmdWaiterPosPaymentTransactionConcern.php',
+    'app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php',
+    'app/admin/controllers/concerns/PmdQuickPosBatchPaymentV114Concern.php',
+    'app/admin/controllers/concerns/PmdWaiterPosTerminalEndpoint.php',
     'app/admin/views/dashboardlab/index.blade.php',
     'app/admin/views/pmdmenus/index.blade.php',
     'app/admin/assets/js/pmd-dashboard-lab-kpis-v1.js',
@@ -521,6 +528,7 @@ def main():
             print('[PMD] INSTALLED: '+args.commit, flush=True)
             print('[PMD] R19 preserves the existing Quick Setup wizard: its Dashboard/Menu header link stays until server-confirmed completion, even after Not now.', flush=True)
             print('[PMD] R20 initializes missing tenant KDS storage using the existing product baseline before Quick Setup creates stations, staff, floors or menu data.', flush=True)
+            print('[PMD] R21 validates KDS, order and split-payment schema on new restaurants and repairs missing tenant settlement storage before Quick Setup or POS payment transactions.', flush=True)
             print('[PMD] Open https://paymydine.com/superadmin/new', flush=True)
             print('[PMD] Create chooser uses non-button interactive rows, scanner hard-exclusion and a fresh browser cache key.', flush=True)
             print('[PMD] Provisioning issues no longer render as a top-page attention card; Retry setup lives in the affected restaurant row.', flush=True)
