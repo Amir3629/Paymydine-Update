@@ -92,7 +92,8 @@ final class PmdSharedWhatsAppButtonDispatcher
                 }
                 $link = Crypt::decryptString((string)$outbound->manage_url_ciphertext);
                 $text = PmdWhatsAppButtonPolicy::textForAction(
-                    (string)$job->action, $link, $locale
+                    (string)$job->action, $link, $locale,
+                    (string)config('pmd_whatsapp.shared_booking_hosts', '')
                 );
                 if ($text === null) {
                     throw new RuntimeException('Booking link is untrusted or expired.');
