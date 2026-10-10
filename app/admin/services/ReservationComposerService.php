@@ -140,6 +140,23 @@ class ReservationComposerService
                 $validated['location_id'] ?? ($reservation->location_id ?: null),
                 $locations
             );
+            if ($staffConsent) {
+                try {
+                    $tenantId = app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class)
+                        ->currentTenantId();
+                    $active = app(\App\Services\WhatsApp\PmdSharedWhatsAppService::class)
+                        ->activeSender($tenantId, (int)$location->getKey());
+                } catch (Throwable $ignored) {
+                    $active = null;
+                }
+                if (!$active) {
+                    throw ValidationException::withMessages([
+                        'whatsapp_guest_consent' => [
+                            'PayMyDine WhatsApp is not active for this restaurant yet.',
+                        ],
+                    ]);
+                }
+            }
             $assignment = $validated['assignment_mode'];
             $existingIds = $reservation->exists
                 ? $reservation->tables->pluck('table_id')->map(fn($id) => (int)$id)->sort()->values()->all()
