@@ -104,6 +104,22 @@ class ReservationComposerService
             $validated = $this->validate($input, true);
             $locations = $this->locations();
             $mode = !empty($validated['reservation_id']) ? 'edit' : 'create';
+            $staffConsent = !empty($validated['whatsapp_guest_consent']);
+            if ($staffConsent) {
+                // Staff must have actually verified explicit guest permission.
+                // Consent cannot be recycled on edit or synthesized from phone.
+                $phone = trim((string)($validated['telephone'] ?? ''));
+                if ($mode !== 'create'
+                    || !config('pmd_whatsapp.shared_enabled', false)
+                    || !config('pmd_whatsapp.shared_consent_form_enabled', false)
+                    || !preg_match('/^\+[1-9][0-9]{7,14}$/D', $phone)) {
+                    throw ValidationException::withMessages([
+                        'whatsapp_guest_consent' => [
+                            'For a new booking, confirm guest consent and enter an international phone number such as +491701234567. WhatsApp must be enabled for this pilot.',
+                        ],
+                    ]);
+                }
+            }
             $reservation = $mode === 'edit'
                 ? $this->reservation((int)$validated['reservation_id'], $locations)
                 : new Reservations_model;
