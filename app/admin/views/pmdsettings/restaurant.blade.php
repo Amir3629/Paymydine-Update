@@ -381,7 +381,12 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             $pmdWaCentralReady = !empty($pmdWaManagedState['ready']);
                             $pmdWaEnabled = !empty($pmdGuestCommunications['whatsapp_enabled']);
                             $pmdWaConfigured = !empty($pmdGuestCommunications['whatsapp_channel_ready']);
-                            $pmdWaCanTest = $pmdWaConfigured && $pmdWaEnabled;
+                            // Shared-number pilot requires a separate guest opt-in
+                            // tied to a real reservation; a freeform test
+                            // recipient has no such consent and stays hidden.
+                            $pmdWaCanTest = $pmdWaConfigured && $pmdWaEnabled
+                                && (empty($pmdWaManagedState['shared'])
+                                    || !empty($pmdWaManagedState['test_allowed']));
                         @endphp
                         <article class="pmd-communication-channel pmd-wa-owner-r32" aria-labelledby="pmd-wa-owner-title">
                             <div class="pmd-wa-owner-r32__heading">
