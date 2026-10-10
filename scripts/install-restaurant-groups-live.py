@@ -552,6 +552,7 @@ def main():
             print('[PMD] R22 mirrors the selected restaurant\'s own Floor read-only in the existing Dashboard and allows no-order reporting without guessing historical timestamps.', flush=True)
             print('[PMD] R23 centers remote Floor cards and adds a settlement-timestamp audit plus explicit existing-order UTC clock confirmation for one selected site at a time.', flush=True)
             print('[PMD] R24 preserves native Floor card geometry/status for one selected restaurant; All restaurants disables Floor while aggregate KPI/charts remain active.', flush=True)
+            print('[PMD] R25 draws a 0-to-first-sale line and switches restaurant reports without blanking KPI/chart widgets or changing the native Floor layout.', flush=True)
             print('[PMD] Review and confirm per-restaurant order storage clocks using the read-only audit-reporting command; never guess a clock for existing sales.', flush=True)
             print(product_audit_summary, flush=True)
             print('[PMD] Read-only site detail: php scripts/pmd-groups-live-tool.php audit-products /var/www/paymydine', flush=True)
