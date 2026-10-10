@@ -1169,3 +1169,254 @@ html.pmd-restaurant-profile-ready .page-wrapper {
     gap: 12px;
   }
 }
+
+
+/* PMD_WA_OWNER_UI_R32
+   Restaurant-facing WhatsApp: compact, one-status, no exposed API credentials.
+   The entire section remains responsive with the rest of Restaurant Profile. */
+#pmd-restaurant-profile .pmd-wa-owner-r32 {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #cbe0d9;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #f7fcf9 0%, #ffffff 46%, #ffffff 100%);
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__heading,
+#pmd-restaurant-profile .pmd-wa-owner-r32__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__heading {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__identity {
+  flex: 1 1 auto;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid #c9e4d5;
+  border-radius: 13px;
+  background: #e6f7ed;
+  color: #087452;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__identity h3 {
+  margin: 3px 0 0;
+  font-size: 18px;
+  font-weight: 830;
+  color: #112a24;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 11px;
+  border: 1px solid #d9e5de;
+  border-radius: 50px;
+  background: #f5f8f6;
+  color: #566a5f;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  background: #9aada0;
+  border-radius: 50%;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__status.is-ready {
+  color: #096947;
+  border-color: #b8dfca;
+  background: #e9f8ef;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__status.is-ready::before {
+  background: #079760;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__intro {
+  margin: 0;
+  color: #536b61;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__notice {
+  padding: 12px 14px;
+  border-radius: 11px;
+  border: 1px solid #e2eae7;
+  background: #f6f9f7;
+  color: #4f645c;
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__setting {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 0;
+  border-top: 1px solid #e2ebe6;
+  border-bottom: 1px solid #e2ebe6;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__setting > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__setting strong {
+  font-size: 13px;
+  color: #203b31;
+  font-weight: 750;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__setting small {
+  color: #6b8077;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__setting .pmd-profile-switch {
+  flex: none;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__inbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 15px;
+  border: 1px solid #b6d8c9;
+  border-radius: 10px;
+  background: #fff;
+  color: #09684f;
+  font-weight: 750;
+  font-size: 12px;
+  text-decoration: none;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__inbox:hover,
+#pmd-restaurant-profile .pmd-wa-owner-r32__inbox:focus-visible {
+  border-color: #087452;
+  background: #eaf8f1;
+  color: #084f3a;
+  text-decoration: none;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__footer small {
+  color: #7b8a82;
+  font-size: 11px;
+  line-height: 1.5;
+  flex: 1 1 190px;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__test {
+  margin-top: 0;
+  border-top: 1px solid #e2ebe6;
+  padding-top: 12px;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__test summary {
+  color: #126e54;
+  font-weight: 750;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__test-fields {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 0 4px;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__test-fields .pmd-profile-field {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+}
+
+#pmd-restaurant-profile .pmd-wa-owner-r32__test-fields .pmd-profile-booking-preview {
+  flex: 0 1 auto;
+  min-height: 45px;
+  width: auto;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid #b6d8c9;
+  border-radius: 10px;
+  background: #fff;
+  color: #09684f;
+  font-weight: 750;
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  #pmd-restaurant-profile .pmd-wa-owner-r32 {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  #pmd-restaurant-profile .pmd-wa-owner-r32__heading {
+    align-items: flex-start;
+  }
+
+  #pmd-restaurant-profile .pmd-wa-owner-r32__status {
+    margin-left: 56px;
+  }
+
+  #pmd-restaurant-profile .pmd-wa-owner-r32__footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #pmd-restaurant-profile .pmd-wa-owner-r32__footer small {
+    flex: initial;
+  }
+}

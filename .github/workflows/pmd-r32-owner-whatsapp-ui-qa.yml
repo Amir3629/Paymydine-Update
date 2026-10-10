@@ -1,0 +1,27 @@
+name: R32 Simplified WhatsApp Owner UI QA
+
+on:
+  pull_request:
+    paths:
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'app/admin/assets/css/pmd-settings-restaurant-v1.css'
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/Services/WhatsApp/PmdManagedWhatsAppService.php'
+      - 'app/Services/Reservations/PmdGuestCommunicationService.php'
+      - 'scripts/pmd-r28-guest-communications-qa.sh'
+      - 'scripts/pmd-r31-managed-whatsapp-qa.sh'
+      - 'scripts/pmd-r32-owner-whatsapp-ui-qa.sh'
+      - '.github/workflows/pmd-r32-owner-whatsapp-ui-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Simplified owner UI + safety + old feature contracts
+        run: bash scripts/pmd-r32-owner-whatsapp-ui-qa.sh

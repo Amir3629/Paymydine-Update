@@ -941,14 +941,18 @@ class Pmdsettings extends AdminController
                     'mailgun_domain' => trim((string)($communicationClean['mailgun_domain'] ?? '')),
                     'ses_region' => trim((string)($communicationClean['ses_region'] ?? '')),
                     'test_email' => trim((string)($communicationClean['test_email'] ?? '')),
-                    'pmd_reservation_messages_whatsapp_provider' => (string)($communicationClean['whatsapp_provider'] ?? 'managed'),
-                    'pmd_reservation_messages_whatsapp_endpoint' => trim((string)($communicationClean['whatsapp_endpoint'] ?? '')),
-                    'pmd_reservation_messages_whatsapp_sender_reference' => trim((string)($communicationClean['whatsapp_sender_reference'] ?? '')),
-                    'pmd_reservation_messages_whatsapp_test_recipient' => trim((string)($communicationClean['whatsapp_test_recipient'] ?? '')),
-                    'pmd_reservation_messages_whatsapp_template_created' => trim((string)($communicationClean['whatsapp_template_created'] ?? '')),
-                    'pmd_reservation_messages_whatsapp_template_updated' => trim((string)($communicationClean['whatsapp_template_updated'] ?? '')),
-                    'pmd_reservation_messages_whatsapp_template_canceled' => trim((string)($communicationClean['whatsapp_template_canceled'] ?? '')),
+                    // R32: owner form no longer edits provider / Meta keys /
+                    // endpoints / template names. Do not set these to empty
+                    // strings when the fields are absent; preserve any legacy
+                    // direct connection until an operator performs migration.
                 ]);
+
+                // Test phone is a user preference, not a provider credential.
+                // Preserve it when the compact UI hides the test section.
+                if (array_key_exists('whatsapp_test_recipient', $communicationInput)) {
+                    $settings['pmd_reservation_messages_whatsapp_test_recipient'] =
+                        trim((string)($communicationClean['whatsapp_test_recipient'] ?? ''));
+                }
 
                 foreach ([
                     'smtp_pass' => 'smtp_pass',
@@ -956,7 +960,8 @@ class Pmdsettings extends AdminController
                     'postmark_token' => 'postmark_token',
                     'ses_key' => 'ses_key',
                     'ses_secret' => 'ses_secret',
-                    'whatsapp_token' => 'pmd_reservation_messages_whatsapp_token',
+                    // Meta credentials are operator-only. Never accept a new
+                    // WhatsApp token through the restaurant profile.
                 ] as $inputKey => $settingKey) {
                     $secretValue = trim((string)($communicationClean[$inputKey] ?? ''));
                     if ($secretValue !== '') {
@@ -1044,31 +1049,6 @@ class Pmdsettings extends AdminController
             '#pmd-guest-email-test-status' => '<span class="pmd-communication-test-status is-success">'
                 .e(\Admin\Classes\PmdPlatformI18n::fromEnglish('Test email sent.', 'settings.'))
                 .'</span>',
-        ];
-    }
-
-    /**
-     * R31: owner requests PayMyDine-managed onboarding without handling API
-     * keys or claiming that Meta granted access. This creates an operator
-     * queue entry only; the phone remains inactive until explicitly bound.
-     */
-    public function onRequestManagedWhatsApp()
-    {
-        try {
-            $managed = app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class);
-            $tenantId = $managed->currentTenantId();
-            $managed->requestConnection($tenantId, $this->currentLocationId());
-        } catch (\Throwable $error) {
-            throw ValidationException::withMessages([
-                'communication.whatsapp_provider' => [
-                    'WhatsApp connection requests are not available yet. Contact PayMyDine support.',
-                ],
-            ]);
-        }
-
-        flash()->success('Your WhatsApp connection request is saved. PayMyDine will verify the business number before activation.');
-        return [
-            '#pmd-managed-wa-request-status' => '<span role="status">Connection requested. Awaiting Meta authorization and PayMyDine activation.</span>',
         ];
     }
 
