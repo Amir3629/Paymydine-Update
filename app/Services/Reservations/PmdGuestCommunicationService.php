@@ -5,6 +5,7 @@ namespace App\Services\Reservations;
 use Admin\Models\Reservations_model;
 use App\Services\WhatsApp\PmdWhatsAppGateway;
 use App\Services\WhatsApp\PmdManagedWhatsAppService;
+use App\Services\WhatsApp\PmdSharedWhatsAppService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -137,7 +138,8 @@ final class PmdGuestCommunicationService
     public function sendReservationEvent(
         Reservations_model $reservation,
         string $event,
-        string $locale = 'de'
+        string $locale = 'de',
+        array $channels = ['email', 'whatsapp']
     ): array {
         $event = strtolower(trim($event));
         if (!in_array($event, self::EVENTS, true)) {
@@ -163,7 +165,7 @@ final class PmdGuestCommunicationService
             'whatsapp' => 'disabled',
         ];
 
-        if (!empty($config['email_enabled'])) {
+        if (in_array('email', $channels, true) && !empty($config['email_enabled'])) {
             if (empty($config['email_ready'])) {
                 $result['email'] = 'not_ready';
             } else {
@@ -175,7 +177,7 @@ final class PmdGuestCommunicationService
             }
         }
 
-        if (!empty($config['whatsapp_enabled'])) {
+        if (in_array('whatsapp', $channels, true) && !empty($config['whatsapp_enabled'])) {
             if (empty($config['whatsapp_ready'])) {
                 $result['whatsapp'] = 'not_ready';
             } else {
