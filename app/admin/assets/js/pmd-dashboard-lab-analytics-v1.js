@@ -562,7 +562,12 @@
     if (salesVisible === null) salesVisible = Math.min(19, Math.max(rows.length, 1));
     var markup = chartMarkup('salesOverTime', rows, payload, chartMode, salesVisible, false);
     // Avoid re-creating an identical SVG during background revalidation.
-    if (body.innerHTML !== markup) body.innerHTML = markup;
+    // Browsers can re-serialize SVG attributes, so string-comparing
+    // innerHTML alone may cause a needless repaint on each live refresh.
+    if (body._pmdLastChartMarkupR25 !== markup || !body.querySelector('svg')) {
+      body.innerHTML = markup;
+      body._pmdLastChartMarkupR25 = markup;
+    }
     root.querySelectorAll('[data-pmd-lab-chart-mode]').forEach(function (button) {
       var active = button.getAttribute('data-pmd-lab-chart-mode') === chartMode;
       button.classList.toggle('is-active', active);
@@ -583,7 +588,12 @@
     var rows = Array.isArray(source.hours) ? source.hours : [];
     if (hourVisible === null) hourVisible = Math.min(15, Math.max(rows.length, 1));
     var markup = chartMarkup('salesByHour', rows, payload, 'bar', hourVisible, true);
-    if (body.innerHTML !== markup) body.innerHTML = markup;
+    // Browsers can re-serialize SVG attributes, so string-comparing
+    // innerHTML alone may cause a needless repaint on each live refresh.
+    if (body._pmdLastChartMarkupR25 !== markup || !body.querySelector('svg')) {
+      body.innerHTML = markup;
+      body._pmdLastChartMarkupR25 = markup;
+    }
     setBusy('salesByHour', false);
   }
 
