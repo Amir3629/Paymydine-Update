@@ -85,6 +85,78 @@
     var current=String(context.current_tenant_id), selectedScope=current, sequence=0;
     var reportCache=Object.create(null);
     var floor=root.querySelector('#pmd-r2-shared-floor-canvas-v310, [data-pmd-floor]');
+    var floorCanvas=floor&&floor.querySelector('[data-floor-canvas]');
+    var floorScroll=floor&&floor.querySelector('[data-floor-scroll]');
+    var originalFloorNodes=document.createDocumentFragment();
+    var originalCanvasStyle=floorCanvas?floorCanvas.getAttribute('style'):null;
+    var originalScrollStyle=floorScroll?floorScroll.getAttribute('style'):null;
+    var floorBorrowed=false;
+    function stashNativeFloor(){
+      if(!floorCanvas||floorBorrowed)return;
+      while(floorCanvas.firstChild)originalFloorNodes.appendChild(floorCanvas.firstChild);
+      floorBorrowed=true;
+    }
+    function restoreNativeFloor(){
+      if(!floorCanvas||!floorBorrowed)return;
+      floorCanvas.replaceChildren(originalFloorNodes);
+      if(originalCanvasStyle===null)floorCanvas.removeAttribute('style');
+      else floorCanvas.setAttribute('style',originalCanvasStyle);
+      if(floorScroll){
+        if(originalScrollStyle===null)floorScroll.removeAttribute('style');
+        else floorScroll.setAttribute('style',originalScrollStyle);
+      }
+      floorCanvas.classList.remove('pmd-group-floor-readonly-canvas');
+      floorBorrowed=false;
+    }
+    function showFloorNotice(text){
+      if(!floorCanvas)return;
+      stashNativeFloor();floorCanvas.replaceChildren();
+      floorCanvas.classList.add('pmd-group-floor-readonly-canvas');
+      floorCanvas.style.width='100%';floorCanvas.style.minWidth='100%';
+      floorCanvas.style.height='128px';floorCanvas.style.minHeight='128px';
+      floorCanvas.style.transform='none';
+      if(floorScroll){floorScroll.style.height='146px';floorScroll.style.minHeight='146px';floorScroll.style.maxHeight='146px';}
+      floorCanvas.appendChild(el('p',text,'pmd-group-floor-readonly-message'));
+    }
+    function displayGroupFloor(data){
+      if(!floorCanvas)return;
+      var report=data&&data.floor||{};
+      var sites=Array.isArray(report.restaurants)?report.restaurants:[];
+      if(!sites.length){showFloorNotice('Floor data is not available for this restaurant.');return;}
+      var incomplete=sites.find(function(site){return site.available!==true;});
+      if(incomplete){showFloorNotice((incomplete.label||'Restaurant')+': '+(incomplete.message||'Floor unavailable.'));return;}
+      var tables=[];
+      sites.forEach(function(site){
+        (site.tables||[]).forEach(function(table){
+          if(tables.length<200)tables.push({table:table,site:site.label});
+        });
+      });
+      if(!tables.length){showFloorNotice('No tables have been created in this restaurant.');return;}
+      stashNativeFloor();floorCanvas.replaceChildren();
+      floorCanvas.classList.add('pmd-group-floor-readonly-canvas');
+      var perRow=10,cols=Math.min(perRow,tables.length);
+      var width=Math.max(600,cols*128+28),height=Math.max(140,Math.ceil(tables.length/perRow)*112+24);
+      floorCanvas.style.width=width+'px';floorCanvas.style.minWidth=width+'px';
+      floorCanvas.style.height=height+'px';floorCanvas.style.minHeight=height+'px';
+      floorCanvas.style.transform='none';
+      if(floorScroll){floorScroll.style.height=Math.min(height+18,570)+'px';floorScroll.style.minHeight='142px';floorScroll.style.maxHeight='570px';}
+      tables.forEach(function(entry,index){
+        var status=String(entry.table.status||'unknown');
+        var node=el('div',null,'pmd-floor-v1__table pmd-group-floor-readonly-table');
+        node.dataset.status=status;
+        node.setAttribute('aria-label',(entry.site||'Restaurant')+' · Table '+(entry.table.number||entry.table.name||'—')+' · Read only');
+        node.title=(entry.site||'Restaurant')+' · '+(entry.table.name||entry.table.number||'Table')+' · Read-only Floor';
+        node.style.left=(18+(index%perRow)*128)+'px';
+        node.style.top=(14+Math.floor(index/perRow)*112)+'px';
+        node.style.width='108px';node.style.height='88px';
+        node.appendChild(el('strong',entry.table.number||entry.table.name||'—','pmd-floor-v1__table-number'));
+        if(sites.length>1)node.appendChild(el('span',entry.site,'pmd-floor-v1__table-meta'));
+        else if(status!=='unknown')node.appendChild(el('span',status,'pmd-floor-v1__table-meta'));
+        floorCanvas.appendChild(node);
+      });
+      if(tables.length===200||sites.some(function(site){return !!site.truncated;}))
+        floorCanvas.appendChild(el('p','Showing the first 200 tables.','pmd-group-floor-readonly-limit'));
+    }
     var kpiTemplate={};
     try{
       var kpiData=document.getElementById('pmd-dashboard-lab-kpi-data');
@@ -205,6 +277,7 @@
       control.select.setAttribute('aria-busy',remote?'true':'false');
       var analytics=window.PMDDashboardLabAnalyticsV1;
       if(!remote){
+        restoreNativeFloor();
         control.select.removeAttribute('aria-busy');
         control.select.title=context.group.name;
         if(window.PMDDashboardLabKpisV1)window.PMDDashboardLabKpisV1.restoreLocal();
@@ -214,6 +287,7 @@
         }
         return;
       }
+      showFloorNotice('Loading selected restaurant tables…');
       applyKpis(null,null,true);
       if(analytics){
         analytics.setScopeProvider(function(period){
@@ -230,6 +304,7 @@
         if(version!==sequence||selectedScope!==scope)return;
         var today=rows[0].status==='fulfilled'?rows[0].value:null;
         var month=rows[1].status==='fulfilled'?rows[1].value:null;
+        displayGroupFloor(today);
         applyKpis(today,month,false);
         control.select.removeAttribute('aria-busy');
         var problem=issue(today)||issue(month);
