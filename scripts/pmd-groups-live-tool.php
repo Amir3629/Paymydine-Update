@@ -570,6 +570,8 @@ try {
         || strpos($groupModel, "'floor' => ['read_only' => true") === false
         || strpos($groupModel, '$this->store->access((int)$context[\'owner\'][\'id\'], $tenantId)') === false
         || strpos($groupModel, "->where('location_id', (int)\$site->location_id)") === false
+        || strpos($groupModel, "'locationables'") === false
+        || strpos($groupModel, "->whereIn('locationable_type'") === false
         || strpos($groupModel, 'limit(251)') === false
         || strpos($dashboardSource, 'function displayGroupFloor(data)') === false
         || strpos($dashboardSource, 'restoreNativeFloor();') === false
