@@ -31,6 +31,11 @@ final class PmdWhatsAppGateway
             throw new RuntimeException('Central WhatsApp schema not installed.');
         }
 
+        // R33 shared sender is a separate and opt-in Meta plane.
+        if (config('pmd_whatsapp.shared_enabled', false) === true) {
+            app(PmdSharedWhatsAppService::class)->ingest($payload);
+        }
+
         $db = DB::connection('mysql');
         $entries = $payload['entry'] ?? [];
         if (!is_array($entries) || count($entries) > 25) {
@@ -210,6 +215,15 @@ final class PmdWhatsAppGateway
                 'can_reply' => $record->direction === 'in'
                     && Carbon::parse($record->received_at)->gt(now()->subHours(24)),
             ];
+        }
+
+        if (config('pmd_whatsapp.shared_enabled', false) === true) {
+            $shared = app(PmdSharedWhatsAppService::class)->recent($tenantId, $locationId);
+            $results = array_merge($results, $shared);
+            usort($results, static function ($a, $b): int {
+                return strcmp((string)$b['received_at'], (string)$a['received_at']);
+            });
+            $results = array_slice($results, 0, 80);
         }
 
         return $results;
@@ -426,8 +440,13 @@ final class PmdWhatsAppGateway
             throw new RuntimeException('Invalid retention policy or missing schema.');
         }
 
-        return DB::connection('mysql')->table('pmd_whatsapp_messages')
+        $removed = DB::connection('mysql')->table('pmd_whatsapp_messages')
             ->where('received_at', '<', now()->subDays($days))->delete();
+        // Retention also covers held/unresolved shared WhatsApp messages.
+        if (app(PmdSharedWhatsAppService::class)->installed()) {
+            $removed += app(PmdSharedWhatsAppService::class)->purgeOlderThan($days);
+        }
+        return $removed;
     }
 
     private function phoneHash(string $phone): string
