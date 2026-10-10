@@ -6,6 +6,7 @@ use Admin\Classes\AdminController;
 use Admin\Facades\AdminLocation;
 use Admin\Facades\Template;
 use App\Services\WhatsApp\PmdWhatsAppGateway;
+use App\Services\WhatsApp\PmdSharedWhatsAppService;
 use App\Services\WhatsApp\PmdWhatsAppSchema;
 use Illuminate\Validation\ValidationException;
 
@@ -34,17 +35,27 @@ final class Pmdwhatsappinbox extends AdminController
     public function onReply()
     {
         [$tenantId, $locationId] = $this->scope();
-        $id = (int)post('message_id', 0);
+        $id = trim((string)post('message_id', ''));
         $reply = trim((string)post('reply_text', ''));
 
-        if ($id < 1 || $reply === '' || mb_strlen($reply) > 1600) {
+        $isShared = preg_match('/^shared:[1-9][0-9]{0,17}$/D', $id) === 1;
+        $isLegacy = preg_match('/^[1-9][0-9]{0,17}$/D', $id) === 1;
+        if ((!$isShared && !$isLegacy) || $reply === '' || mb_strlen($reply) > 1600) {
             throw ValidationException::withMessages([
                 'reply_text' => ['Please enter a reply of at most 1600 characters.'],
             ]);
         }
 
         try {
-            app(PmdWhatsAppGateway::class)->reply($tenantId, $locationId, $id, $reply);
+            if ($isShared) {
+                // The browser selects a message only, never a recipient,
+                // sender, tenant or location. All ownership checks are server side.
+                app(PmdSharedWhatsAppService::class)->reply(
+                    $tenantId, $locationId, (int)substr($id, 7), $reply
+                );
+            } else {
+                app(PmdWhatsAppGateway::class)->reply($tenantId, $locationId, (int)$id, $reply);
+            }
         } catch (\Throwable $error) {
             // No provider details/tokens in the browser or flash session.
             throw ValidationException::withMessages([

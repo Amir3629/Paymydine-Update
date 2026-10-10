@@ -35,6 +35,10 @@ final class PmdManagedWhatsAppService
 
     public function state(int $tenantId, int $locationId): array
     {
+        if (config('pmd_whatsapp.shared_enabled', false) === true) {
+            return app(PmdSharedWhatsAppService::class)->state($tenantId, $locationId);
+        }
+
         $result = [
             'connected' => false,
             'ready' => false,
@@ -91,6 +95,10 @@ final class PmdManagedWhatsAppService
 
     public function transport(int $tenantId, int $locationId): array
     {
+        if (config('pmd_whatsapp.shared_enabled', false) === true) {
+            return app(PmdSharedWhatsAppService::class)->transport($tenantId, $locationId);
+        }
+
         if ($tenantId < 1 || $locationId < 1
             || $this->state($tenantId, $locationId)['ready'] !== true) {
             throw new RuntimeException('PayMyDine WhatsApp channel is not ready.');
@@ -159,6 +167,17 @@ final class PmdManagedWhatsAppService
 
         try {
             $transport = $this->transport($tenantId, $locationId);
+            $isShared = ($transport['mode'] ?? '') === 'shared';
+            $reservationId = (int)($context['reservation_id'] ?? 0);
+            // Public guests must individually opt in for proactive
+            // PayMyDine-branded WhatsApp templates. A test recipient or a
+            // different reservation/phone is NOT a valid opt-in.
+            if ($isShared && ($reservationId < 1
+                || !app(PmdSharedWhatsAppService::class)->hasBookingConsent(
+                    $tenantId, $locationId, $reservationId, $to
+                ))) {
+                return false;
+            }
             $parameters = [];
             foreach ([
                 'restaurant_name', 'reference', 'reservation_date',
@@ -197,16 +216,25 @@ final class PmdManagedWhatsAppService
             // A successful Meta API request is an accepted message, NOT proof
             // the customer received it. Actual delivery arrives via webhook.
             try {
-                app(PmdWhatsAppGateway::class)->recordAcceptedReservationMessage(
-                    $tenantId,
-                    $locationId,
-                    $transport['phone_number_id'],
-                    $to,
-                    (string)$res->json('messages.0.id', ''),
-                    $previewText
-                );
+                $metaId = (string)$res->json('messages.0.id', '');
+                if ($isShared) {
+                    app(PmdSharedWhatsAppService::class)->recordAccepted(
+                        (int)$transport['sender_id'], $tenantId, $locationId,
+                        $reservationId, $to, $metaId, $previewText
+                    );
+                } else {
+                    app(PmdWhatsAppGateway::class)->recordAcceptedReservationMessage(
+                        $tenantId, $locationId, $transport['phone_number_id'],
+                        $to, $metaId, $previewText
+                    );
+                }
             } catch (Throwable $ignored) {
-                // A receipt write failure must not re-send a delivered template.
+                // Already accepted by Meta. Missing receipt causes replies to
+                // be quarantined centrally, never guessed into a tenant.
+                Log::warning('PMD WhatsApp delivery receipt unavailable', [
+                    'event' => $event,
+                    'mode' => $isShared ? 'shared' : 'dedicated',
+                ]);
             }
             return true;
         } catch (Throwable $error) {

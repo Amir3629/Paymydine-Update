@@ -78,9 +78,26 @@ class PmdPublicBookingController extends Controller
         // resources/views path on this deployment. Render this standalone
         // public Blade by absolute file path so /book remains independent
         // from the active TastyIgniter theme/view namespace.
+        // Only offer WhatsApp opt-in when THIS tenant/location has an
+        // activated PayMyDine sender, owner opted into notifications, and
+        // all enabled Meta template names are configured. Default FALSE.
+        $bookingWhatsAppOptInEnabled = false;
+        if (config('pmd_whatsapp.shared_enabled', false)
+            && config('pmd_whatsapp.shared_consent_form_enabled', false)) {
+            try {
+                $waSettings = app(\App\Services\Reservations\PmdGuestCommunicationService::class)
+                    ->settingsPayload((int)$location->getKey());
+                $bookingWhatsAppOptInEnabled = !empty($waSettings['whatsapp_ready'])
+                    && (string)($waSettings['whatsapp_provider'] ?? '') === 'managed';
+            } catch (Throwable $ignored) {
+                // Public booking must remain available if Meta is offline.
+            }
+        }
+
         $html = view()->file(
             base_path('resources/views/pmd/public-booking.blade.php'),
             [
+                'bookingWhatsAppOptInEnabled' => $bookingWhatsAppOptInEnabled,
                 'bookingProfile' => $this->profile($location),
                 'bookingLocale' => $locale,
                 'bookingLocaleTag' => $languageContext['locale_tags'][$locale] ?? $this->defaultLocaleTag($locale),
@@ -545,6 +562,9 @@ class PmdPublicBookingController extends Controller
             ],
             'comment' => ['nullable', 'string', 'max:1000'],
             'consent' => ['accepted'],
+            // R33: independent and optional WhatsApp opt-in, not the general
+            // terms consent. Never infer WhatsApp permission from telephone.
+            'whatsapp_opt_in' => ['nullable', 'in:1'],
             '_pmd_booking_locale' => ['nullable', 'string', 'in:en,de,tr,ar'],
             '_pmd_guarantee_provider' => [
                 'nullable',
@@ -790,6 +810,31 @@ class PmdPublicBookingController extends Controller
                 ?? $successMessages['en'];
 
             $this->pushReservationAdminNotification($reservation, 'created');
+
+            // Consent is recorded only after the tenant reservation committed.
+            // Failure must NEVER roll back a booking or synthesize consent.
+            // Shared proactive sends independently recheck the consent record.
+            if (($data['whatsapp_opt_in'] ?? null) === '1'
+                && config('pmd_whatsapp.shared_enabled', false)
+                && config('pmd_whatsapp.shared_consent_form_enabled', false)) {
+                try {
+                    $tenantId = app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class)
+                        ->currentTenantId();
+                    app(\App\Services\WhatsApp\PmdSharedWhatsAppService::class)
+                        ->recordBookingConsent(
+                            $tenantId,
+                            (int)$reservation->location_id,
+                            (int)$reservation->getKey(),
+                            (string)$reservation->telephone
+                        );
+                } catch (Throwable $consentError) {
+                    Log::warning('PMD shared WhatsApp consent record unavailable', [
+                        'reservation_id' => (int)$reservation->getKey(),
+                        'error_type' => get_class($consentError),
+                    ]);
+                }
+            }
+
             $this->queueGuestCommunication(
                 $reservation,
                 'created',
