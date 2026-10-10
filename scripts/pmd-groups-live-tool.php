@@ -705,7 +705,7 @@ try {
         || strpos($dashboardSource, 'Promise.allSettled([') === false
         || strpos($dashboardSource, "report(scope,'last30')") === false
         || strpos($dashboardSource, "if(scope==='all')showFloorNotice(") === false
-        || strpos($dashboardSource, 'if(floor)floor.setAttribute(\\'aria-busy\\',\\'true\\')') === false
+        || strpos($dashboardSource, "if(floor)floor.setAttribute('aria-busy','true')") === false
         || strpos($dashboardSource, 'applyKpis(null,null,true);') !== false
         || strpos($dashboardSource, "showFloorNotice('Loading selected restaurant tables") !== false
         || strpos($dashboardSource, 'if(version!==sequence||selectedScope!==scope)return;') === false
