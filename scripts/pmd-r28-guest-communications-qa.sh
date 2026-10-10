@@ -70,7 +70,7 @@ fi
 # feature PRs when the legacy deployment file is absent.
 if [ -f deploy/pmd-r29-guest-comms-safe-deploy.sh ]; then
   bash -n deploy/pmd-r29-guest-comms-safe-deploy.sh
-  if grep -Fq '\\${' deploy/pmd-r29-guest-comms-safe-deploy.sh; then
+  if grep -Fq '\${' deploy/pmd-r29-guest-comms-safe-deploy.sh; then
     echo "ERROR: guarded installer has escaped Bash variable expansions."
     exit 1
   fi
