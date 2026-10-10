@@ -5,6 +5,7 @@ cd "$(dirname "$0")/.."
 for file in \
     app/Http/Controllers/PmdWhatsAppWebhookController.php \
     app/Services/WhatsApp/PmdWhatsAppGateway.php \
+    app/Services/Reservations/PmdGuestCommunicationService.php \
     app/Services/WhatsApp/PmdWhatsAppSchema.php \
     app/Console/Commands/PmdWhatsAppCommand.php \
     app/admin/controllers/Pmdwhatsappinbox.php \
@@ -18,6 +19,9 @@ do
 done
 
 php scripts/pmd-r30-whatsapp-signature-qa.php
+
+grep -Fq 'recordAcceptedReservationMessage' app/Services/Reservations/PmdGuestCommunicationService.php
+grep -Fq 'recordAcceptedReservationMessage' app/Services/WhatsApp/PmdWhatsAppGateway.php
 
 # The public Meta route is never covered by Admin auth or a tenant-origin
 # browser session. It is explicitly opt-in, host locked and HMAC authenticated.
