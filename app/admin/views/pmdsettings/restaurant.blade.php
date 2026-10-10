@@ -48,7 +48,7 @@ html.pmd-restaurant-profile-booting #notif-root {
 document.documentElement.classList.add('pmd-restaurant-profile-booting');
 </script>
 
-<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-v1.css?v=20261009_r28">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-v1.css?v=20261010_r32">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-platform-header-v4.css?v=20260809_4">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-spacing-v7.css?v=20260809_10">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-settings-restaurant-unified-r19.css?v=20260815_r19">
@@ -243,7 +243,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             {{ $pmdSettingsText('Email') }} · {{ $pmdSettingsText(!empty($pmdGuestCommunications['email_ready']) ? 'Ready' : 'Setup needed') }}
                         </span>
                         <span class="pmd-communication-status {{ !empty($pmdGuestCommunications['whatsapp_ready']) ? 'is-ready' : '' }}">
-                            WhatsApp · {{ $pmdSettingsText(!empty($pmdGuestCommunications['whatsapp_ready']) ? 'Ready' : 'Setup needed') }}
+                            WhatsApp · {{ $pmdSettingsText(!empty($pmdGuestCommunications['whatsapp_ready']) ? 'Ready' : (($pmdGuestCommunications['whatsapp_provider'] ?? 'managed') === 'managed' ? 'Activation pending' : 'Not ready')) }}
                         </span>
                     </div>
                 </div>
@@ -253,16 +253,6 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <strong>{{ $pmdSettingsText('Reservation messages') }}</strong>
                         <span>{{ $pmdSettingsText('Transactional reservation messages only. Marketing messages require separate consent.') }}</span>
                     </div>
-                    {{-- PMD_WHATSAPP_CENTRAL_INBOX_R30: kept separate from outbound settings. --}}
-                    <div class="pmd-profile-booking-note">
-                        <strong>WhatsApp customer replies</strong>
-                        <span>
-                            <a href="{{ admin_url('pmdwhatsappinbox') }}">Open WhatsApp Inbox</a>
-                            · Replies are available after PayMyDine activates the shared Meta webhook and maps this restaurant's phone number.
-                            Automated chatbot replies are off until separately reviewed.
-                        </span>
-                    </div>
-
                     <div class="pmd-communication-events">
                         <span>{{ $pmdSettingsText('Send when') }}</span>
                         <label>
@@ -375,112 +365,95 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             </details>
                         </article>
 
-                        <article class="pmd-communication-channel">
-                            <div class="pmd-communication-channel__top">
+                        {{-- R32: owner-facing WhatsApp is fully managed by PayMyDine.
+                             Never offer token, endpoint, provider, WABA or signup
+                             controls in this page. The legacy provider is preserved
+                             as an authenticated hidden preference until migrated
+                             by PayMyDine in the operator environment. --}}
+                        @php
+                            $pmdWaProvider = $pmdGuestCommunications['whatsapp_provider'] ?? 'managed';
+                            $pmdWaLegacy = $pmdWaProvider !== 'managed';
+                            $pmdWaManagedState = $pmdGuestCommunications['managed_status'] ?? [];
+                            $pmdWaConfigured = !empty($pmdGuestCommunications['whatsapp_ready']);
+                            $pmdWaCentralReady = !empty($pmdWaManagedState['ready']);
+                            $pmdWaEnabled = !empty($pmdGuestCommunications['whatsapp_enabled']);
+                        @endphp
+                        <article class="pmd-communication-channel pmd-wa-owner-r32" aria-labelledby="pmd-wa-owner-title">
+                            <input type="hidden" name="communication[whatsapp_provider]" value="{{ $pmdWaProvider }}">
+                            <div class="pmd-wa-owner-r32__heading">
+                                <div class="pmd-wa-owner-r32__identity">
+                                    <span class="pmd-wa-owner-r32__icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><path d="M12 3a8.8 8.8 0 0 0-7.7 13.1L3 21l5-1.3A8.9 8.9 0 1 0 12 3Z"></path><path d="M9.4 8.1c-.3-.5-.6-.5-1-.4-.5.2-1 1-1 1.8 0 1.6 2.8 5.2 5.5 6.3 2.6 1 3.7.4 4.1-.2.3-.4.6-1.3.5-1.6-.1-.2-.4-.3-.9-.5l-1.6-.8c-.3-.2-.5-.1-.7.2l-.7.9c-.2.2-.4.3-.7.1-1.1-.5-2.3-1.5-2.8-2.5-.2-.4.1-.5.4-.9.2-.2.3-.5.2-.8l-.5-1.3Z"></path></svg>
+                                    </span>
+                                    <div>
+                                        <span class="pmd-communication-kicker">{{ $pmdSettingsText('Messaging') }}</span>
+                                        <h3 id="pmd-wa-owner-title">WhatsApp</h3>
+                                    </div>
+                                </div>
+                                <span class="pmd-wa-owner-r32__status {{ $pmdWaConfigured ? 'is-ready' : 'is-pending' }}" role="status">
+                                    {{ $pmdSettingsText($pmdWaConfigured ? 'Ready' : ($pmdWaLegacy ? 'Existing connection · not ready' : 'Pending activation')) }}
+                                </span>
+                            </div>
+
+                            <p class="pmd-wa-owner-r32__intro">
+                                {{ $pmdSettingsText('Booking confirmations and updates, managed by PayMyDine. No API keys or technical setup are needed here.') }}
+                            </p>
+
+                            @if($pmdWaLegacy)
+                                <div class="pmd-wa-owner-r32__notice" role="status">
+                                    {{ $pmdSettingsText('Your existing WhatsApp connection is preserved. PayMyDine will manage its transition to the shared service.') }}
+                                </div>
+                            @elseif(!$pmdWaCentralReady)
+                                <div class="pmd-wa-owner-r32__notice" role="status">
+                                    {{ $pmdSettingsText('The PayMyDine team is preparing WhatsApp delivery for this restaurant. Messages will not be sent until the business number is authorized and activated.') }}
+                                </div>
+                            @endif
+
+                            <div class="pmd-wa-owner-r32__setting">
                                 <div>
-                                    <span class="pmd-communication-kicker">{{ $pmdSettingsText('Channel') }}</span>
-                                    <h3>WhatsApp</h3>
-                                    <p>{{ $pmdSettingsText('Reservation updates can also be sent to the guest phone number through your WhatsApp Business route.') }}</p>
+                                    <strong>{{ $pmdSettingsText('Reservation notifications') }}</strong>
+                                    <small>
+                                        {{ $pmdSettingsText('Send booking confirmations, changes and cancellations to guests once the channel is active.') }}
+                                    </small>
                                 </div>
                                 <label class="pmd-profile-switch" aria-label="{{ $pmdSettingsText('Enable WhatsApp reservation messages') }}">
-                                    <input type="checkbox" name="communication[whatsapp_enabled]" value="1" {{ !empty($pmdGuestCommunications['whatsapp_enabled']) ? 'checked' : '' }}>
+                                    <input type="checkbox" name="communication[whatsapp_enabled]" value="1" {{ $pmdWaEnabled ? 'checked' : '' }}>
                                     <span></span>
                                 </label>
                             </div>
 
-                            {{-- R31: Platform-managed WhatsApp is the default.
-                                 Every restaurant still authorizes its own
-                                 business number; the owner never sees an API token. --}}
-                            <div class="pmd-profile-booking-note" style="margin:12px 0">
-                                <strong>PayMyDine WhatsApp connection</strong>
-                                <span>
-                                    @php $pmdWaManagedState = $pmdGuestCommunications['managed_status'] ?? []; @endphp
-                                    @if(!empty($pmdWaManagedState['ready']))
-                                        Connected to PayMyDine managed messaging (sender ending {{ $pmdWaManagedState['phone_last4'] ?? '' }}).
-                                    @elseif(!empty($pmdWaManagedState['connected']))
-                                        Your business number is registered. PayMyDine must finish platform activation.
-                                    @elseif(!empty($pmdWaManagedState['requested']))
-                                        Connection requested. Awaiting business-number authorization and activation.
-                                    @else
-                                        Not connected. Request activation below; PayMyDine handles API credentials,
-                                        Webhooks and delivery. Your business must still approve access to its number.
-                                    @endif
-                                </span>
-                                @if(empty($pmdWaManagedState['connected']) && empty($pmdWaManagedState['requested']))
-                                    <button type="button" class="pmd-profile-booking-preview"
-                                            data-request="onRequestManagedWhatsApp"
-                                            data-request-flash style="margin-top:10px">
-                                        Request PayMyDine WhatsApp connection
-                                    </button>
+                            <div class="pmd-wa-owner-r32__footer">
+                                <a href="{{ admin_url('pmdwhatsappinbox') }}" class="pmd-wa-owner-r32__inbox">
+                                    {{ $pmdSettingsText('Open WhatsApp Inbox') }}
+                                    <span aria-hidden="true">↗</span>
+                                </a>
+                                @if(!$pmdWaConfigured)
+                                    <small>{{ $pmdSettingsText('Messaging will be available after PayMyDine completes activation.') }}</small>
+                                @else
+                                    <small>{{ $pmdSettingsText('Incoming customer replies appear in your restaurant Inbox.') }}</small>
                                 @endif
-                                <span id="pmd-managed-wa-request-status" aria-live="polite"></span>
                             </div>
 
-                            <div class="pmd-profile-grid pmd-profile-grid--2">
-                                <label class="pmd-profile-field">
-                                    <span>WhatsApp connection mode</span>
-                                    <select name="communication[whatsapp_provider]">
-                                        <option value="managed" {{ ($pmdGuestCommunications['whatsapp_provider'] ?? 'managed') === 'managed' ? 'selected' : '' }}>PayMyDine managed (recommended)</option>
-                                        <option value="meta_cloud" {{ ($pmdGuestCommunications['whatsapp_provider'] ?? '') === 'meta_cloud' ? 'selected' : '' }}>Advanced: direct Meta Cloud API</option>
-                                        <option value="webhook" {{ ($pmdGuestCommunications['whatsapp_provider'] ?? '') === 'webhook' ? 'selected' : '' }}>Advanced: external bot gateway</option>
-                                    </select>
-                                    <small>PayMyDine handles the managed API token. Technical credentials below are needed only for legacy/direct mode.</small>
-                                </label>
-                                <label class="pmd-profile-field">
-                                    <span>{{ $pmdSettingsText('WhatsApp test recipient') }}</span>
-                                    <input type="tel" name="communication[whatsapp_test_recipient]" value="{{ $pmdGuestCommunications['whatsapp_test_recipient'] ?? '' }}" maxlength="64" placeholder="+491701234567">
-                                    <small>{{ $pmdSettingsText('Use an international number with country code.') }}</small>
-                                </label>
-                            </div>
-
-                            <details class="pmd-communication-details">
-                                <summary>Advanced technical setup — only for direct Meta or external webhook</summary>
-                                <p class="pmd-communication-template-help">
-                                    Leave this closed when using PayMyDine managed messaging.
-                                    The managed mode uses centrally configured templates and credentials; owners do not need to enter tokens.
-                                </p>
-                                <div class="pmd-profile-grid pmd-profile-grid--2">
-                                    <label class="pmd-profile-field">
-                                        <span>{{ $pmdSettingsText('Business / sender reference') }}</span>
-                                        <input type="text" name="communication[whatsapp_sender_reference]" value="{{ $pmdGuestCommunications['whatsapp_sender_reference'] ?? '' }}" maxlength="255" placeholder="tomo / WABA / sender id">
-                                    </label>
-                                    <label class="pmd-profile-field">
-                                        <span>{{ $pmdSettingsText('WhatsApp API endpoint') }}</span>
-                                        <input type="url" name="communication[whatsapp_endpoint]" value="{{ $pmdGuestCommunications['whatsapp_endpoint'] ?? '' }}" maxlength="1000" placeholder="https://graph.facebook.com/vXX.X/PHONE_NUMBER_ID/messages">
-                                    </label>
-                                    <label class="pmd-profile-field pmd-profile-field--wide">
-                                        <span>{{ $pmdSettingsText('Access token / webhook token') }}</span>
-                                        <input type="password" name="communication[whatsapp_token]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdGuestCommunications['has_whatsapp_token']) ? 'Stored — leave blank to keep' : 'Enter token') }}">
-                                    </label>
-                                </div>
-                                <details class="pmd-communication-details">
-                                    <summary>{{ $pmdSettingsText('Approved WhatsApp templates') }} — direct mode only</summary>
-                                    <p class="pmd-communication-template-help">
-                                        {{ $pmdSettingsText('For proactive WhatsApp messages, configure approved Meta template names. Each template receives restaurant name, booking reference, date, time, guest count and manage link in that order.') }}
-                                    </p>
-                                    <div class="pmd-profile-grid pmd-profile-grid--2">
+                            @if($pmdWaConfigured)
+                                <details class="pmd-wa-owner-r32__test">
+                                    <summary>{{ $pmdSettingsText('Send a WhatsApp test') }}</summary>
+                                    <div class="pmd-wa-owner-r32__test-fields">
                                         <label class="pmd-profile-field">
-                                            <span>{{ $pmdSettingsText('New reservation template') }}</span>
-                                            <input type="text" name="communication[whatsapp_template_created]" value="{{ $pmdGuestCommunications['whatsapp_template_created'] ?? '' }}" maxlength="512" placeholder="reservation_created">
+                                            <span>{{ $pmdSettingsText('Test recipient number') }}</span>
+                                            <input type="tel" name="communication[whatsapp_test_recipient]"
+                                                   value="{{ $pmdGuestCommunications['whatsapp_test_recipient'] ?? '' }}"
+                                                   maxlength="64" placeholder="+491701234567">
                                         </label>
-                                        <label class="pmd-profile-field">
-                                            <span>{{ $pmdSettingsText('Reservation changed template') }}</span>
-                                            <input type="text" name="communication[whatsapp_template_updated]" value="{{ $pmdGuestCommunications['whatsapp_template_updated'] ?? '' }}" maxlength="512" placeholder="reservation_updated">
-                                        </label>
-                                        <label class="pmd-profile-field">
-                                            <span>{{ $pmdSettingsText('Reservation canceled template') }}</span>
-                                            <input type="text" name="communication[whatsapp_template_canceled]" value="{{ $pmdGuestCommunications['whatsapp_template_canceled'] ?? '' }}" maxlength="512" placeholder="reservation_canceled">
-                                        </label>
+                                        <button type="button" class="pmd-profile-booking-preview"
+                                                data-request="onTestReservationWhatsApp"
+                                                data-request-form="#pmd-restaurant-profile-form"
+                                                data-request-flash>
+                                            {{ $pmdSettingsText('Send test WhatsApp') }}
+                                        </button>
                                     </div>
+                                    <span id="pmd-guest-whatsapp-test-status" aria-live="polite"></span>
                                 </details>
-                            </details>
-
-                            <div class="pmd-communication-test-row">
-                                <button type="button" class="pmd-profile-booking-preview" data-request="onTestReservationWhatsApp" data-request-form="#pmd-restaurant-profile-form" data-request-flash>
-                                    {{ $pmdSettingsText('Send test WhatsApp') }}
-                                </button>
-                                <span id="pmd-guest-whatsapp-test-status"></span>
-                            </div>
+                            @endif
                         </article>
                     </div>
 
