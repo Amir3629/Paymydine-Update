@@ -112,55 +112,99 @@
       if(!floorCanvas)return;
       stashNativeFloor();floorCanvas.replaceChildren();
       floorCanvas.classList.add('pmd-group-floor-readonly-canvas');
-      floorCanvas.style.width='100%';floorCanvas.style.minWidth='100%';
-      floorCanvas.style.height='128px';floorCanvas.style.minHeight='128px';
+      var strip=!!(floor&&floor.classList.contains('is-strip-mode'));
+      var height=strip?146:560;
+      floorCanvas.style.width=strip?'100%':'1000px';
+      floorCanvas.style.minWidth=strip?'100%':'1000px';
+      floorCanvas.style.height=height+'px';
+      floorCanvas.style.minHeight=height+'px';
       floorCanvas.style.transform='none';
-      if(floorScroll){floorScroll.style.height='146px';floorScroll.style.minHeight='146px';floorScroll.style.maxHeight='146px';}
-      floorCanvas.appendChild(el('p',text,'pmd-group-floor-readonly-message'));
+      if(floorScroll){
+        floorScroll.style.height=height+'px';
+        floorScroll.style.minHeight=height+'px';
+        floorScroll.style.maxHeight=height+'px';
+      }
+      var message=el('p',text,'pmd-group-floor-readonly-message');
+      message.setAttribute('role','status');
+      floorCanvas.appendChild(message);
     }
     function displayGroupFloor(data){
       if(!floorCanvas)return;
-      var report=data&&data.floor||{};
-      var sites=Array.isArray(report.restaurants)?report.restaurants:[];
-      if(!sites.length){showFloorNotice('Floor data is not available for this restaurant.');return;}
-      var incomplete=sites.find(function(site){return site.available!==true;});
-      if(incomplete){showFloorNotice((incomplete.label||'Restaurant')+': '+(incomplete.message||'Floor unavailable.'));return;}
-      var tables=[];
-      sites.forEach(function(site){
-        (site.tables||[]).forEach(function(table){
-          if(tables.length<200)tables.push({table:table,site:site.label});
-        });
-      });
-      if(!tables.length){showFloorNotice('No tables have been created in this restaurant.');return;}
+      if(selectedScope==='all'||(data&&data.floor&&data.floor.disabled)){
+        // R24: One financial scope for all sites, but NO mixed restaurant Floor.
+        showFloorNotice('Select one restaurant to view its Floor.');
+        return;
+      }
+      var siteList=data&&data.floor&&data.floor.restaurants;
+      var sites=Array.isArray(siteList)?siteList:[];
+      if(sites.length!==1){
+        showFloorNotice('Restaurant Floor is not available for this selection.');
+        return;
+      }
+      var site=sites[0];
+      if(site.available!==true){
+        showFloorNotice((site.label||'Restaurant')+': '+(site.message||'Floor is unavailable.'));
+        return;
+      }
+      var tables=Array.isArray(site.tables)?site.tables.slice(0,250):[];
+      if(!tables.length){
+        showFloorNotice('No tables have been created in this restaurant.');
+        return;
+      }
+      // Use EXACTLY the existing native Floor's button, status colors and
+      // single-row calibration. The previous custom grey cards and artificial
+      // grid are not part of the PayMyDine Floor design.
       stashNativeFloor();floorCanvas.replaceChildren();
       floorCanvas.classList.add('pmd-group-floor-readonly-canvas');
-      // R23: One row must STAY one row even for All restaurants; scroll
-      // horizontally like native Floor instead of clipping second-row cards.
       var strip=!!(floor&&floor.classList.contains('is-strip-mode'));
-      var perRow=strip?Math.max(1,tables.length):10,cols=Math.min(perRow,tables.length);
-      var width=Math.max(600,cols*128+28),height=Math.max(140,Math.ceil(tables.length/perRow)*112+24);
-      floorCanvas.style.width=width+'px';floorCanvas.style.minWidth=width+'px';
-      floorCanvas.style.height=height+'px';floorCanvas.style.minHeight=height+'px';
+      tables.sort(function(a,b){
+        var na=Number(a.number),nb=Number(b.number);
+        if(Number.isFinite(na)&&Number.isFinite(nb)&&na!==nb)return na-nb;
+        return String(a.number||'').localeCompare(String(b.number||''),undefined,{numeric:true});
+      });
+      var cursor=24;
+      var height=strip?146:560;
+      var width=strip?Math.max(1000,24+tables.length*(108+18)):1000;
+      floorCanvas.style.width=width+'px';
+      floorCanvas.style.minWidth=width+'px';
+      floorCanvas.style.height=height+'px';
+      floorCanvas.style.minHeight=height+'px';
       floorCanvas.style.transform='none';
-      if(floorScroll){floorScroll.style.height=Math.min(height+18,570)+'px';floorScroll.style.minHeight='142px';floorScroll.style.maxHeight='570px';}
-      tables.forEach(function(entry,index){
-        var status=String(entry.table.status||'unknown');
-        var node=el('div',null,'pmd-floor-v1__table pmd-group-floor-readonly-table');
+      if(floorScroll){
+        floorScroll.style.height=height+'px';
+        floorScroll.style.minHeight=height+'px';
+        floorScroll.style.maxHeight=height+'px';
+      }
+      tables.forEach(function(table,index){
+        var status=String(table.status||'unknown');
+        if(['available','occupied','reserved','cleaning','attention','disabled','unknown'].indexOf(status)<0)status='unknown';
+        var w=108,h=88;
+        var x=strip?cursor+w/2:Number(table.x);
+        var y=strip?22+h/2:Number(table.y);
+        if(!Number.isFinite(x))x=80+(index%6)*150;
+        if(!Number.isFinite(y))y=60+Math.floor(index/6)*110;
+        if(strip)cursor+=w+18;
+        var node=el('button',null,'pmd-floor-v1__table pmd-group-floor-readonly-table');
+        node.type='button';
         node.dataset.status=status;
-        node.setAttribute('aria-label',(entry.site||'Restaurant')+' · Table '+(entry.table.number||entry.table.name||'—')+' · Read only');
-        node.title=(entry.site||'Restaurant')+' · '+(entry.table.name||entry.table.number||'Table')+' · Read-only Floor';
-        // R23: native Floor cards use transform:translate(-50%,-50%)!
-        // Position the CENTER, not the top-left; R22 clipped the first row.
-        node.style.left=(18+(index%perRow)*128+54)+'px';
-        node.style.top=(14+Math.floor(index/perRow)*112+44)+'px';
-        node.style.width='108px';node.style.height='88px';
-        node.appendChild(el('strong',entry.table.number||entry.table.name||'—','pmd-floor-v1__table-number'));
-        if(sites.length>1)node.appendChild(el('span',entry.site,'pmd-floor-v1__table-meta'));
-        else if(status!=='unknown')node.appendChild(el('span',status,'pmd-floor-v1__table-meta'));
+        node.setAttribute('aria-disabled','true');
+        node.setAttribute('aria-label',(table.name||'Table '+table.number)+' · '+site.label+' · Read only');
+        node.title=(table.name||'Table '+table.number)+' · '+site.label+' (read only)';
+        if(status==='available')node.setAttribute('data-pmd-range-color','free');
+        else if(status==='occupied')node.setAttribute('data-pmd-range-color','busy');
+        else if(status==='reserved')node.setAttribute('data-pmd-range-color','rangeReservation');
+        node.style.left=x+'px';node.style.top=y+'px';
+        node.style.width=w+'px';node.style.height=h+'px';
+        node.appendChild(el('strong',table.number||table.name||'—','pmd-floor-v1__table-number'));
+        if(status!=='available'&&status!=='occupied'&&status!=='unknown'){
+          node.appendChild(el('span',status.replace(/-/g,' '),'pmd-floor-v1__table-meta'));
+        }
         floorCanvas.appendChild(node);
       });
-      if(tables.length===200||sites.some(function(site){return !!site.truncated;}))
-        floorCanvas.appendChild(el('p','Showing the first 200 tables.','pmd-group-floor-readonly-limit'));
+      if(site.truncated){
+        var more=el('p','Showing the first 250 tables.','pmd-group-floor-readonly-limit');
+        floorCanvas.appendChild(more);
+      }
     }
     var kpiTemplate={};
     try{
@@ -277,6 +321,7 @@
       var remote=scope!==current;
       root.classList.toggle('pmd-group-dashboard-scope-active',remote);
       if(floor){
+        floor.classList.toggle('pmd-group-floor-all-disabled',scope==='all');
         floor.inert=remote;
         floor.setAttribute('aria-disabled',remote?'true':'false');
         floor.title=remote
@@ -296,7 +341,9 @@
         }
         return;
       }
-      showFloorNotice('Loading selected restaurant tables…');
+      showFloorNotice(scope==='all'
+        ? 'Select one restaurant to view its Floor.'
+        : 'Loading selected restaurant tables…');
       applyKpis(null,null,true);
       if(analytics){
         analytics.setScopeProvider(function(period){
