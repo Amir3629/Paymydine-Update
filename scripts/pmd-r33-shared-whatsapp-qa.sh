@@ -32,7 +32,7 @@ COMMAND=app/Console/Commands/PmdWhatsAppCommand.php
 # No auto activation, tenant guessing or request-manipulated sender.
 grep -Fq "config('pmd_whatsapp.shared_enabled', false)" "$SHARED"
 grep -Fq "config('pmd_whatsapp.shared_consent_form_enabled', false)" "$SHARED"
-grep -Fq '->lockForUpdate()' "$SHARED" || grep -Fq -- '->lockForUpdate()' "$SHARED"
+grep -Fq -- '->lockForUpdate()' "$SHARED"
 grep -Fq "message['context']['id']" "$SHARED"
 grep -Fq "PmdSharedWhatsAppRoutingPolicy" "$SHARED"
 grep -Fq "pmd_wa_shared_unrouted" "$SHARED"
