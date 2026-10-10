@@ -639,6 +639,23 @@ try {
         throw new RuntimeException('Restaurant Groups selected Floor and safe reporting clock contract is incomplete.');
     }
     echo "PASS R22 selected tenant Floor is read-only; empty-order clock and historical reporting guard are active\n";
+    // R23: protect existing financial history and verify the corrected
+    // center-based Floor placement. The VPS operator must inspect settlement
+    // timestamps before explicit per-site UTC confirmation.
+    $stage = 'verified-history-and-floor-geometry-r23';
+    if (strpos($dashboardSource, 'node.style.left=(18+(index%perRow)*128+54)') === false
+        || strpos($dashboardSource, 'node.style.top=(14+Math.floor(index/perRow)*112+44)') === false
+        || strpos($toolSource, "'confirm-verified-history-clock'") === false
+        || strpos($toolSource, 'PMD CLOCK EVIDENCE SITE') === false
+        || strpos($toolSource, 'I_VERIFIED_EXISTING_SETTLEMENT_TIMESTAMPS_ARE_UTC') === false
+        || strpos($toolSource, '$settled < 1 || $settlementRows->isEmpty()') === false
+        || strpos($toolSource, 'getTimestamp() > time()+600') === false
+        || strpos($toolSource, "if (\$action === 'audit-reporting')") === false) {
+        throw new RuntimeException('R23 historical UTC confirmation or native Floor coordinate safety missing.');
+    }
+    echo "PASS R23 historical reporting clock requires operator-reviewed UTC evidence; Floor cards use native center geometry\n";
+
+
 
 
 
