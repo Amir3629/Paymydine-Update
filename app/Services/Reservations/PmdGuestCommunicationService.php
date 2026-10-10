@@ -181,20 +181,43 @@ final class PmdGuestCommunicationService
             if (empty($config['whatsapp_ready'])) {
                 $result['whatsapp'] = 'not_ready';
             } else {
+                // Preserve the original guest-consented language when
+                // reservation is edited later from another UI language.
+                $waLocale = $locale;
+                if (config('pmd_whatsapp.shared_enabled', false) === true
+                    && ($config['whatsapp_provider'] ?? '') === 'managed') {
+                    try {
+                        $originalLocale = app(PmdSharedWhatsAppService::class)
+                            ->reservationLocale(
+                                app(PmdManagedWhatsAppService::class)->currentTenantId(),
+                                (int)$reservation->location_id,
+                                (int)$reservation->getKey(),
+                                (string)$reservation->telephone
+                            );
+                        if ($originalLocale !== null) {
+                            $waLocale = $originalLocale;
+                        }
+                    } catch (Throwable $ignored) {
+                        // Shared sender still validates consent before send.
+                    }
+                }
+                $waMessage = $waLocale === $locale
+                    ? $message
+                    : $this->reservationMessage($reservation, $event, $waLocale);
                 $result['whatsapp'] = $this->sendWhatsApp(
                     (string)$reservation->telephone,
-                    (string)$message['whatsapp_text'],
+                    (string)$waMessage['whatsapp_text'],
                     [
                         'event' => $event,
-                        'locale' => $locale,
+                        'locale' => $waLocale,
                         'reservation_id' => (int)$reservation->getKey(),
                         'location_id' => (int)$reservation->location_id,
-                        'reference' => (string)$message['reference'],
-                        'restaurant_name' => (string)$message['restaurant_name'],
-                        'reservation_date' => (string)$message['reservation_date'],
-                        'reservation_time' => (string)$message['reservation_time'],
-                        'reservation_guests' => (int)$message['reservation_guests'],
-                        'manage_url' => (string)$message['manage_url'],
+                        'reference' => (string)$waMessage['reference'],
+                        'restaurant_name' => (string)$waMessage['restaurant_name'],
+                        'reservation_date' => (string)$waMessage['reservation_date'],
+                        'reservation_time' => (string)$waMessage['reservation_time'],
+                        'reservation_guests' => (int)$waMessage['reservation_guests'],
+                        'manage_url' => (string)$waMessage['manage_url'],
                     ],
                     $config
                 ) ? 'sent' : 'failed';
