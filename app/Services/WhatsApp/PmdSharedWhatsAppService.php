@@ -25,6 +25,7 @@ final class PmdSharedWhatsAppService
         'pmd_wa_shared_locations',
         'pmd_wa_shared_consents',
         'pmd_wa_shared_optouts',
+        'pmd_wa_shared_action_jobs',
         'pmd_wa_shared_messages',
         'pmd_wa_shared_unrouted',
     ];
@@ -248,7 +249,8 @@ final class PmdSharedWhatsAppService
         int $reservationId,
         string $recipient,
         string $metaMessageId,
-        string $preview
+        string $preview,
+        string $manageUrl = ''
     ): void {
         if ($senderId < 1 || $tenantId < 1 || $locationId < 1
             || $reservationId < 1
@@ -275,6 +277,9 @@ final class PmdSharedWhatsAppService
             'direction' => 'out',
             'kind' => 'template',
             'body_ciphertext' => Crypt::encryptString(mb_substr($preview, 0, 4000)),
+            // A bearer management link is never part of button payload.
+            'manage_url_ciphertext' => PmdWhatsAppButtonPolicy::safeManageUrl($manageUrl)
+                ? Crypt::encryptString($manageUrl) : null,
             'delivery_status' => 'accepted',
             'received_at' => now(),
             'created_at' => now(),
