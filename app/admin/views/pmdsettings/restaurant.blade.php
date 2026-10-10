@@ -253,6 +253,15 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <strong>{{ $pmdSettingsText('Reservation messages') }}</strong>
                         <span>{{ $pmdSettingsText('Transactional reservation messages only. Marketing messages require separate consent.') }}</span>
                     </div>
+                    {{-- PMD_WHATSAPP_CENTRAL_INBOX_R30: kept separate from outbound settings. --}}
+                    <div class="pmd-profile-booking-note">
+                        <strong>WhatsApp customer replies</strong>
+                        <span>
+                            <a href="{{ admin_url('pmdwhatsappinbox') }}">Open WhatsApp Inbox</a>
+                            · Replies are available after PayMyDine activates the shared Meta webhook and maps this restaurant's phone number.
+                            Automated chatbot replies are off until separately reviewed.
+                        </span>
+                    </div>
 
                     <div class="pmd-communication-events">
                         <span>{{ $pmdSettingsText('Send when') }}</span>
