@@ -2,7 +2,7 @@
     <header style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px">
         <div>
             <h2 style="margin:0 0 6px">WhatsApp Inbox</h2>
-            <p style="margin:0;color:#667985">Messages for the selected restaurant location only.</p>
+            <p style="margin:0;color:#667985">Messages assigned to this restaurant only. Messages without a verified reply context remain with PayMyDine support.</p>
         </div>
         <a href="{{ admin_url('pmdsettings/restaurant') }}" class="btn btn-default">Restaurant settings</a>
     </header>
@@ -29,7 +29,7 @@
                     <form data-request="onReply" data-request-success="window.location.reload()" method="post"
                           style="display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap">
                         {{ csrf_field() }}
-                        <input type="hidden" name="message_id" value="{{ (int)$message['id'] }}">
+                        <input type="hidden" name="message_id" value="{{ $message['id'] }}">
                         <textarea name="reply_text" maxlength="1600" rows="2"
                                   aria-label="Reply to customer" placeholder="Type a WhatsApp reply..."
                                   required style="flex:1;min-width:250px"></textarea>
