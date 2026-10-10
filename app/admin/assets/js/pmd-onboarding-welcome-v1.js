@@ -463,6 +463,9 @@
         }
 
         status().then(function (state) {
+            // A direct Quick Setup click can outrun the welcome-status probe.
+            // Never replace an already-open wizard with the welcome card.
+            if (mounted || quickSetupLoading) return;
             if (!state || !state.show_welcome) return;
             renderWelcome();
             bindOverlayActions();
