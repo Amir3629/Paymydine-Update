@@ -244,7 +244,12 @@ final class PmdSharedWhatsAppService
 
     public function ingest(array $payload): void
     {
-        if (!$this->globalReady() || !$this->installed()) {
+        // Incoming signed STOP messages should continue to be honoured even
+        // when the outgoing system-user token is temporarily disabled.
+        // Webhook controller has already validated signature, HTTPS and host.
+        if (config('pmd_whatsapp.shared_enabled', false) !== true
+            || config('pmd_whatsapp.enabled', false) !== true
+            || !$this->installed()) {
             return;
         }
         $entries = $payload['entry'] ?? [];
