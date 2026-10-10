@@ -84,6 +84,34 @@
             <label><span><svg aria-hidden="true"><use href="#pmd-composer-icon-mail"/></svg>@lang('admin::lang.label_email')</span><input name="email" type="email" autocomplete="email" placeholder="name@example.com"><em data-error-for="email"></em></label>
           </section>
           <label class="pmd-reservation-composer-v1__notes"><span><svg aria-hidden="true"><use href="#pmd-composer-icon-notes"/></svg>@lang('admin::lang.statuses.label_comment')</span><textarea name="comment" rows="3"></textarea><em data-error-for="comment"></em></label>
+          {{-- R34: Staff may only opt in a guest who explicitly agreed to
+               PayMyDine WhatsApp reservation notifications. NEVER precheck. --}}
+          @if(config('pmd_whatsapp.shared_enabled', false)
+             && config('pmd_whatsapp.shared_consent_form_enabled', false))
+          @php
+            $pmdGuestDefaultLanguage = strtolower(substr(trim((string)setting('default_language', 'de')), 0, 2));
+            if (!in_array($pmdGuestDefaultLanguage, ['de', 'en', 'tr', 'ar'], true)) {
+                $pmdGuestDefaultLanguage = 'de';
+            }
+          @endphp
+          <section class="pmd-composer-wa-consent-r34" aria-label="Optional WhatsApp booking updates">
+            <label class="pmd-composer-wa-consent-r34__check">
+              <input type="checkbox" name="whatsapp_guest_consent" value="1">
+              <span>The guest explicitly agreed to receive reservation updates
+              via WhatsApp from PayMyDine on behalf of this restaurant
+              (not marketing). Leave unchecked otherwise.</span>
+            </label>
+            <label class="pmd-composer-wa-consent-r34__language">
+              <span>Guest message language</span>
+              <select name="whatsapp_guest_locale" data-default-locale="{{ $pmdGuestDefaultLanguage }}">
+                <option value="de" {{ $pmdGuestDefaultLanguage === 'de' ? 'selected' : '' }}>Deutsch</option>
+                <option value="en" {{ $pmdGuestDefaultLanguage === 'en' ? 'selected' : '' }}>English</option>
+                <option value="tr" {{ $pmdGuestDefaultLanguage === 'tr' ? 'selected' : '' }}>Türkçe</option>
+                <option value="ar" {{ $pmdGuestDefaultLanguage === 'ar' ? 'selected' : '' }}>العربية</option>
+              </select>
+            </label>
+          </section>
+          @endif
           <!-- PMD_COMPOSER_MORE_OPTIONS_REMOVED_V17 -->
           <input type="hidden" name="occasion_id" value="0">
           <input type="hidden" name="location_id" value="">
