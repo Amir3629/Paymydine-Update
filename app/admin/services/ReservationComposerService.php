@@ -120,6 +120,19 @@ class ReservationComposerService
                     ]);
                 }
             }
+            $staffLocale = \App\Services\WhatsApp\PmdWhatsAppLocalePolicy::normalize(
+                (string)($validated['whatsapp_guest_locale'] ?? setting('default_language', 'de'))
+            );
+            if ($staffConsent && !\App\Services\WhatsApp\PmdWhatsAppLocalePolicy::isApproved(
+                $staffLocale,
+                (string)config('pmd_whatsapp.shared_approved_template_locales', '')
+            )) {
+                throw ValidationException::withMessages([
+                    'whatsapp_guest_locale' => [
+                        'PayMyDine WhatsApp templates for this language are not yet approved.',
+                    ],
+                ]);
+            }
             $reservation = $mode === 'edit'
                 ? $this->reservation((int)$validated['reservation_id'], $locations)
                 : new Reservations_model;
