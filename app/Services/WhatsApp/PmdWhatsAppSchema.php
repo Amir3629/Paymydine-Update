@@ -154,6 +154,7 @@ final class PmdWhatsAppSchema
                 $table->engine = 'InnoDB';
                 $table->bigIncrements('id');
                 $table->unsignedBigInteger('incoming_message_id')->unique();
+                $table->string('outbound_message_id', 191);
                 $table->unsignedBigInteger('tenant_id');
                 $table->unsignedBigInteger('location_id');
                 $table->string('action', 16);
