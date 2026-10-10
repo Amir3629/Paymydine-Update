@@ -18,7 +18,17 @@ do
     php -l "$file"
 done
 
+bash -n scripts/pmd-r30-guarded-vps-sync.sh
 php scripts/pmd-r30-whatsapp-signature-qa.php
+
+# The VPS installer must fail closed on conflicts and preserve an archive.
+grep -Fq 'git merge-base --is-ancestor' scripts/pmd-r30-guarded-vps-sync.sh
+grep -Fq 'LOCAL CHANGES' scripts/pmd-r30-guarded-vps-sync.sh || grep -Fq 'CONFLICT: ' scripts/pmd-r30-guarded-vps-sync.sh
+grep -Fq 'files-before.tar.gz' scripts/pmd-r30-guarded-vps-sync.sh
+grep -Fq 'git read-tree' scripts/pmd-r30-guarded-vps-sync.sh
+grep -Fq 'git update-ref' scripts/pmd-r30-guarded-vps-sync.sh
+! grep -Eq 'git (reset|clean|stash|pull)' scripts/pmd-r30-guarded-vps-sync.sh
+
 
 grep -Fq 'recordAcceptedReservationMessage' app/Services/Reservations/PmdGuestCommunicationService.php
 grep -Fq 'recordAcceptedReservationMessage' app/Services/WhatsApp/PmdWhatsAppGateway.php
