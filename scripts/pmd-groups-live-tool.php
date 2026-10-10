@@ -3,8 +3,8 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 $action = $argv[1] ?? '';
 $root = realpath($argv[2] ?? '');
-if (!$root || !in_array($action, ['info', 'backup', 'install', 'health', 'audit-products', 'audit-reporting', 'confirm-empty-clock'], true)) {
-    fwrite(STDERR, "Usage: php pmd-groups-live-tool.php info|backup|install|health|audit-products|audit-reporting|confirm-empty-clock APP_ROOT [SITE_ID UTC CONFIRM_EMPTY_ORDER_HISTORY]\n");
+if (!$root || !in_array($action, ['info', 'backup', 'install', 'health', 'audit-products', 'audit-reporting', 'confirm-empty-clock', 'confirm-verified-history-clock'], true)) {
+    fwrite(STDERR, "Usage: php pmd-groups-live-tool.php info|backup|install|health|audit-products|audit-reporting|confirm-empty-clock|confirm-verified-history-clock APP_ROOT [SITE_ID UTC CONFIRMATION]\n");
     exit(2);
 }
 // Suppress accidental bootstrap output. SQL backup stdout must contain SQL only.
@@ -73,7 +73,7 @@ try {
     $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
 
-    if ($action === 'audit-reporting' || $action === 'confirm-empty-clock') {
+    if (in_array($action, ['audit-reporting', 'confirm-empty-clock', 'confirm-verified-history-clock'], true)) {
         // R22: product-site reporting storage clock has to be based on real
         // order history and the known application timestamp writer, not the
         // display timezone, a static guessed UTC, or another tenant's data.
@@ -85,17 +85,21 @@ try {
         $applicationClock = trim((string)config('app.timezone', ''));
         $globalClock = trim((string)config('pmd_groups.reporting_storage_timezone', ''));
         $siteFilter = 0;
-        if ($action === 'confirm-empty-clock') {
+        $historyConfirmation = $action === 'confirm-verified-history-clock';
+        if ($action !== 'audit-reporting') {
             $siteText = (string)($argv[3] ?? '');
             $targetClock = (string)($argv[4] ?? '');
             $phrase = (string)($argv[5] ?? '');
+            $requiredPhrase = $historyConfirmation
+                ? 'I_VERIFIED_EXISTING_SETTLEMENT_TIMESTAMPS_ARE_UTC'
+                : 'CONFIRM_EMPTY_ORDER_HISTORY';
             if (!preg_match('/^[1-9][0-9]*$/D', $siteText)
-                || $targetClock === ''
-                || $phrase !== 'CONFIRM_EMPTY_ORDER_HISTORY'
-                || $targetClock !== $applicationClock) {
+                || $targetClock !== $applicationClock
+                || $targetClock !== 'UTC'
+                || $phrase !== $requiredPhrase) {
                 throw new RuntimeException(
-                    'Usage: confirm-empty-clock APP_ROOT SITE_ID APP_WRITER_TIMEZONE CONFIRM_EMPTY_ORDER_HISTORY. '
-                    .'The timezone must exactly match the verified application writer.'
+                    'Usage: '.$action.' APP_ROOT SITE_ID UTC '.$requiredPhrase.'. '
+                    .'Only the verified UTC application writer is supported; inspect audit-reporting first.'
                 );
             }
             $siteFilter = (int)$siteText;
@@ -134,6 +138,21 @@ try {
                     ->whereNotNull('settled_at')->count()
                 : -1;
             $label = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', (string)$site->label));
+            // R23 historical-clock review exposes only the most recent
+            // financial timestamps; never customer or payment credentials.
+            $settlementRows = collect();
+            if (isset($ordersColumns['order_id'], $ordersColumns['settled_at'],
+                $ordersColumns['settlement_status'])) {
+                $columnsToInspect = array_values(array_intersect(
+                    ['order_id', 'settled_at', 'created_at', 'updated_at', 'settled_amount'],
+                    array_keys($ordersColumns)
+                ));
+                $settlementRows = $connection->table('orders')
+                    ->whereIn('settlement_status', ['paid','settled'])
+                    ->whereNotNull('settled_at')
+                    ->orderByDesc('order_id')
+                    ->limit(3)->get($columnsToInspect);
+            }
             if ($action === 'audit-reporting') {
                 echo sprintf(
                     "PMD REPORT SITE %d %s: orders=%d settled=%s storage=%s app_writer=%s global=%s %s\n",
@@ -144,13 +163,45 @@ try {
                     $globalClock!==''?$globalClock:'not_configured',
                     $ordersCount===0 && $configured===''?'eligible_for_empty_site_confirmation':'verify_existing_history'
                 );
+                foreach ($settlementRows as $order) {
+                    echo sprintf(
+                        "PMD CLOCK EVIDENCE SITE %d: order=%d settled_at=%s created_at=%s updated_at=%s settled_amount=%s utc_now=%s\n",
+                        (int)$site->site_id,
+                        (int)($order->order_id ?? 0),
+                        (string)($order->settled_at ?? 'null'),
+                        (string)($order->created_at ?? 'unknown'),
+                        (string)($order->updated_at ?? 'unknown'),
+                        (string)($order->settled_amount ?? 'unknown'),
+                        \Carbon\Carbon::now('UTC')->format('Y-m-d H:i:s')
+                    );
+                }
                 continue;
             }
 
-            // Explicit, named, single-site mutation only. Never modify
-            // historical tenant DATETIME data or the global .env setting.
-            if ($ordersCount !== 0 || $configured !== '' || !in_array((string)$site->status,['active'],true)) {
-                throw new RuntimeException('Clock can only be confirmed automatically for an active site with zero orders and no prior configuration.');
+            // Explicit single-site mutation. Existing orders are NEVER
+            // reinterpreted automatically. A human has to compare the
+            // displayed settlement timestamps to the verified UTC writer
+            // before accepting them as UTC.
+            if ($configured !== '' || !in_array((string)$site->status,['active'],true)) {
+                throw new RuntimeException('Clock is already set or group site is inactive.');
+            }
+            if ($historyConfirmation) {
+                if ($ordersCount < 1 || $settled < 1 || $settlementRows->isEmpty()) {
+                    throw new RuntimeException('Historical UTC confirmation requires settled order evidence.');
+                }
+                foreach ($settlementRows as $order) {
+                    $raw = (string)($order->settled_at ?? '');
+                    $parsed = \DateTimeImmutable::createFromFormat(
+                        '!Y-m-d H:i:s', $raw, new \DateTimeZone('UTC')
+                    );
+                    if (!$parsed || $parsed->getTimestamp() > time()+600) {
+                        throw new RuntimeException(
+                            'Settlement clock evidence is invalid or ahead of UTC; manual timezone investigation required.'
+                        );
+                    }
+                }
+            } elseif ($ordersCount !== 0) {
+                throw new RuntimeException('The empty-clock command requires ZERO historical orders.');
             }
             try { new DateTimeZone($applicationClock); }
             catch (Throwable $error) {
@@ -174,8 +225,8 @@ try {
                 ->where('sort','config')->where('item','pmd_groups_storage_timezone')->value('value');
             if ($verified!==$applicationClock) throw new RuntimeException('Saved reporting clock could not be verified.');
             echo sprintf(
-                "PMD REPORT CLOCK CONFIRMED site=%d label=%s clock=%s orders=0 (site-only setting, no order mutations)\n",
-                (int)$site->site_id, substr($label,0,55), $applicationClock
+                "PMD REPORT CLOCK CONFIRMED site=%d label=%s clock=%s orders=%d (site-only setting, no order mutations)\n",
+                (int)$site->site_id, substr($label,0,55), $applicationClock, $ordersCount
             );
         }
         if ($action === 'audit-reporting') {
