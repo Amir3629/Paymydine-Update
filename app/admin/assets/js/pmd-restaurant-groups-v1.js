@@ -336,6 +336,7 @@
       if(!remote){
         restoreNativeFloor();
         control.select.removeAttribute('aria-busy');
+        if(floor)floor.removeAttribute('aria-busy');
         control.select.title=context.group.name;
         if(window.PMDDashboardLabKpisV1)window.PMDDashboardLabKpisV1.restoreLocal();
         if(analytics){analytics.setScopeProvider(null);analytics.refresh().catch(function(){});}
@@ -344,10 +345,11 @@
         }
         return;
       }
-      showFloorNotice(scope==='all'
-        ? 'Select one restaurant to view its Floor.'
-        : 'Loading selected restaurant tables…');
-      applyKpis(null,null,true);
+      // R25: Never clear the existing KPI and chart values to
+      // "Loading" during a scope change. Mark the selector busy, keep the
+      // last verified snapshot, and apply the new scope when its data is ready.
+      if(scope==='all')showFloorNotice('Select one restaurant to view its Floor.');
+      if(floor)floor.setAttribute('aria-busy','true');
       if(analytics){
         analytics.setScopeProvider(function(period){
           return Promise.all([
@@ -355,19 +357,28 @@
             period==='last30'?report(scope,'today'):Promise.resolve(null)
           ]).then(function(results){return scopedAnalytics(results[0],results[1]);});
         });
-        analytics.refresh().catch(function(error){
-          if(version===sequence)control.select.title=String(error&&error.message||'Restaurant reports unavailable');
-        });
       }
-      Promise.allSettled([report(scope,'today'),report(scope,'month')]).then(function(rows){
+      Promise.allSettled([
+        report(scope,'today'),
+        report(scope,'month'),
+        report(scope,'last30')
+      ]).then(function(rows){
         if(version!==sequence||selectedScope!==scope)return;
         var today=rows[0].status==='fulfilled'?rows[0].value:null;
         var month=rows[1].status==='fulfilled'?rows[1].value:null;
-        displayGroupFloor(today);
+        if(scope!=='all')displayGroupFloor(today);
         applyKpis(today,month,false);
+        if(floor)floor.removeAttribute('aria-busy');
         control.select.removeAttribute('aria-busy');
         var problem=issue(today)||issue(month);
         control.select.title=problem||context.group.name+' · read-only reporting';
+        // Cached report promises allow the native chart renderer to replace
+        // a complete chart in place without flashing loading placeholders.
+        if(analytics){
+          analytics.refresh().catch(function(error){
+            if(version===sequence)control.select.title=String(error&&error.message||'Restaurant reports unavailable');
+          });
+        }
       });
     }
     control.select.addEventListener('change',load);
