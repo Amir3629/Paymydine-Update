@@ -38,6 +38,10 @@ final class PmdWhatsAppGateway
         }
 
         foreach ($entries as $entry) {
+            $wabaId = is_array($entry) ? trim((string)($entry['id'] ?? '')) : '';
+            if (!preg_match('/^[0-9]{5,32}$/D', $wabaId)) {
+                continue;
+            }
             $changes = is_array($entry) ? ($entry['changes'] ?? []) : [];
             if (!is_array($changes) || count($changes) > 25) {
                 throw new RuntimeException('Invalid Meta changes batch.');
@@ -56,6 +60,7 @@ final class PmdWhatsAppGateway
                 $channel = $db->table('pmd_whatsapp_channels as c')
                     ->join('tenants as t', 't.id', '=', 'c.tenant_id')
                     ->where('c.phone_number_id', $numberId)
+                    ->where('c.waba_id', $wabaId)
                     ->where('c.enabled', 1)
                     ->where('t.status', 'active')
                     ->first(['c.id', 'c.tenant_id', 'c.location_id']);
@@ -284,9 +289,13 @@ final class PmdWhatsAppGateway
         $endpoint = trim((string)($settings['pmd_reservation_messages_whatsapp_endpoint'] ?? ''));
         $token = trim((string)($settings['pmd_reservation_messages_whatsapp_token'] ?? ''));
         $provider = (string)($settings['pmd_reservation_messages_whatsapp_provider'] ?? '');
-        $path = (string)parse_url($endpoint, PHP_URL_PATH);
-        $host = strtolower((string)parse_url($endpoint, PHP_URL_HOST));
-        if ((string)($settings['pmd_reservation_messages_whatsapp_enabled'] ?? '') !== '1'
+        $parts = parse_url($endpoint);
+        $path = is_array($parts) ? (string)($parts['path'] ?? '') : '';
+        $host = is_array($parts) ? strtolower((string)($parts['host'] ?? '')) : '';
+        if (!is_array($parts) || isset($parts['user']) || isset($parts['pass'])
+            || isset($parts['query']) || isset($parts['fragment'])
+            || (isset($parts['port']) && (int)$parts['port'] !== 443)
+            || (string)($settings['pmd_reservation_messages_whatsapp_enabled'] ?? '') !== '1'
             || $provider !== 'meta_cloud'
             || $host !== 'graph.facebook.com'
             || !preg_match('#^/v[0-9]+\.[0-9]+/([0-9]+)/messages/?$#', $path, $match)
