@@ -62,6 +62,17 @@ final class PmdWhatsAppGateway
                     continue;
                 }
 
+                // Fail closed on a legacy/shared DB mapping collision, even
+                // if someone manually bypassed the operator CLI protection.
+                if (config('pmd_whatsapp.shared_enabled', false) === true
+                    && app(PmdSharedWhatsAppService::class)->installed()
+                    && $db->table('pmd_wa_shared_senders')
+                        ->where('phone_number_id', $numberId)
+                        ->where('waba_id', $wabaId)
+                        ->where('enabled', 1)->exists()) {
+                    continue;
+                }
+
                 $channel = $db->table('pmd_whatsapp_channels as c')
                     ->join('tenants as t', 't.id', '=', 'c.tenant_id')
                     ->where('c.phone_number_id', $numberId)
