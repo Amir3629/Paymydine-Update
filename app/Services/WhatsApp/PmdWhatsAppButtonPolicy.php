@@ -49,9 +49,9 @@ final class PmdWhatsAppButtonPolicy
         return $url;
     }
 
-    public static function newBookingUrl(string $safeManageUrl, string $locale): ?string
+    public static function newBookingUrl(string $safeManageUrl, string $locale, string $customHosts = ''): ?string
     {
-        $checked = self::safeManageUrl($safeManageUrl);
+        $checked = self::safeManageUrl($safeManageUrl, $customHosts);
         if ($checked === null) {
             return null;
         }
@@ -60,14 +60,14 @@ final class PmdWhatsAppButtonPolicy
             .rawurlencode(PmdWhatsAppLocalePolicy::normalize($locale));
     }
 
-    public static function textForAction(string $action, string $url, string $locale): ?string
+    public static function textForAction(string $action, string $url, string $locale, string $customHosts = ''): ?string
     {
-        if (self::safeManageUrl($url) === null) {
+        if (self::safeManageUrl($url, $customHosts) === null) {
             return null;
         }
         $locale = PmdWhatsAppLocalePolicy::normalize($locale);
         if ($action === 'new') {
-            $url = self::newBookingUrl($url, $locale);
+            $url = self::newBookingUrl($url, $locale, $customHosts);
         } elseif ($action !== 'manage') {
             return null;
         }
