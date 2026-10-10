@@ -140,8 +140,16 @@ final class PmdManagedWhatsAppService
             }
         }
 
-        // This only validates NAMES. Meta still must approve each template on
-        // the sending WABA; validate approval during operator activation.
+        // R34: shared senders must explicitly list languages with approved
+        // templates. Merely entering valid template names is not enough.
+        if (config('pmd_whatsapp.shared_enabled', false) === true
+            && !PmdWhatsAppLocalePolicy::approvedCodes((string)config(
+                'pmd_whatsapp.shared_approved_template_locales', ''
+            ))) {
+            return false;
+        }
+        // This validates operator configuration only. Real Meta approval and
+        // delivery must still be verified from WhatsApp Manager/webhooks.
         return $any;
     }
 
@@ -172,11 +180,21 @@ final class PmdManagedWhatsAppService
             // Public guests must individually opt in for proactive
             // PayMyDine-branded WhatsApp templates. A test recipient or a
             // different reservation/phone is NOT a valid opt-in.
-            if ($isShared && ($reservationId < 1
-                || !app(PmdSharedWhatsAppService::class)->hasBookingConsent(
+            if ($isShared) {
+                $shared = app(PmdSharedWhatsAppService::class);
+                $bookingLocale = $shared->reservationLocale(
                     $tenantId, $locationId, $reservationId, $to
-                ))) {
-                return false;
+                );
+                // Only the language recorded with the guest's explicit
+                // booking consent can choose the Meta template variant.
+                if ($bookingLocale === null
+                    || !PmdWhatsAppLocalePolicy::isApproved(
+                        $bookingLocale,
+                        (string)config('pmd_whatsapp.shared_approved_template_locales', '')
+                    )) {
+                    return false;
+                }
+                $language = PmdWhatsAppLocalePolicy::metaCode($bookingLocale);
             }
             $parameters = [];
             foreach ([
