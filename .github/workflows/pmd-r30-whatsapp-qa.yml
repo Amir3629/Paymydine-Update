@@ -5,6 +5,7 @@ on:
     paths:
       - 'app/Http/Controllers/PmdWhatsAppWebhookController.php'
       - 'app/Services/WhatsApp/**'
+      - 'app/Services/Reservations/PmdGuestCommunicationService.php'
       - 'app/Console/Commands/PmdWhatsAppCommand.php'
       - 'app/admin/controllers/Pmdwhatsappinbox.php'
       - 'app/admin/views/pmdwhatsappinbox/**'
