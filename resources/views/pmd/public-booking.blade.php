@@ -644,7 +644,7 @@
                             {{-- R33: entirely optional, separately checked Meta
                                  WhatsApp business-initiated booking notifications.
                                  Unavailable until PayMyDine enables the pilot. --}}
-                            @if(config('pmd_whatsapp.shared_enabled', false) && config('pmd_whatsapp.shared_consent_form_enabled', false))
+                            @if(!empty($bookingWhatsAppOptInEnabled))
                                 <label class="pmd-booking-consent pmd-booking-consent--whatsapp">
                                     <input name="whatsapp_opt_in" type="checkbox" value="1">
                                     <span data-pmd-i18n="whatsapp_opt_in">{{ $t['whatsapp_opt_in'] }}</span>
