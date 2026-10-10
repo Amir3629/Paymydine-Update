@@ -187,7 +187,8 @@
         var node=el('button',null,'pmd-floor-v1__table pmd-group-floor-readonly-table');
         node.type='button';
         node.dataset.status=status;
-        node.setAttribute('aria-disabled','true');
+        // Parent Floor is inert for remote sites; do not apply a disabled
+        // button style that would change the native table appearance.
         node.setAttribute('aria-label',(table.name||'Table '+table.number)+' · '+site.label+' · Read only');
         node.title=(table.name||'Table '+table.number)+' · '+site.label+' (read only)';
         if(status==='available')node.setAttribute('data-pmd-range-color','free');
@@ -324,9 +325,11 @@
         floor.classList.toggle('pmd-group-floor-all-disabled',scope==='all');
         floor.inert=remote;
         floor.setAttribute('aria-disabled',remote?'true':'false');
-        floor.title=remote
-          ? 'Floor controls belong to the signed-in restaurant. Select the current restaurant to use them.'
-          : '';
+        floor.title=scope==='all'
+          ? 'Floor is disabled for All restaurants. Select one restaurant.'
+          : (remote
+            ? 'Restaurant Floor preview is read-only. Select the signed-in restaurant for operations.'
+            : '');
       }
       control.select.setAttribute('aria-busy',remote?'true':'false');
       var analytics=window.PMDDashboardLabAnalyticsV1;
