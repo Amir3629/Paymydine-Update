@@ -111,6 +111,7 @@ final class PmdGuestCommunicationService
                             && $this->hasApprovedTemplatesForEnabledEvents($events))))
             ),
             'managed_status' => $managedStatus,
+            'managed_templates_ready' => $managedTemplatesReady,
             'managed_location_id' => $managedLocationId,
             'whatsapp_provider' => $whatsappProvider,
             'whatsapp_endpoint' => $whatsappEndpoint,
