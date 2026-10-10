@@ -278,7 +278,9 @@ final class PmdSharedWhatsAppService
             'kind' => 'template',
             'body_ciphertext' => Crypt::encryptString(mb_substr($preview, 0, 4000)),
             // A bearer management link is never part of button payload.
-            'manage_url_ciphertext' => PmdWhatsAppButtonPolicy::safeManageUrl($manageUrl)
+            'manage_url_ciphertext' => PmdWhatsAppButtonPolicy::safeManageUrl(
+                $manageUrl, (string)config('pmd_whatsapp.shared_booking_hosts', '')
+            )
                 ? Crypt::encryptString($manageUrl) : null,
             'delivery_status' => 'accepted',
             'received_at' => now(),
