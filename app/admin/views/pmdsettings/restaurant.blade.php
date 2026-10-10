@@ -12,6 +12,13 @@
         'updated' => true,
         'canceled' => true,
     ];
+    $pmdWaHeaderManaged = ($pmdGuestCommunications['whatsapp_provider'] ?? 'managed') === 'managed';
+    $pmdWaHeaderConnected = $pmdWaHeaderManaged
+        ? (!empty($pmdGuestCommunications['managed_status']['ready'])
+            && !empty($pmdGuestCommunications['managed_templates_ready']))
+        : !empty($pmdGuestCommunications['whatsapp_ready']);
+    $pmdWaHeaderStatus = $pmdWaHeaderConnected ? 'Ready'
+        : ($pmdWaHeaderManaged ? 'Activation pending' : 'Not ready');
 @endphp
 
 <style id="pmd-restaurant-profile-critical-v2">
@@ -242,8 +249,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <span class="pmd-communication-status {{ !empty($pmdGuestCommunications['email_ready']) ? 'is-ready' : '' }}">
                             {{ $pmdSettingsText('Email') }} · {{ $pmdSettingsText(!empty($pmdGuestCommunications['email_ready']) ? 'Ready' : 'Setup needed') }}
                         </span>
-                        <span class="pmd-communication-status {{ !empty($pmdGuestCommunications['whatsapp_ready']) ? 'is-ready' : '' }}">
-                            WhatsApp · {{ $pmdSettingsText(!empty($pmdGuestCommunications['whatsapp_ready']) ? 'Ready' : (($pmdGuestCommunications['whatsapp_provider'] ?? 'managed') === 'managed' ? 'Activation pending' : 'Not ready')) }}
+                        <span class="pmd-communication-status {{ $pmdWaHeaderConnected ? 'is-ready' : '' }}">
+                            WhatsApp · {{ $pmdSettingsText($pmdWaHeaderStatus) }}
                         </span>
                     </div>
                 </div>
