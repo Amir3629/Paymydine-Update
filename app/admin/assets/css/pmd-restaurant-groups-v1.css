@@ -134,3 +134,52 @@
         font-size: 11px !important;
     }
 }
+
+/* R22: same native Floor canvas, but remote restaurants never show local
+   operational cards, fake green availability or actionable table buttons. */
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 3px !important;
+    padding: 9px !important;
+    border: 2px solid #bbcfc9 !important;
+    border-radius: 21px !important;
+    background: #f2f7f5 !important;
+    color: #153e35 !important;
+    box-shadow: 0 4px 14px rgba(24,67,55,.12) !important;
+    pointer-events: none !important;
+    cursor: default !important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table[data-status="occupied"],
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table[data-status="attention"] {
+    background: #fff2e7 !important;
+    border-color: #dfb38d !important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table[data-status="disabled"] {
+    background: #edf0f2 !important;
+    color: #647079 !important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table .pmd-floor-v1__table-number {
+    color: inherit !important;
+    font-size: 23px !important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table .pmd-floor-v1__table-meta {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    color: #5f746b !important;
+    font-size: 11px !important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-message,
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-limit {
+    position: relative !important;
+    display: block !important;
+    padding: 26px !important;
+    width: 100% !important;
+    text-align: center !important;
+    color: #62736e !important;
+    font-size: 13px !important;
+}
