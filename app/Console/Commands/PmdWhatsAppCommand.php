@@ -18,7 +18,7 @@ use Throwable;
 final class PmdWhatsAppCommand extends Command
 {
     protected $signature = 'pmd:whatsapp
-        {action=health : health|install|bind|activate|deactivate|purge}
+        {action=health : health|requests|install|bind|activate|deactivate|purge}
         {--tenant-id=}
         {--location-id=}
         {--phone-number-id=}
@@ -43,6 +43,25 @@ final class PmdWhatsAppCommand extends Command
                 ->where('enabled', 1)->count());
             $this->line('Stored events: '.$central->table('pmd_whatsapp_messages')->count());
             $this->line('HTTP ingestion enabled: '.(config('pmd_whatsapp.enabled', false) ? 'yes' : 'no'));
+            $this->line('Central managed sending: '.(app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class)->credentialsReady() ? 'configured' : 'disabled / incomplete'));
+            $this->line('Connection request registry: '.($central->getSchemaBuilder()->hasTable('pmd_whatsapp_connection_requests') ? 'ready' : 'missing (run install --confirm after DB backup)'));
+            return 0;
+        }
+
+        if ($action === 'requests') {
+            if (!$schema->installed() || !DB::connection('mysql')
+                ->getSchemaBuilder()->hasTable('pmd_whatsapp_connection_requests')) {
+                $this->warn('WhatsApp onboarding registry is not installed.');
+                return 1;
+            }
+            $rows = DB::connection('mysql')->table('pmd_whatsapp_connection_requests')
+                ->orderBy('updated_at', 'desc')->limit(40)
+                ->get(['tenant_id', 'location_id', 'status', 'updated_at']);
+            $this->table(['Tenant', 'Location', 'Status', 'Updated'],
+                $rows->map(static fn ($row) => [
+                    (int)$row->tenant_id, (int)$row->location_id,
+                    (string)$row->status, (string)$row->updated_at,
+                ])->all());
             return 0;
         }
 
