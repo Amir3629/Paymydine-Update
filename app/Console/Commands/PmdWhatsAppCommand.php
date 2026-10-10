@@ -145,6 +145,12 @@ final class PmdWhatsAppCommand extends Command
             }
 
             if ($action === 'bind') {
+                // A Meta number cannot be both a shared and dedicated sender.
+                if (app(PmdSharedWhatsAppService::class)->installed()
+                    && $central->table('pmd_wa_shared_senders')
+                        ->where('phone_number_id', $phoneId)->exists()) {
+                    throw new RuntimeException('This phone belongs to PayMyDine shared sender.');
+                }
                 if (!preg_match('/^[0-9]{5,32}$/D', $wabaId)) {
                     throw new RuntimeException('Numeric Meta WABA ID is required.');
                 }
