@@ -134,7 +134,10 @@
       if(!tables.length){showFloorNotice('No tables have been created in this restaurant.');return;}
       stashNativeFloor();floorCanvas.replaceChildren();
       floorCanvas.classList.add('pmd-group-floor-readonly-canvas');
-      var perRow=10,cols=Math.min(perRow,tables.length);
+      // R23: One row must STAY one row even for All restaurants; scroll
+      // horizontally like native Floor instead of clipping second-row cards.
+      var strip=!!(floor&&floor.classList.contains('is-strip-mode'));
+      var perRow=strip?Math.max(1,tables.length):10,cols=Math.min(perRow,tables.length);
       var width=Math.max(600,cols*128+28),height=Math.max(140,Math.ceil(tables.length/perRow)*112+24);
       floorCanvas.style.width=width+'px';floorCanvas.style.minWidth=width+'px';
       floorCanvas.style.height=height+'px';floorCanvas.style.minHeight=height+'px';
