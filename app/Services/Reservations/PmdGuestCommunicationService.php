@@ -57,14 +57,28 @@ final class PmdGuestCommunicationService
             );
         }
 
-        $managed = app(PmdManagedWhatsAppService::class);
-        $managedTenantId = $managed->currentTenantId();
         $managedLocationId = (int)($locationId ?? 0);
-        $managedStatus = $managed->state($managedTenantId, $managedLocationId);
-        $managedTemplatesReady = $managed->hasTemplatesForEvents($events);
+        $managedStatus = [
+            'ready' => false, 'connected' => false, 'requested' => false,
+            'status' => 'not_connected', 'phone_last4' => '',
+        ];
+        $managedTemplatesReady = false;
+        // The R28/R29 standalone PHP contract tests intentionally do not
+        // load Laravel. In that environment the new managed mode stays OFF.
+        if ($whatsappProvider === 'managed' && function_exists('app')) {
+            try {
+                $managed = app(PmdManagedWhatsAppService::class);
+                $managedStatus = $managed->state(
+                    $managed->currentTenantId(), $managedLocationId
+                );
+                $managedTemplatesReady = $managed->hasTemplatesForEvents($events);
+            } catch (Throwable $error) {
+                // Central DB/app not ready: do NOT claim channel is active.
+            }
+        }
         $managedTemplate = function (string $event) use ($whatsappProvider) {
             return $whatsappProvider === 'managed'
-                ? (string)config('pmd_whatsapp.templates.'.$event, '')
+                ? (function_exists('config') ? (string)config('pmd_whatsapp.templates.'.$event, '') : '')
                 : (string)$this->setting('pmd_reservation_messages_whatsapp_template_'.$event, '');
         };
 
