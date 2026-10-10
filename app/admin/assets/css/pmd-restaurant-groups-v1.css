@@ -135,51 +135,59 @@
     }
 }
 
-/* R22: same native Floor canvas, but remote restaurants never show local
-   operational cards, fake green availability or actionable table buttons. */
-#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: 3px !important;
-    padding: 9px !important;
-    border: 2px solid #bbcfc9 !important;
-    border-radius: 21px !important;
-    background: #f2f7f5 !important;
-    color: #153e35 !important;
-    box-shadow: 0 4px 14px rgba(24,67,55,.12) !important;
-    pointer-events: none !important;
-    cursor: default !important;
+/* R24: no duplicate Floor card design. Native .pmd-floor-v1__table
+   supplies EXACT original geometry, border, hover and status colors.
+   Remote sites remain isolated read-only; no POS/table-edit handlers. */
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-readonly-table{
+    pointer-events:none!important;
+    cursor:default!important;
 }
-#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table[data-status="occupied"],
-#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table[data-status="attention"] {
-    background: #fff2e7 !important;
-    border-color: #dfb38d !important;
+/* Only unknown operational status is neutral; never imply availability. */
+body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table.pmd-group-floor-readonly-table[data-status="unknown"]{
+    background:#f1f7f4!important;
+    background-color:#f1f7f4!important;
+    border-color:#bad2c8!important;
+    color:#153d32!important;
 }
-#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table[data-status="disabled"] {
-    background: #edf0f2 !important;
-    color: #647079 !important;
+/* "All restaurants" is financial reporting ONLY: Floor has no combined
+   table state, actions, edit controls or accidental local tenant buttons. */
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310.pmd-group-floor-all-disabled
+#pmd-r2-floor-toolbar-host-v464{
+    opacity:.40!important;
+    pointer-events:none!important;
 }
-#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table .pmd-floor-v1__table-number {
-    color: inherit !important;
-    font-size: 23px !important;
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310.pmd-group-floor-all-disabled
+.pmd-floor-v1__stage{
+    opacity:.72!important;
 }
-#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-table .pmd-floor-v1__table-meta {
-    max-width: 100% !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
-    text-overflow: ellipsis !important;
-    color: #5f746b !important;
-    font-size: 11px !important;
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-readonly-message{
+    display:flex!important;
+    position:absolute!important;
+    inset:0!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin:0!important;
+    padding:18px 28px!important;
+    color:#637a70!important;
+    text-align:center!important;
+    font-size:13px!important;
+    line-height:1.5!important;
+    pointer-events:none!important;
 }
-#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-message,
-#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-readonly-limit {
-    position: relative !important;
-    display: block !important;
-    padding: 26px !important;
-    width: 100% !important;
-    text-align: center !important;
-    color: #62736e !important;
-    font-size: 13px !important;
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-readonly-limit{
+    position:absolute!important;
+    top:100px!important;
+    left:24px!important;
+    color:#637a70!important;
+    font-size:12px!important;
+    pointer-events:none!important;
 }
