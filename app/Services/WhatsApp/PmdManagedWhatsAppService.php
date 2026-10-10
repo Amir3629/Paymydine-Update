@@ -95,6 +95,10 @@ final class PmdManagedWhatsAppService
 
     public function transport(int $tenantId, int $locationId): array
     {
+        if (config('pmd_whatsapp.shared_enabled', false) === true) {
+            return app(PmdSharedWhatsAppService::class)->transport($tenantId, $locationId);
+        }
+
         if ($tenantId < 1 || $locationId < 1
             || $this->state($tenantId, $locationId)['ready'] !== true) {
             throw new RuntimeException('PayMyDine WhatsApp channel is not ready.');
