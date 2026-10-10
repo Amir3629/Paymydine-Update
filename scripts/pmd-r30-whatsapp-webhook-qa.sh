@@ -38,6 +38,15 @@ grep -Fq 'recordAcceptedReservationMessage' app/Services/WhatsApp/PmdWhatsAppGat
 grep -Fq "require_once __DIR__.'/routes/pmd-whatsapp-webhook-v1.php'" routes.php
 grep -Fq "config('pmd_whatsapp.enabled', false) === true" app/Http/Controllers/PmdWhatsAppWebhookController.php
 grep -Fq '$request->isSecure()' app/Http/Controllers/PmdWhatsAppWebhookController.php
+grep -Fq "hub_verify_token" app/Http/Controllers/PmdWhatsAppWebhookController.php
+grep -Fq "hub_challenge" app/Http/Controllers/PmdWhatsAppWebhookController.php
+grep -Fq "hub_mode" app/Http/Controllers/PmdWhatsAppWebhookController.php
+# PHP replaces dots in standard Meta webhook challenge query keys.
+php -r 'parse_str("hub.mode=subscribe&hub.verify_token=test&hub.challenge=123", $q);
+  if (($q["hub_mode"] ?? "") !== "subscribe" ||
+      ($q["hub_verify_token"] ?? "") !== "test" ||
+      ($q["hub_challenge"] ?? "") !== "123") exit(1);'
+
 grep -Fq "validSignature" app/Http/Controllers/PmdWhatsAppWebhookController.php
 grep -Fq "X-Hub-Signature-256" app/Http/Controllers/PmdWhatsAppWebhookController.php
 grep -Fq "hash_equals(" app/Services/WhatsApp/PmdWhatsAppGateway.php
