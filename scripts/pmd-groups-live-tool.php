@@ -689,6 +689,32 @@ try {
     }
     echo "PASS R24: native Floor look preserved, remote site read only and All restaurants Floor disabled\n";
 
+    // R25: one actual sale must remain one financial bucket, but its line
+    // chart must have a visible 0-to-sale SVG path. Restaurant switches keep
+    // the old verified DOM visible until the new location data is ready.
+    $stage = 'first-sale-no-flicker-r25';
+    if (strpos($nativeAnalytics, 'var singleRecordedBucket = ') === false
+        || strpos($nativeAnalytics, 'allRows.length === 1') === false
+        || strpos($nativeAnalytics, 'points.unshift({x: d.left, y: base, value: 0, row: null, visualBaseline: true})') === false
+        || strpos($nativeAnalytics, "if (point.visualBaseline) return '';") === false
+        || strpos($nativeAnalytics, 'var wasScoped = !!scopeProvider;') === false
+        || strpos($nativeAnalytics, 'if (!scopeProvider && wasScoped)') === false
+        || strpos($nativeAnalytics, "body.innerHTML = empty({reason: 'Loading restaurant data…'});") !== false
+        || strpos($nativeAnalytics, 'if (body.innerHTML !== markup) body.innerHTML = markup;') === false
+        || strpos($nativeKpis, 'data-pmd-kpi-rendered-icon') === false
+        || strpos($dashboardSource, 'Promise.allSettled([') === false
+        || strpos($dashboardSource, "report(scope,'last30')") === false
+        || strpos($dashboardSource, "if(scope==='all')showFloorNotice(") === false
+        || strpos($dashboardSource, 'if(floor)floor.setAttribute(\\'aria-busy\\',\\'true\\')') === false
+        || strpos($dashboardSource, 'applyKpis(null,null,true);') !== false
+        || strpos($dashboardSource, "showFloorNotice('Loading selected restaurant tables") !== false
+        || strpos($dashboardSource, 'if(version!==sequence||selectedScope!==scope)return;') === false
+        || strpos($dashboardSource, 'analytics.refresh().catch(function(error)') === false) {
+        throw new RuntimeException('R25 one-sale line baseline or no-flicker restaurant scope contract is missing.');
+    }
+    echo "PASS R25: first sale draws a 0-to-sale line; scope changes preserve KPI/chart DOM and the native Floor\n";
+
+
 
 
 
