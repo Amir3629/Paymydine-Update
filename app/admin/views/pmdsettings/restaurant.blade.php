@@ -13,10 +13,7 @@
         'canceled' => true,
     ];
     $pmdWaHeaderManaged = ($pmdGuestCommunications['whatsapp_provider'] ?? 'managed') === 'managed';
-    $pmdWaHeaderConnected = $pmdWaHeaderManaged
-        ? (!empty($pmdGuestCommunications['managed_status']['ready'])
-            && !empty($pmdGuestCommunications['managed_templates_ready']))
-        : !empty($pmdGuestCommunications['whatsapp_ready']);
+    $pmdWaHeaderConnected = !empty($pmdGuestCommunications['whatsapp_channel_ready']);
     $pmdWaHeaderStatus = $pmdWaHeaderConnected ? 'Ready'
         : ($pmdWaHeaderManaged ? 'Activation pending' : 'Not ready');
 @endphp
@@ -383,9 +380,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             $pmdWaManagedState = $pmdGuestCommunications['managed_status'] ?? [];
                             $pmdWaCentralReady = !empty($pmdWaManagedState['ready']);
                             $pmdWaEnabled = !empty($pmdGuestCommunications['whatsapp_enabled']);
-                            $pmdWaConfigured = $pmdWaLegacy
-                                ? !empty($pmdGuestCommunications['whatsapp_ready'])
-                                : ($pmdWaCentralReady && !empty($pmdGuestCommunications['managed_templates_ready']));
+                            $pmdWaConfigured = !empty($pmdGuestCommunications['whatsapp_channel_ready']);
                             $pmdWaCanTest = $pmdWaConfigured && $pmdWaEnabled;
                         @endphp
                         <article class="pmd-communication-channel pmd-wa-owner-r32" aria-labelledby="pmd-wa-owner-title">
@@ -405,16 +400,20 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             </div>
 
                             <p class="pmd-wa-owner-r32__intro">
-                                {{ $pmdSettingsText('Booking confirmations and updates, managed by PayMyDine. No API keys or technical setup are needed here.') }}
+                                @if($pmdWaLegacy)
+                                    {{ $pmdSettingsText('Reservation updates continue using your existing connection. No technical changes are needed on this page.') }}
+                                @else
+                                    {{ $pmdSettingsText('Booking confirmations and updates are managed by PayMyDine. No API keys or technical setup are needed here.') }}
+                                @endif
                             </p>
 
                             @if($pmdWaLegacy)
                                 <div class="pmd-wa-owner-r32__notice" role="status">
-                                    {{ $pmdSettingsText('Your existing WhatsApp connection is preserved. PayMyDine will manage its transition to the shared service.') }}
+                                    {{ $pmdSettingsText('Your existing WhatsApp connection is preserved. PayMyDine can migrate it to the managed service later.') }}
                                 </div>
                             @elseif(!$pmdWaCentralReady)
                                 <div class="pmd-wa-owner-r32__notice" role="status">
-                                    {{ $pmdSettingsText('The PayMyDine team is preparing WhatsApp delivery for this restaurant. Messages will not be sent until the business number is authorized and activated.') }}
+                                    {{ $pmdSettingsText('Platform activation is pending. WhatsApp messages cannot be sent until the sending number is authorized and the service is activated.') }}
                                 </div>
                             @endif
 
