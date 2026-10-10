@@ -374,12 +374,14 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             $pmdWaProvider = $pmdGuestCommunications['whatsapp_provider'] ?? 'managed';
                             $pmdWaLegacy = $pmdWaProvider !== 'managed';
                             $pmdWaManagedState = $pmdGuestCommunications['managed_status'] ?? [];
-                            $pmdWaConfigured = !empty($pmdGuestCommunications['whatsapp_ready']);
                             $pmdWaCentralReady = !empty($pmdWaManagedState['ready']);
                             $pmdWaEnabled = !empty($pmdGuestCommunications['whatsapp_enabled']);
+                            $pmdWaConfigured = $pmdWaLegacy
+                                ? !empty($pmdGuestCommunications['whatsapp_ready'])
+                                : ($pmdWaCentralReady && !empty($pmdGuestCommunications['managed_templates_ready']));
+                            $pmdWaCanTest = $pmdWaConfigured && $pmdWaEnabled;
                         @endphp
                         <article class="pmd-communication-channel pmd-wa-owner-r32" aria-labelledby="pmd-wa-owner-title">
-                            <input type="hidden" name="communication[whatsapp_provider]" value="{{ $pmdWaProvider }}">
                             <div class="pmd-wa-owner-r32__heading">
                                 <div class="pmd-wa-owner-r32__identity">
                                     <span class="pmd-wa-owner-r32__icon" aria-hidden="true">
@@ -434,7 +436,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                 @endif
                             </div>
 
-                            @if($pmdWaConfigured)
+                            @if($pmdWaCanTest)
                                 <details class="pmd-wa-owner-r32__test">
                                     <summary>{{ $pmdSettingsText('Send a WhatsApp test') }}</summary>
                                     <div class="pmd-wa-owner-r32__test-fields">
