@@ -290,6 +290,9 @@ class SuperAdminTenantLifecycleService
             // Menu and TLS work. Require core KDS, payments and order storage
             // BEFORE announcing the location prepared/ready to Super Admin.
             $this->ensureTenantProductReadiness($database);
+            if ($group) {
+                $this->initializeEmptyGroupStorageClock($database);
+            }
 
             if (!$group) {
                 $this->applyIndependentOwnerAccess($data);
@@ -356,6 +359,63 @@ class SuperAdminTenantLifecycleService
                 'Restaurant database preparation is incomplete; activation is blocked.'
             );
         }
+    }
+
+    /**
+     * R22: create a durable storage-clock declaration for NEW group sites
+     * only after an empty template clone has been sanitized. Do not infer
+     * clocks for historical orders and do not touch existing live sites.
+     */
+    private function initializeEmptyGroupStorageClock(string $database): void
+    {
+        $db = DB::connection('mysql');
+        if (DB::getDefaultConnection() !== 'mysql'
+            || (string)$db->getDatabaseName() !== $database
+            || !$db->getSchemaBuilder()->hasTable('settings')
+            || !$db->getSchemaBuilder()->hasTable('orders')
+            || $db->table('orders')->exists()) {
+            throw new \RuntimeException('New restaurant reporting clock cannot be safely initialized.');
+        }
+
+        $timezone = trim((string)config('app.timezone', ''));
+        try { new \DateTimeZone($timezone); }
+        catch (\Throwable $error) {
+            throw new \RuntimeException('Application order-writer timezone is invalid.');
+        }
+
+        $schema = $db->getSchemaBuilder();
+        $columns = array_flip($schema->getColumnListing('settings'));
+        foreach (['item', 'value', 'sort'] as $required) {
+            if (!isset($columns[$required])) {
+                throw new \RuntimeException('New restaurant settings schema is incomplete.');
+            }
+        }
+        $query = $db->table('settings')
+            ->where('item', 'pmd_groups_storage_timezone')->where('sort', 'config');
+        $existing = $query->get();
+        if ($existing->count() > 1) {
+            throw new \RuntimeException('New restaurant has duplicate reporting storage clock settings.');
+        }
+        if ($existing->isNotEmpty()) {
+            $configured = trim((string)($existing->first()->value ?? ''));
+            if ($configured !== '') {
+                try { new \DateTimeZone($configured); }
+                catch (\Throwable $error) {
+                    throw new \RuntimeException('New restaurant reporting storage clock setting is invalid.');
+                }
+                return;
+            }
+            $update = ['value'=>$timezone];
+            if (isset($columns['updated_at'])) $update['updated_at'] = now();
+            $query->update($update);
+            return;
+        }
+
+        $row = ['item'=>'pmd_groups_storage_timezone', 'sort'=>'config', 'value'=>$timezone];
+        if (isset($columns['serialized'])) $row['serialized'] = 0;
+        if (isset($columns['created_at'])) $row['created_at'] = now();
+        if (isset($columns['updated_at'])) $row['updated_at'] = now();
+        $db->table('settings')->insert($row);
     }
 
     private function ensureWorkplaceSecuritySchema(): void
