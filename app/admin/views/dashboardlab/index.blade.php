@@ -383,6 +383,7 @@
             aria-label="Dashboard actions"
         >
             @include('admin::_partials.pmd_group_scope_firstpaint')
+            @include('admin::_partials.pmd_quick_setup_return')
             <a
                 id="pmd-dashboard-lab-calendar-v4"
                 class="pmd-dashboard-lab__header-action"
@@ -945,6 +946,18 @@
 @include('admin::_partials.pmd_dashboard_lab_analytics_v1', [
             'analyticsBootstrap' => $pmdDashboardLabAnalyticsBootstrap ?? [],
         ])
+
+        {{-- R19: load the existing modal wizard directly on canonical Dashboard.
+             The header link still works as a normal URL when JS is disabled. --}}
+        @php
+            $pmdWelcomeJsFile = base_path('app/admin/assets/js/pmd-onboarding-welcome-v1.js');
+            $pmdWelcomeJsVersion = is_file($pmdWelcomeJsFile) ? (string)filemtime($pmdWelcomeJsFile) : 'r19';
+        @endphp
+        <script
+            defer
+            src="{{ asset('app/admin/assets/js/pmd-onboarding-welcome-v1.js') }}?v={{ $pmdWelcomeJsVersion }}"
+            data-pmd-onboarding-welcome-r19
+        ></script>
 
     </main>
 </div>
