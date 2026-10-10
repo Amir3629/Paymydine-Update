@@ -6,6 +6,7 @@ use App\Services\RestaurantGroups\Store;
 use App\Services\WhatsApp\PmdWhatsAppGateway;
 use App\Services\WhatsApp\PmdWhatsAppSchema;
 use App\Services\WhatsApp\PmdSharedWhatsAppService;
+use App\Services\WhatsApp\PmdSharedWhatsAppButtonDispatcher;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -19,7 +20,7 @@ use Throwable;
 final class PmdWhatsAppCommand extends Command
 {
     protected $signature = 'pmd:whatsapp
-        {action=health : health|requests|install|bind|activate|deactivate|purge|shared-health|shared-register|shared-activate-number|shared-deactivate-number|shared-bind-location|shared-activate-location|shared-deactivate-location}
+        {action=health : health|requests|install|bind|activate|deactivate|purge|shared-health|shared-register|shared-activate-number|shared-deactivate-number|shared-bind-location|shared-activate-location|shared-deactivate-location|shared-dispatch-buttons}
         {--tenant-id=}
         {--location-id=}
         {--phone-number-id=}
@@ -53,6 +54,10 @@ final class PmdWhatsAppCommand extends Command
                 $this->line('Shared active senders: '.$central->table('pmd_wa_shared_senders')->where('enabled', 1)->count());
                 $this->line('Shared active restaurant grants: '.$central->table('pmd_wa_shared_locations')->where('enabled', 1)->count());
                 $this->line('Unrouted shared messages: '.$central->table('pmd_wa_shared_unrouted')->count());
+                $this->line('Pending button actions: '.$central->table('pmd_wa_shared_action_jobs')
+                    ->where('status', 'pending')->count());
+                $this->line('Failed/held button actions: '.$central->table('pmd_wa_shared_action_jobs')
+                    ->whereIn('status', ['processing', 'failed'])->count());
             }
             return 0;
         }
@@ -93,6 +98,12 @@ final class PmdWhatsAppCommand extends Command
             if (!$schema->installed()) {
                 $this->error('Install central schema first: php artisan pmd:whatsapp install --confirm');
                 return 1;
+            }
+
+            if ($action === 'shared-dispatch-buttons') {
+                $stats = app(PmdSharedWhatsAppButtonDispatcher::class)->dispatch(20);
+                $this->line('Shared button jobs: '.json_encode($stats));
+                return 0;
             }
 
             if (str_starts_with($action, 'shared-')) {
