@@ -377,6 +377,14 @@
             try {
                 var response = await handler('onApply', data);
                 setStatus('', false);
+                // R19: only the SERVER-confirmed completed status removes the
+                // persistent Quick Setup entry; closing the wizard never does.
+                if (response && response.ok === true
+                    && response.status && response.status.status === 'completed') {
+                    window.dispatchEvent(new CustomEvent('pmd:quick-setup-completed', {
+                        detail: {status: 'completed'}
+                    }));
+                }
 
                 var pending = Number(response.menu && response.menu.photos_pending ? response.menu.photos_pending : 0);
                 var photoStatus = renderResult(response, payload.starter_menu, pending);
