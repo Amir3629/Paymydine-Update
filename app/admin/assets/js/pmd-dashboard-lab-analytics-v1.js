@@ -431,24 +431,33 @@
     d.plotH = d.h - d.top - d.bottom;
     var base = d.top + d.plotH;
 
+    var singleRecordedBucket = Array.isArray(allRows) && allRows.length === 1
+      && rows.length === 1 && Number(rows[0].sales || 0) > 0;
     var points = rows.map(function (row, index) {
       return {
-        x: d.left + d.plotW * (rows.length === 1 ? 0.5 : index / (rows.length - 1)),
+        x: d.left + d.plotW * (singleRecordedBucket ? 1 : (rows.length === 1 ? 0.5 : index / (rows.length - 1))),
         y: d.top + d.plotH - d.plotH * Number(row.sales || 0) / scale.max,
         row: row,
         value: Number(row.sales || 0)
       };
     });
+    if (singleRecordedBucket) {
+      // R25: One *real* day with a sale needs a visible 0 -> sale
+      // trajectory. This is only an SVG visual baseline, never an order,
+      // money bucket, tooltip or additional recorded day in the API.
+      points.unshift({x: d.left, y: base, value: 0, row: null, visualBaseline: true});
+    }
 
     var linePath = smoothLinePath(points);
     var areaPath = smoothAreaPath(points, base);
     var labelEvery = Math.max(1, Math.ceil(rows.length / 7));
     var labels = points.map(function (point, index) {
+      if (point.visualBaseline) return '';
       if (index % labelEvery !== 0 && index !== points.length - 1) return '';
       return '<text class="pmd-lab-chart-axis-label" x="' + point.x + '" y="' + (d.h - 12) + '" text-anchor="middle">' + esc(shortLabel(point.row, false)) + '</text>';
     }).join('');
     var circles = points.map(function (point) {
-      if (point.value <= 0) return '';
+      if (point.visualBaseline || point.value <= 0) return '';
       return '<circle class="pmd-lab-chart-point" cx="' + point.x + '" cy="' + point.y + '" r="4"><title>' + esc(shortLabel(point.row, false) + ' - ' + money(point.row.sales, payload)) + '</title></circle>';
     }).join('');
 
