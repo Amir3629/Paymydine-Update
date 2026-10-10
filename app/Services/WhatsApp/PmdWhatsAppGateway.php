@@ -286,23 +286,39 @@ final class PmdWhatsAppGateway
                 'pmd_reservation_messages_whatsapp_token',
             ])->pluck('value', 'item');
 
-        $endpoint = trim((string)($settings['pmd_reservation_messages_whatsapp_endpoint'] ?? ''));
-        $token = trim((string)($settings['pmd_reservation_messages_whatsapp_token'] ?? ''));
         $provider = (string)($settings['pmd_reservation_messages_whatsapp_provider'] ?? '');
-        $parts = parse_url($endpoint);
-        $path = is_array($parts) ? (string)($parts['path'] ?? '') : '';
-        $host = is_array($parts) ? strtolower((string)($parts['host'] ?? '')) : '';
-        if (!is_array($parts) || isset($parts['user']) || isset($parts['pass'])
-            || isset($parts['query']) || isset($parts['fragment'])
-            || (isset($parts['port']) && (int)$parts['port'] !== 443)
-            || (string)($settings['pmd_reservation_messages_whatsapp_enabled'] ?? '') !== '1'
-            || $provider !== 'meta_cloud'
-            || $host !== 'graph.facebook.com'
-            || !preg_match('#^/v[0-9]+\.[0-9]+/([0-9]+)/messages/?$#', $path, $match)
-            || ($match[1] ?? '') !== (string)$channel->phone_number_id
-            || strtolower((string)parse_url($endpoint, PHP_URL_SCHEME)) !== 'https'
-            || $token === '') {
-            throw new RuntimeException('Connect the matching Meta account in Restaurant Profile first.');
+        if ((string)($settings['pmd_reservation_messages_whatsapp_enabled'] ?? '') !== '1') {
+            throw new RuntimeException('This restaurant has not enabled WhatsApp replies.');
+        }
+
+        if ($provider === 'managed') {
+            // No owner-provided URL, recipient or API token participates in
+            // managed WhatsApp replies. The central number must exactly match
+            // the verified incoming thread's channel.
+            $transport = app(PmdManagedWhatsAppService::class)->transport($tenantId, $locationId);
+            if ((string)$transport['phone_number_id'] !== (string)$channel->phone_number_id) {
+                throw new RuntimeException('WhatsApp sender and conversation do not match.');
+            }
+            $endpoint = $transport['url'];
+            $token = $transport['token'];
+        } else {
+            // Preserve R30 direct Meta mode for existing restaurant accounts.
+            $endpoint = trim((string)($settings['pmd_reservation_messages_whatsapp_endpoint'] ?? ''));
+            $token = trim((string)($settings['pmd_reservation_messages_whatsapp_token'] ?? ''));
+            $parts = parse_url($endpoint);
+            $path = is_array($parts) ? (string)($parts['path'] ?? '') : '';
+            $host = is_array($parts) ? strtolower((string)($parts['host'] ?? '')) : '';
+            if (!is_array($parts) || isset($parts['user']) || isset($parts['pass'])
+                || isset($parts['query']) || isset($parts['fragment'])
+                || (isset($parts['port']) && (int)$parts['port'] !== 443)
+                || $provider !== 'meta_cloud'
+                || $host !== 'graph.facebook.com'
+                || !preg_match('#^/v[0-9]+\.[0-9]+/([0-9]+)/messages/?$#', $path, $match)
+                || ($match[1] ?? '') !== (string)$channel->phone_number_id
+                || strtolower((string)parse_url($endpoint, PHP_URL_SCHEME)) !== 'https'
+                || $token === '') {
+                throw new RuntimeException('Connect the matching Meta account in Restaurant Profile first.');
+            }
         }
 
         $waId = Crypt::decryptString((string)$incoming->wa_id_ciphertext);

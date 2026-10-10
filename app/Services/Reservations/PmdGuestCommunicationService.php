@@ -4,6 +4,7 @@ namespace App\Services\Reservations;
 
 use Admin\Models\Reservations_model;
 use App\Services\WhatsApp\PmdWhatsAppGateway;
+use App\Services\WhatsApp\PmdManagedWhatsAppService;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -13,7 +14,7 @@ final class PmdGuestCommunicationService
 {
     private const EVENTS = ['created', 'updated', 'canceled'];
 
-    public function settingsPayload(): array
+    public function settingsPayload(?int $locationId = null): array
     {
         $protocol = strtolower(trim((string)$this->setting('protocol', 'mail')));
         $emailEnabled = $this->boolSetting('pmd_reservation_messages_email_enabled', false);
@@ -29,10 +30,10 @@ final class PmdGuestCommunicationService
         }
         $whatsappProvider = strtolower(trim((string)$this->setting(
             'pmd_reservation_messages_whatsapp_provider',
-            'meta_cloud'
+            'managed'
         )));
-        if (!in_array($whatsappProvider, ['meta_cloud', 'webhook'], true)) {
-            $whatsappProvider = 'meta_cloud';
+        if (!in_array($whatsappProvider, ['managed', 'meta_cloud', 'webhook'], true)) {
+            $whatsappProvider = 'managed';
         }
 
         $whatsappEndpoint = trim((string)$this->setting(
@@ -56,6 +57,31 @@ final class PmdGuestCommunicationService
             );
         }
 
+        $managedLocationId = (int)($locationId ?? 0);
+        $managedStatus = [
+            'ready' => false, 'connected' => false, 'requested' => false,
+            'status' => 'not_connected', 'phone_last4' => '',
+        ];
+        $managedTemplatesReady = false;
+        // The R28/R29 standalone PHP contract tests intentionally do not
+        // load Laravel. In that environment the new managed mode stays OFF.
+        if ($whatsappProvider === 'managed' && function_exists('app')) {
+            try {
+                $managed = app(PmdManagedWhatsAppService::class);
+                $managedStatus = $managed->state(
+                    $managed->currentTenantId(), $managedLocationId
+                );
+                $managedTemplatesReady = $managed->hasTemplatesForEvents($events);
+            } catch (Throwable $error) {
+                // Central DB/app not ready: do NOT claim channel is active.
+            }
+        }
+        $managedTemplate = function (string $event) use ($whatsappProvider) {
+            return $whatsappProvider === 'managed'
+                ? (function_exists('config') ? (string)config('pmd_whatsapp.templates.'.$event, '') : '')
+                : (string)$this->setting('pmd_reservation_messages_whatsapp_template_'.$event, '');
+        };
+
         return [
             'email_enabled' => $emailEnabled,
             'email_ready' => $emailEnabled
@@ -77,10 +103,15 @@ final class PmdGuestCommunicationService
             'has_ses_secret' => trim((string)$this->setting('ses_secret', '')) !== '',
             'test_email' => (string)$this->setting('test_email', ''),
             'whatsapp_enabled' => $whatsappEnabled,
-            'whatsapp_ready' => $whatsappEnabled
-                && $this->isAllowedWhatsappEndpoint($whatsappEndpoint, $whatsappProvider)
-                && ($whatsappProvider !== 'meta_cloud' || ($hasWhatsappToken
-                    && $this->hasApprovedTemplatesForEnabledEvents($events))),
+            'whatsapp_ready' => $whatsappEnabled && (
+                $whatsappProvider === 'managed'
+                    ? (!empty($managedStatus['ready']) && $managedTemplatesReady)
+                    : ($this->isAllowedWhatsappEndpoint($whatsappEndpoint, $whatsappProvider)
+                        && ($whatsappProvider !== 'meta_cloud' || ($hasWhatsappToken
+                            && $this->hasApprovedTemplatesForEnabledEvents($events))))
+            ),
+            'managed_status' => $managedStatus,
+            'managed_location_id' => $managedLocationId,
             'whatsapp_provider' => $whatsappProvider,
             'whatsapp_endpoint' => $whatsappEndpoint,
             'whatsapp_sender_reference' => $whatsappSenderReference,
@@ -89,18 +120,9 @@ final class PmdGuestCommunicationService
                 'pmd_reservation_messages_whatsapp_test_recipient',
                 ''
             ),
-            'whatsapp_template_created' => (string)$this->setting(
-                'pmd_reservation_messages_whatsapp_template_created',
-                ''
-            ),
-            'whatsapp_template_updated' => (string)$this->setting(
-                'pmd_reservation_messages_whatsapp_template_updated',
-                ''
-            ),
-            'whatsapp_template_canceled' => (string)$this->setting(
-                'pmd_reservation_messages_whatsapp_template_canceled',
-                ''
-            ),
+            'whatsapp_template_created' => $managedTemplate('created'),
+            'whatsapp_template_updated' => $managedTemplate('updated'),
+            'whatsapp_template_canceled' => $managedTemplate('canceled'),
             'events' => $events,
         ];
     }
@@ -115,7 +137,7 @@ final class PmdGuestCommunicationService
             throw new \InvalidArgumentException('Unsupported reservation communication event.');
         }
 
-        $config = $this->settingsPayload();
+        $config = $this->settingsPayload((int)$reservation->location_id);
         if (empty($config['events'][$event])) {
             return [
                 'event' => $event,
@@ -224,9 +246,9 @@ final class PmdGuestCommunicationService
         return true;
     }
 
-    public function sendTestWhatsApp(string $recipient): bool
+    public function sendTestWhatsApp(string $recipient, int $locationId = 0): bool
     {
-        $config = $this->settingsPayload();
+        $config = $this->settingsPayload($locationId);
         if (empty($config['whatsapp_ready'])) {
             throw new \RuntimeException('WhatsApp delivery is not fully configured.');
         }
@@ -241,7 +263,7 @@ final class PmdGuestCommunicationService
         // Outside the 24-hour service window, Meta requires an approved
         // template. Reuse an enabled event template for the test message.
         $testEvent = 'test';
-        if (($config['whatsapp_provider'] ?? '') === 'meta_cloud') {
+        if (in_array(($config['whatsapp_provider'] ?? ''), ['meta_cloud', 'managed'], true)) {
             foreach (self::EVENTS as $candidate) {
                 if (!empty($config['events'][$candidate])
                     && trim((string)($config['whatsapp_template_'.$candidate] ?? '')) !== '') {
@@ -261,6 +283,7 @@ final class PmdGuestCommunicationService
                 'event' => $testEvent,
                 'locale' => $this->locale((string)$this->setting('default_language', 'de')),
                 'reservation_id' => 0,
+                'location_id' => $locationId,
                 'reference' => 'TEST',
                 'restaurant_name' => (string)($config['sender_name'] ?: 'PayMyDine'),
                 'reservation_date' => date('Y-m-d'),
@@ -346,6 +369,21 @@ final class PmdGuestCommunicationService
                 'reason' => 'invalid_customer_phone',
             ]);
             return false;
+        }
+
+        // R31: managed accounts never accept owner-supplied endpoints/tokens.
+        // Send only from the central operator-registered tenant/location number.
+        $provider = (string)($config['whatsapp_provider'] ?? 'managed');
+        if ($provider === 'managed') {
+            $managed = app(PmdManagedWhatsAppService::class);
+            return $managed->sendTemplate(
+                $managed->currentTenantId(),
+                (int)($context['location_id'] ?? ($config['managed_location_id'] ?? 0)),
+                $recipient,
+                (string)($context['event'] ?? ''),
+                $context,
+                $text
+            );
         }
 
         $endpoint = trim((string)($config['whatsapp_endpoint'] ?? ''));

@@ -388,28 +388,45 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                 </label>
                             </div>
 
+                            {{-- R31: Platform-managed WhatsApp is the default.
+                                 Every restaurant still authorizes its own
+                                 business number; the owner never sees an API token. --}}
+                            <div class="pmd-profile-booking-note" style="margin:12px 0">
+                                <strong>PayMyDine WhatsApp connection</strong>
+                                <span>
+                                    @php $pmdWaManagedState = $pmdGuestCommunications['managed_status'] ?? []; @endphp
+                                    @if(!empty($pmdWaManagedState['ready']))
+                                        Connected to PayMyDine managed messaging (sender ending {{ $pmdWaManagedState['phone_last4'] ?? '' }}).
+                                    @elseif(!empty($pmdWaManagedState['connected']))
+                                        Your business number is registered. PayMyDine must finish platform activation.
+                                    @elseif(!empty($pmdWaManagedState['requested']))
+                                        Connection requested. Awaiting business-number authorization and activation.
+                                    @else
+                                        Not connected. Request activation below; PayMyDine handles API credentials,
+                                        Webhooks and delivery. Your business must still approve access to its number.
+                                    @endif
+                                </span>
+                                @if(empty($pmdWaManagedState['connected']) && empty($pmdWaManagedState['requested']))
+                                    <button type="button" class="pmd-profile-booking-preview"
+                                            data-request="onRequestManagedWhatsApp"
+                                            data-request-flash style="margin-top:10px">
+                                        Request PayMyDine WhatsApp connection
+                                    </button>
+                                @endif
+                                <span id="pmd-managed-wa-request-status" aria-live="polite"></span>
+                            </div>
+
                             <div class="pmd-profile-grid pmd-profile-grid--2">
                                 <label class="pmd-profile-field">
-                                    <span>{{ $pmdSettingsText('WhatsApp provider') }}</span>
+                                    <span>WhatsApp connection mode</span>
                                     <select name="communication[whatsapp_provider]">
-                                        <option value="meta_cloud" {{ ($pmdGuestCommunications['whatsapp_provider'] ?? 'meta_cloud') === 'meta_cloud' ? 'selected' : '' }}>Meta WhatsApp Cloud API</option>
-                                        <option value="webhook" {{ ($pmdGuestCommunications['whatsapp_provider'] ?? '') === 'webhook' ? 'selected' : '' }}>{{ $pmdSettingsText('Webhook / bot gateway') }}</option>
+                                        <option value="managed" {{ ($pmdGuestCommunications['whatsapp_provider'] ?? 'managed') === 'managed' ? 'selected' : '' }}>PayMyDine managed (recommended)</option>
+                                        <option value="meta_cloud" {{ ($pmdGuestCommunications['whatsapp_provider'] ?? '') === 'meta_cloud' ? 'selected' : '' }}>Advanced: direct Meta Cloud API</option>
+                                        <option value="webhook" {{ ($pmdGuestCommunications['whatsapp_provider'] ?? '') === 'webhook' ? 'selected' : '' }}>Advanced: external bot gateway</option>
                                     </select>
+                                    <small>PayMyDine handles the managed API token. Technical credentials below are needed only for legacy/direct mode.</small>
                                 </label>
                                 <label class="pmd-profile-field">
-                                    <span>{{ $pmdSettingsText('Business / sender reference') }}</span>
-                                    <input type="text" name="communication[whatsapp_sender_reference]" value="{{ $pmdGuestCommunications['whatsapp_sender_reference'] ?? '' }}" maxlength="255" placeholder="tomo / WABA / sender id">
-                                </label>
-                                <label class="pmd-profile-field pmd-profile-field--wide">
-                                    <span>{{ $pmdSettingsText('WhatsApp API endpoint') }}</span>
-                                    <input type="url" name="communication[whatsapp_endpoint]" value="{{ $pmdGuestCommunications['whatsapp_endpoint'] ?? '' }}" maxlength="1000" placeholder="https://graph.facebook.com/vXX.X/PHONE_NUMBER_ID/messages">
-                                    <small>{{ $pmdSettingsText('Use the full HTTPS message endpoint from your provider. Webhook mode may point to your own WhatsApp bot gateway.') }}</small>
-                                </label>
-                                <label class="pmd-profile-field pmd-profile-field--wide">
-                                    <span>{{ $pmdSettingsText('Access token / webhook token') }}</span>
-                                    <input type="password" name="communication[whatsapp_token]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdGuestCommunications['has_whatsapp_token']) ? 'Stored — leave blank to keep' : 'Enter token') }}">
-                                </label>
-                                <label class="pmd-profile-field pmd-profile-field--wide">
                                     <span>{{ $pmdSettingsText('WhatsApp test recipient') }}</span>
                                     <input type="tel" name="communication[whatsapp_test_recipient]" value="{{ $pmdGuestCommunications['whatsapp_test_recipient'] ?? '' }}" maxlength="64" placeholder="+491701234567">
                                     <small>{{ $pmdSettingsText('Use an international number with country code.') }}</small>
@@ -417,24 +434,45 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             </div>
 
                             <details class="pmd-communication-details">
-                                <summary>{{ $pmdSettingsText('Approved WhatsApp templates') }}</summary>
+                                <summary>Advanced technical setup — only for direct Meta or external webhook</summary>
                                 <p class="pmd-communication-template-help">
-                                    {{ $pmdSettingsText('For proactive WhatsApp messages, configure approved Meta template names. Each template receives restaurant name, booking reference, date, time, guest count and manage link in that order.') }}
+                                    Leave this closed when using PayMyDine managed messaging.
+                                    The managed mode uses centrally configured templates and credentials; owners do not need to enter tokens.
                                 </p>
                                 <div class="pmd-profile-grid pmd-profile-grid--2">
                                     <label class="pmd-profile-field">
-                                        <span>{{ $pmdSettingsText('New reservation template') }}</span>
-                                        <input type="text" name="communication[whatsapp_template_created]" value="{{ $pmdGuestCommunications['whatsapp_template_created'] ?? '' }}" maxlength="512" placeholder="reservation_created">
+                                        <span>{{ $pmdSettingsText('Business / sender reference') }}</span>
+                                        <input type="text" name="communication[whatsapp_sender_reference]" value="{{ $pmdGuestCommunications['whatsapp_sender_reference'] ?? '' }}" maxlength="255" placeholder="tomo / WABA / sender id">
                                     </label>
                                     <label class="pmd-profile-field">
-                                        <span>{{ $pmdSettingsText('Reservation changed template') }}</span>
-                                        <input type="text" name="communication[whatsapp_template_updated]" value="{{ $pmdGuestCommunications['whatsapp_template_updated'] ?? '' }}" maxlength="512" placeholder="reservation_updated">
+                                        <span>{{ $pmdSettingsText('WhatsApp API endpoint') }}</span>
+                                        <input type="url" name="communication[whatsapp_endpoint]" value="{{ $pmdGuestCommunications['whatsapp_endpoint'] ?? '' }}" maxlength="1000" placeholder="https://graph.facebook.com/vXX.X/PHONE_NUMBER_ID/messages">
                                     </label>
-                                    <label class="pmd-profile-field">
-                                        <span>{{ $pmdSettingsText('Reservation canceled template') }}</span>
-                                        <input type="text" name="communication[whatsapp_template_canceled]" value="{{ $pmdGuestCommunications['whatsapp_template_canceled'] ?? '' }}" maxlength="512" placeholder="reservation_canceled">
+                                    <label class="pmd-profile-field pmd-profile-field--wide">
+                                        <span>{{ $pmdSettingsText('Access token / webhook token') }}</span>
+                                        <input type="password" name="communication[whatsapp_token]" value="" autocomplete="new-password" placeholder="{{ $pmdSettingsText(!empty($pmdGuestCommunications['has_whatsapp_token']) ? 'Stored — leave blank to keep' : 'Enter token') }}">
                                     </label>
                                 </div>
+                                <details class="pmd-communication-details">
+                                    <summary>{{ $pmdSettingsText('Approved WhatsApp templates') }} — direct mode only</summary>
+                                    <p class="pmd-communication-template-help">
+                                        {{ $pmdSettingsText('For proactive WhatsApp messages, configure approved Meta template names. Each template receives restaurant name, booking reference, date, time, guest count and manage link in that order.') }}
+                                    </p>
+                                    <div class="pmd-profile-grid pmd-profile-grid--2">
+                                        <label class="pmd-profile-field">
+                                            <span>{{ $pmdSettingsText('New reservation template') }}</span>
+                                            <input type="text" name="communication[whatsapp_template_created]" value="{{ $pmdGuestCommunications['whatsapp_template_created'] ?? '' }}" maxlength="512" placeholder="reservation_created">
+                                        </label>
+                                        <label class="pmd-profile-field">
+                                            <span>{{ $pmdSettingsText('Reservation changed template') }}</span>
+                                            <input type="text" name="communication[whatsapp_template_updated]" value="{{ $pmdGuestCommunications['whatsapp_template_updated'] ?? '' }}" maxlength="512" placeholder="reservation_updated">
+                                        </label>
+                                        <label class="pmd-profile-field">
+                                            <span>{{ $pmdSettingsText('Reservation canceled template') }}</span>
+                                            <input type="text" name="communication[whatsapp_template_canceled]" value="{{ $pmdGuestCommunications['whatsapp_template_canceled'] ?? '' }}" maxlength="512" placeholder="reservation_canceled">
+                                        </label>
+                                    </div>
+                                </details>
                             </details>
 
                             <div class="pmd-communication-test-row">

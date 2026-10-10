@@ -8,5 +8,17 @@ return [
     'verify_token' => (string)env('PMD_WA_VERIFY_TOKEN', ''),
     'app_secret' => (string)env('PMD_WA_APP_SECRET', ''),
     'max_body_bytes' => 131072,
+    // R31 shared sender: one Meta App and PayMyDine-operated system user.
+    // Each restaurant STILL owns/authorizes its WhatsApp business number.
+    // No restaurant token or endpoint is entered in the owner-facing page.
+    'managed_enabled' => filter_var(env('PMD_WA_MANAGED_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+    'system_user_token' => (string)env('PMD_WA_SYSTEM_USER_TOKEN', ''),
+    'graph_version' => (string)env('PMD_WA_GRAPH_VERSION', 'v25.0'),
+    'template_language' => (string)env('PMD_WA_TEMPLATE_LANGUAGE', 'en_US'),
+    'templates' => [
+        'created' => (string)env('PMD_WA_TEMPLATE_CREATED', ''),
+        'updated' => (string)env('PMD_WA_TEMPLATE_UPDATED', ''),
+        'canceled' => (string)env('PMD_WA_TEMPLATE_CANCELED', ''),
+    ],
     'retention_days' => 90,
 ];

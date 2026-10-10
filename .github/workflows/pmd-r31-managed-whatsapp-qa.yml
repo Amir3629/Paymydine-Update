@@ -1,0 +1,26 @@
+name: R31 PayMyDine managed WhatsApp QA
+
+on:
+  pull_request:
+    paths:
+      - 'app/Services/WhatsApp/**'
+      - 'app/Services/Reservations/PmdGuestCommunicationService.php'
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'app/Console/Commands/PmdWhatsAppCommand.php'
+      - 'config/pmd_whatsapp.php'
+      - 'scripts/pmd-r31-*'
+      - '.github/workflows/pmd-r31-managed-whatsapp-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  managed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP and managed WhatsApp source/behavior contracts
+        run: bash scripts/pmd-r31-managed-whatsapp-qa.sh

@@ -37,6 +37,21 @@ final class PmdWhatsAppSchema
             });
         }
 
+        // Pending connection requests are not Meta authorizations. An operator
+        // must verify ownership and provision a real WABA/number separately.
+        if (!$schema->hasTable('pmd_whatsapp_connection_requests')) {
+            $schema->create('pmd_whatsapp_connection_requests', function (Blueprint $table): void {
+                $table->engine = 'InnoDB';
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('tenant_id');
+                $table->unsignedBigInteger('location_id');
+                $table->string('status', 24)->default('requested');
+                $table->timestamps();
+                $table->unique(['tenant_id', 'location_id'], 'pmd_wa_connect_tenant_location_uq');
+                $table->index(['status', 'created_at'], 'pmd_wa_connection_queue_idx');
+            });
+        }
+
         if (!$schema->hasTable('pmd_whatsapp_messages')) {
             $schema->create('pmd_whatsapp_messages', function (Blueprint $table): void {
                 $table->engine = 'InnoDB';
