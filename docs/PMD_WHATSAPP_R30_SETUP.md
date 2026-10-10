@@ -23,6 +23,38 @@ publish Meta, modify production databases, or enable an autonomous bot.
 - Unknown or inactive phone mappings receive no storage/action.
   No message triggers autonomous replies or reservation modification.
 
+## Guarded VPS sync (code-only; must use reviewed main SHA)
+
+The old VPS reported HEAD d8e90fa1d with dirty files containing partial R29 and
+Restaurant Groups changes. The R30 installer is designed for this exact class
+of situation: it compares EVERY changed path against both old HEAD and the
+desired GitHub commit, keeps a private backup of ALL dirty and untracked
+paths, and refuses to overwrite any content different from both commits.
+It does not change .env, tenant/central database data, Nginx, DNS or Meta.
+It does not use git pull, reset, clean or stash.
+
+From the production VPS, **as ubuntu** after reviewed PR has been merged:
+
+    cd /var/www/paymydine
+    git fetch origin main
+    TARGET=<FULL_REVIEWED_MAIN_SHA_FROM_RELEASE>
+    test "$(git rev-parse origin/main)" = "$TARGET" || exit 1
+    git show "$TARGET:scripts/pmd-r30-guarded-vps-sync.sh" > /tmp/pmd-r30-guarded-vps-sync.sh
+    bash -n /tmp/pmd-r30-guarded-vps-sync.sh || exit 1
+    bash /tmp/pmd-r30-guarded-vps-sync.sh "$TARGET" --dry-run
+    bash /tmp/pmd-r30-guarded-vps-sync.sh "$TARGET" --apply
+
+The installer will demand typing the word APPLY after preflight, back up
+dirty files and all replaced paths, preserve existing file owners and
+reconcile Git metadata only after content verification. If it prints STOP,
+do NOT bypass checks with sudo git pull/reset/clean: capture the nonsecret
+diagnostic output for review. A failed install can stop with files already
+copied; the backup directory and previous Git index are retained for manual,
+reviewed recovery.
+
+Run central DB backup and schema install separately after code sync. No
+background data migrations are performed by the installer.
+
 ## Prerequisites before deployment
 
 1. First resolve the VPS dirty worktree: partial R29 and separate Restaurant
