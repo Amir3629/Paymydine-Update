@@ -352,24 +352,50 @@ try {
     }
     echo "PASS Quick Setup remains in the original Dashboard/Menu header after Not now, closes only on completed state\n";
 
-    // R20: Quick Setup must repair only the signed-in tenant KDS schema
-    // before the data transaction, using the existing idempotent product
-    // baseline. A static cloned newtenantdb template may omit kds_stations.
-    $stage = 'quick-setup-tenant-kds-preflight';
+    // R21: use existing, idempotent tenant product repair in ALL three
+    // entry points: clone finalization, first Quick Setup and existing POS.
+    // The checks are source contracts only; runtime acceptance remains
+    // separate and payment transactions must never be created by the probe.
+    $stage = 'tenant-product-readiness-r21';
     $setupServiceCode = (string)@file_get_contents($root.'/app/admin/Services/PmdTenantQuickSetupService.php');
     $productBaselineCode = (string)@file_get_contents($root.'/app/Services/PmdTenantProductBaselineR1.php');
-    $preflightPos = strpos($setupServiceCode, "repairCurrentTenant(['kds'])");
-    $transactionPos = strpos($setupServiceCode, '$result = DB::transaction(function () use (');
-    if ($preflightPos === false || $transactionPos === false
-        || $preflightPos >= $transactionPos
-        || strpos($setupServiceCode, 'PMD_QUICK_SETUP_R20_KDS_SELF_HEAL') === false
+    $lifecycleCode = (string)@file_get_contents($root.'/app/Services/SuperAdminTenantLifecycleService.php');
+    $posTransactionCode = (string)@file_get_contents($root.'/app/admin/controllers/concerns/PmdWaiterPosPaymentTransactionConcern.php');
+    $posSettlementCode = (string)@file_get_contents($root.'/app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php');
+    $posBatchCode = (string)@file_get_contents($root.'/app/admin/controllers/concerns/PmdQuickPosBatchPaymentV114Concern.php');
+    $posTerminalCode = (string)@file_get_contents($root.'/app/admin/controllers/concerns/PmdWaiterPosTerminalEndpoint.php');
+
+    $setupProductPos = strpos($setupServiceCode, '->repairCurrentTenant($productScopes)');
+    $setupTxnPos = strpos($setupServiceCode, '$result = DB::transaction(function () use (');
+    $settleGuardPos = strpos($posSettlementCode, 'pmdEnsurePaymentStorageR21();');
+    $settleTxnPos = strpos($posSettlementCode, '$result = DB::transaction(function () use (');
+    $batchGuardPos = strpos($posBatchCode, 'pmdEnsurePaymentStorageR21();');
+    $batchTxnPos = strpos($posBatchCode, '$result = DB::transaction(function () use (');
+    $terminalGuardPos = strpos($posTerminalCode, 'pmdEnsurePaymentStorageR21();');
+    $terminalAttemptPos = strpos($posTerminalCode, '->createAttempt(');
+
+    if ($setupProductPos === false || $setupTxnPos === false || $setupProductPos >= $setupTxnPos
+        || strpos($setupServiceCode, 'PMD_QUICK_SETUP_R21_TENANT_PRODUCT_READINESS') === false
         || strpos($setupServiceCode, "DB::getDefaultConnection() !== 'tenant'") === false
-        || strpos($setupServiceCode, "['station_id', 'name', 'slug', 'location_id']") === false
-        || strpos($productBaselineCode, 'protected function ensureKdsStations(): array') === false
-        || strpos($productBaselineCode, "\$schema->create('kds_stations'") === false) {
-        throw new RuntimeException('Quick Setup KDS preparation must run on the tenant only, before data writes.');
+        || strpos($setupServiceCode, "['payment_runtime', 'orders']") === false
+        || strpos($productBaselineCode, "elseif (in_array('payment_runtime', \$scopes, true))") === false
+        || strpos($productBaselineCode, "\$schema->create('order_payment_transactions'") === false
+        || strpos($productBaselineCode, "\$schema->create('order_payment_transaction_items'") === false
+        || strpos($productBaselineCode, "\$schema->create('kds_stations'") === false
+        || strpos($productBaselineCode, 'Tenant payment runtime table has missing columns') === false
+        || strpos($lifecycleCode, '$this->ensureTenantProductReadiness($database);') === false
+        || strpos($lifecycleCode, "->repairCurrentTenant(['payment_runtime', 'kds', 'orders'])") === false
+        || strpos($lifecycleCode, "'order_payment_transactions',") === false
+        || strpos($posTransactionCode, 'protected function pmdEnsurePaymentStorageR21(): void') === false
+        || strpos($posTransactionCode, "DB::getDefaultConnection() !== 'tenant'") === false
+        || strpos($posTransactionCode, "->repairCurrentTenant(['payment_runtime', 'orders'])") === false
+        || $settleGuardPos === false || $settleTxnPos === false || $settleGuardPos >= $settleTxnPos
+        || $batchGuardPos === false || $batchTxnPos === false || $batchGuardPos >= $batchTxnPos
+        || $terminalGuardPos === false || $terminalAttemptPos === false || $terminalGuardPos >= $terminalAttemptPos) {
+        throw new RuntimeException('Tenant product readiness must repair only the right database BEFORE payment transactions and site activation.');
     }
-    echo "PASS Quick Setup repairs missing tenant KDS table safely before its data transaction\n";
+
+    echo "PASS R21: ready sites require tenant KDS, orders and settlement schema; POS repairs missing tables before charges\n";
 
     echo "PASS /admin/group/context route matches Restaurant Groups before the greedy Admin catch-all\n";
     echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";
