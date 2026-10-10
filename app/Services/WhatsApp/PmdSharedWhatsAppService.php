@@ -25,6 +25,7 @@ final class PmdSharedWhatsAppService
         'pmd_wa_shared_locations',
         'pmd_wa_shared_consents',
         'pmd_wa_shared_optouts',
+        'pmd_wa_shared_action_jobs',
         'pmd_wa_shared_messages',
         'pmd_wa_shared_unrouted',
     ];
@@ -134,7 +135,9 @@ final class PmdSharedWhatsAppService
         int $tenantId,
         int $locationId,
         int $reservationId,
-        string $guestPhone
+        string $guestPhone,
+        string $locale = 'de',
+        string $source = 'public_booking_opt_in'
     ): bool {
         // Only called by the server AFTER a successful public booking with
         // a separately checked, optional WhatsApp opt-in. No public endpoint.
@@ -144,10 +147,14 @@ final class PmdSharedWhatsAppService
         }
 
         $phone = $this->normalizePhone($guestPhone);
-        if ($phone === '') {
+        if ($phone === ''
+            || !in_array($source, [
+                'public_booking_opt_in',
+                'admin_verified_guest_consent',
+            ], true)) {
             return false;
         }
-
+        $locale = PmdWhatsAppLocalePolicy::normalize($locale);
         $db = DB::connection('mysql');
         // A new separately checked consent overrides a previous STOP for
         // future bookings only; older reservation consents remain revoked.
@@ -161,7 +168,8 @@ final class PmdSharedWhatsAppService
             ],
             [
                 'wa_id_hash' => $this->phoneHash($phone),
-                'source' => 'public_booking_opt_in',
+                'source' => $source,
+                'locale' => $locale,
                 'consented_at' => now(),
                 'revoked_at' => null,
                 'updated_at' => now(),
@@ -197,8 +205,41 @@ final class PmdSharedWhatsAppService
             ->where('location_id', $locationId)
             ->where('reservation_id', $reservationId)
             ->where('wa_id_hash', $this->phoneHash($phone))
+            ->whereNotNull('locale')
             ->whereNull('revoked_at')
             ->exists();
+    }
+
+    /**
+     * Locale is bound to an explicitly opted-in booking, never inferred
+     * from a German phone prefix or the current web/admin language.
+     */
+    public function reservationLocale(
+        int $tenantId,
+        int $locationId,
+        int $reservationId,
+        string $recipient
+    ): ?string {
+        $phone = $this->normalizePhone($recipient);
+        if (!$this->installed() || $tenantId < 1 || $locationId < 1
+            || $reservationId < 1 || $phone === '') {
+            return null;
+        }
+        $db = DB::connection('mysql');
+        if ($db->table('pmd_wa_shared_optouts')
+            ->where('wa_id_hash', $this->phoneHash($phone))->exists()) {
+            return null;
+        }
+        $locale = $db->table('pmd_wa_shared_consents')
+            ->where('tenant_id', $tenantId)
+            ->where('location_id', $locationId)
+            ->where('reservation_id', $reservationId)
+            ->where('wa_id_hash', $this->phoneHash($phone))
+            ->whereNull('revoked_at')
+            ->value('locale');
+
+        return is_string($locale) && in_array($locale, ['de','en','tr','ar'], true)
+            ? $locale : null;
     }
 
     public function recordAccepted(
@@ -208,7 +249,8 @@ final class PmdSharedWhatsAppService
         int $reservationId,
         string $recipient,
         string $metaMessageId,
-        string $preview
+        string $preview,
+        string $manageUrl = ''
     ): void {
         if ($senderId < 1 || $tenantId < 1 || $locationId < 1
             || $reservationId < 1
@@ -235,6 +277,11 @@ final class PmdSharedWhatsAppService
             'direction' => 'out',
             'kind' => 'template',
             'body_ciphertext' => Crypt::encryptString(mb_substr($preview, 0, 4000)),
+            // A bearer management link is never part of button payload.
+            'manage_url_ciphertext' => PmdWhatsAppButtonPolicy::safeManageUrl(
+                $manageUrl, (string)config('pmd_whatsapp.shared_booking_hosts', '')
+            )
+                ? Crypt::encryptString($manageUrl) : null,
             'delivery_status' => 'accepted',
             'received_at' => now(),
             'created_at' => now(),
@@ -428,6 +475,38 @@ final class PmdSharedWhatsAppService
                 'direction' => 'in',
                 'delivery_status' => 'received',
             ]);
+            if ($kind === 'button'
+                && config('pmd_whatsapp.shared_quick_reply_enabled', false) === true
+                && (int)($route->reservation_id ?? 0) > 0) {
+                $action = PmdWhatsAppButtonPolicy::action(
+                    (string)($message['button']['payload'] ?? '')
+                );
+                if ($action !== null) {
+                    $stored = $db->table('pmd_wa_shared_messages')
+                        ->where('external_message_id', $id)
+                        ->where('tenant_id', (int)$route->tenant_id)
+                        ->where('location_id', (int)$route->location_id)
+                        ->where('sender_id', $senderId)
+                        ->where('wa_id_hash', $hash)
+                        ->where('direction', 'in')
+                        ->first(['id']);
+                    if ($stored) {
+                        // This DB transaction commits inbound and action
+                        // together; Meta retries cannot create two actions.
+                        $db->table('pmd_wa_shared_action_jobs')->insertOrIgnore([
+                            'incoming_message_id' => (int)$stored->id,
+                            'outbound_message_id' => $contextId,
+                            'tenant_id' => (int)$route->tenant_id,
+                            'location_id' => (int)$route->location_id,
+                            'action' => $action,
+                            'status' => 'pending',
+                            'attempts' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
         } else {
             // No guess based on phone-only matching, text, booking reference,
             // time proximity or restaurant display name: central quarantine.

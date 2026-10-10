@@ -104,6 +104,35 @@ class ReservationComposerService
             $validated = $this->validate($input, true);
             $locations = $this->locations();
             $mode = !empty($validated['reservation_id']) ? 'edit' : 'create';
+            $staffConsent = !empty($validated['whatsapp_guest_consent']);
+            if ($staffConsent) {
+                // Staff must have actually verified explicit guest permission.
+                // Consent cannot be recycled on edit or synthesized from phone.
+                $phone = trim((string)($validated['telephone'] ?? ''));
+                if ($mode !== 'create'
+                    || !config('pmd_whatsapp.shared_enabled', false)
+                    || !config('pmd_whatsapp.shared_consent_form_enabled', false)
+                    || !preg_match('/^\+[1-9][0-9]{7,14}$/D', $phone)) {
+                    throw ValidationException::withMessages([
+                        'whatsapp_guest_consent' => [
+                            'For a new booking, confirm guest consent and enter an international phone number such as +491701234567. WhatsApp must be enabled for this pilot.',
+                        ],
+                    ]);
+                }
+            }
+            $staffLocale = \App\Services\WhatsApp\PmdWhatsAppLocalePolicy::normalize(
+                (string)($validated['whatsapp_guest_locale'] ?? setting('default_language', 'de'))
+            );
+            if ($staffConsent && !\App\Services\WhatsApp\PmdWhatsAppLocalePolicy::isApproved(
+                $staffLocale,
+                (string)config('pmd_whatsapp.shared_approved_template_locales', '')
+            )) {
+                throw ValidationException::withMessages([
+                    'whatsapp_guest_locale' => [
+                        'PayMyDine WhatsApp templates for this language are not yet approved.',
+                    ],
+                ]);
+            }
             $reservation = $mode === 'edit'
                 ? $this->reservation((int)$validated['reservation_id'], $locations)
                 : new Reservations_model;
@@ -111,6 +140,23 @@ class ReservationComposerService
                 $validated['location_id'] ?? ($reservation->location_id ?: null),
                 $locations
             );
+            if ($staffConsent) {
+                try {
+                    $tenantId = app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class)
+                        ->currentTenantId();
+                    $active = app(\App\Services\WhatsApp\PmdSharedWhatsAppService::class)
+                        ->activeSender($tenantId, (int)$location->getKey());
+                } catch (Throwable $ignored) {
+                    $active = null;
+                }
+                if (!$active) {
+                    throw ValidationException::withMessages([
+                        'whatsapp_guest_consent' => [
+                            'PayMyDine WhatsApp is not active for this restaurant yet.',
+                        ],
+                    ]);
+                }
+            }
             $assignment = $validated['assignment_mode'];
             $existingIds = $reservation->exists
                 ? $reservation->tables->pluck('table_id')->map(fn($id) => (int)$id)->sort()->values()->all()
@@ -339,12 +385,57 @@ class ReservationComposerService
                 return $reservation->fresh(['location.all_options', 'tables', 'status']);
             });
 
+            $warnings = [];
+            if ($staffConsent) {
+                try {
+                    $tenantId = app(\App\Services\WhatsApp\PmdManagedWhatsAppService::class)
+                        ->currentTenantId();
+                    $recorded = app(\App\Services\WhatsApp\PmdSharedWhatsAppService::class)
+                        ->recordBookingConsent(
+                            $tenantId,
+                            (int)$saved->location_id,
+                            (int)$saved->getKey(),
+                            (string)$saved->telephone,
+                            $staffLocale,
+                            'admin_verified_guest_consent'
+                        );
+                    if ($recorded) {
+                        $reservationId = (int)$saved->getKey();
+                        app()->terminating(static function () use ($reservationId, $staffLocale): void {
+                            try {
+                                $fresh = Reservations_model::query()
+                                    ->whereKey($reservationId)->with('location')->first();
+                                if ($fresh) {
+                                    app(\App\Services\Reservations\PmdGuestCommunicationService::class)
+                                        ->sendReservationEvent(
+                                            $fresh, 'created', $staffLocale, ['whatsapp']
+                                        );
+                                }
+                            } catch (Throwable $exception) {
+                                Log::warning('PMD R34 admin WhatsApp send failed', [
+                                    'reservation_id' => $reservationId,
+                                    'error_type' => get_class($exception),
+                                ]);
+                            }
+                        });
+                    } else {
+                        $warnings[] = 'Reservation saved; WhatsApp consent was not recorded.';
+                    }
+                } catch (Throwable $exception) {
+                    Log::warning('PMD R34 admin WhatsApp consent unavailable', [
+                        'reservation_id' => (int)$saved->getKey(),
+                        'error_type' => get_class($exception),
+                    ]);
+                    $warnings[] = 'Reservation saved; WhatsApp notification was not scheduled.';
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'mode' => $mode,
                 'reservation' => $this->serialize($saved),
                 'source' => (string)($validated['source'] ?? ''),
-                'warnings' => [],
+                'warnings' => $warnings,
             ]);
         } catch (Throwable $exception) {
             return $this->error($exception);

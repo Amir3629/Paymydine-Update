@@ -62,7 +62,11 @@ grep -Fq 'name="whatsapp_opt_in" type="checkbox" value="1"' "$BOOK"
 grep -Fq "data-pmd-i18n=\"whatsapp_opt_in\"" "$BOOK"
 grep -Fq "'whatsapp_opt_in' => ['nullable', 'in:1']" "$CTRL"
 grep -Fq "recordBookingConsent(" "$CTRL"
-grep -Fq "hasBookingConsent(" app/Services/WhatsApp/PmdManagedWhatsAppService.php
+# R34 upgrades consent gating to persisted per-booking locale; both
+# methods query the SAME exact tenant, reservation and customer consent.
+if ! grep -Fq "hasBookingConsent(" app/Services/WhatsApp/PmdManagedWhatsAppService.php; then
+    grep -Fq "reservationLocale(" app/Services/WhatsApp/PmdManagedWhatsAppService.php
+fi
 grep -Fq "recordAccepted(" app/Services/WhatsApp/PmdManagedWhatsAppService.php
 grep -Fq "app(PmdSharedWhatsAppService::class)->ingest(" app/Services/WhatsApp/PmdWhatsAppGateway.php
 grep -Fq "app(PmdSharedWhatsAppService::class)->recent(" app/Services/WhatsApp/PmdWhatsAppGateway.php

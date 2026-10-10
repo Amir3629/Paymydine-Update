@@ -88,7 +88,11 @@ class PmdPublicBookingController extends Controller
                 $waSettings = app(\App\Services\Reservations\PmdGuestCommunicationService::class)
                     ->settingsPayload((int)$location->getKey());
                 $bookingWhatsAppOptInEnabled = !empty($waSettings['whatsapp_ready'])
-                    && (string)($waSettings['whatsapp_provider'] ?? '') === 'managed';
+                    && (string)($waSettings['whatsapp_provider'] ?? '') === 'managed'
+                    && \App\Services\WhatsApp\PmdWhatsAppLocalePolicy::isApproved(
+                        $locale,
+                        (string)config('pmd_whatsapp.shared_approved_template_locales', '')
+                    );
             } catch (Throwable $ignored) {
                 // Public booking must remain available if Meta is offline.
             }
@@ -825,7 +829,8 @@ class PmdPublicBookingController extends Controller
                             $tenantId,
                             (int)$reservation->location_id,
                             (int)$reservation->getKey(),
-                            (string)$reservation->telephone
+                            (string)$reservation->telephone,
+                            $bookingLocale
                         );
                 } catch (Throwable $consentError) {
                     Log::warning('PMD shared WhatsApp consent record unavailable', [

@@ -25,6 +25,8 @@ class ReservationComposer extends Reservation
             'status_id' => ['nullable', 'integer'],
             'occasion_id' => ['nullable', 'integer'],
             'notify' => ['boolean'],
+            'whatsapp_guest_consent' => ['nullable', 'in:1'],
+            'whatsapp_guest_locale' => ['nullable', 'in:de,en,tr,ar'],
             'comment' => ['nullable', 'string'],
             'reservation_id' => ['nullable', 'integer'],
             'source' => ['nullable', 'string', 'max:48'],

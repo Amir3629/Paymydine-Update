@@ -89,6 +89,7 @@ final class PmdWhatsAppSchema
                 $table->unsignedBigInteger('reservation_id');
                 $table->char('wa_id_hash', 64);
                 $table->string('source', 48)->default('public_booking_opt_in');
+                $table->string('locale', 2)->nullable();
                 $table->timestamp('consented_at');
                 $table->timestamp('revoked_at')->nullable();
                 $table->timestamps();
@@ -99,6 +100,15 @@ final class PmdWhatsAppSchema
 
         // STOP is global to the single PayMyDine sender: never continue
         // sending another restaurant's reservation after a shared opt-out.
+        // R34 additive upgrade. R33 may already have installed this table.
+        // Historical rows have an unknown language; do not invent English.
+        if ($schema->hasTable('pmd_wa_shared_consents')
+            && !$schema->hasColumn('pmd_wa_shared_consents', 'locale')) {
+            $schema->table('pmd_wa_shared_consents', function (Blueprint $table): void {
+                $table->string('locale', 2)->nullable();
+            });
+        }
+
         if (!$schema->hasTable('pmd_wa_shared_optouts')) {
             $schema->create('pmd_wa_shared_optouts', function (Blueprint $table): void {
                 $table->engine = 'InnoDB';
@@ -123,11 +133,35 @@ final class PmdWhatsAppSchema
                 $table->string('direction', 12);
                 $table->string('kind', 24);
                 $table->text('body_ciphertext');
+                $table->text('manage_url_ciphertext')->nullable();
                 $table->string('delivery_status', 24)->default('received');
                 $table->timestamp('received_at');
                 $table->timestamps();
                 $table->index(['tenant_id', 'location_id', 'received_at'], 'pmd_wa_shared_inbox_idx');
                 $table->index(['sender_id', 'wa_id_hash', 'direction'], 'pmd_wa_shared_thread_idx');
+            });
+        }
+
+        // R34: safe additive upgrade for already-installed R33 schema.
+        if ($schema->hasTable('pmd_wa_shared_messages')
+            && !$schema->hasColumn('pmd_wa_shared_messages', 'manage_url_ciphertext')) {
+            $schema->table('pmd_wa_shared_messages', function (Blueprint $table): void {
+                $table->text('manage_url_ciphertext')->nullable();
+            });
+        }
+        if (!$schema->hasTable('pmd_wa_shared_action_jobs')) {
+            $schema->create('pmd_wa_shared_action_jobs', function (Blueprint $table): void {
+                $table->engine = 'InnoDB';
+                $table->bigIncrements('id');
+                $table->unsignedBigInteger('incoming_message_id')->unique();
+                $table->string('outbound_message_id', 191);
+                $table->unsignedBigInteger('tenant_id');
+                $table->unsignedBigInteger('location_id');
+                $table->string('action', 16);
+                $table->string('status', 16)->default('pending');
+                $table->unsignedTinyInteger('attempts')->default(0);
+                $table->timestamps();
+                $table->index(['status', 'created_at'], 'pmd_wa_actions_queue_idx');
             });
         }
 

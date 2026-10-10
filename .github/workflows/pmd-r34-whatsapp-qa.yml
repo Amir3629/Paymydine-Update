@@ -1,0 +1,26 @@
+name: R34 WhatsApp Languages, Admin Consent and Buttons QA
+on:
+  pull_request:
+    paths:
+      - 'app/Services/WhatsApp/**'
+      - 'app/Services/Reservations/PmdGuestCommunicationService.php'
+      - 'app/Http/Controllers/PmdPublicBookingController.php'
+      - 'app/admin/services/ReservationComposerService.php'
+      - 'app/admin/requests/ReservationComposer.php'
+      - 'app/admin/views/reservations/_reservation_composer.blade.php'
+      - 'app/admin/views/reservations2/_reservation_composer.blade.php'
+      - 'app/Console/Commands/PmdWhatsAppCommand.php'
+      - 'config/pmd_whatsapp.php'
+      - 'scripts/pmd-r34-*'
+      - '.github/workflows/pmd-r34-whatsapp-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: R34 localized WhatsApp, manual consent and button-only contracts
+        run: bash scripts/pmd-r34-whatsapp-qa.sh
