@@ -146,8 +146,10 @@
         node.dataset.status=status;
         node.setAttribute('aria-label',(entry.site||'Restaurant')+' · Table '+(entry.table.number||entry.table.name||'—')+' · Read only');
         node.title=(entry.site||'Restaurant')+' · '+(entry.table.name||entry.table.number||'Table')+' · Read-only Floor';
-        node.style.left=(18+(index%perRow)*128)+'px';
-        node.style.top=(14+Math.floor(index/perRow)*112)+'px';
+        // R23: native Floor cards use transform:translate(-50%,-50%)!
+        // Position the CENTER, not the top-left; R22 clipped the first row.
+        node.style.left=(18+(index%perRow)*128+54)+'px';
+        node.style.top=(14+Math.floor(index/perRow)*112+44)+'px';
         node.style.width='108px';node.style.height='88px';
         node.appendChild(el('strong',entry.table.number||entry.table.name||'—','pmd-floor-v1__table-number'));
         if(sites.length>1)node.appendChild(el('span',entry.site,'pmd-floor-v1__table-meta'));
