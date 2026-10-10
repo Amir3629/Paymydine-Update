@@ -9,6 +9,7 @@ use Admin\Models\Menus_model;
 use Admin\Models\Staffs_model;
 use Admin\Models\Tables_model;
 use App\Services\PmdTenantMenuBaselineR25;
+use App\Services\PmdTenantProductBaselineR1;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -102,8 +103,38 @@ class PmdTenantQuickSetupService
             throw new \RuntimeException('Tenant Menu baseline is not ready for Quick Setup.');
         }
 
-        if ($kdsStations && !Schema::hasTable('kds_stations')) {
-            throw new \RuntimeException('Tenant KDS baseline is missing the kds_stations table.');
+        /*
+         * PMD_QUICK_SETUP_R20_KDS_SELF_HEAL
+         * New tenants are cloned from a static template that can predate the
+         * KDS product schema. The KDS runtime guard only visits KDS/Devices
+         * routes, so Quick Setup must bootstrap its own requested stations.
+         *
+         * MySQL DDL implicitly commits transactions: run the existing,
+         * idempotent tenant product baseline BEFORE the data transaction.
+         * Never repair the central database or another tenant.
+         */
+        if ($kdsStations) {
+            if (DB::getDefaultConnection() !== 'tenant'
+                || trim((string)DB::connection('tenant')->getDatabaseName()) === '') {
+                throw new \RuntimeException('Restaurant database context is unavailable for Quick Setup.');
+            }
+
+            $kdsBaseline = app(PmdTenantProductBaselineR1::class)
+                ->repairCurrentTenant(['kds']);
+
+            if (empty($kdsBaseline['steps']['kds_stations']['ok'])
+                || !Schema::hasTable('kds_stations')
+                || array_diff(
+                    ['station_id', 'name', 'slug', 'location_id'],
+                    Schema::getColumnListing('kds_stations')
+                )
+            ) {
+                // The central product baseline logs the exact failing step;
+                // return a safe message without leaking SQL or DB credentials.
+                throw new \RuntimeException(
+                    'Kitchen display storage could not be prepared. Retry Quick Setup or contact support.'
+                );
+            }
         }
 
         $result = DB::transaction(function () use (
