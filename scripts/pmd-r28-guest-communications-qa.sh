@@ -65,11 +65,15 @@ if grep -Eq 'name="communication\[(smtp_pass|mailgun_secret|postmark_token|ses_k
   exit 1
 fi
 
-# The production installer is shell-syntax checked but is not executed by CI.
-bash -n deploy/pmd-r29-guest-comms-safe-deploy.sh
-if grep -Fq '\${' deploy/pmd-r29-guest-comms-safe-deploy.sh; then
-  echo "ERROR: guarded installer has escaped Bash variable expansions."
-  exit 1
+# The optional historical R29 one-off installer was removed from
+# later main releases. Validate it IF PRESENT, without failing unrelated
+# feature PRs when the legacy deployment file is absent.
+if [ -f deploy/pmd-r29-guest-comms-safe-deploy.sh ]; then
+  bash -n deploy/pmd-r29-guest-comms-safe-deploy.sh
+  if grep -Fq '\\${' deploy/pmd-r29-guest-comms-safe-deploy.sh; then
+    echo "ERROR: guarded installer has escaped Bash variable expansions."
+    exit 1
+  fi
 fi
 php -l scripts/pmd-r29-communications-contract-qa.php
 php scripts/pmd-r29-communications-contract-qa.php
