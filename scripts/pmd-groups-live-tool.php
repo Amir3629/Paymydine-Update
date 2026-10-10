@@ -626,7 +626,7 @@ try {
         || strpos($groupModel, 'limit(251)') === false
         || strpos($dashboardSource, 'function displayGroupFloor(data)') === false
         || strpos($dashboardSource, 'restoreNativeFloor();') === false
-        || strpos($dashboardSource, 'showFloorNotice(\'Loading selected restaurant tables') === false
+        || strpos($dashboardSource, "'Loading selected restaurant tables") === false
         || strpos($scopeCss, '.pmd-group-floor-readonly-table') === false
         || strpos($reportingProfile, 'empty_order_history_application_clock') === false
         || strpos($reportingProfile, "->where('location_id',\$locationId)->exists()") === false
@@ -648,8 +648,9 @@ try {
     // center-based Floor placement. The VPS operator must inspect settlement
     // timestamps before explicit per-site UTC confirmation.
     $stage = 'verified-history-and-floor-geometry-r23';
-    if (strpos($dashboardSource, 'node.style.left=(18+(index%perRow)*128+54)') === false
-        || strpos($dashboardSource, 'node.style.top=(14+Math.floor(index/perRow)*112+44)') === false
+    if (strpos($dashboardSource, 'var cursor=24;') === false
+        || strpos($dashboardSource, 'var x=strip?cursor+w/2:Number(table.x);') === false
+        || strpos($dashboardSource, 'var y=strip?22+h/2:Number(table.y);') === false
         || strpos($dashboardSource, "floor.classList.contains('is-strip-mode')") === false
         || strpos($toolSource, "'confirm-verified-history-clock'") === false
         || strpos($toolSource, 'PMD CLOCK EVIDENCE SITE') === false
@@ -660,6 +661,34 @@ try {
         throw new RuntimeException('R23 historical UTC confirmation or native Floor coordinate safety missing.');
     }
     echo "PASS R23 historical reporting clock requires operator-reviewed UTC evidence; Floor cards use native center geometry\n";
+
+    // R24: preserve THE existing Floor UI and layout. All restaurants is
+    // aggregate reporting only; never mix cross-tenant operational tables.
+    // The old grey card rules and fabricated grid coordinates are forbidden.
+    $stage = 'native-selected-site-floor-r24';
+    if (strpos($groupModel, "if (\$scope !== 'all')") === false
+        || strpos($groupModel, "'disabled' => \$scope === 'all'") === false
+        || strpos($groupModel, "'floor_x'") === false
+        || strpos($groupModel, "'floor_y'") === false
+        || strpos($groupModel, "'operational_status'") === false
+        || strpos($groupModel, "'visible_on_floor_plan'") === false
+        || strpos($dashboardSource, "selectedScope==='all'") === false
+        || strpos($dashboardSource, "siteList=data&&data.floor&&data.floor.restaurants") === false
+        || strpos($dashboardSource, "if(sites.length!==1)") === false
+        || strpos($dashboardSource, "el('button',null,'pmd-floor-v1__table pmd-group-floor-readonly-table')") === false
+        || strpos($dashboardSource, "node.style.left=x+'px'") === false
+        || strpos($dashboardSource, "node.style.top=y+'px'") === false
+        || strpos($dashboardSource, "floor.classList.toggle('pmd-group-floor-all-disabled',scope==='all')") === false
+        || strpos($dashboardSource, "floor.inert=remote") === false
+        || strpos($dashboardSource, "restoreNativeFloor();") === false
+        || strpos($scopeCss, '.pmd-group-floor-all-disabled') === false
+        || strpos($scopeCss, "pointer-events:none!important") === false
+        || strpos($scopeCss, "background:#f2f7f5!important") !== false) {
+        throw new RuntimeException('R24 Floor must use native status and location data; aggregate floor must be disabled.');
+    }
+    echo "PASS R24: native Floor look preserved, remote site read only and All restaurants Floor disabled\n";
+
+
 
 
 
