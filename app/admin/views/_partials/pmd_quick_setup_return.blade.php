@@ -9,10 +9,12 @@
         if (
             $pmdQuickSetupReturnUser
             && $pmdQuickSetupReturnUser->hasPermission('Site.Settings')
-            && strtolower(trim((string)setting('pmd_onboarding_status', 'pending'))) !== 'completed'
         ) {
-            $pmdQuickSetupReturnState = app(\Admin\Services\PmdTenantQuickSetupServiceV2::class)->status();
-            $pmdQuickSetupReturnEligible = !empty($pmdQuickSetupReturnState['eligible']);
+            // Only an actual completed Quick Setup removes the button.
+            // Manual Menu content may prevent automated seeding; the existing
+            // wizard explains this instead of silently removing the entry.
+            $pmdQuickSetupReturnEligible =
+                strtolower(trim((string)setting('pmd_onboarding_status', 'pending'))) !== 'completed';
         }
     } catch (\Throwable $pmdQuickSetupReturnError) {
         // Fail closed: never expose a Quick Setup entry when status/auth fails.
