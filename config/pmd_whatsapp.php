@@ -31,5 +31,8 @@ return [
     // Quick reply buttons must exist on EVERY approved shared booking template
     // at positions 0 and 1 before enabling this. Kept OFF until Meta approval.
     'shared_quick_reply_enabled' => filter_var(env('PMD_WA_SHARED_QUICK_REPLIES', false), FILTER_VALIDATE_BOOLEAN),
+    // Optional exact-domain allowlist for restaurants using a verified custom domain.
+    // Never accept domains from the browser or webhook payload.
+    'shared_booking_hosts' => trim((string)env('PMD_WA_SHARED_BOOKING_HOSTS', '')),
     'retention_days' => 90,
 ];
