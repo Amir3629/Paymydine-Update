@@ -58,8 +58,7 @@ final class PmdWhatsAppCommand extends Command
         }
 
         if ($action === 'shared-health') {
-            $this->call('pmd:whatsapp', ['action' => 'health']);
-            return 0;
+            return (int)$this->call('pmd:whatsapp', ['action' => 'health']);
         }
 
         if ($action === 'requests') {
@@ -87,7 +86,7 @@ final class PmdWhatsAppCommand extends Command
         try {
             if ($action === 'install') {
                 $schema->install();
-                $this->info('Central WhatsApp storage installed. All channels remain inactive.');
+                $this->info('Central WhatsApp schema checked/installed. Existing channel activation states preserved.');
                 return 0;
             }
 
@@ -303,14 +302,20 @@ final class PmdWhatsAppCommand extends Command
             ->where($scope)->first();
 
         if ($action === 'shared-bind-location') {
-            $central->table('pmd_wa_shared_locations')->updateOrInsert(
-                $scope,
-                [
-                    'enabled' => 0, 'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
-            $this->info('Restaurant authorized in registry but INACTIVE.');
+            if (!$record) {
+                $central->table('pmd_wa_shared_locations')->insert(
+                    $scope + [
+                        'enabled' => 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]
+                );
+                $this->info('Restaurant registered but INACTIVE.');
+            } else {
+                // Repeat binding is idempotent: never accidentally switch
+                // an already-live restaurant off during a re-run.
+                $this->info('Restaurant binding already exists; activation state unchanged.');
+            }
             return 0;
         }
 
