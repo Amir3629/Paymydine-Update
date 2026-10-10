@@ -682,6 +682,7 @@ try {
         || strpos($dashboardSource, "floor.inert=remote") === false
         || strpos($dashboardSource, "restoreNativeFloor();") === false
         || strpos($scopeCss, '.pmd-group-floor-all-disabled') === false
+        || strpos($scopeCss, '.pmd-floor-v1__table:not(.pmd-group-floor-readonly-table)') === false
         || strpos($scopeCss, "pointer-events:none!important") === false
         || strpos($scopeCss, "background:#f2f7f5!important") !== false) {
         throw new RuntimeException('R24 Floor must use native status and location data; aggregate floor must be disabled.');
