@@ -25,5 +25,11 @@ return [
     // are configured and the booking opt-in is explicitly enabled.
     'shared_enabled' => filter_var(env('PMD_WA_SHARED_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
     'shared_consent_form_enabled' => filter_var(env('PMD_WA_SHARED_CONSENT_FORM', false), FILTER_VALIDATE_BOOLEAN),
+    // Explicit operator assertion; these locale variants must ALREADY be
+    // approved in PayMyDine's Meta WABA. Empty by default: no shared sends.
+    'shared_approved_template_locales' => trim((string)env('PMD_WA_SHARED_APPROVED_TEMPLATE_LOCALES', '')),
+    // Quick reply buttons must exist on EVERY approved shared booking template
+    // at positions 0 and 1 before enabling this. Kept OFF until Meta approval.
+    'shared_quick_reply_enabled' => filter_var(env('PMD_WA_SHARED_QUICK_REPLIES', false), FILTER_VALIDATE_BOOLEAN),
     'retention_days' => 90,
 ];
