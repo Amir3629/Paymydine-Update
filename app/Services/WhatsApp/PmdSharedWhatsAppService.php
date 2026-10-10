@@ -473,6 +473,38 @@ final class PmdSharedWhatsAppService
                 'direction' => 'in',
                 'delivery_status' => 'received',
             ]);
+            if ($kind === 'button'
+                && config('pmd_whatsapp.shared_quick_reply_enabled', false) === true
+                && (int)($route->reservation_id ?? 0) > 0) {
+                $action = PmdWhatsAppButtonPolicy::action(
+                    (string)($message['button']['payload'] ?? '')
+                );
+                if ($action !== null) {
+                    $stored = $db->table('pmd_wa_shared_messages')
+                        ->where('external_message_id', $id)
+                        ->where('tenant_id', (int)$route->tenant_id)
+                        ->where('location_id', (int)$route->location_id)
+                        ->where('sender_id', $senderId)
+                        ->where('wa_id_hash', $hash)
+                        ->where('direction', 'in')
+                        ->first(['id']);
+                    if ($stored) {
+                        // This DB transaction commits inbound and action
+                        // together; Meta retries cannot create two actions.
+                        $db->table('pmd_wa_shared_action_jobs')->insertOrIgnore([
+                            'incoming_message_id' => (int)$stored->id,
+                            'outbound_message_id' => $contextId,
+                            'tenant_id' => (int)$route->tenant_id,
+                            'location_id' => (int)$route->location_id,
+                            'action' => $action,
+                            'status' => 'pending',
+                            'attempts' => 0,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            }
         } else {
             // No guess based on phone-only matching, text, booking reference,
             // time proximity or restaurant display name: central quarantine.
