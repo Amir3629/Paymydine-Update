@@ -201,6 +201,12 @@ class ServiceProvider extends AppServiceProvider
         ) {
             $this->registerConsoleCommand($command, $class);
         }
+
+        // R30: opt-in central WhatsApp channel provisioning; no auto-install.
+        $this->registerConsoleCommand(
+            'pmd.whatsapp',
+            \App\Console\Commands\PmdWhatsAppCommand::class
+        );
     }
 
     /*
