@@ -89,6 +89,7 @@ final class PmdWhatsAppSchema
                 $table->unsignedBigInteger('reservation_id');
                 $table->char('wa_id_hash', 64);
                 $table->string('source', 48)->default('public_booking_opt_in');
+                $table->string('locale', 2)->nullable();
                 $table->timestamp('consented_at');
                 $table->timestamp('revoked_at')->nullable();
                 $table->timestamps();
@@ -99,6 +100,15 @@ final class PmdWhatsAppSchema
 
         // STOP is global to the single PayMyDine sender: never continue
         // sending another restaurant's reservation after a shared opt-out.
+        // R34 additive upgrade. R33 may already have installed this table.
+        // Historical rows have an unknown language; do not invent English.
+        if ($schema->hasTable('pmd_wa_shared_consents')
+            && !$schema->hasColumn('pmd_wa_shared_consents', 'locale')) {
+            $schema->table('pmd_wa_shared_consents', function (Blueprint $table): void {
+                $table->string('locale', 2)->nullable();
+            });
+        }
+
         if (!$schema->hasTable('pmd_wa_shared_optouts')) {
             $schema->create('pmd_wa_shared_optouts', function (Blueprint $table): void {
                 $table->engine = 'InnoDB';
