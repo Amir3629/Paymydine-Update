@@ -27,6 +27,7 @@ grep -Fq 'recordAcceptedReservationMessage' app/Services/WhatsApp/PmdWhatsAppGat
 # browser session. It is explicitly opt-in, host locked and HMAC authenticated.
 grep -Fq "require_once __DIR__.'/routes/pmd-whatsapp-webhook-v1.php'" routes.php
 grep -Fq "config('pmd_whatsapp.enabled', false) === true" app/Http/Controllers/PmdWhatsAppWebhookController.php
+grep -Fq '$request->isSecure()' app/Http/Controllers/PmdWhatsAppWebhookController.php
 grep -Fq "validSignature" app/Http/Controllers/PmdWhatsAppWebhookController.php
 grep -Fq "X-Hub-Signature-256" app/Http/Controllers/PmdWhatsAppWebhookController.php
 grep -Fq "hash_equals(" app/Services/WhatsApp/PmdWhatsAppGateway.php
