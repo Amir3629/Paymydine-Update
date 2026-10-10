@@ -3,6 +3,7 @@
 namespace App\Services\Reservations;
 
 use Admin\Models\Reservations_model;
+use App\Services\WhatsApp\PmdWhatsAppGateway;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -156,6 +157,7 @@ final class PmdGuestCommunicationService
                         'event' => $event,
                         'locale' => $locale,
                         'reservation_id' => (int)$reservation->getKey(),
+                        'location_id' => (int)$reservation->location_id,
                         'reference' => (string)$message['reference'],
                         'restaurant_name' => (string)$message['restaurant_name'],
                         'reservation_date' => (string)$message['reservation_date'],
@@ -447,6 +449,34 @@ final class PmdGuestCommunicationService
                     'http_status' => $response->status(),
                 ]);
                 return false;
+            }
+
+            // R30: track accepted Meta IDs only when a channel is explicitly
+            // activated in the central WhatsApp registry. This is best-effort,
+            // does not alter booking results and never changes provider latency.
+            if ($provider === 'meta_cloud') {
+                try {
+                    $tenant = request()->attributes->get('tenant');
+                    if (!$tenant && app()->bound('tenant')) {
+                        $tenant = app('tenant');
+                    }
+                    $locationId = (int)($context['location_id'] ?? 0);
+                    $path = (string)parse_url($endpoint, PHP_URL_PATH);
+                    if ((int)($tenant->id ?? 0) > 0 && $locationId > 0
+                        && preg_match('#^/v[0-9]+\.[0-9]+/([0-9]+)/messages/?$#', $path, $matches) === 1) {
+                        app(PmdWhatsAppGateway::class)->recordAcceptedReservationMessage(
+                            (int)$tenant->id,
+                            $locationId,
+                            (string)$matches[1],
+                            $recipient,
+                            (string)$response->json('messages.0.id', ''),
+                            $text
+                        );
+                    }
+                } catch (Throwable $ignored) {
+                    // Provider already accepted the message; do not mark it
+                    // failed just because optional Inbox tracking is unavailable.
+                }
             }
 
             return true;
