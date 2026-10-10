@@ -374,9 +374,9 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 
                         {{-- R32: owner-facing WhatsApp is fully managed by PayMyDine.
                              Never offer token, endpoint, provider, WABA or signup
-                             controls in this page. The legacy provider is preserved
-                             as an authenticated hidden preference until migrated
-                             by PayMyDine in the operator environment. --}}
+                             controls in this page. The existing provider remains
+                             in tenant settings and is preserved by server saves
+                             until PayMyDine migrates the legacy connection. --}}
                         @php
                             $pmdWaProvider = $pmdGuestCommunications['whatsapp_provider'] ?? 'managed';
                             $pmdWaLegacy = $pmdWaProvider !== 'managed';
