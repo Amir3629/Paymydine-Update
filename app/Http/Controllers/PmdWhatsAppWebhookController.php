@@ -20,9 +20,21 @@ final class PmdWhatsAppWebhookController extends Controller
         }
 
         $token = (string)config('pmd_whatsapp.verify_token', '');
-        $provided = (string)$request->query('hub.verify_token', '');
-        $challenge = (string)$request->query('hub.challenge', '');
-        if ((string)$request->query('hub.mode', '') !== 'subscribe'
+        // PHP parse_str normalizes Meta's dotted hub.* query keys into
+        // hub_* (e.g. hub.verify_token => hub_verify_token). Accept both.
+        $provided = (string)$request->query(
+            'hub.verify_token',
+            $request->query('hub_verify_token', '')
+        );
+        $challenge = (string)$request->query(
+            'hub.challenge',
+            $request->query('hub_challenge', '')
+        );
+        $mode = (string)$request->query(
+            'hub.mode',
+            $request->query('hub_mode', '')
+        );
+        if ($mode !== 'subscribe'
             || strlen($token) < 32
             || $provided === ''
             || !hash_equals($token, $provided)
