@@ -226,6 +226,8 @@
       var totals=Array.isArray(data&&data.totals)?data.totals:[];
       var financial=!problem&&!data.mixed_currency&&totals.length===1;
       var currency=financial?totals[0].currency:'EUR';
+      var orderTotal=Array.isArray(data&&data.locations)
+        ?data.locations.reduce(function(sum,row){return sum+Number(row&&row.orders||0);},0):null;
       var reason=problem||(data&&data.mixed_currency?'Multiple currencies cannot be combined.':'This metric is not available for group reporting.');
       function missing(why){return {available:false,reason:why||reason};}
       function moneySeries(source){var rows=(source||{})[currency]||{};return Object.keys(rows).sort().map(function(key){return {bucket:key,sales:Number(rows[key]),orders:0};});}
@@ -245,7 +247,9 @@
         sales_by_category:financial?{available:true,empty:!cat.length,categories:cat}:missing(reason),
         // The current Group API has payment counts but not monetary totals.
         // It would be incorrect to feed counts into the native sales donut.
-        payment_methods:missing('Group payment amounts are not available.'),
+        payment_methods:(!problem&&orderTotal===0)
+          ? {available:true,empty:true,methods:[],reason:'No settled payments in this period.'}
+          :missing('Group payment amounts by method are not verified.'),
         channels:missing('Group channel revenue is not available.'),
         top_items:missing('Group top items are not available.'),
         live_operations:missing('Live orders remain in the signed-in restaurant.'),
