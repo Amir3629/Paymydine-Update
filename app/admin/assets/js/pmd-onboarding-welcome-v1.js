@@ -1,4 +1,4 @@
-/* PMD_ONBOARDING_WELCOME_V5_MODAL_WIZARD */
+/* PMD_ONBOARDING_WELCOME_R19_PERSISTENT_HEADER_RETURN */
 (function () {
     'use strict';
 
@@ -15,7 +15,7 @@
 
     var styleHref = '/app/admin/assets/css/pmd-onboarding-welcome-v1.css?v=5.0.0';
     var quickSetupStyleHref = '/app/admin/assets/css/pmd-tenant-quick-setup-v1.css?v=5.0.0-wizard';
-    var quickSetupScriptSrc = '/app/admin/assets/js/pmd-tenant-quick-setup-v3.js?v=5.0.0-wizard';
+    var quickSetupScriptSrc = '/app/admin/assets/js/pmd-tenant-quick-setup-v3.js?v=5.1.0-r19-wizard';
     var platformLogoSrc = '/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-exact-sidebar-logo-20260818-v2';
 
     function ensureStylesheet(href, marker) {
@@ -39,24 +39,29 @@
     }
 
     function ensureQuickSetupRuntime() {
-        if (window.PMDTenantQuickSetupV4 || window.PMDTenantQuickSetupV3) {
-            return Promise.resolve();
-        }
+        // R19: reopening the wizard imports a NEW form node. The previous
+        // quick-setup script bound click/submit events to the detached node.
+        // Re-execute that narrow runtime for every new wizard instance.
+        var prior = document.querySelector('script[data-pmd-quick-setup-wizard-runtime]');
+        if (prior) prior.remove();
+        window.PMDTenantQuickSetupV4 = null;
+        window.PMDTenantQuickSetupV3 = null;
 
         return new Promise(function (resolve, reject) {
-            var existing = document.querySelector('script[data-pmd-quick-setup-wizard-runtime]');
-            if (existing) {
-                existing.addEventListener('load', function () { resolve(); }, {once: true});
-                existing.addEventListener('error', function () { reject(new Error('Quick Setup controls could not be loaded.')); }, {once: true});
-                return;
-            }
-
             var script = document.createElement('script');
             script.src = quickSetupScriptSrc;
             script.async = true;
             script.setAttribute('data-pmd-quick-setup-wizard-runtime', '');
-            script.onload = function () { resolve(); };
-            script.onerror = function () { reject(new Error('Quick Setup controls could not be loaded.')); };
+            script.onload = function () {
+                if (!window.PMDTenantQuickSetupV4 && !window.PMDTenantQuickSetupV3) {
+                    reject(new Error('Quick Setup form did not initialize.'));
+                    return;
+                }
+                resolve();
+            };
+            script.onerror = function () {
+                reject(new Error('Quick Setup controls could not be loaded.'));
+            };
             (document.body || document.documentElement).appendChild(script);
         });
     }
@@ -417,6 +422,31 @@
         });
     }
 
+    // R19: preserve the first-paint header link after Not now, wizard Close,
+    // and across later visits. The normal anchor remains a no-JS fallback.
+    document.addEventListener('click', function (event) {
+        var target = event.target;
+        var link = target && target.closest ? target.closest('[data-pmd-quick-setup-return]') : null;
+        if (!link || event.defaultPrevented || event.button !== 0
+            || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        event.preventDefault();
+        if (quickSetupLoading) return;
+        openQuickSetup().catch(function (error) {
+            console.warn('[PMD Quick Setup] Could not reopen the setup wizard:', error);
+            setQuickSetupUrl(false);
+            unmount();
+            window.location.assign(link.href);
+        });
+    });
+
+    window.addEventListener('pmd:quick-setup-completed', function (event) {
+        if (!event.detail || event.detail.status !== 'completed') return;
+        document.querySelectorAll('[data-pmd-quick-setup-return]').forEach(function (link) {
+            link.remove();
+        });
+    });
+
     function mount() {
         if (mounted || document.querySelector('[data-pmd-onboarding-welcome-v1]')) return;
         ensureWelcomeStylesheet();
@@ -448,7 +478,7 @@
     }
 
     window.PMDOnboardingWelcomeV1 = {
-        version: '5.0.0',
+        version: '5.1.0-r19',
         mount: mount,
         unmount: unmount,
         openQuickSetup: openQuickSetup,
