@@ -15,6 +15,7 @@ on:
       - 'routes.php'
       - 'app/system/ServiceProvider.php'
       - 'scripts/pmd-r30-*.sh'
+      - 'scripts/pmd-r30-guarded-vps-sync.sh'
       - 'scripts/pmd-r30-*.php'
       - '.github/workflows/pmd-r30-whatsapp-qa.yml'
   workflow_dispatch:
