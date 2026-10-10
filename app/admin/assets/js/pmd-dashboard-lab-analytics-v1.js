@@ -560,7 +560,9 @@
     }
     var rows = Array.isArray(source.buckets) ? source.buckets : [];
     if (salesVisible === null) salesVisible = Math.min(19, Math.max(rows.length, 1));
-    body.innerHTML = chartMarkup('salesOverTime', rows, payload, chartMode, salesVisible, false);
+    var markup = chartMarkup('salesOverTime', rows, payload, chartMode, salesVisible, false);
+    // Avoid re-creating an identical SVG during background revalidation.
+    if (body.innerHTML !== markup) body.innerHTML = markup;
     root.querySelectorAll('[data-pmd-lab-chart-mode]').forEach(function (button) {
       var active = button.getAttribute('data-pmd-lab-chart-mode') === chartMode;
       button.classList.toggle('is-active', active);
@@ -580,7 +582,8 @@
     }
     var rows = Array.isArray(source.hours) ? source.hours : [];
     if (hourVisible === null) hourVisible = Math.min(15, Math.max(rows.length, 1));
-    body.innerHTML = chartMarkup('salesByHour', rows, payload, 'bar', hourVisible, true);
+    var markup = chartMarkup('salesByHour', rows, payload, 'bar', hourVisible, true);
+    if (body.innerHTML !== markup) body.innerHTML = markup;
     setBusy('salesByHour', false);
   }
 
@@ -1318,14 +1321,23 @@
   window.PMDDashboardLabAnalyticsV1 = {
     version: VERSION,
     setScopeProvider: function (provider) {
+      var wasScoped = !!scopeProvider;
       scopeProvider = typeof provider === 'function' ? provider : null;
       scopeRevision += 1;
       scopedCache = Object.create(null);
-      if (scopeProvider) {
-        // Reuse existing card bodies. No new panels, cards or layout writers.
-        root.querySelectorAll('[data-pmd-lab-widget-body]').forEach(function (body) {
-          body.innerHTML = empty({reason: 'Loading restaurant data…'});
-          body.setAttribute('data-pmd-lab-state', 'loading');
+      // R25: Keep the last truthful snapshot visible until the new scope is
+      // ready. Clearing all 12 bodies to "Loading restaurant data" caused the
+      // white flash on every location change. Pending state is already exposed
+      // by the restaurant selector's aria-busy indicator.
+      if (!scopeProvider && wasScoped) {
+        // Returning to the signed-in restaurant can restore the local,
+        // location-scoped snapshot immediately while SWR revalidates it.
+        if (cache.last30 && cache.last30.success === true) renderBase(cache.last30);
+        Object.keys(periodByWidget).forEach(function (key) {
+          var localSnapshot = cache[periodByWidget[key]];
+          if (localSnapshot && localSnapshot.success === true) {
+            renderPeriodWidget(key, localSnapshot);
+          }
         });
       }
       return scopeRevision;
