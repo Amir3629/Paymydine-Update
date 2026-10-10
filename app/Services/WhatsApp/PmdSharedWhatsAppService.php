@@ -348,6 +348,13 @@ final class PmdSharedWhatsAppService
         }
         $body = mb_substr($body, 0, 4000);
         $hash = $this->phoneHash($waId);
+
+        // Check deduplication BEFORE applying STOP: replaying an older signed
+        // event must not revoke an explicit consent granted afterward.
+        if ($db->table('pmd_wa_shared_messages')->where('external_message_id', $id)->exists()
+            || $db->table('pmd_wa_shared_unrouted')->where('external_message_id', $id)->exists()) {
+            return;
+        }
         $isStop = in_array(mb_strtolower(trim($body)), ['stop', 'unsubscribe'], true);
         if ($isStop) {
             // One platform phone, one platform-wide opt-out. The signed sender
@@ -359,12 +366,6 @@ final class PmdSharedWhatsAppService
             $db->table('pmd_wa_shared_consents')
                 ->where('wa_id_hash', $hash)->whereNull('revoked_at')
                 ->update(['revoked_at' => now(), 'updated_at' => now()]);
-        }
-
-        // Duplicate deliveries must never appear in a second tenant.
-        if ($db->table('pmd_wa_shared_messages')->where('external_message_id', $id)->exists()
-            || $db->table('pmd_wa_shared_unrouted')->where('external_message_id', $id)->exists()) {
-            return;
         }
 
         $contextId = trim((string)($message['context']['id'] ?? ''));
