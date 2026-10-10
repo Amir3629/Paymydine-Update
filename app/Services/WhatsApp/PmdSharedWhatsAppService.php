@@ -24,6 +24,7 @@ final class PmdSharedWhatsAppService
         'pmd_wa_shared_senders',
         'pmd_wa_shared_locations',
         'pmd_wa_shared_consents',
+        'pmd_wa_shared_optouts',
         'pmd_wa_shared_messages',
         'pmd_wa_shared_unrouted',
     ];
@@ -147,7 +148,12 @@ final class PmdSharedWhatsAppService
             return false;
         }
 
-        DB::connection('mysql')->table('pmd_wa_shared_consents')->updateOrInsert(
+        $db = DB::connection('mysql');
+        // A new separately checked consent overrides a previous STOP for
+        // future bookings only; older reservation consents remain revoked.
+        $db->table('pmd_wa_shared_optouts')
+            ->where('wa_id_hash', $this->phoneHash($phone))->delete();
+        $db->table('pmd_wa_shared_consents')->updateOrInsert(
             [
                 'tenant_id' => $tenantId,
                 'location_id' => $locationId,
@@ -181,7 +187,12 @@ final class PmdSharedWhatsAppService
             return false;
         }
 
-        return DB::connection('mysql')->table('pmd_wa_shared_consents')
+        $db = DB::connection('mysql');
+        if ($db->table('pmd_wa_shared_optouts')
+            ->where('wa_id_hash', $this->phoneHash($phone))->exists()) {
+            return false;
+        }
+        return $db->table('pmd_wa_shared_consents')
             ->where('tenant_id', $tenantId)
             ->where('location_id', $locationId)
             ->where('reservation_id', $reservationId)
@@ -291,6 +302,21 @@ final class PmdSharedWhatsAppService
 
     private function storeIncoming($db, int $senderId, array $message): void
     {
+        // Serialize all deliveries for one sender. Without a sender-row lock,
+        // two webhook retries could race and place the same Meta ID in both
+        // the routed and unrouted tables.
+        $db->transaction(function () use ($db, $senderId, $message): void {
+            $lock = $db->table('pmd_wa_shared_senders')
+                ->where('id', $senderId)->lockForUpdate()->first(['id']);
+            if (!$lock) {
+                return;
+            }
+            $this->storeIncomingLocked($db, $senderId, $message);
+        }, 3);
+    }
+
+    private function storeIncomingLocked($db, int $senderId, array $message): void
+    {
         $id = trim((string)($message['id'] ?? ''));
         $waId = $this->normalizePhone((string)($message['from'] ?? ''));
         $timestamp = (string)($message['timestamp'] ?? '');
@@ -322,6 +348,18 @@ final class PmdSharedWhatsAppService
         }
         $body = mb_substr($body, 0, 4000);
         $hash = $this->phoneHash($waId);
+        $isStop = in_array(mb_strtolower(trim($body)), ['stop', 'unsubscribe'], true);
+        if ($isStop) {
+            // One platform phone, one platform-wide opt-out. The signed sender
+            // is authenticated upstream. No tenant receives this STOP message.
+            $db->table('pmd_wa_shared_optouts')->updateOrInsert(
+                ['wa_id_hash' => $hash],
+                ['stopped_at' => now(), 'updated_at' => now(), 'created_at' => now()]
+            );
+            $db->table('pmd_wa_shared_consents')
+                ->where('wa_id_hash', $hash)->whereNull('revoked_at')
+                ->update(['revoked_at' => now(), 'updated_at' => now()]);
+        }
 
         // Duplicate deliveries must never appear in a second tenant.
         if ($db->table('pmd_wa_shared_messages')->where('external_message_id', $id)->exists()
@@ -358,9 +396,10 @@ final class PmdSharedWhatsAppService
                 ])->all();
         }
 
-        $route = app(PmdSharedWhatsAppRoutingPolicy::class)->choose(
-            $contextId, $senderId, $hash, $candidates, time() - 30 * 86400
-        );
+        $route = !$isStop
+            ? app(PmdSharedWhatsAppRoutingPolicy::class)->choose(
+                $contextId, $senderId, $hash, $candidates, time() - 30 * 86400
+            ) : null;
         $data = [
             'sender_id' => $senderId,
             'external_message_id' => $id,
@@ -385,7 +424,8 @@ final class PmdSharedWhatsAppService
             // No guess based on phone-only matching, text, booking reference,
             // time proximity or restaurant display name: central quarantine.
             $db->table('pmd_wa_shared_unrouted')->insertOrIgnore($data + [
-                'reason' => $contextId === '' ? 'missing_reply_context' : 'unverified_reply_context',
+                'reason' => $isStop ? 'customer_opted_out'
+                    : ($contextId === '' ? 'missing_reply_context' : 'unverified_reply_context'),
             ]);
         }
     }
@@ -492,6 +532,10 @@ final class PmdSharedWhatsAppService
             throw new RuntimeException('WhatsApp customer-service window has expired.');
         }
 
+        if ($db->table('pmd_wa_shared_optouts')
+            ->where('wa_id_hash', (string)$incoming->wa_id_hash)->exists()) {
+            throw new RuntimeException('Customer opted out of PayMyDine WhatsApp.');
+        }
         $transport = $this->transport($tenantId, $locationId);
         if ((int)$transport['sender_id'] !== (int)$incoming->sender_id) {
             throw new RuntimeException('Shared sender binding mismatch.');
@@ -565,6 +609,8 @@ final class PmdSharedWhatsAppService
         $db->table('pmd_wa_shared_consents')
             ->where('created_at', '<', now()->subDays($days))
             ->delete();
+        // Preserve the opt-out registry (hashed only). Deleting STOP markers
+        // would silently resume sending to an unsubscribed customer.
         return $removed;
     }
 
