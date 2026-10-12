@@ -80,7 +80,7 @@ class Shifts extends AdminController
         // PMD_SHIFTS_WEB_CREDENTIALS_PLUS_PIN_UI_V18C
         $this->addCss('css/pmd-shifts-web-credentials-plus-pin-v18c.css');
         // PMD_SHIFTS_PASSWORD_STRENGTH_V18H
-        $this->addCss('css/pmd-shifts-password-strength-v18h.css');
+        $this->addCss('css/pmd-shifts-credential-feedback-v18i.css');
         // PMD_SHIFTS_ROLE_CARDS_UI_V18D
         $this->addCss('css/pmd-shifts-role-cards-v18d.css');
         // PMD_SHIFTS_LIVE_FIRST_PAINT_V134
@@ -95,7 +95,7 @@ class Shifts extends AdminController
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.
-        $this->addJs('js/pmd-shifts-inpage-day-nav-v18h.js');
+        $this->addJs('js/pmd-shifts-inpage-day-nav-v18i.js');
         // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
         // @scripts renders after the Shifts DOM, so the shared info runtime can bind normally.
         // PMD_KPI_INFO_CURRENT_CARD_AUTHORITY_V158
