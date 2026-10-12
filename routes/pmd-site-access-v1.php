@@ -223,6 +223,15 @@ if (!defined('PMD_SITE_ACCESS_ROUTES_V1')) {
         Route::get('siteaccess/hub', PmdFirstWorkplaceDeviceController::class)
             ->name('pmd.siteaccess.hub');
 
+        // PMD_LOGIN_PIN_DEVICE_ENROLLMENT_CTA_V14
+        // Owner/Manager may explicitly enroll this physical terminal after
+        // their canonical password + workplace/Owner verification. The GET
+        // only renders the existing authorized activation form; the POST
+        // still uses the separately protected trust-management middleware.
+        Route::get('siteaccess/hub/enroll', [Siteaccess::class, 'hub'])
+            ->middleware([PmdSiteAccessManageTrustMiddleware::class, 'throttle:20,1'])
+            ->name('pmd.siteaccess.hub.enroll');
+
         // Kept for backward compatibility / explicit advanced trust operations.
         Route::post('siteaccess/hub/activate', [Siteaccess::class, 'activatehub'])
             ->middleware([PmdSiteAccessManageTrustMiddleware::class, 'throttle:10,5'])
