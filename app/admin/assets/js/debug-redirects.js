@@ -53,7 +53,16 @@ if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
         
         console.log('🔍 REDIRECT DEBUGGER INITIALIZED');
         
-        // Track all redirects and their causes
+        // PMD_DEBUG_REDACTION_V2: diagnostics must never expose session or login secrets.
+    function safePath(url) {
+        try {
+            return new URL(String(url || window.location.pathname), window.location.href).pathname;
+        } catch (error) {
+            return '[unknown path]';
+        }
+    }
+
+    // Track all redirects and their causes
         let redirectCount = 0;
         let lastRedirectTime = null;
         let redirectCauses = [];
@@ -67,9 +76,9 @@ if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
             timestamp: new Date().toISOString(),
             status: jqXHR.status,
             statusText: jqXHR.statusText,
-            url: ajaxSettings.url,
-            type: ajaxSettings.type,
-            responseText: jqXHR.responseText
+            url: safePath(ajaxSettings && ajaxSettings.url),
+            type: ajaxSettings.type
+            // Never log raw AJAX response bodies: they may contain secrets.
         };
         
         console.error('🚨 AJAX ERROR DETECTED:', errorInfo);
@@ -125,8 +134,7 @@ if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
         const currentToken = $('meta[name="csrf-token"]').attr('content');
         if (currentToken !== lastCSRFToken) {
             console.log('🔄 CSRF TOKEN CHANGED');
-            console.log('Old token:', lastCSRFToken);
-            console.log('New token:', currentToken);
+            // Never print CSRF token values to the browser console.
             lastCSRFToken = currentToken;
         }
     }, 1000);
@@ -150,8 +158,8 @@ if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
     
     // Track form submissions that might cause redirects
     $('form').on('submit', function(e) {
-        console.log('📝 FORM SUBMISSION:', $(this).attr('action') || 'Unknown action');
-        console.log('Form data:', $(this).serialize());
+        console.log('📝 FORM SUBMISSION:', safePath($(this).attr('action') || ''));
+        console.log('Form field count (values redacted):', this.elements ? this.elements.length : 0);
     });
     
         // Track button clicks that might cause redirects
