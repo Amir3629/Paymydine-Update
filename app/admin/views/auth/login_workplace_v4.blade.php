@@ -1,4 +1,5 @@
 @php
+    // PMD_LOGIN_PIN_DEVICE_ENROLLMENT_CTA_V14
     // PMD_LOGIN_PIN_MODE_SWITCH_V13
     // PMD_LOGIN_WORKPLACE_V12
     $locale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
@@ -73,7 +74,7 @@
             'use_pin' => 'Mitarbeiter-PIN verwenden',
             'pin_clear' => 'Löschen',
             'pin_delete' => 'Letzte Ziffer löschen',
-            'pin_unavailable' => 'Quick PIN funktioniert nur auf einem freigegebenen Restaurantgerät. Hier bitte mit Benutzername und Passwort anmelden.',
+            'pin_setup' => 'PIN auf diesem Gerät aktivieren',
             'continue' => 'Weiter',
             'forgot' => 'Passwort vergessen?',
             'failed_title' => 'Anmeldung fehlgeschlagen',
@@ -121,7 +122,7 @@
             'use_pin' => 'Use Staff PIN',
             'pin_clear' => 'Clear',
             'pin_delete' => 'Delete last digit',
-            'pin_unavailable' => 'Quick PIN sign-in is only available on an approved restaurant terminal. Use username and password on this device.',
+            'pin_setup' => 'Enable PIN on this device',
             'continue' => 'Continue',
             'forgot' => 'Forgot password?',
             'failed_title' => 'Login failed',
@@ -183,7 +184,7 @@
         .scanner{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(0,22,19,.82);backdrop-filter:blur(7px)}.scanner[hidden]{display:none}.scanner-card{width:min(430px,100%);padding:15px;border-radius:18px;background:#fff}.scanner video{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:13px;background:#071d1a}.scanner-foot{display:grid;gap:9px;margin-top:11px}.scanner-message{color:var(--muted);font-size:12px;text-align:center}
         .card.is-pin{padding-bottom:24px}.card.is-pin .brand{height:112px;margin:-4px 42px 10px}.card.is-pin .brand img{height:108px}.pin-panel,.password-panel{width:min(var(--content),100%);margin:0 auto}.pin-head{text-align:center;margin:0 0 14px}.pin-head h1{margin:0 0 5px;color:#0c2c28;font-size:21px;letter-spacing:-.03em}.pin-head p{margin:0;color:var(--muted);font-size:12.5px}.pin-form{display:grid;gap:12px}.pin-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;opacity:0}.pin-dots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:min(284px,100%);margin:0 auto 2px}.pin-dot{height:44px;display:grid;place-items:center;border:1px solid #dbe5e2;border-radius:12px;background:#f8fbfa;color:var(--jade);font-size:24px;font-weight:900}.pin-dot.is-filled{border-color:#cbb27c;background:#fffaf0}.pin-dot.is-filled::after{content:'•';line-height:1}.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:min(284px,100%);margin:0 auto}.pin-key{height:54px;border:1px solid #dce7e4;border-radius:14px;background:#fff;color:#16332e;font:inherit;font-size:21px;font-weight:850;cursor:pointer;box-shadow:0 2px 0 rgba(6,63,54,.04)}.pin-key:hover{background:#f3f8f6}.pin-key:active{transform:translateY(1px)}.pin-key.is-action{font-size:14px;color:#60706d;background:#f7faf9}.pin-form .submit:disabled{opacity:.45;cursor:not-allowed}.mode-switch{width:100%;margin:12px 0 0;padding:7px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.mode-switch:hover{color:var(--jade);text-decoration:underline}
         /* PMD_LOGIN_PIN_MODE_SWITCH_V13 */
-        .pin-unavailable{width:min(var(--content),100%);margin:0 auto 12px;padding:9px 11px;border:1px solid #e9d6aa;border-radius:11px;background:#fffbf2;color:#735b22;font-size:11px;line-height:1.4;font-weight:700}
+        .pin-setup-action{width:min(var(--content),100%);margin:12px auto 0;text-align:center;font-size:13px;line-height:1.25}
         .mode-switch{display:flex;align-items:center;justify-content:center;min-height:40px;margin:12px 0 0;padding:8px 12px;border:1px solid #d8e6e1;border-radius:12px;background:#f7fbf9;color:var(--jade);font-size:12px;font-weight:850;text-align:center}
         .mode-switch:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
         .mode-switch:hover{background:#eef7f2;text-decoration:none}
@@ -228,9 +229,6 @@
                     <h1>{{ $copy['pin_title'] }}</h1>
                     <p>{{ $copy['pin_text'] }}</p>
                 </section>
-                @unless($pinLoginAvailable)
-                    <p class="pin-unavailable" role="status">{{ $copy['pin_unavailable'] }}</p>
-                @endunless
                 {!! form_open(['id'=>'pmd-pin-form','class'=>'pin-form','role'=>'form','method'=>'POST','data-request'=>'onStaffPinLogin']) !!}
                     <label for="pmd-staff-pin" class="pin-hidden">{{ $copy['pin_label'] }}</label>
                     <input id="pmd-staff-pin" class="pin-hidden" data-pin-input type="password" name="pin" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required @if($pinDefault) autofocus @endif>
@@ -246,8 +244,13 @@
                         <button class="pin-key is-action" type="button" data-pin-delete aria-label="{{ $copy['pin_delete'] }}">⌫</button>
                     </div>
                     {!! form_error('pin', '<small class="error">', '</small>') !!}
-                    <button type="submit" class="submit" data-pin-submit data-attach-loading disabled>{{ $copy['pin_submit'] }}</button>
+                    @if($pinLoginAvailable)
+                        <button type="submit" class="submit" data-pin-submit data-attach-loading disabled>{{ $copy['pin_submit'] }}</button>
+                    @endif
                 {!! form_close() !!}
+                @unless($pinLoginAvailable)
+                    <a href="{{ admin_url('siteaccess/hub/enroll') }}" class="submit pin-setup-action" data-pin-setup-action>{{ $copy['pin_setup'] }}</a>
+                @endunless
                 <button type="button" class="mode-switch" data-login-mode="password">{{ $copy['use_password'] }}</button>
             </div>
         @endif
