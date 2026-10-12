@@ -14,6 +14,18 @@ trait PmdWaiterPosTerminalEndpoint
             return response()->json(['ok' => false, 'message' => 'Order not found.'], 404);
         }
 
+        // R21: terminal attempt storage must exist before contacting a provider
+        // or recording an intent; never provision within a payment transaction.
+        try {
+            $this->pmdEnsurePaymentStorageR21();
+        } catch (\Throwable $error) {
+            if (!($error instanceof \Illuminate\Validation\ValidationException)) report($error);
+            return response()->json([
+                'ok' => false,
+                'message' => 'Restaurant payment storage is unavailable. No payment was initiated.',
+            ], 503);
+        }
+
         $payload = $this->requestPayload();
         $summary = $this->buildPaymentSummary($order);
         if ((float)$summary['settlement']['settled_amount'] > 0.0001) {

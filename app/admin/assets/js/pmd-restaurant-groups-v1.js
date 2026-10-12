@@ -14,7 +14,6 @@
   if (!dashboard && !type) return;
 
   var context = null;
-  var reportSequence = 0;
 
   function el(tag,text,className){var n=document.createElement(tag);if(text!=null)n.textContent=String(text);if(className)n.className=className;return n;}
   function button(text,handler,className){var n=el('button',text,className||'pmd-group-btn');n.type='button';n.addEventListener('click',handler);return n;}
@@ -40,14 +39,7 @@
   function selected(inputs){return inputs.filter(function(i){return i.checked;}).map(function(i){return Number(i.value);});}
   function siteLabel(id){var site=context.sites.find(function(row){return Number(row.tenant_id)===Number(id);});return site?site.label:'Restaurant '+id;}
 
-  function account(){
-    var node=dialog('Business account');node.appendChild(el('p',context.group.name+' · '+context.owner.username));
-    var inputs=[];
-    ['Current password','New password','Confirm new password'].forEach(function(label,index){var input=el('input');input.type='password';input.maxLength=128;input.autocomplete=index?'new-password':'current-password';node.appendChild(field(label,input));inputs.push(input);});
-    var message=el('p',null,'pmd-group-status');message.setAttribute('role','status');
-    var save=button('Change shared password',function(){if(inputs[1].value.length<14||inputs[1].value!==inputs[2].value){status(message,'Use matching new passwords of at least 14 characters.',true);return;}save.disabled=true;request('password',{current_password:inputs[0].value,new_password:inputs[1].value,new_password_confirmation:inputs[2].value}).then(function(){inputs.forEach(function(i){i.value='';});window.location.assign('/admin/login');}).catch(function(e){status(message,e.message,true);save.disabled=false;});});
-    node.appendChild(save);node.appendChild(el('p','This changes the Owner password for every restaurant in this Business Account.'));node.appendChild(message);
-  }
+
 
   function share(){
     var node=dialog('Apply saved changes to restaurants');
@@ -66,6 +58,10 @@
   }
 
   function scopeControl(){
+    // Server-first-paint controls are already present in Dashboard Lab and Menu.
+    // Never append a second copy after the async context request.
+    var preloaded=document.querySelector('[data-pmd-group-firstpaint] select');
+    if(preloaded)return {wrap:preloaded.closest('.pmd-group-scope-switch'),select:preloaded};
     var wrap=el('label',null,'pmd-group-scope-switch');
     var caption=el('span','Restaurant','pmd-group-scope-caption');
     var select=el('select');select.setAttribute('aria-label','Restaurant scope');
@@ -77,114 +73,416 @@
   }
 
   function dashboardMount(){
-    var root=document.querySelector('#pmd-ownerboard, #pmd-dashboard-lab, [data-pmd-ownerboard-v2]');
+    var root=document.getElementById('pmd-dashboard-lab');
+    // The canonical Owner Dashboard is Dashboard Lab. An old/alternate
+    // Ownerboard renderer has a different data contract; do not offer a
+    // nonfunctional selector there.
     if(!root)return;
-    var header=root.querySelector('.pmd-ownerboard-v2__header, #pmd-r2-clean-header, header');
-    var actions=header&&header.querySelector('.pmd-ownerboard-v2__header-actions, .pmd-owner-header__actions, [data-pmd-dashboard-header-actions]');
+    var header=root.querySelector('#pmd-r2-clean-header, .pmd-ownerboard-v2__header, header');
+    var actions=header&&header.querySelector('[data-pmd-dashboard-lab-header-actions], .pmd-ownerboard-v2__header-actions, .pmd-owner-header__actions');
     if(!header||!actions)return;
-
-    var control=scopeControl();actions.prepend(control.wrap);
-    var accountButton=button('Account',account,'pmd-group-header-button');actions.prepend(accountButton);
-
-    var panel=el('section',null,'pmd-group-dashboard-panel');panel.hidden=true;header.after(panel);
-    var period=el('select');period.setAttribute('aria-label','Reporting period');
-    [['today','Today'],['week','This week'],['month','This month'],['last30','Last 30 days']].forEach(function(row){var option=el('option',row[1]);option.value=row[0];period.appendChild(option);});
-
-    function metric(label,value,meta){var card=el('article',null,'pmd-group-report-card');card.appendChild(el('span',label));card.appendChild(el('strong',value));if(meta)card.appendChild(el('small',meta));return card;}
-    function money(value,currency){return String(value)+' '+String(currency||'');}
-
-    function render(data){
-      panel.replaceChildren();
-      var head=el('div',null,'pmd-group-dashboard-panel__head');
-      var copy=el('div');copy.appendChild(el('span',context.group.name,'pmd-group-eyebrow'));copy.appendChild(el('h2',data.scope_label||'Business dashboard'));head.appendChild(copy);
-      var periodField=field('Period',period);periodField.classList.add('pmd-group-period');head.appendChild(periodField);panel.appendChild(head);
-
-      var totals=data.totals||[];
-      var total=totals.length===1?totals[0]:null;
-      var dash=data.dashboard||{};
-      var cards=el('div',null,'pmd-group-report-cards');
-      cards.appendChild(metric('Revenue',total?money(total.revenue,total.currency):(totals.length?'Multiple currencies':'0'),'settled'));
-      cards.appendChild(metric('Guests served',String(dash.guests||0),'recorded covers'));
-      cards.appendChild(metric('Table turnover',dash.turnover_minutes==null?'—':String(dash.turnover_minutes)+' min',String(dash.turnover_samples||0)+' visits'));
-      cards.appendChild(metric('Dine in / Take away',String((dash.channels||{}).dine_in||0)+' / '+String((dash.channels||{}).takeaway||0),'orders'));
-      panel.appendChild(cards);
-
-      var grid=el('div',null,'pmd-group-report-grid');
-      var sales=el('section',null,'pmd-group-report-section');sales.appendChild(el('h3','Sales over time'));
-      var series=dash.sales_series||{};var hasSeries=false;
-      Object.keys(series).forEach(function(currency){var list=el('div',null,'pmd-group-series');Object.keys(series[currency]||{}).forEach(function(bucket){hasSeries=true;var row=el('div',null,'pmd-group-series-row');row.appendChild(el('span',bucket));row.appendChild(el('strong',money(series[currency][bucket],currency)));list.appendChild(row);});sales.appendChild(list);});
-      if(!hasSeries)sales.appendChild(el('p','No settled sales in this period.','pmd-group-muted'));
-      grid.appendChild(sales);
-
-      var payment=el('section',null,'pmd-group-report-section');payment.appendChild(el('h3','Payment methods'));var methods=dash.payment_methods||{};var methodKeys=Object.keys(methods);
-      if(!methodKeys.length)payment.appendChild(el('p','No payment method data in this period.','pmd-group-muted'));
-      methodKeys.forEach(function(name){var row=el('div',null,'pmd-group-series-row');row.appendChild(el('span',name));row.appendChild(el('strong',methods[name]));payment.appendChild(row);});
-      grid.appendChild(payment);panel.appendChild(grid);
-
-      var detailGrid=el('div',null,'pmd-group-report-grid');
-      var hourly=el('section',null,'pmd-group-report-section');hourly.appendChild(el('h3','Sales by hour'));var hourlyData=dash.sales_by_hour||{};var hourlyAny=false;
-      Object.keys(hourlyData).forEach(function(currency){Object.keys(hourlyData[currency]||{}).forEach(function(bucket){hourlyAny=true;var row=el('div',null,'pmd-group-series-row');row.appendChild(el('span',bucket));row.appendChild(el('strong',money(hourlyData[currency][bucket],currency)));hourly.appendChild(row);});});
-      if(!hourlyAny)hourly.appendChild(el('p','No hourly sales data in this period.','pmd-group-muted'));detailGrid.appendChild(hourly);
-
-      var category=el('section',null,'pmd-group-report-section');category.appendChild(el('h3','Sales by category'));var categoryData=dash.category_sales||{};var categoryAny=false;
-      Object.keys(categoryData).forEach(function(currency){Object.keys(categoryData[currency]||{}).slice(0,12).forEach(function(name){categoryAny=true;var row=el('div',null,'pmd-group-series-row');row.appendChild(el('span',name));row.appendChild(el('strong',money(categoryData[currency][name],currency)));category.appendChild(row);});});
-      if(!categoryAny)category.appendChild(el('p','No category sales data in this period.','pmd-group-muted'));detailGrid.appendChild(category);panel.appendChild(detailGrid);
-
-      var restaurants=el('section',null,'pmd-group-report-section');restaurants.appendChild(el('h3','Restaurants'));
-      (data.locations||[]).forEach(function(row){var line=el('div',null,'pmd-group-location-result'+(row.available?'':' is-error'));line.appendChild(el('strong',row.label));line.appendChild(el('span',row.available?(row.revenue+' '+row.currency+' · '+row.orders+' orders'):row.message));restaurants.appendChild(line);});
-      panel.appendChild(restaurants);
-      panel.appendChild(el('p','Reporting changes in-place. The URL and signed-in restaurant do not change; Floor and live operational controls stay isolated to the current restaurant.','pmd-group-note'));
+    var control=scopeControl();if(!control.wrap.isConnected)actions.prepend(control.wrap);
+    var current=String(context.current_tenant_id), selectedScope=current, sequence=0;
+    var reportCache=Object.create(null);
+    var floor=root.querySelector('#pmd-r2-shared-floor-canvas-v310, [data-pmd-floor]');
+    var floorCanvas=floor&&floor.querySelector('[data-floor-canvas]');
+    var floorScroll=floor&&floor.querySelector('[data-floor-scroll]');
+    var originalFloorNodes=document.createDocumentFragment();
+    var originalCanvasStyle=floorCanvas?floorCanvas.getAttribute('style'):null;
+    var originalScrollStyle=floorScroll?floorScroll.getAttribute('style'):null;
+    var floorBorrowed=false;
+    function stashNativeFloor(){
+      if(!floorCanvas||floorBorrowed)return;
+      while(floorCanvas.firstChild)originalFloorNodes.appendChild(floorCanvas.firstChild);
+      floorBorrowed=true;
     }
-
+    function restoreNativeFloor(){
+      if(!floorCanvas||!floorBorrowed)return;
+      floorCanvas.replaceChildren(originalFloorNodes);
+      if(originalCanvasStyle===null)floorCanvas.removeAttribute('style');
+      else floorCanvas.setAttribute('style',originalCanvasStyle);
+      if(floorScroll){
+        if(originalScrollStyle===null)floorScroll.removeAttribute('style');
+        else floorScroll.setAttribute('style',originalScrollStyle);
+      }
+      floorCanvas.classList.remove('pmd-group-floor-readonly-canvas');
+      floorBorrowed=false;
+    }
+    function showFloorNotice(text){
+      if(!floorCanvas)return;
+      stashNativeFloor();floorCanvas.replaceChildren();
+      floorCanvas.classList.add('pmd-group-floor-readonly-canvas');
+      var strip=!!(floor&&floor.classList.contains('is-strip-mode'));
+      var height=strip?146:560;
+      floorCanvas.style.width=strip?'100%':'1000px';
+      floorCanvas.style.minWidth=strip?'100%':'1000px';
+      floorCanvas.style.height=height+'px';
+      floorCanvas.style.minHeight=height+'px';
+      floorCanvas.style.transform='none';
+      if(floorScroll){
+        floorScroll.style.height=height+'px';
+        floorScroll.style.minHeight=height+'px';
+        floorScroll.style.maxHeight=height+'px';
+      }
+      var message=el('p',text,'pmd-group-floor-readonly-message');
+      message.setAttribute('role','status');
+      floorCanvas.appendChild(message);
+    }
+    function displayGroupFloor(data){
+      if(!floorCanvas)return;
+      if(selectedScope==='all'||(data&&data.floor&&data.floor.disabled)){
+        // R24: One financial scope for all sites, but NO mixed restaurant Floor.
+        showFloorNotice('Select one restaurant to view its Floor.');
+        return;
+      }
+      var siteList=data&&data.floor&&data.floor.restaurants;
+      var sites=Array.isArray(siteList)?siteList:[];
+      if(sites.length!==1){
+        showFloorNotice('Restaurant Floor is not available for this selection.');
+        return;
+      }
+      var site=sites[0];
+      if(site.available!==true){
+        showFloorNotice((site.label||'Restaurant')+': '+(site.message||'Floor is unavailable.'));
+        return;
+      }
+      var tables=Array.isArray(site.tables)?site.tables.slice(0,250):[];
+      if(!tables.length){
+        showFloorNotice('No tables have been created in this restaurant.');
+        return;
+      }
+      // Use EXACTLY the existing native Floor's button, status colors and
+      // single-row calibration. The previous custom grey cards and artificial
+      // grid are not part of the PayMyDine Floor design.
+      stashNativeFloor();floorCanvas.replaceChildren();
+      floorCanvas.classList.add('pmd-group-floor-readonly-canvas');
+      var strip=!!(floor&&floor.classList.contains('is-strip-mode'));
+      tables.sort(function(a,b){
+        var na=Number(a.number),nb=Number(b.number);
+        if(Number.isFinite(na)&&Number.isFinite(nb)&&na!==nb)return na-nb;
+        return String(a.number||'').localeCompare(String(b.number||''),undefined,{numeric:true});
+      });
+      var cursor=24;
+      var height=strip?146:560;
+      var width=strip?Math.max(1000,24+tables.length*(108+18)):1000;
+      floorCanvas.style.width=width+'px';
+      floorCanvas.style.minWidth=width+'px';
+      floorCanvas.style.height=height+'px';
+      floorCanvas.style.minHeight=height+'px';
+      floorCanvas.style.transform='none';
+      if(floorScroll){
+        floorScroll.style.height=height+'px';
+        floorScroll.style.minHeight=height+'px';
+        floorScroll.style.maxHeight=height+'px';
+      }
+      tables.forEach(function(table,index){
+        var status=String(table.status||'unknown');
+        if(['available','occupied','reserved','cleaning','attention','disabled','unknown'].indexOf(status)<0)status='unknown';
+        var w=108,h=88;
+        var x=strip?cursor+w/2:Number(table.x);
+        var y=strip?22+h/2:Number(table.y);
+        if(!Number.isFinite(x))x=80+(index%6)*150;
+        if(!Number.isFinite(y))y=60+Math.floor(index/6)*110;
+        if(strip)cursor+=w+18;
+        var node=el('button',null,'pmd-floor-v1__table pmd-group-floor-readonly-table');
+        node.type='button';
+        node.dataset.status=status;
+        // Parent Floor is inert for remote sites; do not apply a disabled
+        // button style that would change the native table appearance.
+        node.setAttribute('aria-label',(table.name||'Table '+table.number)+' · '+site.label+' · Read only');
+        node.title=(table.name||'Table '+table.number)+' · '+site.label+' (read only)';
+        if(status==='available')node.setAttribute('data-pmd-range-color','free');
+        else if(status==='occupied')node.setAttribute('data-pmd-range-color','busy');
+        else if(status==='reserved')node.setAttribute('data-pmd-range-color','rangeReservation');
+        node.style.left=x+'px';node.style.top=y+'px';
+        node.style.width=w+'px';node.style.height=h+'px';
+        node.appendChild(el('strong',table.number||table.name||'—','pmd-floor-v1__table-number'));
+        if(status!=='available'&&status!=='occupied'&&status!=='unknown'){
+          node.appendChild(el('span',status.replace(/-/g,' '),'pmd-floor-v1__table-meta'));
+        }
+        floorCanvas.appendChild(node);
+      });
+      if(site.truncated){
+        var more=el('p','Showing the first 250 tables.','pmd-group-floor-readonly-limit');
+        floorCanvas.appendChild(more);
+      }
+    }
+    var kpiTemplate={};
+    try{
+      var kpiData=document.getElementById('pmd-dashboard-lab-kpi-data');
+      if(kpiData)kpiTemplate=JSON.parse(kpiData.textContent||'{}')||{};
+    }catch(ignored){}
+    window.PMDRestaurantGroupsV1={
+      isRemoteScope:function(){return selectedScope!==current;},
+      selectedScope:function(){return selectedScope;},
+      currentTenantId:Number(context.current_tenant_id)
+    };
+    function report(scope,period){
+      var key=scope+'|'+period, entry=reportCache[key];
+      if(entry&&Date.now()-entry.at<30000)return entry.promise;
+      var promise=request('dashboard?scope='+encodeURIComponent(scope)+'&period='+encodeURIComponent(period)).catch(function(error){
+        if(reportCache[key]&&reportCache[key].promise===promise)delete reportCache[key];
+        throw error;
+      });
+      reportCache[key]={at:Date.now(),promise:promise};
+      return promise;
+    }
+    function issue(data){
+      if(!data||data.ok!==true)return 'Group reporting is unavailable.';
+      var rows=Array.isArray(data.locations)?data.locations:[];
+      if(!rows.length)return 'No authorized restaurant reporting data.';
+      var failed=rows.find(function(row){return row.available!==true;});
+      if(failed)return failed.message||'Restaurant reporting settings need attention.';
+      var detail=(data.dashboard&&data.dashboard.restaurants)||[];
+      failed=detail.find(function(row){return row.available!==true;});
+      if(failed)return failed.message||'Restaurant dashboard data is unavailable.';
+      return null;
+    }
+    function currencyValue(value,code){
+      if(!/^[A-Z]{3}$/.test(String(code||'')))return '—';
+      try{return new Intl.NumberFormat(document.documentElement.lang||'en',{style:'currency',currency:code}).format(Number(value));}
+      catch(ignored){return String(value)+' '+code;}
+    }
+    function kpisFor(today,month,loading){
+      var result={};
+      Object.keys(kpiTemplate).forEach(function(key){
+        var sample=kpiTemplate[key]||{};
+        var period=sample.period==='month'?'month':'today';
+        var data=period==='month'?month:today, problem=loading?'Loading restaurant data…':issue(data);
+        var groupData=data&&data.dashboard||{};
+        var totals=Array.isArray(data&&data.totals)?data.totals:[];
+        var financial=!!data&&!problem&&!data.mixed_currency&&totals.length===1;
+        var row=financial?totals[0]:null;
+        var value='—', available=false;
+        if(!problem){
+          if(key==='revenue'&&financial){value=currencyValue(row.revenue,row.currency);available=true;}
+          else if(key==='tips'&&financial){value=currencyValue(row.tips,row.currency);available=true;}
+          else if(key==='guests'){value=String(groupData.guests||0);available=true;}
+          else if(key==='turnover'&&groupData.turnover_minutes!=null){value=String(groupData.turnover_minutes)+' min';available=true;}
+          else if(key==='channels'){var channels=groupData.channels||{};value=String(channels.dine_in||0)+' / '+String(channels.takeaway||0);available=true;}
+        }
+        var reason=problem||(!available?(data&&data.mixed_currency?'Currencies cannot be combined.':'Not available in group reporting.'):((period==='month'?'This month':'Today')+' · '+(data.scope_label||'Restaurant')));
+        result[key]=Object.assign({},sample,{
+          value:value,connected:available,description:reason,
+          source:'PayMyDine Restaurant Groups · read only',
+          pmd_group_unavailable:!available
+        });
+      });
+      return result;
+    }
+    function scopedAnalytics(data,todayForHour){
+      var problem=issue(data),dash=data&&data.dashboard||{};
+      var hourData=todayForHour||data, hourProblem=issue(hourData),hourDash=hourData&&hourData.dashboard||{};
+      var totals=Array.isArray(data&&data.totals)?data.totals:[];
+      var financial=!problem&&!data.mixed_currency&&totals.length===1;
+      var currency=financial?totals[0].currency:'EUR';
+      var orderTotal=Array.isArray(data&&data.locations)
+        ?data.locations.reduce(function(sum,row){return sum+Number(row&&row.orders||0);},0):null;
+      var reason=problem||(data&&data.mixed_currency?'Multiple currencies cannot be combined.':'This metric is not available for group reporting.');
+      function missing(why){return {available:false,reason:why||reason};}
+      function moneySeries(source){var rows=(source||{})[currency]||{};return Object.keys(rows).sort().map(function(key){return {bucket:key,sales:Number(rows[key]),orders:0};});}
+      var series=financial?moneySeries(dash.sales_series):[];
+      var hourlyValid=financial&&!hourProblem&&!hourData.mixed_currency;
+      var hours=hourlyValid?Object.keys((hourDash.sales_by_hour||{})[currency]||{}).sort().map(function(key){
+        return {hour:Number(String(key).split(':')[0]),sales:Number(hourDash.sales_by_hour[currency][key]),orders:0};
+      }):[];
+      var cat=financial?Object.keys((dash.category_sales||{})[currency]||{}).map(function(name){
+        return {category:name,revenue:Number(dash.category_sales[currency][name])};
+      }):[];
+      return {
+        success:true,pmd_group_scoped:true,period:data&&data.period||'today',
+        currency:currency,currency_symbol:currency==='EUR'?'€':currency==='GBP'?'£':currency==='USD'?'$':currency,
+        sales_over_time:financial?{available:true,empty:!series.length,buckets:series}:missing(reason),
+        sales_by_hour:hourlyValid?{available:true,empty:!hours.length,hours:hours}:missing(hourProblem||reason),
+        sales_by_category:financial?{available:true,empty:!cat.length,categories:cat}:missing(reason),
+        // The current Group API has payment counts but not monetary totals.
+        // It would be incorrect to feed counts into the native sales donut.
+        payment_methods:(!problem&&orderTotal===0)
+          ? {available:true,empty:true,methods:[],reason:'No settled payments in this period.'}
+          :missing('Group payment amounts by method are not verified.'),
+        channels:missing('Group channel revenue is not available.'),
+        top_items:missing('Group top items are not available.'),
+        live_operations:missing('Live orders remain in the signed-in restaurant.'),
+        recent_transactions:missing('Cross-restaurant transactions are not available.'),
+        alerts:missing('Alerts remain in the signed-in restaurant.'),
+        reviews:missing('Group reviews are not available.'),
+        tips:missing('Group tip breakdown is not available.'),
+        calendar_events:missing('Reservations remain in the signed-in restaurant.')
+      };
+    }
+    function applyKpis(today,month,loading){
+      if(!window.PMDDashboardLabKpisV1)return;
+      window.PMDDashboardLabKpisV1.applyLivePayload({
+        pmd_group_scoped:true,kpis:kpisFor(today,month,loading)
+      });
+    }
     function load(){
-      var local=control.select.value===String(context.current_tenant_id);
-      root.classList.toggle('pmd-group-dashboard-scope-active',!local);
-      panel.hidden=local;
-      if(local){++reportSequence;panel.replaceChildren();return;}
-      var seq=++reportSequence;panel.hidden=false;panel.replaceChildren(el('div','Loading restaurant reports…','pmd-group-loading'));
-      request('dashboard?scope='+encodeURIComponent(control.select.value)+'&period='+encodeURIComponent(period.value)).then(function(data){if(seq===reportSequence)render(data);}).catch(function(error){if(seq===reportSequence)panel.replaceChildren(el('p',error.message,'is-error'));});
+      var scope=String(control.select.value), version=++sequence;
+      selectedScope=scope;
+      var remote=scope!==current;
+      root.classList.toggle('pmd-group-dashboard-scope-active',remote);
+      if(floor){
+        floor.classList.toggle('pmd-group-floor-all-disabled',scope==='all');
+        floor.inert=remote;
+        floor.setAttribute('aria-disabled',remote?'true':'false');
+        floor.title=scope==='all'
+          ? 'Floor is disabled for All restaurants. Select one restaurant.'
+          : (remote
+            ? 'Restaurant Floor preview is read-only. Select the signed-in restaurant for operations.'
+            : '');
+      }
+      control.select.setAttribute('aria-busy',remote?'true':'false');
+      var analytics=window.PMDDashboardLabAnalyticsV1;
+      if(!remote){
+        restoreNativeFloor();
+        control.select.removeAttribute('aria-busy');
+        if(floor)floor.removeAttribute('aria-busy');
+        control.select.title=context.group.name;
+        if(window.PMDDashboardLabKpisV1)window.PMDDashboardLabKpisV1.restoreLocal();
+        if(analytics){analytics.setScopeProvider(null);analytics.refresh().catch(function(){});}
+        if(window.PMDDashboardLiveRefreshV1&&window.PMDDashboardLiveRefreshV1.refresh){
+          window.PMDDashboardLiveRefreshV1.refresh().catch(function(){});
+        }
+        return;
+      }
+      // R25: Never clear the existing KPI and chart values to
+      // "Loading" during a scope change. Mark the selector busy, keep the
+      // last verified snapshot, and apply the new scope when its data is ready.
+      if(scope==='all')showFloorNotice('Select one restaurant to view its Floor.');
+      if(floor)floor.setAttribute('aria-busy','true');
+      if(analytics){
+        analytics.setScopeProvider(function(period){
+          return Promise.all([
+            report(scope,period),
+            period==='last30'?report(scope,'today'):Promise.resolve(null)
+          ]).then(function(results){return scopedAnalytics(results[0],results[1]);});
+        });
+      }
+      Promise.allSettled([
+        report(scope,'today'),
+        report(scope,'month'),
+        report(scope,'last30')
+      ]).then(function(rows){
+        if(version!==sequence||selectedScope!==scope)return;
+        var today=rows[0].status==='fulfilled'?rows[0].value:null;
+        var month=rows[1].status==='fulfilled'?rows[1].value:null;
+        if(scope!=='all')displayGroupFloor(today);
+        applyKpis(today,month,false);
+        if(floor)floor.removeAttribute('aria-busy');
+        control.select.removeAttribute('aria-busy');
+        var problem=issue(today)||issue(month);
+        control.select.title=problem||context.group.name+' · read-only reporting';
+        // Cached report promises allow the native chart renderer to replace
+        // a complete chart in place without flashing loading placeholders.
+        if(analytics){
+          analytics.refresh().catch(function(error){
+            if(version===sequence)control.select.title=String(error&&error.message||'Restaurant reports unavailable');
+          });
+        }
+      });
     }
-    control.select.addEventListener('change',load);period.addEventListener('change',function(){if(control.select.value!==String(context.current_tenant_id))load();});
-  }
-
-  function renderMenuPanel(panel,data){
-    panel.replaceChildren();
-    var head=el('div',null,'pmd-group-menu-panel__head');var copy=el('div');copy.appendChild(el('span',context.group.name,'pmd-group-eyebrow'));copy.appendChild(el('h2',data.scope_label||'Menu'));head.appendChild(copy);panel.appendChild(head);
-    panel.appendChild(el('p','This cross-restaurant view is read-only. Edit the current restaurant normally, then use “Apply to locations” to publish saved changes to selected restaurants.','pmd-group-note'));
-    (data.locations||[]).forEach(function(location){
-      var section=el('section',null,'pmd-group-menu-location');var title=el('div',null,'pmd-group-menu-location__title');title.appendChild(el('h3',location.label));title.appendChild(el('span',String((location.items||[]).length)+' items'));section.appendChild(title);
-      if(!location.available){section.appendChild(el('p',location.message||'Menu unavailable.','is-error'));panel.appendChild(section);return;}
-      var list=el('div',null,'pmd-group-menu-items');
-      (location.items||[]).forEach(function(item){var row=el('article',null,'pmd-group-menu-item');var copy2=el('div');copy2.appendChild(el('strong',item.name));var meta=[];if(item.categories&&item.categories.length)meta.push(item.categories.join(', '));meta.push(item.published?'Published':'Hidden');if(item.stock_out)meta.push('Stock out');copy2.appendChild(el('span',meta.join(' · ')));row.appendChild(copy2);row.appendChild(el('b',item.price==null?'—':item.price));list.appendChild(row);});
-      if(!(location.items||[]).length)list.appendChild(el('p','No menu items.','pmd-group-muted'));
-      section.appendChild(list);panel.appendChild(section);
-    });
+    control.select.addEventListener('change',load);
   }
 
   function menuMount(){
     var root=document.querySelector('[data-pmd-menu-manager]');if(!root)return;
     var header=root.querySelector('#pmd-r2-clean-header, .pmd-menu-manager__topbar, header');
-    var actions=header&&header.querySelector('[data-pmd-menu-header-actions], .pmd-owner-header__actions');if(!header||!actions)return;
-    var control=scopeControl();actions.prepend(control.wrap);
+    var actions=header&&header.querySelector('[data-pmd-menu-header-actions], .pmd-owner-header__actions');
+    var grid=root.querySelector('[data-pmd-menu-grid]');
+    var menuPanel=root.querySelector('[data-pmd-unified-menu-panel]');
+    var menuWasHidden=menuPanel?menuPanel.hidden:false;
+    var emptyResults=root.querySelector('[data-pmd-menu-no-results]');
+    var emptyWasHidden=emptyResults?emptyResults.hidden:true;
+    if(!header||!actions||!grid)return;
+    var control=scopeControl();if(!control.wrap.isConnected)actions.prepend(control.wrap);
     var applyButton=null;
     if(context.capabilities.publish){applyButton=button('Apply to locations',share,'pmd-group-header-button');actions.prepend(applyButton);}
-    var panel=el('section',null,'pmd-group-menu-panel');panel.hidden=true;header.after(panel);
-
+    var savedGrid=document.createDocumentFragment(),borrowed=false,version=0;
+    var savedKpis=Array.from(root.querySelectorAll('[data-pmd-menu-r22-kpi-value]')).map(function(node){return {node:node,value:node.textContent};});
+    function stash(){
+      if(borrowed)return;
+      while(grid.firstChild)savedGrid.appendChild(grid.firstChild);
+      borrowed=true;
+    }
+    function restore(){
+      if(borrowed){grid.replaceChildren(savedGrid);borrowed=false;}
+      savedKpis.forEach(function(row){row.node.textContent=row.value;});
+    }
+    function showMessage(message){
+      stash();grid.replaceChildren();
+      var node=el('div',message,'pmd-menu-card pmd-group-menu-message');
+      node.setAttribute('role','status');grid.appendChild(node);
+    }
+    function render(data){
+      stash();grid.replaceChildren();
+      if(!data||data.ok!==true){showMessage('Restaurant menu is unavailable.');return;}
+      var rows=data.locations||[],total=0,unavailable=rows.find(function(row){return row.available!==true;});
+      if(unavailable){showMessage(unavailable.message||'Restaurant menu is unavailable.');return;}
+      var items=[],categoryNames={};var stockOut=0,hidden=0;
+      rows.forEach(function(row){
+        (row.items||[]).forEach(function(item){
+          total++;
+          if(item.stock_out)stockOut++;
+          if(!item.published)hidden++;
+          (item.categories||[]).forEach(function(name){categoryNames[name]=true;});
+          if(items.length<500)items.push({item:item,location:row.label});
+        });
+      });
+      savedKpis.forEach(function(row){
+        var card=row.node.closest('[data-pmd-menu-r22-kpi-key]');
+        var key=card&&card.getAttribute('data-pmd-menu-r22-kpi-key');
+        var values={menu_items:total,categories:Object.keys(categoryNames).length,stock_out:stockOut,disabled:hidden,enabled:total-hidden};
+        if(Object.prototype.hasOwnProperty.call(values,key))row.node.textContent=String(values[key]);
+        else row.node.textContent='—';
+      });
+      items.forEach(function(entry){
+        var item=entry.item;
+        // The original menu card grid is reused, with no remote edit/delete
+        // actions and no ids bound to native write handlers.
+        var card=el('article',null,'pmd-menu-card pmd-group-menu-readonly-item');
+        card.setAttribute('aria-readonly','true');
+        var media=el('div',null,'pmd-menu-card__media');media.appendChild(el('div',null,'pmd-menu-card__placeholder'));card.appendChild(media);
+        var body=el('div',null,'pmd-menu-card__body');
+        var title=el('div',null,'pmd-menu-card__title-row');
+        title.appendChild(el('h2',item.name));title.appendChild(el('strong',item.price===null?'—':String(item.price)));
+        body.appendChild(title);
+        var category=el('p',(item.categories||[]).join(', ')||'Uncategorized','pmd-menu-card__description');
+        body.appendChild(category);
+        var statusText=(data.scope==='all'?entry.location+' · ':'')+(item.published?'Published':'Hidden')+' · '+(item.stock_out?'Out of stock':'In stock');
+        body.appendChild(el('div',statusText,'pmd-menu-card__availability'));card.appendChild(body);
+        grid.appendChild(card);
+      });
+      if(!items.length)showMessage('No menu items in this restaurant.');
+      else if(total>items.length)grid.appendChild(el('p','Showing the first '+items.length+' of '+total+' items.','pmd-group-muted'));
+    }
     function load(){
-      var local=control.select.value===String(context.current_tenant_id);
+      var scope=String(control.select.value),local=scope===String(context.current_tenant_id),seq=++version;
       root.classList.toggle('pmd-group-menu-scope-active',!local);
-      panel.hidden=local;
       if(applyButton)applyButton.hidden=!local;
-      if(local){panel.replaceChildren();return;}
-      panel.hidden=false;panel.replaceChildren(el('div','Loading restaurant menus…','pmd-group-loading'));
-      request('menu?scope='+encodeURIComponent(control.select.value)).then(function(data){renderMenuPanel(panel,data);}).catch(function(error){panel.replaceChildren(el('p',error.message,'is-error'));});
+      if(local){
+        restore();
+        if(menuPanel)menuPanel.hidden=menuWasHidden;
+        if(emptyResults)emptyResults.hidden=emptyWasHidden;
+        control.select.removeAttribute('aria-busy');
+        return;
+      }
+      if(menuPanel)menuPanel.hidden=false;
+      if(emptyResults)emptyResults.hidden=true;
+      showMessage('Loading restaurant menu…');control.select.setAttribute('aria-busy','true');
+      request('menu?scope='+encodeURIComponent(scope)).then(function(data){
+        if(seq===version)render(data);
+      }).catch(function(error){
+        if(seq===version)showMessage(error.message||'Restaurant menu is unavailable.');
+      }).finally(function(){
+        if(seq===version)control.select.removeAttribute('aria-busy');
+      });
     }
     control.select.addEventListener('change',load);
   }
 
   function genericMount(){
     var root=document.querySelector('.page-content, main');if(!root)return;
-    var bar=el('div',null,'pmd-group-toolbar');bar.appendChild(el('strong',context.group.name));bar.appendChild(button('Business account',account));if(type&&context.capabilities.publish)bar.appendChild(button('Apply to locations',share));root.prepend(bar);
+    if(type&&context.capabilities.publish){var bar=el('div',null,'pmd-group-toolbar');bar.appendChild(button('Apply to locations',share));root.prepend(bar);}
   }
 
   function contextFailure(error){
@@ -200,11 +498,17 @@
     actions.prepend(notice);
   }
 
-  request('context').then(function(data){
-    if(!data.enabled)return;
+  function mount(data){
+    if(!data||!data.enabled)return;
     context=data;
     if(dashboard){dashboardMount();return;}
     if(menuPage){menuMount();return;}
     genericMount();
-  }).catch(contextFailure);
+  }
+  // First-paint server context makes the selector interactive without an
+  // additional async context roundtrip on the canonical Dashboard/Menu.
+  var preloaded=document.getElementById('pmd-group-initial-context'),first=null;
+  if(preloaded){try{first=JSON.parse(preloaded.textContent||'null');}catch(ignored){}}
+  if(first&&first.enabled)mount(first);
+  else request('context').then(mount).catch(contextFailure);
 })();

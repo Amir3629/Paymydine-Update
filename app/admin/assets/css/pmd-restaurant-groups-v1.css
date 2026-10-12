@@ -53,8 +53,25 @@
 .pmd-group-header-button{min-height:40px;padding:0 12px;border:1px solid #d8e5e0;border-radius:10px;background:#fff;color:#174d3e;font:800 12px/1 system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 .pmd-group-dashboard-panel,.pmd-group-menu-panel{margin:0 0 18px;padding:18px;border:1px solid #dce8e4;border-radius:16px;background:#fff;color:#17372f}
 .pmd-group-dashboard-panel[hidden],.pmd-group-menu-panel[hidden]{display:none!important}
-#pmd-ownerboard.pmd-group-dashboard-scope-active>:not(.pmd-ownerboard-v2__header):not(.pmd-group-dashboard-panel){display:none!important}
-[data-pmd-menu-manager].pmd-group-menu-scope-active>:not(#pmd-r2-clean-header):not(.pmd-group-menu-panel){display:none!important}
+/* R18: never hide or replace the native Dashboard/Floor/analytics geometry.
+   The already-existing KPI/chart widgets receive scoped read-only data instead. */
+.pmd-group-dashboard-scope-active .pmd-group-scope-switch select{font-weight:850!important}
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-unified-inventory-panel],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-stock-usage-workspace]{display:none!important}
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-create],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-header-primary],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-header-secondary],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-workspace-toggle-r23],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-food-categories],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-stock-filter],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-menu-sort-toggle],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-smart-server-action-card],
+[data-pmd-menu-manager].pmd-group-menu-scope-active [data-pmd-header-expand-search]{display:none!important}
+.pmd-group-menu-readonly-item{cursor:default!important}
+.pmd-group-menu-readonly-item .pmd-menu-card__media{pointer-events:none}
+.pmd-group-menu-readonly-item .pmd-menu-card__availability{padding:9px 0;min-height:28px}
+.pmd-group-menu-message{padding:22px!important;min-height:100px;display:flex;align-items:center;color:#546b61}
+
 .pmd-group-dashboard-panel__head,.pmd-group-menu-panel__head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
 .pmd-group-dashboard-panel h2,.pmd-group-menu-panel h2{margin:2px 0 0;font-size:22px;line-height:1.2}
 .pmd-group-period{display:grid;gap:4px;margin:0;min-width:140px}.pmd-group-period>span{font-size:10px;font-weight:850;text-transform:uppercase;color:#71857e}.pmd-group-period select{min-height:36px;border:1px solid #d8e5e0;border-radius:8px;background:#fff;padding:6px 9px}
@@ -67,3 +84,122 @@
 .pmd-group-menu-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.pmd-group-menu-item{display:flex;justify-content:space-between;gap:14px;padding:11px 12px;border:1px solid #e1ebe7;border-radius:10px;background:#fafcfb}.pmd-group-menu-item strong,.pmd-group-menu-item span{display:block}.pmd-group-menu-item strong{font-size:13px}.pmd-group-menu-item span{margin-top:3px;color:#71857e;font-size:10px}.pmd-group-menu-item b{font-size:12px;white-space:nowrap}
 @media(max-width:980px){.pmd-group-report-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.pmd-group-report-grid{grid-template-columns:1fr}.pmd-group-menu-items{grid-template-columns:1fr}.pmd-group-scope-caption{display:none}.pmd-group-scope-switch{grid-template-columns:minmax(120px,1fr)}}
 @media(max-width:620px){.pmd-group-report-cards{grid-template-columns:1fr}.pmd-group-dashboard-panel__head,.pmd-group-menu-panel__head{flex-direction:column}.pmd-group-scope-switch{max-width:165px}.pmd-group-header-button{display:none}}
+
+/* PMD QUICK SETUP R19 — a single, persistent action in the EXISTING header.
+   Shown by the tenant's server-side unfinished status; never a popup reminder. */
+#pmd-dashboard-lab [data-pmd-quick-setup-return],
+[data-pmd-menu-manager] [data-pmd-quick-setup-return] {
+    appearance: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    width: auto !important;
+    min-width: 100px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    border: 1px solid #bfd9ce !important;
+    border-radius: 10px !important;
+    background: #edf8f3 !important;
+    color: #0b523c !important;
+    font-size: 12px !important;
+    font-weight: 750 !important;
+    line-height: 1.1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    cursor: pointer !important;
+}
+#pmd-dashboard-lab [data-pmd-quick-setup-return]:hover,
+[data-pmd-menu-manager] [data-pmd-quick-setup-return]:hover {
+    background: #dff2e8 !important;
+    border-color: #8fc1ab !important;
+}
+#pmd-dashboard-lab [data-pmd-quick-setup-return]:focus-visible,
+[data-pmd-menu-manager] [data-pmd-quick-setup-return]:focus-visible {
+    outline: 3px solid #318b68 !important;
+    outline-offset: 3px !important;
+}
+@media (max-width: 680px) {
+    #pmd-dashboard-lab [data-pmd-quick-setup-return],
+    [data-pmd-menu-manager] [data-pmd-quick-setup-return] {
+        min-width: 0 !important;
+        padding: 0 8px !important;
+        font-size: 11px !important;
+    }
+}
+
+/* R24: no duplicate Floor card design. Native .pmd-floor-v1__table
+   supplies EXACT original geometry, border, hover and status colors.
+   Remote sites remain isolated read-only; no POS/table-edit handlers. */
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-readonly-table{
+    pointer-events:none!important;
+    cursor:default!important;
+}
+/* If the native Floor refreshes in the background, never show the
+   signed-in tenant's operational cards under a DIFFERENT selected label.
+   This visibility guard applies only in remote Group scope, not locally. */
+#pmd-dashboard-lab.pmd-group-dashboard-scope-active
+#pmd-r2-shared-floor-canvas-v310
+[data-floor-canvas] > .pmd-floor-v1__table:not(.pmd-group-floor-readonly-table){
+    display:none!important;
+}
+#pmd-r2-shared-floor-canvas-v310.pmd-group-floor-all-disabled
+[data-floor-canvas] > .pmd-floor-v1__table{
+    display:none!important;
+}
+/* Only unknown operational status is neutral; never imply availability. */
+body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table.pmd-group-floor-readonly-table[data-status="unknown"]{
+    background:#f1f7f4!important;
+    background-color:#f1f7f4!important;
+    border-color:#bad2c8!important;
+    color:#153d32!important;
+}
+/* "All restaurants" is financial reporting ONLY: Floor has no combined
+   table state, actions, edit controls or accidental local tenant buttons. */
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310.pmd-group-floor-all-disabled
+#pmd-r2-floor-toolbar-host-v464{
+    opacity:.40!important;
+    pointer-events:none!important;
+}
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310.pmd-group-floor-all-disabled
+.pmd-floor-v1__stage{
+    opacity:.72!important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-readonly-message{
+    display:flex!important;
+    position:absolute!important;
+    inset:0!important;
+    align-items:center!important;
+    justify-content:center!important;
+    margin:0!important;
+    padding:18px 28px!important;
+    color:#637a70!important;
+    text-align:center!important;
+    font-size:13px!important;
+    line-height:1.5!important;
+    pointer-events:none!important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-readonly-limit{
+    position:absolute!important;
+    top:100px!important;
+    left:24px!important;
+    color:#637a70!important;
+    font-size:12px!important;
+    pointer-events:none!important;
+}

@@ -29,6 +29,7 @@
 
   var VERSION = '1.1.0-server-first-paint';
   var cards = {};
+  var nativeCards = {};
   var activeMenu = null;
 
   try {
@@ -36,6 +37,8 @@
   } catch (error) {
     cards = {};
   }
+
+  nativeCards = cards;
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(
@@ -183,16 +186,24 @@
     card.title = data.source || '';
 
     if (iconNode) {
-      iconNode.innerHTML = icon(data.icon || 'money');
+      // R25: Rebuilding an unchanged KPI SVG on every restaurant-scope
+      // update causes a visible icon blink even though its type is identical.
+      var iconKey = String(data.icon || 'money');
+      if (iconNode.getAttribute('data-pmd-kpi-rendered-icon') !== iconKey) {
+        iconNode.innerHTML = icon(iconKey);
+        iconNode.setAttribute('data-pmd-kpi-rendered-icon', iconKey);
+      }
     }
 
     if (titleNode) titleNode.textContent = data.title || key;
     // PMD_KPI_ZERO_SWAP_V1
     if (valueNode) {
       var pmdValue = data.value == null ? '' : String(data.value).trim();
-      valueNode.textContent = (!pmdValue || pmdValue === '—' || pmdValue === '–' || pmdValue === '-')
-        ? '0'
-        : String(data.value);
+      valueNode.textContent = data.pmd_group_unavailable === true
+        ? '—'
+        : ((!pmdValue || pmdValue === '—' || pmdValue === '–' || pmdValue === '-')
+          ? '0'
+          : String(data.value));
     }
     if (descriptionNode) {
       descriptionNode.textContent = data.description || '';
@@ -286,6 +297,11 @@
 
     if (!nextCards) return false;
 
+    // A local live-refresh must never overwrite a cross-restaurant selection.
+    if (window.PMDRestaurantGroupsV1 && window.PMDRestaurantGroupsV1.isRemoteScope()
+        && payload.pmd_group_scoped !== true) return false;
+
+    if (payload.pmd_group_scoped !== true) nativeCards = nextCards;
     cards = nextCards;
 
     visibleCards().forEach(function (card) {
@@ -310,6 +326,9 @@
     renderAuthority: 'server-first-paint',
     bootFetches: 0,
     applyLivePayload: applyLivePayload,
+    restoreLocal: function () {
+      return applyLivePayload({kpis: nativeCards, pmd_group_scoped: true});
+    },
     choose: function (slot, key) {
       var card = section.querySelector(
         '[data-pmd-dashboard-lab-slot="' + String(slot) + '"]'

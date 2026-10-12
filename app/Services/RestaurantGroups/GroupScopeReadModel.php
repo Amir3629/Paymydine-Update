@@ -18,6 +18,7 @@ final class GroupScopeReadModel
         $ids = $this->scopeIds($scope, $context);
         $base = $this->snapshot->snapshot($scope, $period);
         $details = [];
+        $floorSites = [];
         $series = [];
         $payments = [];
         $hourly = [];
@@ -30,6 +31,27 @@ final class GroupScopeReadModel
 
         foreach ($ids as $tenantId) {
             $label = $this->label($tenantId, $context);
+
+            // R22: Floor discovery is intentionally independent of settlement
+            // reporting. A missing historical clock must not leave the signed-in
+            // restaurant's operational cards under a different site label.
+            // R24: All restaurants is a financial reporting scope only.
+            // Never mix operational tables from separate restaurants.
+            if ($scope !== 'all') {
+            try {
+                $floorSites[] = $this->readOnlyFloorSite($tenantId, $label, $context);
+            } catch (\Throwable $floorError) {
+                $floorSites[] = [
+                    'tenant_id' => $tenantId,
+                    'label' => $label,
+                    'available' => false,
+                    'message' => $floorError instanceof \DomainException
+                        ? $floorError->getMessage()
+                        : 'Restaurant floor data is unavailable.',
+                    'tables' => [],
+                ];
+            }
+            }
 
             try {
                 $extra = $this->dashboardSite($tenantId, $period);
@@ -99,6 +121,10 @@ final class GroupScopeReadModel
             'scope_label' => $scope === 'all'
                 ? 'All restaurants'
                 : $this->label((int)$ids[0], $context),
+            // R22: read-only native Floor projection, not an operational
+            // cross-tenant login or an editable dashboard replacement.
+            'floor' => ['read_only' => true, 'disabled' => $scope === 'all',
+                'restaurants' => $floorSites],
             'dashboard' => [
                 'guests' => $guests,
                 'turnover_minutes' => $turnoverSamples > 0
@@ -445,6 +471,146 @@ final class GroupScopeReadModel
             'sales_series' => $series,
             'sales_by_hour' => $hourly,
             'category_sales' => $categorySales,
+        ];
+    }
+
+    /**
+     * R22: bounded, tenant-isolated Floor projection for an authorized Group
+     * Owner. Never include guest/order/customer data, remote action URLs or
+     * table IDs usable for writes. Occupancy is not claimed without an
+     * explicit operational status; native reservations may further constrain
+     * availability and are deliberately not inferred here.
+     */
+    private function readOnlyFloorSite(int $tenantId, string $label, array $context): array
+    {
+        $this->store->access((int)$context['owner']['id'], $tenantId);
+        $site = $this->store->site($tenantId);
+        PublicationRules::member($site, (int)$context['group']['id']);
+        $db = $this->store->connection($tenantId);
+        $schema = $db->getSchemaBuilder();
+        if (!$schema->hasTable('tables')) {
+            return ['tenant_id'=>$tenantId, 'label'=>$label, 'available'=>false,
+                'message'=>'Restaurant table storage is unavailable.', 'tables'=>[]];
+        }
+
+        $columns = array_flip($schema->getColumnListing('tables'));
+        if (!isset($columns['table_id'])) {
+            return ['tenant_id'=>$tenantId, 'label'=>$label, 'available'=>false,
+                'message'=>'Restaurant table schema is incomplete.', 'tables'=>[]];
+        }
+
+        $query = $db->table('tables');
+        if (isset($columns['location_id'])) {
+            $query->where('location_id', (int)$site->location_id);
+        } else {
+            // TastyIgniter normally attaches tables through polymorphic
+            // locationables, not a location_id column on "tables".
+            // Only use all tables when this tenant has ONE location; never
+            // accidentally expose another location within the same DB.
+            $mapped = false;
+            if ($schema->hasTable('locationables')) {
+                $rel = array_flip($schema->getColumnListing('locationables'));
+                if (isset($rel['location_id'], $rel['locationable_type'], $rel['locationable_id'])) {
+                    $ids = $db->table('locationables')
+                        ->where('location_id', (int)$site->location_id)
+                        ->whereIn('locationable_type', ['tables', 'Admin\\Models\\Tables_model'])
+                        ->pluck('locationable_id')->map(static fn ($value) => (int)$value)
+                        ->filter()->unique()->values()->all();
+                    if ($ids) {
+                        $query->whereIn('table_id', $ids);
+                        $mapped = true;
+                    } elseif ($db->table('locationables')
+                        ->whereIn('locationable_type', ['tables', 'Admin\\Models\\Tables_model'])
+                        ->exists()) {
+                        $query->whereRaw('1 = 0');
+                        $mapped = true;
+                    }
+                }
+            }
+            if (!$mapped && $schema->hasTable('location_tables')) {
+                $rel = array_flip($schema->getColumnListing('location_tables'));
+                if (isset($rel['location_id'], $rel['table_id'])) {
+                    $ids = $db->table('location_tables')
+                        ->where('location_id', (int)$site->location_id)
+                        ->pluck('table_id')->map(static fn ($value) => (int)$value)
+                        ->filter()->unique()->values()->all();
+                    if ($ids) {
+                        $query->whereIn('table_id', $ids);
+                        $mapped = true;
+                    }
+                }
+            }
+            if (!$mapped) {
+                if (!$schema->hasTable('locations')
+                    || (int)$db->table('locations')->count() !== 1) {
+                    return ['tenant_id'=>$tenantId, 'label'=>$label, 'available'=>false,
+                        'message'=>'Table location mapping cannot be verified.', 'tables'=>[]];
+                }
+            }
+        }
+
+        $nameColumn = isset($columns['table_name']) ? 'table_name'
+            : (isset($columns['table_no']) ? 'table_no' : 'table_id');
+        $fields = ['table_id', $nameColumn];
+        foreach ([
+            'table_no', 'operational_status', 'table_status', 'floor_x',
+            'floor_y', 'floor_width', 'floor_height', 'floor_notes',
+            'visible_on_floor_plan', 'priority',
+        ] as $optional) {
+            if (isset($columns[$optional]) && !in_array($optional, $fields, true)) {
+                $fields[] = $optional;
+            }
+        }
+
+        // R24: use each restaurant's own canonical table-centre coordinates
+        // and physical operational_status; the old Group UI invented a new
+        // table grid and incorrectly treated even "available" as unknown.
+        $records = $query->orderBy('table_id')->limit(251)->get($fields);
+        $statusAllowed = ['available', 'occupied', 'reserved', 'cleaning', 'attention', 'disabled'];
+        $tables = [];
+        foreach ($records->take(250) as $index => $row) {
+            if (isset($columns['visible_on_floor_plan'])
+                && !$row->visible_on_floor_plan) continue;
+            $number = trim((string)($row->table_no ?? ''));
+            $name = trim((string)($row->{$nameColumn} ?? ''));
+            if (in_array(strtolower($name), ['cashier','delivery'], true)) continue;
+
+            $status = strtolower(trim((string)($row->operational_status ?? '')));
+            if ($status === 'free') $status = 'available';
+            if (isset($columns['table_status']) && !(bool)($row->table_status ?? true)) {
+                $status = 'disabled';
+            }
+            if ($status !== 'disabled'
+                && trim((string)($row->floor_notes ?? '')) !== ''
+                && $status !== 'occupied') $status = 'attention';
+            if (!in_array($status, $statusAllowed, true)) $status = 'unknown';
+
+            $x = isset($columns['floor_x']) && is_numeric($row->floor_x ?? null)
+                ? (float)$row->floor_x : (float)(80 + ($index % 6) * 150);
+            $y = isset($columns['floor_y']) && is_numeric($row->floor_y ?? null)
+                ? (float)$row->floor_y : (float)(60 + floor($index / 6) * 110);
+            // Align with Dashboardlab::buildFloorDisplayTables's native
+            // 1000x560 bounds; these values are CENTER coordinates.
+            $x = max(64.0, min(936.0, $x));
+            $y = max(54.0, min(506.0, $y));
+
+            $tables[] = [
+                'number' => mb_substr($number !== '' ? $number : $name, 0, 50),
+                'name' => mb_substr($name !== '' ? $name : $number, 0, 100),
+                'status' => $status,
+                'x' => $x,
+                'y' => $y,
+                'w' => 108,
+                'h' => 88,
+            ];
+        }
+        return [
+            'tenant_id' => $tenantId,
+            'label' => $label,
+            'available' => true,
+            'read_only' => true,
+            'tables' => $tables,
+            'truncated' => $records->count() > 250,
         ];
     }
 

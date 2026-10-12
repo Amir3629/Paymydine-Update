@@ -3,8 +3,8 @@
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 $action = $argv[1] ?? '';
 $root = realpath($argv[2] ?? '');
-if (!$root || !in_array($action, ['info', 'backup', 'install', 'health'], true)) {
-    fwrite(STDERR, "Usage: php pmd-groups-live-tool.php info|backup|install|health APP_ROOT\n");
+if (!$root || !in_array($action, ['info', 'backup', 'install', 'health', 'audit-products', 'audit-reporting', 'confirm-empty-clock', 'confirm-verified-history-clock'], true)) {
+    fwrite(STDERR, "Usage: php pmd-groups-live-tool.php info|backup|install|health|audit-products|audit-reporting|confirm-empty-clock|confirm-verified-history-clock APP_ROOT [SITE_ID UTC CONFIRMATION]\n");
     exit(2);
 }
 // Suppress accidental bootstrap output. SQL backup stdout must contain SQL only.
@@ -73,6 +73,219 @@ try {
     $stage = 'feature-enabled';
     if (!$store->enabled()) throw new RuntimeException('Restaurant Groups are disabled or storage is missing.');
 
+    if (in_array($action, ['audit-reporting', 'confirm-empty-clock', 'confirm-verified-history-clock'], true)) {
+        // R22: product-site reporting storage clock has to be based on real
+        // order history and the known application timestamp writer, not the
+        // display timezone, a static guessed UTC, or another tenant's data.
+        $stage = 'group-reporting-clock';
+        $sites = $store->central()->table('pmd_group_sites as s')
+            ->join('tenants as t', 't.id', '=', 's.tenant_id')
+            ->select('s.id as site_id', 's.tenant_id', 's.label', 's.state', 't.database', 't.status')
+            ->where('s.state','ready')->orderBy('s.id')->get();
+        $applicationClock = trim((string)config('app.timezone', ''));
+        $globalClock = trim((string)config('pmd_groups.reporting_storage_timezone', ''));
+        $siteFilter = 0;
+        $historyConfirmation = $action === 'confirm-verified-history-clock';
+        if ($action !== 'audit-reporting') {
+            $siteText = (string)($argv[3] ?? '');
+            $targetClock = (string)($argv[4] ?? '');
+            $phrase = (string)($argv[5] ?? '');
+            $requiredPhrase = $historyConfirmation
+                ? 'I_VERIFIED_EXISTING_SETTLEMENT_TIMESTAMPS_ARE_UTC'
+                : 'CONFIRM_EMPTY_ORDER_HISTORY';
+            if (!preg_match('/^[1-9][0-9]*$/D', $siteText)
+                || $targetClock !== $applicationClock
+                || $targetClock !== 'UTC'
+                || $phrase !== $requiredPhrase) {
+                throw new RuntimeException(
+                    'Usage: '.$action.' APP_ROOT SITE_ID UTC '.$requiredPhrase.'. '
+                    .'Only the verified UTC application writer is supported; inspect audit-reporting first.'
+                );
+            }
+            $siteFilter = (int)$siteText;
+        }
+        if ($siteFilter && !$sites->first(fn ($site) => (int)$site->site_id === $siteFilter)) {
+            throw new RuntimeException('Specified ready group site was not found.');
+        }
+        foreach ($sites as $site) {
+            if ($siteFilter && (int)$site->site_id !== $siteFilter) continue;
+            $tenantId = (int)$site->tenant_id;
+            $connection = $store->connection($tenantId, false);
+            if ((string)$connection->getDatabaseName() !== (string)$site->database) {
+                throw new RuntimeException('Site database mapping mismatch.');
+            }
+            $schema = $connection->getSchemaBuilder();
+            if (!$schema->hasTable('settings') || !$schema->hasTable('orders')) {
+                throw new RuntimeException('Restaurant settings/order schema is incomplete.');
+            }
+            $settingsColumns = array_flip($schema->getColumnListing('settings'));
+            foreach (['item', 'sort', 'value'] as $column) {
+                if (!isset($settingsColumns[$column])) {
+                    throw new RuntimeException('Restaurant reporting settings schema is incomplete.');
+                }
+            }
+            $configRows = $connection->table('settings')
+                ->where('sort','config')->where('item','pmd_groups_storage_timezone')->get();
+            if ($configRows->count() > 1) {
+                throw new RuntimeException('Duplicate reporting storage clocks require manual review.');
+            }
+            $configured = trim((string)($configRows->first()->value ?? ''));
+            $ordersCount = (int)$connection->table('orders')->count();
+            $ordersColumns = array_flip($schema->getColumnListing('orders'));
+            $settled = (isset($ordersColumns['settlement_status'],$ordersColumns['settled_at']))
+                ? (int)$connection->table('orders')
+                    ->whereIn('settlement_status',['paid','settled'])
+                    ->whereNotNull('settled_at')->count()
+                : -1;
+            $label = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', (string)$site->label));
+            // R23 historical-clock review exposes only the most recent
+            // financial timestamps; never customer or payment credentials.
+            $settlementRows = collect();
+            if (isset($ordersColumns['order_id'], $ordersColumns['settled_at'],
+                $ordersColumns['settlement_status'])) {
+                $columnsToInspect = array_values(array_intersect(
+                    ['order_id', 'settled_at', 'created_at', 'updated_at', 'settled_amount'],
+                    array_keys($ordersColumns)
+                ));
+                $settlementRows = $connection->table('orders')
+                    ->whereIn('settlement_status', ['paid','settled'])
+                    ->whereNotNull('settled_at')
+                    ->orderByDesc('order_id')
+                    ->limit(3)->get($columnsToInspect);
+            }
+            if ($action === 'audit-reporting') {
+                echo sprintf(
+                    "PMD REPORT SITE %d %s: orders=%d settled=%s storage=%s app_writer=%s global=%s %s\n",
+                    (int)$site->site_id, substr($label,0,55), $ordersCount,
+                    $settled>=0?(string)$settled:'schema_incomplete',
+                    $configured!==''?$configured:'not_confirmed',
+                    $applicationClock!==''?$applicationClock:'unknown',
+                    $globalClock!==''?$globalClock:'not_configured',
+                    $ordersCount===0 && $configured===''?'eligible_for_empty_site_confirmation':'verify_existing_history'
+                );
+                foreach ($settlementRows as $order) {
+                    echo sprintf(
+                        "PMD CLOCK EVIDENCE SITE %d: order=%d settled_at=%s created_at=%s updated_at=%s settled_amount=%s utc_now=%s\n",
+                        (int)$site->site_id,
+                        (int)($order->order_id ?? 0),
+                        (string)($order->settled_at ?? 'null'),
+                        (string)($order->created_at ?? 'unknown'),
+                        (string)($order->updated_at ?? 'unknown'),
+                        (string)($order->settled_amount ?? 'unknown'),
+                        \Carbon\Carbon::now('UTC')->format('Y-m-d H:i:s')
+                    );
+                }
+                continue;
+            }
+
+            // Explicit single-site mutation. Existing orders are NEVER
+            // reinterpreted automatically. A human has to compare the
+            // displayed settlement timestamps to the verified UTC writer
+            // before accepting them as UTC.
+            if ($configured !== '' || !in_array((string)$site->status,['active'],true)) {
+                throw new RuntimeException('Clock is already set or group site is inactive.');
+            }
+            if ($historyConfirmation) {
+                if ($ordersCount < 1 || $settled < 1 || $settlementRows->isEmpty()) {
+                    throw new RuntimeException('Historical UTC confirmation requires settled order evidence.');
+                }
+                foreach ($settlementRows as $order) {
+                    $raw = (string)($order->settled_at ?? '');
+                    $parsed = \DateTimeImmutable::createFromFormat(
+                        '!Y-m-d H:i:s', $raw, new \DateTimeZone('UTC')
+                    );
+                    if (!$parsed || $parsed->getTimestamp() > time()+600) {
+                        throw new RuntimeException(
+                            'Settlement clock evidence is invalid or ahead of UTC; manual timezone investigation required.'
+                        );
+                    }
+                }
+            } elseif ($ordersCount !== 0) {
+                throw new RuntimeException('The empty-clock command requires ZERO historical orders.');
+            }
+            try { new DateTimeZone($applicationClock); }
+            catch (Throwable $error) {
+                throw new RuntimeException('Application timestamp clock is invalid.');
+            }
+            $update = ['value'=>$applicationClock];
+            if (isset($settingsColumns['updated_at'])) $update['updated_at']=now();
+            $connection->transaction(function () use ($connection,$configRows,$update,$settingsColumns,$applicationClock): void {
+                if ($configRows->isNotEmpty()) {
+                    $connection->table('settings')->where('sort','config')
+                        ->where('item','pmd_groups_storage_timezone')->update($update);
+                } else {
+                    $row=['item'=>'pmd_groups_storage_timezone','sort'=>'config','value'=>$applicationClock];
+                    if (isset($settingsColumns['serialized'])) $row['serialized']=0;
+                    if (isset($settingsColumns['created_at'])) $row['created_at']=now();
+                    if (isset($settingsColumns['updated_at'])) $row['updated_at']=now();
+                    $connection->table('settings')->insert($row);
+                }
+            });
+            $verified = (string)$connection->table('settings')
+                ->where('sort','config')->where('item','pmd_groups_storage_timezone')->value('value');
+            if ($verified!==$applicationClock) throw new RuntimeException('Saved reporting clock could not be verified.');
+            echo sprintf(
+                "PMD REPORT CLOCK CONFIRMED site=%d label=%s clock=%s orders=%d (site-only setting, no order mutations)\n",
+                (int)$site->site_id, substr($label,0,55), $applicationClock, $ordersCount
+            );
+        }
+        if ($action === 'audit-reporting') {
+            echo "PMD reporting clock audit complete; READ ONLY. No historical timezone was guessed.\n";
+        }
+        exit;
+    }
+
+    if ($action === 'audit-products') {
+        // R21 read-only acceptance: audit ACTUAL group databases without
+        // changing the default connection, orders, identity or provider setup.
+        // A successful code/route health-check alone cannot prove old tenants
+        // were provisioned with operational product schema.
+        $stage = 'ready-group-tenant-product-audit';
+        $sites = $store->central()->table('pmd_group_sites as s')
+            ->join('tenants as t', 't.id', '=', 's.tenant_id')
+            ->select('s.id as site_id', 's.tenant_id', 's.label', 't.database')
+            ->where('s.state', 'ready')
+            ->orderBy('s.id')->get();
+        $requirements = [
+            'orders' => ['order_id', 'settlement_status', 'settled_amount'],
+            'tables' => ['table_id'],
+            'order_payment_transactions' => ['id', 'order_id', 'payment_method', 'amount', 'idempotency_key'],
+            'order_payment_transaction_items' => ['id', 'transaction_id', 'order_menu_id', 'line_total'],
+            'payment_attempts' => ['id', 'order_id', 'provider_code', 'amount', 'status'],
+            'kds_stations' => ['station_id', 'name', 'slug'],
+            'order_notes' => ['note_id', 'order_id'],
+        ];
+        $failures = 0;
+        foreach ($sites as $site) {
+            $missing = [];
+            try {
+                $schema = $store->connection((int)$site->tenant_id, false)->getSchemaBuilder();
+                foreach ($requirements as $table => $columns) {
+                    if (!$schema->hasTable($table)) {
+                        $missing[] = $table.' (table)';
+                        continue;
+                    }
+                    $actualColumns = $schema->getColumnListing($table);
+                    foreach (array_diff($columns, $actualColumns) as $column) {
+                        $missing[] = $table.'.'.$column;
+                    }
+                }
+            } catch (Throwable $error) {
+                $missing[] = 'tenant database unavailable';
+            }
+            if ($missing) $failures++;
+            $label = trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', (string)$site->label));
+            echo sprintf(
+                "PMD SITE %d %s: %s\n",
+                (int)$site->site_id,
+                substr($label, 0, 55),
+                $missing ? 'INCOMPLETE '.implode(', ', $missing) : 'READY (required tables and columns exist)'
+            );
+        }
+        echo sprintf("PMD readiness audit: %d ready-group sites checked; %d incomplete; READ ONLY\n", $sites->count(), $failures);
+        exit($failures ? 3 : 0);
+    }
+
     $stage = 'template-preflight';
     $app->make(\App\Services\SuperAdminTenantLifecycleService::class)->assertGroupTemplateReady();
 
@@ -140,6 +353,17 @@ try {
             'Admin catch-all still shadows Restaurant Groups context route; matched: '.
             ((string)$groupMatched->getName() ?: 'unnamed')
         );
+    }
+
+    // The public bootstrap binds Igniter's HTTP kernel. An alias declared
+    // only in App\Http\Kernel cannot safely be assumed to exist at runtime.
+    // R16 checked route matching but did not detect an unresolved middleware
+    // alias, which can throw HTTP 500 before AdminController::context() runs.
+    $stage = 'group-context-middleware';
+    $groupMiddleware = $groupMatched->gatherMiddleware();
+    if (!in_array(\App\Http\Middleware\TenantDatabaseMiddleware::class, $groupMiddleware, true)
+        || in_array('tenant.database', $groupMiddleware, true)) {
+        throw new RuntimeException('Group context must use the concrete tenant database middleware class.');
     }
 
     $stage = 'security-bindings';
@@ -285,6 +509,219 @@ try {
         || strpos($dashboardSource, "window.location.href=site") !== false) {
         throw new RuntimeException('Restaurant scope switcher must not navigate to another tenant subdomain.');
     }
+
+    // R18: existing Dashboard Lab/Menu geometry must remain the only renderer.
+    // Preflight the real deployment sources to avoid an R13 duplicate panel
+    // returning accidentally with a future merge or partial deployment.
+    $stage = 'native-scoped-dashboard-ui';
+    $firstPaint = (string)@file_get_contents($root.'/app/admin/views/_partials/pmd_group_scope_firstpaint.blade.php');
+    $labView = (string)@file_get_contents($root.'/app/admin/views/dashboardlab/index.blade.php');
+    $menuView = (string)@file_get_contents($root.'/app/admin/views/pmdmenus/index.blade.php');
+    $nativeKpis = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-dashboard-lab-kpis-v1.js');
+    $nativeAnalytics = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-dashboard-lab-analytics-v1.js');
+    $nativeLive = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-dashboard-live-refresh-v1.js');
+    $scopeCss = (string)@file_get_contents($root.'/app/admin/assets/css/pmd-restaurant-groups-v1.css');
+    foreach ([$labView, $menuView] as $view) {
+        if (strpos($view, "@include('admin::_partials.pmd_group_scope_firstpaint')") === false) {
+            throw new RuntimeException('Existing Dashboard/Menu header lacks the first-paint restaurant selector.');
+        }
+    }
+    if (strpos($firstPaint, 'context(false)') === false
+        || strpos($firstPaint, 'ManagedIdentity::isManaged') === false
+        || strpos($firstPaint, 'data-pmd-group-firstpaint') === false
+        || strpos($nativeKpis, 'pmd_group_scoped') === false
+        || strpos($nativeAnalytics, 'setScopeProvider: function') === false
+        || strpos($nativeLive, 'isRemoteScope()') === false
+        || strpos($dashboardSource, "window.PMDRestaurantGroupsV1=") === false
+        || strpos($dashboardSource, "PMDDashboardLabKpisV1.applyLivePayload") === false
+        || strpos($dashboardSource, "pmd-group-dashboard-panel") !== false
+        || strpos($dashboardSource, "Business account',account") !== false
+        || strpos($scopeCss, 'pmd-group-dashboard-scope-active>:not(') !== false
+        || strpos($scopeCss, 'pmd-group-menu-scope-active>:not(') !== false) {
+        throw new RuntimeException('Restaurant Groups native-only scope contract is incomplete.');
+    }
+
+    // R19: first-paint Quick Setup return is not dismissed by Not now.
+    // Only server-side "completed" removes the header link.
+    $stage = 'quick-setup-persistent-return';
+    $quickReturn = (string)@file_get_contents($root.'/app/admin/views/_partials/pmd_quick_setup_return.blade.php');
+    $quickWelcome = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-onboarding-welcome-v1.js');
+    $quickFormRuntime = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-tenant-quick-setup-v3.js');
+    if (strpos($quickReturn, "hasPermission('Site.Settings')") === false
+        || strpos($quickReturn, "setting('pmd_onboarding_status', 'pending')") === false
+        || strpos($quickReturn, "!== 'completed'") === false
+        || strpos($quickReturn, 'data-pmd-quick-setup-return') === false
+        || strpos($labView, "@include('admin::_partials.pmd_quick_setup_return')") === false
+        || strpos($menuView, "@include('admin::_partials.pmd_quick_setup_return')") === false
+        || strpos($labView, 'data-pmd-onboarding-welcome-r19') === false
+        || strpos($quickWelcome, "event.target.closest('[data-pmd-quick-setup-return]')") !== false
+        || strpos($quickWelcome, "target.closest('[data-pmd-quick-setup-return]')") === false
+        || strpos($quickWelcome, 'prior.remove()') === false
+        || strpos($quickWelcome, "pmd:quick-setup-completed") === false
+        || strpos($quickFormRuntime, "response.status.status === 'completed'") === false
+        || strpos($quickFormRuntime, "pmd:quick-setup-completed") === false
+    ) {
+        throw new RuntimeException('Quick Setup return is not durable, permission-checked, or completion-gated.');
+    }
+    echo "PASS Quick Setup remains in the original Dashboard/Menu header after Not now, closes only on completed state\n";
+
+    // R21: use existing, idempotent tenant product repair in ALL three
+    // entry points: clone finalization, first Quick Setup and existing POS.
+    // The checks are source contracts only; runtime acceptance remains
+    // separate and payment transactions must never be created by the probe.
+    $stage = 'tenant-product-readiness-r21';
+    $setupServiceCode = (string)@file_get_contents($root.'/app/admin/Services/PmdTenantQuickSetupService.php');
+    $productBaselineCode = (string)@file_get_contents($root.'/app/Services/PmdTenantProductBaselineR1.php');
+    $lifecycleCode = (string)@file_get_contents($root.'/app/Services/SuperAdminTenantLifecycleService.php');
+    $posTransactionCode = (string)@file_get_contents($root.'/app/admin/controllers/concerns/PmdWaiterPosPaymentTransactionConcern.php');
+    $posSettlementCode = (string)@file_get_contents($root.'/app/admin/controllers/concerns/PmdWaiterPosSettleEndpoint.php');
+    $posBatchCode = (string)@file_get_contents($root.'/app/admin/controllers/concerns/PmdQuickPosBatchPaymentV114Concern.php');
+    $posTerminalCode = (string)@file_get_contents($root.'/app/admin/controllers/concerns/PmdWaiterPosTerminalEndpoint.php');
+
+    $setupProductPos = strpos($setupServiceCode, '->repairCurrentTenant($productScopes)');
+    $setupTxnPos = strpos($setupServiceCode, '$result = DB::transaction(function () use (');
+    $settleGuardPos = strpos($posSettlementCode, 'pmdEnsurePaymentStorageR21();');
+    $settleTxnPos = strpos($posSettlementCode, '$result = DB::transaction(function () use (');
+    $batchGuardPos = strpos($posBatchCode, 'pmdEnsurePaymentStorageR21();');
+    $batchTxnPos = strpos($posBatchCode, '$result = DB::transaction(function () use (');
+    $terminalGuardPos = strpos($posTerminalCode, 'pmdEnsurePaymentStorageR21();');
+    $terminalAttemptPos = strpos($posTerminalCode, '->createAttempt(');
+
+    if ($setupProductPos === false || $setupTxnPos === false || $setupProductPos >= $setupTxnPos
+        || strpos($setupServiceCode, 'PMD_QUICK_SETUP_R21_TENANT_PRODUCT_READINESS') === false
+        || strpos($setupServiceCode, "DB::getDefaultConnection() !== 'tenant'") === false
+        || strpos($setupServiceCode, "['payment_runtime', 'orders']") === false
+        || strpos($productBaselineCode, "elseif (in_array('payment_runtime', \$scopes, true))") === false
+        || strpos($productBaselineCode, "\$schema->create('order_payment_transactions'") === false
+        || strpos($productBaselineCode, "\$schema->create('order_payment_transaction_items'") === false
+        || strpos($productBaselineCode, "\$schema->create('kds_stations'") === false
+        || strpos($productBaselineCode, 'Tenant payment runtime table has missing columns') === false
+        || strpos($lifecycleCode, '$this->ensureTenantProductReadiness($database);') === false
+        || strpos($lifecycleCode, "->repairCurrentTenant(['payment_runtime', 'kds', 'orders'])") === false
+        || strpos($lifecycleCode, "'order_payment_transactions',") === false
+        || strpos($posTransactionCode, 'protected function pmdEnsurePaymentStorageR21(): void') === false
+        || strpos($posTransactionCode, "DB::getDefaultConnection() !== 'tenant'") === false
+        || strpos($posTransactionCode, "->repairCurrentTenant(['payment_runtime', 'orders'])") === false
+        || $settleGuardPos === false || $settleTxnPos === false || $settleGuardPos >= $settleTxnPos
+        || $batchGuardPos === false || $batchTxnPos === false || $batchGuardPos >= $batchTxnPos
+        || $terminalGuardPos === false || $terminalAttemptPos === false || $terminalGuardPos >= $terminalAttemptPos) {
+        throw new RuntimeException('Tenant product readiness must repair only the right database BEFORE payment transactions and site activation.');
+    }
+
+    echo "PASS R21: ready sites require tenant KDS, orders and settlement schema; POS repairs missing tables before charges\n";
+    // R22: the original Dashboard widgets now show the SELECTED group's own
+    // Floor tables, while a fresh empty-order tenant can report without
+    // guessing the timezone of any historical paid transaction.
+    $stage = 'group-scoped-floor-and-clock-r22';
+    $groupModel = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/GroupScopeReadModel.php');
+    $reportingProfile = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/ReportingProfile.php');
+    $newTenantLifecycle = (string)@file_get_contents($root.'/app/Services/SuperAdminTenantLifecycleService.php');
+    $toolSource = (string)@file_get_contents($root.'/scripts/pmd-groups-live-tool.php');
+    if (strpos($groupModel, 'private function readOnlyFloorSite(') === false
+        || strpos($groupModel, "'floor' => ['read_only' => true") === false
+        || strpos($groupModel, '$this->store->access((int)$context[\'owner\'][\'id\'], $tenantId)') === false
+        || strpos($groupModel, "->where('location_id', (int)\$site->location_id)") === false
+        || strpos($groupModel, "'locationables'") === false
+        || strpos($groupModel, "->whereIn('locationable_type'") === false
+        || strpos($groupModel, 'limit(251)') === false
+        || strpos($dashboardSource, 'function displayGroupFloor(data)') === false
+        || strpos($dashboardSource, 'restoreNativeFloor();') === false
+        // R25: Loading text was deliberately removed to prevent flicker;
+        // verify the reusable Floor notice helper instead.
+        || strpos($dashboardSource, 'function showFloorNotice(text)') === false
+        || strpos($scopeCss, '.pmd-group-floor-readonly-table') === false
+        || strpos($reportingProfile, 'empty_order_history_application_clock') === false
+        || strpos($reportingProfile, "->where('location_id',\$locationId)->exists()") === false
+        || strpos($reportingProfile, 'storage_timezone_source') === false
+        || strpos($newTenantLifecycle, '$this->initializeEmptyGroupStorageClock($database);') === false
+        || strpos($newTenantLifecycle, "->table('orders')->exists()") === false
+        // R23.1: Do not match a literal R22 two-action `if` statement.
+        // R23 deliberately expanded the dispatcher to a third, guarded action.
+        // Check both required command names; R23 guard below independently
+        // checks the historical-payment clock confirmation contract.
+        || strpos($toolSource, "'audit-reporting'") === false
+        || strpos($toolSource, "'confirm-empty-clock'") === false
+        || strpos($toolSource, 'CONFIRM_EMPTY_ORDER_HISTORY') === false
+        || strpos($toolSource, 'ordersCount !== 0') === false) {
+        throw new RuntimeException('Restaurant Groups selected Floor and safe reporting clock contract is incomplete.');
+    }
+    echo "PASS R22 selected tenant Floor is read-only; empty-order clock and historical reporting guard are active\n";
+    // R23: protect existing financial history and verify the corrected
+    // center-based Floor placement. The VPS operator must inspect settlement
+    // timestamps before explicit per-site UTC confirmation.
+    $stage = 'verified-history-and-floor-geometry-r23';
+    if (strpos($dashboardSource, 'var cursor=24;') === false
+        || strpos($dashboardSource, 'var x=strip?cursor+w/2:Number(table.x);') === false
+        || strpos($dashboardSource, 'var y=strip?22+h/2:Number(table.y);') === false
+        || strpos($dashboardSource, "floor.classList.contains('is-strip-mode')") === false
+        || strpos($toolSource, "'confirm-verified-history-clock'") === false
+        || strpos($toolSource, 'PMD CLOCK EVIDENCE SITE') === false
+        || strpos($toolSource, 'I_VERIFIED_EXISTING_SETTLEMENT_TIMESTAMPS_ARE_UTC') === false
+        || strpos($toolSource, '$settled < 1 || $settlementRows->isEmpty()') === false
+        || strpos($toolSource, 'getTimestamp() > time()+600') === false
+        || strpos($toolSource, "if (\$action === 'audit-reporting')") === false) {
+        throw new RuntimeException('R23 historical UTC confirmation or native Floor coordinate safety missing.');
+    }
+    echo "PASS R23 historical reporting clock requires operator-reviewed UTC evidence; Floor cards use native center geometry\n";
+
+    // R24: preserve THE existing Floor UI and layout. All restaurants is
+    // aggregate reporting only; never mix cross-tenant operational tables.
+    // The old grey card rules and fabricated grid coordinates are forbidden.
+    $stage = 'native-selected-site-floor-r24';
+    if (strpos($groupModel, "if (\$scope !== 'all')") === false
+        || strpos($groupModel, "'disabled' => \$scope === 'all'") === false
+        || strpos($groupModel, "'floor_x'") === false
+        || strpos($groupModel, "'floor_y'") === false
+        || strpos($groupModel, "'operational_status'") === false
+        || strpos($groupModel, "'visible_on_floor_plan'") === false
+        || strpos($dashboardSource, "selectedScope==='all'") === false
+        || strpos($dashboardSource, "siteList=data&&data.floor&&data.floor.restaurants") === false
+        || strpos($dashboardSource, "if(sites.length!==1)") === false
+        || strpos($dashboardSource, "el('button',null,'pmd-floor-v1__table pmd-group-floor-readonly-table')") === false
+        || strpos($dashboardSource, "node.style.left=x+'px'") === false
+        || strpos($dashboardSource, "node.style.top=y+'px'") === false
+        || strpos($dashboardSource, "floor.classList.toggle('pmd-group-floor-all-disabled',scope==='all')") === false
+        || strpos($dashboardSource, "floor.inert=remote") === false
+        || strpos($dashboardSource, "restoreNativeFloor();") === false
+        || strpos($scopeCss, '.pmd-group-floor-all-disabled') === false
+        || strpos($scopeCss, '.pmd-floor-v1__table:not(.pmd-group-floor-readonly-table)') === false
+        || strpos($scopeCss, "pointer-events:none!important") === false
+        || strpos($scopeCss, "background:#f2f7f5!important") !== false) {
+        throw new RuntimeException('R24 Floor must use native status and location data; aggregate floor must be disabled.');
+    }
+    echo "PASS R24: native Floor look preserved, remote site read only and All restaurants Floor disabled\n";
+
+    // R25: one actual sale must remain one financial bucket, but its line
+    // chart must have a visible 0-to-sale SVG path. Restaurant switches keep
+    // the old verified DOM visible until the new location data is ready.
+    $stage = 'first-sale-no-flicker-r25';
+    if (strpos($nativeAnalytics, 'var singleRecordedBucket = ') === false
+        || strpos($nativeAnalytics, 'allRows.length === 1') === false
+        || strpos($nativeAnalytics, 'points.unshift({x: d.left, y: base, value: 0, row: null, visualBaseline: true})') === false
+        || strpos($nativeAnalytics, "if (point.visualBaseline) return '';") === false
+        || strpos($nativeAnalytics, 'var wasScoped = !!scopeProvider;') === false
+        || strpos($nativeAnalytics, 'if (!scopeProvider && wasScoped)') === false
+        || strpos($nativeAnalytics, "body.innerHTML = empty({reason: 'Loading restaurant data…'});") !== false
+        || strpos($nativeAnalytics, 'body._pmdLastChartMarkupR25 !== markup') === false
+        || strpos($nativeKpis, 'data-pmd-kpi-rendered-icon') === false
+        || strpos($dashboardSource, 'Promise.allSettled([') === false
+        || strpos($dashboardSource, "report(scope,'last30')") === false
+        || strpos($dashboardSource, "if(scope==='all')showFloorNotice(") === false
+        || strpos($dashboardSource, "if(floor)floor.setAttribute('aria-busy','true')") === false
+        || strpos($dashboardSource, 'applyKpis(null,null,true);') !== false
+        || strpos($dashboardSource, "showFloorNotice('Loading selected restaurant tables") !== false
+        || strpos($dashboardSource, 'if(version!==sequence||selectedScope!==scope)return;') === false
+        || strpos($dashboardSource, 'analytics.refresh().catch(function(error)') === false) {
+        throw new RuntimeException('R25 one-sale line baseline or no-flicker restaurant scope contract is missing.');
+    }
+    echo "PASS R25: first sale draws a 0-to-sale line; scope changes preserve KPI/chart DOM and the native Floor\n";
+
+
+
+
+
+
+
 
     echo "PASS /admin/group/context route matches Restaurant Groups before the greedy Admin catch-all\n";
     echo "PASS Restaurant Groups JSON APIs avoid the Admin page-controller lifecycle and enforce explicit Admin authentication\n";

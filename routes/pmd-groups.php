@@ -39,7 +39,7 @@ Route::middleware(['web', SuperAdminCanonicalHost::class])
             ->name('pmd.foodcourt.feed');
     });
 
-Route::middleware(['web', 'tenant.database'])
+Route::middleware(['web', \App\Http\Middleware\TenantDatabaseMiddleware::class])
     ->prefix(trim((string)config('system.adminUri', 'admin'), '/'))
     ->group(function () {
         Route::get('/group/context', [

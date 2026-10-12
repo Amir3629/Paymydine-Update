@@ -32,9 +32,28 @@ final class ReportingProfile
         // Do not silently reinterpret historical DATETIME values. The deployment
         // must confirm the clock used by the existing order writers first.
         $storage=$values['pmd_groups_storage_timezone']??config('pmd_groups.reporting_storage_timezone');
-        if(!is_string($storage)||$storage==='') throw new \DomainException('Confirm the order storage timezone before enabling group reports.');
+        $storageSource='explicit';
+        if(!is_string($storage)||trim($storage)==='') {
+            /*
+             * R22: a brand-new restaurant with ZERO historical orders has no
+             * DATETIME values to reinterpret. It can safely render empty
+             * reports using the application's known writer timezone, not the
+             * restaurant's business timezone. This is a read-only fallback.
+             * Persist explicit pmd_groups_storage_timezone during provisioning
+             * or via the audited site configuration before the first sale.
+             */
+            $schema=$db->getSchemaBuilder();
+            if(!$schema->hasTable('orders')
+                || !$schema->hasColumn('orders','location_id')
+                || $db->table('orders')->where('location_id',$locationId)->exists()) {
+                throw new \DomainException('Confirm the order storage timezone before enabling group reports.');
+            }
+            $storage=(string)config('app.timezone','');
+            $storageSource='empty_order_history_application_clock';
+        }
         try { new \DateTimeZone($storage); } catch(\Throwable $e) { throw new \DomainException('Order storage timezone is invalid.'); }
-        return ['currency'=>$currency,'decimals'=>$decimals,'timezone'=>$timezone,'storage_timezone'=>$storage];
+        return ['currency'=>$currency,'decimals'=>$decimals,'timezone'=>$timezone,
+            'storage_timezone'=>$storage,'storage_timezone_source'=>$storageSource];
     }
 
     public static function range(string $period,string $timezone,string $storage,int $epoch): array

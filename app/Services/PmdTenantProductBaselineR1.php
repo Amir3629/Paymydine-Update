@@ -36,6 +36,10 @@ class PmdTenantProductBaselineR1
         if (in_array('payments', $scopes, true)) {
             $this->step($report, 'payment_catalog', fn () => $this->ensurePaymentCatalog());
             $this->step($report, 'payment_runtime', fn () => $this->ensurePaymentRuntime());
+        } elseif (in_array('payment_runtime', $scopes, true)) {
+            // R21: settlement-only schema repair must not change existing
+            // payment-method catalog mappings or provider choices.
+            $this->step($report, 'payment_runtime', fn () => $this->ensurePaymentRuntime());
         }
         if (in_array('kds', $scopes, true)) {
             $this->step($report, 'order_notes', fn () => $this->ensureOrderNotes());
@@ -97,8 +101,10 @@ class PmdTenantProductBaselineR1
 
     protected function normalizeScopes(array $scopes): array
     {
-        $allowed = ['payments', 'kds', 'pos', 'orders'];
-        if (!$scopes) return $allowed;
+        $allowed = ['payments', 'payment_runtime', 'kds', 'pos', 'orders'];
+        // Preserve the pre-R21 default; 'payment_runtime' is a narrow
+        // explicitly requested scope, not a second pass on all tenants.
+        if (!$scopes) return ['payments', 'kds', 'pos', 'orders'];
         $scopes = array_values(array_unique(array_map(static fn ($scope) => strtolower(trim((string)$scope)), $scopes)));
         return array_values(array_intersect($allowed, $scopes));
     }
@@ -654,6 +660,33 @@ class PmdTenantProductBaselineR1
             });
             $created[] = 'payment_attempts';
         }
+        // R21: table presence by itself is not proof that POS can store
+        // and allocate a payment safely. A partial historical migration must
+        // fail closed; never silently invent missing financial columns/data.
+        foreach ([
+            'order_payment_transactions' => [
+                'id', 'order_id', 'payment_method', 'amount',
+                'settlement_status', 'idempotency_key', 'created_at',
+            ],
+            'order_payment_transaction_items' => [
+                'id', 'transaction_id', 'order_menu_id',
+                'quantity_paid', 'unit_price', 'line_total',
+            ],
+            'payment_attempts' => [
+                'id', 'order_id', 'provider_code', 'amount', 'status',
+            ],
+        ] as $table => $required) {
+            if (!$schema->hasTable($table)) {
+                throw new \RuntimeException('Tenant payment runtime is missing table: '.$table);
+            }
+            $absent = array_values(array_diff($required, $schema->getColumnListing($table)));
+            if ($absent) {
+                throw new \RuntimeException(
+                    'Tenant payment runtime table has missing columns: '.$table
+                );
+            }
+        }
+
         return ['created' => $created, 'columns_added' => $added];
     }
 

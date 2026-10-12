@@ -99,6 +99,7 @@
   }
 
   function applyKpis(payload) {
+    if (window.PMDRestaurantGroupsV1 && window.PMDRestaurantGroupsV1.isRemoteScope()) return false;
     var applied = false;
 
     if (
@@ -188,6 +189,9 @@
   }
 
   async function refresh(reason) {
+    // A remote Group selection owns read-only reporting; never inject local
+    // KPI/analytics/live-order data into the selected restaurant's cards.
+    if (window.PMDRestaurantGroupsV1 && window.PMDRestaurantGroupsV1.isRemoteScope()) return null;
     reason = String(reason || 'manual');
 
     if (state.running) {
@@ -202,6 +206,7 @@
 
     try {
       var payload = await fetchSnapshot();
+      if (window.PMDRestaurantGroupsV1 && window.PMDRestaurantGroupsV1.isRemoteScope()) return null;
 
       publishSnapshot(
         payload,

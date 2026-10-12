@@ -9,6 +9,7 @@ use Admin\Models\Menus_model;
 use Admin\Models\Staffs_model;
 use Admin\Models\Tables_model;
 use App\Services\PmdTenantMenuBaselineR25;
+use App\Services\PmdTenantProductBaselineR1;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -102,8 +103,44 @@ class PmdTenantQuickSetupService
             throw new \RuntimeException('Tenant Menu baseline is not ready for Quick Setup.');
         }
 
-        if ($kdsStations && !Schema::hasTable('kds_stations')) {
-            throw new \RuntimeException('Tenant KDS baseline is missing the kds_stations table.');
+        /*
+         * PMD_QUICK_SETUP_R21_TENANT_PRODUCT_READINESS
+         * R20 solved the KDS table only. Existing cloned restaurants may
+         * still lack split-payment settlement tables and order fields, which
+         * otherwise fail later in POS. Repair all required product structures
+         * before Quick Setup writes *any* floors, tables, staff or menu data.
+         * DDL stays OUTSIDE the MySQL transaction. This must be the signed-in
+         * tenant connection, never the central registry or another group site.
+         */
+        if (DB::getDefaultConnection() !== 'tenant'
+            || trim((string)DB::connection('tenant')->getDatabaseName()) === '') {
+            throw new \RuntimeException('Restaurant database context is unavailable for Quick Setup.');
+        }
+
+        $productScopes = ['payment_runtime', 'orders'];
+        if ($kdsStations) $productScopes[] = 'kds';
+        $productBaseline = app(PmdTenantProductBaselineR1::class)
+            ->repairCurrentTenant($productScopes);
+
+        if (empty($productBaseline['ok'])
+            || empty($productBaseline['steps']['payment_runtime']['ok'])
+            || empty($productBaseline['steps']['order_settlement']['ok'])
+            || !Schema::hasTable('order_payment_transactions')
+            || !Schema::hasTable('order_payment_transaction_items')
+            || !Schema::hasTable('payment_attempts')
+            || !Schema::hasTable('orders')
+            || ($kdsStations && (
+                empty($productBaseline['steps']['kds_stations']['ok'])
+                || !Schema::hasTable('kds_stations')
+                || array_diff(
+                    ['station_id', 'name', 'slug', 'location_id'],
+                    Schema::getColumnListing('kds_stations')
+                )
+            ))
+        ) {
+            throw new \RuntimeException(
+                'Restaurant product database is incomplete. Quick Setup made no new restaurant data; contact support.'
+            );
         }
 
         $result = DB::transaction(function () use (

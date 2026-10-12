@@ -26,6 +26,18 @@ trait PmdWaiterPosSettleEndpoint
             return response()->json(['ok' => false, 'message' => 'Missing payment idempotency key.'], 422);
         }
 
+        // R21: schema DDL runs before payment DB::transaction and only after
+        // assertPaymentPermission() succeeded for this tenant.
+        try {
+            $this->pmdEnsurePaymentStorageR21();
+        } catch (\Throwable $error) {
+            if (!($error instanceof ValidationException)) report($error);
+            $message = $error instanceof ValidationException
+                ? (collect($error->errors())->flatten()->first() ?: 'Payment storage is unavailable.')
+                : 'Payment storage is unavailable. No payment was recorded; contact support.';
+            return response()->json(['ok' => false, 'message' => $message], 503);
+        }
+
         if ($this->pmdPosHasTable('order_payment_transactions') && $this->pmdPosHasColumn('order_payment_transactions', 'idempotency_key')) {
             $existing = DB::table('order_payment_transactions')->where('idempotency_key', $idempotencyKey)->first();
             if ($existing) {

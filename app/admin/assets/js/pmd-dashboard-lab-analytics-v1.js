@@ -20,6 +20,17 @@
   var requests = Object.create(null);
   var requestCount = 0;
   var errors = Object.create(null);
+  // R18: a Group Owner can supply authenticated read-only data to the
+  // existing 12 analytics widgets without mounting a second dashboard.
+  var scopeProvider = null;
+  var scopeRevision = 0;
+  var scopedCache = Object.create(null);
+  function visibleCache() { return scopeProvider ? scopedCache : cache; }
+  function scopeAccepts(payload) {
+    return scopeProvider
+      ? !!(payload && payload.pmd_group_scoped === true)
+      : !(payload && payload.pmd_group_scoped === true);
+  }
   var chartMode = 'line';
   var salesVisible = null;
   var hourVisible = null;
@@ -242,6 +253,19 @@
   }
 
   function request(period, forceFresh) {
+    if (scopeProvider) {
+      var expectedRevision = scopeRevision;
+      return Promise.resolve().then(function () {
+        return scopeProvider(period);
+      }).then(function (payload) {
+        if (expectedRevision !== scopeRevision) throw new Error('Restaurant selection changed.');
+        if (!payload || payload.success !== true || payload.pmd_group_scoped !== true) {
+          throw new Error('Restaurant reporting data is unavailable.');
+        }
+        scopedCache[period] = payload;
+        return payload;
+      });
+    }
     period = ['today', 'week', 'month', 'last30'].indexOf(period) !== -1
       ? period
       : 'month';
@@ -407,24 +431,33 @@
     d.plotH = d.h - d.top - d.bottom;
     var base = d.top + d.plotH;
 
+    var singleRecordedBucket = Array.isArray(allRows) && allRows.length === 1
+      && rows.length === 1 && Number(rows[0].sales || 0) > 0;
     var points = rows.map(function (row, index) {
       return {
-        x: d.left + d.plotW * (rows.length === 1 ? 0.5 : index / (rows.length - 1)),
+        x: d.left + d.plotW * (singleRecordedBucket ? 1 : (rows.length === 1 ? 0.5 : index / (rows.length - 1))),
         y: d.top + d.plotH - d.plotH * Number(row.sales || 0) / scale.max,
         row: row,
         value: Number(row.sales || 0)
       };
     });
+    if (singleRecordedBucket) {
+      // R25: One *real* day with a sale needs a visible 0 -> sale
+      // trajectory. This is only an SVG visual baseline, never an order,
+      // money bucket, tooltip or additional recorded day in the API.
+      points.unshift({x: d.left, y: base, value: 0, row: null, visualBaseline: true});
+    }
 
     var linePath = smoothLinePath(points);
     var areaPath = smoothAreaPath(points, base);
     var labelEvery = Math.max(1, Math.ceil(rows.length / 7));
     var labels = points.map(function (point, index) {
+      if (point.visualBaseline) return '';
       if (index % labelEvery !== 0 && index !== points.length - 1) return '';
       return '<text class="pmd-lab-chart-axis-label" x="' + point.x + '" y="' + (d.h - 12) + '" text-anchor="middle">' + esc(shortLabel(point.row, false)) + '</text>';
     }).join('');
     var circles = points.map(function (point) {
-      if (point.value <= 0) return '';
+      if (point.visualBaseline || point.value <= 0) return '';
       return '<circle class="pmd-lab-chart-point" cx="' + point.x + '" cy="' + point.y + '" r="4"><title>' + esc(shortLabel(point.row, false) + ' - ' + money(point.row.sales, payload)) + '</title></circle>';
     }).join('');
 
@@ -527,7 +560,14 @@
     }
     var rows = Array.isArray(source.buckets) ? source.buckets : [];
     if (salesVisible === null) salesVisible = Math.min(19, Math.max(rows.length, 1));
-    body.innerHTML = chartMarkup('salesOverTime', rows, payload, chartMode, salesVisible, false);
+    var markup = chartMarkup('salesOverTime', rows, payload, chartMode, salesVisible, false);
+    // Avoid re-creating an identical SVG during background revalidation.
+    // Browsers can re-serialize SVG attributes, so string-comparing
+    // innerHTML alone may cause a needless repaint on each live refresh.
+    if (body._pmdLastChartMarkupR25 !== markup || !body.querySelector('svg')) {
+      body.innerHTML = markup;
+      body._pmdLastChartMarkupR25 = markup;
+    }
     root.querySelectorAll('[data-pmd-lab-chart-mode]').forEach(function (button) {
       var active = button.getAttribute('data-pmd-lab-chart-mode') === chartMode;
       button.classList.toggle('is-active', active);
@@ -547,7 +587,13 @@
     }
     var rows = Array.isArray(source.hours) ? source.hours : [];
     if (hourVisible === null) hourVisible = Math.min(15, Math.max(rows.length, 1));
-    body.innerHTML = chartMarkup('salesByHour', rows, payload, 'bar', hourVisible, true);
+    var markup = chartMarkup('salesByHour', rows, payload, 'bar', hourVisible, true);
+    // Browsers can re-serialize SVG attributes, so string-comparing
+    // innerHTML alone may cause a needless repaint on each live refresh.
+    if (body._pmdLastChartMarkupR25 !== markup || !body.querySelector('svg')) {
+      body.innerHTML = markup;
+      body._pmdLastChartMarkupR25 = markup;
+    }
     setBusy('salesByHour', false);
   }
 
@@ -901,6 +947,7 @@
   }
 
   function renderBase(payload) {
+    if (!scopeAccepts(payload)) return;
     renderSales(payload);
     renderHour(payload);
     renderLive(payload);
@@ -912,6 +959,7 @@
   }
 
   function renderPeriodWidget(key, payload) {
+    if (!scopeAccepts(payload)) return;
     if (key === 'categorySales') renderCategory(payload);
     if (key === 'paymentMethods') renderPayments(payload);
     if (key === 'channelSplit') renderChannels(payload);
@@ -929,17 +977,18 @@
   }
 
   function loadPeriodWidget(key, period) {
+    var expectedRevision = scopeRevision;
     if (PERIOD_KEYS.indexOf(period) === -1) return;
     periodByWidget[key] = period;
     markPeriod(key, period);
     setBusy(key, true);
     request(period)
       .then(function (payload) {
-        if (periodByWidget[key] !== period) return;
+        if (expectedRevision !== scopeRevision || periodByWidget[key] !== period) return;
         renderPeriodWidget(key, payload);
       })
       .catch(function (error) {
-        if (periodByWidget[key] !== period) return;
+        if (expectedRevision !== scopeRevision || periodByWidget[key] !== period) return;
         var body = bodyFor(key);
         if (body) body.innerHTML = empty({reason: 'Analytics source unavailable'});
         setBusy(key, false);
@@ -959,7 +1008,8 @@
           encodeURIComponent(chartMode) +
           '; path=/admin; max-age=31536000; samesite=lax';
       } catch (error) {}
-      if (cache.last30) renderSales(cache.last30);
+      var active = visibleCache().last30;
+      if (active) renderSales(active);
       return;
     }
 
@@ -1060,20 +1110,18 @@
     if (key === 'salesOverTime') {
       salesVisible = value;
 
-      if (cache.last30) {
-        renderSales(
-          cache.last30
-        );
+      var activeSales = visibleCache().last30;
+      if (activeSales) {
+        renderSales(activeSales);
       }
     }
 
     if (key === 'salesByHour') {
       hourVisible = value;
 
-      if (cache.last30) {
-        renderHour(
-          cache.last30
-        );
+      var activeHourly = visibleCache().last30;
+      if (activeHourly) {
+        renderHour(activeHourly);
       }
     }
   }
@@ -1196,6 +1244,7 @@
   }
 
   function markFreshFailureV132(keys, error, label) {
+    if (scopeProvider) return;
     keys.forEach(function (key) {
       // When a stale snapshot is already visible, never replace truthful
       // existing content with an error/zero flash merely because revalidate
@@ -1281,7 +1330,30 @@
 
   window.PMDDashboardLabAnalyticsV1 = {
     version: VERSION,
+    setScopeProvider: function (provider) {
+      var wasScoped = !!scopeProvider;
+      scopeProvider = typeof provider === 'function' ? provider : null;
+      scopeRevision += 1;
+      scopedCache = Object.create(null);
+      // R25: Keep the last truthful snapshot visible until the new scope is
+      // ready. Clearing all 12 bodies to "Loading restaurant data" caused the
+      // white flash on every location change. Pending state is already exposed
+      // by the restaurant selector's aria-busy indicator.
+      if (!scopeProvider && wasScoped) {
+        // Returning to the signed-in restaurant can restore the local,
+        // location-scoped snapshot immediately while SWR revalidates it.
+        if (cache.last30 && cache.last30.success === true) renderBase(cache.last30);
+        Object.keys(periodByWidget).forEach(function (key) {
+          var localSnapshot = cache[periodByWidget[key]];
+          if (localSnapshot && localSnapshot.success === true) {
+            renderPeriodWidget(key, localSnapshot);
+          }
+        });
+      }
+      return scopeRevision;
+    },
     refresh: function () {
+      var expectedRevision = scopeRevision;
       requests = Object.create(null);
       errors = Object.create(null);
       backgroundRevalidateStartedV132 = false;
@@ -1290,6 +1362,7 @@
         request('last30', true),
         request('month', true)
       ]).then(function (payloads) {
+        if (expectedRevision !== scopeRevision) return window.PMDDashboardLabAnalyticsV1.audit();
         renderBase(payloads[0]);
         Object.keys(periodByWidget).forEach(function (key) {
           if (periodByWidget[key] === 'month') {
@@ -1298,7 +1371,7 @@
             loadPeriodWidget(key, periodByWidget[key]);
           }
         });
-        persistAnalyticsBootstrapV132();
+        if (!scopeProvider) persistAnalyticsBootstrapV132();
         return window.PMDDashboardLabAnalyticsV1.audit();
       });
     },

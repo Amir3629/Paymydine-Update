@@ -286,6 +286,13 @@ class SuperAdminTenantLifecycleService
             $this->ensureWorkplaceSecuritySchema();
             $this->ensureMobileSyncSchema();
             $this->sanitizeTenantBusinessData($group);
+            // R21: a cloned template is not "ready" merely because identity,
+            // Menu and TLS work. Require core KDS, payments and order storage
+            // BEFORE announcing the location prepared/ready to Super Admin.
+            $this->ensureTenantProductReadiness($database);
+            if ($group) {
+                $this->initializeEmptyGroupStorageClock($database);
+            }
 
             if (!$group) {
                 $this->applyIndependentOwnerAccess($data);
@@ -302,6 +309,113 @@ class SuperAdminTenantLifecycleService
         } finally {
             $this->restoreCentralConnection($centralDatabase);
         }
+    }
+
+    /**
+     * R21: prepare the new tenant's operational product schema before group
+     * activation. The static newtenantdb template often predates newer KDS
+     * and split-payment tables; provisioning must not publish an incomplete
+     * site. Only the newly-created mysql database is writable here.
+     *
+     * This runs outside application-data transactions because MySQL DDL
+     * implicitly commits. Existing data remains preserved by the idempotent
+     * product baseline, and failure keeps the site disabled for review.
+     */
+    private function ensureTenantProductReadiness(string $database): void
+    {
+        $connection = DB::connection('mysql');
+        if (DB::getDefaultConnection() !== 'mysql'
+            || (string)$connection->getDatabaseName() !== $database) {
+            throw new \RuntimeException('Tenant product preparation resolved an unexpected database.');
+        }
+
+        $report = app(PmdTenantProductBaselineR1::class)
+            ->repairCurrentTenant(['payment_runtime', 'kds', 'orders']);
+
+        $requiredSteps = [
+            'payment_runtime', 'kds_stations', 'order_notes',
+            'order_settlement', 'order_guest_count', 'table_lifecycle',
+        ];
+        $healthy = !empty($report['ok'])
+            && (string)($report['database'] ?? '') === $database;
+        foreach ($requiredSteps as $step) {
+            if (empty($report['steps'][$step]['ok'])) $healthy = false;
+        }
+
+        $schema = $connection->getSchemaBuilder();
+        foreach ([
+            'orders', 'tables', 'order_payment_transactions',
+            'order_payment_transaction_items', 'payment_attempts',
+            'kds_stations', 'order_notes',
+        ] as $table) {
+            if (!$schema->hasTable($table)) $healthy = false;
+        }
+        if (!$healthy) {
+            Log::error('PMD newly cloned tenant product baseline incomplete', [
+                'database' => $database,
+                'warnings' => $report['warnings'] ?? [],
+            ]);
+            throw new \RuntimeException(
+                'Restaurant database preparation is incomplete; activation is blocked.'
+            );
+        }
+    }
+
+    /**
+     * R22: create a durable storage-clock declaration for NEW group sites
+     * only after an empty template clone has been sanitized. Do not infer
+     * clocks for historical orders and do not touch existing live sites.
+     */
+    private function initializeEmptyGroupStorageClock(string $database): void
+    {
+        $db = DB::connection('mysql');
+        if (DB::getDefaultConnection() !== 'mysql'
+            || (string)$db->getDatabaseName() !== $database
+            || !$db->getSchemaBuilder()->hasTable('settings')
+            || !$db->getSchemaBuilder()->hasTable('orders')
+            || $db->table('orders')->exists()) {
+            throw new \RuntimeException('New restaurant reporting clock cannot be safely initialized.');
+        }
+
+        $timezone = trim((string)config('app.timezone', ''));
+        try { new \DateTimeZone($timezone); }
+        catch (\Throwable $error) {
+            throw new \RuntimeException('Application order-writer timezone is invalid.');
+        }
+
+        $schema = $db->getSchemaBuilder();
+        $columns = array_flip($schema->getColumnListing('settings'));
+        foreach (['item', 'value', 'sort'] as $required) {
+            if (!isset($columns[$required])) {
+                throw new \RuntimeException('New restaurant settings schema is incomplete.');
+            }
+        }
+        $query = $db->table('settings')
+            ->where('item', 'pmd_groups_storage_timezone')->where('sort', 'config');
+        $existing = $query->get();
+        if ($existing->count() > 1) {
+            throw new \RuntimeException('New restaurant has duplicate reporting storage clock settings.');
+        }
+        if ($existing->isNotEmpty()) {
+            $configured = trim((string)($existing->first()->value ?? ''));
+            if ($configured !== '') {
+                try { new \DateTimeZone($configured); }
+                catch (\Throwable $error) {
+                    throw new \RuntimeException('New restaurant reporting storage clock setting is invalid.');
+                }
+                return;
+            }
+            $update = ['value'=>$timezone];
+            if (isset($columns['updated_at'])) $update['updated_at'] = now();
+            $query->update($update);
+            return;
+        }
+
+        $row = ['item'=>'pmd_groups_storage_timezone', 'sort'=>'config', 'value'=>$timezone];
+        if (isset($columns['serialized'])) $row['serialized'] = 0;
+        if (isset($columns['created_at'])) $row['created_at'] = now();
+        if (isset($columns['updated_at'])) $row['updated_at'] = now();
+        $db->table('settings')->insert($row);
     }
 
     private function ensureWorkplaceSecuritySchema(): void

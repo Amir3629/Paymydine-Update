@@ -172,6 +172,9 @@ trait PmdQuickPosBatchPaymentV114Concern
         $payload = $this->requestPayload();
 
         try {
+            // R21: no schema DDL is ever attempted inside the combined-payment
+            // order lock / data transaction.
+            $this->pmdEnsurePaymentStorageR21();
             $ids = $this->pmdBatchOrderIdsV114($payload);
             $idempotencyKey = trim((string)(
                 $payload['idempotency_key'] ?? ''
