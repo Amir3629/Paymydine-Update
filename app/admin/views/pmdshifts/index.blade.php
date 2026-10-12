@@ -448,8 +448,12 @@
                         <label class="is-password" data-pmd-team-pin-field>
                             <span>Quick PIN <small data-pmd-team-pin-hint>App / POS · 6 digits</small></span>
                             <span class="pmd-shifts__team-password-row">
-                                <input type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" name="quick_pin" autocomplete="off" data-pmd-team-pin placeholder="••••••">
+                                <input type="password" inputmode="numeric" pattern="[0-9]{6}" minlength="6" maxlength="6" name="quick_pin" autocomplete="off" data-pmd-team-pin placeholder="••••••" aria-describedby="pmd-shifts-pin-strength-advice">
                                 <button type="button" data-pmd-team-pin-generate>Generate</button>
+                            </span>
+                            <span class="pmd-shifts__pin-strength" data-pmd-team-pin-strength data-strength="empty" role="status" aria-live="polite" hidden>
+                                <span class="pmd-shifts__pin-strength-meter" aria-hidden="true"><i></i><i></i><i></i></span>
+                                <small id="pmd-shifts-pin-strength-advice" data-pmd-team-pin-strength-advice></small>
                             </span>
                         </label>
                         <label class="is-password" data-pmd-team-password-field>
@@ -458,10 +462,9 @@
                                 <input type="password" minlength="12" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password aria-describedby="pmd-shifts-password-strength-advice">
                                 <button type="button" data-pmd-team-password-generate>Generate</button>
                             </span>
-                            <span class="pmd-shifts__password-strength" data-pmd-team-password-strength data-strength="empty" role="status" aria-live="polite">
+                            <span class="pmd-shifts__password-strength" data-pmd-team-password-strength data-strength="empty" role="status" aria-live="polite" hidden>
                                 <span class="pmd-shifts__password-strength-meter" aria-hidden="true"><i></i><i></i><i></i></span>
-                                <strong data-pmd-team-password-strength-label>Password strength</strong>
-                                <small id="pmd-shifts-password-strength-advice" data-pmd-team-password-strength-advice>At least 12 characters. Mix character types or use a long passphrase.</small>
+                                <small id="pmd-shifts-password-strength-advice" data-pmd-team-password-strength-advice></small>
                             </span>
                         </label>
                     </div>
