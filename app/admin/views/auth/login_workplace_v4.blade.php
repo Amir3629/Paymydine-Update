@@ -29,6 +29,17 @@
     // full username/password as their primary surface.
     $pinLoginAvailable = false;
     $hasMobileHandoff = request()->filled(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM);
+    // PMD_LOGIN_PIN_PAIRING_SESSION_BOUNDARY_V13B
+    // The PIN controller blocks both an explicit handoff and a session with
+    // a live signed mobile-pairing intent. The view must enforce both, too.
+    if (!$hasMobileHandoff) {
+        try {
+            $hasMobileHandoff = app(\App\Services\PmdMobileSync\PmdMobilePairingService::class)
+                ->hasFreshIntent(request());
+        } catch (\Throwable $error) {
+            // The server will still reject PIN authentication during pairing.
+        }
+    }
     if (!$securityActive && !$hasMobileHandoff) {
         try {
             $siteAccess = app(\App\Services\PmdSiteAccessService::class);
