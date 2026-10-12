@@ -92,7 +92,7 @@ class Shifts extends AdminController
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.
-        $this->addJs('js/pmd-shifts-inpage-day-nav-v18e.js');
+        $this->addJs('js/pmd-shifts-inpage-day-nav-v18f.js');
         // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
         // @scripts renders after the Shifts DOM, so the shared info runtime can bind normally.
         // PMD_KPI_INFO_CURRENT_CARD_AUTHORITY_V158
@@ -465,8 +465,13 @@ class Shifts extends AdminController
 
         $userId = $existingStaff && $existingStaff->user ? (int)$existingStaff->user->user_id : 0;
         $rules = [
-            'display_name' => ['required', 'string', 'min:2', 'max:128'],
-            'job_role' => ['required', 'string', 'min:2', 'max:64'],
+            // staffs.staff_name is a VARCHAR(32), even though the operational
+            // display_name column allows 128 characters. Validate the narrower
+            // account column before we enter the transaction.
+            'display_name' => ['required', 'string', 'min:2', 'max:32'],
+            // Role is a free-text subtitle in the editor, not a required
+            // permission selector. The chosen Access role supplies a fallback.
+            'job_role' => ['nullable', 'string', 'max:64'],
         ];
         if ($wantsAccess) {
             // Mirror the canonical Team account guard before touching the DB.
@@ -504,6 +509,8 @@ class Shifts extends AdminController
         $clean = $validator->validated();
 
         $selectedRole = $managedRoles->get((int)$clean['staff_role_id']);
+        $clean['job_role'] = trim((string)($clean['job_role'] ?? ''))
+            ?: (trim((string)($selectedRole->name ?? '')) ?: 'Team');
         $selectedRoleCode = strtolower(trim((string)($selectedRole->code ?? '')));
         $usesQuickPin = $pinService->canUseRole($selectedRoleCode);
         $existingRoleCode = $existingStaff && $existingStaff->role
@@ -568,7 +575,9 @@ class Shifts extends AdminController
                 if (!$member->staff_email || !$member->exists) {
                     $member->staff_email = $this->technicalStaffEmail($clean['username']);
                 }
-                $member->save();
+                if ($member->save() === false || (int)$member->getKey() < 1) {
+                    throw new \RuntimeException('Could not persist the staff account.');
+                }
 
                 $user = [
                     'username' => $clean['username'],
@@ -581,8 +590,11 @@ class Shifts extends AdminController
                 }
 
                 $userModel = $member->addStaffUser($user);
+                if (!$userModel || (int)$userModel->getKey() < 1) {
+                    throw new \RuntimeException('Could not persist the member login.');
+                }
                 if ($locationId > 0) $member->addStaffLocations([$locationId]);
-                $member->addStaffGroups([]);
+                // Do not clear an existing member's staff group assignments.
 
                 if ($usesQuickPin && $quickPin !== '') {
                     $pinService->setPin(
@@ -611,7 +623,9 @@ class Shifts extends AdminController
                     DB::table('pmd_operational_people')->where('id', $id)->where('location_id', $locationId)->update($values);
                 } else {
                     $values['created_at'] = now();
-                    DB::table('pmd_operational_people')->insert($values);
+                    if (!DB::table('pmd_operational_people')->insert($values)) {
+                        throw new \RuntimeException('Could not persist the operational member.');
+                    }
                 }
             });
         } catch (\Throwable $error) {
@@ -1516,7 +1530,11 @@ class Shifts extends AdminController
     {
         $back = trim((string)request()->input('return_to', ''));
         $target = ($back !== '' && str_starts_with($back, '/admin/')) ? $back : admin_url('shifts');
-        return redirect($target)->with('error', $message)->withInput();
+        return redirect($target)
+            ->with('error', $message)
+            ->with('pmd_shifts_member_error', $message)
+            // Never flash plaintext web passwords or Quick PINs into a session.
+            ->withInput(request()->except(['_token', 'password', 'quick_pin']));
     }
 
     private function redirectBackToSchedule(string $message)

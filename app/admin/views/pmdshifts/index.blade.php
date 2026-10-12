@@ -24,6 +24,7 @@
     $defaultAccessRole = $accessRoles->first(fn($role) => strtolower((string)$role->code) === \Admin\Services\PmdDefaultStaffRoleService::TEAM_MEMBER) ?: $accessRoles->first();
     $byDay = $shifts->groupBy(fn($s) => \Carbon\Carbon::parse($s->shift_date)->toDateString());
     $returnTo = request()->getRequestUri();
+    $retryMember = session()->has('pmd_shifts_member_error');
 
     // PMD_SHIFTS_MONTH_TEAM_SUMMARY_V8
     // A month cell shows the team that matters operationally: the active Shift
@@ -389,25 +390,28 @@
 
         {{-- PMD_SHIFTS_MEMBER_NO_AREA_V1: Role owns operational category; Access Role owns permissions. --}}
 
-        <div class="pmd-shifts__modal" data-pmd-team-modal hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="pmd-team-modal-title">
+        <div class="pmd-shifts__modal" data-pmd-team-modal @unless($retryMember) hidden @endunless aria-hidden="{{ $retryMember ? 'false' : 'true' }}" role="dialog" aria-modal="true" aria-labelledby="pmd-team-modal-title">
             <button type="button" class="pmd-shifts__modal-backdrop" data-pmd-team-close tabindex="-1" aria-label="Close"></button>
             <section class="pmd-shifts__modal-card pmd-shifts__team-card pmd-shifts__team-editor-card" role="document">
                 <header class="pmd-shifts__modal-header">
-                    <div><h2 id="pmd-team-modal-title">Member</h2></div>
+                    <div><h2 id="pmd-team-modal-title" data-pmd-team-form-title>Member</h2></div>
                     <button type="button" class="pmd-shifts__modal-close" data-pmd-team-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
                 </header>
                 {{-- PMD_SHIFTS_MEMBER_MODAL_UI_V11: one title, no ghost Area column. --}}
-                <form class="pmd-shifts__team-form pmd-shifts__team-editor" method="post" action="{{ admin_url('shifts/saveperson') }}" data-pmd-team-form data-default-access-role="{{ (int)optional($defaultAccessRole)->staff_role_id }}">
+                <form class="pmd-shifts__team-form pmd-shifts__team-editor" method="post" action="{{ admin_url('shifts/saveperson') }}" data-pmd-team-form data-default-access-role="{{ (int)optional($defaultAccessRole)->staff_role_id }}" @if($retryMember) data-pmd-team-retry="1" @endif>
                     @csrf
-                    <input type="hidden" name="id" value="" data-pmd-team-person-id>
-                    <input type="hidden" name="return_to" value="{{ $returnTo }}">
-                    <label><span>Name</span><input required maxlength="128" name="display_name" data-pmd-team-name placeholder="Anna"></label>
+                    <input type="hidden" name="id" value="{{ $retryMember ? old('id', '') : '' }}" data-pmd-team-person-id>
+                    <input type="hidden" name="return_to" value="{{ $retryMember ? old('return_to', $returnTo) : $returnTo }}">
+                    @if($retryMember)
+                        <div class="alert alert-danger" role="alert" data-pmd-team-error>{{ session('pmd_shifts_member_error') }}</div>
+                    @endif
+                    <label><span>Name</span><input required minlength="2" maxlength="32" name="display_name" value="{{ $retryMember ? old('display_name', '') : '' }}" data-pmd-team-name placeholder="Anna"></label>
                     <div class="pmd-shifts__team-identity-row">
-                        <label><span>Role</span><input maxlength="64" name="job_role" data-pmd-team-role placeholder="Chef, Waiter…"></label>
+                        <label><span>Role <small>(optional)</small></span><input maxlength="64" name="job_role" value="{{ $retryMember ? old('job_role', '') : '' }}" data-pmd-team-role placeholder="Chef, Waiter…"></label>
                     </div>
                     <input type="hidden" name="give_access" value="1">
                     <div class="pmd-shifts__team-access-fields is-required" data-pmd-team-access-fields>
-                        <label data-pmd-team-username-field><span>Username <small>Web / Portal</small></span><input maxlength="32" name="username" autocomplete="off" data-pmd-team-username></label>
+                        <label data-pmd-team-username-field><span>Username <small>Web / Portal</small></span><input maxlength="32" name="username" value="{{ $retryMember ? old('username', '') : '' }}" autocomplete="off" data-pmd-team-username></label>
                         <div class="pmd-shifts__role-field" data-pmd-team-access-field>
                             <span class="pmd-shifts__role-label">Access</span>
                             <select
@@ -422,6 +426,7 @@
                                     <option
                                         value="{{ (int)$accessRole->staff_role_id }}"
                                         data-role-code="{{ strtolower(trim((string)$accessRole->code)) }}"
+                                        @if($retryMember && (int)old('staff_role_id', 0) === (int)$accessRole->staff_role_id) selected @endif
                                     >{{ $accessRole->name }}</option>
                                 @endforeach
                             </select>
