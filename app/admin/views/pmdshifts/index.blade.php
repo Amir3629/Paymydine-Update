@@ -455,8 +455,13 @@
                         <label class="is-password" data-pmd-team-password-field>
                             <span>Password <small data-pmd-team-password-hint>Web / Portal</small></span>
                             <span class="pmd-shifts__team-password-row">
-                                <input type="password" minlength="6" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password>
+                                <input type="password" minlength="12" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password aria-describedby="pmd-shifts-password-strength-advice">
                                 <button type="button" data-pmd-team-password-generate>Generate</button>
+                            </span>
+                            <span class="pmd-shifts__password-strength" data-pmd-team-password-strength data-strength="empty" role="status" aria-live="polite">
+                                <span class="pmd-shifts__password-strength-meter" aria-hidden="true"><i></i><i></i><i></i></span>
+                                <strong data-pmd-team-password-strength-label>Password strength</strong>
+                                <small id="pmd-shifts-password-strength-advice" data-pmd-team-password-strength-advice>At least 12 characters. Mix character types or use a long passphrase.</small>
                             </span>
                         </label>
                     </div>
