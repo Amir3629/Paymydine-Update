@@ -92,7 +92,7 @@ class Shifts extends AdminController
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.
-        $this->addJs('js/pmd-shifts-inpage-day-nav-v18f.js');
+        $this->addJs('js/pmd-shifts-inpage-day-nav-v18g.js');
         // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
         // @scripts renders after the Shifts DOM, so the shared info runtime can bind normally.
         // PMD_KPI_INFO_CURRENT_CARD_AUTHORITY_V158
