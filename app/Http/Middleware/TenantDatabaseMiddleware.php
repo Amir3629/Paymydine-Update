@@ -60,8 +60,24 @@ class TenantDatabaseMiddleware
              * API/AJAX/non-Admin consumers keep the existing JSON 404 contract.
              */
             if ($this->isAdminBrowserRequest($request)) {
-                return redirect('https://paymydine.com/', 302)
-                    ->header('Cache-Control', 'no-store');
+                // PMD_TENANT_UNAVAILABLE_PAGE_R1
+                // A missing, disabled or not-ready tenant must stay isolated.
+                // Render one public static page without switching to a tenant
+                // database or redirecting visitors to the company landing page.
+                // Nginx's earlier auth_request gate serves the same file for
+                // public/Next routes; this is the Laravel Admin fallback.
+                $unavailablePage = public_path('restaurant-unavailable.html');
+                if (is_file($unavailablePage)) {
+                    return response()->file($unavailablePage, [
+                        'Content-Type' => 'text/html; charset=UTF-8',
+                        'Cache-Control' => 'no-store, max-age=0',
+                        'X-Robots-Tag' => 'noindex, nofollow',
+                        'Retry-After' => '3600',
+                    ])->setStatusCode(503);
+                }
+                return response('Restaurant unavailable', 503)
+                    ->header('Cache-Control', 'no-store')
+                    ->header('X-Robots-Tag', 'noindex, nofollow');
             }
 
             return response()->json(['error' => 'Restaurant not found or inactive'], 404);
