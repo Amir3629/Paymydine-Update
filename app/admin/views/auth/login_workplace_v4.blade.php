@@ -788,13 +788,15 @@ if (window.jQuery) {
         }
         function pinFailure(message) {
             notice.hidden = true;
-            if (pinError) {
-                pinError.textContent = String(message || pinDefaultError);
-                pinError.hidden = false;
-            }
+            // Clear the digits before revealing the error: dispatching input
+            // afterwards would immediately hide the new message.
             if (pinInput) {
                 pinInput.value = '';
                 pinInput.dispatchEvent(new Event('input', {bubbles:true}));
+            }
+            if (pinError) {
+                pinError.textContent = String(message || pinDefaultError);
+                pinError.hidden = false;
             }
         }
         var pinRequest = $('#pmd-pin-form');
