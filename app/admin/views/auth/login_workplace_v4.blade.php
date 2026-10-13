@@ -1,4 +1,5 @@
 @php
+    // PMD_LOGIN_PIN_STABLE_MODE_V15
     // PMD_LOGIN_PIN_DEVICE_ENROLLMENT_CTA_V14
     // PMD_LOGIN_PIN_MODE_SWITCH_V13
     // PMD_LOGIN_WORKPLACE_V12
@@ -51,7 +52,12 @@
         }
     }
     $requestedLoginMode = strtolower(trim((string)request()->input('mode', '')));
-    $pinDefault = $pinLoginAvailable && $requestedLoginMode !== 'password';
+    // Honor an explicit PIN mode even if the hub cookie is unavailable,
+    // so a failed PIN attempt never silently falls back to Password.
+    // Authentication remains restricted to a verified site hub.
+    $pinDefault = !$securityActive && !$hasMobileHandoff
+        && ($requestedLoginMode === 'pin'
+            || ($pinLoginAvailable && $requestedLoginMode !== 'password'));
 
     app()->setLocale($locale);
     if (app()->bound('translator.localization')) {
@@ -70,8 +76,10 @@
             'pin_text' => '6-stellige Quick PIN eingeben.',
             'pin_label' => '6-stellige PIN',
             'pin_submit' => 'Anmelden',
-            'use_password' => 'Vollständige Anmeldung · Benutzername & Passwort',
-            'use_pin' => 'Mitarbeiter-PIN verwenden',
+            'use_password' => 'Mit Benutzername & Passwort',
+            'use_pin' => 'Mitarbeiter-PIN',
+            'pin_switch_subtitle' => 'Schnell mit 6 Ziffern anmelden',
+            'pin_failure' => 'PIN-Anmeldung nicht abgeschlossen. PIN und Gerätefreigabe prüfen.',
             'pin_clear' => 'Löschen',
             'pin_delete' => 'Letzte Ziffer löschen',
             'pin_setup' => 'PIN auf diesem Gerät aktivieren',
@@ -118,8 +126,10 @@
             'pin_text' => 'Enter your 6-digit Quick PIN.',
             'pin_label' => '6-digit PIN',
             'pin_submit' => 'Sign in',
-            'use_password' => 'Full sign-in · Username & password',
-            'use_pin' => 'Use Staff PIN',
+            'use_password' => 'Sign in with username & password',
+            'use_pin' => 'Staff PIN',
+            'pin_switch_subtitle' => 'Quick sign-in with 6 digits',
+            'pin_failure' => 'PIN sign-in did not complete. Check the PIN and device approval.',
             'pin_clear' => 'Clear',
             'pin_delete' => 'Delete last digit',
             'pin_setup' => 'Enable PIN on this device',
@@ -188,6 +198,21 @@
         .mode-switch{display:flex;align-items:center;justify-content:center;min-height:40px;margin:12px 0 0;padding:8px 12px;border:1px solid #d8e6e1;border-radius:12px;background:#f7fbf9;color:var(--jade);font-size:12px;font-weight:850;text-align:center}
         .mode-switch:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
         .mode-switch:hover{background:#eef7f2;text-decoration:none}
+        /* PMD_LOGIN_PIN_STABLE_MODE_V15: raised secondary action, compact icon */
+        .mode-switch{min-height:55px;padding:7px 10px;gap:10px;justify-content:flex-start;text-align:left;border:1px solid #cadfd6;border-radius:14px;background:linear-gradient(145deg,#f2faf5,#e7f4ed);color:#064439;box-shadow:0 3px 11px rgba(0,55,42,.065);transition:background-color .14s,border-color .14s,box-shadow .14s,transform .14s}
+        .mode-switch:hover{background:#e6f6ed;border-color:#91bfad;box-shadow:0 6px 14px rgba(0,55,42,.1);transform:translateY(-1px)}
+        .mode-switch:active{transform:translateY(0)}
+        .mode-switch__icon{width:35px;height:35px;flex:0 0 35px;display:grid;place-items:center;border-radius:10px;background:#d9efe4;color:#075845}
+        .mode-switch__icon svg{width:20px;height:20px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+        .mode-switch__copy{flex:1;min-width:0;display:grid;gap:2px}
+        .mode-switch__copy strong{font-size:12.5px;line-height:1.15;font-weight:850;color:#063f36}
+        .mode-switch__copy small{font-size:10.5px;color:#527368;font-weight:650;line-height:1.2}
+        .mode-switch__arrow{flex:0 0 auto;display:grid;place-items:center;color:#4d7466;font-size:19px;line-height:1}
+        .mode-switch--password{min-height:46px;background:#f8fbf9;box-shadow:none}
+        .mode-switch--password .mode-switch__icon{width:30px;height:30px;flex-basis:30px;background:#e9f1ed}
+        .mode-switch--password .mode-switch__icon svg{width:17px;height:17px}
+        .pin-error[hidden]{display:none!important}
+        .pin-error{margin:0;padding:9px 11px;border:1px solid #ebc6c3;background:#fff5f4;color:#8b2d27;border-radius:11px;font-size:12px;line-height:1.4;font-weight:700}
         @media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:21px 18px 27px;border-radius:20px}.card.is-security{min-height:min(570px,calc(100dvh - 18px));padding-bottom:28px}.brand{height:140px;margin:-3px 38px 20px}.brand img{height:134px}.card.is-security .brand{height:150px;margin:-2px 38px 30px}.card.is-security .brand img{height:143px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}.recovery-list{grid-template-columns:1fr 1fr}.field>span{font-size:12.5px}.security-head p{font-size:12.5px}.card.is-pin .brand{height:96px;margin:0 38px 8px}.card.is-pin .brand img{height:92px}.pin-key{height:50px}.pin-dot{height:40px}}
     </style>
 </head>
@@ -244,6 +269,7 @@
                         <button class="pin-key is-action" type="button" data-pin-delete aria-label="{{ $copy['pin_delete'] }}">⌫</button>
                     </div>
                     {!! form_error('pin', '<small class="error">', '</small>') !!}
+                    <p class="pin-error" data-pin-login-error role="alert" aria-live="polite" hidden></p>
                     @if($pinLoginAvailable)
                         <button type="submit" class="submit" data-pin-submit data-attach-loading disabled>{{ $copy['pin_submit'] }}</button>
                     @endif
@@ -251,11 +277,15 @@
                 @unless($pinLoginAvailable)
                     <a href="{{ admin_url('siteaccess/hub/enroll') }}" class="submit pin-setup-action" data-pin-setup-action>{{ $copy['pin_setup'] }}</a>
                 @endunless
-                <button type="button" class="mode-switch" data-login-mode="password">{{ $copy['use_password'] }}</button>
+                <button type="button" class="mode-switch mode-switch--password" data-login-mode="password" aria-controls="pmd-login-password-panel">
+                    <span class="mode-switch__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="12" rx="2"></rect><path d="M8 9V6a4 4 0 0 1 8 0v3"></path></svg></span>
+                    <span class="mode-switch__copy"><strong>{{ $copy['use_password'] }}</strong></span>
+                    <span class="mode-switch__arrow" aria-hidden="true">›</span>
+                </button>
             </div>
         @endif
 
-        <div class="password-panel" data-login-panel="password" @if($pinDefault) hidden @endif>
+        <div id="pmd-login-password-panel" class="password-panel" data-login-panel="password" @if($pinDefault) hidden @endif>
             {!! form_open(['id'=>'edit-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onLogin']) !!}
                 {{-- PMD_MOBILE_PAIR_SIGNED_LOGIN_FORM_V3 --}}
                 @if(request()->filled(\App\Services\PmdMobileSync\PmdMobilePairingService::HANDOFF_PARAM))
@@ -282,7 +312,11 @@
                 <a class="forgot" href="{{ admin_url('login/reset') }}">{{ $copy['forgot'] }}</a>
             {!! form_close() !!}
             @if(!$hasMobileHandoff)
-                <button type="button" class="mode-switch" data-login-mode="pin" aria-controls="pmd-login-pin-panel">{{ $copy['use_pin'] }}</button>
+                <button type="button" class="mode-switch mode-switch--pin" data-login-mode="pin" aria-controls="pmd-login-pin-panel">
+                    <span class="mode-switch__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"></rect><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"></path></svg></span>
+                    <span class="mode-switch__copy"><strong>{{ $copy['use_pin'] }}</strong><small>{{ $copy['pin_switch_subtitle'] }}</small></span>
+                    <span class="mode-switch__arrow" aria-hidden="true">›</span>
+                </button>
             @endif
         </div>
 
@@ -460,30 +494,73 @@
         renderPin();
         focusPin();
     });
-    var pinForm = document.getElementById('pmd-pin-form');
-    if (pinForm) pinForm.addEventListener('submit', function (event) {
-        if (!pinAuthorized || !pinInput || String(pinInput.value || '').length !== 6) {
-            event.preventDefault();
-            focusPin();
+    // PMD_LOGIN_PIN_STABLE_MODE_V15
+    // Remember only the selected interface mode. Never store PINs/passwords.
+    var pinModeStorageKey = 'pmd_login_selected_mode_v15';
+    function rememberLoginMode(mode) {
+        try { window.sessionStorage.setItem(pinModeStorageKey, mode); } catch (error) {}
+    }
+    function selectedModeFromStorage() {
+        try { return window.sessionStorage.getItem(pinModeStorageKey); } catch (error) { return null; }
+    }
+    function showPinFailure(message) {
+        var errorNode = document.querySelector('[data-pin-login-error]');
+        if (errorNode && pinPanel && !pinPanel.hidden) {
+            errorNode.textContent = String(message || @json($copy['pin_failure']));
+            errorNode.hidden = false;
         }
-    });
-    document.querySelectorAll('[data-login-mode]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            var mode = button.getAttribute('data-login-mode') === 'pin' ? 'pin' : 'password';
-            document.querySelectorAll('[data-login-panel]').forEach(function (panel) {
-                panel.hidden = panel.getAttribute('data-login-panel') !== mode;
-            });
-            if (loginCard) loginCard.classList.toggle('is-pin', mode === 'pin');
-            // Keep the chosen mode when the user refreshes or changes language.
+        if (pinInput) {
+            pinInput.value = '';
+            renderPin();
+        }
+    }
+    function showLoginMode(mode, focus, updateAddress) {
+        mode = mode === 'pin' ? 'pin' : 'password';
+        // Never expose PIN login inside Owner MFA or mobile pairing states.
+        if (mode === 'pin' && !pinPanel) return;
+        document.querySelectorAll('[data-login-panel]').forEach(function (panel) {
+            panel.hidden = panel.getAttribute('data-login-panel') !== mode;
+        });
+        if (loginCard) loginCard.classList.toggle('is-pin', mode === 'pin');
+        rememberLoginMode(mode);
+        if (updateAddress) {
             try {
                 var modeUrl = new URL(window.location.href);
                 modeUrl.searchParams.set('mode', mode);
                 window.history.replaceState(window.history.state, '', modeUrl.pathname + modeUrl.search + modeUrl.hash);
             } catch (error) {}
+        }
+        if (focus) {
             var target = mode === 'pin' ? pinInput : document.getElementById('input-username');
             if (target) window.setTimeout(function () { target.focus({preventScroll:true}); }, 0);
+        }
+    }
+    var pinForm = document.getElementById('pmd-pin-form');
+    if (pinForm) pinForm.addEventListener('submit', function (event) {
+        if (!pinAuthorized || !pinInput || String(pinInput.value || '').length !== 6) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            showPinFailure(@json($copy['pin_failure']));
+            focusPin();
+            return;
+        }
+        rememberLoginMode('pin');
+    });
+    document.querySelectorAll('[data-login-mode]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            showLoginMode(button.getAttribute('data-login-mode'), true, true);
         });
     });
+    if (pinPanel) {
+        var requestedLoginMode = new URLSearchParams(window.location.search).get('mode');
+        // Explicit URLs win; otherwise recover the previous mode if login
+        // returns after a failed PIN POST or the page reloads.
+        var preferred = requestedLoginMode === 'pin' || requestedLoginMode === 'password'
+            ? requestedLoginMode : selectedModeFromStorage();
+        if (preferred === 'pin' || preferred === 'password') {
+            showLoginMode(preferred, false, false);
+        }
+    }
 
     document.querySelectorAll('[data-security-code],#pmd-workplace-code').forEach(function (input) {
         input.addEventListener('input', function () {
@@ -698,24 +775,58 @@ if (window.jQuery) {
     (function ($) {
         var form = $('#edit-form, #pmd-pin-form');
         var notice = document.getElementById('pmd-login-notice');
+        var pinPanel = document.querySelector('[data-login-panel="pin"]');
+        var pinInput = document.querySelector('[data-pin-input]');
+        var pinError = document.querySelector('[data-pin-login-error]');
+        var pinDefaultError = @json($copy['pin_failure']);
         if (!form.length || !notice) return;
+        function pinShown() { return !!(pinPanel && !pinPanel.hidden); }
         function show(message) {
             var span = notice.querySelector('span');
-            if (span && message) span.textContent = message;
+            if (span && message) span.textContent = String(message);
             notice.hidden = false;
         }
-        form.on('ajaxFail ajaxError ajaxInvalidField', function () {
-            show();
-            var pin = document.querySelector('[data-pin-input]');
-            if (pin && !pin.closest('[hidden]')) {
-                pin.value = '';
-                pin.dispatchEvent(new Event('input', {bubbles:true}));
-                pin.focus();
+        function pinFailure(message) {
+            notice.hidden = true;
+            if (pinError) {
+                pinError.textContent = String(message || pinDefaultError);
+                pinError.hidden = false;
             }
+            if (pinInput) {
+                pinInput.value = '';
+                pinInput.dispatchEvent(new Event('input', {bubbles:true}));
+            }
+        }
+        var pinRequest = $('#pmd-pin-form');
+        // The request plugin otherwise follows X_IGNITER_REDIRECT unconditionally.
+        // PIN login has no Owner MFA stage. A redirect back to Login is a failed
+        // PIN sign-in, not permission to discard the visible PIN keypad.
+        pinRequest.on('ajaxBeforeUpdate', function (event, context, data) {
+            var redirect = data && data['X_IGNITER_REDIRECT'];
+            if (!redirect) return;
+            try {
+                var attemptedUrl = new URL(String(redirect), window.location.href);
+                var loginUrl = new URL(@json(admin_url('login')), window.location.href);
+                if (attemptedUrl.origin !== loginUrl.origin
+                    || attemptedUrl.pathname.replace(/\/+$/, '') !== loginUrl.pathname.replace(/\/+$/, '')) return;
+                event.preventDefault();
+                pinFailure(pinDefaultError);
+            } catch (error) {}
+        });
+        form.on('ajaxFail ajaxError ajaxInvalidField', function () {
+            if (this.id === 'pmd-pin-form' || pinShown()) pinFailure(pinDefaultError);
+            else show();
         });
         $(document).on('ajaxErrorMessage', function (event, message) {
             if (event && event.preventDefault) event.preventDefault();
-            show(message);
+            if (pinShown()) pinFailure(message || pinDefaultError);
+            else show(message);
+        });
+        pinRequest.on('ajaxSuccess', function () {
+            if (pinError) pinError.hidden = true;
+        });
+        pinRequest.on('input', function () {
+            if (pinError) pinError.hidden = true;
         });
     })(window.jQuery);
 }
