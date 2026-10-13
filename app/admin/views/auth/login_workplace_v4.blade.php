@@ -824,8 +824,14 @@ if (window.jQuery) {
             if (pinShown()) pinFailure(message || pinDefaultError);
             else show(message);
         });
-        pinRequest.on('ajaxSuccess', function () {
-            if (pinError) pinError.hidden = true;
+        pinRequest.on('ajaxSuccess', function (event, context, data) {
+            // A valid PIN handler always returns a workspace redirect.
+            // A 200/HTML response with no redirect must not fail silently.
+            if (data && data['X_IGNITER_REDIRECT']) {
+                if (pinError) pinError.hidden = true;
+                return;
+            }
+            if (pinShown()) pinFailure(pinDefaultError);
         });
         pinRequest.on('input', function () {
             if (pinError) pinError.hidden = true;
