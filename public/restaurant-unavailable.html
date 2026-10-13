@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="color-scheme" content="light">
+  <title>Restaurant unavailable | PayMyDine</title>
+  <meta name="description" content="This restaurant page is not currently available. Visit PayMyDine or contact our team.">
+  <style>
+    :root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#18382f;background:#031f1a;font-synthesis:none}
+    *{box-sizing:border-box}
+    body{min-height:100vh;min-height:100dvh;margin:0;display:grid;place-items:center;padding:36px 18px 22px;background:radial-gradient(ellipse 48% 42% at 55% 21%,rgba(96,128,86,.18),transparent 75%),radial-gradient(ellipse 47% 45% at 50% 99%,rgba(2,123,83,.17),transparent 75%),linear-gradient(145deg,#001813 0%,#062d24 78%,#031d19 100%)}
+    .shell{width:min(100%,608px)}
+    .card{position:relative;overflow:hidden;border:1px solid #e4ebe7;border-radius:25px;padding:37px clamp(21px,5vw,46px) 29px;background:#fff;box-shadow:0 30px 100px rgba(0,10,8,.34)}
+    .language{position:absolute;top:19px;right:19px;min-width:47px;height:36px;border:1px solid #eadab9;border-radius:10px;background:#fffaf2;color:#0a4838;font:800 12px inherit;cursor:pointer}
+    .language:focus-visible,a:focus-visible{outline:3px solid #81cb9c;outline-offset:3px}
+    .brand{display:flex;align-items:center;justify-content:center;gap:11px;text-decoration:none;color:#0c3027;font-size:23px;font-weight:900;letter-spacing:-1px}
+    .brand-mark{width:51px;height:51px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(125deg,#bade35 0%,#55c92b 44%,#00a45a 100%);box-shadow:inset 0 -5px 12px rgba(0,80,36,.11)}
+    .brand-mark svg{width:33px;height:33px;fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round;stroke-width:4}
+    .symbol{margin:29px auto 19px;width:78px;height:78px;display:grid;place-items:center;border:1px solid #d5eadd;border-radius:23px;background:#f1faf5;color:#086b50}
+    .symbol svg{width:39px;height:39px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+    .status{width:max-content;max-width:100%;margin:0 auto 13px;padding:7px 12px;border:1px solid #d7e8dc;border-radius:99px;background:#f3faf5;color:#2c7654;font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
+    h1{max-width:430px;margin:0 auto;text-align:center;font-size:clamp(26px,4.9vw,35px);line-height:1.14;letter-spacing:-1.25px;color:#092f27;font-weight:850}
+    .description{max-width:420px;margin:14px auto 0;color:#63786f;text-align:center;font-size:14px;line-height:1.75}
+    .actions{margin:27px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:11px;max-width:460px}
+    a.button{min-height:49px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:13px;padding:11px 13px;text-align:center;text-decoration:none;font-size:13px;font-weight:850;transition:transform .14s,background-color .14s}
+    a.button:hover{transform:translateY(-1px)}
+    .primary{background:#064e40;color:#fff}
+    a.primary:hover{background:#076552}
+    .secondary{background:#f5faf7;border:1px solid #d7e7de;color:#135642}
+    a.secondary:hover{background:#edf7f0}
+    .contact{margin-top:28px;padding-top:19px;border-top:1px solid #e7eeea;text-align:center}
+    .contact h2{margin:0 0 7px;color:#1b4135;font-size:12px;font-weight:850}
+    .contact p{margin:0;color:#788981;font-size:12px;line-height:1.6}
+    .contact-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 19px;margin-top:12px}
+    .contact-links a{font-size:12px;font-weight:800;text-decoration:underline;text-decoration-color:#bad9c9;text-underline-offset:3px;color:#076c53;overflow-wrap:anywhere}
+    footer{padding:18px 8px 0;text-align:center;color:#b4c7bf;font-size:11px;letter-spacing:.02em}
+    @media(max-width:430px){body{padding:14px 12px}.card{padding:31px 18px 24px;border-radius:21px}.brand{font-size:20px}.symbol{margin-top:27px}.actions{grid-template-columns:1fr}.contact-links{gap:10px}}
+    @media(prefers-reduced-motion:reduce){a.button{transition:none}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <main class="card">
+      <button class="language" id="language" type="button" aria-label="Switch to German">DE</button>
+      <a href="https://www.paymydine.com/" class="brand" aria-label="PayMyDine home">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 25V7h9a8 8 0 0 1 0 16h-4"></path><path d="m17 12 5 5-5 5"></path></svg></span>
+        <span>PayMyDine</span>
+      </a>
+      <div class="symbol" aria-hidden="true">
+        <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="14"></circle><path d="M20 12v9l7 4"></path><path d="m5 7 4-3M35 7l-4-3"></path></svg>
+      </div>
+      <div class="status" data-i18n="status">Temporarily unavailable</div>
+      <h1 data-i18n="headline">This restaurant isn't available yet.</h1>
+      <p class="description" data-i18n="description">The restaurant page you requested is not currently available. Please check back later or contact PayMyDine if you need assistance.</p>
+      <div class="actions">
+        <a class="button primary" href="https://www.paymydine.com/"><span data-i18n="home">Visit PayMyDine</span><span aria-hidden="true">↗</span></a>
+        <a class="button secondary" href="https://www.paymydine.com/contact" data-i18n="contactAction">Contact our team</a>
+      </div>
+      <section class="contact" aria-labelledby="contact-heading">
+        <h2 id="contact-heading" data-i18n="helpHeading">Need assistance?</h2>
+        <p data-i18n="helpDescription">Reach the PayMyDine team through our official contact and support pages.</p>
+        <div class="contact-links">
+          <a href="https://www.paymydine.com/contact">paymydine.com/contact</a>
+          <a href="https://www.paymydine.com/support">paymydine.com/support</a>
+        </div>
+      </section>
+    </main>
+    <footer>© PayMyDine · <span data-i18n="footer">Restaurant operations, connected.</span></footer>
+  </div>
+  <script>
+    (function(){
+      var copy={
+        en:{status:'Temporarily unavailable',headline:"This restaurant isn't available yet.",description:'The restaurant page you requested is not currently available. Please check back later or contact PayMyDine if you need assistance.',home:'Visit PayMyDine',contactAction:'Contact our team',helpHeading:'Need assistance?',helpDescription:'Reach the PayMyDine team through our official contact and support pages.',footer:'Restaurant operations, connected.',title:'Restaurant unavailable | PayMyDine'},
+        de:{status:'Derzeit nicht verfügbar',headline:'Dieses Restaurant ist noch nicht verfügbar.',description:'Die angeforderte Restaurantseite ist momentan nicht verfügbar. Bitte versuche es später erneut oder wende dich an PayMyDine.',home:'PayMyDine besuchen',contactAction:'Kontakt aufnehmen',helpHeading:'Benötigst du Hilfe?',helpDescription:'Kontaktiere PayMyDine über unsere offiziellen Kontakt- und Supportseiten.',footer:'Alles für deinen Restaurantbetrieb.',title:'Restaurant nicht verfügbar | PayMyDine'}
+      };
+      var button=document.getElementById('language'), current='en';
+      function setLanguage(lang){
+        current=copy[lang]?lang:'en';
+        document.documentElement.lang=current;
+        document.title=copy[current].title;
+        document.querySelectorAll('[data-i18n]').forEach(function(node){
+          var key=node.getAttribute('data-i18n');
+          if(Object.prototype.hasOwnProperty.call(copy[current],key)) node.textContent=copy[current][key];
+        });
+        button.textContent=current==='de'?'EN':'DE';
+        button.setAttribute('aria-label',current==='de'?'Switch to English':'Switch to German');
+      }
+      button.addEventListener('click',function(){setLanguage(current==='en'?'de':'en')});
+      if(/^de\b/i.test(navigator.language||''))setLanguage('de');
+    })();
+  </script>
+</body>
+</html>
