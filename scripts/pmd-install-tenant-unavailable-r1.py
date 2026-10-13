@@ -156,7 +156,11 @@ def backup(files: dict[Path, bytes]) -> Path:
         original = target.exists()
         name = "{:03d}.original".format(i)
         if original:
-            shutil.copy2(target, folder / name)
+            saved = folder / name
+            shutil.copy2(target, saved)
+            # Keep owner/group as well as mode/timestamps for reliable rollback.
+            original_stat = target.stat()
+            os.chown(saved, original_stat.st_uid, original_stat.st_gid)
         manifest.append({"path": str(target), "existed": original, "backup": name})
     (folder / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     os.chmod(folder / "manifest.json", 0o600)
