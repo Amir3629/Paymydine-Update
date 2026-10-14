@@ -752,7 +752,7 @@ try {
     // R27 removes all R26 page-level publication affordances. ONLY the native
     // editor footers may offer publication of an existing SAVED entity.
     $stage = 'edit-modal-only-publication-r27';
-    $nativeFoodEditor = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-menu-manager-v1.js');
+    $nativeFoodEditor = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-menu-manager-v130.js');
     $nativeCategoryEditor = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-menu-smart-categories-v1.js');
     if (strpos($nativeFoodEditor, "pmd:menu-editor-open-r27") === false
         || strpos($nativeFoodEditor, "detail: {mode: modalMode, entityId: groupEditId}") === false
