@@ -260,7 +260,9 @@
         if(reportCache[key]&&reportCache[key].promise===promise)delete reportCache[key];
         throw error;
       });
-      reportCache[key]={at:Date.now(),promise:promise};
+      var saved={at:Date.now(),promise:promise,data:null};
+      reportCache[key]=saved;
+      promise.then(function(data){saved.data=data;}).catch(function(){});
       return promise;
     }
     // R26: warm a bounded number of explicitly authorized, read-only scopes
@@ -404,7 +406,17 @@
       // "Loading" during a scope change. Mark the selector busy, keep the
       // last verified snapshot, and apply the new scope when its data is ready.
       if(scope==='all')showFloorNotice('Select one restaurant to view its Floor.');
-      if(floor)floor.setAttribute('aria-busy','true');
+      // A previously fetched, still-fresh site opens immediately in the
+      // native widgets, without waiting for a new microtask or network roundtrip.
+      var instantToday=reportCache[scope+'|today'];
+      var instantMonth=reportCache[scope+'|month'];
+      var warm=instantToday&&instantMonth&&instantToday.data&&instantMonth.data
+        &&Date.now()-instantToday.at<30000&&Date.now()-instantMonth.at<30000;
+      if(warm){
+        if(scope!=='all')displayGroupFloor(instantToday.data);
+        applyKpis(instantToday.data,instantMonth.data,false);
+      }
+      if(floor)floor.setAttribute('aria-busy',warm?'false':'true');
       if(analytics){
         analytics.setScopeProvider(function(period){
           return Promise.all([
@@ -421,8 +433,10 @@
         if(version!==sequence||selectedScope!==scope)return;
         var today=rows[0].status==='fulfilled'?rows[0].value:null;
         var month=rows[1].status==='fulfilled'?rows[1].value:null;
-        if(scope!=='all')displayGroupFloor(today);
-        applyKpis(today,month,false);
+        if(!warm||today!==instantToday.data||month!==instantMonth.data){
+          if(scope!=='all')displayGroupFloor(today);
+          applyKpis(today,month,false);
+        }
         if(floor)floor.removeAttribute('aria-busy');
         control.select.removeAttribute('aria-busy');
         var problem=issue(today)||issue(month);
@@ -515,7 +529,9 @@
         if(menuScopeCache[scope]&&menuScopeCache[scope].promise===promise)delete menuScopeCache[scope];
         throw error;
       });
-      menuScopeCache[scope]={at:Date.now(),promise:promise};
+      var saved={at:Date.now(),promise:promise,data:null};
+      menuScopeCache[scope]=saved;
+      promise.then(function(data){saved.data=data;}).catch(function(){});
       return promise;
     }
     if(context.sites.length<=5){
@@ -601,6 +617,13 @@
       if(menuPanel)menuPanel.hidden=false;
       if(emptyResults)emptyResults.hidden=true;
       // R26: a warmed location opens instantly; never issue duplicate GETs.
+      var cached=menuScopeCache[scope];
+      var hasWarm=cached&&cached.data&&Date.now()-cached.at<20000;
+      if(hasWarm){
+        render(cached.data);
+        control.select.removeAttribute('aria-busy');
+        return;
+      }
       if(!borrowed)showMessage('Loading restaurant menu…');
       control.select.setAttribute('aria-busy','true');
       menuReport(scope).then(function(data){
