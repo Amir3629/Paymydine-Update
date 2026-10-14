@@ -29,7 +29,7 @@ final class Publisher
         return PublicationLock::run($sourceDb,'source:'.$group->uuid.':'.$type.':'.$entityId,function() use($owner,$source,$site,$group,$targets,$type,$entityId,$sourceDb) {
             $state=$sourceDb->transaction(fn()=>$this->data()->state($sourceDb,$type,$entityId,(int)$site->location_id,true));
             if ($state===null) throw new \DomainException('Saved source item not found.');
-            $currency=$type==='setting'?null:$this->data()->currency($sourceDb);
+            $currency=in_array($type,['setting','category'],true)?null:$this->data()->currency($sourceDb);
             $key=$this->entityKey($sourceDb,(string)$group->uuid,$type,$entityId);
             $payload=['meta'=>['version'=>PublicationRules::VERSION,'owner_id'=>(int)$owner->id,
                 'auth_version'=>(int)$owner->auth_version,'source_tenant_id'=>$source,
@@ -108,7 +108,7 @@ final class Publisher
                             if($operation->state==='complete') throw new \RuntimeException('Completed publication is missing a target receipt.');
                             $this->authorized($this->auth->owner(true),(int)$target->tenant_id,(int)$group->id);
                             $this->authorized($owner,(int)$operation->source_tenant_id,(int)$group->id);
-                            if($type!=='setting' && ($payload['meta']['currency']!==$this->data()->currency($db)
+                            if(!in_array($type,['setting','category'],true) && ($payload['meta']['currency']!==$this->data()->currency($db)
                                 || $payload['meta']['currency']!==$this->data()->currency($this->store->connection((int)$operation->source_tenant_id)))) {
                                 throw new \DomainException('A configured currency changed after preview.');
                             }
