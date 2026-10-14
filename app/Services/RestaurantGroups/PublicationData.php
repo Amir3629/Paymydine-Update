@@ -16,7 +16,7 @@ final class PublicationData
 
     public function type(string $type): string
     {
-        if (!in_array($type, ['menu','coupon','setting'], true)) throw new \InvalidArgumentException('Unsupported publication type.');
+        if (!in_array($type, ['menu','category','coupon','setting'], true)) throw new \InvalidArgumentException('Unsupported publication type.');
         return $type;
     }
 
@@ -34,7 +34,10 @@ final class PublicationData
         foreach ($rows as $row) {
             if ($type === 'coupon' && ($row->card_type ?? 'coupon') === 'gift_card') continue;
             if (!$this->inScope($db, $type, (int)$row->{$key}, $locationId)) continue;
-            $items[] = ['id'=>(string)$row->{$key}, 'label'=>(string)($type === 'menu' ? $row->menu_name : $row->name.' - '.$row->code)];
+            if ($type === 'category' && strtolower(trim((string)($row->pmd_kind ?? 'regular'))) !== 'regular') continue;
+            $label = $type === 'menu' ? $row->menu_name
+                : ($type === 'category' ? $row->name : $row->name.' - '.$row->code);
+            $items[] = ['id'=>(string)$row->{$key}, 'label'=>(string)$label];
         }
         return $items;
     }
@@ -56,6 +59,8 @@ final class PublicationData
         if ($type === 'coupon') {
             if (($row->card_type ?? 'coupon') === 'gift_card') throw new \DomainException('Gift-card balances cannot be published.');
             $data = ['coupon'=>array_intersect_key((array)$row, array_flip(self::COUPON_FIELDS))];
+        } elseif ($type === 'category') {
+            $data = app(CategoryReplicator::class)->export($db, $numeric);
         } else {
             $this->checkMenuSource($db, $numeric);
             $data = app(MenuReplicator::class)->export($db, $numeric);
@@ -68,6 +73,10 @@ final class PublicationData
         if ($type === 'setting') { $this->setting($db, (string)($data['key'] ?? '')); return; }
         if ($id !== null && $this->state($db, $type, $id, $locationId, true) === null) {
             throw new \DomainException('The previously published item was deleted. Review the mapping before publishing.');
+        }
+        if ($type === 'category') {
+            app(CategoryReplicator::class)->validateTarget($db, $data, $id===null?null:(int)$id, $locationId);
+            return;
         }
         if ($type === 'coupon') {
             $coupon = (array)($data['coupon'] ?? []);
@@ -110,6 +119,7 @@ final class PublicationData
             return $key;
         }
         if ($type === 'menu') return (string)app(MenuReplicator::class)->import($db,$data,$id===null?null:(int)$id,$locationId);
+        if ($type === 'category') return (string)app(CategoryReplicator::class)->import($db,$data,$id===null?null:(int)$id,$locationId);
         $values = (array)$data['coupon'];
         if ($db->getSchemaBuilder()->hasColumn('igniter_coupons','updated_at')) $values['updated_at'] = now();
         if ($id !== null) $db->table('igniter_coupons')->where('coupon_id',(int)$id)->update($values);
@@ -141,6 +151,11 @@ final class PublicationData
         if ($type==='setting') $tables[]='settings';
         else {
             $tables[]='locationables'; $tables[]=$this->table($type)[0];
+            if ($type==='category') {
+                if (!$db->getSchemaBuilder()->hasTable('categories')) {
+                    throw new \DomainException('Category storage is unavailable for this restaurant.');
+                }
+            }
             if ($type==='menu') {
                 foreach (['categories','menu_categories','mealtimes','menu_mealtimes','menu_prices','menus_specials','allergens','allergenables','menu_options','menu_option_values','menu_item_options','menu_item_option_values'] as $table) {
                     if ($db->getSchemaBuilder()->hasTable($table)) $tables[]=$table;
@@ -183,7 +198,14 @@ final class PublicationData
         if (!$db->getSchemaBuilder()->hasColumn('settings','sort')) throw new \DomainException('Settings namespace is unavailable.');
         return $db->table('settings')->where('item',$key)->where('sort','config');
     }
-    private function table(string $type): array { return $type==='menu'?['menus','menu_id']:['igniter_coupons','coupon_id']; }
+    private function table(string $type): array {
+        return match ($type) {
+            'menu' => ['menus','menu_id'],
+            'category' => ['categories','category_id'],
+            'coupon' => ['igniter_coupons','coupon_id'],
+            default => throw new \InvalidArgumentException('Unsupported publication type.'),
+        };
+    }
     private function columns($db,string $table,array $data): void
     {
         if (!$db->getSchemaBuilder()->hasTable($table) || array_diff(array_keys($data),$db->getSchemaBuilder()->getColumnListing($table))) {
@@ -208,7 +230,12 @@ final class PublicationData
     }
     private function inScope($db,string $type,int $id,int $locationId): bool
     {
-        $aliases=$type==='menu'?['menus','Admin\\Models\\Menus_model']:['coupons','igniter_coupons','Admin\\Models\\Coupons_model'];
+        $aliases=match ($type) {
+            'menu' => ['menus','Admin\\Models\\Menus_model'],
+            'category' => ['categories','Admin\\Models\\Categories_model'],
+            'coupon' => ['coupons','igniter_coupons','Admin\\Models\\Coupons_model'],
+            default => throw new \InvalidArgumentException('Invalid location-owned type.'),
+        };
         $ids=$db->table('locationables')->where('locationable_id',$id)->whereIn('locationable_type',$aliases)->pluck('location_id')->all();
         $ids=array_values(array_unique(array_map('intval',$ids)));
         if (!$ids) return $db->table('locations')->where('location_status',1)->count()===1
