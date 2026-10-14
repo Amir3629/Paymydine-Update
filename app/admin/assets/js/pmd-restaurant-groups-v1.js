@@ -41,20 +41,40 @@
 
 
 
-  function share(){
-    var node=dialog('Apply saved changes to restaurants');
-    node.appendChild(el('p','Save in the current restaurant first. Then choose exactly which other restaurants receive this saved item.'));
-    var item=el('select');node.appendChild(field('Saved item',item));
+  function share(preset){
+    // Called either from the header or directly from a saved food/category.
+    // A header click event is NOT a publish preset.
+    preset=preset&&['menu','category'].indexOf(preset.type)!==-1?preset:null;
+    var publishType=preset?preset.type:type;
+    var node=dialog(preset?'Apply to other locations':'Apply saved changes to restaurants');
+    node.appendChild(el('p',preset&&publishType==='category'
+      ? 'Publish this category definition only. Foods and stock stay local. Choose the receiving restaurants, preview, then confirm.'
+      : 'Save in the current restaurant first. Choose exactly which other restaurants receive this saved item.'));
+    var item=el('select');
+    if(preset){
+      var option=el('option',preset.label||'Saved item');
+      option.value=String(preset.id);
+      item.appendChild(option);
+      node.appendChild(el('p',(publishType==='category'?'Category: ':'Food: ')+(preset.label||'Saved item'),'pmd-group-selected-entity'));
+    }else node.appendChild(field('Saved item',item));
     var box=el('div');node.appendChild(box);var inputs=locations(box,false);
     var message=el('p',null,'pmd-group-status');message.setAttribute('role','status');node.appendChild(message);
     var details=el('div',null,'pmd-group-results');node.appendChild(details);
     var operation=null,busy=false,version=0;
     var apply=button('Apply to selected restaurants',function(){if(!operation||busy)return;busy=true;apply.disabled=true;preview.disabled=true;request('publish/apply',{operation:operation,overwrite:false}).then(function(data){details.replaceChildren();var failed=false;(data.results||[]).forEach(function(row){var label=row.label||siteLabel(row.tenant_id);details.appendChild(el('p',label+': '+(row.ok?(row.state==='already_applied'?'Already applied':'Applied'):row.message),row.ok?'':'is-error'));failed=failed||!row.ok;});status(message,failed?'Some restaurants were not confirmed. Retry the unfinished operation.':'Selected restaurants were updated.',failed);if(!failed)operation=null;apply.textContent=failed?'Retry unfinished restaurants':'Apply to selected restaurants';}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});apply.disabled=true;
-    var preview=button('Preview restaurants',function(){var ids=selected(inputs);if(!ids.length||!item.value){status(message,'Choose a saved item and at least one other restaurant.',true);return;}busy=true;preview.disabled=true;apply.disabled=true;operation=null;details.replaceChildren();var currentVersion=++version;request('publish/preview',{type:type,entity_id:item.value,targets:ids}).then(function(data){if(currentVersion!==version)return;operation=data.operation;(data.targets||[]).forEach(function(row){details.appendChild(el('p',row.label+': '+(row.existing?'Update published copy':'Create copy')));});status(message,'Review the target restaurants before applying.');}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});
+    var preview=button('Preview restaurants',function(){var ids=selected(inputs);if(!ids.length||!item.value){status(message,'Choose a saved item and at least one other restaurant.',true);return;}busy=true;preview.disabled=true;apply.disabled=true;operation=null;details.replaceChildren();var currentVersion=++version;request('publish/preview',{type:publishType,entity_id:item.value,targets:ids}).then(function(data){if(currentVersion!==version)return;operation=data.operation;(data.targets||[]).forEach(function(row){details.appendChild(el('p',row.label+': '+(row.existing?'Update published copy':'Create copy')));});status(message,'Review the target restaurants before applying.');}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});
     function invalidate(){version++;operation=null;apply.disabled=true;details.replaceChildren();}
     item.addEventListener('change',invalidate);inputs.forEach(function(i){i.addEventListener('change',invalidate);});
-    node.appendChild(preview);node.appendChild(apply);preview.disabled=true;
-    request('catalog?type='+encodeURIComponent(type)).then(function(data){(data.items||[]).forEach(function(row){var option=el('option',row.label);option.value=String(row.id);item.appendChild(option);});preview.disabled=!item.options.length;status(message,item.options.length?'':'No eligible saved items are available.');}).catch(function(e){status(message,e.message,true);});
+    node.appendChild(preview);node.appendChild(apply);preview.disabled=!preset;
+    if(!preset){
+      request('catalog?type='+encodeURIComponent(publishType)).then(function(data){
+        (data.items||[]).forEach(function(row){
+          var option=el('option',row.label);option.value=String(row.id);item.appendChild(option);
+        });
+        preview.disabled=!item.options.length;
+        status(message,item.options.length?'':'No eligible saved items are available.');
+      }).catch(function(e){status(message,e.message,true);});
+    }
   }
 
   function scopeControl(){
@@ -397,6 +417,61 @@
     var control=scopeControl();if(!control.wrap.isConnected)actions.prepend(control.wrap);
     var applyButton=null;
     if(context.capabilities.publish){applyButton=button('Apply to locations',share,'pmd-group-header-button');actions.prepend(applyButton);}
+    // R26: keep native food card controls and category-filter buttons intact.
+    // Add an adjacent (never nested) action to saved categories and each
+    // persisted food card. Native menu CRUD can redraw these elements.
+    var sourceSite=context.sites.find(function(site){
+      return Number(site.tenant_id)===Number(context.current_tenant_id);
+    });
+    var canShare=!!(context.capabilities.publish&&sourceSite&&sourceSite.can_publish);
+    var categoryRail=root.querySelector('[data-pmd-food-categories]');
+    if(canShare){
+      var enhancementPending=false;
+      function enhanceCards(){
+        enhancementPending=false;
+        root.querySelectorAll('[data-pmd-menu-grid] [data-pmd-menu-card][data-item-type="food"][data-menu-id]').forEach(function(card){
+          var actions=card.querySelector('.pmd-menu-card__actions');
+          if(!actions||card.hasAttribute('data-pmd-group-card-enhanced'))return;
+          var menuId=Number(card.getAttribute('data-menu-id'));
+          if(!Number.isSafeInteger(menuId)||menuId<1)return;
+          card.setAttribute('data-pmd-group-card-enhanced','1');
+          var label=(card.querySelector('.pmd-menu-card__title-row h2')||{}).textContent||'Saved food';
+          var target=button('Other locations',function(event){
+            event.preventDefault();event.stopPropagation();
+            share({type:'menu',id:menuId,label:label.trim()});
+          },'pmd-group-card-publish-btn');
+          target.setAttribute('aria-label','Apply '+label.trim()+' to other restaurants');
+          actions.appendChild(target);
+        });
+        if(categoryRail)categoryRail.querySelectorAll('button[data-pmd-category-id]').forEach(function(filter){
+          if(filter.hasAttribute('data-pmd-group-category-enhanced'))return;
+          if(String(filter.getAttribute('data-pmd-category-kind')||'regular')!=='regular')return;
+          var categoryId=Number(filter.getAttribute('data-pmd-category-id'));
+          if(!Number.isSafeInteger(categoryId)||categoryId<1)return;
+          filter.setAttribute('data-pmd-group-category-enhanced','1');
+          var label=(filter.querySelector('.pmd-menu-manager__category-label')||{}).textContent||'Saved category';
+          var action=button('Other locations',function(event){
+            event.preventDefault();event.stopPropagation();
+            share({type:'category',id:categoryId,label:label.trim()});
+          },'pmd-group-category-publish-btn');
+          action.setAttribute('aria-label','Apply category '+label.trim()+' to other restaurants');
+          filter.insertAdjacentElement('afterend',action);
+        });
+      }
+      function queueEnhance(){
+        if(enhancementPending)return;
+        enhancementPending=true;
+        Promise.resolve().then(enhanceCards);
+      }
+      enhanceCards();
+      // One bounded observer per manager section; the native product editor
+      // can add food/category nodes without a full navigation.
+      if(window.MutationObserver){
+        var cardObserver=new MutationObserver(queueEnhance);
+        cardObserver.observe(grid,{childList:true,subtree:true});
+        if(categoryRail)cardObserver.observe(categoryRail,{childList:true});
+      }
+    }
     var savedGrid=document.createDocumentFragment(),borrowed=false,version=0;
     var savedKpis=Array.from(root.querySelectorAll('[data-pmd-menu-r22-kpi-value]')).map(function(node){return {node:node,value:node.textContent};});
     function stash(){
