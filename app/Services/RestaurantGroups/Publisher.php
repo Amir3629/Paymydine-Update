@@ -98,7 +98,13 @@ final class Publisher
                     if((int)$target->tenant_id===(int)$operation->source_tenant_id) throw new \DomainException('Source cannot be a publication target.');
                     $db=$this->store->connection((int)$target->tenant_id); $type=(string)$operation->entity_type;
                     $this->data()->ready($db,$type);
-                    $result=PublicationLock::run($db,'entity:'.$group->uuid.':'.$operation->entity_key,function() use($db,$type,$operation,$target,$group,$site,$item,$payload,$owner) {
+                    // R26: all top-level category inserts for ONE restaurant
+                    // serialize on its tree, even if they originate from
+                    // different source categories/operations.
+                    $targetLock=$type==='category'
+                        ? 'category-tree:'.$group->uuid.':'.(int)$site->location_id
+                        : 'entity:'.$group->uuid.':'.$operation->entity_key;
+                    $result=PublicationLock::run($db,$targetLock,function() use($db,$type,$operation,$target,$group,$site,$item,$payload,$owner) {
                         return $db->transaction(function() use($db,$type,$operation,$target,$group,$site,$item,$payload,$owner) {
                             $receipt=$db->table('pmd_group_receipts')->where('operation_uuid',$operation->uuid)->lockForUpdate()->first();
                             if($receipt) {
