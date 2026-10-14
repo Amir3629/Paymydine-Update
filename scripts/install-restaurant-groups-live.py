@@ -44,6 +44,7 @@ EXACT = {
     # Smart Category dialogs. No new editor or page-level publish controls.
     'app/admin/assets/js/pmd-menu-manager-v130.js',
     'app/admin/assets/js/pmd-menu-smart-categories-v1.js',
+    'app/admin/controllers/Pmdmenus.php',
     # R18: only the native Dashboard/Menu files required for in-place
     # read-only scope rendering. Do not touch unrelated Admin controllers.
     'app/admin/views/_partials/pmd_group_scope_firstpaint.blade.php',
