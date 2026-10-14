@@ -754,7 +754,10 @@ try {
     $stage = 'edit-modal-only-publication-r27';
     $nativeFoodEditor = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-menu-manager-v130.js');
     $nativeCategoryEditor = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-menu-smart-categories-v1.js');
-    if (strpos($nativeFoodEditor, "pmd:menu-editor-open-r27") === false
+    $nativeMenuController = (string)@file_get_contents($root.'/app/admin/controllers/Pmdmenus.php');
+    if (strpos($nativeMenuController, "asset('app/admin/assets/js/pmd-menu-manager-v130.js')") === false
+        || strpos($nativeMenuController, "filemtime(base_path('app/admin/assets/js/pmd-menu-manager-v130.js'))") === false
+        || strpos($nativeFoodEditor, "pmd:menu-editor-open-r27") === false
         || strpos($nativeFoodEditor, "detail: {mode: modalMode, entityId: groupEditId}") === false
         || strpos($nativeCategoryEditor, "pmd:smart-category-editor-open-r27") === false
         || strpos($nativeCategoryEditor, "data-pmd-group-edit-category-id-r27") === false
