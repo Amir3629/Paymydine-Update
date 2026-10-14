@@ -715,6 +715,46 @@ try {
         throw new RuntimeException('R25 one-sale line baseline or no-flicker restaurant scope contract is missing.');
     }
     echo "PASS R25: first sale draws a 0-to-sale line; scope changes preserve KPI/chart DOM and the native Floor\n";
+    // R26: the exact existing publication preview/target receipts are the
+    // ONLY commit authority for food AND category card shortcuts. Publishing
+    // a simple category must never include menu items, stock or nested trees.
+    $stage = 'menu-card-publish-and-fast-switch-r26';
+    $publisherSource = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/Publisher.php');
+    $publicationDataSource = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/PublicationData.php');
+    $categoryWriterSource = (string)@file_get_contents($root.'/app/Services/RestaurantGroups/CategoryReplicator.php');
+    if (strpos($dashboardSource, 'pmd-group-floor-paused') === false
+        || strpos($dashboardSource, 'Floor view paused') === false
+        || strpos($scopeCss, '.pmd-group-floor-paused__symbol') === false
+        || strpos($dashboardSource, "window.requestIdleCallback(prewarmScopes") === false
+        || strpos($dashboardSource, "Date.now()-entry.at<30000") === false
+        || strpos($dashboardSource, 'function menuReport(scope)') === false
+        || strpos($dashboardSource, "Date.now()-entry.at<20000") === false
+        || strpos($dashboardSource, "share({type:'menu',id:menuId") === false
+        || strpos($dashboardSource, "share({type:'category',id:categoryId") === false
+        || strpos($dashboardSource, "data-pmd-menu-card][data-item-type=\"food\"") === false
+        || strpos($dashboardSource, "button[data-pmd-category-id]") === false
+        || strpos($dashboardSource, "request('publish/preview',{type:publishType,entity_id:item.value,targets:ids})") === false
+        || strpos($dashboardSource, "request('publish/apply',{operation:operation,overwrite:false})") === false
+        || strpos($dashboardSource, 'MutationObserver(queueEnhance)') === false
+        || strpos($scopeCss, '.pmd-group-card-publish-btn') === false
+        || strpos($scopeCss, '.pmd-group-category-publish-btn') === false
+        || strpos($scopeCss, '.pmd-group-menu-scope-active') === false
+        || strpos($publicationDataSource, "'category' => ['categories','category_id']") === false
+        || strpos($publicationDataSource, 'app(CategoryReplicator::class)->export(') === false
+        || strpos($publicationDataSource, 'app(CategoryReplicator::class)->validateTarget(') === false
+        || strpos($publicationDataSource, 'app(CategoryReplicator::class)->import(') === false
+        || strpos($categoryWriterSource, 'Nested categories must be managed') === false
+        || strpos($categoryWriterSource, 'target already has a category') === false
+        || strpos($categoryWriterSource, "->lockForUpdate()->first(['nest_right'])") === false
+        || strpos($categoryWriterSource, "'locationable_type' => 'categories'") === false
+        || strpos($categoryWriterSource, "'options' => serialize([])") === false
+        || strpos($publisherSource, "in_array(\$type,['setting','category'],true)") === false
+        || strpos($publisherSource, "'category'") === false) {
+        throw new RuntimeException('R26 category publication, preview safety, branded Floor or idle prefetch contract is incomplete.');
+    }
+    echo "PASS R26: category/food card publication requires target preview; paused Floor and bounded warm switching enabled\n";
+
+
 
 
 
