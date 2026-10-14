@@ -749,7 +749,9 @@ try {
         || strpos($categoryWriterSource, "'locationable_type' => 'categories'") === false
         || strpos($categoryWriterSource, "'options' => serialize([])") === false
         || strpos($publisherSource, "in_array(\$type,['setting','category'],true)") === false
-        || strpos($publisherSource, "'category'") === false) {
+        || strpos($publisherSource, "category-tree:") === false
+        || strpos($publisherSource, "'category'") === false
+        || strpos((string)@file_get_contents($root.'/app/Http/Controllers/RestaurantGroups/AdminController.php'), 'in:menu,category,coupon,setting') === false) {
         throw new RuntimeException('R26 category publication, preview safety, branded Floor or idle prefetch contract is incomplete.');
     }
     echo "PASS R26: category/food card publication requires target preview; paused Floor and bounded warm switching enabled\n";
