@@ -137,7 +137,7 @@ final class AdminController extends BaseAdminController
     public function preview(Request $request, Publisher $publisher)
     {
         $data = $request->validate([
-            'type' => 'required|string|in:menu,coupon,setting',
+            'type' => 'required|string|in:menu,category,coupon,setting',
             'entity_id' => 'required|string|max:191',
             'targets' => 'required|array|min:1|max:20',
             'targets.*' => 'integer|min:1',
