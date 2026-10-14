@@ -425,10 +425,12 @@
           ]).then(function(results){return scopedAnalytics(results[0],results[1]);});
         });
       }
+      // Don't let a slower 30-day chart block the current KPI snapshot.
+      // It loads independently into the unchanged, already visible chart.
+      report(scope,'last30').catch(function(){});
       Promise.allSettled([
         report(scope,'today'),
-        report(scope,'month'),
-        report(scope,'last30')
+        report(scope,'month')
       ]).then(function(rows){
         if(version!==sequence||selectedScope!==scope)return;
         var today=rows[0].status==='fulfilled'?rows[0].value:null;
