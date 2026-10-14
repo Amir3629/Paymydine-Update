@@ -42,7 +42,7 @@ EXACT = {
     'app/admin/assets/js/pmd-restaurant-groups-v1.js',
     # R27: tiny native editor-open notifications for the existing Food and
     # Smart Category dialogs. No new editor or page-level publish controls.
-    'app/admin/assets/js/pmd-menu-manager-v1.js',
+    'app/admin/assets/js/pmd-menu-manager-v130.js',
     'app/admin/assets/js/pmd-menu-smart-categories-v1.js',
     # R18: only the native Dashboard/Menu files required for in-place
     # read-only scope rendering. Do not touch unrelated Admin controllers.
