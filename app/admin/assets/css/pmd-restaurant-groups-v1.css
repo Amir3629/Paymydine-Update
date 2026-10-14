@@ -203,3 +203,143 @@ body.pmd-dashboard-lab-page
     font-size:12px!important;
     pointer-events:none!important;
 }
+
+
+/* R26: paused operational Floor is a deliberately disabled control plane,
+   not an empty-state error. Keep the original Floor footprint unchanged. */
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-paused{
+    position:absolute!important;
+    inset:0!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:18px!important;
+    padding:14px 26px!important;
+    color:#163f34!important;
+    pointer-events:none!important;
+    background:linear-gradient(90deg,rgba(237,246,242,.45),rgba(249,251,250,.68))!important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-paused__symbol{
+    display:grid!important;
+    flex:0 0 auto!important;
+    grid-template-columns:repeat(2,15px)!important;
+    gap:5px!important;
+    padding:12px!important;
+    width:auto!important;
+    height:auto!important;
+    border:1px solid #bcd5ca!important;
+    border-radius:14px!important;
+    background:#e9f4ee!important;
+    box-shadow:0 3px 12px rgba(19,67,51,.04)!important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-paused__symbol i{
+    display:block!important;
+    width:15px!important;
+    height:15px!important;
+    border:1.5px solid #a9c6b8!important;
+    border-radius:4px!important;
+    background:#f7fbf9!important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-paused__copy{
+    display:flex!important;
+    flex-direction:column!important;
+    gap:4px!important;
+    max-width:490px!important;
+    text-align:left!important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-paused__copy strong{
+    display:block!important;
+    font-size:15px!important;
+    font-weight:800!important;
+    color:#164534!important;
+    line-height:1.2!important;
+}
+#pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310
+.pmd-group-floor-paused__copy span{
+    display:block!important;
+    font-size:12px!important;
+    color:#6b8278!important;
+    line-height:1.5!important;
+}
+@media(max-width:540px){
+  #pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-paused{gap:10px!important;padding:10px!important}
+  #pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-paused__copy strong{font-size:13px!important}
+  #pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-paused__copy span{font-size:11px!important}
+}
+
+/* R26: direct actions on NATIVE saved food cards and category-strip chips.
+   These appear for managed group owners with publication rights only. */
+[data-pmd-menu-manager] .pmd-menu-card__actions
+.pmd-group-card-publish-btn{
+    appearance:none!important;
+    flex:1 0 100%!important;
+    min-height:34px!important;
+    border:1px solid #bcd9cc!important;
+    border-radius:9px!important;
+    background:#ecf7f1!important;
+    color:#12543c!important;
+    font-size:12px!important;
+    font-weight:800!important;
+    line-height:1.3!important;
+    cursor:pointer!important;
+    transition:background-color .13s ease,border-color .13s ease!important;
+}
+[data-pmd-menu-manager] .pmd-menu-card__actions
+.pmd-group-card-publish-btn:hover{
+    background:#dff0e7!important;
+    border-color:#80bda4!important;
+}
+[data-pmd-menu-manager] [data-pmd-food-categories]
+.pmd-group-category-publish-btn{
+    appearance:none!important;
+    display:inline-flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    flex:0 0 auto!important;
+    min-height:32px!important;
+    max-height:36px!important;
+    margin:0 10px 0 -4px!important;
+    padding:5px 9px!important;
+    border:1px solid #bbd9cc!important;
+    border-radius:8px!important;
+    background:#f2f9f5!important;
+    color:#19563f!important;
+    font-size:10px!important;
+    font-weight:750!important;
+    white-space:nowrap!important;
+    cursor:pointer!important;
+}
+[data-pmd-menu-manager] [data-pmd-food-categories]
+.pmd-group-category-publish-btn:hover{
+    border-color:#85bba5!important;
+    background:#e1f1e7!important;
+}
+[data-pmd-menu-manager] .pmd-group-card-publish-btn:focus-visible,
+[data-pmd-menu-manager] .pmd-group-category-publish-btn:focus-visible{
+    outline:2px solid #268f64!important;
+    outline-offset:2px!important;
+}
+[data-pmd-menu-manager].pmd-group-menu-scope-active
+.pmd-group-card-publish-btn,
+[data-pmd-menu-manager].pmd-group-menu-scope-active
+.pmd-group-category-publish-btn{
+    display:none!important;
+}
+.pmd-group-dialog .pmd-group-selected-entity{
+    margin:12px 0!important;
+    padding:11px 14px!important;
+    border-left:3px solid #14825a!important;
+    border-radius:5px!important;
+    background:#f0f8f4!important;
+    font-size:13px!important;
+    font-weight:750!important;
+    color:#154735!important;
+}
+@media(prefers-reduced-motion:reduce){
+  [data-pmd-menu-manager] .pmd-group-card-publish-btn{transition:none!important}
+}
