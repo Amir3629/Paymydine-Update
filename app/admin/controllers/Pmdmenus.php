@@ -79,7 +79,13 @@ class Pmdmenus extends AdminController
             asset('app/admin/assets/css/pmd-header-expand-search-v160.css')
             .'?v='.(string)(@filemtime(base_path('app/admin/assets/css/pmd-header-expand-search-v160.css')) ?: '1')
         );
-        $this->addJs('js/pmd-menu-manager-v130.js');
+        // R27: live Edit Food runtime must not be cached under the old
+        // unversioned path after an in-dialog Restaurant Groups deployment.
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-menu-manager-v130.js')
+            .'?v='
+            .(string)(@filemtime(base_path('app/admin/assets/js/pmd-menu-manager-v130.js')) ?: 'r27')
+        );
         $this->addJs(
             asset('app/admin/assets/js/pmd-header-expand-search-v160.js')
             .'?v='.(string)(@filemtime(base_path('app/admin/assets/js/pmd-header-expand-search-v160.js')) ?: '1')
