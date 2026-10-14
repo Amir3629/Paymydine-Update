@@ -507,13 +507,23 @@
           var label=(filter.querySelector('.pmd-menu-manager__category-label')||{}).textContent||'Saved category';
           var action=button('Other locations',function(event){
             event.preventDefault();event.stopPropagation();
-            share({type:'category',id:categoryId,label:label.trim()});
+            var currentName=(filter.querySelector('.pmd-menu-manager__category-label')||{}).textContent||label;
+            share({type:'category',id:categoryId,label:currentName.trim()});
           },'pmd-group-category-publish-btn');
           action.setAttribute('aria-label','Apply category '+label.trim()+' to other restaurants');
           action.setAttribute('data-pmd-group-for-category',String(categoryId));
           filter.insertAdjacentElement('afterend',action);
         });
-        // Category sorting moves the original filter chip, not our sibling.
+        // Delete any companion action if native Category CRUD removed the
+        // matching category; never leave a clickable stale ID behind.
+        if(categoryRail){
+          var present=Array.from(categoryRail.querySelectorAll('button[data-pmd-category-id]'))
+            .map(function(node){return node.getAttribute('data-pmd-category-id');});
+          categoryRail.querySelectorAll('[data-pmd-group-for-category]').forEach(function(action){
+            if(present.indexOf(action.getAttribute('data-pmd-group-for-category'))===-1)action.remove();
+          });
+        }
+                // Category sorting moves the original filter chip, not our sibling.
         // Keep each action beside its own category after native drag/reorder.
         if(categoryRail)categoryRail.querySelectorAll('button[data-pmd-category-id][data-pmd-group-category-enhanced]')
           .forEach(function(filter){
