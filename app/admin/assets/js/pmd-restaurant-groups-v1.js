@@ -470,82 +470,141 @@
     var emptyWasHidden=emptyResults?emptyResults.hidden:true;
     if(!header||!actions||!grid)return;
     var control=scopeControl();if(!control.wrap.isConnected)actions.prepend(control.wrap);
-    var applyButton=null;
-    if(context.capabilities.publish){applyButton=button('Apply to locations',share,'pmd-group-header-button');actions.prepend(applyButton);}
-    // R26: keep native food card controls and category-filter buttons intact.
-    // Add an adjacent (never nested) action to saved categories and each
-    // persisted food card. Native menu CRUD can redraw these elements.
+    // R27: publication belongs INSIDE the original Edit Food / Edit Category
+    // dialogs. No action may appear in the menu header, the grid or the
+    // category filter strip. The modal owners notify us of exact saved IDs.
     var sourceSite=context.sites.find(function(site){
       return Number(site.tenant_id)===Number(context.current_tenant_id);
     });
     var canShare=!!(context.capabilities.publish&&sourceSite&&sourceSite.can_publish);
-    var categoryRail=root.querySelector('[data-pmd-food-categories]');
-    if(canShare){
-      var enhancementPending=false;
-      function enhanceCards(){
-        enhancementPending=false;
-        root.querySelectorAll('[data-pmd-menu-grid] [data-pmd-menu-card][data-item-type="food"][data-menu-id]').forEach(function(card){
-          var actions=card.querySelector('.pmd-menu-card__actions');
-          if(!actions||card.hasAttribute('data-pmd-group-card-enhanced'))return;
-          var menuId=Number(card.getAttribute('data-menu-id'));
-          if(!Number.isSafeInteger(menuId)||menuId<1)return;
-          card.setAttribute('data-pmd-group-card-enhanced','1');
-          var label=(card.querySelector('.pmd-menu-card__title-row h2')||{}).textContent||'Saved food';
-          var target=button('Other locations',function(event){
-            event.preventDefault();event.stopPropagation();
-            share({type:'menu',id:menuId,label:label.trim()});
-          },'pmd-group-card-publish-btn');
-          target.setAttribute('aria-label','Apply '+label.trim()+' to other restaurants');
-          actions.appendChild(target);
-        });
-        if(categoryRail)categoryRail.querySelectorAll('button[data-pmd-category-id]').forEach(function(filter){
-          if(filter.hasAttribute('data-pmd-group-category-enhanced'))return;
-          if(String(filter.getAttribute('data-pmd-category-kind')||'regular')!=='regular')return;
-          var categoryId=Number(filter.getAttribute('data-pmd-category-id'));
-          if(!Number.isSafeInteger(categoryId)||categoryId<1)return;
-          filter.setAttribute('data-pmd-group-category-enhanced','1');
-          var label=(filter.querySelector('.pmd-menu-manager__category-label')||{}).textContent||'Saved category';
-          var action=button('Other locations',function(event){
-            event.preventDefault();event.stopPropagation();
-            var currentName=(filter.querySelector('.pmd-menu-manager__category-label')||{}).textContent||label;
-            share({type:'category',id:categoryId,label:currentName.trim()});
-          },'pmd-group-category-publish-btn');
-          action.setAttribute('aria-label','Apply category '+label.trim()+' to other restaurants');
-          action.setAttribute('data-pmd-group-for-category',String(categoryId));
-          filter.insertAdjacentElement('afterend',action);
-        });
-        // Delete any companion action if native Category CRUD removed the
-        // matching category; never leave a clickable stale ID behind.
-        if(categoryRail){
-          var present=Array.from(categoryRail.querySelectorAll('button[data-pmd-category-id]'))
-            .map(function(node){return node.getAttribute('data-pmd-category-id');});
-          categoryRail.querySelectorAll('[data-pmd-group-for-category]').forEach(function(action){
-            if(present.indexOf(action.getAttribute('data-pmd-group-for-category'))===-1)action.remove();
-          });
+    var foodDialog=document.querySelector('[data-pmd-menu-modal]');
+    var foodEditor=foodDialog&&foodDialog.querySelector('[data-pmd-menu-form]');
+    var foodButton=null,categoryButton=null,categoryDialog=null;
+    var foodBaseline='',foodSavedId='',categoryBaseline='',categorySavedId='';
+    function localEditScope(){
+      var live=document.querySelector('[data-pmd-group-firstpaint] select')||control.select;
+      return live&&String(live.value)===String(context.current_tenant_id);
+    }
+    function validSavedId(value){
+      return /^[1-9][0-9]{0,14}$/.test(String(value||''));
+    }
+    function snapshotEditor(form){
+      if(!form)return '';
+      return Array.from(form.elements).map(function(input){
+        if(!input.name||input.disabled)return '';
+        if(input.type==='checkbox'||input.type==='radio')
+          return input.name+'='+String(input.checked);
+        if(input.type==='file')
+          return input.name+'='+Array.from(input.files||[]).map(function(file){
+            return file.name+':'+file.size+':'+file.lastModified;
+          }).join(',');
+        return input.name+'='+String(input.value||'');
+      }).join('\n');
+    }
+    function installFoodAction(){
+      if(!canShare||!foodDialog)return;
+      var row=foodDialog.querySelector('.pmd-menu-modal__buttons');
+      if(!row)return;
+      foodButton=row.querySelector('[data-pmd-group-edit-share-food-r27]');
+      if(foodButton)return;
+      foodButton=button('Other locations',function(){
+        if(!localEditScope()||foodDialog.hidden||!validSavedId(foodSavedId))return;
+        if(snapshotEditor(foodEditor)!==foodBaseline){
+          syncFoodAction();
+          return;
         }
-                // Category sorting moves the original filter chip, not our sibling.
-        // Keep each action beside its own category after native drag/reorder.
-        if(categoryRail)categoryRail.querySelectorAll('button[data-pmd-category-id][data-pmd-group-category-enhanced]')
-          .forEach(function(filter){
-            var id=filter.getAttribute('data-pmd-category-id');
-            var action=Array.from(categoryRail.querySelectorAll('[data-pmd-group-for-category]'))
-              .find(function(node){return node.getAttribute('data-pmd-group-for-category')===id;});
-            if(action&&filter.nextElementSibling!==action)filter.insertAdjacentElement('afterend',action);
-          });
+        var name=(foodEditor&&foodEditor.querySelector('[data-pmd-menu-name]')||{}).value||'Saved food';
+        share({type:'menu',id:Number(foodSavedId),label:name.trim()});
+      },'pmd-group-edit-publish-action');
+      foodButton.setAttribute('data-pmd-group-edit-share-food-r27','1');
+      foodButton.setAttribute('aria-label','Apply saved food to other restaurants');
+      var save=row.querySelector('[data-pmd-menu-save]');
+      row.insertBefore(foodButton,save||null);
+      foodButton.hidden=true;
+      if(foodEditor){
+        foodEditor.addEventListener('input',syncFoodAction);
+        foodEditor.addEventListener('change',syncFoodAction);
       }
-      function queueEnhance(){
-        if(enhancementPending)return;
-        enhancementPending=true;
-        Promise.resolve().then(enhanceCards);
+    }
+    function syncFoodAction(){
+      if(!foodButton)return;
+      var isEditable=!foodDialog.hidden&&validSavedId(foodSavedId)&&localEditScope();
+      var dirty=isEditable&&snapshotEditor(foodEditor)!==foodBaseline;
+      foodButton.hidden=!isEditable;
+      foodButton.disabled=!!dirty;
+      foodButton.title=dirty
+        ? 'Save your changes before applying this food to other restaurants.'
+        : 'Review and apply this saved food to other restaurants.';
+    }
+    function foodEditorOpened(event){
+      if(!canShare)return;
+      installFoodAction();
+      var info=event&&event.detail||{};
+      var actual=foodEditor&&foodEditor.querySelector('[data-pmd-menu-id]');
+      foodSavedId=info.mode==='food'?String(info.entityId||''):'';
+      if(!actual||String(actual.value||'')!==foodSavedId)foodSavedId='';
+      foodBaseline=snapshotEditor(foodEditor);
+      syncFoodAction();
+    }
+    function installCategoryAction(){
+      if(!canShare)return;
+      categoryDialog=document.querySelector('.pmd-smart-category-modal');
+      if(!categoryDialog)return;
+      var row=categoryDialog.querySelector('.pmd-smart-category-modal__footer');
+      if(!row)return;
+      categoryButton=row.querySelector('[data-pmd-group-edit-share-category-r27]');
+      if(categoryButton)return;
+      categoryButton=button('Other locations',function(){
+        if(!localEditScope()||categoryDialog.hidden||!validSavedId(categorySavedId))return;
+        var nameInput=categoryDialog.querySelector('[data-pmd-smart-name]');
+        if(String(nameInput&&nameInput.value||'')!==categoryBaseline){
+          syncCategoryAction();return;
+        }
+        share({type:'category',id:Number(categorySavedId),label:String(nameInput.value||'Saved category').trim()});
+      },'pmd-smart-btn pmd-group-edit-publish-action');
+      categoryButton.setAttribute('data-pmd-group-edit-share-category-r27','1');
+      categoryButton.setAttribute('aria-label','Apply saved category to other restaurants');
+      var save=row.querySelector('[data-pmd-smart-save]');
+      row.insertBefore(categoryButton,save||null);
+      categoryButton.hidden=true;
+      var nameInput=categoryDialog.querySelector('[data-pmd-smart-name]');
+      if(nameInput){
+        nameInput.addEventListener('input',syncCategoryAction);
+        nameInput.addEventListener('change',syncCategoryAction);
       }
-      enhanceCards();
-      // One bounded observer per manager section; the native product editor
-      // can add food/category nodes without a full navigation.
-      if(window.MutationObserver){
-        var cardObserver=new MutationObserver(queueEnhance);
-        cardObserver.observe(grid,{childList:true,subtree:true});
-        if(categoryRail)cardObserver.observe(categoryRail,{childList:true});
-      }
+      categoryDialog.addEventListener('click',function(event){
+        if(event.target.closest('[data-pmd-smart-save]')&&categoryButton){
+          categoryButton.disabled=true;
+          categoryButton.title='Wait for the category save to finish.';
+        }
+      },true);
+    }
+    function syncCategoryAction(){
+      if(!categoryButton||!categoryDialog)return;
+      var nameInput=categoryDialog.querySelector('[data-pmd-smart-name]');
+      var isEditable=!categoryDialog.hidden&&validSavedId(categorySavedId)&&localEditScope();
+      var dirty=isEditable&&String(nameInput&&nameInput.value||'')!==categoryBaseline;
+      categoryButton.hidden=!isEditable;
+      categoryButton.disabled=!!dirty;
+      categoryButton.title=dirty
+        ? 'Save your changes before applying this category to other restaurants.'
+        : 'Review and apply this saved category definition to other restaurants.';
+    }
+    function categoryEditorOpened(event){
+      if(!canShare)return;
+      installCategoryAction();
+      var info=event&&event.detail||{};
+      var id=String(info.entityId||'');
+      var current=categoryDialog&&categoryDialog.getAttribute('data-pmd-group-edit-category-id-r27');
+      categorySavedId=info.kind==='regular'&&current===id?id:'';
+      var name=categoryDialog&&categoryDialog.querySelector('[data-pmd-smart-name]');
+      categoryBaseline=String(name&&name.value||'');
+      syncCategoryAction();
+    }
+    if(canShare){
+      installFoodAction();
+      window.addEventListener('pmd:menu-editor-open-r27',foodEditorOpened);
+      window.addEventListener('pmd:smart-category-editor-open-r27',categoryEditorOpened);
     }
     var menuScopeCache=Object.create(null);
     window.addEventListener('pmd:group:publication-applied',function(){
@@ -637,7 +696,8 @@
     function load(){
       var scope=String(control.select.value),local=scope===String(context.current_tenant_id),seq=++version;
       root.classList.toggle('pmd-group-menu-scope-active',!local);
-      if(applyButton)applyButton.hidden=!local;
+      syncFoodAction();
+      syncCategoryAction();
       if(local){
         restore();
         if(menuPanel)menuPanel.hidden=menuWasHidden;
