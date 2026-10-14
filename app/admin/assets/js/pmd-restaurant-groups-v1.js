@@ -61,7 +61,11 @@
     var message=el('p',null,'pmd-group-status');message.setAttribute('role','status');node.appendChild(message);
     var details=el('div',null,'pmd-group-results');node.appendChild(details);
     var operation=null,busy=false,version=0;
-    var apply=button('Apply to selected restaurants',function(){if(!operation||busy)return;busy=true;apply.disabled=true;preview.disabled=true;request('publish/apply',{operation:operation,overwrite:false}).then(function(data){details.replaceChildren();var failed=false;(data.results||[]).forEach(function(row){var label=row.label||siteLabel(row.tenant_id);details.appendChild(el('p',label+': '+(row.ok?(row.state==='already_applied'?'Already applied':'Applied'):row.message),row.ok?'':'is-error'));failed=failed||!row.ok;});status(message,failed?'Some restaurants were not confirmed. Retry the unfinished operation.':'Selected restaurants were updated.',failed);if(!failed)operation=null;apply.textContent=failed?'Retry unfinished restaurants':'Apply to selected restaurants';}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});apply.disabled=true;
+    var apply=button('Apply to selected restaurants',function(){if(!operation||busy)return;busy=true;apply.disabled=true;preview.disabled=true;request('publish/apply',{operation:operation,overwrite:false}).then(function(data){details.replaceChildren();var failed=false;(data.results||[]).forEach(function(row){var label=row.label||siteLabel(row.tenant_id);details.appendChild(el('p',label+': '+(row.ok?(row.state==='already_applied'?'Already applied':'Applied'):row.message),row.ok?'':'is-error'));failed=failed||!row.ok;});status(message,failed?'Some restaurants were not confirmed. Retry the unfinished operation.':'Selected restaurants were updated.',failed);if((data.results||[]).some(function(row){return !!row.ok;})){
+        // R26: a successful target write invalidates any warmed remote Menu
+        // snapshot; never show a cached pre-publication item/category list.
+        window.dispatchEvent(new CustomEvent('pmd:group:publication-applied'));
+      }if(!failed)operation=null;apply.textContent=failed?'Retry unfinished restaurants':'Apply to selected restaurants';}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});apply.disabled=true;
     var preview=button('Preview restaurants',function(){var ids=selected(inputs);if(!ids.length||!item.value){status(message,'Choose a saved item and at least one other restaurant.',true);return;}busy=true;preview.disabled=true;apply.disabled=true;operation=null;details.replaceChildren();var currentVersion=++version;request('publish/preview',{type:publishType,entity_id:item.value,targets:ids}).then(function(data){if(currentVersion!==version)return;operation=data.operation;(data.targets||[]).forEach(function(row){details.appendChild(el('p',row.label+': '+(row.existing?'Update published copy':'Create copy')));});status(message,'Review the target restaurants before applying.');}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});
     function invalidate(){version++;operation=null;apply.disabled=true;details.replaceChildren();}
     item.addEventListener('change',invalidate);inputs.forEach(function(i){i.addEventListener('change',invalidate);});
@@ -506,8 +510,18 @@
             share({type:'category',id:categoryId,label:label.trim()});
           },'pmd-group-category-publish-btn');
           action.setAttribute('aria-label','Apply category '+label.trim()+' to other restaurants');
+          action.setAttribute('data-pmd-group-for-category',String(categoryId));
           filter.insertAdjacentElement('afterend',action);
         });
+        // Category sorting moves the original filter chip, not our sibling.
+        // Keep each action beside its own category after native drag/reorder.
+        if(categoryRail)categoryRail.querySelectorAll('button[data-pmd-category-id][data-pmd-group-category-enhanced]')
+          .forEach(function(filter){
+            var id=filter.getAttribute('data-pmd-category-id');
+            var action=Array.from(categoryRail.querySelectorAll('[data-pmd-group-for-category]'))
+              .find(function(node){return node.getAttribute('data-pmd-group-for-category')===id;});
+            if(action&&filter.nextElementSibling!==action)filter.insertAdjacentElement('afterend',action);
+          });
       }
       function queueEnhance(){
         if(enhancementPending)return;
@@ -524,6 +538,9 @@
       }
     }
     var menuScopeCache=Object.create(null);
+    window.addEventListener('pmd:group:publication-applied',function(){
+      menuScopeCache=Object.create(null);
+    });
     function menuReport(scope){
       var entry=menuScopeCache[scope];
       if(entry&&Date.now()-entry.at<20000)return entry.promise;
@@ -539,10 +556,12 @@
     if(context.sites.length<=5){
       var warmMenus=function(){
         if(document.visibilityState==='hidden')return;
-        context.sites.filter(function(site){return Number(site.tenant_id)!==Number(context.current_tenant_id);}).slice(0,3)
-          .forEach(function(site,index){
-            setTimeout(function(){if(document.visibilityState!=='hidden')menuReport(String(site.tenant_id)).catch(function(){});},index*200);
-          });
+        var options=context.sites.filter(function(site){return Number(site.tenant_id)!==Number(context.current_tenant_id);})
+          .map(function(site){return String(site.tenant_id);});
+        if(context.sites.length>1)options.unshift('all');
+        options.slice(0,4).forEach(function(scope,index){
+          setTimeout(function(){if(document.visibilityState!=='hidden')menuReport(scope).catch(function(){});},index*200);
+        });
       };
       if(window.requestIdleCallback)window.requestIdleCallback(warmMenus,{timeout:1700});
       else window.setTimeout(warmMenus,1100);
