@@ -304,15 +304,6 @@
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     lockPage();
-    // R27: expose the ACTIVE saved editor identity only. Restaurant Groups
-    // installs an "Other locations" action inside this edit modal, never on
-    // food cards. Creation and combo editing do not publish an unsaved food.
-    var groupEditInput = modalMode === 'food' && foodForm
-      ? foodForm.querySelector('[data-pmd-menu-id]') : null;
-    var groupEditId = groupEditInput ? String(groupEditInput.value || '') : '';
-    window.dispatchEvent(new CustomEvent('pmd:menu-editor-open-r27', {
-      detail: {mode: modalMode, entityId: groupEditId}
-    }));
     requestAnimationFrame(function () {
       var first = modalMode === 'combo'
         ? (comboForm && comboForm.querySelector('[data-pmd-combo-name]'))
