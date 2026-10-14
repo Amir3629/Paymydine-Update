@@ -40,6 +40,10 @@ EXACT = {
     'app/admin/views/superadmin_r2/side_menu.blade.php',
     'app/admin/assets/css/pmd-restaurant-groups-v1.css',
     'app/admin/assets/js/pmd-restaurant-groups-v1.js',
+    # R27: tiny native editor-open notifications for the existing Food and
+    # Smart Category dialogs. No new editor or page-level publish controls.
+    'app/admin/assets/js/pmd-menu-manager-v1.js',
+    'app/admin/assets/js/pmd-menu-smart-categories-v1.js',
     # R18: only the native Dashboard/Menu files required for in-place
     # read-only scope rendering. Do not touch unrelated Admin controllers.
     'app/admin/views/_partials/pmd_group_scope_firstpaint.blade.php',
@@ -555,6 +559,7 @@ def main():
             print('[PMD] R25 draws a 0-to-first-sale line and switches restaurant reports without blanking KPI/chart widgets or changing the native Floor layout.', flush=True)
             print('[PMD] R26 displays a polished paused Floor for All restaurants, prewarms limited read-only location data, and adds per-food/category Other locations publish-preview actions.', flush=True)
             print('[PMD] R26 category publication supports ordinary top-level categories only: explicit target review, isolated category definition, collision protection; never copies foods or inventory with a category.', flush=True)
+            print('[PMD] R27 removes menu-grid/category-chip/header Other locations buttons; publishing is available ONLY inside saved Edit Food and Edit Category dialogs, with unsaved edits protected.', flush=True)
             print('[PMD] Review and confirm per-restaurant order storage clocks using the read-only audit-reporting command; never guess a clock for existing sales.', flush=True)
             print(product_audit_summary, flush=True)
             print('[PMD] Read-only site detail: php scripts/pmd-groups-live-tool.php audit-products /var/www/paymydine', flush=True)
