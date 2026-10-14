@@ -272,63 +272,76 @@ body.pmd-dashboard-lab-page
   #pmd-dashboard-lab #pmd-r2-shared-floor-canvas-v310 .pmd-group-floor-paused__copy span{font-size:11px!important}
 }
 
-/* R26: direct actions on NATIVE saved food cards and category-strip chips.
-   These appear for managed group owners with publication rights only. */
-[data-pmd-menu-manager] .pmd-menu-card__actions
-.pmd-group-card-publish-btn{
-    appearance:none!important;
-    flex:1 0 100%!important;
-    min-height:34px!important;
-    border:1px solid #bcd9cc!important;
-    border-radius:9px!important;
-    background:#ecf7f1!important;
-    color:#12543c!important;
-    font-size:12px!important;
-    font-weight:800!important;
-    line-height:1.3!important;
-    cursor:pointer!important;
-    transition:background-color .13s ease,border-color .13s ease!important;
-}
-[data-pmd-menu-manager] .pmd-menu-card__actions
-.pmd-group-card-publish-btn:hover{
-    background:#dff0e7!important;
-    border-color:#80bda4!important;
-}
-[data-pmd-menu-manager] [data-pmd-food-categories]
-.pmd-group-category-publish-btn{
+/* R27: cross-location actions belong exclusively in the already-existing
+   Edit Food and Edit Category modal footers, alongside their Save controls.
+   NO buttons on catalog cards, category chips, or the menu topbar. */
+body.pmd-menu-manager-page
+.pmd-menu-modal__buttons
+[data-pmd-group-edit-share-food-r27],
+body.pmd-menu-manager-page
+.pmd-smart-category-modal__footer
+[data-pmd-group-edit-share-category-r27] {
     appearance:none!important;
     display:inline-flex!important;
     align-items:center!important;
     justify-content:center!important;
     flex:0 0 auto!important;
-    min-height:32px!important;
-    max-height:36px!important;
-    margin:0 10px 0 -4px!important;
-    padding:5px 9px!important;
-    border:1px solid #bbd9cc!important;
-    border-radius:8px!important;
-    background:#f2f9f5!important;
-    color:#19563f!important;
-    font-size:10px!important;
-    font-weight:750!important;
-    white-space:nowrap!important;
+    min-height:44px!important;
+    padding:0 15px!important;
+    border:1px solid #a9cfbb!important;
+    border-radius:12px!important;
+    background:#edf8f1!important;
+    color:#14543c!important;
+    font:750 12px/1.2 system-ui,sans-serif!important;
+    text-align:center!important;
     cursor:pointer!important;
+    box-shadow:none!important;
+    white-space:nowrap!important;
 }
-[data-pmd-menu-manager] [data-pmd-food-categories]
-.pmd-group-category-publish-btn:hover{
-    border-color:#85bba5!important;
-    background:#e1f1e7!important;
+body.pmd-menu-manager-page
+.pmd-menu-modal__buttons
+[data-pmd-group-edit-share-food-r27]:hover:not(:disabled),
+body.pmd-menu-manager-page
+.pmd-smart-category-modal__footer
+[data-pmd-group-edit-share-category-r27]:hover:not(:disabled) {
+    background:#e0f2e7!important;
+    border-color:#78b99d!important;
 }
-[data-pmd-menu-manager] .pmd-group-card-publish-btn:focus-visible,
-[data-pmd-menu-manager] .pmd-group-category-publish-btn:focus-visible{
-    outline:2px solid #268f64!important;
+body.pmd-menu-manager-page
+.pmd-menu-modal__buttons
+[data-pmd-group-edit-share-food-r27]:focus-visible,
+body.pmd-menu-manager-page
+.pmd-smart-category-modal__footer
+[data-pmd-group-edit-share-category-r27]:focus-visible {
+    outline:2px solid #238b60!important;
     outline-offset:2px!important;
 }
-[data-pmd-menu-manager].pmd-group-menu-scope-active
-.pmd-group-card-publish-btn,
-[data-pmd-menu-manager].pmd-group-menu-scope-active
-.pmd-group-category-publish-btn{
+body.pmd-menu-manager-page
+[data-pmd-group-edit-share-food-r27][hidden],
+body.pmd-menu-manager-page
+[data-pmd-group-edit-share-category-r27][hidden] {
     display:none!important;
+}
+body.pmd-menu-manager-page
+[data-pmd-group-edit-share-food-r27]:disabled,
+body.pmd-menu-manager-page
+[data-pmd-group-edit-share-category-r27]:disabled {
+    opacity:.48!important;
+    cursor:not-allowed!important;
+}
+@media(max-width:620px) {
+  body.pmd-menu-manager-page
+  .pmd-menu-modal__buttons [data-pmd-group-edit-share-food-r27] {
+      flex:1 1 auto!important;
+      padding:0 9px!important;
+      white-space:normal!important;
+  }
+  body.pmd-menu-manager-page
+  .pmd-smart-category-modal__footer [data-pmd-group-edit-share-category-r27] {
+      flex:1 1 auto!important;
+      padding:0 9px!important;
+      white-space:normal!important;
+  }
 }
 .pmd-group-dialog .pmd-group-selected-entity{
     margin:12px 0!important;
@@ -339,7 +352,4 @@ body.pmd-dashboard-lab-page
     font-size:13px!important;
     font-weight:750!important;
     color:#154735!important;
-}
-@media(prefers-reduced-motion:reduce){
-  [data-pmd-menu-manager] .pmd-group-card-publish-btn{transition:none!important}
 }
