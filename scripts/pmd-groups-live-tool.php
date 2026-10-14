@@ -729,15 +729,8 @@ try {
         || strpos($dashboardSource, "Date.now()-entry.at<30000") === false
         || strpos($dashboardSource, 'function menuReport(scope)') === false
         || strpos($dashboardSource, "Date.now()-entry.at<20000") === false
-        || strpos($dashboardSource, "share({type:'menu',id:menuId") === false
-        || strpos($dashboardSource, "share({type:'category',id:categoryId") === false
-        || strpos($dashboardSource, "data-pmd-menu-card][data-item-type=\"food\"") === false
-        || strpos($dashboardSource, "button[data-pmd-category-id]") === false
         || strpos($dashboardSource, "request('publish/preview',{type:publishType,entity_id:item.value,targets:ids})") === false
         || strpos($dashboardSource, "request('publish/apply',{operation:operation,overwrite:false})") === false
-        || strpos($dashboardSource, 'MutationObserver(queueEnhance)') === false
-        || strpos($scopeCss, '.pmd-group-card-publish-btn') === false
-        || strpos($scopeCss, '.pmd-group-category-publish-btn') === false
         || strpos($scopeCss, '.pmd-group-menu-scope-active') === false
         || strpos($publicationDataSource, "'category' => ['categories','category_id']") === false
         || strpos($publicationDataSource, 'app(CategoryReplicator::class)->export(') === false
@@ -754,7 +747,40 @@ try {
         || strpos((string)@file_get_contents($root.'/app/Http/Controllers/RestaurantGroups/AdminController.php'), 'in:menu,category,coupon,setting') === false) {
         throw new RuntimeException('R26 category publication, preview safety, branded Floor or idle prefetch contract is incomplete.');
     }
-    echo "PASS R26: category/food card publication requires target preview; paused Floor and bounded warm switching enabled\n";
+    echo "PASS R26: food/category publication still requires explicit target preview; paused Floor and bounded warm switching enabled\n";
+
+    // R27 removes all R26 page-level publication affordances. ONLY the native
+    // editor footers may offer publication of an existing SAVED entity.
+    $stage = 'edit-modal-only-publication-r27';
+    $nativeFoodEditor = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-menu-manager-v1.js');
+    $nativeCategoryEditor = (string)@file_get_contents($root.'/app/admin/assets/js/pmd-menu-smart-categories-v1.js');
+    if (strpos($nativeFoodEditor, "pmd:menu-editor-open-r27") === false
+        || strpos($nativeFoodEditor, "detail: {mode: modalMode, entityId: groupEditId}") === false
+        || strpos($nativeCategoryEditor, "pmd:smart-category-editor-open-r27") === false
+        || strpos($nativeCategoryEditor, "data-pmd-group-edit-category-id-r27") === false
+        || strpos($dashboardSource, 'function installFoodAction()') === false
+        || strpos($dashboardSource, 'function installCategoryAction()') === false
+        || strpos($dashboardSource, "window.addEventListener('pmd:menu-editor-open-r27'") === false
+        || strpos($dashboardSource, "window.addEventListener('pmd:smart-category-editor-open-r27'") === false
+        || strpos($dashboardSource, "share({type:'menu',id:Number(foodSavedId)") === false
+        || strpos($dashboardSource, "share({type:'category',id:Number(categorySavedId)") === false
+        || strpos($dashboardSource, "snapshotEditor(foodEditor)!==foodBaseline") === false
+        || strpos($dashboardSource, "categoryBaseline") === false
+        || strpos($dashboardSource, "info.kind==='regular'") === false
+        || strpos($dashboardSource, 'localEditScope()') === false
+        || strpos($dashboardSource, 'validSavedId(') === false
+        || strpos($scopeCss, '[data-pmd-group-edit-share-food-r27]') === false
+        || strpos($scopeCss, '[data-pmd-group-edit-share-category-r27]') === false
+        || strpos($dashboardSource, "pmd-group-header-button');actions.prepend(applyButton)") !== false
+        || strpos($dashboardSource, 'data-pmd-group-card-enhanced') !== false
+        || strpos($dashboardSource, 'data-pmd-group-category-enhanced') !== false
+        || strpos($dashboardSource, 'MutationObserver(queueEnhance)') !== false
+        || strpos($scopeCss, '.pmd-group-card-publish-btn') !== false
+        || strpos($scopeCss, '.pmd-group-category-publish-btn') !== false) {
+        throw new RuntimeException('R27 must publish only from saved native Food/Category EDIT modal footers; no page-level actions.');
+    }
+    echo "PASS R27: modal-only food/category publish shortcuts with saved ID, local scope and unsaved-change guards\n";
+
 
 
 
