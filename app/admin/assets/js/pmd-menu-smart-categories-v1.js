@@ -388,6 +388,13 @@
 
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
+    // R27: the original Smart Categories editor owns category identity;
+    // publication controls live in this edit dialog, not category filters.
+    var groupCategoryId = category && category.id ? String(category.id) : '';
+    modal.setAttribute('data-pmd-group-edit-category-id-r27', groupCategoryId);
+    window.dispatchEvent(new CustomEvent('pmd:smart-category-editor-open-r27', {
+      detail: {entityId: groupCategoryId, kind: category ? String(category.kind || 'regular') : 'regular'}
+    }));
     document.documentElement.classList.add('pmd-menu-manager-modal-open');
     document.body.style.overflow = 'hidden';
 

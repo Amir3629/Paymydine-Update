@@ -41,20 +41,44 @@
 
 
 
-  function share(){
-    var node=dialog('Apply saved changes to restaurants');
-    node.appendChild(el('p','Save in the current restaurant first. Then choose exactly which other restaurants receive this saved item.'));
-    var item=el('select');node.appendChild(field('Saved item',item));
+  function share(preset){
+    // Called either from the header or directly from a saved food/category.
+    // A header click event is NOT a publish preset.
+    preset=preset&&['menu','category'].indexOf(preset.type)!==-1?preset:null;
+    var publishType=preset?preset.type:type;
+    var node=dialog(preset?'Apply to other locations':'Apply saved changes to restaurants');
+    node.appendChild(el('p',preset&&publishType==='category'
+      ? 'Publish this category definition only. Foods and stock stay local. Choose the receiving restaurants, preview, then confirm.'
+      : 'Save in the current restaurant first. Choose exactly which other restaurants receive this saved item.'));
+    var item=el('select');
+    if(preset){
+      var option=el('option',preset.label||'Saved item');
+      option.value=String(preset.id);
+      item.appendChild(option);
+      node.appendChild(el('p',(publishType==='category'?'Category: ':'Food: ')+(preset.label||'Saved item'),'pmd-group-selected-entity'));
+    }else node.appendChild(field('Saved item',item));
     var box=el('div');node.appendChild(box);var inputs=locations(box,false);
     var message=el('p',null,'pmd-group-status');message.setAttribute('role','status');node.appendChild(message);
     var details=el('div',null,'pmd-group-results');node.appendChild(details);
     var operation=null,busy=false,version=0;
-    var apply=button('Apply to selected restaurants',function(){if(!operation||busy)return;busy=true;apply.disabled=true;preview.disabled=true;request('publish/apply',{operation:operation,overwrite:false}).then(function(data){details.replaceChildren();var failed=false;(data.results||[]).forEach(function(row){var label=row.label||siteLabel(row.tenant_id);details.appendChild(el('p',label+': '+(row.ok?(row.state==='already_applied'?'Already applied':'Applied'):row.message),row.ok?'':'is-error'));failed=failed||!row.ok;});status(message,failed?'Some restaurants were not confirmed. Retry the unfinished operation.':'Selected restaurants were updated.',failed);if(!failed)operation=null;apply.textContent=failed?'Retry unfinished restaurants':'Apply to selected restaurants';}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});apply.disabled=true;
-    var preview=button('Preview restaurants',function(){var ids=selected(inputs);if(!ids.length||!item.value){status(message,'Choose a saved item and at least one other restaurant.',true);return;}busy=true;preview.disabled=true;apply.disabled=true;operation=null;details.replaceChildren();var currentVersion=++version;request('publish/preview',{type:type,entity_id:item.value,targets:ids}).then(function(data){if(currentVersion!==version)return;operation=data.operation;(data.targets||[]).forEach(function(row){details.appendChild(el('p',row.label+': '+(row.existing?'Update published copy':'Create copy')));});status(message,'Review the target restaurants before applying.');}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});
+    var apply=button('Apply to selected restaurants',function(){if(!operation||busy)return;busy=true;apply.disabled=true;preview.disabled=true;request('publish/apply',{operation:operation,overwrite:false}).then(function(data){details.replaceChildren();var failed=false;(data.results||[]).forEach(function(row){var label=row.label||siteLabel(row.tenant_id);details.appendChild(el('p',label+': '+(row.ok?(row.state==='already_applied'?'Already applied':'Applied'):row.message),row.ok?'':'is-error'));failed=failed||!row.ok;});status(message,failed?'Some restaurants were not confirmed. Retry the unfinished operation.':'Selected restaurants were updated.',failed);if((data.results||[]).some(function(row){return !!row.ok;})){
+        // R26: a successful target write invalidates any warmed remote Menu
+        // snapshot; never show a cached pre-publication item/category list.
+        window.dispatchEvent(new CustomEvent('pmd:group:publication-applied'));
+      }if(!failed)operation=null;apply.textContent=failed?'Retry unfinished restaurants':'Apply to selected restaurants';}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});apply.disabled=true;
+    var preview=button('Preview restaurants',function(){var ids=selected(inputs);if(!ids.length||!item.value){status(message,'Choose a saved item and at least one other restaurant.',true);return;}busy=true;preview.disabled=true;apply.disabled=true;operation=null;details.replaceChildren();var currentVersion=++version;request('publish/preview',{type:publishType,entity_id:item.value,targets:ids}).then(function(data){if(currentVersion!==version)return;operation=data.operation;(data.targets||[]).forEach(function(row){details.appendChild(el('p',row.label+': '+(row.existing?'Update published copy':'Create copy')));});status(message,'Review the target restaurants before applying.');}).catch(function(e){status(message,e.message,true);}).finally(function(){busy=false;preview.disabled=false;apply.disabled=!operation;});});
     function invalidate(){version++;operation=null;apply.disabled=true;details.replaceChildren();}
     item.addEventListener('change',invalidate);inputs.forEach(function(i){i.addEventListener('change',invalidate);});
-    node.appendChild(preview);node.appendChild(apply);preview.disabled=true;
-    request('catalog?type='+encodeURIComponent(type)).then(function(data){(data.items||[]).forEach(function(row){var option=el('option',row.label);option.value=String(row.id);item.appendChild(option);});preview.disabled=!item.options.length;status(message,item.options.length?'':'No eligible saved items are available.');}).catch(function(e){status(message,e.message,true);});
+    node.appendChild(preview);node.appendChild(apply);preview.disabled=!preset;
+    if(!preset){
+      request('catalog?type='+encodeURIComponent(publishType)).then(function(data){
+        (data.items||[]).forEach(function(row){
+          var option=el('option',row.label);option.value=String(row.id);item.appendChild(option);
+        });
+        preview.disabled=!item.options.length;
+        status(message,item.options.length?'':'No eligible saved items are available.');
+      }).catch(function(e){status(message,e.message,true);});
+    }
   }
 
   function scopeControl(){
@@ -124,9 +148,25 @@
         floorScroll.style.minHeight=height+'px';
         floorScroll.style.maxHeight=height+'px';
       }
-      var message=el('p',text,'pmd-group-floor-readonly-message');
-      message.setAttribute('role','status');
-      floorCanvas.appendChild(message);
+      if(text==='Select one restaurant to view its Floor.'){
+        // R26: a clear paused Floor state, grounded in the current Group view;
+        // not a generic empty paragraph or a second dashboard widget.
+        var panel=el('div',null,'pmd-group-floor-paused');
+        var symbol=el('span',null,'pmd-group-floor-paused__symbol');
+        symbol.setAttribute('aria-hidden','true');
+        for(var n=0;n<4;n++)symbol.appendChild(el('i'));
+        panel.appendChild(symbol);
+        var copy=el('div',null,'pmd-group-floor-paused__copy');
+        copy.appendChild(el('strong','Floor view paused'));
+        copy.appendChild(el('span','All restaurants combines sales. Select one restaurant above to see its table layout.'));
+        panel.appendChild(copy);
+        panel.setAttribute('role','status');
+        floorCanvas.appendChild(panel);
+      }else{
+        var message=el('p',text,'pmd-group-floor-readonly-message');
+        message.setAttribute('role','status');
+        floorCanvas.appendChild(message);
+      }
     }
     function displayGroupFloor(data){
       if(!floorCanvas)return;
@@ -224,10 +264,31 @@
         if(reportCache[key]&&reportCache[key].promise===promise)delete reportCache[key];
         throw error;
       });
-      reportCache[key]={at:Date.now(),promise:promise};
+      var saved={at:Date.now(),promise:promise,data:null};
+      reportCache[key]=saved;
+      promise.then(function(data){saved.data=data;}).catch(function(){});
       return promise;
     }
-    function issue(data){
+    // R26: warm a bounded number of explicitly authorized, read-only scopes
+    // only when the browser is idle. Scope requests are shared for 30 seconds
+    // and remain protected by the server's owner/MFA/tenant checks.
+    function prewarmScopes(){
+      if(document.visibilityState==='hidden'||context.sites.length>5)return;
+      var candidates=context.sites.filter(function(site){
+        return Number(site.tenant_id)!==Number(context.current_tenant_id);
+      }).map(function(site){return String(site.tenant_id);});
+      if(context.sites.length>1)candidates.unshift('all');
+      candidates.slice(0,4).forEach(function(scope,index){
+        window.setTimeout(function(){
+          if(document.visibilityState==='hidden')return;
+          report(scope,'today').catch(function(){});
+          report(scope,'month').catch(function(){});
+        },index*180);
+      });
+    }
+    if(window.requestIdleCallback)window.requestIdleCallback(prewarmScopes,{timeout:1600});
+    else window.setTimeout(prewarmScopes,1000);
+        function issue(data){
       if(!data||data.ok!==true)return 'Group reporting is unavailable.';
       var rows=Array.isArray(data.locations)?data.locations:[];
       if(!rows.length)return 'No authorized restaurant reporting data.';
@@ -349,7 +410,17 @@
       // "Loading" during a scope change. Mark the selector busy, keep the
       // last verified snapshot, and apply the new scope when its data is ready.
       if(scope==='all')showFloorNotice('Select one restaurant to view its Floor.');
-      if(floor)floor.setAttribute('aria-busy','true');
+      // A previously fetched, still-fresh site opens immediately in the
+      // native widgets, without waiting for a new microtask or network roundtrip.
+      var instantToday=reportCache[scope+'|today'];
+      var instantMonth=reportCache[scope+'|month'];
+      var warm=instantToday&&instantMonth&&instantToday.data&&instantMonth.data
+        &&Date.now()-instantToday.at<30000&&Date.now()-instantMonth.at<30000;
+      if(warm){
+        if(scope!=='all')displayGroupFloor(instantToday.data);
+        applyKpis(instantToday.data,instantMonth.data,false);
+      }
+      if(floor)floor.setAttribute('aria-busy',warm?'false':'true');
       if(analytics){
         analytics.setScopeProvider(function(period){
           return Promise.all([
@@ -358,16 +429,20 @@
           ]).then(function(results){return scopedAnalytics(results[0],results[1]);});
         });
       }
+      // Don't let a slower 30-day chart block the current KPI snapshot.
+      // It loads independently into the unchanged, already visible chart.
+      report(scope,'last30').catch(function(){});
       Promise.allSettled([
         report(scope,'today'),
-        report(scope,'month'),
-        report(scope,'last30')
+        report(scope,'month')
       ]).then(function(rows){
         if(version!==sequence||selectedScope!==scope)return;
         var today=rows[0].status==='fulfilled'?rows[0].value:null;
         var month=rows[1].status==='fulfilled'?rows[1].value:null;
-        if(scope!=='all')displayGroupFloor(today);
-        applyKpis(today,month,false);
+        if(!warm||today!==instantToday.data||month!==instantMonth.data){
+          if(scope!=='all')displayGroupFloor(today);
+          applyKpis(today,month,false);
+        }
         if(floor)floor.removeAttribute('aria-busy');
         control.select.removeAttribute('aria-busy');
         var problem=issue(today)||issue(month);
@@ -395,9 +470,172 @@
     var emptyWasHidden=emptyResults?emptyResults.hidden:true;
     if(!header||!actions||!grid)return;
     var control=scopeControl();if(!control.wrap.isConnected)actions.prepend(control.wrap);
-    var applyButton=null;
-    if(context.capabilities.publish){applyButton=button('Apply to locations',share,'pmd-group-header-button');actions.prepend(applyButton);}
-    var savedGrid=document.createDocumentFragment(),borrowed=false,version=0;
+    // R27: publication belongs INSIDE the original Edit Food / Edit Category
+    // dialogs. No action may appear in the menu header, the grid or the
+    // category filter strip. The modal owners notify us of exact saved IDs.
+    var sourceSite=context.sites.find(function(site){
+      return Number(site.tenant_id)===Number(context.current_tenant_id);
+    });
+    var canShare=!!(context.capabilities.publish&&sourceSite&&sourceSite.can_publish);
+    var foodDialog=document.querySelector('[data-pmd-menu-modal]');
+    var foodEditor=foodDialog&&foodDialog.querySelector('[data-pmd-menu-form]');
+    var foodButton=null,categoryButton=null,categoryDialog=null;
+    var foodBaseline='',foodSavedId='',categoryBaseline='',categorySavedId='';
+    function localEditScope(){
+      var live=document.querySelector('[data-pmd-group-firstpaint] select')||control.select;
+      return live&&String(live.value)===String(context.current_tenant_id);
+    }
+    function validSavedId(value){
+      return /^[1-9][0-9]{0,14}$/.test(String(value||''));
+    }
+    function snapshotEditor(form){
+      if(!form)return '';
+      return Array.from(form.elements).map(function(input){
+        if(!input.name||input.disabled)return '';
+        if(input.type==='checkbox'||input.type==='radio')
+          return input.name+'='+String(input.checked);
+        if(input.type==='file')
+          return input.name+'='+Array.from(input.files||[]).map(function(file){
+            return file.name+':'+file.size+':'+file.lastModified;
+          }).join(',');
+        return input.name+'='+String(input.value||'');
+      }).join('\n');
+    }
+    function installFoodAction(){
+      if(!canShare||!foodDialog)return;
+      var row=foodDialog.querySelector('.pmd-menu-modal__buttons');
+      if(!row)return;
+      foodButton=row.querySelector('[data-pmd-group-edit-share-food-r27]');
+      if(foodButton)return;
+      foodButton=button('Other locations',function(){
+        if(!localEditScope()||foodDialog.hidden||!validSavedId(foodSavedId))return;
+        if(snapshotEditor(foodEditor)!==foodBaseline){
+          syncFoodAction();
+          return;
+        }
+        var name=(foodEditor&&foodEditor.querySelector('[data-pmd-menu-name]')||{}).value||'Saved food';
+        share({type:'menu',id:Number(foodSavedId),label:name.trim()});
+      },'pmd-group-edit-publish-action');
+      foodButton.setAttribute('data-pmd-group-edit-share-food-r27','1');
+      foodButton.setAttribute('aria-label','Apply saved food to other restaurants');
+      var save=row.querySelector('[data-pmd-menu-save]');
+      row.insertBefore(foodButton,save||null);
+      foodButton.hidden=true;
+      if(foodEditor){
+        foodEditor.addEventListener('input',syncFoodAction);
+        foodEditor.addEventListener('change',syncFoodAction);
+      }
+    }
+    function syncFoodAction(){
+      if(!foodButton)return;
+      var isEditable=!foodDialog.hidden&&validSavedId(foodSavedId)&&localEditScope();
+      var dirty=isEditable&&snapshotEditor(foodEditor)!==foodBaseline;
+      foodButton.hidden=!isEditable;
+      foodButton.disabled=!!dirty;
+      foodButton.title=dirty
+        ? 'Save your changes before applying this food to other restaurants.'
+        : 'Review and apply this saved food to other restaurants.';
+    }
+    function foodEditorOpened(event){
+      if(!canShare)return;
+      installFoodAction();
+      var info=event&&event.detail||{};
+      var actual=foodEditor&&foodEditor.querySelector('[data-pmd-menu-id]');
+      foodSavedId=info.mode==='food'?String(info.entityId||''):'';
+      if(!actual||String(actual.value||'')!==foodSavedId)foodSavedId='';
+      foodBaseline=snapshotEditor(foodEditor);
+      syncFoodAction();
+    }
+    function installCategoryAction(){
+      if(!canShare)return;
+      categoryDialog=document.querySelector('.pmd-smart-category-modal');
+      if(!categoryDialog)return;
+      var row=categoryDialog.querySelector('.pmd-smart-category-modal__footer');
+      if(!row)return;
+      categoryButton=row.querySelector('[data-pmd-group-edit-share-category-r27]');
+      if(categoryButton)return;
+      categoryButton=button('Other locations',function(){
+        if(!localEditScope()||categoryDialog.hidden||!validSavedId(categorySavedId))return;
+        var nameInput=categoryDialog.querySelector('[data-pmd-smart-name]');
+        if(String(nameInput&&nameInput.value||'')!==categoryBaseline){
+          syncCategoryAction();return;
+        }
+        share({type:'category',id:Number(categorySavedId),label:String(nameInput.value||'Saved category').trim()});
+      },'pmd-smart-btn pmd-group-edit-publish-action');
+      categoryButton.setAttribute('data-pmd-group-edit-share-category-r27','1');
+      categoryButton.setAttribute('aria-label','Apply saved category to other restaurants');
+      var save=row.querySelector('[data-pmd-smart-save]');
+      row.insertBefore(categoryButton,save||null);
+      categoryButton.hidden=true;
+      var nameInput=categoryDialog.querySelector('[data-pmd-smart-name]');
+      if(nameInput){
+        nameInput.addEventListener('input',syncCategoryAction);
+        nameInput.addEventListener('change',syncCategoryAction);
+      }
+      categoryDialog.addEventListener('click',function(event){
+        if(event.target.closest('[data-pmd-smart-save]')&&categoryButton){
+          categoryButton.disabled=true;
+          categoryButton.title='Wait for the category save to finish.';
+        }
+      },true);
+    }
+    function syncCategoryAction(){
+      if(!categoryButton||!categoryDialog)return;
+      var nameInput=categoryDialog.querySelector('[data-pmd-smart-name]');
+      var isEditable=!categoryDialog.hidden&&validSavedId(categorySavedId)&&localEditScope();
+      var dirty=isEditable&&String(nameInput&&nameInput.value||'')!==categoryBaseline;
+      categoryButton.hidden=!isEditable;
+      categoryButton.disabled=!!dirty;
+      categoryButton.title=dirty
+        ? 'Save your changes before applying this category to other restaurants.'
+        : 'Review and apply this saved category definition to other restaurants.';
+    }
+    function categoryEditorOpened(event){
+      if(!canShare)return;
+      installCategoryAction();
+      var info=event&&event.detail||{};
+      var id=String(info.entityId||'');
+      var current=categoryDialog&&categoryDialog.getAttribute('data-pmd-group-edit-category-id-r27');
+      categorySavedId=info.kind==='regular'&&current===id?id:'';
+      var name=categoryDialog&&categoryDialog.querySelector('[data-pmd-smart-name]');
+      categoryBaseline=String(name&&name.value||'');
+      syncCategoryAction();
+    }
+    if(canShare){
+      installFoodAction();
+      window.addEventListener('pmd:menu-editor-open-r27',foodEditorOpened);
+      window.addEventListener('pmd:smart-category-editor-open-r27',categoryEditorOpened);
+    }
+    var menuScopeCache=Object.create(null);
+    window.addEventListener('pmd:group:publication-applied',function(){
+      menuScopeCache=Object.create(null);
+    });
+    function menuReport(scope){
+      var entry=menuScopeCache[scope];
+      if(entry&&Date.now()-entry.at<20000)return entry.promise;
+      var promise=request('menu?scope='+encodeURIComponent(scope)).catch(function(error){
+        if(menuScopeCache[scope]&&menuScopeCache[scope].promise===promise)delete menuScopeCache[scope];
+        throw error;
+      });
+      var saved={at:Date.now(),promise:promise,data:null};
+      menuScopeCache[scope]=saved;
+      promise.then(function(data){saved.data=data;}).catch(function(){});
+      return promise;
+    }
+    if(context.sites.length<=5){
+      var warmMenus=function(){
+        if(document.visibilityState==='hidden')return;
+        var options=context.sites.filter(function(site){return Number(site.tenant_id)!==Number(context.current_tenant_id);})
+          .map(function(site){return String(site.tenant_id);});
+        if(context.sites.length>1)options.unshift('all');
+        options.slice(0,4).forEach(function(scope,index){
+          setTimeout(function(){if(document.visibilityState!=='hidden')menuReport(scope).catch(function(){});},index*200);
+        });
+      };
+      if(window.requestIdleCallback)window.requestIdleCallback(warmMenus,{timeout:1700});
+      else window.setTimeout(warmMenus,1100);
+    }
+        var savedGrid=document.createDocumentFragment(),borrowed=false,version=0;
     var savedKpis=Array.from(root.querySelectorAll('[data-pmd-menu-r22-kpi-value]')).map(function(node){return {node:node,value:node.textContent};});
     function stash(){
       if(borrowed)return;
@@ -458,7 +696,8 @@
     function load(){
       var scope=String(control.select.value),local=scope===String(context.current_tenant_id),seq=++version;
       root.classList.toggle('pmd-group-menu-scope-active',!local);
-      if(applyButton)applyButton.hidden=!local;
+      syncFoodAction();
+      syncCategoryAction();
       if(local){
         restore();
         if(menuPanel)menuPanel.hidden=menuWasHidden;
@@ -468,8 +707,17 @@
       }
       if(menuPanel)menuPanel.hidden=false;
       if(emptyResults)emptyResults.hidden=true;
-      showMessage('Loading restaurant menu…');control.select.setAttribute('aria-busy','true');
-      request('menu?scope='+encodeURIComponent(scope)).then(function(data){
+      // R26: a warmed location opens instantly; never issue duplicate GETs.
+      var cached=menuScopeCache[scope];
+      var hasWarm=cached&&cached.data&&Date.now()-cached.at<20000;
+      if(hasWarm){
+        render(cached.data);
+        control.select.removeAttribute('aria-busy');
+        return;
+      }
+      if(!borrowed)showMessage('Loading restaurant menu…');
+      control.select.setAttribute('aria-busy','true');
+      menuReport(scope).then(function(data){
         if(seq===version)render(data);
       }).catch(function(error){
         if(seq===version)showMessage(error.message||'Restaurant menu is unavailable.');

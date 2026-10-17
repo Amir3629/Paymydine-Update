@@ -29,7 +29,7 @@ final class Publisher
         return PublicationLock::run($sourceDb,'source:'.$group->uuid.':'.$type.':'.$entityId,function() use($owner,$source,$site,$group,$targets,$type,$entityId,$sourceDb) {
             $state=$sourceDb->transaction(fn()=>$this->data()->state($sourceDb,$type,$entityId,(int)$site->location_id,true));
             if ($state===null) throw new \DomainException('Saved source item not found.');
-            $currency=$type==='setting'?null:$this->data()->currency($sourceDb);
+            $currency=in_array($type,['setting','category'],true)?null:$this->data()->currency($sourceDb);
             $key=$this->entityKey($sourceDb,(string)$group->uuid,$type,$entityId);
             $payload=['meta'=>['version'=>PublicationRules::VERSION,'owner_id'=>(int)$owner->id,
                 'auth_version'=>(int)$owner->auth_version,'source_tenant_id'=>$source,
@@ -98,7 +98,13 @@ final class Publisher
                     if((int)$target->tenant_id===(int)$operation->source_tenant_id) throw new \DomainException('Source cannot be a publication target.');
                     $db=$this->store->connection((int)$target->tenant_id); $type=(string)$operation->entity_type;
                     $this->data()->ready($db,$type);
-                    $result=PublicationLock::run($db,'entity:'.$group->uuid.':'.$operation->entity_key,function() use($db,$type,$operation,$target,$group,$site,$item,$payload,$owner) {
+                    // R26: all top-level category inserts for ONE restaurant
+                    // serialize on its tree, even if they originate from
+                    // different source categories/operations.
+                    $targetLock=$type==='category'
+                        ? 'category-tree:'.$group->uuid.':'.(int)$site->location_id
+                        : 'entity:'.$group->uuid.':'.$operation->entity_key;
+                    $result=PublicationLock::run($db,$targetLock,function() use($db,$type,$operation,$target,$group,$site,$item,$payload,$owner) {
                         return $db->transaction(function() use($db,$type,$operation,$target,$group,$site,$item,$payload,$owner) {
                             $receipt=$db->table('pmd_group_receipts')->where('operation_uuid',$operation->uuid)->lockForUpdate()->first();
                             if($receipt) {
@@ -108,7 +114,7 @@ final class Publisher
                             if($operation->state==='complete') throw new \RuntimeException('Completed publication is missing a target receipt.');
                             $this->authorized($this->auth->owner(true),(int)$target->tenant_id,(int)$group->id);
                             $this->authorized($owner,(int)$operation->source_tenant_id,(int)$group->id);
-                            if($type!=='setting' && ($payload['meta']['currency']!==$this->data()->currency($db)
+                            if(!in_array($type,['setting','category'],true) && ($payload['meta']['currency']!==$this->data()->currency($db)
                                 || $payload['meta']['currency']!==$this->data()->currency($this->store->connection((int)$operation->source_tenant_id)))) {
                                 throw new \DomainException('A configured currency changed after preview.');
                             }

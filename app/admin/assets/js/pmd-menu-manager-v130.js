@@ -480,6 +480,14 @@
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
     lockPage();
+    // R27: the LIVE v130 editor exposes only its saved Food ID. No grid
+    // action is installed; Group Owners publish from this Edit dialog.
+    var groupEditInput = modalMode === 'food' && foodForm
+      ? foodForm.querySelector('[data-pmd-menu-id]') : null;
+    var groupEditId = groupEditInput ? String(groupEditInput.value || '') : '';
+    window.dispatchEvent(new CustomEvent('pmd:menu-editor-open-r27', {
+      detail: {mode: modalMode, entityId: groupEditId}
+    }));
     requestAnimationFrame(function () {
       var first = modalMode === 'combo'
         ? (comboForm && comboForm.querySelector('[data-pmd-combo-name]'))
