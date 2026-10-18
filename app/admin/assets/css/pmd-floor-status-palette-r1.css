@@ -62,3 +62,13 @@ html body #pmd-r2-shared-floor-canvas-v310
   color: #fff !important;
 }
 
+
+/* Legacy/Ownerboard Floor uses the separate pmd-floor-v1.js renderer.
+   Its physical state stays native, but the reservation lead is the same blue. */
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table][data-status="reserved"][data-pmd-floor-reservation-state="upcoming"] {
+  background: #3679e5 !important;
+  background-color: #3679e5 !important;
+  border-color: #174999 !important;
+  color: #fff !important;
+}
