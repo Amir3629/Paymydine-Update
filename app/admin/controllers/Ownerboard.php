@@ -73,7 +73,10 @@ class Ownerboard extends AdminController
         $this->addCss('css/pmd-ownerboard-workplace-access-v1.css');
         $this->addCss('css/pmd-floor-status-palette-r1.css');
         $this->addJs('js/pmd-floor-reservation-state-r1.js');
-        $this->addJs('js/pmd-floor-v1.js');
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-floor-v1.js')
+            .'?v=20261018-reservation-colors-r1'
+        );
         $this->addJs('js/pmd-ownerboard-v2.js');
         $this->addJs('js/pmd-ownerboard-workplace-access-v1.js');
 
