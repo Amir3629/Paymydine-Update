@@ -96,6 +96,8 @@ class Dashboardlab extends AdminController
 
         // Route-scoped copy of the LIVE Floor V1 core only. Appended legacy
         // observer/retry patches are excluded; first geometry comes from Blade.
+        // Always resolve the phase classifier before the shared Floor runtime.
+        $this->addJs('js/pmd-floor-reservation-state-r1.js');
         $pmdExactFloorJsPath = base_path('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js');
         $this->addJs(
             asset('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js')
