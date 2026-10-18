@@ -739,37 +739,54 @@
         );
     }
 
-    /* PMD_FLOOR_RESERVATION_BUSY_WINDOWS_V1_2
-     * Read-only windows are resolved once by PmdCleanWorkspaceControllerV1
-     * using the canonical Reservations_model cancellation history authority.
-     * This Blade only adopts them for deterministic first paint.
+    /* PMD_FLOOR_RESERVATION_BLUE_NOTICE_R1
+     * Same status contract on first HTML paint and runtime hydration.
+     * Resolve reservation by exact DB table ID wherever possible, never a
+     * numeric substring of another table name.
      */
     $pmdFloorReservationBusyWindows = is_array($reservationBusyWindows ?? null)
         ? array_values($reservationBusyWindows)
         : [];
-    $pmdFloorReservationBusyNumbers = [];
-    $pmdFloorNowMs = \Carbon\Carbon::now('Europe/Berlin')->getTimestamp() * 1000;
+    $pmdFloorReservationNoticeMinutes =
+        \Admin\Services\PmdFloorReservationWindowsV1::normalizeNoticeMinutes(
+            $reservationNoticeMinutes
+                ?? app(\Admin\Services\PmdFloorReservationWindowsV1::class)->noticeMinutes()
+        );
+    $pmdFloorNowMs = (int)round(microtime(true) * 1000);
 
-    foreach ($pmdFloorReservationBusyWindows as $pmdFloorReservationWindow) {
-        if (!is_array($pmdFloorReservationWindow)) continue;
-        $pmdFloorStartMs = (int)($pmdFloorReservationWindow['start_ms'] ?? 0);
-        $pmdFloorEndMs = (int)($pmdFloorReservationWindow['end_ms'] ?? 0);
-        $pmdFloorTableNo = trim((string)($pmdFloorReservationWindow['table_no'] ?? ''));
-        if ($pmdFloorStartMs < 1 || $pmdFloorEndMs <= $pmdFloorStartMs) continue;
-        if ($pmdFloorNowMs < $pmdFloorStartMs || $pmdFloorNowMs >= $pmdFloorEndMs) continue;
-        if ($pmdFloorTableNo !== '') $pmdFloorReservationBusyNumbers[$pmdFloorTableNo] = true;
-    }
+    $pmdFloorDisplayReservationPhase = static function (array $table) use (
+        $pmdFloorReservationBusyWindows,
+        $pmdFloorNowMs,
+        $pmdFloorReservationNoticeMinutes
+    ): string {
+        if (!$pmdFloorReservationBusyWindows) return 'free';
+        $memberIds = !empty($table['is_merged'])
+            ? array_values((array)($table['member_ids'] ?? []))
+            : [
+                $table['dbTableId']
+                    ?? $table['db_table_id']
+                    ?? $table['table_id']
+                    ?? $table['id']
+                    ?? 0,
+            ];
+        $numbers = !empty($table['is_merged'])
+            ? preg_split('/\\s*\\+\\s*/', trim((string)($table['number'] ?? '')))
+            : [(string)($table['number'] ?? '')];
+        $max = max(count($memberIds), count($numbers));
+        $upcoming = false;
 
-    $pmdFloorDisplayIsReservationBusy = static function (array $table) use ($pmdFloorReservationBusyNumbers): bool {
-        if (!$pmdFloorReservationBusyNumbers) return false;
-        $numberText = trim((string)($table['number'] ?? ''));
-        if ($numberText !== '' && isset($pmdFloorReservationBusyNumbers[$numberText])) return true;
-        if ($numberText !== '' && preg_match_all('/\d+/', $numberText, $matches)) {
-            foreach ((array)($matches[0] ?? []) as $number) {
-                if (isset($pmdFloorReservationBusyNumbers[(string)$number])) return true;
-            }
+        for ($index = 0; $index < $max; $index++) {
+            $phase = \Admin\Services\PmdFloorReservationWindowsV1::phase(
+                $pmdFloorReservationBusyWindows,
+                (int)($memberIds[$index] ?? 0),
+                trim((string)($numbers[$index] ?? '')),
+                $pmdFloorNowMs,
+                $pmdFloorReservationNoticeMinutes
+            );
+            if ($phase === 'busy') return 'busy';
+            if ($phase === 'upcoming') $upcoming = true;
         }
-        return false;
+        return $upcoming ? 'upcoming' : 'free';
     };
 
     $stripLabel = $floorMode === 'row'
@@ -827,6 +844,7 @@
         ? $floorBootstrap['data']
         : [];
     $pmdFloorBootstrapData['pmd_reservation_busy_windows'] = $pmdFloorReservationBusyWindows;
+    $pmdFloorBootstrapData['pmd_reservation_notice_minutes'] = $pmdFloorReservationNoticeMinutes;
 
     $floorBootstrapPayload = [
         'version' => $floorBootstrap['version']
@@ -929,6 +947,7 @@ body.pmd-dashboard-lab-page
     data-pmd-floor-layout-edit-allowed="{{ $pmdFloorCanManageTables ? '1' : '0' }}"
     data-pmd-dashboard-lab-exact-floor="v1"
     data-pmd-reservation-busy-deferred="{{ !empty($deferReservationBusy) ? '1' : '0' }}"
+    data-pmd-reservation-notice-minutes="{{ $pmdFloorReservationNoticeMinutes }}"
     data-pmd-active-floor-id="{{ $pmdFloorActiveId }}"
     data-pmd-active-floor-name="{{ $pmdFloorActiveName }}"
     data-size="large"
@@ -1213,9 +1232,14 @@ body.pmd-dashboard-lab-page
                             $status = 'occupied';
                         }
 
-                        $pmdReservationBusyNow = $pmdFloorDisplayIsReservationBusy($table);
-                        if ($pmdReservationBusyNow && !in_array($status, ['attention', 'cleaning', 'disabled'], true)) {
+                        $pmdReservationPhase = $pmdFloorDisplayReservationPhase($table);
+                        $pmdReservationVisualPhase = 'none';
+                        if ($pmdReservationPhase === 'busy' && !in_array($status, ['attention', 'cleaning', 'disabled'], true)) {
                             $status = 'occupied';
+                            $pmdReservationVisualPhase = 'busy';
+                        } elseif ($pmdReservationPhase === 'upcoming' && $status === 'available') {
+                            $status = 'reserved';
+                            $pmdReservationVisualPhase = 'upcoming';
                         }
                         $rangeColor = $status === 'available'
                             ? 'free'
@@ -1235,7 +1259,8 @@ body.pmd-dashboard-lab-page
                             data-floor-members="{{ implode(',', $table['member_ids'] ?? []) }}"
                         @endif
                         data-status="{{ $status }}"
-                        @if($pmdReservationBusyNow) data-pmd-reservation-busy="true" @endif
+                        @if($pmdReservationPhase === 'busy') data-pmd-reservation-busy="true" @endif
+                        data-pmd-floor-reservation-state="{{ $pmdReservationVisualPhase }}"
                         @if($rangeColor !== '') data-pmd-range-color="{{ $rangeColor }}" @endif
                         style="left:{{ $table['x'] }}px;top:{{ $table['y'] }}px;width:{{ $table['w'] }}px;height:{{ $table['h'] }}px"
                         aria-label="{{ $table['name'] }}{{ $status === 'disabled' ? ' · Disabled' : '' }}{{ !empty($table['note']) ? ' · Internal note: '.$table['note'] : '' }}"
