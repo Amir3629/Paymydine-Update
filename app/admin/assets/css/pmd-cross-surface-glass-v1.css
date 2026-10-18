@@ -1,0 +1,746 @@
+
+/*
+ * PMD_CROSS_SURFACE_GLASS_CARDS_V1_20261018
+ *
+ * PMD Table Manager R32-R40 + Reservation Composer R35-R37 parity for:
+ * Shifts create/edit member + shift, Discounts create/edit,
+ * Settings hub, Restaurant Profile, Customer Experience,
+ * Devices create/edit, and Payments & Finance cards and inline editor.
+ *
+ * Presentation only. No change to writers, fields, permissions, data, QR,
+ * payment routing, member access or calendar geometry.
+ *
+ * Scoped high-specificity !important overrides are needed here because the
+ * platform card authority and historical feature CSS use !important.
+ * Avoid global button/input/card selectors and double backdrop-blurs.
+ */
+
+/* Design tokens used only by the named admin pages. */
+body:is(.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page) {
+  --pmd-glass-jade: #075c47;
+  --pmd-glass-jade-strong: #064b3c;
+  --pmd-glass-ink: #173b33;
+  --pmd-glass-muted: #6b817c;
+  --pmd-glass-line: rgba(202,222,232,.88);
+  --pmd-glass-radius: 16px;
+  --pmd-glass-surface:
+    radial-gradient(circle at 9% 8%,rgba(230,248,237,.70),transparent 32%),
+    radial-gradient(circle at 76% 10%,rgba(229,244,252,.61),transparent 33%),
+    radial-gradient(circle at 39% 59%,rgba(255,232,232,.47),transparent 32%),
+    rgba(252,254,253,.985);
+  --pmd-glass-shadow: 0 26px 62px rgba(21,49,44,.14),inset 0 1px 0 rgba(255,255,255,.98);
+  --pmd-glass-field-shadow: 0 4px 14px rgba(22,52,47,.035),inset 0 1px 0 rgba(255,255,255,.97);
+}
+
+/* ------------------------------------------------------------------
+   1. Shifts: member and shift editors. Keep form/action DOM untouched.
+   The calendar timeline, team portal access and role-selection JS stay
+   owned by Shifts. The existing global overlay handles the blur.
+   ------------------------------------------------------------------ */
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-card,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-card {
+  width: min(660px,calc(100vw - 32px)) !important;
+  max-width: 660px !important;
+  max-height: calc(100dvh - 32px) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+  transform: none !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-header,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header {
+  min-height: 70px !important;
+  padding: 17px 24px 12px !important;
+  border-bottom: 1px solid rgba(202,222,232,.55) !important;
+  background: transparent !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-header h2,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header h2 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  color: #113d34 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+  letter-spacing: -.03em !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-header h2::before,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header h2::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border: 1px solid rgba(83,166,111,.12) !important;
+  border-radius: 14px !important;
+  background: rgba(249,254,250,.97) center / 20px 20px no-repeat !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f866f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21v-2a8 8 0 0 1 16 0v2'/%3E%3C/svg%3E") !important;
+}
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header h2::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f866f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-close,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-close {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+  color: var(--pmd-glass-ink) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor {
+  min-height: 0 !important;
+  gap: 13px !important;
+  padding: 17px 24px 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-body {
+  min-height: 0;
+  padding: 18px 24px 20px !important;
+  background: transparent !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor label > span:first-child,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid label > span:first-child {
+  color: #28483f !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor input:not([type=hidden]),
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor select:not(.pmd-shifts__role-select-source),
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid :is(input,textarea) {
+  min-height: 48px !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+  color: #102a43 !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+  font-size: 13px !important;
+  outline: none !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor input:focus,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid :is(input,textarea):focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__role-card:not(.is-selected) {
+  border-color: var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__role-card.is-selected {
+  border-color: var(--pmd-glass-jade-strong) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.13) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-password-row button {
+  min-height: 44px !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: var(--pmd-glass-jade) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-footer,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-footer {
+  min-height: 68px !important;
+  padding: 11px 24px 13px !important;
+  border-top: 1px solid rgba(205,222,229,.75) !important;
+  background: rgba(255,255,255,.88) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-footer {
+  margin: 8px -24px 0 !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__button,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-footer .pmd-shifts__button {
+  min-height: 44px !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__button:not(.is-soft):not(.is-danger),
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-footer .pmd-shifts__button:not(.is-soft):not(.is-danger) {
+  min-width: 145px !important;
+  border: 1px solid var(--pmd-glass-jade-strong) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__button.is-soft,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__button.is-soft {
+  border: 1px solid var(--pmd-glass-line) !important;
+  background: rgba(255,255,255,.94) !important;
+  color: #243f38 !important;
+}
+
+/* ------------------------------------------------------------------
+   2. Discounts: Coupon/Gift Card/Voucher modal and catalog cards.
+   Keep card-type, discount-type, expired and enabled semantics.
+   ------------------------------------------------------------------ */
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__card {
+  width: min(800px,calc(100vw - 32px)) !important;
+  max-width: 800px !important;
+  max-height: calc(100dvh - 36px) !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+  transform: none !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__header {
+  min-height: 72px !important;
+  padding: 18px 26px 12px !important;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(202,222,232,.55) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__header h2 {
+  color: #113d34 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__eyebrow {
+  color: #2f866f !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__close {
+  width: 42px !important;
+  height: 42px !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__scroll {
+  padding: 10px 26px 24px !important;
+  background: transparent !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form {
+  gap: 0 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__section {
+  margin: 0 !important;
+  padding: 21px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__section + .pmd-coupon-form__section {
+  border-top: 1px solid rgba(202,222,232,.70) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__section-icon {
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border: 1px solid rgba(83,166,111,.11) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(248,253,249,.98) !important;
+  color: #2f866f !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__section-head h3 {
+  font-size: 15px !important;
+  font-weight: 820 !important;
+  color: #173b33 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__type-grid button:not(.is-selected),
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__feature-grid button:not(.is-selected),
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__segmented button:not(.is-selected) {
+  border-radius: var(--pmd-glass-radius) !important;
+  border-color: var(--pmd-glass-line) !important;
+  background: rgba(255,255,255,.91) !important;
+  color: #274940 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__type-grid button.is-selected,
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__feature-grid button.is-selected,
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__segmented button.is-selected {
+  border-color: var(--pmd-glass-jade-strong) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 7px 17px rgba(7,92,71,.13) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field input:not([type=hidden]),
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field textarea {
+  min-height: 48px !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+  color: #102a43 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field input:focus,
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field textarea:focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__footer {
+  min-height: 68px !important;
+  padding: 11px 24px 13px !important;
+  border-top: 1px solid rgba(205,222,229,.75) !important;
+  background: rgba(255,255,255,.87) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] :is(.pmd-coupon-modal__save,.pmd-coupon-modal__cancel,.pmd-coupon-modal__delete) {
+  min-height: 44px !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__save {
+  min-width: 146px !important;
+  border-color: var(--pmd-glass-jade-strong) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__cancel {
+  border-color: var(--pmd-glass-line) !important;
+  background: rgba(255,255,255,.96) !important;
+}
+body.pmd-coupon-manager-page #pmd-coupon-manager-main .pmd-coupon-card:not(.is-expired) {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 10px 30px rgba(21,49,44,.065) !important;
+}
+body.pmd-coupon-manager-page #pmd-coupon-manager-main .pmd-coupon-card.is-expired {
+  border-radius: var(--pmd-glass-radius) !important;
+  box-shadow: 0 8px 24px rgba(21,49,44,.045) !important;
+}
+
+/* ------------------------------------------------------------------
+   3. Settings landing page: navigational cards only.
+   Retain per-group icon accents configured inline by the server.
+   ------------------------------------------------------------------ */
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 10px 29px rgba(21,49,44,.07),inset 0 1px 0 rgba(255,255,255,.96) !important;
+  transform: none !important;
+  transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card:hover {
+  border-color: rgba(99,161,140,.60) !important;
+  box-shadow: 0 16px 33px rgba(21,49,44,.10) !important;
+  transform: none !important;
+}
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__icon {
+  border-radius: 14px !important;
+  border-color: rgba(205,224,216,.8) !important;
+  box-shadow: 0 3px 10px rgba(25,78,58,.04) !important;
+}
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__title-row strong {
+  color: #173b33 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__description {
+  color: #6b817c !important;
+  font-size: 12px !important;
+}
+
+/* ------------------------------------------------------------------
+   4. Restaurant Profile: six canonical section cards, operating hours,
+   social links and Google Business editor. Do not touch warning states.
+   ------------------------------------------------------------------ */
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 15px 35px rgba(21,49,44,.08),inset 0 1px 0 rgba(255,255,255,.97) !important;
+  overflow: hidden;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-card__header {
+  border-color: rgba(202,222,232,.6) !important;
+  background: rgba(255,255,255,.30) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-card__header h2 {
+  color: #173b33 !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-section-icon {
+  border: 1px solid rgba(83,166,111,.12) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(248,253,249,.98) !important;
+  color: #2f866f !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea),
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time input {
+  border-color: #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field :is(input,select,textarea):focus,
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time input:focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-day-card:not(.is-closed),
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-social-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.79) !important;
+  box-shadow: 0 4px 13px rgba(21,49,44,.035) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-day-card.is-closed {
+  border-radius: var(--pmd-glass-radius) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-bottom-save__button {
+  border: 1px solid #064b3c !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+  color: #fff !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-provider-modal__dialog {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-provider-modal__header,
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-provider-modal__body {
+  background: transparent !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-provider-primary {
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  border-color: #064b3c !important;
+  color: #fff !important;
+}
+
+/* ------------------------------------------------------------------
+   5. Customer Experience: outer cards + nested form fields.
+   Preserve Theme/QR previews, selected styling and user choices.
+   ------------------------------------------------------------------ */
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 15px 35px rgba(21,49,44,.08),inset 0 1px 0 rgba(255,255,255,.97) !important;
+  overflow: hidden;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-card__header {
+  border-color: rgba(202,222,232,.6) !important;
+  background: rgba(255,255,255,.28) !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-section-icon {
+  border: 1px solid rgba(83,166,111,.12) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(248,253,249,.98) !important;
+  color: #2f866f !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-card--nested {
+  border-color: rgba(202,222,232,.65) !important;
+  background: rgba(255,255,255,.72) !important;
+  box-shadow: none !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-subcard {
+  border-radius: var(--pmd-glass-radius) !important;
+  border-color: var(--pmd-glass-line) !important;
+  background: rgba(255,255,255,.8) !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-field :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
+  border: 1px solid #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-field :is(input,select,textarea):focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-primary-button {
+  border: 1px solid #064b3c !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+  color: #fff !important;
+}
+/* Selected Theme/QR preview tiles are not recolored: previews are content. */
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-theme-option:not(.is-selected):not([aria-pressed=true]),
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-customer-qr-template-r39:not(.is-selected):not([aria-pressed=true]) {
+  border-radius: var(--pmd-glass-radius) !important;
+}
+
+/* ------------------------------------------------------------------
+   6. Devices: settings overview + device create/edit card.
+   Portaled dialog keeps its own scrolling and its 8px blur authority.
+   ------------------------------------------------------------------ */
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 15px 35px rgba(21,49,44,.08),inset 0 1px 0 rgba(255,255,255,.97) !important;
+  overflow: hidden;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__header,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__header {
+  border-color: rgba(202,222,232,.65) !important;
+  background: rgba(255,255,255,.29) !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__icon,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__icon {
+  border: 1px solid rgba(83,166,111,.14) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(248,253,249,.98) !important;
+  color: #2f866f !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__title h2,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__title h2 {
+  color: #173b33 !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-panel,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-panel {
+  border: 1px solid rgba(202,222,232,.68) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.69) !important;
+  box-shadow: none !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea) {
+  border-color: #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field :is(input,select,textarea):focus,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field :is(input,select,textarea):focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card {
+  width: min(760px,calc(100vw - 32px)) !important;
+  max-width: 760px !important;
+  max-height: calc(100dvh - 32px) !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+  transform: none !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__header {
+  min-height: 72px !important;
+  padding: 18px 24px 12px !important;
+  background: transparent !important;
+  border-color: rgba(202,222,232,.63) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__header h2 {
+  color: #113d34 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-close {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__body {
+  padding: 6px 24px 20px !important;
+  background: transparent !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section {
+  margin: 0 !important;
+  padding: 20px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section + .pmd-device-v6-section {
+  border-top: 1px solid rgba(202,222,232,.7) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section__head h3 {
+  color: #173b33 !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__footer {
+  min-height: 68px !important;
+  padding: 11px 24px 13px !important;
+  background: rgba(255,255,255,.88) !important;
+  border-color: rgba(205,222,229,.75) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-secondary,
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-save {
+  min-height: 44px !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  font-size: 13px !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-secondary {
+  background: rgba(255,255,255,.96) !important;
+  border-color: #d2dee5 !important;
+  color: #243f38 !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-save {
+  min-width: 145px !important;
+  border-color: #064b3c !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+}
+
+/* ------------------------------------------------------------------
+   7. Finance: payment/provider settings, reservation guarantee panel,
+   inline edit dialog. Do not rewrite receipt/tax/provider logic.
+   ------------------------------------------------------------------ */
+body.pmd-finance-settings-page #pmd-finance-page .pmd-guarantee-r22-card {
+  border-color: var(--pmd-glass-line) !important;
+  background: var(--pmd-glass-surface) !important;
+}
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-save,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-settings-inline-action[data-pmd-inline-action] {
+  border-radius: var(--pmd-glass-radius) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card {
+  width: min(740px,calc(100vw - 32px)) !important;
+  max-width: 740px !important;
+  max-height: calc(100dvh - 32px) !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__header {
+  min-height: 70px !important;
+  padding: 17px 24px 11px !important;
+  border-color: rgba(202,222,232,.66) !important;
+  background: transparent !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__header h2 {
+  color: #113d34 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__body {
+  padding: 6px 24px 20px !important;
+  background: transparent !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section {
+  margin: 0 !important;
+  padding: 20px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section + .pmd-inline-section {
+  border-top: 1px solid rgba(202,222,232,.7) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section__head h3 {
+  color: #173b33 !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
+  border: 1px solid #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field :is(input,select,textarea):focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__footer {
+  min-height: 68px !important;
+  padding: 11px 24px 13px !important;
+  border-top: 1px solid rgba(205,222,229,.75) !important;
+  background: rgba(255,255,255,.88) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-save,
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-secondary {
+  min-height: 44px !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  font-size: 13px !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-save {
+  min-width: 145px !important;
+  border: 1px solid #064b3c !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-secondary {
+  border-color: #d2dee5 !important;
+  background: rgba(255,255,255,.96) !important;
+  color: #243f38 !important;
+}
+
+/* ------------------------------------------------------------------
+   Accessibility, smaller screens and motion. Only modal presentation;
+   all interactive state and disabled elements remain feature-owned.
+   ------------------------------------------------------------------ */
+body.pmd-shifts-page [data-pmd-team-modal] :is(button,input,select):focus-visible,
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] :is(button,input,textarea):focus-visible,
+body.pmd-devices-settings-page [data-pmd-device-modal] :is(button,input,select,textarea):focus-visible,
+body.pmd-finance-settings-page .pmd-settings-inline-modal :is(button,input,select,textarea):focus-visible {
+  outline: 2px solid rgba(7,92,71,.6) !important;
+  outline-offset: 2px !important;
+}
+@media (max-width: 760px) {
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-card,
+  body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-card,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__card,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - 20px) !important;
+  }
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-header,
+  body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__header,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__header,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__header {
+    padding: 13px 16px 10px !important;
+  }
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor,
+  body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-body,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__scroll,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__body,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__body {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-footer {
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+  }
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__type-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+}
+@media (max-width: 480px) {
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-footer,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__footer,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__footer,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__footer {
+    padding: 10px 14px 12px !important;
+  }
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor .pmd-shifts__team-access-fields,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__grid,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__grid--rules,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__discount-row {
+    grid-template-columns: minmax(0,1fr) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card,
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-card,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__card,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}

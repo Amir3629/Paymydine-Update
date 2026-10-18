@@ -45,6 +45,10 @@ class Pmdsettings extends AdminController
         }
         // PMD_SETTINGS_SINGLE_FONT_AUTHORITY_R87A
         $this->addCss('css/pmd-settings-suite-first-paint-v2.css');
+        // PMD_CROSS_SURFACE_GLASS_CARDS_V1_20261018: route-scoped presentation only, cache-busted by filemtime.
+        $pmdGlassSuiteCss = 'app/admin/assets/css/pmd-cross-surface-glass-v1.css';
+        $this->addCss(asset($pmdGlassSuiteCss).'?v='.(string)(@filemtime(base_path($pmdGlassSuiteCss)) ?: '20261018'));
+
 
         AdminMenu::setContext('settings', 'system');
     }

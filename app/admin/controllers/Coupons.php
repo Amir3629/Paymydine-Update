@@ -77,6 +77,10 @@ class Coupons extends AdminController
             )
         );
         $this->addCss('css/pmd-coupon-stable-r24.css');
+        // PMD_CROSS_SURFACE_GLASS_CARDS_V1_20261018: route-scoped presentation only, cache-busted by filemtime.
+        $pmdGlassSuiteCss = 'app/admin/assets/css/pmd-cross-surface-glass-v1.css';
+        $this->addCss(asset($pmdGlassSuiteCss).'?v='.(string)(@filemtime(base_path($pmdGlassSuiteCss)) ?: '20261018'));
+
         // PMD_HEADER_SINGLE_FRAME_SEARCH_ASSETS_V160
         $this->addCss(
             asset('app/admin/assets/css/pmd-header-expand-search-v160.css')
