@@ -561,6 +561,32 @@
         return key(floorNameFor(table)) === key(activeName);
       });
 
+      // A reservation can enter/leave its notice or active window while its
+      // Floor tab is hidden. Recompute phases when the user switches Floors,
+      // rather than replaying stale blue/red card state from allTables.
+      var bookingHelper = window.PMDFloorReservationStateR1;
+      var activeWindows = state.payload && state.payload.pmd_reservation_busy_windows;
+      if (bookingHelper && Array.isArray(activeWindows)) {
+        var minutes = bookingHelper.safeMinutes(
+          root.getAttribute('data-pmd-reservation-notice-minutes')
+        );
+        var atMs = Date.now();
+        state.tables.forEach(function (table) {
+          var raw = table.raw || {};
+          var base = clean(table.baseStatus || table.status || 'available');
+          var phase = bookingHelper.classify(
+            activeWindows,
+            table.dbTableId || raw.table_id || 0,
+            table.number,
+            atMs,
+            minutes
+          );
+          table.status = bookingHelper.effectiveStatus(base, phase);
+          table.reservationBusy = phase === 'busy';
+          table.reservationPhase = bookingHelper.visualPhase(base, phase);
+        });
+      }
+
       root.setAttribute('data-pmd-active-floor-id', activeId);
       root.setAttribute('data-pmd-active-floor-name', activeName);
 
