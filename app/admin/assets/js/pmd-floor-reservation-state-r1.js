@@ -46,9 +46,12 @@
 
   function effectiveStatus(baseStatus, phase) {
     var base = String(baseStatus || 'available').toLowerCase();
-    if (base === 'disabled' || base === 'attention' || base === 'cleaning'
+    if (base === 'disabled' || base === 'cleaning'
         || base === 'occupied') return base;
+    // Active reservation outranks a note/waiter-call badge. Those alerts
+    // remain visible as badges without hiding that the table is busy.
     if (phase === 'busy') return 'occupied';
+    if (base === 'attention') return base;
     if (base === 'reserved') return 'reserved';
     if (base === 'available' && phase === 'upcoming') return 'reserved';
     return base;
@@ -56,7 +59,8 @@
 
   function visualPhase(baseStatus, phase) {
     var base = String(baseStatus || 'available').toLowerCase();
-    if (phase === 'busy' && (base === 'available' || base === 'reserved')) return 'busy';
+    if (phase === 'busy' && (base === 'available' || base === 'reserved'
+        || base === 'attention')) return 'busy';
     if (phase === 'upcoming' && base === 'available') return 'upcoming';
     return 'none';
   }
