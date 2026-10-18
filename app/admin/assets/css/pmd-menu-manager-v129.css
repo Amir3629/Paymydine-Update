@@ -4442,3 +4442,475 @@ body.pmd-menu-manager-page
   background: #eef6ff !important;
   color: #285f91 !important;
 }
+
+/* ==============================================================
+   PMD_MENU_FOOD_MODAL_GLASS_V1_20261018
+   Canonical Create/Edit Food visual shell, after Table R32-R40 and
+   Reservation Composer R35-R37. Food-only via :has() + hidden.
+   Preserve all Menus.php writes, galleries, translations and modals.
+   ============================================================== */
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) {
+  --pmd-food-jade: #075c47;
+  --pmd-food-jade-dark: #064b3c;
+  --pmd-food-text: #17372f;
+  --pmd-food-muted: #6f817d;
+  --pmd-food-line: #c9dce8;
+  --pmd-food-radius: 16px;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__backdrop {
+  background: rgba(255,255,255,.12) !important;
+  background-color: rgba(255,255,255,.12) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  animation: none !important;
+  transition: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__card {
+  display: flex !important;
+  flex-direction: column !important;
+  width: min(720px, calc(100vw - 32px)) !important;
+  max-width: 720px !important;
+  max-height: calc(100dvh - 36px) !important;
+  border: 1px solid rgba(202,222,232,.88) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background:
+    radial-gradient(circle at 9% 8%, rgba(230,248,237,.70), transparent 33%),
+    radial-gradient(circle at 74% 8%, rgba(229,244,252,.64), transparent 36%),
+    radial-gradient(circle at 38% 53%, rgba(255,232,232,.53), transparent 34%),
+    rgba(252,254,253,.985) !important;
+  background-color: rgba(252,254,253,.985) !important;
+  color: var(--pmd-food-text) !important;
+  box-shadow: 0 26px 62px rgba(21,49,44,.14),
+              inset 0 1px 0 rgba(255,255,255,.98) !important;
+  overflow: hidden !important;
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__header {
+  min-height: 74px !important;
+  padding: 20px 28px 10px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__eyebrow {
+  display: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__header h2 {
+  margin: 0 !important;
+  color: #113d34 !important;
+  font-size: 24px !important;
+  line-height: 1.18 !important;
+  letter-spacing: -.035em !important;
+  font-weight: 850 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__close {
+  display: grid !important;
+  place-items: center !important;
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  padding: 0 !important;
+  border: 1px solid rgba(202,222,232,.86) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background: rgba(255,255,255,.91) !important;
+  color: #173e36 !important;
+  box-shadow: 0 4px 12px rgba(21,49,44,.035) !important;
+  transition: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__close:focus-visible,
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__cancel:focus-visible,
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__save:focus-visible,
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-form__upload:focus-within {
+  outline: 2px solid rgba(7,92,71,.55) !important;
+  outline-offset: 2px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  padding: 6px 28px 20px !important;
+  background: transparent !important;
+  scrollbar-color: #bdd5ce transparent;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 > .pmd-menu-form > .pmd-menu-form__section {
+  margin: 0 !important;
+  padding: 20px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 > .pmd-menu-form > .pmd-menu-form__section + .pmd-menu-form__section {
+  border-top: 1px solid rgba(202,222,232,.78) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 > .pmd-menu-form > .pmd-menu-form__section:first-of-type {
+  padding-top: 8px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 > .pmd-menu-form > .pmd-menu-form__section:last-of-type {
+  padding-bottom: 6px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__section-head {
+  margin: 0 0 15px !important;
+  padding: 0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__icon-heading,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__image-copy h3 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 38px !important;
+  margin: 0 !important;
+  color: #17372f !important;
+  font-size: 14px !important;
+  line-height: 1.3 !important;
+  font-weight: 800 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__section-icon,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field__glyph {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  padding: 8px !important;
+  box-sizing: border-box !important;
+  border: 1px solid rgba(83,166,111,.095) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background: linear-gradient(145deg, rgba(253,255,254,.995),
+            rgba(248,253,249,.995) 58%, rgba(242,250,245,.99)) !important;
+  color: #2f866f !important;
+  box-shadow: 0 3px 10px rgba(28,84,62,.025) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__section-icon svg,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field__glyph svg {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__section-head p {
+  margin: 3px 0 0 48px !important;
+  color: var(--pmd-food-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__image-copy p {
+  margin: 5px 0 0 48px !important;
+  color: var(--pmd-food-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__image-row {
+  display: grid !important;
+  grid-template-columns: 156px minmax(0,1fr) !important;
+  align-items: center !important;
+  gap: 20px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__preview {
+  width: 156px !important;
+  height: 122px !important;
+  aspect-ratio: auto !important;
+  overflow: hidden !important;
+  border: 1px solid var(--pmd-food-line) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background: rgba(239,246,243,.88) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__upload {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 46px !important;
+  margin: 12px 0 0 48px !important;
+  padding: 0 17px !important;
+  border: 1px solid var(--pmd-food-line) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background: rgba(255,255,255,.93) !important;
+  color: #075c47 !important;
+  box-shadow: 0 6px 14px rgba(27,65,51,.035) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__upload > svg {
+  width: 17px !important;
+  height: 17px !important;
+  flex: 0 0 17px !important;
+  stroke: currentColor !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__grid {
+  grid-template-columns: minmax(0,1.5fr) minmax(170px,.85fr) !important;
+  gap: 16px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field {
+  min-width: 0 !important;
+  gap: 7px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field > .pmd-menu-field__label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  min-height: 38px !important;
+  color: #28463f !important;
+  font-size: 13px !important;
+  font-weight: 680 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field__glyph {
+  width: 34px !important;
+  height: 34px !important;
+  flex-basis: 34px !important;
+  border-radius: 13px !important;
+  padding: 7px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field:not(:has(.pmd-menu-field__label)) > span {
+  color: #28463f !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field input:not([type="hidden"]),
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field select,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field textarea,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__field input,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__field textarea {
+  width: 100% !important;
+  min-height: 48px !important;
+  border: 1px solid var(--pmd-food-line) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+  color: #102a43 !important;
+  box-shadow: 0 5px 14px rgba(22,52,47,.035),
+              inset 0 1px 0 rgba(255,255,255,.97) !important;
+  font: inherit !important;
+  font-size: 14px !important;
+  outline: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field input:not([type="hidden"]),
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field select {
+  height: 48px !important;
+  padding: 8px 14px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field textarea,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__field textarea {
+  min-height: 98px !important;
+  padding: 12px 14px !important;
+  resize: vertical !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field input:focus,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field select:focus,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field textarea:focus,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__field input:focus,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__field textarea:focus {
+  border-color: rgba(52,139,111,.55) !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.09) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-choice-grid {
+  gap: 10px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-choice > span {
+  min-height: 48px !important;
+  padding: 10px 13px !important;
+  border: 1px solid var(--pmd-food-line) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: #173c36 !important;
+  box-shadow: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-choice > input[type="checkbox"]:checked + span,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 [data-pmd-prep-preset].is-active,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 [data-pmd-prep-preset][aria-pressed="true"],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 [data-pmd-prep-custom].is-active,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 [data-pmd-prep-custom][aria-pressed="true"] {
+  border-color: #064b3c !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.13) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-choice > input[type="checkbox"]:checked + span *,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 [data-pmd-prep-preset].is-active svg,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 [data-pmd-prep-preset][aria-pressed="true"] svg {
+  color: #fff !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__subhead {
+  border-top: 1px solid rgba(202,222,232,.65) !important;
+  padding-top: 17px !important;
+  margin-top: 18px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-prep-presets {
+  gap: 8px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-prep-presets button {
+  min-height: 48px !important;
+  border-radius: var(--pmd-food-radius) !important;
+  border-color: var(--pmd-food-line) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__head {
+  margin: 0 0 16px !important;
+  gap: 12px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__title {
+  gap: 12px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__title::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border: 1px solid rgba(83,166,111,.095) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background: rgba(248,253,249,.98) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f866f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h9M8 3v2m3 0c-.5 5-3 8-6 10M5 9c1 3 3 5 6 7M14 20l4-11 4 11m-6-4h5'/%3E%3C/svg%3E") center / 21px 21px no-repeat !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__title h3 {
+  margin: 0 !important;
+  color: #17372f !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__tab,
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 [data-pmd-menu-auto-translate] {
+  min-height: 44px !important;
+  padding: 8px 14px !important;
+  border: 1px solid var(--pmd-food-line) !important;
+  border-radius: var(--pmd-food-radius) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: #075c47 !important;
+  box-shadow: 0 5px 14px rgba(22,52,47,.03) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__tab[aria-pressed="true"] {
+  border-color: #075c47 !important;
+  background: #eaf5ef !important;
+  color: #064b3c !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__option {
+  padding: 12px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-content-translations__option + .pmd-menu-content-translations__option {
+  border-top: 1px solid rgba(202,222,232,.65) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__footer {
+  display: flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  min-height: 68px !important;
+  gap: 10px !important;
+  padding: 11px 24px 13px !important;
+  border: 0 !important;
+  border-top: 1px solid rgba(205,222,229,.75) !important;
+  border-radius: 0 0 var(--pmd-food-radius) var(--pmd-food-radius) !important;
+  background: rgba(255,255,255,.87) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__buttons {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin-left: auto !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__cancel,
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__save,
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__delete {
+  min-height: 44px !important;
+  height: 44px !important;
+  border-radius: var(--pmd-food-radius) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  transition: none !important;
+  animation: none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__cancel {
+  min-width: 110px !important;
+  border: 1px solid #d2dee5 !important;
+  background: rgba(255,255,255,.95) !important;
+  color: #243f38 !important;
+  box-shadow: 0 2px 7px rgba(32,64,54,.035) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__save {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-width: 154px !important;
+  border: 1px solid #064b3c !important;
+  background: linear-gradient(180deg,#0b765e 0%,#075c47 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15),
+              inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__save::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px !important;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 4h12l3 3v13H4V5a1 1 0 0 1 1-1zM8 4v7h8V4M8 20v-6h8v6'/%3E%3C/svg%3E") center / contain no-repeat !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__delete {
+  border-color: #efc9c4 !important;
+  background: rgba(255,248,246,.95) !important;
+  color: #b42318 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__delete.is-armed {
+  border-color: #b42318 !important;
+  background: #b42318 !important;
+  color: #fff !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__status {
+  font-size: 12px !important;
+  color: #6f817d !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__status.is-error { color: #b42318 !important; }
+html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__status.is-ok { color: #075c47 !important; }
+
+@media (max-width: 700px) {
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) { padding: 8px !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__card {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__header { padding: 16px 18px 8px !important; min-height: 65px !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__header h2 { font-size: 21px !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__body { padding: 5px 18px 16px !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__grid,
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-nutrition-grid { grid-template-columns: 1fr !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-field--full { grid-column: auto !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__image-row { grid-template-columns: 130px minmax(0,1fr) !important; gap: 12px !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__preview { width: 130px !important; height: 112px !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__footer { padding: 10px 16px 12px !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__buttons { width: auto !important; }
+}
+@media (max-width: 480px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__image-row { grid-template-columns: 1fr !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__preview { width: min(180px,100%) !important; height: 120px !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__image-copy p,
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-form__upload { margin-left: 0 !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1 .pmd-menu-choice-grid { grid-template-columns: 1fr !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__footer { flex-wrap: wrap !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__footer-left { width: 100% !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__buttons { width: 100% !important; margin-left: 0 !important; }
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__buttons > button { min-width: 0 !important; flex: 1 1 0 !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__backdrop,
+  html body.pmd-menu-manager-page .pmd-menu-modal:has(.pmd-menu-food-glass-v1:not([hidden])) .pmd-menu-modal__card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
