@@ -1,0 +1,34 @@
+/* PMD_QPOS_RESERVATION_RAIL_R2
+ * The compact POS table rail is NOT the shared Floor Map canvas.
+ * Paint a cyan upcoming reservation only on a physically free table,
+ * and red after reservation start. No changes to table selection/actions.
+ */
+html body.pmd-qpos-body #pmd-quick-pos
+[data-qpos-tables] .pmd-qpos-table[data-qpos-table][data-status="available"][data-pmd-qpos-reservation-phase="upcoming"],
+html body.pmd-qpos-body #pmd-quick-pos
+[data-qpos-tables] .pmd-qpos-table[data-qpos-table][data-status="free"][data-pmd-qpos-reservation-phase="upcoming"] {
+  background: #34afd1 !important;
+  background-color: #34afd1 !important;
+  border-color: #177f96 !important;
+  color: #111111 !important;
+}
+html body.pmd-qpos-body #pmd-quick-pos
+[data-qpos-tables] .pmd-qpos-table[data-qpos-table][data-status="available"][data-pmd-qpos-reservation-phase="busy"],
+html body.pmd-qpos-body #pmd-quick-pos
+[data-qpos-tables] .pmd-qpos-table[data-qpos-table][data-status="reserved"][data-pmd-qpos-reservation-phase="busy"] {
+  background: #ff3d52 !important;
+  background-color: #ff3d52 !important;
+  border-color: #a90f2b !important;
+  color: #111111 !important;
+}
+html body.pmd-qpos-body #pmd-quick-pos
+[data-qpos-tables] .pmd-qpos-table[data-qpos-table] > strong,
+html body.pmd-qpos-body #pmd-quick-pos
+[data-qpos-tables] .pmd-qpos-table[data-qpos-table] > small {
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+}
+html body.pmd-qpos-body #pmd-quick-pos
+.pmd-qpos-table-guide-statuses i.reserved {
+  background: #34afd1 !important;
+}
