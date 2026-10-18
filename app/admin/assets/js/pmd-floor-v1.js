@@ -115,7 +115,14 @@
     });
   }
 
+  var reservationState = window.PMDFloorReservationStateR1;
+
   function createFloor(root) {
+    var reservationWindows = [];
+    var reservationNoticeMinutes = 15;
+    var reservationBoundaryTimer = null;
+    var reservationRefreshPromise = null;
+    var reservationLastRefresh = 0;
     var canvas =
       root.querySelector(
         '[data-floor-canvas]'
@@ -930,23 +937,24 @@
             yes(raw.needs_waiter) ||
             yes(raw.call_waiter);
 
-          var cleaning =
-            rawStatus === 'cleaning' ||
-            yes(raw.cleaning_required) ||
-            yes(raw.needs_cleaning);
+          // PMD_FLOOR_V1_PHYSICAL_STATUS_AUTHORITY_R1
+          var operationalStatus =
+            clean(raw.operational_status || raw.table_operational_status || '').toLowerCase();
+          if (operationalStatus === 'free') operationalStatus = 'available';
+          var hasOperationalAuthority =
+            ['available', 'occupied', 'cleaning', 'reserved'].indexOf(operationalStatus) !== -1;
 
-          var reserved =
-            rawStatus === 'reserved' ||
-            yes(raw.reserved) ||
-            yes(raw.is_reserved);
+          var cleaning = hasOperationalAuthority
+            ? operationalStatus === 'cleaning'
+            : (rawStatus === 'cleaning' || yes(raw.cleaning_required) || yes(raw.needs_cleaning));
 
-          var occupied =
-            rawStatus === 'occupied' ||
-            linked.length > 0 ||
-            number(
-              raw.open_orders,
-              0
-            ) > 0;
+          var reserved = hasOperationalAuthority
+            ? operationalStatus === 'reserved'
+            : (rawStatus === 'reserved' || yes(raw.reserved) || yes(raw.is_reserved));
+
+          var occupied = hasOperationalAuthority
+            ? operationalStatus === 'occupied'
+            : (rawStatus === 'occupied' || linked.length > 0 || number(raw.open_orders, 0) > 0);
 
           var note =
             clean(
@@ -967,21 +975,26 @@
               }
             );
 
-          var status =
-            !tableEnabled
-              ? 'disabled'
-              : (
-                waiterCall ||
-                !!note
+          var baseStatus =
+            !tableEnabled ? 'disabled'
+              : cleaning ? 'cleaning'
+              : occupied ? 'occupied'
+              : reserved ? 'reserved'
+              : (waiterCall || !!note) ? 'attention' : 'available';
+
+          var reservationPhase = reservationState
+            ? reservationState.classify(
+                reservationWindows, dbTableId, tableNumber(raw),
+                Date.now(), reservationNoticeMinutes
               )
-                ? 'attention'
-                : cleaning
-                  ? 'cleaning'
-                  : reserved
-                    ? 'reserved'
-                    : occupied
-                      ? 'occupied'
-                      : 'available';
+            : 'free';
+
+          var status = reservationState
+            ? reservationState.effectiveStatus(baseStatus, reservationPhase)
+            : baseStatus;
+          var reservationVisual = reservationState
+            ? reservationState.visualPhase(baseStatus, reservationPhase)
+            : 'none';
 
           var floor =
             raw.floor || {};
@@ -1035,6 +1048,9 @@
               ),
 
             status: status,
+            baseStatus: baseStatus,
+            reservationPhase: reservationVisual,
+            reservationBusy: reservationPhase === 'busy',
             enabled: tableEnabled,
             tableStatus: tableEnabled,
 
@@ -1135,8 +1151,8 @@
         'waiter-call': 5,
         attention: 5,
         cleaning: 4,
-        reserved: 3,
-        occupied: 2,
+        occupied: 3,
+        reserved: 2,
         available: 1
       }[status] || 0;
     }
@@ -1258,6 +1274,11 @@
 
             status:
               mergedStatus(members),
+            reservationPhase: members.some(function (member) {
+              return member.reservationPhase === 'busy' && member.status === 'occupied';
+            }) ? 'busy' : members.some(function (member) {
+              return member.reservationPhase === 'upcoming' && member.status === 'reserved';
+            }) ? 'upcoming' : 'none',
 
             waiterCall:
               members.some(
@@ -1974,6 +1995,9 @@
                 table.status
               ) +
               '" ' +
+              'data-pmd-floor-reservation-state="' +
+              escapeHtml(table.reservationPhase || 'none') +
+              '" ' +
 
               'style="' +
               'left:' +
@@ -2628,6 +2652,82 @@ function saveLayout() {
         });
     }
 
+    /* PMD_FLOOR_V1_RESERVATION_BLUE_NOTICE_R1
+     * Keep the standalone Floor and Ownerboard in sync with the shared
+     * dashboard Floor. Never modify persisted table/order status.
+     */
+    function refreshReservationTableColors() {
+      if (!reservationState) return;
+      var changed = false;
+      (state.tables || []).forEach(function (table) {
+        if (!table) return;
+        var base = clean(table.baseStatus || table.status || 'available');
+        var phase = reservationState.classify(
+          reservationWindows, table.dbTableId, table.number,
+          Date.now(), reservationNoticeMinutes
+        );
+        var next = reservationState.effectiveStatus(base, phase);
+        var visual = reservationState.visualPhase(base, phase);
+        if (next !== table.status || visual !== table.reservationPhase) {
+          table.status = next;
+          table.reservationPhase = visual;
+          table.reservationBusy = phase === 'busy';
+          changed = true;
+        }
+      });
+      if (changed) render();
+      scheduleReservationBoundary();
+    }
+
+    function scheduleReservationBoundary() {
+      if (reservationBoundaryTimer) {
+        window.clearTimeout(reservationBoundaryTimer);
+        reservationBoundaryTimer = null;
+      }
+      if (!reservationState) return;
+      var now = Date.now();
+      var boundary = reservationState.nextBoundary(
+        reservationWindows, now, reservationNoticeMinutes
+      );
+      if (!boundary) return;
+      reservationBoundaryTimer = window.setTimeout(function () {
+        reservationBoundaryTimer = null;
+        refreshReservationTableColors();
+        refreshReservationWindows();
+      }, Math.min(2147483647, Math.max(25, boundary - now + 35)));
+    }
+
+    function refreshReservationWindows() {
+      if (!reservationState || !stateUrl) return Promise.resolve(false);
+      if (reservationRefreshPromise) return reservationRefreshPromise;
+      reservationRefreshPromise = fetchJson(stateUrl).then(function (payload) {
+        if (!Array.isArray(payload.reservation_windows)) return false;
+        reservationWindows = payload.reservation_windows;
+        if (payload.notice_minutes != null) {
+          reservationNoticeMinutes = reservationState.safeMinutes(payload.notice_minutes);
+        }
+        refreshReservationTableColors();
+        return true;
+      }).catch(function (error) {
+        console.warn('[PMD Floor] Reservation state refresh failed', error);
+        return false;
+      }).then(function (ok) {
+        reservationRefreshPromise = null;
+        return ok;
+      });
+      return reservationRefreshPromise;
+    }
+
+    function refreshReservationsOnFocus() {
+      if (document.visibilityState === 'hidden') return;
+      if (Date.now() - reservationLastRefresh < 10000) return;
+      reservationLastRefresh = Date.now();
+      refreshReservationWindows();
+    }
+
+    document.addEventListener('visibilitychange', refreshReservationsOnFocus, false);
+    window.addEventListener('focus', refreshReservationsOnFocus, false);
+
     function load() {
       root.setAttribute(
         'aria-busy',
@@ -2662,6 +2762,11 @@ function saveLayout() {
               tables: {},
               merges: {}
             };
+          reservationWindows = Array.isArray(results[1].reservation_windows)
+            ? results[1].reservation_windows : [];
+          if (reservationState) {
+            reservationNoticeMinutes = reservationState.safeMinutes(results[1].notice_minutes);
+          }
 
           state.tables =
             normalize(
@@ -2670,6 +2775,7 @@ function saveLayout() {
             );
 
           render();
+          scheduleReservationBoundary();
 
           /*
            * Repair previously saved merged groups that overlap
@@ -6145,6 +6251,16 @@ function saveLayout() {
               table.status =
                 'attention';
             }
+          }
+
+          // Keep the browser-only optimistic action consistent with the
+          // base status used by the one-shot reservation boundary update.
+          // The backend remains authoritative after the next reload.
+          if (action === 'available' || action === 'cleaning'
+              || action === 'reserved' || action === 'waiter-call'
+              || action === 'note') {
+            table.baseStatus = table.status;
+            table.reservationPhase = 'none';
           }
 
           state.operational.tables[

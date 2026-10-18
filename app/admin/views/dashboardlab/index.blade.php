@@ -898,6 +898,8 @@
             'displayTables' => $pmdDashboardLabFloorDisplayTables ?? [],
             'floorMode' => $pmdDashboardLabFloorMode ?? 'row',
             'floorZoom' => $pmdDashboardLabFloorZoom ?? 1.0,
+            'reservationBusyWindows' => $pmdDashboardLabReservationBusyWindows ?? [],
+            'reservationNoticeMinutes' => $pmdDashboardLabReservationNoticeMinutes ?? 15,
         ])
 
         {{-- PMD_DASHBOARD_LAB_STEP4_ALL_DASHBOARD2_ANALYTICS_V1 --}}

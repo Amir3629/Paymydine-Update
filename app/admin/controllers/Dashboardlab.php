@@ -96,6 +96,8 @@ class Dashboardlab extends AdminController
 
         // Route-scoped copy of the LIVE Floor V1 core only. Appended legacy
         // observer/retry patches are excluded; first geometry comes from Blade.
+        // Always resolve the phase classifier before the shared Floor runtime.
+        $this->addJs('js/pmd-floor-reservation-state-r1.js');
         $pmdExactFloorJsPath = base_path('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js');
         $this->addJs(
             asset('app/admin/assets/js/pmd-dashboard-lab-exact-floor-v1.js')
@@ -256,6 +258,14 @@ class Dashboardlab extends AdminController
                 ]
             );
         }
+        // Share the same reservation/time source as Reservations, Manager and Quick POS.
+        // Dashboard Lab previously supplied no busy windows or matching AJAX handler.
+        $pmdFloorReservations = app(\Admin\Services\PmdFloorReservationWindowsV1::class);
+        $this->vars['pmdDashboardLabReservationBusyWindows'] =
+            $pmdFloorReservations->windows($workspaceLocationId);
+        $this->vars['pmdDashboardLabReservationNoticeMinutes'] =
+            $pmdFloorReservations->noticeMinutes();
+
         $this->vars['pmdDashboardLabFloorBootstrap'] = $floorBootstrap;
         $this->vars['pmdDashboardLabFloorDisplayTables'] =
             $floorBootstrap['display_tables'] ?? [];
@@ -562,6 +572,24 @@ class Dashboardlab extends AdminController
                 500
             );
         }
+    }
+
+    /**
+     * The Dashboard Floor uses the exact same handler contract as the
+     * Manager, Cashier and Reservations shared Floor.
+     */
+    public function onPmdFloorReservationBusyWindows()
+    {
+        $locationId = (int)app(PmdRoleDashboardDataV1::class)
+            ->resolveWorkspaceLocation();
+        $service = app(\Admin\Services\PmdFloorReservationWindowsV1::class);
+
+        return response()->json([
+            'success' => true,
+            'location_id' => $locationId,
+            'windows' => $service->windows($locationId),
+            'notice_minutes' => $service->noticeMinutes(),
+        ]);
     }
 
     private function resolveKpiPayload(int $locationId = 0): array

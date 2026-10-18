@@ -887,105 +887,13 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             'windows' => $this->quickPosFloorReservationBusyWindows(
                 $this->quickPosLocationId()
             ),
+            'notice_minutes' => app(\Admin\Services\PmdFloorReservationWindowsV1::class)->noticeMinutes(),
         ]);
     }
 
-    protected function quickPosFloorReservationBusyWindows(
-        int $locationId
-    ): array {
-        $locationId = max(0, $locationId);
-        if ($locationId < 1) return [];
-
-        try {
-            if (
-                !Schema::hasTable('reservations')
-                || !Schema::hasTable('reservation_tables')
-                || !Schema::hasTable('tables')
-            ) {
-                return [];
-            }
-
-            $now = \Carbon\Carbon::now('Europe/Berlin');
-            $reservations = \Admin\Models\Reservations_model::with('tables')
-                ->where('location_id', $locationId)
-                ->whereBetween('reserve_date', [
-                    $now->copy()->subDay()->toDateString(),
-                    $now->copy()->addDay()->toDateString(),
-                ])
-                ->get();
-
-            $windows = [];
-            $seen = [];
-
-            foreach ($reservations as $reservation) {
-                if (!$reservation || $reservation->isCanceled()) continue;
-
-                $date = substr(
-                    trim((string)$reservation->getOriginal('reserve_date')),
-                    0,
-                    10
-                );
-                $time = substr(
-                    trim((string)$reservation->getOriginal('reserve_time')),
-                    0,
-                    8
-                );
-
-                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) continue;
-                if (!preg_match('/^\d{2}:\d{2}(?::\d{2})?$/', $time)) continue;
-                if (strlen($time) === 5) $time .= ':00';
-
-                try {
-                    $start = \Carbon\Carbon::createFromFormat(
-                        'Y-m-d H:i:s',
-                        $date.' '.$time,
-                        'Europe/Berlin'
-                    );
-                } catch (\Throwable $ignored) {
-                    continue;
-                }
-
-                if (!$start) continue;
-
-                $duration = max(
-                    1,
-                    (int)($reservation->duration ?? 0)
-                );
-                $end = $start->copy()->addMinutes($duration);
-
-                foreach ($reservation->tables as $table) {
-                    if (!$table) continue;
-
-                    $tableId = (int)($table->table_id ?? 0);
-                    $tableNo = trim((string)($table->table_no ?? ''));
-
-                    if ($tableId < 1 && $tableNo === '') continue;
-
-                    $key = implode(':', [
-                        (int)($reservation->reservation_id ?? 0),
-                        $tableId,
-                        $start->getTimestamp(),
-                    ]);
-
-                    if (isset($seen[$key])) continue;
-                    $seen[$key] = true;
-
-                    $windows[] = [
-                        'reservation_id' =>
-                            (int)($reservation->reservation_id ?? 0),
-                        'table_id' => $tableId,
-                        'table_no' => $tableNo,
-                        'start_ms' => $start->getTimestamp() * 1000,
-                        'end_ms' => $end->getTimestamp() * 1000,
-                    ];
-                }
-            }
-
-            return $windows;
-        } catch (\Throwable $error) {
-            report($error);
-            return [];
-        }
+    protected function quickPosFloorReservationBusyWindows(int $locationId): array
+    {
+        return app(\Admin\Services\PmdFloorReservationWindowsV1::class)->windows($locationId);
     }
 
     public function bootstrap($mode = 'cashier')

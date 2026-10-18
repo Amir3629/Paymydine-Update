@@ -134,6 +134,8 @@
     });
   }
 
+  var reservationState = window.PMDFloorReservationStateR1;
+
   function createFloor(root) {
     var canvas =
       root.querySelector(
@@ -206,6 +208,10 @@
       root.getAttribute(
         'data-pmd-reservation-busy-deferred'
       ) === '1';
+
+    var reservationNoticeMinutes = reservationState
+      ? reservationState.safeMinutes(root.getAttribute('data-pmd-reservation-notice-minutes'))
+      : 15;
 
     var orderTemplate =
       root.getAttribute(
@@ -918,20 +924,13 @@
       return Array.isArray(rows) ? rows : [];
     }
 
-    function reservationBusyAt(dbTableId, tableNo, at) {
-      var now = Number(at || Date.now());
-      var id = Number(dbTableId || 0);
-      var numberValue = clean(tableNo);
-      return reservationBusyWindows().some(function (row) {
-        if (!row) return false;
-        var rowId = Number(row.table_id || 0);
-        var rowNo = clean(row.table_no);
-        var sameTable = (id > 0 && rowId === id) || (numberValue !== '' && rowNo === numberValue);
-        if (!sameTable) return false;
-        var start = Number(row.start_ms || 0);
-        var end = Number(row.end_ms || 0);
-        return start > 0 && end > start && now >= start && now < end;
-      });
+    function reservationPhaseAt(dbTableId, tableNo, at) {
+      return reservationState
+        ? reservationState.classify(
+            reservationBusyWindows(), dbTableId, tableNo,
+            Number(at || Date.now()), reservationNoticeMinutes
+          )
+        : 'free';
     }
 
     function refreshReservationBusyWindows() {
@@ -951,6 +950,10 @@
         if (!Array.isArray(rows)) return false;
         if (!state.payload || typeof state.payload !== 'object') state.payload = {};
         state.payload.pmd_reservation_busy_windows = rows;
+        if (payload.notice_minutes != null && reservationState) {
+          reservationNoticeMinutes = reservationState.safeMinutes(payload.notice_minutes);
+          root.setAttribute('data-pmd-reservation-notice-minutes', String(reservationNoticeMinutes));
+        }
         return true;
       }).catch(function (error) {
         console.warn('[PMD Floor] Reservation busy refresh failed', error);
@@ -972,14 +975,18 @@
       (state.tables || []).forEach(function (table) {
         if (!table) return;
         var base = clean(table.baseStatus || table.status || 'available');
-        var busy = reservationBusyAt(table.dbTableId, table.number, now);
-        var next = base === 'disabled'
-          ? 'disabled'
-          : (base === 'attention' || base === 'cleaning')
-            ? base
-            : (busy ? 'occupied' : base);
-        if (table.reservationBusy !== busy || table.status !== next) {
+        var phase = reservationPhaseAt(table.dbTableId, table.number, now);
+        var next = reservationState
+          ? reservationState.effectiveStatus(base, phase)
+          : base;
+        var visual = reservationState
+          ? reservationState.visualPhase(base, phase)
+          : 'none';
+        var busy = phase === 'busy';
+        if (table.reservationBusy !== busy || table.status !== next
+            || table.reservationPhase !== visual) {
           table.reservationBusy = busy;
+          table.reservationPhase = visual;
           table.status = next;
           changed = true;
         }
@@ -993,21 +1000,19 @@
         window.clearTimeout(reservationBusyTimer);
         reservationBusyTimer = null;
       }
+      if (!reservationState) return;
       var now = Date.now();
-      var next = 0;
-      reservationBusyWindows().forEach(function (row) {
-        [Number(row && row.start_ms || 0), Number(row && row.end_ms || 0)].forEach(function (boundary) {
-          if (boundary <= now) return;
-          if (!next || boundary < next) next = boundary;
-        });
-      });
+      var next = reservationState.nextBoundary(
+        reservationBusyWindows(), now, reservationNoticeMinutes
+      );
       if (!next) return;
       reservationBusyTimer = window.setTimeout(function () {
         reservationBusyTimer = null;
+        syncReservationBusyStatuses();
         refreshReservationBusyWindows().then(function () {
           syncReservationBusyStatuses();
         });
-      }, Math.max(25, next - now + 35));
+      }, Math.min(2147483647, Math.max(25, next - now + 35)));
     }
 
     function normalize(
@@ -1158,34 +1163,27 @@
             yes(raw.needs_waiter) ||
             yes(raw.call_waiter);
 
-          // PMD_FLOOR_R60T_PHYSICAL_STATUS_OWNER
+          // PMD_FLOOR_PHYSICAL_STATUS_AUTHORITY_R1
+          // Completed/payment-settled orders must not make a truly free
+          // table red. The canonical physical status is authoritative when
+          // present; raw order links are only a legacy fallback.
           var operationalStatus =
-            clean(
-              raw.operational_status ||
-              raw.table_operational_status ||
-              ''
-            ).toLowerCase();
+            clean(raw.operational_status || raw.table_operational_status || '').toLowerCase();
+          if (operationalStatus === 'free') operationalStatus = 'available';
+          var hasOperationalAuthority =
+            ['available', 'occupied', 'cleaning', 'reserved'].indexOf(operationalStatus) !== -1;
 
-          var cleaning =
-            operationalStatus === 'cleaning' ||
-            rawStatus === 'cleaning' ||
-            yes(raw.cleaning_required) ||
-            yes(raw.needs_cleaning);
+          var cleaning = hasOperationalAuthority
+            ? operationalStatus === 'cleaning'
+            : (rawStatus === 'cleaning' || yes(raw.cleaning_required) || yes(raw.needs_cleaning));
 
-          var reserved =
-            operationalStatus === 'reserved' ||
-            rawStatus === 'reserved' ||
-            yes(raw.reserved) ||
-            yes(raw.is_reserved);
+          var reserved = hasOperationalAuthority
+            ? operationalStatus === 'reserved'
+            : (rawStatus === 'reserved' || yes(raw.reserved) || yes(raw.is_reserved));
 
-          var occupied =
-            operationalStatus === 'occupied' ||
-            rawStatus === 'occupied' ||
-            linked.length > 0 ||
-            number(
-              raw.open_orders,
-              0
-            ) > 0;
+          var occupied = hasOperationalAuthority
+            ? operationalStatus === 'occupied'
+            : (rawStatus === 'occupied' || linked.length > 0 || number(raw.open_orders, 0) > 0);
 
           var note =
             clean(
@@ -1209,33 +1207,26 @@
           var baseStatus =
             !tableEnabled
               ? 'disabled'
-              : (
-                waiterCall ||
-                !!note
-              )
-                ? 'attention'
-                : cleaning
-                  ? 'cleaning'
+              : cleaning
+                ? 'cleaning'
+                : occupied
+                  ? 'occupied'
                   : reserved
                     ? 'reserved'
-                    : occupied
-                      ? 'occupied'
+                    : (waiterCall || !!note)
+                      ? 'attention'
                       : 'available';
 
-          var reservationBusy = reservationBusyAt(
-            dbTableId,
-            tableNumber(raw),
-            Date.now()
+          var reservationPhase = reservationPhaseAt(
+            dbTableId, tableNumber(raw), Date.now()
           );
-
-          var status =
-            baseStatus === 'disabled'
-              ? 'disabled'
-              : (baseStatus === 'attention' || baseStatus === 'cleaning')
-                ? baseStatus
-                : reservationBusy
-                  ? 'occupied'
-                  : baseStatus;
+          var reservationBusy = reservationPhase === 'busy';
+          var visualReservationPhase = reservationState
+            ? reservationState.visualPhase(baseStatus, reservationPhase)
+            : 'none';
+          var status = reservationState
+            ? reservationState.effectiveStatus(baseStatus, reservationPhase)
+            : baseStatus;
 
           var floor =
             raw.floor || {};
@@ -1295,6 +1286,7 @@
             enabled: tableEnabled,
             tableStatus: tableEnabled,
             reservationBusy: reservationBusy,
+            reservationPhase: visualReservationPhase,
 
             waiterCall:
               waiterCall,
@@ -1392,8 +1384,8 @@
         'waiter-call': 5,
         attention: 5,
         cleaning: 4,
-        reserved: 3,
-        occupied: 2,
+        occupied: 3,
+        reserved: 2,
         available: 1
       }[status] || 0;
     }
@@ -1520,6 +1512,11 @@
 
             status:
               mergedStatus(members),
+            reservationPhase: members.some(function (member) {
+              return member.reservationPhase === 'busy' && member.status === 'occupied';
+            }) ? 'busy' : members.some(function (member) {
+              return member.reservationPhase === 'upcoming' && member.status === 'reserved';
+            }) ? 'upcoming' : 'none',
 
             waiterCall:
               members.some(
@@ -2256,6 +2253,9 @@
               escapeHtml(
                 table.status
               ) +
+              '" ' +
+              'data-pmd-floor-reservation-state="' +
+              escapeHtml(table.reservationPhase || 'none') +
               '" ' +
 
               (
@@ -6602,6 +6602,16 @@ function saveLayout() {
             }
           }
 
+          // Keep the browser-only optimistic action consistent with the
+          // base status used by the one-shot reservation boundary update.
+          // The backend remains authoritative after the next reload.
+          if (action === 'available' || action === 'cleaning'
+              || action === 'reserved' || action === 'waiter-call'
+              || action === 'note') {
+            table.baseStatus = table.status;
+            table.reservationPhase = 'none';
+          }
+
           state.operational.tables[
             table.id
           ] = stored;
@@ -7653,6 +7663,22 @@ function saveLayout() {
 
     document.addEventListener('visibilitychange', refreshReservationBusyOnReturn, false);
     window.addEventListener('focus', refreshReservationBusyOnReturn, false);
+    // A freshly created/edited booking or a remote live snapshot is an
+    // invalidation signal, not a reason to overwrite physical table state.
+    // Re-read canonical reservation windows immediately, without polling.
+    window.addEventListener('pmd:reservation-saved', refreshReservationBusyOnReturn, false);
+    // Dashboard Live can emit every few seconds. Do not turn that stream
+    // into a new multi-tenant reservations DB query on every tick.
+    // Another device's booking will be picked up within one minute,
+    // while same-page saves, focus and booking boundaries stay immediate.
+    var reservationLastRemoteRefreshAt = 0;
+    function refreshReservationBusyOnRemoteLive() {
+      var now = Date.now();
+      if (now - reservationLastRemoteRefreshAt < 60000) return;
+      reservationLastRemoteRefreshAt = now;
+      refreshReservationBusyOnReturn();
+    }
+    window.addEventListener('pmd:dashboard:live-data', refreshReservationBusyOnRemoteLive, false);
 
     window.PMDDashboardLabFloorStabilityV2 = {
       version: '2.0.0',

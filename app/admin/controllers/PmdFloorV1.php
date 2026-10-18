@@ -52,10 +52,23 @@ class PmdFloorV1 extends AdminController
             $this->writeState($canonical);
         }
 
+        // PMD_FLOOR_V1_RESERVATION_WINDOWS_R1
+        // Read-only tenant/location-scoped windows accompany the legacy
+        // operational Floor response without changing its state contract.
+        try {
+            $location = \Admin\Facades\AdminLocation::current();
+            $locationId = (int)($location->location_id ?? 0);
+        } catch (\Throwable $ignored) {
+            $locationId = 0;
+        }
+        $reservations = app(\Admin\Services\PmdFloorReservationWindowsV1::class);
+
         return response()->json([
             'ok' => true,
             'version' => 'pmd-floor-v1',
             'state' => $canonical,
+            'reservation_windows' => $reservations->windows($locationId),
+            'notice_minutes' => $reservations->noticeMinutes(),
         ]);
     }
 

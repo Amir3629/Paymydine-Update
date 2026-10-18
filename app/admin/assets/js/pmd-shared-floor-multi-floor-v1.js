@@ -561,6 +561,32 @@
         return key(floorNameFor(table)) === key(activeName);
       });
 
+      // A reservation can enter/leave its notice or active window while its
+      // Floor tab is hidden. Recompute phases when the user switches Floors,
+      // rather than replaying stale blue/red card state from allTables.
+      var bookingHelper = window.PMDFloorReservationStateR1;
+      var activeWindows = state.payload && state.payload.pmd_reservation_busy_windows;
+      if (bookingHelper && Array.isArray(activeWindows)) {
+        var minutes = bookingHelper.safeMinutes(
+          root.getAttribute('data-pmd-reservation-notice-minutes')
+        );
+        var atMs = Date.now();
+        state.tables.forEach(function (table) {
+          var raw = table.raw || {};
+          var base = clean(table.baseStatus || table.status || 'available');
+          var phase = bookingHelper.classify(
+            activeWindows,
+            table.dbTableId || raw.table_id || 0,
+            table.number,
+            atMs,
+            minutes
+          );
+          table.status = bookingHelper.effectiveStatus(base, phase);
+          table.reservationBusy = phase === 'busy';
+          table.reservationPhase = bookingHelper.visualPhase(base, phase);
+        });
+      }
+
       root.setAttribute('data-pmd-active-floor-id', activeId);
       root.setAttribute('data-pmd-active-floor-name', activeName);
 
@@ -1540,147 +1566,60 @@
       }
     });
 
-    function notificationCandidates(detail) {
-      detail = detail || {};
-      var notification = detail.notification || {};
-      var payload = detail.payload || {};
-      return [
-        notification.table_id,
-        notification.table_name,
-        payload.table_id,
-        payload.dining_table_id,
-        payload.location_table_id,
-        payload.table_no,
-        payload.table_number,
-        payload.table_name,
-        payload.table,
-        payload.table_ref
-      ].map(clean).filter(Boolean);
+    // PMD_FLOOR_LIVE_EXACT_TABLE_ID_R1
+    // Some tenants' table numbers overlap with other tables' primary keys.
+    // Never let a notification for DB table_id=10 mark "Table 10" busy if
+    // Table 10 is in fact a different physical table. A label-only event is
+    // merely an invalidation signal; dashboard live refresh will read the
+    // canonical table state without optimistic red flashes.
+    function physicalTableId(row) {
+      row = row || {};
+      var raw = row.raw && typeof row.raw === 'object' ? row.raw : {};
+      var value = row.dbTableId || row.db_table_id || row.table_id
+        || raw.table_id || raw.dbTableId || 0;
+      var id = Number(value);
+      return Number.isInteger(id) && id > 0 ? id : 0;
     }
 
-    function tableMatchesNotification(table, candidates) {
-      var raw = table && table.raw ? table.raw : {};
-      var values = [
-        table && table.dbTableId,
-        raw.table_id,
-        raw.id,
-        table && table.number,
-        raw.table_no,
-        raw.table_number,
-        table && table.name,
-        raw.table_name,
-        raw.name,
-        raw.label
-      ].map(clean).filter(Boolean);
-
-      return candidates.some(function (candidate) {
-        var wanted = key(candidate);
-        if (!wanted) return false;
-        return values.some(function (value) {
-          var current = key(value);
-          if (current === wanted) return true;
-          var match = String(candidate).match(/(?:table\s*)?#?\s*(\d+)$/i);
-          return Boolean(match && key(match[1]) === current);
-        });
-      });
-    }
-
-    function notificationMeansOpenOrder(detail) {
-      detail = detail || {};
-      var notification = detail.notification || {};
-      var payload = detail.payload || {};
-      var type = key(notification.type || payload.type || '');
-      if (type.indexOf('order') === -1 && !payload.order_id && !notification.order_id) return false;
-      var status = key(
-        detail.statusName
-        || payload.status_name
-        || payload.status
-        || notification.order_status
-        || notification.status
-        || ''
-      );
-      if (/cancel|complete|completed|closed|paid|settled/.test(status)) return false;
-      return true;
-    }
-
-    window.addEventListener('pmd:notification:new', function (event) {
-      var detail = event && event.detail ? event.detail : {};
-      if (!notificationMeansOpenOrder(detail)) return;
-      var candidates = notificationCandidates(detail);
-      if (!candidates.length) return;
-
-      var matched = false;
-      allTables.forEach(function (table) {
-        if (!tableMatchesNotification(table, candidates)) return;
-        if (!table.raw || typeof table.raw !== 'object') table.raw = {};
-
-        if (
-          table.status === 'disabled'
-          || table.enabled === false
-          || table.raw.table_status === false
-          || table.raw.table_status === 0
-          || table.raw.table_status === '0'
-        ) {
-          return;
-        }
-
-        // PMD_NOTIFICATION_FRESH_ORDER_OCCUPANCY_V1
-        // pmd:notification:new is emitted only after the notification cursor
-        // advances to a genuinely new notification. A fresh open-order event
-        // is therefore allowed to update the in-memory Floor immediately.
-        // The canonical live snapshot below subsequently confirms/corrects it.
-        matched = true;
-
-        table.raw.open_orders = Math.max(
-          1,
-          Number(table.raw.open_orders || 0)
-        );
-
-        table.raw.operational_status = 'occupied';
-        table.raw.status = 'occupied';
-
-        table.operational_status = 'occupied';
-        table.openOrders = Math.max(
-          1,
-          Number(table.openOrders || 0)
-        );
-
-        table.baseStatus = 'occupied';
-        table.status = 'occupied';
-      });
-
-      if (matched) {
-        applyActiveFloor(activeId, { persist: false, refit: false });
-      }
-    });
-
+    // PMD_PHYSICAL_TABLE_STATUS_EVENT_AUTHORITY_R1
+    // Never optimistically set a Floor card occupied from an order
+    // notification. The notification is only an invalidation signal.
+    // pmd-dashboard-live-refresh-v1.js already reads a fresh physical
+    // snapshot on pmd:notification:new and the reconciler below applies
+    // its canonical tables.operational_status. This prevents alternating
+    // RED / GREEN when a previously completed/paid order still references
+    // a physically free table.
 
     // PMD_SHARED_FLOOR_LIVE_SNAPSHOT_RECONCILIATION_V1
     // Notification/event data is only an invalidation signal.
     // The server-rendered Floor payload remains the current-state authority.
-    function liveSnapshotCandidates(row) {
+    // Live snapshots must never resolve a database ID as another table's
+    // visible table number. Use exact primary keys; a legacy number-only
+    // snapshot is safe only if both sides have a unique exact table label.
+    function liveSnapshotLabel(row) {
       row = row || {};
-      var raw = row.raw && typeof row.raw === 'object'
-        ? row.raw
-        : {};
+      var raw = row.raw && typeof row.raw === 'object' ? row.raw : {};
+      return key(row.table_no || row.table_number || row.number
+        || raw.table_no || raw.table_number || raw.number || '');
+    }
 
-      return [
-        row.table_id,
-        row.id,
-        row.dbTableId,
-        row.table_no,
-        row.table_number,
-        row.number,
-        row.table_name,
-        row.name,
-        row.label,
-        raw.table_id,
-        raw.id,
-        raw.table_no,
-        raw.table_number,
-        raw.table_name,
-        raw.name
-      ].map(clean).filter(Boolean);
+    function liveSnapshotMatches(table, row, rows) {
+      var tableId = physicalTableId(table);
+      var rowId = physicalTableId(row);
+      if (tableId > 0 && rowId > 0) return tableId === rowId;
+
+      var tableLabel = liveSnapshotLabel(table);
+      var rowLabel = liveSnapshotLabel(row);
+      if (!tableLabel || !rowLabel || tableLabel !== rowLabel) return false;
+
+      var uniqueTable = allTables.filter(function (candidate) {
+        return liveSnapshotLabel(candidate) === tableLabel;
+      }).length === 1;
+      var uniqueRow = rows.filter(function (candidate) {
+        return liveSnapshotLabel(candidate) === rowLabel;
+      }).length === 1;
+
+      return uniqueTable && uniqueRow;
     }
 
     function liveSnapshotStatus(row) {
@@ -1741,9 +1680,7 @@
 
       allTables.forEach(function (table) {
         var serverRow = rows.find(function (row) {
-          var candidates = liveSnapshotCandidates(row);
-          return candidates.length
-            && tableMatchesNotification(table, candidates);
+          return liveSnapshotMatches(table, row, rows);
         });
 
         if (!serverRow) return;
@@ -1800,13 +1737,34 @@
                 );
         }
 
+        // Re-apply the shared reservation phase after the physical live
+        // update. Otherwise a live snapshot sets booked Table 10 green,
+        // while the reservation timer paints it red again (visible blinking).
+        var reservationHelper = window.PMDFloorReservationStateR1;
+        var bookingPhase = 'free';
+        var bookingVisual = 'none';
+        var effective = status;
+        var busyWindows = state.payload && state.payload.pmd_reservation_busy_windows;
+        if (reservationHelper && Array.isArray(busyWindows)) {
+          var lead = reservationHelper.safeMinutes(
+            root.getAttribute('data-pmd-reservation-notice-minutes')
+          );
+          bookingPhase = reservationHelper.classify(
+            busyWindows,
+            physicalTableId(table),
+            liveSnapshotLabel(table),
+            Date.now(),
+            lead
+          );
+          effective = reservationHelper.effectiveStatus(status, bookingPhase);
+          bookingVisual = reservationHelper.visualPhase(status, bookingPhase);
+        }
+
         if (
-          key(table.status || '') !== status ||
-          key(
-            table.operational_status ||
-            raw.operational_status ||
-            ''
-          ) !== operational ||
+          key(table.status || '') !== effective ||
+          key(table.baseStatus || '') !== status ||
+          key(table.reservationPhase || '') !== bookingVisual ||
+          key(table.operational_status || raw.operational_status || '') !== operational ||
           Number(table.openOrders || 0) !== openOrders
         ) {
           changed = true;
@@ -1823,7 +1781,9 @@
         table.tableStatus = status !== 'disabled';
         table.openOrders = Math.max(0, openOrders);
         table.baseStatus = status;
-        table.status = status;
+        table.status = effective;
+        table.reservationBusy = bookingPhase === 'busy';
+        table.reservationPhase = bookingVisual;
       });
 
       if (changed) {
