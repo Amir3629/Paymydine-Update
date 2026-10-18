@@ -939,6 +939,12 @@ body.pmd-dashboard-lab-page
 }
 </style>
 
+{{-- PMD_FLOOR_UNIFIED_RESERVATION_PALETTE_R1
+     Load after Dashboard Lab's legacy blanket-red stylesheet. This shared
+     view is reused by every clean dashboard and Quick POS. --}}
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-status-palette-r1.css') }}?v=20261018-r1">
+<script src="{{ asset('app/admin/assets/js/pmd-floor-reservation-state-r1.js') }}?v=20261018-r1"></script>
+
 <section
     id="pmd-r2-shared-floor-canvas-v310"
     class="pmd-floor-v1 pmd-dashboard-lab-exact-floor-v1{{ $floorMode === 'row' ? ' is-strip-mode is-strip-calibrated' : '' }}"
