@@ -1308,7 +1308,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     @php
                         // PMD_PERF_R8_RELEASE_ASSET_VERSION
                         // Cache-busting is release-owned; do not stat/hash assets on every request.
-                        $pmdExactFloorRuntimeVersion = 'r10-20260918';
+                        $pmdExactFloorRuntimeVersion = 'r11-20261018-reservation-colors';
                     @endphp
                     <script
                         id="pmd-reservations-parser-floor-runtime-v1"
