@@ -1261,7 +1261,7 @@ body.pmd-dashboard-lab-page
 
                         $pmdReservationPhase = $pmdFloorDisplayReservationPhase($table);
                         $pmdReservationVisualPhase = 'none';
-                        if ($pmdReservationPhase === 'busy' && !in_array($status, ['attention', 'cleaning', 'disabled'], true)) {
+                        if ($pmdReservationPhase === 'busy' && !in_array($status, ['cleaning', 'disabled'], true)) {
                             $status = 'occupied';
                             $pmdReservationVisualPhase = 'busy';
                         } elseif ($pmdReservationPhase === 'upcoming' && $status === 'available') {
