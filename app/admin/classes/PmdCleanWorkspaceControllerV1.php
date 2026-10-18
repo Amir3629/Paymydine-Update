@@ -1709,6 +1709,12 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         // Event-driven only. It does not own a periodic poller.
         $this->addJs('js/pmd-dashboard-live-refresh-v1.js');
 
+        if ($this->pmdUsesFloor()) {
+            // For the normal asset-pipeline mount; early Reservations/Cashier
+            // inline mounts also load this helper in the shared Floor view.
+            $this->addJs('js/pmd-floor-reservation-state-r1.js');
+        }
+
         // Existing proven Floor interaction runtime. Initial geometry is Blade.
         // PMD_RESERVATIONSLAB_PARSER_SYNC_FLOOR_BOOT_V1
         // ReservationsLab loads this SAME runtime directly after its server-rendered
