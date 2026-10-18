@@ -62,8 +62,3 @@ html body #pmd-r2-shared-floor-canvas-v310
   color: #fff !important;
 }
 
-/* Protect table text/icons from the old Dashboard Lab blanket red rule. */
-html body #pmd-r2-shared-floor-canvas-v310
-.pmd-floor-v1__table[data-floor-table][data-status] {
-  color: inherit;
-}
