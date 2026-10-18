@@ -7667,7 +7667,18 @@ function saveLayout() {
     // invalidation signal, not a reason to overwrite physical table state.
     // Re-read canonical reservation windows immediately, without polling.
     window.addEventListener('pmd:reservation-saved', refreshReservationBusyOnReturn, false);
-    window.addEventListener('pmd:dashboard:live-data', refreshReservationBusyOnReturn, false);
+    // Dashboard Live can emit every few seconds. Do not turn that stream
+    // into a new multi-tenant reservations DB query on every tick.
+    // Another device's booking will be picked up within one minute,
+    // while same-page saves, focus and booking boundaries stay immediate.
+    var reservationLastRemoteRefreshAt = 0;
+    function refreshReservationBusyOnRemoteLive() {
+      var now = Date.now();
+      if (now - reservationLastRemoteRefreshAt < 60000) return;
+      reservationLastRemoteRefreshAt = now;
+      refreshReservationBusyOnReturn();
+    }
+    window.addEventListener('pmd:dashboard:live-data', refreshReservationBusyOnRemoteLive, false);
 
     window.PMDDashboardLabFloorStabilityV2 = {
       version: '2.0.0',
