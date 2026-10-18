@@ -7663,6 +7663,11 @@ function saveLayout() {
 
     document.addEventListener('visibilitychange', refreshReservationBusyOnReturn, false);
     window.addEventListener('focus', refreshReservationBusyOnReturn, false);
+    // A freshly created/edited booking or a remote live snapshot is an
+    // invalidation signal, not a reason to overwrite physical table state.
+    // Re-read canonical reservation windows immediately, without polling.
+    window.addEventListener('pmd:reservation-saved', refreshReservationBusyOnReturn, false);
+    window.addEventListener('pmd:dashboard:live-data', refreshReservationBusyOnReturn, false);
 
     window.PMDDashboardLabFloorStabilityV2 = {
       version: '2.0.0',
