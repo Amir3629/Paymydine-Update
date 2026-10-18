@@ -760,6 +760,7 @@
         ? $floorBootstrap['data']['tables']
         : (array)($floorBootstrap['data']['sections']['floor_plan']['tables'] ?? []);
     $pmdFloorReservationDbIdByDisplayId = [];
+    $pmdFloorPhysicalStateByDbId = [];
     foreach ($pmdFloorRawReservationTables as $pmdFloorRawReservationTable) {
         if (!is_array($pmdFloorRawReservationTable)) continue;
         $displayId = trim((string)($pmdFloorRawReservationTable['id']
@@ -768,6 +769,17 @@
             ?? $pmdFloorRawReservationTable['number']
             ?? ''));
         $dbId = (int)($pmdFloorRawReservationTable['table_id'] ?? 0);
+        if ($dbId > 0) {
+            $physical = strtolower(trim((string)(
+                $pmdFloorRawReservationTable['operational_status']
+                    ?? $pmdFloorRawReservationTable['table_operational_status']
+                    ?? ''
+            )));
+            if ($physical === 'free') $physical = 'available';
+            if (in_array($physical, ['available', 'occupied', 'reserved', 'cleaning'], true)) {
+                $pmdFloorPhysicalStateByDbId[$dbId] = $physical;
+            }
+        }
         if ($displayId !== '' && $dbId > 0) {
             $pmdFloorReservationDbIdByDisplayId[$displayId] = $dbId;
         }
@@ -1228,15 +1240,27 @@ body.pmd-dashboard-lab-page
                         $status = (string)($table['status'] ?? 'available');
 
                         // PMD_FLOOR_R60T_SERVER_PHYSICAL_OCCUPANCY
-                        $pmdOperationalStatus = strtolower(
-                            trim(
-                                (string)(
-                                    $table['operational_status']
-                                    ?? $table['table_operational_status']
-                                    ?? ''
-                                )
-                            )
+                        // Initial display tables can carry an order-derived
+                        // `occupied` status without the raw physical status.
+                        // Resolve the canonical table ID in the same Floor
+                        // payload before first paint (Table 10 regression).
+                        $pmdDisplayIdentity = trim((string)(
+                            $table['dbTableId']
+                                ?? $table['db_table_id']
+                                ?? $table['table_id']
+                                ?? $table['id']
+                                ?? ''
+                        ));
+                        $pmdCanonicalDbId = (int)(
+                            $pmdFloorReservationDbIdByDisplayId[$pmdDisplayIdentity]
+                                ?? $pmdDisplayIdentity
                         );
+                        $pmdOperationalStatus = strtolower(trim((string)(
+                            $pmdFloorPhysicalStateByDbId[$pmdCanonicalDbId]
+                                ?? $table['operational_status']
+                                ?? $table['table_operational_status']
+                                ?? ''
+                        )));
 
                         /*
                          * PMD_FLOOR_FIRST_PAINT_PHYSICAL_AUTHORITY_R1
