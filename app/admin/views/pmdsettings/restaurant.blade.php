@@ -231,6 +231,40 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
             </div>
         </section>
 
+        {{-- PMD_FLOOR_RESERVATION_NOTICE_PROFILE_R1 --}}
+        <section class="pmd-profile-section pmd-profile-section--booking" data-pmd-floor-reservation-settings="r1">
+            <div class="pmd-profile-card">
+                <div class="pmd-profile-card__header">
+                    <div class="pmd-profile-section-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M7 3v4M17 3v4M3 11h18"></path></svg>
+                    </div>
+                    <div>
+                        <h2>{{ $pmdSettingsText('Reservations — Floor map alerts') }}</h2>
+                        <p>{{ $pmdSettingsText('Highlight tables in blue shortly before a reservation begins. Active reservations and occupied tables remain red.') }}</p>
+                    </div>
+                </div>
+                <div class="pmd-profile-card__body">
+                    <div class="pmd-profile-grid pmd-profile-grid--2">
+                        <label class="pmd-profile-field" for="pmd-floor-reservation-notice-minutes-r1">
+                            <span>{{ $pmdSettingsText('Show upcoming reservation') }}</span>
+                            <select
+                                id="pmd-floor-reservation-notice-minutes-r1"
+                                name="reservation[notice_minutes]"
+                                aria-describedby="pmd-floor-reservation-notice-help-r1"
+                            >
+                                @foreach([0, 5, 10, 15, 20, 30, 45, 60, 90, 120] as $minutes)
+                                    <option value="{{ $minutes }}" {{ (int)($pmdFloorReservationNoticeMinutes ?? 15) === $minutes ? 'selected' : '' }}>
+                                        {{ $minutes === 0 ? $pmdSettingsText('Off') : $minutes.' '.$pmdSettingsText('minutes before start') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small id="pmd-floor-reservation-notice-help-r1">{{ $pmdSettingsText('Blue means an assigned reservation starts soon. Green means free. Red means physically occupied or a reservation is underway. Disabled tables remain disabled. This applies to the restaurant Floor maps.') }}</small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         {{-- PMD_GUEST_COMMUNICATIONS_R28 --}}
         <section class="pmd-profile-section pmd-profile-section--communications">
             <div class="pmd-profile-card">
