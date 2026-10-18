@@ -15,7 +15,7 @@ html body #pmd-r2-shared-floor-canvas-v310
   background: #22c96f !important;
   background-color: #22c96f !important;
   border-color: #087744 !important;
-  color: #092c20 !important;
+  color: #111111 !important;
 }
 
 html body #pmd-r2-shared-floor-canvas-v310
@@ -25,23 +25,23 @@ html body #pmd-r2-shared-floor-canvas-v310
   background: #ff3c52 !important;
   background-color: #ff3c52 !important;
   border-color: #b40f2c !important;
-  color: #fff !important;
+  color: #111111 !important;
 }
 
 html body #pmd-r2-shared-floor-canvas-v310
 .pmd-floor-v1__table[data-floor-table][data-status="attention"] {
-  background: #ffe5a7 !important;
-  background-color: #ffe5a7 !important;
-  border-color: #a66b10 !important;
-  color: #5a3605 !important;
+  background: #ff9800 !important;
+  background-color: #ff9800 !important;
+  border-color: #a85a00 !important;
+  color: #111111 !important;
 }
 
 html body #pmd-r2-shared-floor-canvas-v310
 .pmd-floor-v1__table[data-floor-table][data-status="cleaning"] {
-  background: #ffd598 !important;
-  background-color: #ffd598 !important;
-  border-color: #b36d12 !important;
-  color: #593306 !important;
+  background: #ffa726 !important;
+  background-color: #ffa726 !important;
+  border-color: #a85a00 !important;
+  color: #111111 !important;
 }
 
 html body #pmd-r2-shared-floor-canvas-v310
@@ -49,17 +49,17 @@ html body #pmd-r2-shared-floor-canvas-v310
   background: #d9e1e8 !important;
   background-color: #d9e1e8 !important;
   border-color: #7a8b9a !important;
-  color: #384858 !important;
+  color: #111111 !important;
 }
 
 /* Status + reservation state are both required to paint blue, so an open
    table, disabled table or manually reserved table cannot turn blue by mistake. */
 html body #pmd-r2-shared-floor-canvas-v310
 .pmd-floor-v1__table[data-floor-table][data-status="reserved"][data-pmd-floor-reservation-state="upcoming"] {
-  background: #3679e5 !important;
-  background-color: #3679e5 !important;
-  border-color: #174999 !important;
-  color: #fff !important;
+  background: #34afd1 !important;
+  background-color: #34afd1 !important;
+  border-color: #177f96 !important;
+  color: #111111 !important;
 }
 
 
@@ -70,7 +70,7 @@ html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
   --state-color: #087744;
   background: #22c96f !important;
   border-color: #087744 !important;
-  color: #092c20 !important;
+  color: #111111 !important;
 }
 
 html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
@@ -80,23 +80,23 @@ html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
   --state-color: #b40f2c;
   background: #ff3c52 !important;
   border-color: #b40f2c !important;
-  color: #fff !important;
+  color: #111111 !important;
 }
 
 html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
 .pmd-floor-v1__table[data-floor-table][data-status="attention"] {
-  --state-color: #a66b10;
-  background: #ffe5a7 !important;
-  border-color: #a66b10 !important;
-  color: #5a3605 !important;
+  --state-color: #a85a00;
+  background: #ff9800 !important;
+  border-color: #a85a00 !important;
+  color: #111111 !important;
 }
 
 html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
 .pmd-floor-v1__table[data-floor-table][data-status="cleaning"] {
-  --state-color: #b36d12;
-  background: #ffd598 !important;
-  border-color: #b36d12 !important;
-  color: #593306 !important;
+  --state-color: #a85a00;
+  background: #ffa726 !important;
+  border-color: #a85a00 !important;
+  color: #111111 !important;
 }
 
 html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
@@ -104,13 +104,48 @@ html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
   --state-color: #7a8b9a;
   background: #d9e1e8 !important;
   border-color: #7a8b9a !important;
-  color: #384858 !important;
+  color: #111111 !important;
 }
 
 html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
 .pmd-floor-v1__table[data-floor-table][data-status="reserved"][data-pmd-floor-reservation-state="upcoming"] {
-  --state-color: #174999;
-  background: #3679e5 !important;
-  border-color: #174999 !important;
-  color: #fff !important;
+  --state-color: #177f96;
+  background: #34afd1 !important;
+  border-color: #177f96 !important;
+  color: #111111 !important;
+}
+
+/* PMD_FLOOR_PALETTE_R2_BLACK_LABELS_ICONS
+ * Card text and pictograms must remain black on every physical floor surface,
+ * including Reservation/Dashboard/Manager/Cashier/Quick POS Map and Ownerboard.
+ * Scope to buttons only: never recolor unrelated toolbars or modal controls.
+ */
+html body #pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table[data-floor-table],
+html body #pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table[data-floor-table] .pmd-floor-v1__table-number,
+html body #pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table[data-floor-table] .pmd-floor-table-feature-icon,
+html body #pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table[data-floor-table] .pmd-floor-v1__badge,
+html body #pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table[data-floor-table] .pmd-r2-reservation-time-v312,
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table],
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table] .pmd-floor-v1__table-number,
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table] .pmd-floor-table-feature-icon,
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table] .pmd-floor-v1__badge {
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+}
+
+html body #pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table[data-floor-table] svg,
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table] svg {
+  color: #111111 !important;
+  stroke: currentColor;
 }

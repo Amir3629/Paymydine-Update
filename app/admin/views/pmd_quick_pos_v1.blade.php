@@ -82,6 +82,8 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20261005-r19">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
+    {{-- PMD_QPOS_RESERVATION_RAIL_R2: the POS side rail is separate from shared Map. --}}
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-qpos-reservation-rail-r2.css') }}?v=20261018-r2">
 </head>
 <body class="pmd-qpos-body">
 @php
@@ -175,7 +177,7 @@
                             <div class="pmd-qpos-table-guide-statuses">
                                 <span><i class="free"></i>Free</span>
                                 <span><i class="busy"></i>Busy</span>
-                                <span><i class="reserved"></i>Reserved</span>
+                                <span><i class="reserved"></i>Upcoming</span>
                                 <span><i class="clean"></i>Clean</span>
                                 <span><i class="disabled"></i>Disabled</span>
                             </div>
@@ -1155,6 +1157,8 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261003-r135"></script>
 @endif
+{{-- Same canonical window helper as the shared Floor; POST-only /admin/pos/reservation-busy. --}}
+<script src="{{ asset('app/admin/assets/js/pmd-qpos-reservation-rail-r2.js') }}?v=20261018-r2"></script>
 
 {{-- PMD_QPOS_MINIMAL_BOOT_R135
      Only the core POS runtime participates in initial document boot.
