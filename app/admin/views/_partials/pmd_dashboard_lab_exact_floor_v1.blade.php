@@ -1228,9 +1228,8 @@ body.pmd-dashboard-lab-page
                             && !in_array(
                                 $status,
                                 [
-                                    'attention',
                                     'cleaning',
-                                    'reserved',
+                                    'disabled',
                                 ],
                                 true
                             )
