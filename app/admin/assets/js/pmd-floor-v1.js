@@ -6253,6 +6253,16 @@ function saveLayout() {
             }
           }
 
+          // Keep the browser-only optimistic action consistent with the
+          // base status used by the one-shot reservation boundary update.
+          // The backend remains authoritative after the next reload.
+          if (action === 'available' || action === 'cleaning'
+              || action === 'reserved' || action === 'waiter-call'
+              || action === 'note') {
+            table.baseStatus = table.status;
+            table.reservationPhase = 'none';
+          }
+
           state.operational.tables[
             table.id
           ] = stored;
