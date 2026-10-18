@@ -49,7 +49,8 @@ git show origin/main:app/admin/controllers/Ownerboard.php | php -l
 grep -Fq '#34afd1' "$tmp/app/admin/assets/css/pmd-floor-status-palette-r1.css"
 grep -Fq '#ff9800' "$tmp/app/admin/assets/css/pmd-floor-status-palette-r1.css"
 grep -Fq '#34afd1' "$tmp/app/admin/assets/css/pmd-qpos-reservation-rail-r2.css"
-git show origin/main:app/admin/views/pmd_quick_pos_v1.blade.php | grep -Fq 'pmd-qpos-reservation-rail-r2.js'
+git show origin/main:app/admin/views/pmd_quick_pos_v1.blade.php > "$tmp/pos-view.blade.php"
+grep -Fq 'pmd-qpos-reservation-rail-r2.js' "$tmp/pos-view.blade.php"
 
 echo "=== BACKUP + INSTALL ==="
 backup="backup/floor-pos-r2-$(date +%Y%m%d-%H%M%S)-$$"
