@@ -94,6 +94,8 @@ class Pmdsettings extends AdminController
             // Leave the profile editable if public booking is unavailable.
         }
         $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
+        $this->vars['pmdFloorReservationNoticeMinutes'] =
+            app(\Admin\Services\PmdFloorReservationWindowsV1::class)->noticeMinutes();
         $this->vars['pmdProfileLocationId'] = $locationId;
         $this->vars['pmdGuestCommunications'] = app(PmdGuestCommunicationService::class)
             ->settingsPayload($locationId);
@@ -804,6 +806,15 @@ class Pmdsettings extends AdminController
         $googleBusinessInput = (array)post('google_business', []);
         $communicationInput = (array)post('communication', []);
         $hasCommunicationInput = !empty($communicationInput);
+        $reservationInput = (array)post('reservation', []);
+        $hasReservationNoticeInput = array_key_exists('notice_minutes', $reservationInput);
+        $reservationValidator = Validator::make($reservationInput, [
+            'notice_minutes' => ['sometimes', 'required', 'integer', 'min:0', 'max:120'],
+        ]);
+        if ($reservationValidator->fails()) {
+            throw new ValidationException($reservationValidator);
+        }
+        $reservationClean = $reservationValidator->validated();
 
         $validator = Validator::make($profile, [
             'name' => ['required', 'string', 'max:191'],
@@ -905,7 +916,7 @@ class Pmdsettings extends AdminController
             }
         }
 
-        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $uploadedLogo, $removeLogo, $resolvedLogo, $communicationClean, $communicationInput, $hasCommunicationInput) {
+        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $uploadedLogo, $removeLogo, $resolvedLogo, $communicationClean, $communicationInput, $hasCommunicationInput, $reservationClean, $hasReservationNoticeInput) {
             $settings = [
                 'site_name' => trim((string)$clean['name']),
                 'site_email' => trim((string)($clean['email'] ?? '')),
@@ -919,6 +930,14 @@ class Pmdsettings extends AdminController
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
 
             ];
+
+            // PMD_FLOOR_RESERVATION_NOTICE_SETTING_R1
+            // Older form revisions omit this setting; never overwrite it unless
+            // the current owner explicitly submitted the field.
+            if ($hasReservationNoticeInput) {
+                $settings[\Admin\Services\PmdFloorReservationWindowsV1::SETTING_KEY] =
+                    (int)$reservationClean['notice_minutes'];
+            }
 
             // PMD_GUEST_COMMUNICATIONS_R28
             // Old tabs loaded before R28 do not contain a communication section.
