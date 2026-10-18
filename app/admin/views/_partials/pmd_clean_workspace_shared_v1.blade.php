@@ -1273,6 +1273,7 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                     'floorZoom' => $pmdCleanWorkspaceFloorZoom ?? 1.0,
                     'locationId' => $pmdCleanWorkspaceLocationId ?? 0,
                     'reservationBusyWindows' => $pmdCleanWorkspaceReservationBusyWindows ?? [],
+                    'reservationNoticeMinutes' => $pmdCleanWorkspaceReservationNoticeMinutes ?? 15,
                     'deferReservationBusy' => !empty($pmdCleanWorkspaceReservationBusyDeferred),
                 ])
 
