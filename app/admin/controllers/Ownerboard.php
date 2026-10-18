@@ -71,7 +71,7 @@ class Ownerboard extends AdminController
         $this->addCss('css/pmd-ownerboard-v2.css');
         // PMD_OWNERBOARD_WORKPLACE_APPROVAL_V1
         $this->addCss('css/pmd-ownerboard-workplace-access-v1.css');
-        $this->addCss('css/pmd-floor-status-palette-r1.css');
+        $this->addCss(asset('app/admin/assets/css/pmd-floor-status-palette-r1.css').'?v=20261018-r2');
         $this->addJs('js/pmd-floor-reservation-state-r1.js');
         $this->addJs(
             asset('app/admin/assets/js/pmd-floor-v1.js')
