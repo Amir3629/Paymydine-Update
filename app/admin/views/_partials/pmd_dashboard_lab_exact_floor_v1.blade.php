@@ -1239,24 +1239,29 @@ body.pmd-dashboard-lab-page
                         );
 
                         /*
-                         * Financial settlement is not a physical
-                         * table-release instruction.
-                         *
-                         * An explicitly occupied table stays
-                         * occupied until staff sets it free.
+                         * PMD_FLOOR_FIRST_PAINT_PHYSICAL_AUTHORITY_R1
+                         * Both physical FREE and OCCUPIED must override
+                         * stale order-derived statuses. Otherwise an actual
+                         * available table (e.g. Table 10 with 6 historical
+                         * orders) first paints red and becomes green after a
+                         * live refresh. Preserve disabled/cleaning/attention
+                         * badges and let an active reservation override below.
                          */
+                        if ($pmdOperationalStatus === 'free') {
+                            $pmdOperationalStatus = 'available';
+                        }
                         if (
-                            $pmdOperationalStatus === 'occupied'
-                            && !in_array(
-                                $status,
-                                [
-                                    'cleaning',
-                                    'disabled',
-                                ],
+                            !in_array($status, ['disabled', 'cleaning'], true)
+                            && in_array(
+                                $pmdOperationalStatus,
+                                ['available', 'occupied', 'reserved', 'cleaning'],
                                 true
                             )
                         ) {
-                            $status = 'occupied';
+                            if ($pmdOperationalStatus === 'occupied'
+                                || $status !== 'attention') {
+                                $status = $pmdOperationalStatus;
+                            }
                         }
 
                         $pmdReservationPhase = $pmdFloorDisplayReservationPhase($table);
