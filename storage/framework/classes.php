@@ -173,4 +173,11 @@
   'Admin\\Controllers\\pmdfinance' => 'app/admin/controllers/Pmdfinance.php',
   'Admin\\Controllers\\tables' => 'app/admin/controllers/Tables.php',
   'Admin\\Controllers\\orders' => 'app/admin/controllers/Orders.php',
+  'Admin\\Models\\Status_history_model' => 'app/admin/models/Status_history_model.php',
+  'Admin\\Models\\Menu_item_options_model' => 'app/admin/models/Menu_item_options_model.php',
+  'Admin\\Models\\Menu_options_model' => 'app/admin/models/Menu_options_model.php',
+  'Admin\\Models\\Menu_item_option_values_model' => 'app/admin/models/Menu_item_option_values_model.php',
+  'Admin\\Models\\Menu_option_values_model' => 'app/admin/models/Menu_option_values_model.php',
+  'Admin\\Controllers\\PmdWaiterTableStateV154' => 'app/admin/controllers/PmdWaiterTableStateV154.php',
+  'Admin\\Services\\PmdFloorReservationWindowsV1' => 'app/admin/services/PmdFloorReservationWindowsV1.php',
 );
