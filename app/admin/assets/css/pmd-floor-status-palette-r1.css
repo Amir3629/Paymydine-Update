@@ -63,12 +63,54 @@ html body #pmd-r2-shared-floor-canvas-v310
 }
 
 
-/* Legacy/Ownerboard Floor uses the separate pmd-floor-v1.js renderer.
-   Its physical state stays native, but the reservation lead is the same blue. */
+/* The standalone Floor/legacy Ownerboard uses a separate engine and card
+   design. Normalize status colors without changing drag, selection or geometry. */
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table][data-status="available"] {
+  --state-color: #087744;
+  background: #22c96f !important;
+  border-color: #087744 !important;
+  color: #092c20 !important;
+}
+
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table][data-status="occupied"],
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table][data-status="reserved"] {
+  --state-color: #b40f2c;
+  background: #ff3c52 !important;
+  border-color: #b40f2c !important;
+  color: #fff !important;
+}
+
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table][data-status="attention"] {
+  --state-color: #a66b10;
+  background: #ffe5a7 !important;
+  border-color: #a66b10 !important;
+  color: #5a3605 !important;
+}
+
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table][data-status="cleaning"] {
+  --state-color: #b36d12;
+  background: #ffd598 !important;
+  border-color: #b36d12 !important;
+  color: #593306 !important;
+}
+
+html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
+.pmd-floor-v1__table[data-floor-table][data-status="disabled"] {
+  --state-color: #7a8b9a;
+  background: #d9e1e8 !important;
+  border-color: #7a8b9a !important;
+  color: #384858 !important;
+}
+
 html body .pmd-floor-v1:not(#pmd-r2-shared-floor-canvas-v310)
 .pmd-floor-v1__table[data-floor-table][data-status="reserved"][data-pmd-floor-reservation-state="upcoming"] {
+  --state-color: #174999;
   background: #3679e5 !important;
-  background-color: #3679e5 !important;
   border-color: #174999 !important;
   color: #fff !important;
 }
