@@ -128,10 +128,13 @@ class PmdDefaultStaffRoleService
             [
                 'code' => self::RESERVATIONS,
                 'name' => 'Reservations',
-                'description' => 'Reservations workspace only. No side menu.',
+                'description' => 'Reservations workspace only. May assign booking tables; no side menu.',
                 'permissions' => [
                     self::PMD_RESERVATIONS_WORKSPACE => 1,
                     'Admin.Reservations' => 1,
+                    // Reception creates/updates bookings and owns table
+                    // assignment, but not reservation deletion or Settings.
+                    'Admin.AssignReservations' => 1,
                 ],
             ],
             [

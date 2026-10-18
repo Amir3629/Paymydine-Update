@@ -69,7 +69,7 @@ class ReservationComposerService
                 ],
                 'reservation' => $reservation ? $this->serialize($reservation) : null,
                 'permissions' => [
-                    'assign' => $user->hasPermission('Admin.AssignReservations'),
+                    'assign' => $this->mayAssignTables($user),
                 ],
             ]);
         } catch (Throwable $exception) {
@@ -175,7 +175,7 @@ class ReservationComposerService
                 || $existingIds !== $requestedIds;
 
             if (($assignment === 'auto' || $assignment === 'choose' || ($mode === 'edit' && $assignmentChanged))
-                && !$user->hasPermission('Admin.AssignReservations')) {
+                && !$this->mayAssignTables($user)) {
                 abort(403, 'You are not allowed to assign reservation tables.');
             }
 
@@ -427,6 +427,28 @@ class ReservationComposerService
         }
 
         return $tenant;
+    }
+
+    /**
+     * PMD_RECEPTION_RESERVATION_ASSIGNMENT_R1
+     *
+     * The managed Reservations/Reception workspace is expected to create and
+     * edit reservations with table assignments. Older tenant role records
+     * predate Admin.AssignReservations and were allowed to open the composer
+     * but then rejected during Save. Keep compatibility narrowly scoped to
+     * the managed Reservations role, with Admin.Reservations required.
+     *
+     * Do not grant this capability to Cashier/Waiter, custom roles or to
+     * reservation users without an explicit assignment permission.
+     */
+    protected function mayAssignTables($user): bool
+    {
+        if (!$user) return false;
+        if ($user->hasPermission('Admin.AssignReservations')) return true;
+        if (!$user->hasPermission('Admin.Reservations')) return false;
+
+        return app(PmdDefaultStaffRoleService::class)->roleCodeForUser($user)
+            === PmdDefaultStaffRoleService::RESERVATIONS;
     }
 
     protected function authorize()
