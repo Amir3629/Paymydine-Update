@@ -754,10 +754,30 @@
         );
     $pmdFloorNowMs = (int)round(microtime(true) * 1000);
 
+    // Server Floor display ID may be a synthetic label, while reservation
+    // allocation always uses the canonical tables.table_id.
+    $pmdFloorRawReservationTables = is_array($floorBootstrap['data']['tables'] ?? null)
+        ? $floorBootstrap['data']['tables']
+        : (array)($floorBootstrap['data']['sections']['floor_plan']['tables'] ?? []);
+    $pmdFloorReservationDbIdByDisplayId = [];
+    foreach ($pmdFloorRawReservationTables as $pmdFloorRawReservationTable) {
+        if (!is_array($pmdFloorRawReservationTable)) continue;
+        $displayId = trim((string)($pmdFloorRawReservationTable['id']
+            ?? $pmdFloorRawReservationTable['table_id']
+            ?? $pmdFloorRawReservationTable['location_table_id']
+            ?? $pmdFloorRawReservationTable['number']
+            ?? ''));
+        $dbId = (int)($pmdFloorRawReservationTable['table_id'] ?? 0);
+        if ($displayId !== '' && $dbId > 0) {
+            $pmdFloorReservationDbIdByDisplayId[$displayId] = $dbId;
+        }
+    }
+
     $pmdFloorDisplayReservationPhase = static function (array $table) use (
         $pmdFloorReservationBusyWindows,
         $pmdFloorNowMs,
-        $pmdFloorReservationNoticeMinutes
+        $pmdFloorReservationNoticeMinutes,
+        $pmdFloorReservationDbIdByDisplayId
     ): string {
         if (!$pmdFloorReservationBusyWindows) return 'free';
         $memberIds = !empty($table['is_merged'])
@@ -778,7 +798,9 @@
         for ($index = 0; $index < $max; $index++) {
             $phase = \Admin\Services\PmdFloorReservationWindowsV1::phase(
                 $pmdFloorReservationBusyWindows,
-                (int)($memberIds[$index] ?? 0),
+                (int)($pmdFloorReservationDbIdByDisplayId[
+                    trim((string)($memberIds[$index] ?? ''))
+                ] ?? ($memberIds[$index] ?? 0)),
                 trim((string)($numbers[$index] ?? '')),
                 $pmdFloorNowMs,
                 $pmdFloorReservationNoticeMinutes
