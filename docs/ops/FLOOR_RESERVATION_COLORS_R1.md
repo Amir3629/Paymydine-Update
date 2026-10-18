@@ -21,6 +21,7 @@ A busy reservation is stronger than a note but the note/waiter-call badge remain
 Run before deployment in staging or test checkout:
 
     node scripts/test-pmd-floor-reservation-r1.js
+    node scripts/test-pmd-floor-live-identity-r1.js
     php scripts/test-pmd-floor-reservation-r1.php
     php -l app/admin/services/PmdFloorReservationWindowsV1.php
     php -l app/admin/controllers/Dashboardlab.php
@@ -36,7 +37,7 @@ GitHub source inspection and JS syntax/behavior tests were performed, but PHP li
 
 1. Verify the same table statuses on Dashboard, Reservations, Manager, Cashier, Quick POS, standalone Floor and Ownerboard.
 2. A physically free table with a historical completed order is green, not red.
-3. A physically occupied table stays red until staff explicitly releases it, independent of payment/KDS.
+3. A physically occupied table stays red until staff explicitly releases it, independent of payment/KDS. For blinking Table 10, verify that notification table_id=10 cannot match a different physical table merely labeled 10; live snapshots use canonical IDs or unique exact labels.
 4. Create a future reservation on a test table; observe green, then blue at selected notice time, then red at reservation start, then return to physical state after reservation ends.
 5. Canceled reservations must not color any table. Test overlap with two future reservations.
 6. Disabled grey, cleaning amber, attention amber unless an active booking (red), and waiter badges still visible.
@@ -58,6 +59,7 @@ Do not overwrite local VPS edits. Preserve a backup branch and use fast-forward 
     git -c gc.auto=0 fetch origin main
     git -c gc.auto=0 merge --ff-only origin/main
     node scripts/test-pmd-floor-reservation-r1.js
+    node scripts/test-pmd-floor-live-identity-r1.js
     php scripts/test-pmd-floor-reservation-r1.php
     php artisan view:clear
 
