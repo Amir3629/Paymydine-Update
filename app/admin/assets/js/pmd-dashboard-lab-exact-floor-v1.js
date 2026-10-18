@@ -1163,34 +1163,27 @@
             yes(raw.needs_waiter) ||
             yes(raw.call_waiter);
 
-          // PMD_FLOOR_R60T_PHYSICAL_STATUS_OWNER
+          // PMD_FLOOR_PHYSICAL_STATUS_AUTHORITY_R1
+          // Completed/payment-settled orders must not make a truly free
+          // table red. The canonical physical status is authoritative when
+          // present; raw order links are only a legacy fallback.
           var operationalStatus =
-            clean(
-              raw.operational_status ||
-              raw.table_operational_status ||
-              ''
-            ).toLowerCase();
+            clean(raw.operational_status || raw.table_operational_status || '').toLowerCase();
+          if (operationalStatus === 'free') operationalStatus = 'available';
+          var hasOperationalAuthority =
+            ['available', 'occupied', 'cleaning', 'reserved'].indexOf(operationalStatus) !== -1;
 
-          var cleaning =
-            operationalStatus === 'cleaning' ||
-            rawStatus === 'cleaning' ||
-            yes(raw.cleaning_required) ||
-            yes(raw.needs_cleaning);
+          var cleaning = hasOperationalAuthority
+            ? operationalStatus === 'cleaning'
+            : (rawStatus === 'cleaning' || yes(raw.cleaning_required) || yes(raw.needs_cleaning));
 
-          var reserved =
-            operationalStatus === 'reserved' ||
-            rawStatus === 'reserved' ||
-            yes(raw.reserved) ||
-            yes(raw.is_reserved);
+          var reserved = hasOperationalAuthority
+            ? operationalStatus === 'reserved'
+            : (rawStatus === 'reserved' || yes(raw.reserved) || yes(raw.is_reserved));
 
-          var occupied =
-            operationalStatus === 'occupied' ||
-            rawStatus === 'occupied' ||
-            linked.length > 0 ||
-            number(
-              raw.open_orders,
-              0
-            ) > 0;
+          var occupied = hasOperationalAuthority
+            ? operationalStatus === 'occupied'
+            : (rawStatus === 'occupied' || linked.length > 0 || number(raw.open_orders, 0) > 0);
 
           var note =
             clean(
@@ -1214,17 +1207,14 @@
           var baseStatus =
             !tableEnabled
               ? 'disabled'
-              : (
-                waiterCall ||
-                !!note
-              )
-                ? 'attention'
-                : cleaning
-                  ? 'cleaning'
+              : cleaning
+                ? 'cleaning'
+                : occupied
+                  ? 'occupied'
                   : reserved
                     ? 'reserved'
-                    : occupied
-                      ? 'occupied'
+                    : (waiterCall || !!note)
+                      ? 'attention'
                       : 'available';
 
           var reservationPhase = reservationPhaseAt(
