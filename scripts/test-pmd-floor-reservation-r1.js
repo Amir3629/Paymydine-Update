@@ -17,6 +17,8 @@ assert.equal(helper.classify(rows, 42, '7', start + 3600000, 15), 'free');
 assert.equal(helper.effectiveStatus('occupied', 'upcoming'), 'occupied');
 assert.equal(helper.effectiveStatus('disabled', 'busy'), 'disabled');
 assert.equal(helper.effectiveStatus('cleaning', 'busy'), 'cleaning');
+assert.equal(helper.effectiveStatus('attention', 'busy'), 'occupied');
+assert.equal(helper.visualPhase('attention', 'busy'), 'busy');
 assert.equal(helper.effectiveStatus('available', 'upcoming'), 'reserved');
 assert.equal(helper.visualPhase('available', 'upcoming'), 'upcoming');
 assert.equal(helper.visualPhase('occupied', 'upcoming'), 'none');
@@ -25,4 +27,4 @@ assert.equal(helper.nextBoundary(rows, now - 20 * 60000, 15), start - 15 * 60000
 assert.equal(helper.safeMinutes(999), 120);
 assert.equal(helper.safeMinutes('bad'), 15);
 assert.equal(helper.safeMinutes(0), 0);
-console.log('PASS: Floor reservation JS contract (17 checks)');
+console.log('PASS: Floor reservation JS contract (19 checks)');
