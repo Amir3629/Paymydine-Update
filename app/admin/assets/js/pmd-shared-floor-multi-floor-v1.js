@@ -1581,94 +1581,14 @@
       return Number.isInteger(id) && id > 0 ? id : 0;
     }
 
-    function notificationCandidates(detail) {
-      detail = detail || {};
-      var notification = detail.notification || {};
-      var payload = detail.payload || {};
-      return [
-        notification.table_id,
-        payload.table_id,
-        payload.dining_table_id,
-        payload.location_table_id
-      ].map(Number).filter(function (id) {
-        return Number.isInteger(id) && id > 0;
-      });
-    }
-
-    function tableMatchesNotification(table, candidates) {
-      var id = physicalTableId(table);
-      return id > 0 && candidates.indexOf(id) !== -1;
-    }
-
-    function notificationMeansOpenOrder(detail) {
-      detail = detail || {};
-      var notification = detail.notification || {};
-      var payload = detail.payload || {};
-      var type = key(notification.type || payload.type || '');
-      if (type.indexOf('order') === -1 && !payload.order_id && !notification.order_id) return false;
-      var status = key(
-        detail.statusName
-        || payload.status_name
-        || payload.status
-        || notification.order_status
-        || notification.status
-        || ''
-      );
-      if (/cancel|complete|completed|closed|paid|settled/.test(status)) return false;
-      return true;
-    }
-
-    window.addEventListener('pmd:notification:new', function (event) {
-      var detail = event && event.detail ? event.detail : {};
-      if (!notificationMeansOpenOrder(detail)) return;
-      var candidates = notificationCandidates(detail);
-      if (!candidates.length) return;
-
-      var matched = false;
-      allTables.forEach(function (table) {
-        if (!tableMatchesNotification(table, candidates)) return;
-        if (!table.raw || typeof table.raw !== 'object') table.raw = {};
-
-        if (
-          table.status === 'disabled'
-          || table.enabled === false
-          || table.raw.table_status === false
-          || table.raw.table_status === 0
-          || table.raw.table_status === '0'
-        ) {
-          return;
-        }
-
-        // PMD_NOTIFICATION_FRESH_ORDER_OCCUPANCY_V1
-        // pmd:notification:new is emitted only after the notification cursor
-        // advances to a genuinely new notification. A fresh open-order event
-        // is therefore allowed to update the in-memory Floor immediately.
-        // The canonical live snapshot below subsequently confirms/corrects it.
-        matched = true;
-
-        table.raw.open_orders = Math.max(
-          1,
-          Number(table.raw.open_orders || 0)
-        );
-
-        table.raw.operational_status = 'occupied';
-        table.raw.status = 'occupied';
-
-        table.operational_status = 'occupied';
-        table.openOrders = Math.max(
-          1,
-          Number(table.openOrders || 0)
-        );
-
-        table.baseStatus = 'occupied';
-        table.status = 'occupied';
-      });
-
-      if (matched) {
-        applyActiveFloor(activeId, { persist: false, refit: false });
-      }
-    });
-
+    // PMD_PHYSICAL_TABLE_STATUS_EVENT_AUTHORITY_R1
+    // Never optimistically set a Floor card occupied from an order
+    // notification. The notification is only an invalidation signal.
+    // pmd-dashboard-live-refresh-v1.js already reads a fresh physical
+    // snapshot on pmd:notification:new and the reconciler below applies
+    // its canonical tables.operational_status. This prevents alternating
+    // RED / GREEN when a previously completed/paid order still references
+    // a physically free table.
 
     // PMD_SHARED_FLOOR_LIVE_SNAPSHOT_RECONCILIATION_V1
     // Notification/event data is only an invalidation signal.
