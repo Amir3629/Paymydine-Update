@@ -27,7 +27,7 @@
 <script src="/app/admin/assets/js/pmd-side-menu2-v1.js?v=pmd-floor-v1"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-floor-reservation-state-r1.js') }}?v=20261018-r1" defer></script>
 <script src="/app/admin/assets/js/pmd-floor-v1.js?pmd-floor-guide=2412-20260801_181938&v=20261018-r1" defer></script>
-<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-status-palette-r1.css') }}?v=20261018-r1">
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-status-palette-r1.css') }}?v=20261018-r2">
 
 
 <!-- PMD_FLOOR_STABLE_V11_START -->
