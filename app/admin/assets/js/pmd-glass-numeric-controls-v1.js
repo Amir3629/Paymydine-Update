@@ -230,8 +230,22 @@
     var scheduled = false;
     function sync() {
       scheduled = false;
-      Array.prototype.slice.call(form.querySelectorAll('[data-pmd-menu-content-translations]')).forEach(function (section) {
+      // PMD_MENU_TRANSLATION_DUPLICATE_RUNTIME_GUARD_V4_20261019: a cached old renderer can coexist briefly with the new
+      // renderer. Disable the obsolete translation inputs to avoid duplicate
+      // form keys overriding the authoritative language-switcher values.
+      var sections = Array.prototype.slice.call(form.querySelectorAll('[data-pmd-menu-content-translations]'));
+      var authoritative = sections.some(function (part) {
+        return Boolean(part.querySelector('[data-pmd-menu-translation-switch]'));
+      });
+      sections.forEach(function (section) {
         if (section.querySelector('[data-pmd-menu-translation-switch]')) return;
+        if (authoritative) {
+          if (!section.hidden) section.hidden = true;
+          section.querySelectorAll('[data-pmd-translation-target]').forEach(function (field) {
+            if (!field.disabled) field.disabled = true;
+          });
+          return;
+        }
         var tabs = section.querySelector('[data-pmd-menu-translation-tabs]');
         var panels = section.querySelector('[data-pmd-menu-translation-panels]');
         var heading = section.querySelector('.pmd-menu-content-translations__title');
