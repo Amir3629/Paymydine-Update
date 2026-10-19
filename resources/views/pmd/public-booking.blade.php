@@ -379,6 +379,7 @@
         'stayMinutes' => $bookingStayMinutes,
         'availabilitySeed' => $bookingAvailabilitySeed,
         'openingHours' => $bookingOpeningHours ?? [],
+        'closedDates' => $bookingClosedDates ?? [],
         'tableRules' => $bookingTableRules,
         'availabilityUrl' => url('/book/availability'),
         'dateStatusesUrl' => url('/book/availability').'?mode=date-statuses',
