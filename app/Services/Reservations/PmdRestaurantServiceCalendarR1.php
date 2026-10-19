@@ -82,6 +82,11 @@ final class PmdRestaurantServiceCalendarR1
         unset($this->cache[$locationId]);
     }
 
+    public function today(): string
+    {
+        return Carbon::now($this->timezone())->toDateString();
+    }
+
     public function advanceDays(int $locationId): int
     {
         return (int)$this->policy($locationId)['advance_days'];
