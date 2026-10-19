@@ -37,6 +37,14 @@ class Pmdsettings extends AdminController
             $this->addCss('css/pmd-settings-restaurant-v1.css');
             $this->addCss('css/pmd-settings-restaurant-platform-header-v4.css');
             $this->addCss('css/pmd-settings-restaurant-spacing-v7.css');
+            // PMD_MULTI_SERVICE_CALENDAR_R1: additive, profile-scoped visual authority.
+            foreach ([
+                'app/admin/assets/css/pmd-settings-service-calendar-r1.css',
+            ] as $pmdCalendarCss) {
+                $this->addCss(asset($pmdCalendarCss).'?v='.(string)(@filemtime(base_path($pmdCalendarCss)) ?: 'r1'));
+            }
+            $pmdCalendarJs = 'app/admin/assets/js/pmd-settings-service-calendar-r1.js';
+            $this->addJs(asset($pmdCalendarJs).'?v='.(string)(@filemtime(base_path($pmdCalendarJs)) ?: 'r1'));
             // Reuse the exact provider connection modal/card language already
             // used by PayMyDine Finance instead of inventing a second modal UI.
             $this->addCss('css/pmd-payment-provider-catalogue-v1.css');
@@ -106,6 +114,9 @@ class Pmdsettings extends AdminController
             // Leave the profile editable if public booking is unavailable.
         }
         $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
+        $this->vars['pmdProfileSchedule'] = app(
+            \App\Services\Reservations\PmdRestaurantServiceCalendarR1::class
+        )->policy($locationId);
         $this->vars['pmdFloorReservationNoticeMinutes'] =
             app(\Admin\Services\PmdFloorReservationWindowsV1::class)->noticeMinutes();
         $this->vars['pmdProfileLocationId'] = $locationId;
@@ -815,6 +826,14 @@ class Pmdsettings extends AdminController
         }
         $profile = (array)post('profile', []);
         $hours = (array)post('hours', []);
+        $calendarInput = (array)post('schedule', []);
+        $hasCalendarInput = (string)($calendarInput['version'] ?? '') === '1';
+        $calendarService = app(\App\Services\Reservations\PmdRestaurantServiceCalendarR1::class);
+        // Existing/older tabs without schedule[version] do not overwrite the
+        // advanced policy. Always validate the new policy before any DB write.
+        $calendarPolicy = $hasCalendarInput
+            ? $calendarService->validateSubmission($hours, $calendarInput)
+            : null;
         $googleBusinessInput = (array)post('google_business', []);
         $communicationInput = (array)post('communication', []);
         $hasCommunicationInput = !empty($communicationInput);
@@ -914,21 +933,23 @@ class Pmdsettings extends AdminController
         $removeLogo = !empty($profile['remove_logo']);
         $resolvedLogo = $this->resolvedRestaurantLogoR21($uploadedLogo, $removeLogo);
 
-        foreach (range(0, 6) as $weekday) {
-            $row = (array)($hours[$weekday] ?? []);
-            $enabled = !empty($row['enabled']);
-            $opening = trim((string)($row['opening_time'] ?? ''));
-            $closing = trim((string)($row['closing_time'] ?? ''));
+        if (!$hasCalendarInput) {
+            foreach (range(0, 6) as $weekday) {
+                $row = (array)($hours[$weekday] ?? []);
+                $enabled = !empty($row['enabled']);
+                $opening = trim((string)($row['opening_time'] ?? ''));
+                $closing = trim((string)($row['closing_time'] ?? ''));
 
-            if ($enabled && (!preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $opening)
-                || !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $closing))) {
-                throw ValidationException::withMessages([
-                    'hours.'.$weekday => ['Please enter a valid opening and closing time.'],
-                ]);
+                if ($enabled && (!preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $opening)
+                    || !preg_match('/^([01]\\d|2[0-3]):[0-5]\\d$/', $closing))) {
+                    throw ValidationException::withMessages([
+                        'hours.'.$weekday => ['Please enter a valid opening and closing time.'],
+                    ]);
+                }
             }
         }
 
-        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $uploadedLogo, $removeLogo, $resolvedLogo, $communicationClean, $communicationInput, $hasCommunicationInput, $reservationClean, $hasReservationNoticeInput) {
+        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $calendarPolicy, $calendarService, $uploadedLogo, $removeLogo, $resolvedLogo, $communicationClean, $communicationInput, $hasCommunicationInput, $reservationClean, $hasReservationNoticeInput) {
             $settings = [
                 'site_name' => trim((string)$clean['name']),
                 'site_email' => trim((string)($clean['email'] ?? '')),
@@ -1019,8 +1040,16 @@ class Pmdsettings extends AdminController
                     'location_postcode' => trim((string)($clean['postcode'] ?? '')),
                 ]);
 
+            if ($calendarPolicy !== null) {
+                $calendarService->save($locationId, $calendarPolicy);
+            }
+
             foreach (range(0, 6) as $weekday) {
-                $row = (array)($hours[$weekday] ?? []);
+                // Legacy consumers still see the first active service period,
+                // while the new canonical calendar owns all windows/exceptions.
+                $row = $calendarPolicy !== null
+                    ? (array)($calendarPolicy['weekly'][$weekday] ?? [])
+                    : (array)($hours[$weekday] ?? []);
                 $enabled = !empty($row['enabled']);
                 $opening = $enabled ? trim((string)($row['opening_time'] ?? '')) : '00:00';
                 $closing = $enabled ? trim((string)($row['closing_time'] ?? '')) : '23:59';
@@ -1254,46 +1283,16 @@ class Pmdsettings extends AdminController
 
     protected function openingHours(int $locationId): array
     {
-        $days = [0=>'Monday',1=>'Tuesday',2=>'Wednesday',3=>'Thursday',4=>'Friday',5=>'Saturday',6=>'Sunday'];
-
-        $result = [];
-        foreach ($days as $weekday => $label) {
-            $result[$weekday] = [
-                'weekday' => $weekday,
-                'label' => $label,
-                'enabled' => false,
-                'opening_time' => null,
-                'closing_time' => null,
-            ];
+        // Same tenant/location policy read by internal, public and POS
+        // reservation entry points. Do not collapse the second service.
+        $days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        $rows = app(\App\Services\Reservations\PmdRestaurantServiceCalendarR1::class)
+            ->weeklyRows($locationId);
+        foreach ($rows as $weekday => &$row) {
+            $row['label'] = $days[$weekday] ?? 'Day';
         }
-
-        try {
-            if (!Schema::hasTable('working_hours')) {
-                return array_values($result);
-            }
-
-            $rows = DB::table('working_hours')
-                ->where('location_id', $locationId)
-                ->where('type', 'opening')
-                ->orderBy('weekday')
-                ->orderBy('id')
-                ->get();
-
-            foreach ($rows as $row) {
-                $weekday = (int)$row->weekday;
-                if (!array_key_exists($weekday, $result)) continue;
-                $result[$weekday]['enabled'] = (bool)$row->status;
-                $result[$weekday]['opening_time'] = substr((string)$row->opening_time, 0, 5);
-                $result[$weekday]['closing_time'] = substr((string)$row->closing_time, 0, 5);
-            }
-        } catch (\Throwable $error) {
-            logger()->warning('PMD Settings opening-hours summary failed', [
-                'location_id' => $locationId,
-                'message' => $error->getMessage(),
-            ]);
-        }
-
-        return array_values($result);
+        unset($row);
+        return $rows;
     }
 
     protected function groups(int $locationId): array
