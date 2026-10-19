@@ -1043,21 +1043,22 @@
   function defaultQuickTime() {
     var opening = openingForDate(state.date);
     var now = berlinNowParts();
-    var start = opening.closed ? 8 * 60 : opening.start;
-    var end = opening.closed ? 24 * 60 : opening.end;
-    var minute = start;
+    var minimum = state.date === now.date
+      ? Math.ceil(now.minutes / 15) * 15 : 0;
+    var earliest = '';
 
-    if (state.date === now.date) {
-      minute = Math.ceil(now.minutes / 15) * 15;
-      minute = Math.max(minute, start);
-    }
-
-    if (minute + 45 > end) {
-      minute = Math.max(start, end - 45);
-      minute = Math.floor(minute / 15) * 15;
-    }
-
-    return minuteLabel(minute);
+    (opening.intervals || []).forEach(function (period) {
+      var first = Math.ceil(Math.max(period[0], minimum) / 15) * 15;
+      if (first + 45 <= period[1] && first < 1440 && !earliest) {
+        var nextDate = new Date(state.date + 'T12:00:00Z');
+        nextDate.setUTCDate(nextDate.getUTCDate()+1);
+        if (first + 45 <= 1440
+          || (opening.closedDates||[]).indexOf(nextDate.toISOString().slice(0,10)) === -1) {
+          earliest = minuteLabel(first);
+        }
+      }
+    });
+    return earliest || (opening.closed ? '' : minuteLabel(opening.start));
   }
 
   function quickTimeValuesRepeated(values, count) {
