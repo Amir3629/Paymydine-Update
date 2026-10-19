@@ -29,7 +29,15 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         parent::__construct();
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
         $this->addCss('css/pmd-role-dashboard-v1.css');
-        $this->addCss('css/pmd-manager-online-staff-v1.css');
+        // PMD_SHARED_STAFF_CARD_RHYTHM_R2 - force new CSS onto browsers/CDNs.
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-manager-online-staff-v1.css')
+            .'?v='.(string)(
+                @filemtime(
+                    base_path('app/admin/assets/css/pmd-manager-online-staff-v1.css')
+                ) ?: 'r2'
+            )
+        );
         $this->addJs('js/pmd-online-staff-live-v1.js');
         $this->addCss('css/pmd-kitchen-today-team-v1.css');
         // PMD_DASHBOARD_FIRSTPAINT_V141
