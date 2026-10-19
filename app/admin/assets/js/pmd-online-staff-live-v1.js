@@ -7,6 +7,7 @@
   'use strict';
   if (window.PMDOnlineStaffLiveV1) return;
 
+  function initialize() {
   var root = document.querySelector('[data-pmd-online-staff]');
   if (!root) return;
 
@@ -205,4 +206,13 @@
     }
   };
   schedule(intervalMs);
+  }
+
+  // AssetMaker may inject the script before server-rendered dashboard HTML.
+  // Mount after parsing in that case; late scripts mount immediately.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, {once: true});
+  } else {
+    initialize();
+  }
 })();
