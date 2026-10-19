@@ -660,33 +660,9 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
     protected function pmdComposerOpeningHours(int $locationId): array
     {
-        if ($locationId < 1) {
-            return [];
-        }
-
-        try {
-            return DB::table('working_hours')
-                ->where('location_id', $locationId)
-                ->where('type', 'opening')
-                ->orderBy('weekday')
-                ->get()
-                ->map(function ($row) {
-                    return [
-                        'weekday' => (int)$row->weekday,
-                        'enabled' => (bool)$row->status,
-                        'opening_time' => substr((string)$row->opening_time, 0, 5),
-                        'closing_time' => substr((string)$row->closing_time, 0, 5),
-                    ];
-                })
-                ->filter(function ($row) {
-                    return $row['weekday'] >= 0 && $row['weekday'] <= 6;
-                })
-                ->values()
-                ->all();
-        } catch (Throwable $error) {
-            // No configured policy must not invent a closed restaurant.
-            return [];
-        }
+        if ($locationId < 1) return [];
+        return app(\App\Services\Reservations\PmdRestaurantServiceCalendarR1::class)
+            ->weeklyRows($locationId);
     }
 
     protected function pmdComposerCanonicalCreateDateTime(
@@ -695,224 +671,44 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         string $time,
         int $duration
     ): array {
-        $duration = max(1, $duration);
-        $hours = $this->pmdComposerOpeningHours($locationId);
+        $calendar = app(\App\Services\Reservations\PmdRestaurantServiceCalendarR1::class);
         $now = Carbon::now('Europe/Berlin');
-
-        $rawMinutes =
-            ((int)$now->hour * 60)
-            + (int)$now->minute
-            + ((int)$now->second > 0 ? 1 : 0);
-
-        $minimumMinutes =
-            (int)(ceil($rawMinutes / 15) * 15);
-
-        $minimumDate =
-            $now->toDateString();
-
-        if ($minimumMinutes >= 1440) {
-            $minimumDate =
-                $now->copy()->addDay()->toDateString();
-            $minimumMinutes = 0;
+        $rawMinutes = $now->hour * 60 + $now->minute
+            + ($now->second > 0 ? 1 : 0);
+        $minMinutes = (int)(ceil($rawMinutes / 15) * 15);
+        $minDate = $now->toDateString();
+        if ($minMinutes >= 1440) {
+            $minDate = $now->copy()->addDay()->toDateString();
+            $minMinutes = 0;
         }
-
-        if (
-            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
-            || $date < $minimumDate
-        ) {
-            $date = $minimumDate;
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $date < $minDate) {
+            $date = $minDate;
         }
-
-        $byWeekday = [];
-        foreach ($hours as $row) {
-            $weekday = (int)($row['weekday'] ?? -1);
-            if ($weekday >= 0 && $weekday <= 6) {
-                $byWeekday[$weekday] = $row;
-            }
-        }
-
-        $clockMinutes = static function (string $value): ?int {
-            if (!preg_match(
-                '/^([01]\d|2[0-3]):([0-5]\d)$/',
-                substr(trim($value), 0, 5),
-                $match
-            )) {
-                return null;
-            }
-
-            return
-                ((int)$match[1] * 60)
-                + (int)$match[2];
-        };
-
-        /*
-         * PMD_RESERVATION_OPENING_HOURS_FAIL_CLOSED_R24
-         *
-         * Never manufacture an unrestricted 24/7 create-time when the
-         * location's working-hours authority is missing.
-         */
-        $openingAllows = function (
-            string $candidateDate,
-            int $minute
-        ) use (
-            $hours,
-            $byWeekday,
-            $clockMinutes,
-            $duration
-        ): bool {
-            if (!$hours) {
-                return false;
-            }
-
-            try {
-                $requestedStart =
-                    Carbon::createFromFormat(
-                        '!Y-m-d H:i',
-                        $candidateDate.' '
-                        .sprintf(
-                            '%02d:%02d',
-                            intdiv($minute, 60),
-                            $minute % 60
-                        ),
-                        'Europe/Berlin'
-                    );
-            } catch (Throwable $error) {
-                return false;
-            }
-
-            $requestedEnd =
-                $requestedStart
-                    ->copy()
-                    ->addMinutes($duration);
-
-            foreach ([
-                $requestedStart->copy()->startOfDay(),
-                $requestedStart->copy()->subDay()->startOfDay(),
-            ] as $serviceDate) {
-                $weekday =
-                    ((int)$serviceDate->isoWeekday()) - 1;
-
-                $row =
-                    $byWeekday[$weekday]
-                    ?? null;
-
-                if (
-                    !$row
-                    || empty($row['enabled'])
-                ) {
-                    continue;
-                }
-
-                $opening =
-                    substr(
-                        (string)($row['opening_time'] ?? ''),
-                        0,
-                        5
-                    );
-
-                $closing =
-                    substr(
-                        (string)($row['closing_time'] ?? ''),
-                        0,
-                        5
-                    );
-
-                if (
-                    $clockMinutes($opening) === null
-                    || $clockMinutes($closing) === null
-                ) {
-                    continue;
-                }
-
-                $windowStart =
-                    Carbon::createFromFormat(
-                        '!Y-m-d H:i',
-                        $serviceDate->format('Y-m-d')
-                        .' '.$opening,
-                        'Europe/Berlin'
-                    );
-
-                $windowEnd =
-                    Carbon::createFromFormat(
-                        '!Y-m-d H:i',
-                        $serviceDate->format('Y-m-d')
-                        .' '.$closing,
-                        'Europe/Berlin'
-                    );
-
-                if ($opening === $closing) {
-                    $windowStart =
-                        $serviceDate->copy();
-                    $windowEnd =
-                        $serviceDate
-                            ->copy()
-                            ->addDay();
-                } elseif ($windowEnd->lte($windowStart)) {
-                    $windowEnd->addDay();
-                }
-
-                if (
-                    $requestedStart->gte($windowStart)
-                    && $requestedEnd->lte($windowEnd)
-                ) {
-                    return true;
-                }
-            }
-
-            return false;
-        };
-
+        $duration = max(1, $duration);
         $allowed = [];
         for ($minute = 0; $minute < 1440; $minute += 15) {
-            if (
-                $date === $minimumDate
-                && $minute < $minimumMinutes
-            ) {
-                continue;
+            if ($date === $minDate && $minute < $minMinutes) continue;
+            $clock = sprintf('%02d:%02d', intdiv($minute, 60), $minute % 60);
+            if ($calendar->allows($locationId, $date, $clock, $duration)) {
+                $allowed[] = $minute;
             }
-
-            if (!$openingAllows($date, $minute)) {
-                continue;
-            }
-
-            $allowed[] = $minute;
         }
+        if (!$allowed) return ['date' => $date, 'time' => ''];
 
-        if (!$allowed) {
-            return [
-                'date' => $date,
-                'time' => '',
-            ];
-        }
-
-        $target =
-            $clockMinutes($time);
-
-        $selected =
-            $allowed[0];
-
-        if ($target !== null) {
-            $bestDistance =
-                abs($selected - $target);
-
+        $selected = $allowed[0];
+        if (preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', $time, $m)) {
+            $target = (int)$m[1] * 60 + (int)$m[2];
+            $distance = abs($selected - $target);
             foreach ($allowed as $candidate) {
-                $distance =
-                    abs($candidate - $target);
-
-                if ($distance < $bestDistance) {
+                if (abs($candidate - $target) < $distance) {
                     $selected = $candidate;
-                    $bestDistance = $distance;
+                    $distance = abs($candidate - $target);
                 }
             }
         }
-
         return [
             'date' => $date,
-            'time' => sprintf(
-                '%02d:%02d',
-                intdiv($selected, 60),
-                $selected % 60
-            ),
+            'time' => sprintf('%02d:%02d', intdiv($selected, 60), $selected % 60),
         ];
     }
 
@@ -1172,76 +968,13 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
     protected function pmdComposerOpeningWindowAllows(array $data): bool
     {
-        $hours = $this->pmdComposerOpeningHours($this->pmdComposerLocationId($data));
-        if (!$hours) {
-            return false;
-        }
-
+        $locationId = $this->pmdComposerLocationId($data);
         $date = trim((string)($data['reserve_date'] ?? ''));
         $time = substr(trim((string)($data['reserve_time'] ?? '')), 0, 5);
         $duration = max(1, (int)($data['duration'] ?? 45));
-
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
-            || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
-            return false;
-        }
-
-        try {
-            $requestedStart = Carbon::createFromFormat('!Y-m-d H:i', $date.' '.$time, 'Europe/Berlin');
-        } catch (Throwable $error) {
-            return false;
-        }
-        $requestedEnd = $requestedStart->copy()->addMinutes($duration);
-
-        $byWeekday = [];
-        foreach ($hours as $row) {
-            $byWeekday[(int)$row['weekday']] = $row;
-        }
-
-        $candidates = [
-            $requestedStart->copy()->startOfDay(),
-            $requestedStart->copy()->subDay()->startOfDay(),
-        ];
-
-        foreach ($candidates as $serviceDate) {
-            // Carbon: Monday=1 ... Sunday=7; PMD Settings: Monday=0 ... Sunday=6.
-            $weekday = ((int)$serviceDate->isoWeekday()) - 1;
-            $row = $byWeekday[$weekday] ?? null;
-            if (!$row || empty($row['enabled'])) {
-                continue;
-            }
-
-            $opening = (string)($row['opening_time'] ?? '');
-            $closing = (string)($row['closing_time'] ?? '');
-            if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $opening)
-                || !preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $closing)) {
-                continue;
-            }
-
-            $windowStart = Carbon::createFromFormat(
-                '!Y-m-d H:i',
-                $serviceDate->format('Y-m-d').' '.$opening,
-                'Europe/Berlin'
-            );
-            $windowEnd = Carbon::createFromFormat(
-                '!Y-m-d H:i',
-                $serviceDate->format('Y-m-d').' '.$closing,
-                'Europe/Berlin'
-            );
-
-            if ($opening === $closing) {
-                $windowStart = $serviceDate->copy();
-                $windowEnd = $serviceDate->copy()->addDay();
-            } elseif ($windowEnd->lte($windowStart)) {
-                $windowEnd->addDay();
-            }
-
-            if ($requestedStart->gte($windowStart) && $requestedEnd->lte($windowEnd)) {
-                return true;
-            }
-        }
-
-        return false;
+        if ($locationId < 1) return false;
+        return app(\App\Services\Reservations\PmdRestaurantServiceCalendarR1::class)
+            ->allows($locationId, $date, $time, $duration);
     }
 
     protected function pmdGuardComposerOpeningHours(array $data): void
