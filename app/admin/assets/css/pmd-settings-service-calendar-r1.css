@@ -1,0 +1,36 @@
+/* PMD_SETTINGS_SERVICE_CALENDAR_R1
+ * Scoped extension of the existing Restaurant Profile opening-hour cards. */
+#pmd-restaurant-profile .pmd-profile-service-windows{display:grid;gap:9px;min-width:0}
+#pmd-restaurant-profile .pmd-profile-service-window{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px;gap:9px;align-items:end;min-width:0}
+#pmd-restaurant-profile .pmd-profile-service-window .pmd-profile-time{min-width:0}
+#pmd-restaurant-profile .pmd-profile-service-window .pmd-profile-time input{width:100%;min-width:0}
+#pmd-restaurant-profile .pmd-profile-service-remove{display:grid;place-items:center;height:38px;width:32px;margin:0;border:1px solid #dfebea;border-radius:10px;color:#a33444;background:#fff;font-size:22px;cursor:pointer}
+#pmd-restaurant-profile .pmd-profile-service-add{display:inline-flex;align-items:center;justify-content:center;min-height:33px;padding:6px 11px;margin-top:10px;border:1px dashed #94bcb3;border-radius:10px;background:#f6fbf9;color:#075548;font-size:12px;font-weight:760;cursor:pointer}
+#pmd-restaurant-profile .pmd-profile-service-add:disabled{opacity:.45;cursor:not-allowed}
+#pmd-restaurant-profile .pmd-profile-calendar-card{margin-top:18px;padding:17px;border:1px solid #dbe8e5;border-radius:16px;background:#fff;min-width:0}
+#pmd-restaurant-profile .pmd-profile-calendar-top{display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:15px;margin-bottom:14px}
+#pmd-restaurant-profile .pmd-profile-calendar-top h3{margin:0 0 5px;font-size:15px;font-weight:820;color:#16352e}
+#pmd-restaurant-profile .pmd-profile-calendar-top p,#pmd-restaurant-profile .pmd-profile-calendar-closures p{margin:0;color:#677d76;font-size:12px;line-height:1.5}
+#pmd-restaurant-profile .pmd-profile-calendar-advance{display:grid;gap:5px;min-width:195px;font-size:12px;font-weight:750;color:#49695f}
+#pmd-restaurant-profile .pmd-profile-calendar-advance select{height:39px;min-width:0;padding:7px 11px;border:1px solid #d5e3df;border-radius:11px;background:#fff;color:#123b30}
+#pmd-restaurant-profile .pmd-profile-calendar-shell{display:grid;grid-template-columns:minmax(270px,1fr) minmax(230px,1fr);gap:17px}
+#pmd-restaurant-profile .pmd-profile-calendar-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+#pmd-restaurant-profile .pmd-profile-calendar-nav strong{font-size:14px;font-weight:820;color:#173b30}
+#pmd-restaurant-profile .pmd-profile-calendar-nav button{width:32px;height:32px;border:1px solid #d8e8e2;border-radius:10px;background:#fff;color:#204e42;font-size:22px;cursor:pointer}
+#pmd-restaurant-profile .pmd-profile-calendar-weekdays,#pmd-restaurant-profile .pmd-profile-calendar-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+#pmd-restaurant-profile .pmd-profile-calendar-weekdays span{text-align:center;color:#7b8984;font-size:11px;font-weight:750}
+#pmd-restaurant-profile .pmd-profile-calendar-days button{display:grid;place-items:center;position:relative;height:36px;min-width:0;padding:0;border:1px solid #e0eae7;border-radius:9px;background:#fff;color:#193b33;font-size:12px;font-weight:760;cursor:pointer}
+#pmd-restaurant-profile .pmd-profile-calendar-days button[aria-pressed=true]{background:#ffe8e7;color:#8f2631;border-color:#de9d9d}
+#pmd-restaurant-profile .pmd-profile-calendar-days button[aria-pressed=true]::after{content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);height:4px;width:4px;border-radius:50%;background:#e04652}
+#pmd-restaurant-profile .pmd-profile-calendar-days button:disabled{opacity:.24;cursor:default}
+#pmd-restaurant-profile .pmd-profile-calendar-closures{padding:15px;background:#f7fbfa;border-radius:13px;min-width:0}
+#pmd-restaurant-profile .pmd-profile-calendar-closures>strong{font-size:13px;color:#1b3a30}
+#pmd-restaurant-profile .pmd-profile-calendar-closures p{margin:8px 0 13px}
+#pmd-restaurant-profile .pmd-profile-calendar-add-row{display:flex;gap:7px;flex-wrap:wrap}
+#pmd-restaurant-profile .pmd-profile-calendar-add-row input{min-width:120px;flex:1;height:38px;padding:6px 8px;border:1px solid #d6e4df;border-radius:9px;background:white}
+#pmd-restaurant-profile .pmd-profile-calendar-add-row button{min-height:38px;padding:6px 10px;border:1px solid #b6d3c7;border-radius:9px;background:#e9f6ef;color:#075548;font-size:12px;font-weight:780;cursor:pointer}
+#pmd-restaurant-profile .pmd-profile-calendar-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;max-height:154px;overflow:auto}
+#pmd-restaurant-profile .pmd-profile-calendar-chips button{display:inline-flex;align-items:center;gap:8px;padding:6px 9px;border:1px solid #e0c6c3;border-radius:99px;background:#fff6f6;color:#943343;font-size:11px;cursor:pointer}
+#pmd-restaurant-profile .pmd-profile-calendar-chips button::after{content:"×";font-size:15px;font-weight:800}
+#pmd-restaurant-profile .pmd-profile-calendar-chips .pmd-profile-calendar-none{font-size:12px;color:#6c827a}
+@media(max-width:760px){#pmd-restaurant-profile .pmd-profile-calendar-shell{grid-template-columns:1fr}#pmd-restaurant-profile .pmd-profile-calendar-card{padding:12px}}
