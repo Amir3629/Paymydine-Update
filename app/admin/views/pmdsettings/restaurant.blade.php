@@ -578,7 +578,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                     </div>
 
                     <div class="pmd-profile-calendar-card" data-pmd-service-calendar
-                        data-pmd-service-today="{{ \Carbon\Carbon::now((string)setting('timezone', 'Europe/Berlin'))->toDateString() }}">
+                        data-pmd-service-today="{{ $pmdProfileServiceToday ?? \Carbon\Carbon::now('Europe/Berlin')->toDateString() }}">
                         <input type="hidden" name="schedule[version]" value="1">
                         <input type="hidden" name="schedule[closed_dates_json]"
                             data-pmd-service-closed-json
