@@ -2308,61 +2308,36 @@ class PmdPublicBookingController extends Controller
 
     private function openingHours(Locations_model $location): array
     {
-        $hours = [];
-        foreach (range(0, 6) as $weekday) {
-            $hours[$weekday] = [
-                'weekday' => $weekday,
-                'enabled' => false,
-                'opening_time' => null,
-                'closing_time' => null,
-            ];
-        }
-
-        try {
-            if (!Schema::hasTable('working_hours')) {
-                return array_values($hours);
-            }
-
-            $rows = DB::table('working_hours')
-                ->where('location_id', (int)$location->getKey())
-                ->where('type', 'opening')
-                ->orderBy('weekday')
-                ->get();
-
-            foreach ($rows as $row) {
-                $weekday = (int)$row->weekday;
-                if (!array_key_exists($weekday, $hours)) {
-                    continue;
-                }
-
-                $hours[$weekday] = [
-                    'weekday' => $weekday,
-                    'enabled' => (bool)$row->status,
-                    'opening_time' => substr((string)$row->opening_time, 0, 5),
-                    'closing_time' => substr((string)$row->closing_time, 0, 5),
-                ];
-            }
-        } catch (Throwable $error) {
-            Log::warning('PMD public booking opening-hours read failed', [
-                'location_id' => (int)$location->getKey(),
-                'message' => $error->getMessage(),
-            ]);
-        }
-
-        return array_values($hours);
+        return $this->restaurantCalendar()->weeklyRows((int)$location->getKey());
     }
 
     private function hoursForDate(Locations_model $location, Carbon $date): array
     {
-        $hours = $this->openingHours($location);
-        $weekday = max(0, min(6, ((int)$date->isoWeekday()) - 1));
-
-        return $hours[$weekday] ?? [
+        $weekday = $date->isoWeekday() - 1;
+        $base = $this->openingHours($location)[$weekday] ?? [
             'weekday' => $weekday,
             'enabled' => false,
+            'windows' => [],
             'opening_time' => null,
             'closing_time' => null,
         ];
+
+        $windows = $this->restaurantCalendar()->windowsForDate(
+            (int)$location->getKey(), $date
+        );
+        $base['enabled'] = count($windows) > 0;
+        $base['closed'] = $this->restaurantCalendar()->isClosedDate(
+            (int)$location->getKey(), $date->toDateString()
+        );
+        $base['windows'] = array_map(static fn (array $window) => [
+            'opening_time' => $window['start']->format('H:i'),
+            'closing_time' => $window['end']->format('H:i'),
+            'start_at' => $window['start']->toIso8601String(),
+            'end_at' => $window['end']->toIso8601String(),
+        ], $windows);
+        $base['opening_time'] = $windows ? $windows[0]['start']->format('H:i') : null;
+        $base['closing_time'] = $windows ? $windows[count($windows)-1]['end']->format('H:i') : null;
+        return $base;
     }
 
     private function slotInterval(Locations_model $location): int
@@ -2415,11 +2390,13 @@ class PmdPublicBookingController extends Controller
     private function guardBookableDate(Carbon $date, string $timezone): void
     {
         $today = Carbon::now($timezone)->startOfDay();
-        $latest = $today->copy()->addDays(self::MAX_BOOKING_DAYS);
-
-        if ($date->lessThan($today) || $date->greaterThan($latest)) {
+        $daysAhead = $this->restaurantCalendar()->advanceDays(
+            (int)$this->location()->getKey()
+        );
+        $latest = $today->copy()->addDays($daysAhead);
+        if ($date->lt($today) || $date->gt($latest)) {
             throw ValidationException::withMessages([
-                'date' => ['Please choose a date within the next '.self::MAX_BOOKING_DAYS.' days.'],
+                'date' => ['Please choose a date within the next '.$daysAhead.' days.'],
             ]);
         }
     }
