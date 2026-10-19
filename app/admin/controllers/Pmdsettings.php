@@ -114,9 +114,11 @@ class Pmdsettings extends AdminController
             // Leave the profile editable if public booking is unavailable.
         }
         $this->vars['pmdProfileHours'] = $this->openingHours($locationId);
-        $this->vars['pmdProfileSchedule'] = app(
+        $pmdRestaurantCalendar = app(
             \App\Services\Reservations\PmdRestaurantServiceCalendarR1::class
-        )->policy($locationId);
+        );
+        $this->vars['pmdProfileSchedule'] = $pmdRestaurantCalendar->policy($locationId);
+        $this->vars['pmdProfileServiceToday'] = $pmdRestaurantCalendar->today();
         $this->vars['pmdFloorReservationNoticeMinutes'] =
             app(\Admin\Services\PmdFloorReservationWindowsV1::class)->noticeMinutes();
         $this->vars['pmdProfileLocationId'] = $locationId;
