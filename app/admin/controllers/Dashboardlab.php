@@ -9,6 +9,9 @@ use Admin\Services\PmdRoleDashboardDataV1;
 use Admin\Services\PmdDashboardAnalyticsSnapshotV132;
 use Admin\Services\PmdOnlineStaffCardV1;
 
+// Runtime-safe before the module's generated classmap is rebuilt on VPS.
+require_once dirname(__DIR__).'/services/PmdOnlineStaffCardV1.php';
+
 /**
  * PMD Dashboard Lab
  *
