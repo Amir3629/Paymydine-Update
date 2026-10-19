@@ -63,6 +63,11 @@ final class PmdRestaurantServiceCalendarR1
         }, $policy['weekly']);
     }
 
+    public function forget(int $locationId): void
+    {
+        unset($this->cache[$locationId]);
+    }
+
     public function advanceDays(int $locationId): int
     {
         return (int)$this->policy($locationId)['advance_days'];
@@ -142,7 +147,10 @@ final class PmdRestaurantServiceCalendarR1
         }
 
         try {
-            $start = Carbon::parse($date.' '.$time, 'Europe/Berlin');
+            $start = Carbon::parse($date.' '.$time, $this->timezone());
+            // Daylight-saving gaps such as 02:30 during spring-forward
+            // must never silently normalize into an unrelated service slot.
+            if ($start->format('Y-m-d H:i') !== $date.' '.$time) return false;
             $end = $start->copy()->addMinutes($duration);
             if ($this->isClosedDate($locationId, $end->toDateString())
                 && $end->toDateString() !== $date) {
@@ -344,6 +352,19 @@ final class PmdRestaurantServiceCalendarR1
             'opening_time' => $windows[0]['opening_time'] ?? null,
             'closing_time' => $windows[0]['closing_time'] ?? null,
         ];
+    }
+
+    private function timezone(): string
+    {
+        $timezone = (string)setting(
+            'timezone', config('app.timezone', 'Europe/Berlin')
+        );
+        try {
+            new \DateTimeZone($timezone);
+            return $timezone;
+        } catch (\Throwable $error) {
+            return 'Europe/Berlin';
+        }
     }
 
     private function validClock(string $clock): bool
