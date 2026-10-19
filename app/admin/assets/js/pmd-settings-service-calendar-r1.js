@@ -157,7 +157,7 @@
     }
 
     function minutes(clock) {
-      var match = /^([01]\\d|2[0-3]):([0-5]\\d)$/.exec(String(clock || ''));
+      var match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(clock || ''));
       return match ? Number(match[1]) * 60 + Number(match[2]) : null;
     }
     function proposeWindow(row) {
