@@ -35,7 +35,6 @@ require $root.'/bootstrap/autoload.php';
 $app = require $root.'/bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -77,19 +76,36 @@ try {
 
     if (!$exists) {
         echo "Applying the single presence table migration...\n";
-        $code = Artisan::call('migrate', [
-            '--database' => 'mysql',
-            '--path' => $migration,
-            '--force' => true,
-            '--no-interaction' => true,
-        ]);
-        if ($code !== 0) {
-            throw new \RuntimeException('Migration command failed (exit '.$code.').');
+        // This TastyIgniter build does NOT register the Laravel Artisan
+        // 'migrate' command. The existing migration file returns one
+        // anonymous Migration instance, so invoke its up() directly,
+        // AFTER selecting the one verified tenant database. DDL runs only
+        // when --apply is explicitly given and the presence table is missing.
+        $instance = require $root.'/'.$migration;
+        if (!is_object($instance) || !method_exists($instance, 'up')) {
+            throw new \RuntimeException('Presence migration contract invalid.');
         }
+        $instance->up();
     }
 
     if (!Schema::connection('mysql')->hasTable('pmd_admin_presence_sessions')) {
         throw new \RuntimeException('Presence table still missing after migration.');
+    }
+
+    foreach ([
+        'presence_id',
+        'session_hash',
+        'user_id',
+        'staff_id',
+        'location_id',
+        'login_at',
+        'last_seen_at',
+        'expires_at',
+        'logout_at',
+    ] as $requiredColumn) {
+        if (!Schema::connection('mysql')->hasColumn('pmd_admin_presence_sessions', $requiredColumn)) {
+            throw new \RuntimeException('Presence schema missing column: '.$requiredColumn);
+        }
     }
 
     echo "PASS: presence table is ready for ".$domain."\n";
