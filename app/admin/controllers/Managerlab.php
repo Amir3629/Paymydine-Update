@@ -17,8 +17,8 @@ require_once dirname(__DIR__).'/services/PmdOnlineStaffCardV1.php';
  * PMD_MANAGER_ONLINE_STAFF_CARD_V3_5_2
  *
  * Manager keeps the approved four top KPI cards and exact Owner analytics.
- * The six V3.5 manager-only insight cards are removed completely. A single
- * Manager-only online-staff card is rendered AFTER all Owner analytics cards.
+ * The six V3.5 manager-only insight cards are removed completely. The
+ * shared Owner/Manager online-staff card follows all analytics cards.
  */
 class Managerlab extends PmdCleanWorkspaceControllerV1
 {
