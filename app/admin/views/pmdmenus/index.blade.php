@@ -352,7 +352,6 @@
                 data-pmd-menu-tools-toggle-r1
                 aria-label="Menu tools"
                 title="Menu tools"
-                aria-haspopup="true"
                 aria-expanded="false"
                 aria-controls="pmd-menu-header-tools-panel-r1"
             >
