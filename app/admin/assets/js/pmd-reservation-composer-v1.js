@@ -3706,6 +3706,8 @@ function applyAvailability(result) {
       return {
         weekday:Number(row && row.weekday),
         enabled:Boolean(row && row.enabled),
+        opening_time:String((row && row.opening_time) || '').slice(0,5),
+        closing_time:String((row && row.closing_time) || '').slice(0,5),
         windows:windows.map(function (window) {
           return {
             opening_time:String((window && window.opening_time) || '').slice(0,5),
@@ -3796,7 +3798,17 @@ function applyAvailability(result) {
         }
       });
     }
-    return windows.some(function (window) {
+    windows.sort(function (a,b) { return a[0] - b[0]; });
+    var merged = [];
+    windows.forEach(function (window) {
+      var latest = merged[merged.length - 1];
+      if (latest && window[0] <= latest[1]) {
+        latest[1] = Math.max(latest[1], window[1]);
+      } else {
+        merged.push(window.slice());
+      }
+    });
+    return merged.some(function (window) {
       return start >= window[0] && end <= window[1];
     });
   }
