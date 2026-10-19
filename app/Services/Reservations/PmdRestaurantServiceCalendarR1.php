@@ -180,7 +180,7 @@ final class PmdRestaurantServiceCalendarR1
             $end = $start->copy()->addMinutes($duration);
             // Closing at exactly 00:00 does not occupy a closed
             // following date. Crossing into that date does.
-            $lastOccupiedDay = $end->copy()->subMicrosecond()->toDateString();
+            $lastOccupiedDay = $end->copy()->subSecond()->toDateString();
             if ($lastOccupiedDay !== $date
                 && $this->isClosedDate($locationId, $lastOccupiedDay)) {
                 return false;
