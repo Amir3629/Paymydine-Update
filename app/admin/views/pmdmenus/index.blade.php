@@ -340,6 +340,49 @@
             <span aria-hidden="true">AI</span>
         </button>
 
+        {{-- PMD_MENU_COMPACT_TOOLS_R1
+             Original controls remain direct children for native JS handlers.
+             These visible rows forward clicks; hidden native triggers are
+             never moved, cloned or replaced. Menu/Inventory/Notifications
+             and the contextual Create buttons stay outside this disclosure. --}}
+        <div class="pmd-menu-header-tools-r1" data-pmd-menu-tools-r1>
+            <button
+                type="button"
+                class="pmd-dashboard-lab__header-action pmd-menu-header-tools-r1__toggle"
+                data-pmd-menu-tools-toggle-r1
+                aria-label="Menu tools"
+                title="Menu tools"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-controls="pmd-menu-header-tools-panel-r1"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="5" cy="12" r="1.3"></circle>
+                    <circle cx="12" cy="12" r="1.3"></circle>
+                    <circle cx="19" cy="12" r="1.3"></circle>
+                </svg>
+            </button>
+            <div
+                id="pmd-menu-header-tools-panel-r1"
+                class="pmd-menu-header-tools-r1__panel"
+                data-pmd-menu-tools-panel-r1
+                aria-label="Menu tools"
+                role="group"
+                hidden
+            >
+                <span class="pmd-menu-header-tools-r1__title">Menu tools</span>
+                @if(!empty($pmdMenuCanManageInventoryR20))
+                    <button type="button" data-pmd-menu-tool-r1="stock">Set stock usage</button>
+                @endif
+                @if($canManageKitchenCapacity)
+                    <button type="button" data-pmd-menu-tool-r1="capacity">Kitchen capacity</button>
+                    <button type="button" data-pmd-menu-tool-r1="timing">Kitchen timing</button>
+                @endif
+                <button type="button" data-pmd-menu-tool-r1="ai">Import menu with AI</button>
+                <button type="button" data-pmd-menu-tool-r1="sort">Reorder menu cards</button>
+            </div>
+        </div>
+
         {{-- PMD_MENU_SORT_HEADER_ACTION_V160 --}}
         <button
             type="button"
