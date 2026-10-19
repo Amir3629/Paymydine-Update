@@ -949,6 +949,11 @@
             'analyticsBootstrap' => $pmdDashboardLabAnalyticsBootstrap ?? [],
         ])
 
+        {{-- PMD_OWNER_ONLINE_STAFF_V1: same card after Owner analytics --}}
+        @include('admin::_partials.pmd_online_staff_card_v1', [
+            'pmdOnlineStaffCard' => $pmdOwnerOnlineStaff ?? [],
+        ])
+
         {{-- R19: load the existing modal wizard directly on canonical Dashboard.
              The header link still works as a normal URL when JS is disabled. --}}
         @php
