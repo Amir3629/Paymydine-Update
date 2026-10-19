@@ -141,6 +141,24 @@ class Pmdmenus extends AdminController
             );
         }
 
+        // PMD_MENU_COMPACT_HEADER_ASSETS_R1
+        // Scoped to the canonical Menu page. Keep the original action nodes
+        // and native V130/AI/Prep/Stock listeners; only visual disclosure is new.
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-menu-header-tools-r1.css')
+            .'?v='.(string)(
+                @filemtime(base_path('app/admin/assets/css/pmd-menu-header-tools-r1.css'))
+                ?: 'r1'
+            )
+        );
+        $this->addJs(
+            asset('app/admin/assets/js/pmd-menu-header-tools-r1.js')
+            .'?v='.(string)(
+                @filemtime(base_path('app/admin/assets/js/pmd-menu-header-tools-r1.js'))
+                ?: 'r1'
+            )
+        );
+
         AdminMenu::setContext('menus', 'restaurant');
     }
 
