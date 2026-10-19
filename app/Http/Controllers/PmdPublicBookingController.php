@@ -6,6 +6,7 @@ use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
 use App\Services\Platform\LocationPlatformContext;
 use App\Services\Reservations\PmdGuestCommunicationService;
+use App\Services\Reservations\PmdRestaurantServiceCalendarR1;
 use App\Services\Reservations\PmdReservationGuaranteeService;
 use Carbon\Carbon;
 use DateTimeInterface;
@@ -21,11 +22,17 @@ use Throwable;
 
 class PmdPublicBookingController extends Controller
 {
-    private const MAX_BOOKING_DAYS = 180;
+    private const MAX_BOOKING_DAYS = 365; // safety cap; tenant sets effective range
     private const MAX_DATE_STATUS_DAYS = 14;
     private const DEFAULT_SLOT_MINUTES = 30;
     private const DEFAULT_STAY_MINUTES = 90;
     private const PUBLIC_LOCALES = ['en', 'de', 'tr', 'ar'];
+    private ?PmdRestaurantServiceCalendarR1 $restaurantCalendar = null;
+
+    private function restaurantCalendar(): PmdRestaurantServiceCalendarR1
+    {
+        return $this->restaurantCalendar ??= app(PmdRestaurantServiceCalendarR1::class);
+    }
 
     public function show(Request $request)
     {
@@ -105,11 +112,14 @@ class PmdPublicBookingController extends Controller
                 'bookingLanguages' => $languageContext['eligible'],
                 'bookingTimezone' => $timezone,
                 'bookingToday' => $today->toDateString(),
-                'bookingMaxDate' => $today->copy()->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
+                'bookingMaxDate' => $today->copy()->addDays(
+                    $this->restaurantCalendar()->advanceDays((int)$location->getKey())
+                )->toDateString(),
                 'bookingMaxGuests' => $maxGuests,
                 'bookingStayMinutes' => $stayMinutes,
                 'bookingAvailabilitySeed' => $availabilitySeed,
                 'bookingOpeningHours' => $openingHours,
+                'bookingClosedDates' => $this->restaurantCalendar()->closedDates((int)$location->getKey()),
                 'bookingTableRules' => $this->tableRules($location),
                 'bookingGuarantee' => $guaranteeByLocale[$locale]
                     ?? $guaranteeService->publicConfig($location, $locale),
@@ -426,7 +436,9 @@ class PmdPublicBookingController extends Controller
     ): array {
         $days = min(self::MAX_DATE_STATUS_DAYS, max(1, $days));
         $timezone = $this->timezone();
-        $latest = Carbon::now($timezone)->startOfDay()->addDays(self::MAX_BOOKING_DAYS);
+        $latest = Carbon::now($timezone)->startOfDay()->addDays(
+            $this->restaurantCalendar()->advanceDays((int)$location->getKey())
+        );
         $lastDate = $start->copy()->addDays($days - 1);
 
         if ($lastDate->greaterThan($latest)) {
@@ -456,13 +468,8 @@ class PmdPublicBookingController extends Controller
                 break;
             }
 
-            $weekday = max(0, min(6, ((int)$date->isoWeekday()) - 1));
-            $opening = $openingHours[$weekday] ?? [
-                'weekday' => $weekday,
-                'enabled' => false,
-                'opening_time' => null,
-                'closing_time' => null,
-            ];
+            // Date-specific overrides and all service windows are authoritative.
+            $opening = $this->hoursForDate($location, $date);
 
             $reservationDateMin = $date->copy()->subDay()->toDateString();
             $reservationDateMax = $date->copy()->addDay()->toDateString();
@@ -706,6 +713,13 @@ class PmdPublicBookingController extends Controller
 
                 $start = Carbon::parse($date->toDateString().' '.$time, $timezone);
                 $duration = (int)$availability['duration'];
+                if (!$this->restaurantCalendar()->allows(
+                    (int)$location->getKey(), $date->toDateString(), $time, $duration
+                )) {
+                    throw ValidationException::withMessages([
+                        'reserve_time' => ['Restaurant service hours changed. Please choose a new time.'],
+                    ]);
+                }
                 $end = $start->copy()->addMinutes($duration);
 
                 $activeReservations = $this->activeReservations($location, $start, $end);
@@ -1508,7 +1522,9 @@ class PmdPublicBookingController extends Controller
                 'bookingLanguages' => $languageContext['eligible'],
                 'bookingTimezone' => $timezone,
                 'bookingToday' => $today->toDateString(),
-                'bookingMaxDate' => $today->copy()->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
+                'bookingMaxDate' => $today->copy()->addDays(
+                    $this->restaurantCalendar()->advanceDays((int)$location->getKey())
+                )->toDateString(),
                 'bookingMaxGuests' => $this->maxBookableGuests($location),
                 'bookingStayMinutes' => $this->stayMinutes($location),
                 'bookingTableRules' => $this->tableRules($location),
