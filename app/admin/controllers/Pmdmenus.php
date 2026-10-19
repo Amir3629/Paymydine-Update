@@ -145,7 +145,8 @@ class Pmdmenus extends AdminController
         foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
             $this->addCss(asset($pmdGlassInputCssV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputCssV1)) ?: '20261019'));
         }
-        foreach (['app/admin/assets/js/pmd-glass-numeric-controls-v1.js', 'app/admin/assets/js/pmd-menu-content-translations-v2.js'] as $pmdGlassInputJsV1) {
+        foreach ([/* PMD_MENU_TRANSLATIONS_SINGLE_RUNTIME_LOAD_V4_20261019: serve cache-busted legacy alias and V2, both guarded by a shared singleton. */
+                 'app/admin/assets/js/pmd-glass-numeric-controls-v1.js', 'app/admin/assets/js/pmd-menu-content-translations-v1.js', 'app/admin/assets/js/pmd-menu-content-translations-v2.js'] as $pmdGlassInputJsV1) {
             $this->addJs(asset($pmdGlassInputJsV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputJsV1)) ?: '20261019'));
         }
 
