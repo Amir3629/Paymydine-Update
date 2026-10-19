@@ -36,11 +36,22 @@
     function sync() {
       var count = 0;
       panel.querySelectorAll('[data-pmd-menu-tool-r1]').forEach(function (item) {
-        var source = original(item.getAttribute('data-pmd-menu-tool-r1'));
+        var kind = item.getAttribute('data-pmd-menu-tool-r1');
+        var source = original(kind);
         item.hidden = !source;
         item.disabled = !source;
-        var pressed = !!source && source.getAttribute('aria-pressed') === 'true';
-        item.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+        // Only genuine toggle actions expose aria-pressed. Ordinary open
+        // dialog actions remain semantic buttons, not fabricated toggles.
+        if (kind === 'sort' || kind === 'stock') {
+          var pressed = !!source && source.getAttribute('aria-pressed') === 'true';
+          item.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+          if (kind === 'sort') {
+            var label = pressed ? 'Finish reordering' : 'Reorder menu cards';
+            if (item.textContent !== label) item.textContent = label;
+          }
+        } else {
+          item.removeAttribute('aria-pressed');
+        }
         if (source) count++;
       });
       return count;
