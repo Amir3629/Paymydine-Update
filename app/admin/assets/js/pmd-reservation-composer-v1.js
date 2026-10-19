@@ -3701,15 +3701,22 @@ function applyAvailability(result) {
   }
   function normalizeHours(rows) {
     return (Array.isArray(rows) ? rows : []).map(function (row) {
+      var windows = Array.isArray(row && row.windows) ? row.windows :
+        (row && row.enabled ? [row] : []);
       return {
         weekday:Number(row && row.weekday),
         enabled:Boolean(row && row.enabled),
-        opening_time:String((row && row.opening_time)||'').slice(0,5),
-        closing_time:String((row && row.closing_time)||'').slice(0,5)
+        windows:windows.map(function (window) {
+          return {
+            opening_time:String((window && window.opening_time) || '').slice(0,5),
+            closing_time:String((window && window.closing_time) || '').slice(0,5)
+          };
+        }),
+        closed_dates:Array.isArray(row && row.closed_dates) ? row.closed_dates : []
       };
     }).filter(function (row) { return row.weekday >= 0 && row.weekday <= 6; });
   }
-  function scheduleOpeningHoursFallback() {
+    function scheduleOpeningHoursFallback() {
     try {
       var api = window.PMDReservationsScheduleV1;
       if (api && typeof api.getOpeningHours === 'function') {
@@ -3754,25 +3761,46 @@ function applyAvailability(result) {
     var weekday = weekdayForDate(date);
     var start = timeMinutes(time);
     if (weekday === null || start === null) return false;
+
+    var closedDates = openingHours[0] && openingHours[0].closed_dates || [];
+    if (closedDates.indexOf(date) !== -1) return false;
     var end = start + Math.max(1, Number(duration || 45));
-    var current = hourRow(weekday);
+    if (end > 1440 && closedDates.indexOf(nextDate(date)) !== -1) return false;
+
+    var windows = [];
+    var today = hourRow(weekday);
     var previous = hourRow((weekday + 6) % 7);
+    var previousDate = (function () {
+      var d = String(date).split('-').map(Number);
+      var value = new Date(Date.UTC(d[0], d[1]-1, d[2], 12));
+      value.setUTCDate(value.getUTCDate()-1);
+      return value.getUTCFullYear()+'-'+pad(value.getUTCMonth()+1)+'-'+pad(value.getUTCDate());
+    })();
 
-    if (previous && previous.enabled) {
-      var po = timeMinutes(previous.opening_time);
-      var pc = timeMinutes(previous.closing_time);
-      if (po !== null && pc !== null && pc < po && start < pc && end <= pc) return true;
+    if (previous && previous.enabled &&
+        closedDates.indexOf(previousDate) === -1) {
+      previous.windows.forEach(function (window) {
+        var op = timeMinutes(window.opening_time);
+        var cl = timeMinutes(window.closing_time);
+        if (op !== null && cl !== null && cl <= op && cl > 0) {
+          windows.push([0, cl]);
+        }
+      });
     }
-
-    if (!current || !current.enabled) return false;
-    var open = timeMinutes(current.opening_time);
-    var close = timeMinutes(current.closing_time);
-    if (open === null || close === null) return false;
-    if (open === close) return true; // explicitly enabled 24-hour day
-    if (close <= open) close += 1440; // overnight
-    return start >= open && end <= close;
+    if (today && today.enabled) {
+      today.windows.forEach(function (window) {
+        var op = timeMinutes(window.opening_time);
+        var cl = timeMinutes(window.closing_time);
+        if (op !== null && cl !== null) {
+          windows.push([op, cl <= op ? cl + 1440 : cl]);
+        }
+      });
+    }
+    return windows.some(function (window) {
+      return start >= window[0] && end <= window[1];
+    });
   }
-  function dateHasOpeningWindow(date) {
+    function dateHasOpeningWindow(date) {
     if (!hoursConfigured()) return false;
     if (!validDate(date)) return false;
     for (var minute = 0; minute < 1440; minute += 15) {
