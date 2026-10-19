@@ -1044,6 +1044,10 @@ class Pmdsettings extends AdminController
                 $calendarService->save($locationId, $calendarPolicy);
             }
 
+            // Old open tabs without schedule[version] must not overwrite the
+            // first-window legacy projection of an already-configured multi-
+            // service calendar when the owner is merely changing identity.
+            if ($calendarPolicy !== null || !$calendarService->hasSavedPolicy($locationId)) {
             foreach (range(0, 6) as $weekday) {
                 // Legacy consumers still see the first active service period,
                 // while the new canonical calendar owns all windows/exceptions.
@@ -1066,6 +1070,7 @@ class Pmdsettings extends AdminController
                         'status' => $enabled ? 1 : 0,
                     ]
                 );
+            }
             }
         });
 
