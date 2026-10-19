@@ -1,0 +1,239 @@
+/* PMD_GLASS_NUMERIC_CONTROLS_V1_20261019
+   One reusable, accessible minus/input/plus design across the seven Admin
+   workspaces. Real numeric constraints and values are controlled by HTML. */
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper {
+  display:grid !important;
+  grid-template-columns:42px minmax(0,1fr) 42px !important;
+  gap:8px !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:48px !important;
+  min-height:48px !important;
+  align-items:stretch !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 !important;
+  background:transparent !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__button {
+  display:grid !important;
+  place-items:center !important;
+  box-sizing:border-box !important;
+  width:42px !important;
+  height:48px !important;
+  min-width:0 !important;
+  min-height:48px !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.94) !important;
+  color:#075c47 !important;
+  box-shadow:0 3px 12px rgba(23,57,50,.035) !important;
+  font:850 22px/1 system-ui,sans-serif !important;
+  cursor:pointer !important;
+  touch-action:manipulation;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__button:focus-visible {
+  outline:2px solid #167c65 !important;
+  outline-offset:2px !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__button:disabled {
+  opacity:.42 !important;
+  cursor:not-allowed !important;
+  background:#f5f7f7 !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__center {
+  position:relative !important;
+  display:flex !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:48px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__center > input[type=number] {
+  box-sizing:border-box !important;
+  display:block !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  width:100% !important;
+  height:48px !important;
+  min-height:48px !important;
+  margin:0 !important;
+  padding:0 12px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background-color:rgba(255,255,255,.96) !important;
+  box-shadow:0 4px 14px rgba(22,52,47,.035) !important;
+  color:#102a43 !important;
+  font-size:13px !important;
+  font-weight:750 !important;
+  appearance:textfield !important;
+  -moz-appearance:textfield !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__center > input::-webkit-inner-spin-button,
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__center > input::-webkit-outer-spin-button {
+  -webkit-appearance:none !important;
+  margin:0 !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper--has-unit .pmd-glass-stepper__center > input {
+  padding-right:54px !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__unit {
+  position:absolute !important;
+  right:9px !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:26px !important;
+  max-width:48px !important;
+  min-height:22px !important;
+  padding:0 5px !important;
+  border-radius:7px !important;
+  background:#eaf5ef !important;
+  color:#075c47 !important;
+  font:800 10px/1 system-ui,sans-serif !important;
+  text-align:center !important;
+  pointer-events:none !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__unit[hidden] { display:none !important; }
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper--disabled .pmd-glass-stepper__center > input {
+  background:#f3f7f6 !important;
+  box-shadow:none !important;
+}
+@media(max-width:700px) {
+  body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+  .pmd-glass-stepper {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+    gap:6px !important;
+  }
+  body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+  .pmd-glass-stepper__button { width:38px !important; }
+}
+
+/* FOOD: align dynamic language switch and the allergen title with field icons. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__subhead--allergens {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  margin:2px 0 14px !important;
+  min-height:38px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__allergens-heading {
+  display:flex !important;
+  align-items:center !important;
+  min-width:0 !important;
+  gap:10px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__allergens-icon {
+  display:grid !important;
+  place-items:center !important;
+  flex:0 0 36px !important;
+  width:36px !important;
+  height:36px !important;
+  border:1px solid rgba(83,166,111,.12) !important;
+  border-radius:14px !important;
+  background:#f8fdf9 !important;
+  color:#2f866f !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__allergens-icon svg {
+  width:19px !important;
+  height:19px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3 {
+  display:inline-flex !important;
+  align-items:center !important;
+  flex-wrap:wrap !important;
+  gap:9px !important;
+  max-width:100% !important;
+  min-height:44px !important;
+  padding:7px 12px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.96) !important;
+  color:#075c47 !important;
+  font-size:12px !important;
+  font-weight:850 !important;
+  cursor:pointer !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3[aria-expanded=true] {
+  border-color:#075c47 !important;
+  background:#eaf5ef !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3__direction {
+  font-size:11px !important;
+  font-weight:700 !important;
+  color:#46685e !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3 svg {
+  width:16px !important;
+  height:16px !important;
+  flex:0 0 16px !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+  transition:transform .15s ease !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3[aria-expanded=true] svg { transform:rotate(180deg) !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-tabs-v3 {
+  display:flex !important;
+  align-items:center !important;
+  gap:7px !important;
+  flex-wrap:wrap !important;
+  min-width:0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-tabs-v3[hidden],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+[data-pmd-menu-translation-panels][hidden] { display:none !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__head {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  flex-wrap:wrap !important;
+  gap:10px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__title { min-width:0 !important; flex:1 1 230px !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__actions { margin-left:auto !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__actions [data-pmd-menu-auto-translate] {
+  min-height:44px !important;
+  border-radius:16px !important;
+}
+@media(max-width:520px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-translation-switch-v3 { width:100% !important; justify-content:center !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-content-translations__actions { width:100% !important; }
+}
