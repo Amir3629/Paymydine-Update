@@ -124,9 +124,21 @@ final class PmdRestaurantServiceCalendarR1
                 $close = (string)($window['closing_time'] ?? '');
                 if (!$this->validClock($open) || !$this->validClock($close)) continue;
 
-                $start = Carbon::parse($serviceDay->toDateString().' '.$open, $day->getTimezone());
-                $end = Carbon::parse($serviceDay->toDateString().' '.$close, $day->getTimezone());
-                if ($end->lte($start)) $end->addDay();
+                if ($open === $close) {
+                    // The legacy schedule treats equal times as an all-day
+                    // opening, regardless of their configured clock value.
+                    $start = $serviceDay->copy()->startOfDay();
+                    $end = $serviceDay->copy()->addDay()->startOfDay();
+                } else {
+                    $start = Carbon::parse($serviceDay->toDateString().' '.$open, $day->getTimezone());
+                    $end = Carbon::parse($serviceDay->toDateString().' '.$close, $day->getTimezone());
+                    // A nonexistent spring-forward hour must not fabricate
+                    // service periods by Carbon silently moving the clock.
+                    if ($start->format('H:i') !== $open || $end->format('H:i') !== $close) {
+                        continue;
+                    }
+                    if ($end->lte($start)) $end->addDay();
+                }
 
                 // Only publish starts on the date being requested; do not
                 // expose tomorrow's 01:00 as a booking on yesterday's date.
@@ -166,8 +178,11 @@ final class PmdRestaurantServiceCalendarR1
             // must never silently normalize into an unrelated service slot.
             if ($start->format('Y-m-d H:i') !== $date.' '.$time) return false;
             $end = $start->copy()->addMinutes($duration);
-            if ($this->isClosedDate($locationId, $end->toDateString())
-                && $end->toDateString() !== $date) {
+            // Closing at exactly 00:00 does not occupy a closed
+            // following date. Crossing into that date does.
+            $lastOccupiedDay = $end->copy()->subMicrosecond()->toDateString();
+            if ($lastOccupiedDay !== $date
+                && $this->isClosedDate($locationId, $lastOccupiedDay)) {
                 return false;
             }
 
@@ -370,15 +385,18 @@ final class PmdRestaurantServiceCalendarR1
 
     private function timezone(): string
     {
-        $timezone = (string)setting(
-            'timezone', config('app.timezone', 'Europe/Berlin')
-        );
         try {
-            new \DateTimeZone($timezone);
-            return $timezone;
+            $timezone = trim((string)setting(
+                'timezone', config('app.timezone', 'Europe/Berlin')
+            ));
+            if ($timezone !== '') {
+                new \DateTimeZone($timezone);
+                return $timezone;
+            }
         } catch (\Throwable $error) {
-            return 'Europe/Berlin';
+            // CLI validation can run without a selected tenant.
         }
+        return 'Europe/Berlin';
     }
 
     private function validClock(string $clock): bool
