@@ -53,6 +53,20 @@ final class PmdRestaurantServiceCalendarR1
         return $this->cache[$locationId] = $fallback;
     }
 
+    public function hasSavedPolicy(int $locationId): bool
+    {
+        if ($locationId < 1) return false;
+        try {
+            if (!Schema::hasTable('location_options')) return false;
+            return DB::table('location_options')
+                ->where('location_id', $locationId)
+                ->where('item', self::KEY)
+                ->exists();
+        } catch (\Throwable $error) {
+            return false;
+        }
+    }
+
     public function weeklyRows(int $locationId): array
     {
         $policy = $this->policy($locationId);
