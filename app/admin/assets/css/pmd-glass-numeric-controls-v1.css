@@ -596,3 +596,175 @@ html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
     width:38px !important; min-width:38px !important;
   }
 }
+
+
+
+/* PMD_FOOD_PREP_INLINE_STEP_ONE_V6_20261019
+   Five preparation tiles with readable clock-icon spacing. The Custom cell
+   becomes the existing input when activated, and nothing appears below. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > button[data-pmd-prep-preset] {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:12px !important;
+  min-width:0 !important;
+  white-space:nowrap !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > button[data-pmd-prep-preset] > svg {
+  display:block !important;
+  width:20px !important;
+  height:20px !important;
+  min-width:20px !important;
+  flex:0 0 20px !important;
+  margin:0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > button[data-pmd-prep-preset] > span {
+  display:inline-block !important;
+  min-width:0 !important;
+  line-height:1.2 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > [data-pmd-prep-custom][hidden],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > [data-pmd-prep-custom-wrap][hidden] {
+  display:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > .pmd-menu-prep-custom--inline {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  grid-column:auto !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:48px !important;
+  min-height:48px !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper {
+  grid-template-columns:28px minmax(0,1fr) 28px !important;
+  align-items:stretch !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:48px !important;
+  gap:3px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper__button {
+  display:grid !important;
+  place-items:center !important;
+  width:28px !important;
+  min-width:28px !important;
+  max-width:28px !important;
+  height:48px !important;
+  min-height:48px !important;
+  padding:0 !important;
+  margin:0 !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:12px !important;
+  background:rgba(255,255,255,.96) !important;
+  color:#075c47 !important;
+  font-size:18px !important;
+  font-weight:800 !important;
+  box-shadow:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper__center {
+  width:100% !important;
+  min-width:0 !important;
+  height:48px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline input[data-pmd-menu-prep-time] {
+  display:block !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:48px !important;
+  min-height:48px !important;
+  margin:0 !important;
+  padding:0 2px !important;
+  text-align:center !important;
+  font-size:13px !important;
+  font-weight:800 !important;
+  font-variant-numeric:tabular-nums !important;
+  border:1px solid #81b8a9 !important;
+  border-radius:12px !important;
+  background:#fff !important;
+  color:#153e34 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline input[data-pmd-menu-prep-time]:focus {
+  outline:2px solid rgba(7,92,71,.45) !important;
+  outline-offset:1px !important;
+}
+@media(max-width:650px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-prep-presets > [data-pmd-prep-custom],
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-prep-presets > [data-pmd-prep-custom-wrap] {
+    grid-column:1 / -1 !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+    gap:6px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper__button {
+    width:38px !important;
+    min-width:38px !important;
+    max-width:38px !important;
+  }
+}
+
+/* The Add option shadow was amplified by the global modal-button equalizer.
+   Give this ONE local action stable, non-animated, non-primary chrome across
+   normal / hover / focus / active, including the equalizer's button attribute. */
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add,
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add:is(:hover,:active,:focus,:focus-visible) {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-height:44px !important;
+  padding:0 16px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:#fff !important;
+  background-image:none !important;
+  color:#075c47 !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  filter:none !important;
+  text-shadow:none !important;
+  box-shadow:none !important;
+  animation:none !important;
+  transition:none !important;
+  transform:none !important;
+  will-change:auto !important;
+}
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add::before,
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add::after {
+  content:none !important;
+  display:none !important;
+  box-shadow:none !important;
+  animation:none !important;
+}
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add:focus-visible {
+  outline:2px solid #167c65 !important;
+  outline-offset:2px !important;
+}

@@ -95,21 +95,31 @@
     if (!input || input.disabled || input.readOnly) return;
     var before = input.value;
     var bounds = currentBounds(input);
-    var increment = Number(input.step);
-    if (!Number.isFinite(increment) || increment <= 0) increment = 1;
+    // PMD_FOOD_PREP_INLINE_STEP_ONE_V6_20261019: plus/minus presses change by ONE unit, even when
+    // the native field allows decimal typing (0.1 protein / 0.01 prices).
+    // Preserve native min/max/step validity via integral native step counts.
+    var nativeStep = Number(input.step);
+    if (!Number.isFinite(nativeStep) || nativeStep <= 0) nativeStep = 1;
+    var nativeCount = nativeStep < 1 ? Math.round(1 / nativeStep) : 1;
+    nativeCount = Math.max(1, Math.min(10000, nativeCount));
+    var clickDelta = nativeStep <= 1 ? 1 : nativeStep;
     var start = before === '' ? (Number.isFinite(bounds.min) ? bounds.min : 0) : Number(before);
     if (!Number.isFinite(start)) start = Number.isFinite(bounds.min) ? bounds.min : 0;
+    var precision = Math.min(6, Math.max(
+      precisionOf(input.step), precisionOf(start),
+      Number.isFinite(bounds.min) ? precisionOf(bounds.min) : 0
+    ));
     try {
-      if (before === '') {
-        var initial = direction > 0 ? start : start;
-        input.value = String(initial);
+      if (before === '') input.value = String(start);
+      // Standard HTML step=0.1 => 10 native steps; step=0.01 => 100.
+      // For uncommon step sizes, fall back to bounded numeric arithmetic.
+      if (nativeStep < 1 && Math.abs(nativeCount * nativeStep - 1) > 0.000001) {
+        throw new Error('Nonintegral unit step');
       }
-      if (direction > 0) input.stepUp();
-      else input.stepDown();
+      if (direction > 0) input.stepUp(nativeCount);
+      else input.stepDown(nativeCount);
     } catch (error) {
-      var precision = Math.max(precisionOf(input.step), precisionOf(start), precisionOf(bounds.min));
-      precision = Math.min(6, precision);
-      var next = start + increment * direction;
+      var next = start + clickDelta * direction;
       next = Math.max(bounds.min, Math.min(bounds.max, next));
       input.value = Number(next.toFixed(precision)).toString();
     }

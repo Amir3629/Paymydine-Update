@@ -188,12 +188,12 @@
                                     <button type="button" data-pmd-prep-preset data-store="20"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>10–20 min</span></button>
                                     <button type="button" data-pmd-prep-preset data-store="30"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>20–30 min</span></button>
                                     <button type="button" data-pmd-prep-preset data-store="45"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>30–45 min</span></button>
-                                    <button type="button" data-pmd-prep-custom>Custom</button>
+                                    {{-- PMD_FOOD_PREP_INLINE_STEP_ONE_V6_20261019: one fifth tile switches between Custom button and numeric editor. --}}
+                                    <button type="button" data-pmd-prep-custom aria-pressed="false">Custom</button>
+                                    <div class="pmd-menu-prep-custom pmd-menu-prep-custom--inline" data-pmd-prep-custom-wrap hidden>
+                                        <input type="number" name="prep_time_minutes" min="1" max="240" step="1" inputmode="numeric" value="20" aria-label="{{ $pmdT('prep_time') }}" data-pmd-menu-prep-time>
+                                    </div>
                                 </div>
-                                <label class="pmd-menu-prep-custom" data-pmd-prep-custom-wrap hidden>
-                                    <span>Custom minutes</span>
-                                    <input type="number" name="prep_time_minutes" min="1" max="240" step="1" inputmode="numeric" value="20" data-pmd-menu-prep-time>
-                                </label>
                             </div>
                         </div>
                     </section>
