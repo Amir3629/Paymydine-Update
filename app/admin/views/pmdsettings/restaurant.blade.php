@@ -1074,7 +1074,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
     </form>
 </div>
 
-<script defer src="/app/admin/assets/js/pmd-settings-restaurant-v1.js?v=20260809_2"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-restaurant-v1.js?v=20261019-calendar-r1"></script>
 
 <script id="pmd-restaurant-native-multipart-r22">
 // PMD_NATIVE_MULTIPART_LOGO_UPLOAD_R22
