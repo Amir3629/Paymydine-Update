@@ -1208,12 +1208,12 @@ window.PMDQuickPOSConfig = {
     function loadReservations() {
         return loadScript(
             'pmd-qpos-composer-r135',
-            '/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20260928-r129',
+            '/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20261019-calendar-r1',
             function () { return !!window.PMDReservationComposerV1; }
         ).then(function () {
             return loadScript(
                 'pmd-qpos-reservations-r135',
-                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261005-r19',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261019-calendar-r1',
                 function () { return !!window.PMDQuickReservationsR136; }
             );
         });
