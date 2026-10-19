@@ -116,6 +116,14 @@ class Shifts extends AdminController
         // Register the attendance runtime explicitly on the Shifts surface.
         // PMD_SHIFT_FRAME_GEOMETRY_READONLY_V135
         $this->addJs('js/pmd-shifts-live-attendance-v3.js');
+                // PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: route-scoped accessible steppers & true tenant currency.
+        foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
+            $this->addCss(asset($pmdGlassInputCssV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputCssV1)) ?: '20261019'));
+        }
+        foreach (['app/admin/assets/js/pmd-glass-numeric-controls-v1.js'] as $pmdGlassInputJsV1) {
+            $this->addJs(asset($pmdGlassInputJsV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputJsV1)) ?: '20261019'));
+        }
+
         AdminMenu::setContext('dashboard');
     }
 

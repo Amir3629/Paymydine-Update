@@ -1,3 +1,5 @@
+{{-- PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: server-side tenant money label, no hard-coded currency. --}}
+@include('admin::_partials.pmd_glass_currency_config_v1')
 @php
     // PMD_FRONTEND_SETTINGS_SERVER_I18N_R6
     // PMD_SETTINGS_REPORTS_PLATFORM_I18N_V16

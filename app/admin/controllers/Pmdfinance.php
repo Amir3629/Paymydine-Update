@@ -48,6 +48,14 @@ class Pmdfinance extends AdminController
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-settings-inline-detail-v1.js');
         $this->addJs('js/pmd-finance-guarantee-r22.js');
+                // PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: route-scoped accessible steppers & true tenant currency.
+        foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
+            $this->addCss(asset($pmdGlassInputCssV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputCssV1)) ?: '20261019'));
+        }
+        foreach (['app/admin/assets/js/pmd-glass-numeric-controls-v1.js'] as $pmdGlassInputJsV1) {
+            $this->addJs(asset($pmdGlassInputJsV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputJsV1)) ?: '20261019'));
+        }
+
         AdminMenu::setContext('settings', 'system');
     }
 

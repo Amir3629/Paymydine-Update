@@ -50,6 +50,14 @@ class Pmdsettings extends AdminController
         $this->addCss(asset($pmdGlassSuiteCss).'?v='.(string)(@filemtime(base_path($pmdGlassSuiteCss)) ?: '20261018'));
 
 
+                // PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: route-scoped accessible steppers & true tenant currency.
+        foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
+            $this->addCss(asset($pmdGlassInputCssV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputCssV1)) ?: '20261019'));
+        }
+        foreach (['app/admin/assets/js/pmd-glass-numeric-controls-v1.js'] as $pmdGlassInputJsV1) {
+            $this->addJs(asset($pmdGlassInputJsV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputJsV1)) ?: '20261019'));
+        }
+
         AdminMenu::setContext('settings', 'system');
     }
 
