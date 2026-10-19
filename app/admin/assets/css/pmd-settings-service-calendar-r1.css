@@ -451,7 +451,15 @@ html body.pmd-settings-center-page #pmd-restaurant-profile
   background:#f8fbfa !important;
 }
 html body.pmd-settings-center-page #pmd-restaurant-profile
-[data-pmd-service-calendar] .pmd-profile-calendar-closures > strong {
+[data-pmd-service-calendar] .pmd-profile-calendar-closures__heading {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-closures__heading > strong {
   font-size:14px !important;
   color:#173b33 !important;
   font-weight:800 !important;
@@ -466,7 +474,7 @@ html body.pmd-settings-center-page #pmd-restaurant-profile
 html body.pmd-settings-center-page #pmd-restaurant-profile
 [data-pmd-service-calendar] [data-pmd-service-closed-count] {
   display:inline-block !important;
-  margin:0 0 0 7px !important;
+  margin:0 !important;
   padding:4px 9px !important;
   border-radius:999px !important;
   background:#e9f2ef !important;
