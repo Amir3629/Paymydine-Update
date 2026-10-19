@@ -650,20 +650,22 @@ html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
 }
 html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
 .pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper {
-  grid-template-columns:28px minmax(0,1fr) 28px !important;
+  /* PMD_FOOD_PREP_CUSTOM_STEPPER_PARITY_V7_20261019: exactly match desktop Nutrition +/- size; give the central
+     Custom minutes input less width without changing the tile or JS. */
+  grid-template-columns:36px minmax(0,1fr) 36px !important;
   align-items:stretch !important;
   width:100% !important;
   min-width:0 !important;
   height:48px !important;
-  gap:3px !important;
+  gap:6px !important;
 }
 html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
 .pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper__button {
   display:grid !important;
   place-items:center !important;
-  width:28px !important;
-  min-width:28px !important;
-  max-width:28px !important;
+  width:36px !important;
+  min-width:36px !important;
+  max-width:36px !important;
   height:48px !important;
   min-height:48px !important;
   padding:0 !important;
