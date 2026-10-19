@@ -1249,7 +1249,7 @@ final class PmdDevicePlatformService
         $hasConfiguredHours = collect($schedule['weekly'] ?? [])
             ->contains(static fn ($day) => !empty($day['enabled']));
 
-        if (!$hasConfiguredHours && !$calendar->isClosedDate($locationId, $now->toDateString())) {
+        if (!$hasConfiguredHours && !$calendar->hasSavedPolicy($locationId)) {
             // Preserve historical fail-open behavior for restaurants which
             // have never configured any weekly Opening Hours.
             return [
