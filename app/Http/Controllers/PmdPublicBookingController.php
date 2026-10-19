@@ -713,6 +713,9 @@ class PmdPublicBookingController extends Controller
 
                 $start = Carbon::parse($date->toDateString().' '.$time, $timezone);
                 $duration = (int)$availability['duration'];
+                // Refresh cached schedule after table locks so a recently
+                // closed service window cannot be committed from stale HTML.
+                $this->restaurantCalendar()->forget((int)$location->getKey());
                 if (!$this->restaurantCalendar()->allows(
                     (int)$location->getKey(), $date->toDateString(), $time, $duration
                 )) {
