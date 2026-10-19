@@ -744,3 +744,356 @@ body.pmd-finance-settings-page .pmd-settings-inline-modal :is(button,input,selec
     transition: none !important;
   }
 }
+
+
+/* ======================================================================
+   PMD_CROSS_SURFACE_GLASS_QA_R2_20261019
+   Cross-surface geometry / icon / accessibility audit.
+   Applies AFTER glass V1. Reference: Create Food + Table + Reservation.
+   All selectors are page- and component-scoped. No DOM / JS modifications.
+   ====================================================================== */
+
+/* SETTINGS INDEX -- 38px icon box, 19px line icons, aligned grid tracks. */
+html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card {
+  grid-template-columns: 38px minmax(0,1fr) 16px !important;
+  gap: 14px !important;
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__icon {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.8 !important;
+}
+html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__arrow {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* RESTAURANT PROFILE -- section icons, input geometry, state safety. */
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-section-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-section-icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.8 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field {
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field > span,
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time > span {
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.35 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field :is(
+  input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]),
+  select
+) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 48px !important;
+  font-size: 13px !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time input {
+  min-height: 44px !important;
+  font-size: 12px !important;
+}
+/* Guest-communications overflow is intentionally visible for readiness
+   popovers; glass V1 must not clip it. */
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-profile-section--communications .pmd-profile-card {
+  overflow: visible !important;
+}
+/* Closed days must remain visibly inactive. */
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-profile-day-card.is-closed .pmd-profile-time input,
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-profile-field :is(input,select,textarea):disabled {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-profile-header-button,
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-provider-secondary {
+  border-radius: 16px !important;
+}
+
+/* CUSTOMER EXPERIENCE -- replace old blue UI controls with PMD jade.
+   Previews and swatches retain their real theme colors. */
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-section-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-section-icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.8 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-save-icon {
+  width: 42px !important;
+  height: 42px !important;
+  border: 1px solid #064b3c !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 7px 17px rgba(7,92,71,.14) !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+:is(.pmd-frontend-icon-button,.pmd-frontend-secondary-button,.pmd-customer-qr-open-r39) {
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-customer-qr-open-r39 {
+  border-color: #064b3c !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field {
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field > span {
+  color: #28463f !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field
+:is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select) {
+  min-width: 0 !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  font-size: 13px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-theme-option {
+  border-radius: 16px !important;
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-theme-option.is-selected,
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-theme-option:has(input:checked) {
+  border-color: #075c47 !important;
+  box-shadow: 0 0 0 2px rgba(7,92,71,.10),0 7px 17px rgba(7,92,71,.06) !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-theme-option.is-selected .pmd-theme-option__check,
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-theme-option:has(input:checked) .pmd-theme-option__check {
+  background: #075c47 !important;
+  color: #fff !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-language-chip > span {
+  min-height: 46px !important;
+  border-color: #c9dce8 !important;
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-language-chip input:checked + span {
+  border-color: #075c47 !important;
+  background: #eaf5ef !important;
+  color: #075c47 !important;
+  box-shadow: 0 0 0 2px rgba(7,92,71,.08) !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-language-chip input:checked + span strong {
+  color: #064b3c !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-switch input:checked + i {
+  background: #075c47 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-theme-option:focus-within,
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-language-chip input:focus-visible + span,
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-switch input:focus-visible + i {
+  outline: 2px solid rgba(7,92,71,.65) !important;
+  outline-offset: 3px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-field :is(input,select,textarea):disabled {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+
+/* DEVICES + FINANCE -- 38/19 icon pairing, 48px forms, 44px actions. */
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__icon,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__icon svg,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.8 !important;
+}
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field {
+  min-width: 0 !important;
+}
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field
+:is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select),
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field
+:is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select) {
+  min-width: 0 !important;
+  min-height: 48px !important;
+  font-size: 13px !important;
+}
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-action,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-action {
+  min-height: 44px !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.95) !important;
+  color: #075c47 !important;
+}
+/* Preserve original read-only and disabled feedback (glass V1 made it white). */
+html body.pmd-devices-settings-page
+[data-pmd-device-modal] .pmd-owner-field :is(input,textarea,select):is([readonly],:disabled),
+html body.pmd-finance-settings-page
+.pmd-settings-inline-modal .pmd-inline-field :is(input,textarea,select):is([readonly],:disabled),
+html body.pmd-finance-settings-page
+#pmd-finance-page .pmd-owner-field :is(input,textarea,select):is([readonly],:disabled) {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+/* Device & finance dialogs already provide dedicated scroll containers.
+   Keep them, but normalize their headers and section-title icons. */
+html body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-close,
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-close {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section__head h3,
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section__head h3 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 38px !important;
+  color: #173b33 !important;
+}
+html body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section__head h3::before,
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section__head h3::before {
+  content: "" !important;
+  display: inline-block !important;
+  flex: 0 0 38px !important;
+  width: 38px !important;
+  height: 38px !important;
+  border: 1px solid rgba(83,166,111,.12) !important;
+  border-radius: 16px !important;
+  background: rgba(248,253,249,.98)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f866f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M4 12h16M4 17h16'/%3E%3Ccircle cx='9' cy='7' r='2' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2' fill='white'/%3E%3Ccircle cx='9' cy='17' r='2' fill='white'/%3E%3C/svg%3E")
+    center / 20px 20px no-repeat !important;
+}
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field
+:is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select) {
+  min-width: 0 !important;
+  min-height: 48px !important;
+  font-size: 13px !important;
+}
+
+/* DISCOUNTS -- normalize field captions, focus & read-only treatment. */
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal]
+.pmd-coupon-field > span {
+  color: #28463f !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal]
+.pmd-coupon-field input[readonly],
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal]
+.pmd-coupon-field :is(input,textarea):disabled {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal]
+.pmd-coupon-field__with-action button {
+  min-height: 48px !important;
+  border-radius: 16px !important;
+}
+
+/* SHIFTS -- preserve edit/save footer inside the real scrolling form,
+   do not touch the 1px hidden backend role select. */
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor {
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor-footer {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 2 !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor :is(input:not([type=hidden]),select):disabled {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor .pmd-shifts__role-card.is-selected::after {
+  background: rgba(255,255,255,.96) !important;
+  color: #075c47 !important;
+}
+
+/* Make text fields flexible in narrow modals without changing semantic grids. */
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor .pmd-shifts__team-password-row {
+  min-width: 0 !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor .pmd-shifts__team-password-row input {
+  min-width: 0 !important;
+}
+
+/* Desktop field type scale: 13px + 48px form controls; small-screen grids
+   stay owned by each feature's mobile stylesheet. */
+@media (max-width: 760px) {
+  html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card {
+    gap: 12px !important;
+  }
+  html body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-section-icon,
+  html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-section-icon {
+    width: 38px !important;
+    height: 38px !important;
+    flex-basis: 38px !important;
+  }
+  html body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section__head h3::before,
+  html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section__head h3::before {
+    flex-basis: 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+    background-size: 19px 19px !important;
+  }
+}
