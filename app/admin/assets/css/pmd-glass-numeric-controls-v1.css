@@ -237,3 +237,46 @@ html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
   html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
   .pmd-menu-content-translations__actions { width:100% !important; }
 }
+
+/* PMD_GLASS_NUMERIC_COMPACT_MONEY_R3_20261019: Option price is narrow even on desktop. Keep +/- usable,
+   the currency fully visible, and the choice name editable. */
+@media(min-width:651px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-option-value {
+    grid-template-columns:minmax(0,1fr) minmax(0,192px) minmax(0,96px) 42px !important;
+    gap:9px !important;
+  }
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-option-value__price .pmd-glass-stepper {
+  grid-template-columns:32px minmax(0,1fr) 32px !important;
+  gap:4px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-option-value__price .pmd-glass-stepper__button {
+  width:32px !important;
+  min-width:32px !important;
+  font-size:20px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-option-value__price .pmd-glass-stepper__unit {
+  right:5px !important;
+  padding:0 3px !important;
+  min-width:24px !important;
+  font-size:9px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-option-value__price .pmd-glass-stepper--has-unit input[type=number] {
+  padding-right:40px !important;
+}
+@media(max-width:650px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-option-value__price .pmd-glass-stepper {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+    gap:6px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-option-value__price .pmd-glass-stepper__button {
+    width:38px !important;
+  }
+}

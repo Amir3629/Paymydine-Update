@@ -8,7 +8,9 @@
   window.PMDGlassNumericControlsV1 = true;
 
   var rootSelector = [
+    // PMD_GLASS_NUMERIC_COMPACT_MONEY_R3_20261019: includes Kitchen Capacity number fields.
     '.pmd-menu-food-glass-v1',
+    '.pmd-menu-capacity-card',
     '[data-pmd-combo-modal-content]',
     '[data-pmd-coupon-modal]',
     '[data-pmd-shift-modal]',
