@@ -20,11 +20,14 @@
   if (window.PMD_MENU_TRANSLATION_SWITCH_V3_ACTIVE) return;
   window.PMD_MENU_TRANSLATION_SWITCH_V3_ACTIVE = true;
 
+  // PMD_MENU_INLINE_LANGUAGE_FIELDS_V4_20261019: the language selector swaps the SAME Name / Description fields.
+  // Do not create a second visible translation form below the base editor.
   var section = null;
   var panels = null;
   var tabs = null;
-  var toggleButton = null;
-  var expanded = false;
+  var displayLocale = '';
+  var inlineEditors = {};
+  var sourceNameRequired = Boolean(nameInput && nameInput.required);
   var autoButton = null;
   var statusNode = null;
   var marker = null;
@@ -57,7 +60,8 @@
     var adminLanguage = activeAdminLocale();
     var german = adminLanguage === 'de';
     var translations = {
-      languages: german ? 'Sprachen' : 'Languages',
+      languages: german ? 'Sprache' : 'Language',
+      missingSource: german ? 'Bitte zuerst den Artikelnamen in ' : 'First enter the food name in ',
       auto: german ? 'Automatisch übersetzen' : 'Auto translate',
       translating: german ? 'Übersetze…' : 'Translating…',
       none: german ? 'Keine leeren Felder zum Übersetzen.' : 'Nothing empty to translate.',
@@ -118,40 +122,46 @@
   function ensureUi() {
     if (section && section.isConnected) return;
 
+    // Remove an obsolete legacy translation editor before the in-place UI mounts.
     var old = form.querySelector('[data-pmd-menu-content-translations]');
-    if (old) old.remove();
+    if (old && old !== section) old.remove();
 
     var detailsSection = nameInput && nameInput.closest('.pmd-menu-form__section');
+    var grid = detailsSection && detailsSection.querySelector('.pmd-menu-form__grid');
     var optionsSection = form.querySelector('[data-pmd-menu-options-builder]');
-    if (!detailsSection) return;
+    if (!grid || !detailsSection || !nameInput || !descriptionInput) return;
 
-    section = document.createElement('section');
-    section.className = 'pmd-menu-form__section pmd-menu-content-translations';
-    section.setAttribute('data-pmd-menu-content-translations', 'v2');
+    section = document.createElement('div');
+    section.className = 'pmd-menu-content-translations pmd-menu-language-inline-v4';
+    section.setAttribute('data-pmd-menu-content-translations', 'v4');
     section.hidden = true;
     section.innerHTML = '' +
-      '<div class="pmd-menu-content-translations__head">' +
-        '<div class="pmd-menu-content-translations__title">' +
-          '<button type="button" class="pmd-menu-translation-switch-v3" data-pmd-menu-translation-switch aria-expanded="false" aria-controls="pmd-menu-translation-panels-v3">' +
-            '<span data-pmd-menu-translation-switch-label>Languages</span>' +
-            '<span class="pmd-menu-translation-switch-v3__direction" data-pmd-menu-translation-direction></span>' +
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>' +
-          '</button>' +
-          '<div class="pmd-menu-translation-tabs-v3" data-pmd-menu-translation-tabs hidden></div>' +
+      '<div class="pmd-menu-content-translations__head pmd-menu-language-inline-v4__head">' +
+        '<div class="pmd-menu-content-translations__title pmd-menu-language-inline-v4__switch" data-pmd-menu-translation-switch role="group" aria-label="Food input language">' +
+          '<div class="pmd-menu-translation-tabs-v4" data-pmd-menu-translation-tabs></div>' +
         '</div>' +
-        '<div class="pmd-menu-content-translations__actions"><button type="button" data-pmd-menu-auto-translate>Auto translate</button><span data-pmd-menu-translation-status role="status" aria-live="polite"></span></div>' +
+        '<div class="pmd-menu-content-translations__actions">' +
+          '<button type="button" data-pmd-menu-auto-translate>Auto translate</button>' +
+        '</div>' +
       '</div>' +
-      '<div id="pmd-menu-translation-panels-v3" data-pmd-menu-translation-panels hidden></div>';
+      '<span class="pmd-menu-content-translations__status" data-pmd-menu-translation-status role="status" aria-live="polite"></span>';
 
-    if (optionsSection && optionsSection.parentNode === detailsSection.parentNode) {
-      optionsSection.parentNode.insertBefore(section, optionsSection);
+    // This is the critical layout change: switcher ABOVE original input rows.
+    detailsSection.insertBefore(section, grid);
+
+    // Only OPTION translations may appear beneath their own option editor.
+    // Name and Description are shown exclusively in their original slots.
+    panels = document.createElement('div');
+    panels.className = 'pmd-menu-content-translations__panels pmd-menu-language-inline-v4__option-panels';
+    panels.setAttribute('data-pmd-menu-translation-panels', '');
+    panels.hidden = true;
+    if (optionsSection && optionsSection.parentNode) {
+      optionsSection.insertAdjacentElement('afterend', panels);
     } else {
-      detailsSection.insertAdjacentElement('afterend', section);
+      detailsSection.insertAdjacentElement('afterend', panels);
     }
 
     tabs = section.querySelector('[data-pmd-menu-translation-tabs]');
-    panels = section.querySelector('[data-pmd-menu-translation-panels]');
-    toggleButton = section.querySelector('[data-pmd-menu-translation-switch]');
     autoButton = section.querySelector('[data-pmd-menu-auto-translate]');
     statusNode = section.querySelector('[data-pmd-menu-translation-status]');
 
@@ -163,7 +173,6 @@
       marker.value = '1';
       form.appendChild(marker);
     }
-
     sourceMarker = form.querySelector('input[name="pmd_menu_translation_source_locale"]');
     if (!sourceMarker) {
       sourceMarker = document.createElement('input');
@@ -232,34 +241,62 @@
     }
   }
 
+  function inlineEditor(locale, kind) {
+    var base = kind === 'name' ? nameInput : descriptionInput;
+    var key = locale + '.' + kind;
+    if (!base || !base.parentElement) return null;
+    var control = inlineEditors[key];
+    if (!control || !control.isConnected) {
+      control = document.createElement(kind === 'name' ? 'input' : 'textarea');
+      if (kind === 'name') control.type = 'text';
+      else control.rows = base.rows || 4;
+      control.name = 'pmd_translations[' + locale + '][menu][' + kind + ']';
+      control.maxLength = kind === 'name' ? 160 : 5000;
+      control.setAttribute('data-pmd-translation-target', locale);
+      control.setAttribute('data-pmd-translation-state-path', 'menu.' + kind);
+      control.setAttribute('data-pmd-menu-inline-translation', kind);
+      control.setAttribute('aria-label', localeLabel(locale) + ' — ' + (kind === 'name' ? 'Food name' : 'Description'));
+      base.parentElement.appendChild(control);
+      inlineEditors[key] = control;
+    }
+    var state = ensureState(locale);
+    var saved = String(state.menu[kind] || '');
+    if (document.activeElement !== control && control.value !== saved) control.value = saved;
+    control.setAttribute('data-pmd-translation-source', String(base.value || '').trim());
+    control.dir = isRtl(locale) ? 'rtl' : 'auto';
+    control.hidden = displayLocale !== locale;
+    return control;
+  }
+
+  function syncInlineEditors() {
+    if (!nameInput || !descriptionInput) return;
+    var sourceVisible = displayLocale === sourceLocale;
+    nameInput.hidden = !sourceVisible;
+    descriptionInput.hidden = !sourceVisible;
+    nameInput.required = sourceVisible && sourceNameRequired;
+
+    Object.keys(inlineEditors).forEach(function (key) {
+      var locale = key.split('.')[0];
+      if (targetLocales.indexOf(locale) === -1) {
+        var stale = inlineEditors[key];
+        if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
+        delete inlineEditors[key];
+      }
+    });
+    targetLocales.forEach(function (locale) {
+      inlineEditor(locale, 'name');
+      inlineEditor(locale, 'description');
+    });
+  }
+
   function renderLocalePanel(locale) {
     var state = ensureState(locale);
     var panel = document.createElement('div');
     panel.className = 'pmd-menu-content-translations__panel';
     panel.setAttribute('data-pmd-translation-panel', locale);
-    panel.hidden = locale !== activeLocale;
+    panel.hidden = locale !== displayLocale;
 
-    var menuBlock = document.createElement('div');
-    menuBlock.className = 'pmd-menu-content-translations__block';
-    menuBlock.appendChild(field(
-      'Food name',
-      'pmd_translations['+locale+'][menu][name]',
-      state.menu.name,
-      String(nameInput && nameInput.value || '').trim(),
-      false,
-      locale,
-      'menu.name'
-    ));
-    menuBlock.appendChild(field(
-      'Description',
-      'pmd_translations['+locale+'][menu][description]',
-      state.menu.description,
-      String(descriptionInput && descriptionInput.value || '').trim(),
-      true,
-      locale,
-      'menu.description'
-    ));
-    panel.appendChild(menuBlock);
+    // Menu name/description translations live inside the existing food fields.
 
     var groups = sourceOptions();
     var groupKeys = Object.keys(groups).filter(function (key) { return groups[key].name; });
@@ -309,39 +346,42 @@
     if (!section || !tabs || !panels) return;
 
     targetLocales = enabledLocales.filter(function (locale) { return locale && locale !== sourceLocale; });
+    if (!displayLocale || enabledLocales.indexOf(displayLocale) === -1) displayLocale = sourceLocale;
+    if (sourceMarker) sourceMarker.value = sourceLocale;
+
     if (!targetLocales.length) {
+      displayLocale = sourceLocale;
       section.hidden = true;
+      panels.hidden = true;
       if (marker) marker.disabled = true;
+      syncInlineEditors();
       return;
     }
 
-    if (sourceMarker) sourceMarker.value = sourceLocale;
     if (targetLocales.indexOf(activeLocale) === -1) activeLocale = targetLocales[0];
+    if (displayLocale !== sourceLocale) activeLocale = displayLocale;
     section.hidden = false;
     if (marker) marker.disabled = false;
-    if (toggleButton) {
-      toggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-      toggleButton.querySelector('[data-pmd-menu-translation-switch-label]').textContent = uiText('languages');
-      toggleButton.querySelector('[data-pmd-menu-translation-direction]').textContent =
-        localeLabel(sourceLocale) + ' → ' + localeLabel(activeLocale);
-    }
-    tabs.hidden = !expanded;
-    panels.hidden = !expanded;
     if (autoButton && !autoButton.disabled) autoButton.textContent = uiText('auto');
 
     tabs.textContent = '';
-    targetLocales.forEach(function (locale) {
+    [sourceLocale].concat(targetLocales).forEach(function (locale) {
       var button = document.createElement('button');
       button.type = 'button';
-      button.className = 'pmd-menu-content-translations__tab';
+      button.className = 'pmd-menu-content-translations__tab pmd-menu-language-inline-v4__tab';
       button.setAttribute('data-pmd-translation-tab', locale);
-      button.setAttribute('aria-pressed', locale === activeLocale ? 'true' : 'false');
+      button.setAttribute('aria-pressed', String(locale === displayLocale));
       button.textContent = localeLabel(locale);
       tabs.appendChild(button);
     });
 
+    syncInlineEditors();
+
     panels.textContent = '';
+    var optionGroups = sourceOptions();
+    var hasOptions = Object.keys(optionGroups).some(function (key) { return Boolean(optionGroups[key].name); });
     targetLocales.forEach(function (locale) { panels.appendChild(renderLocalePanel(locale)); });
+    panels.hidden = displayLocale === sourceLocale || !hasOptions;
   }
 
   function scheduleRender() {
@@ -401,13 +441,17 @@
   }
 
   async function autoTranslate() {
-    if (!activeLocale || !section || !autoButton || autoButton.disabled) return;
-    // Captured target prevents an async translation from landing in another language.
-    var targetLocale = activeLocale;
+    if (!section || !autoButton || autoButton.disabled || !targetLocales.length) return;
+    var targetLocale = displayLocale !== sourceLocale ? displayLocale : activeLocale;
+    if (!targetLocale || targetLocale === sourceLocale) targetLocale = targetLocales[0];
+    if (!targetLocale) return;
     var currentRun = loadRun;
-    expanded = true;
+    displayLocale = targetLocale;
+    activeLocale = targetLocale;
     render();
-    var controls = Array.prototype.slice.call(section.querySelectorAll('[data-pmd-translation-panel="'+targetLocale+'"] [data-pmd-translation-target]'));
+
+    // Includes the two in-place Food fields and (when present) option translations.
+    var controls = Array.prototype.slice.call(form.querySelectorAll('[data-pmd-translation-target="' + targetLocale + '"]'));
     var empty = controls.filter(function (control) {
       return !String(control.value || '').trim() && String(control.getAttribute('data-pmd-translation-source') || '').trim();
     });
@@ -425,7 +469,9 @@
         var control = empty[i];
         var sourceText = String(control.getAttribute('data-pmd-translation-source') || '').trim();
         var translated = await translateText(sourceText, sourceLocale, targetLocale);
-        if (currentRun !== loadRun || targetLocale !== activeLocale) return;
+        if (currentRun !== loadRun || displayLocale !== targetLocale) return;
+        // Do not overwrite input typed by the owner while the network was pending.
+        if (String(control.value || '').trim()) continue;
         control.value = translated;
         setStatePath(targetLocale, control.getAttribute('data-pmd-translation-state-path'), translated);
       }
@@ -440,7 +486,7 @@
 
   async function loadForCurrentFood() {
     var run = ++loadRun;
-    expanded = false;
+    displayLocale = '';
     ensureUi();
     setStatus('', '');
     var menuId = String(Number(menuIdInput && menuIdInput.value || 0) || 0);
@@ -462,6 +508,7 @@
 
       targetLocales = enabledLocales.filter(function (locale) { return locale !== sourceLocale; });
       activeLocale = targetLocales[0] || '';
+      displayLocale = sourceLocale;
       if (sourceMarker) sourceMarker.value = sourceLocale;
       loadPayloadIntoState();
       render();
@@ -469,30 +516,30 @@
       sourceLocale = activeAdminLocale() || 'en';
       enabledLocales = [sourceLocale];
       targetLocales = [];
+      displayLocale = sourceLocale;
       values = {};
       render();
     }
   }
 
   document.addEventListener('click', function (event) {
-    var switcher = event.target && event.target.closest && event.target.closest('[data-pmd-menu-translation-switch]');
-    if (switcher && section && section.contains(switcher)) {
-      expanded = !expanded;
-      render();
-      return;
-    }
     var tab = event.target && event.target.closest && event.target.closest('[data-pmd-translation-tab]');
     if (tab && section && section.contains(tab)) {
-      activeLocale = String(tab.getAttribute('data-pmd-translation-tab') || '');
+      var locale = String(tab.getAttribute('data-pmd-translation-tab') || '');
+      if (enabledLocales.indexOf(locale) === -1) return;
+      displayLocale = locale;
+      if (locale !== sourceLocale) activeLocale = locale;
+      setStatus('', '');
       render();
       return;
     }
-    if (event.target === autoButton || (event.target && event.target.closest && event.target.closest('[data-pmd-menu-auto-translate]') === autoButton)) {
+    if (event.target === autoButton ||
+        (event.target && event.target.closest && event.target.closest('[data-pmd-menu-auto-translate]') === autoButton)) {
       autoTranslate();
       return;
     }
-
-    var optionAction = event.target && event.target.closest && event.target.closest('[data-pmd-option-group-add],[data-pmd-option-value-add],[data-pmd-option-group-remove],[data-pmd-option-value-remove]');
+    var optionAction = event.target && event.target.closest &&
+      event.target.closest('[data-pmd-option-group-add],[data-pmd-option-value-add],[data-pmd-option-group-remove],[data-pmd-option-value-remove]');
     if (optionAction && form.contains(optionAction)) scheduleRender();
   }, true);
 
@@ -509,6 +556,19 @@
     }
     if (target === nameInput || target === descriptionInput || String(target.name || '').indexOf('options[') === 0) scheduleRender();
   }, true);
+
+
+  // The canonical Food record must never be saved with only a translation.
+  // The Food save authority checks this even when Save is outside the form.
+  window.PMDMenuLanguageBeforeSaveV4 = function () {
+    if (!nameInput) return true;
+    if (String(nameInput.value || '').trim()) return true;
+    displayLocale = sourceLocale;
+    render();
+    setStatus(uiText('missingSource') + localeLabel(sourceLocale) + '.', 'warn');
+    nameInput.focus({preventScroll:true});
+    return false;
+  };
 
   modal.addEventListener('pmd:menu:open', function () { window.setTimeout(loadForCurrentFood, 80); });
 
