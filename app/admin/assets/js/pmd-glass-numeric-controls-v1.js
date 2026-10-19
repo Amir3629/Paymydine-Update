@@ -211,3 +211,102 @@
   if (document.body) attach();
   else document.addEventListener('DOMContentLoaded', attach, {once:true});
 })();
+
+/* PMD_MENU_TRANSLATION_LEGACY_COLLAPSE_GUARD_V4_20261019
+   A previously cached legacy Food translation renderer may still create an
+   always-expanded section. Collapse only THAT legacy DOM after it appears.
+   The current V2 switcher is never modified. The old translation inputs,
+   source/target locale values and Auto Translate handlers remain intact.
+*/
+(function () {
+  'use strict';
+  function initialize() {
+    var page = document.body && document.body.classList.contains('pmd-menu-manager-page');
+    if (!page) return;
+    var modal = document.querySelector('[data-pmd-menu-modal]');
+    var form = modal && modal.querySelector('[data-pmd-menu-form]');
+    if (!modal || !form || form.dataset.pmdTranslationCollapseGuard === '1') return;
+    form.dataset.pmdTranslationCollapseGuard = '1';
+    var scheduled = false;
+    function sync() {
+      scheduled = false;
+      Array.prototype.slice.call(form.querySelectorAll('[data-pmd-menu-content-translations]')).forEach(function (section) {
+        if (section.querySelector('[data-pmd-menu-translation-switch]')) return;
+        var tabs = section.querySelector('[data-pmd-menu-translation-tabs]');
+        var panels = section.querySelector('[data-pmd-menu-translation-panels]');
+        var heading = section.querySelector('.pmd-menu-content-translations__title');
+        if (!tabs || !panels || !heading) return;
+        var toggle = heading.querySelector('[data-pmd-menu-translation-legacy-switch]');
+        if (!toggle) {
+          toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'pmd-menu-translation-switch-v3';
+          toggle.setAttribute('data-pmd-menu-translation-legacy-switch', '');
+          toggle.setAttribute('aria-expanded','false');
+          if (!panels.id) panels.id = 'pmd-menu-legacy-translation-panels-v4';
+          toggle.setAttribute('aria-controls', panels.id);
+          toggle.innerHTML =
+            '<span data-pmd-menu-legacy-switch-label>Languages</span>' +
+            '<span class="pmd-menu-translation-switch-v3__direction" data-pmd-menu-legacy-switch-language></span>' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>';
+          heading.insertBefore(toggle,tabs);
+          section.dataset.pmdLegacyTranslationOpen = '0';
+        }
+        var expanded = section.dataset.pmdLegacyTranslationOpen === '1';
+        if (tabs.hidden === expanded) tabs.hidden = !expanded;
+        if (panels.hidden === expanded) panels.hidden = !expanded;
+        if (toggle.getAttribute('aria-expanded') !== String(expanded)) {
+          toggle.setAttribute('aria-expanded', String(expanded));
+        }
+        var language = tabs.querySelector('[aria-pressed="true"]');
+        if (!language) language = tabs.querySelector('[data-pmd-translation-tab]');
+        var locale = String(language && language.textContent || '').trim();
+        var chosen = toggle.querySelector('[data-pmd-menu-legacy-switch-language]');
+        if (chosen && chosen.textContent !== locale) chosen.textContent = locale;
+      });
+    }
+    function queue() {
+      if (scheduled) return;
+      scheduled = true;
+      window.requestAnimationFrame(sync);
+    }
+    document.addEventListener('click',function (event) {
+      if (!form.contains(event.target)) return;
+      var toggle = event.target.closest && event.target.closest('[data-pmd-menu-translation-legacy-switch]');
+      if (toggle) {
+        event.preventDefault();
+        var section = toggle.closest('[data-pmd-menu-content-translations]');
+        if (!section) return;
+        section.dataset.pmdLegacyTranslationOpen = section.dataset.pmdLegacyTranslationOpen === '1' ? '0' : '1';
+        sync();
+        return;
+      }
+      var tab = event.target.closest && event.target.closest('[data-pmd-translation-tab]');
+      var auto = event.target.closest && event.target.closest('[data-pmd-menu-auto-translate]');
+      if (tab || auto) {
+        var current = event.target.closest('[data-pmd-menu-content-translations]');
+        if (current && current.querySelector('[data-pmd-menu-translation-legacy-switch]')) {
+          current.dataset.pmdLegacyTranslationOpen = '1';
+          queue();
+        }
+      }
+    },true);
+    modal.addEventListener('pmd:menu:open',function () {
+      form.querySelectorAll('[data-pmd-menu-translation-legacy-switch]').forEach(function (button) {
+        var section = button.closest('[data-pmd-menu-content-translations]');
+        if (section) section.dataset.pmdLegacyTranslationOpen = '0';
+      });
+      queue();
+    });
+    var observer = new MutationObserver(function (changes) {
+      if (changes.some(function (change) { return change.addedNodes.length > 0 || change.removedNodes.length > 0; })) {
+        queue();
+      }
+    });
+    observer.observe(form,{childList:true,subtree:true});
+    queue();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, {once:true});
+  } else initialize();
+})();

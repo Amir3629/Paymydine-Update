@@ -280,3 +280,57 @@ html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
     width:38px !important;
   }
 }
+
+
+/* PMD_MENU_TRANSLATION_LEGACY_COLLAPSE_GUARD_V4_20261019: even a cached legacy renderer must default to closed.
+   The modern translation component already handles this natively. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+[data-pmd-menu-translation-tabs][hidden],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+[data-pmd-menu-translation-panels][hidden] {
+  display:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__title {
+  flex-wrap:wrap !important;
+  gap:10px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__title > [data-pmd-menu-translation-legacy-switch] {
+  min-width:0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__title > [data-pmd-menu-translation-legacy-switch] + [data-pmd-menu-translation-tabs] {
+  flex:1 1 100% !important;
+  margin-top:4px !important;
+}
+/* Nutrition is a three-column form: gain 16px per input by keeping the
+   step buttons unobtrusive while retaining 38px-ish PMD touch targets. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper {
+  grid-template-columns:36px minmax(0,1fr) 36px !important;
+  gap:6px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper__button {
+  width:36px !important;
+  min-width:36px !important;
+  border-radius:14px !important;
+  font-size:20px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper__center > input[type="number"] {
+  text-align:center !important;
+  padding:0 8px !important;
+  font-variant-numeric:tabular-nums !important;
+}
+@media(max-width:440px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-nutrition-grid .pmd-glass-stepper {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-nutrition-grid .pmd-glass-stepper__button {
+    width:38px !important;
+  }
+}

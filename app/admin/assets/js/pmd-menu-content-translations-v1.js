@@ -1,4 +1,7 @@
-// PMD_MENU_CONTENT_TRANSLATIONS_ADMIN_V1
+// PMD_MENU_TRANSLATION_V1_COMPAT_SYNC_V4_20261019
+// Legacy filename intentionally runs the exact V2 translation state machine.
+// Both scripts share PMD_MENU_TRANSLATION_SWITCH_V3_ACTIVE guard to prevent duplicate initialization.
+// PMD_MENU_CONTENT_TRANSLATIONS_ADMIN_V2
 (function () {
   'use strict';
 
@@ -12,17 +15,25 @@
   var menuIdInput = form.querySelector('[data-pmd-menu-id]');
   var nameInput = form.querySelector('[data-pmd-menu-name]');
   var descriptionInput = form.querySelector('[data-pmd-menu-description]');
+  // PMD_MENU_TRANSLATION_SWITCH_V3_20261019
+  // Compact language switcher; underlying translation payload remains unchanged.
+  if (window.PMD_MENU_TRANSLATION_SWITCH_V3_ACTIVE) return;
+  window.PMD_MENU_TRANSLATION_SWITCH_V3_ACTIVE = true;
+
   var section = null;
   var panels = null;
   var tabs = null;
+  var toggleButton = null;
+  var expanded = false;
   var autoButton = null;
   var statusNode = null;
   var marker = null;
-  var defaultLocale = 'en';
+  var sourceMarker = null;
+  var sourceLocale = 'en';
   var enabledLocales = ['en'];
   var targetLocales = [];
   var activeLocale = '';
-  var payload = {menus:{}, categories:{}};
+  var payload = {menus:{}};
   var values = {};
   var loadRun = 0;
   var refreshTimer = 0;
@@ -39,19 +50,42 @@
   }
 
   function localeLabel(locale) {
-    return languageNames[locale] || locale.toUpperCase();
+    return languageNames[locale] || String(locale || '').toUpperCase();
+  }
+
+  function uiText(key) {
+    var adminLanguage = activeAdminLocale();
+    var german = adminLanguage === 'de';
+    var translations = {
+      languages: german ? 'Sprachen' : 'Languages',
+      auto: german ? 'Automatisch übersetzen' : 'Auto translate',
+      translating: german ? 'Übersetze…' : 'Translating…',
+      none: german ? 'Keine leeren Felder zum Übersetzen.' : 'Nothing empty to translate.',
+      done: german ? 'Übersetzt. Bitte vor dem Speichern prüfen.' : 'Translated. Review before saving.',
+      failed: german ? 'Automatische Übersetzung nicht verfügbar. Bitte manuell eingeben.' : 'Auto translate unavailable — enter manually.'
+    };
+    return translations[key] || key;
+  }
+
+  function activeAdminLocale() {
+    var candidates = [
+      window.PMD_PLATFORM_MESSAGES_LOCALE,
+      window.PMD_ADMIN_LOCALE,
+      document.documentElement && document.documentElement.lang
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      var locale = localeBase(candidates[i]);
+      if (locale) return locale;
+    }
+    return '';
   }
 
   function isRtl(locale) {
     return ['ar','fa','he','ur'].indexOf(localeBase(locale)) !== -1;
   }
 
-  function escapeNamePart(value) {
-    return String(value == null ? '' : value).replace(/[^0-9]/g, '');
-  }
-
   function ensureState(locale) {
-    if (!values[locale]) values[locale] = {menu:{name:'', description:''}, categories:{}, options:{}};
+    if (!values[locale]) values[locale] = {menu:{name:'', description:''}, options:{}};
     return values[locale];
   }
 
@@ -69,12 +103,6 @@
       state.menu.name = String(menuTranslation.name || '');
       state.menu.description = String(menuTranslation.description || '');
 
-      var categories = payload && payload.categories || {};
-      Object.keys(categories).forEach(function (categoryId) {
-        var translated = categories[categoryId] && categories[categoryId].translations && categories[categoryId].translations[locale];
-        if (translated) state.categories[categoryId] = String(translated);
-      });
-
       var optionRows = menu && menu.options || {};
       Object.keys(optionRows).forEach(function (groupIndex) {
         var row = optionRows[groupIndex] || {};
@@ -90,20 +118,30 @@
   function ensureUi() {
     if (section && section.isConnected) return;
 
+    var old = form.querySelector('[data-pmd-menu-content-translations]');
+    if (old) old.remove();
+
     var detailsSection = nameInput && nameInput.closest('.pmd-menu-form__section');
     var optionsSection = form.querySelector('[data-pmd-menu-options-builder]');
     if (!detailsSection) return;
 
     section = document.createElement('section');
     section.className = 'pmd-menu-form__section pmd-menu-content-translations';
-    section.setAttribute('data-pmd-menu-content-translations', '');
+    section.setAttribute('data-pmd-menu-content-translations', 'v2');
     section.hidden = true;
     section.innerHTML = '' +
       '<div class="pmd-menu-content-translations__head">' +
-        '<div class="pmd-menu-content-translations__title"><h3>Translations</h3><div data-pmd-menu-translation-tabs></div></div>' +
-        '<div class="pmd-menu-content-translations__actions"><button type="button" data-pmd-menu-auto-translate>Auto translate</button><span data-pmd-menu-translation-status></span></div>' +
+        '<div class="pmd-menu-content-translations__title">' +
+          '<button type="button" class="pmd-menu-translation-switch-v3" data-pmd-menu-translation-switch aria-expanded="false" aria-controls="pmd-menu-translation-panels-v3">' +
+            '<span data-pmd-menu-translation-switch-label>Languages</span>' +
+            '<span class="pmd-menu-translation-switch-v3__direction" data-pmd-menu-translation-direction></span>' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>' +
+          '</button>' +
+          '<div class="pmd-menu-translation-tabs-v3" data-pmd-menu-translation-tabs hidden></div>' +
+        '</div>' +
+        '<div class="pmd-menu-content-translations__actions"><button type="button" data-pmd-menu-auto-translate>Auto translate</button><span data-pmd-menu-translation-status role="status" aria-live="polite"></span></div>' +
       '</div>' +
-      '<div data-pmd-menu-translation-panels></div>';
+      '<div id="pmd-menu-translation-panels-v3" data-pmd-menu-translation-panels hidden></div>';
 
     if (optionsSection && optionsSection.parentNode === detailsSection.parentNode) {
       optionsSection.parentNode.insertBefore(section, optionsSection);
@@ -113,6 +151,7 @@
 
     tabs = section.querySelector('[data-pmd-menu-translation-tabs]');
     panels = section.querySelector('[data-pmd-menu-translation-panels]');
+    toggleButton = section.querySelector('[data-pmd-menu-translation-switch]');
     autoButton = section.querySelector('[data-pmd-menu-auto-translate]');
     statusNode = section.querySelector('[data-pmd-menu-translation-status]');
 
@@ -124,14 +163,15 @@
       marker.value = '1';
       form.appendChild(marker);
     }
-  }
 
-  function selectedCategories() {
-    return Array.prototype.slice.call(form.querySelectorAll('input[name="category_ids[]"]:checked')).map(function (input) {
-      var label = input.closest('label');
-      var name = label && label.querySelector('b');
-      return {id:String(Number(input.value || 0) || 0), name:String(name && name.textContent || '').trim()};
-    }).filter(function (row) { return row.id !== '0' && row.name; });
+    sourceMarker = form.querySelector('input[name="pmd_menu_translation_source_locale"]');
+    if (!sourceMarker) {
+      sourceMarker = document.createElement('input');
+      sourceMarker.type = 'hidden';
+      sourceMarker.name = 'pmd_menu_translation_source_locale';
+      form.appendChild(sourceMarker);
+    }
+    sourceMarker.value = sourceLocale;
   }
 
   function sourceOptions() {
@@ -184,10 +224,6 @@
       state.menu[parts[1]] = value;
       return;
     }
-    if (parts[0] === 'categories') {
-      state.categories[parts[1]] = value;
-      return;
-    }
     if (parts[0] === 'options') {
       var g = parts[1];
       if (!state.options[g]) state.options[g] = {name:'', values:{}};
@@ -224,31 +260,6 @@
       'menu.description'
     ));
     panel.appendChild(menuBlock);
-
-    var categories = selectedCategories();
-    if (categories.length) {
-      var categoryBlock = document.createElement('div');
-      categoryBlock.className = 'pmd-menu-content-translations__block';
-      var heading = document.createElement('strong');
-      heading.className = 'pmd-menu-content-translations__subhead';
-      heading.textContent = 'Categories';
-      categoryBlock.appendChild(heading);
-      var categoryGrid = document.createElement('div');
-      categoryGrid.className = 'pmd-menu-content-translations__compact-grid';
-      categories.forEach(function (category) {
-        categoryGrid.appendChild(field(
-          category.name,
-          'pmd_translations['+locale+'][categories]['+escapeNamePart(category.id)+'][name]',
-          state.categories[category.id] || '',
-          category.name,
-          false,
-          locale,
-          'categories.'+category.id
-        ));
-      });
-      categoryBlock.appendChild(categoryGrid);
-      panel.appendChild(categoryBlock);
-    }
 
     var groups = sourceOptions();
     var groupKeys = Object.keys(groups).filter(function (key) { return groups[key].name; });
@@ -297,16 +308,26 @@
     ensureUi();
     if (!section || !tabs || !panels) return;
 
-    targetLocales = enabledLocales.filter(function (locale) { return locale && locale !== defaultLocale; });
+    targetLocales = enabledLocales.filter(function (locale) { return locale && locale !== sourceLocale; });
     if (!targetLocales.length) {
       section.hidden = true;
       if (marker) marker.disabled = true;
       return;
     }
 
+    if (sourceMarker) sourceMarker.value = sourceLocale;
     if (targetLocales.indexOf(activeLocale) === -1) activeLocale = targetLocales[0];
     section.hidden = false;
     if (marker) marker.disabled = false;
+    if (toggleButton) {
+      toggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      toggleButton.querySelector('[data-pmd-menu-translation-switch-label]').textContent = uiText('languages');
+      toggleButton.querySelector('[data-pmd-menu-translation-direction]').textContent =
+        localeLabel(sourceLocale) + ' → ' + localeLabel(activeLocale);
+    }
+    tabs.hidden = !expanded;
+    panels.hidden = !expanded;
+    if (autoButton && !autoButton.disabled) autoButton.textContent = uiText('auto');
 
     tabs.textContent = '';
     targetLocales.forEach(function (locale) {
@@ -380,39 +401,46 @@
   }
 
   async function autoTranslate() {
-    if (!activeLocale || !section || !autoButton) return;
-    var controls = Array.prototype.slice.call(section.querySelectorAll('[data-pmd-translation-panel="'+activeLocale+'"] [data-pmd-translation-target]'));
+    if (!activeLocale || !section || !autoButton || autoButton.disabled) return;
+    // Captured target prevents an async translation from landing in another language.
+    var targetLocale = activeLocale;
+    var currentRun = loadRun;
+    expanded = true;
+    render();
+    var controls = Array.prototype.slice.call(section.querySelectorAll('[data-pmd-translation-panel="'+targetLocale+'"] [data-pmd-translation-target]'));
     var empty = controls.filter(function (control) {
       return !String(control.value || '').trim() && String(control.getAttribute('data-pmd-translation-source') || '').trim();
     });
     if (!empty.length) {
-      setStatus('Nothing empty to translate.', 'good');
+      setStatus(uiText('none'), 'good');
       return;
     }
 
     autoButton.disabled = true;
-    autoButton.textContent = 'Translating…';
+    autoButton.textContent = uiText('translating');
     setStatus('', '');
 
     try {
       for (var i = 0; i < empty.length; i++) {
         var control = empty[i];
         var sourceText = String(control.getAttribute('data-pmd-translation-source') || '').trim();
-        var translated = await translateText(sourceText, defaultLocale, activeLocale);
+        var translated = await translateText(sourceText, sourceLocale, targetLocale);
+        if (currentRun !== loadRun || targetLocale !== activeLocale) return;
         control.value = translated;
-        setStatePath(activeLocale, control.getAttribute('data-pmd-translation-state-path'), translated);
+        setStatePath(targetLocale, control.getAttribute('data-pmd-translation-state-path'), translated);
       }
-      setStatus('Translated ✓ Review before saving.', 'good');
+      setStatus(uiText('done'), 'good');
     } catch (error) {
-      setStatus('Auto translate unavailable — enter manually.', 'warn');
+      if (currentRun === loadRun) setStatus(uiText('failed'), 'warn');
     } finally {
       autoButton.disabled = false;
-      autoButton.textContent = 'Auto translate';
+      autoButton.textContent = uiText('auto');
     }
   }
 
   async function loadForCurrentFood() {
     var run = ++loadRun;
+    expanded = false;
     ensureUi();
     setStatus('', '');
     var menuId = String(Number(menuIdInput && menuIdInput.value || 0) || 0);
@@ -423,17 +451,23 @@
       var data = await response.json();
       if (run !== loadRun) return;
       payload = data && data.data ? data.data : data || {};
-      defaultLocale = localeBase(payload.default_locale || 'en') || 'en';
-      enabledLocales = Array.isArray(payload.enabled_locales) ? payload.enabled_locales.map(localeBase).filter(Boolean) : [defaultLocale];
-      if (enabledLocales.indexOf(defaultLocale) === -1) enabledLocales.unshift(defaultLocale);
-      targetLocales = enabledLocales.filter(function (locale) { return locale !== defaultLocale; });
+      var configuredLocale = localeBase(payload.default_locale || 'en') || 'en';
+      enabledLocales = Array.isArray(payload.enabled_locales) ? payload.enabled_locales.map(localeBase).filter(Boolean) : [configuredLocale];
+      if (enabledLocales.indexOf(configuredLocale) === -1) enabledLocales.unshift(configuredLocale);
+      enabledLocales = enabledLocales.filter(function (locale, index, list) { return locale && list.indexOf(locale) === index; });
+
+      var adminLocale = activeAdminLocale();
+      sourceLocale = adminLocale && enabledLocales.indexOf(adminLocale) !== -1 ? adminLocale : configuredLocale;
+      if (enabledLocales.indexOf(sourceLocale) === -1) enabledLocales.unshift(sourceLocale);
+
+      targetLocales = enabledLocales.filter(function (locale) { return locale !== sourceLocale; });
       activeLocale = targetLocales[0] || '';
+      if (sourceMarker) sourceMarker.value = sourceLocale;
       loadPayloadIntoState();
       render();
     } catch (error) {
-      if (run !== loadRun) return;
-      defaultLocale = 'en';
-      enabledLocales = ['en'];
+      sourceLocale = activeAdminLocale() || 'en';
+      enabledLocales = [sourceLocale];
       targetLocales = [];
       values = {};
       render();
@@ -441,6 +475,12 @@
   }
 
   document.addEventListener('click', function (event) {
+    var switcher = event.target && event.target.closest && event.target.closest('[data-pmd-menu-translation-switch]');
+    if (switcher && section && section.contains(switcher)) {
+      expanded = !expanded;
+      render();
+      return;
+    }
     var tab = event.target && event.target.closest && event.target.closest('[data-pmd-translation-tab]');
     if (tab && section && section.contains(tab)) {
       activeLocale = String(tab.getAttribute('data-pmd-translation-tab') || '');
@@ -468,11 +508,6 @@
       return;
     }
     if (target === nameInput || target === descriptionInput || String(target.name || '').indexOf('options[') === 0) scheduleRender();
-  }, true);
-
-  form.addEventListener('change', function (event) {
-    var target = event.target;
-    if (target && target.matches && target.matches('input[name="category_ids[]"]')) scheduleRender();
   }, true);
 
   modal.addEventListener('pmd:menu:open', function () { window.setTimeout(loadForCurrentFood, 80); });
