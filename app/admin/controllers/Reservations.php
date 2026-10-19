@@ -979,13 +979,43 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
     protected function pmdGuardComposerOpeningHours(array $data): void
     {
-        if ((int)($data['reservation_id'] ?? 0) > 0) {
-            return;
+        $reservationId = (int)($data['reservation_id'] ?? 0);
+        $locationId = $this->pmdComposerLocationId($data);
+
+        if ($reservationId > 0) {
+            $existing = Reservations_model::query()
+                ->where('reservation_id', $reservationId)
+                ->where('location_id', $locationId)
+                ->first();
+
+            if (!$existing) {
+                throw ValidationException::withMessages([
+                    'reservation_id' => ['The reservation is not available at this restaurant.'],
+                ]);
+            }
+
+            // Note/contact/table edits to a historical booking must remain
+            // possible when the owner closes its original date later.
+            // Moving its date/time or extending its duration is a NEW
+            // scheduling decision, so it must obey the current calendar.
+            $attributes = $existing->getAttributes();
+            $oldDate = substr((string)($attributes['reserve_date'] ?? ''), 0, 10);
+            $oldTime = substr((string)($attributes['reserve_time'] ?? ''), 0, 5);
+            $oldDuration = max(1, (int)($existing->duration ?? 45));
+            $newDate = trim((string)($data['reserve_date'] ?? $oldDate));
+            $newTime = substr(trim((string)($data['reserve_time'] ?? $oldTime)), 0, 5);
+            $newDuration = max(1, (int)($data['duration'] ?? $oldDuration));
+
+            if ($oldDate === $newDate
+                && $oldTime === $newTime
+                && $oldDuration === $newDuration) {
+                return;
+            }
         }
 
         if (!$this->pmdComposerOpeningWindowAllows($data)) {
             throw ValidationException::withMessages([
-                'reserve_time' => 'Reservation time must be inside the restaurant opening hours. If opening hours are unavailable, configure them in Settings before creating reservations.',
+                'reserve_time' => 'Reservation time must fit within a restaurant service period. The selected date may be closed in Restaurant Profile.',
             ]);
         }
     }
