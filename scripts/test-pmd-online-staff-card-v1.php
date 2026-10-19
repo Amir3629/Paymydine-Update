@@ -8,6 +8,7 @@ $root = dirname(__DIR__);
 require $root.'/bootstrap/autoload.php';
 $app = require $root.'/bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+require_once $root.'/app/admin/services/PmdOnlineStaffCardV1.php';
 
 use Admin\Services\PmdOnlineStaffCardV1;
 use Illuminate\Support\Carbon;
