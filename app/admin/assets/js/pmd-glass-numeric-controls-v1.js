@@ -172,11 +172,105 @@
     refresh(host);
   }
 
+
+  // PMD_FOOD_SERVING_AND_EMPTY_OPTIONS_QA_V5_20261019
+  // Serving size is intentionally saved as text (e.g. "350 g", "1 portion").
+  // Increment recognized numeric-with-unit text only; preserve custom values.
+  function parseServingV5(text) {
+    var raw = String(text == null ? '' : text).trim();
+    if (!raw) return {empty:true, value:0, unit:'', space:'', fraction:0, comma:false, step:1};
+    var match = /^(\d+(?:[.,]\d+)?)(\s*)([\p{L}][\p{L}\s]*)?$/u.exec(raw);
+    if (!match) return null;
+    var value = Number(match[1].replace(',', '.'));
+    if (!Number.isFinite(value) || value < 0) return null;
+    var unit = String(match[3] || '').trim();
+    var normalized = unit.toLowerCase();
+    var step = /^(g|gr|gram|grams|ml|milliliter|milliliters)$/.test(normalized) ? 10
+      : /^(kg|kilogram|kilograms|l|liter|liters|litre|litres|oz|lb|lbs)$/.test(normalized) ? 0.1
+      : 1;
+    var fractionalText = String(match[1]).split(/[.,]/)[1] || '';
+    return {
+      empty:false, value:value, unit:unit, space:match[2] || '',
+      fraction:Math.max(fractionalText.length, step < 1 ? 1 : 0),
+      comma:match[1].indexOf(',') !== -1, step:step
+    };
+  }
+
+  function refreshServingV5(host) {
+    var input = host && host.querySelector('input[data-pmd-menu-serving-size]');
+    if (!input) return;
+    var parsed = parseServingV5(input.value);
+    var disabled = input.disabled || input.readOnly;
+    var decrease = host.querySelector('[data-pmd-numeric-direction="-1"]');
+    var increase = host.querySelector('[data-pmd-numeric-direction="1"]');
+    if (decrease) decrease.disabled = disabled || !parsed || parsed.empty || parsed.value <= 0;
+    if (increase) increase.disabled = disabled || !parsed;
+    host.classList.toggle('pmd-glass-stepper--disabled', Boolean(disabled));
+  }
+
+  function stepServingV5(input, direction) {
+    if (!input || input.disabled || input.readOnly) return;
+    var parsed = parseServingV5(input.value);
+    if (!parsed) return;
+    if (parsed.empty && direction < 0) return;
+    var next = Math.max(0, parsed.value + direction * parsed.step);
+    if (next === parsed.value && !parsed.empty) return;
+    var digits = Math.min(4, parsed.fraction);
+    var value = next.toFixed(digits);
+    if (digits === 0) value = String(Math.round(next));
+    if (parsed.comma) value = value.replace('.', ',');
+    var updated = value + (parsed.unit ? parsed.space + parsed.unit : '');
+    if (updated.length > Number(input.maxLength || 64)) return;
+    if (input.value !== updated) {
+      input.value = updated;
+      input.dispatchEvent(new Event('input', {bubbles:true}));
+      input.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+    refreshServingV5(input.closest('.pmd-glass-stepper'));
+    if (typeof input.focus === 'function') input.focus({preventScroll:true});
+  }
+
+  function decorateServingV5(input) {
+    if (!input || input.dataset.pmdGlassServingBound === '1') return;
+    if (!input.closest('.pmd-menu-food-glass-v1') || !input.parentElement) return;
+    if (input.closest('.pmd-glass-stepper')) return;
+    var german = String(document.documentElement.lang || '').toLowerCase().indexOf('de') === 0;
+    var host = document.createElement('div');
+    host.className = 'pmd-glass-stepper pmd-glass-stepper--serving';
+    var center = document.createElement('div');
+    center.className = 'pmd-glass-stepper__center';
+    var minus = button(-1, german ? 'Portionsgröße verringern' : 'Decrease serving size');
+    var plus = button(1, german ? 'Portionsgröße erhöhen' : 'Increase serving size');
+    input.parentElement.insertBefore(host, input);
+    center.appendChild(input);
+    host.appendChild(minus);
+    host.appendChild(center);
+    host.appendChild(plus);
+    input.dataset.pmdGlassServingBound = '1';
+    minus.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      stepServingV5(input, -1);
+    });
+    plus.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      stepServingV5(input, 1);
+    });
+    input.addEventListener('input', function () { refreshServingV5(host); });
+    input.addEventListener('change', function () { refreshServingV5(host); });
+    refreshServingV5(host);
+  }
+
   var scanQueued = false;
   function scan() {
     scanQueued = false;
     document.querySelectorAll(numberSelector).forEach(decorate);
-    document.querySelectorAll('.pmd-glass-stepper').forEach(refresh);
+    document.querySelectorAll('.pmd-menu-food-glass-v1 [data-pmd-menu-serving-size]').forEach(decorateServingV5);
+    document.querySelectorAll('.pmd-glass-stepper').forEach(function (host) {
+      if (host.classList.contains('pmd-glass-stepper--serving')) refreshServingV5(host);
+      else refresh(host);
+    });
   }
   function schedule() {
     if (scanQueued) return;

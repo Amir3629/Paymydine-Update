@@ -518,3 +518,81 @@ html body.pmd-menu-manager-page
     margin-left:0 !important;
   }
 }
+
+
+/* PMD_FOOD_SERVING_AND_EMPTY_OPTIONS_QA_V5_20261019
+   Root cause: the author stylesheet gave the hidden empty Options placeholder
+   display:grid; override [hidden] so an empty section doesn't leave a fake card.
+   The serving-size input remains a text field to preserve "350 g", "1 portion",
+   and existing tenant data; buttons only change recognized numeric amounts. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-options-builder__empty[hidden],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-options-builder__groups:empty {
+  display:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-options-builder:has(.pmd-menu-options-builder__groups:empty)
+.pmd-menu-options-builder__head {
+  margin-bottom:0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-options-builder:has(.pmd-menu-options-builder__groups:empty) {
+  padding-bottom:14px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper--serving {
+  display:grid !important;
+  grid-template-columns:36px minmax(0,1fr) 36px !important;
+  gap:6px !important;
+  min-width:0 !important;
+  width:100% !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper--serving
+.pmd-glass-stepper__button {
+  min-width:36px !important;
+  width:36px !important;
+  border-radius:14px !important;
+  font-size:20px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper--serving
+.pmd-glass-stepper__center > input[type="text"] {
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:48px !important;
+  min-height:48px !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 9px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.96) !important;
+  box-shadow:0 4px 14px rgba(22,52,47,.035) !important;
+  color:#102a43 !important;
+  font-size:12px !important;
+  font-weight:750 !important;
+  text-align:center !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper--serving
+.pmd-glass-stepper__center > input[type="text"]:focus {
+  outline:none !important;
+  border-color:#79bda8 !important;
+  box-shadow:0 0 0 3px rgba(47,134,111,.09) !important;
+}
+@media(max-width:440px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-nutrition-grid .pmd-glass-stepper--serving {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-nutrition-grid .pmd-glass-stepper--serving .pmd-glass-stepper__button {
+    width:38px !important; min-width:38px !important;
+  }
+}
