@@ -17,7 +17,14 @@
     var closureList = card.querySelector('[data-pmd-service-closed-list]');
     var inputDate = card.querySelector('[data-pmd-service-date-input]');
     var maxPeriods = 4;
-    var today = new Date();
+    var serverTodayKey = String(
+      card.getAttribute('data-pmd-service-today') || ''
+    );
+    var serverParts = /^\d{4}-\d{2}-\d{2}$/.test(serverTodayKey)
+      ? serverTodayKey.split('-').map(Number) : null;
+    var today = serverParts
+      ? new Date(serverParts[0], serverParts[1] - 1, serverParts[2], 12)
+      : new Date();
     var todayMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     var visibleMonth = new Date(todayMonth);
     var latestMonth = new Date(today.getFullYear() + 2, today.getMonth(), 1);
