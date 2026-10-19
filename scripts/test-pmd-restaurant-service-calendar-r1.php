@@ -5,10 +5,20 @@
  * Run: php scripts/test-pmd-restaurant-service-calendar-r1.php
  * Does not read/write tenant tables. Injects a fixture into the request cache.
  */
-$root = dirname(__DIR__);
+// The fixture can exercise an incoming staged service with the live
+// application's Composer libraries, without installing or mutating a tenant.
+$root = getenv('PMD_CALENDAR_PROJECT_ROOT') ?: dirname(__DIR__);
 require $root.'/bootstrap/autoload.php';
 $app = require $root.'/bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$incoming = getenv('PMD_CALENDAR_SERVICE_FILE');
+if ($incoming !== false && $incoming !== '') {
+    if (!is_file($incoming)) {
+        fwrite(STDERR, "FAIL calendar: staged service missing\n");
+        exit(1);
+    }
+    require_once $incoming;
+}
 
 use App\Services\Reservations\PmdRestaurantServiceCalendarR1 as Calendar;
 use Carbon\Carbon;
@@ -61,6 +71,18 @@ ensureCalendar(!$c->allows(777,'2026-10-26','12:00',60), 'special closed Monday'
 ensureCalendar(!$c->allows(777,'2026-10-21','00:30',30), 'closed Wednesday suppresses overnight tail');
 ensureCalendar($c->allows(777,'2026-10-20','21:30',60), 'Tuesday overnight dinner');
 ensureCalendar(!$c->allows(777,'2026-10-20','23:30',90), 'crossing explicit next-day closure is blocked');
+ensureCalendar($c->allows(777,'2026-10-20','22:00',120), 'ending exactly midnight before closed day is allowed');
+
+$allDay = $hours;
+$allDay[0] = ['enabled'=>1, 'windows'=>[
+    ['opening_time'=>'09:00','closing_time'=>'09:00']
+]];
+$allDayPolicy = $c->validateSubmission($allDay, [
+    'advance_days'=>'30', 'closed_dates_json'=>'[]',
+]);
+$ref->setValue($c, [777=>$allDayPolicy]);
+ensureCalendar($c->allows(777,'2026-10-19','01:00',60), 'equal times retains legacy 24-hour meaning');
+$ref->setValue($c, [777=>$policy]);
 
 $overlap = $hours;
 $overlap[0]['windows'][1] = ['opening_time'=>'14:00','closing_time'=>'17:00'];
@@ -80,4 +102,4 @@ try {
 }
 ensureCalendar($rejected, 'advance horizon over 365 rejected');
 
-echo "PASS: restaurant multi-service/closures/horizon calendar (15 assertions; no DB changes)\n";
+echo "PASS: restaurant multi-service/closures/horizon calendar (17 assertions; no DB changes)\n";
