@@ -768,3 +768,16 @@ button.pmd-menu-options-builder__add:focus-visible {
   outline:2px solid #167c65 !important;
   outline-offset:2px !important;
 }
+
+
+/* PMD_FOOD_PREP_INLINE_MOBILE_LASTCHILD_GUARD_V6_20261019
+   Legacy mobile selector ".pmd-menu-prep-presets button:last-child" also
+   matches the nested '+' button. Never allow it to span the entire tile. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline
+.pmd-glass-stepper > button.pmd-glass-stepper__button {
+  grid-column:auto !important;
+  grid-row:auto !important;
+  align-self:stretch !important;
+  justify-self:stretch !important;
+}
