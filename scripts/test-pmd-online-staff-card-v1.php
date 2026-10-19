@@ -31,7 +31,7 @@ $online = $formatter->format([
         'user_id' => 9,
         'name' => 'Test Staff',
         'role' => 'Manager',
-        'login_at' => '2026-10-19 09:30:00',
+        'login_at' => '2026-10-19 07:30:00', // UTC => Berlin 09:30
         'session_count' => 2,
     ]],
 ], 'en', $now);
