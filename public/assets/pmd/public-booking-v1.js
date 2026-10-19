@@ -1662,16 +1662,37 @@
   }
 
   function recurringDateStatus(value) {
+    // Explicit closures win over weekday availability and stale cached slots.
+    var closedDates = Array.isArray(config.closedDates) ? config.closedDates : [];
+    if (closedDates.indexOf(String(value)) !== -1) return "closed";
+
     var openingHours = Array.isArray(config.openingHours)
-      ? config.openingHours
-      : [];
+      ? config.openingHours : [];
     if (!openingHours.length) return "";
 
     var date = dateFromIso(value);
     var weekday = (date.getDay() + 6) % 7;
     var row = openingHours[weekday] || null;
+    var previous = openingHours[(weekday + 6) % 7] || null;
 
-    if (row && row.enabled === false) return "closed";
+    function hasWindow(day) {
+      if (!day || day.enabled === false) return false;
+      if (Array.isArray(day.windows)) return day.windows.length > 0;
+      return Boolean(day.opening_time && day.closing_time);
+    }
+    function overnight(day) {
+      if (!hasWindow(day)) return false;
+      var ranges = Array.isArray(day.windows) ? day.windows : [day];
+      return ranges.some(function (range) {
+        return String(range.closing_time || '') <= String(range.opening_time || '');
+      });
+    }
+    var previousDate = dateFromIso(value);
+    previousDate.setDate(previousDate.getDate() - 1);
+    var previousClosed = closedDates.indexOf(isoDate(previousDate)) !== -1;
+    if (!hasWindow(row) && !(overnight(previous) && !previousClosed)) {
+      return "closed";
+    }
     return "";
   }
 
