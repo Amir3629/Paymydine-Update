@@ -80,4 +80,4 @@ try {
 }
 ensureCalendar($rejected, 'advance horizon over 365 rejected');
 
-echo "PASS: restaurant multi-service/closures/horizon calendar (16 assertions; no DB changes)\n";
+echo "PASS: restaurant multi-service/closures/horizon calendar (15 assertions; no DB changes)\n";
