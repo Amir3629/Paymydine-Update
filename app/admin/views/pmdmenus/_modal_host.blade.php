@@ -143,10 +143,13 @@
                             </label>
                         </div>
 
-                        <div class="pmd-menu-form__subhead">
-                            <div>
+                        {{-- PMD_MENU_ALLERGEN_COMPACT_HEADER_V3_20261019 --}}
+                        <div class="pmd-menu-form__subhead pmd-menu-form__subhead--allergens">
+                            <div class="pmd-menu-form__allergens-heading">
+                                <span class="pmd-menu-form__allergens-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+                                </span>
                                 <strong>{{ $pmdT('allergens') }}</strong>
-                                <small>{{ $pmdT('allergens_help') }}</small>
                             </div>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3z"></path><path d="M12 9v4M12 17h.01"></path></svg>
                         </div>

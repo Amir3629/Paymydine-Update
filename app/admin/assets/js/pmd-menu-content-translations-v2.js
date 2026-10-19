@@ -12,9 +12,16 @@
   var menuIdInput = form.querySelector('[data-pmd-menu-id]');
   var nameInput = form.querySelector('[data-pmd-menu-name]');
   var descriptionInput = form.querySelector('[data-pmd-menu-description]');
+  // PMD_MENU_TRANSLATION_SWITCH_V3_20261019
+  // Compact language switcher; underlying translation payload remains unchanged.
+  if (window.PMD_MENU_TRANSLATION_SWITCH_V3_ACTIVE) return;
+  window.PMD_MENU_TRANSLATION_SWITCH_V3_ACTIVE = true;
+
   var section = null;
   var panels = null;
   var tabs = null;
+  var toggleButton = null;
+  var expanded = false;
   var autoButton = null;
   var statusNode = null;
   var marker = null;
@@ -41,6 +48,20 @@
 
   function localeLabel(locale) {
     return languageNames[locale] || String(locale || '').toUpperCase();
+  }
+
+  function uiText(key) {
+    var adminLanguage = activeAdminLocale();
+    var german = adminLanguage === 'de';
+    var translations = {
+      languages: german ? 'Sprachen' : 'Languages',
+      auto: german ? 'Automatisch übersetzen' : 'Auto translate',
+      translating: german ? 'Übersetze…' : 'Translating…',
+      none: german ? 'Keine leeren Felder zum Übersetzen.' : 'Nothing empty to translate.',
+      done: german ? 'Übersetzt. Bitte vor dem Speichern prüfen.' : 'Translated. Review before saving.',
+      failed: german ? 'Automatische Übersetzung nicht verfügbar. Bitte manuell eingeben.' : 'Auto translate unavailable — enter manually.'
+    };
+    return translations[key] || key;
   }
 
   function activeAdminLocale() {
@@ -107,10 +128,17 @@
     section.hidden = true;
     section.innerHTML = '' +
       '<div class="pmd-menu-content-translations__head">' +
-        '<div class="pmd-menu-content-translations__title"><h3>Translations</h3><div data-pmd-menu-translation-tabs></div></div>' +
-        '<div class="pmd-menu-content-translations__actions"><button type="button" data-pmd-menu-auto-translate>Auto translate</button><span data-pmd-menu-translation-status></span></div>' +
+        '<div class="pmd-menu-content-translations__title">' +
+          '<button type="button" class="pmd-menu-translation-switch-v3" data-pmd-menu-translation-switch aria-expanded="false" aria-controls="pmd-menu-translation-panels-v3">' +
+            '<span data-pmd-menu-translation-switch-label>Languages</span>' +
+            '<span class="pmd-menu-translation-switch-v3__direction" data-pmd-menu-translation-direction></span>' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>' +
+          '</button>' +
+          '<div class="pmd-menu-translation-tabs-v3" data-pmd-menu-translation-tabs hidden></div>' +
+        '</div>' +
+        '<div class="pmd-menu-content-translations__actions"><button type="button" data-pmd-menu-auto-translate>Auto translate</button><span data-pmd-menu-translation-status role="status" aria-live="polite"></span></div>' +
       '</div>' +
-      '<div data-pmd-menu-translation-panels></div>';
+      '<div id="pmd-menu-translation-panels-v3" data-pmd-menu-translation-panels hidden></div>';
 
     if (optionsSection && optionsSection.parentNode === detailsSection.parentNode) {
       optionsSection.parentNode.insertBefore(section, optionsSection);
@@ -120,6 +148,7 @@
 
     tabs = section.querySelector('[data-pmd-menu-translation-tabs]');
     panels = section.querySelector('[data-pmd-menu-translation-panels]');
+    toggleButton = section.querySelector('[data-pmd-menu-translation-switch]');
     autoButton = section.querySelector('[data-pmd-menu-auto-translate]');
     statusNode = section.querySelector('[data-pmd-menu-translation-status]');
 
@@ -287,6 +316,15 @@
     if (targetLocales.indexOf(activeLocale) === -1) activeLocale = targetLocales[0];
     section.hidden = false;
     if (marker) marker.disabled = false;
+    if (toggleButton) {
+      toggleButton.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      toggleButton.querySelector('[data-pmd-menu-translation-switch-label]').textContent = uiText('languages');
+      toggleButton.querySelector('[data-pmd-menu-translation-direction]').textContent =
+        localeLabel(sourceLocale) + ' → ' + localeLabel(activeLocale);
+    }
+    tabs.hidden = !expanded;
+    panels.hidden = !expanded;
+    if (autoButton && !autoButton.disabled) autoButton.textContent = uiText('auto');
 
     tabs.textContent = '';
     targetLocales.forEach(function (locale) {
@@ -360,39 +398,46 @@
   }
 
   async function autoTranslate() {
-    if (!activeLocale || !section || !autoButton) return;
-    var controls = Array.prototype.slice.call(section.querySelectorAll('[data-pmd-translation-panel="'+activeLocale+'"] [data-pmd-translation-target]'));
+    if (!activeLocale || !section || !autoButton || autoButton.disabled) return;
+    // Captured target prevents an async translation from landing in another language.
+    var targetLocale = activeLocale;
+    var currentRun = loadRun;
+    expanded = true;
+    render();
+    var controls = Array.prototype.slice.call(section.querySelectorAll('[data-pmd-translation-panel="'+targetLocale+'"] [data-pmd-translation-target]'));
     var empty = controls.filter(function (control) {
       return !String(control.value || '').trim() && String(control.getAttribute('data-pmd-translation-source') || '').trim();
     });
     if (!empty.length) {
-      setStatus('Nothing empty to translate.', 'good');
+      setStatus(uiText('none'), 'good');
       return;
     }
 
     autoButton.disabled = true;
-    autoButton.textContent = 'Translating…';
+    autoButton.textContent = uiText('translating');
     setStatus('', '');
 
     try {
       for (var i = 0; i < empty.length; i++) {
         var control = empty[i];
         var sourceText = String(control.getAttribute('data-pmd-translation-source') || '').trim();
-        var translated = await translateText(sourceText, sourceLocale, activeLocale);
+        var translated = await translateText(sourceText, sourceLocale, targetLocale);
+        if (currentRun !== loadRun || targetLocale !== activeLocale) return;
         control.value = translated;
-        setStatePath(activeLocale, control.getAttribute('data-pmd-translation-state-path'), translated);
+        setStatePath(targetLocale, control.getAttribute('data-pmd-translation-state-path'), translated);
       }
-      setStatus('Translated ✓ Review before saving.', 'good');
+      setStatus(uiText('done'), 'good');
     } catch (error) {
-      setStatus('Auto translate unavailable — enter manually.', 'warn');
+      if (currentRun === loadRun) setStatus(uiText('failed'), 'warn');
     } finally {
       autoButton.disabled = false;
-      autoButton.textContent = 'Auto translate';
+      autoButton.textContent = uiText('auto');
     }
   }
 
   async function loadForCurrentFood() {
     var run = ++loadRun;
+    expanded = false;
     ensureUi();
     setStatus('', '');
     var menuId = String(Number(menuIdInput && menuIdInput.value || 0) || 0);
@@ -427,6 +472,12 @@
   }
 
   document.addEventListener('click', function (event) {
+    var switcher = event.target && event.target.closest && event.target.closest('[data-pmd-menu-translation-switch]');
+    if (switcher && section && section.contains(switcher)) {
+      expanded = !expanded;
+      render();
+      return;
+    }
     var tab = event.target && event.target.closest && event.target.closest('[data-pmd-translation-tab]');
     if (tab && section && section.contains(tab)) {
       activeLocale = String(tab.getAttribute('data-pmd-translation-tab') || '');
