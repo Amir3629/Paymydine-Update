@@ -1239,72 +1239,56 @@ final class PmdDevicePlatformService
 
         if (!Schema::hasTable('working_hours')) {
             return [
-                'inside' => true,
-                'reason' => 'opening_hours_unavailable',
-                'start' => null,
-                'end' => null,
-                'timezone' => $timezone,
+                'inside' => true, 'reason' => 'opening_hours_unavailable',
+                'start' => null, 'end' => null, 'timezone' => $timezone,
             ];
         }
 
-        $rows = DB::table('working_hours')
-            ->where('location_id', $locationId)
-            ->where('type', 'opening')
-            ->where('status', 1)
-            ->get()
-            ->keyBy(static fn ($row) => (int)$row->weekday);
+        $calendar = app(\App\Services\Reservations\PmdRestaurantServiceCalendarR1::class);
+        $schedule = $calendar->policy($locationId);
+        $hasConfiguredHours = collect($schedule['weekly'] ?? [])
+            ->contains(static fn ($day) => !empty($day['enabled']));
 
-        if ($rows->isEmpty()) {
+        if (!$hasConfiguredHours && !$calendar->isClosedDate($locationId, $now->toDateString())) {
+            // Preserve historical fail-open behavior for restaurants which
+            // have never configured any weekly Opening Hours.
             return [
-                'inside' => true,
-                'reason' => 'no_opening_hours_configured',
-                'start' => null,
-                'end' => null,
-                'timezone' => $timezone,
+                'inside' => true, 'reason' => 'no_opening_hours_configured',
+                'start' => null, 'end' => null, 'timezone' => $timezone,
             ];
         }
 
         $wakeBefore = (int)($policy['wake_before_minutes'] ?? 30);
         $sleepAfter = (int)($policy['sleep_after_minutes'] ?? 30);
 
-        foreach ([$now->copy()->subDay(), $now->copy()] as $day) {
-            $weekday = $day->dayOfWeekIso - 1;
-            $row = $rows->get($weekday);
-            if (!$row) {
-                continue;
-            }
+        foreach ([$now->copy()->subDay(), $now->copy(), $now->copy()->addDay()] as $date) {
+            foreach ($calendar->windowsForDate($locationId, $date) as $window) {
+                $start = $window['start'];
+                $end = $window['end'];
+                // An explicitly closed calendar date always suppresses
+                // device wake even if yesterday's legacy shift crossed 00:00.
+                if ($calendar->isClosedDate($locationId, $now->toDateString())) {
+                    continue;
+                }
 
-            $open = substr((string)$row->opening_time, 0, 8) ?: '00:00:00';
-            $close = substr((string)$row->closing_time, 0, 8) ?: '23:59:00';
-
-            $start = Carbon::parse($day->toDateString().' '.$open, $timezone);
-            $end = Carbon::parse($day->toDateString().' '.$close, $timezone);
-            if ($end->lte($start)) {
-                $end->addDay();
-            }
-
-            $managedStart = $start->copy()->subMinutes($wakeBefore);
-            $managedEnd = $end->copy()->addMinutes($sleepAfter);
-
-            if ($now->betweenIncluded($managedStart, $managedEnd)) {
-                return [
-                    'inside' => true,
-                    'reason' => $now->lt($start)
-                        ? 'opening_soon'
-                        : ($now->gt($end) ? 'closing_grace' : 'restaurant_open'),
-                    'start' => $managedStart->toIso8601String(),
-                    'end' => $managedEnd->toIso8601String(),
-                    'timezone' => $timezone,
-                ];
+                $managedStart = $start->copy()->subMinutes($wakeBefore);
+                $managedEnd = $end->copy()->addMinutes($sleepAfter);
+                if ($now->betweenIncluded($managedStart, $managedEnd)) {
+                    return [
+                        'inside' => true,
+                        'reason' => $now->lt($start) ? 'opening_soon'
+                            : ($now->gt($end) ? 'closing_grace' : 'restaurant_open'),
+                        'start' => $managedStart->toIso8601String(),
+                        'end' => $managedEnd->toIso8601String(),
+                        'timezone' => $timezone,
+                    ];
+                }
             }
         }
 
         return [
-            'inside' => false,
-            'reason' => 'restaurant_closed',
-            'start' => null,
-            'end' => null,
-            'timezone' => $timezone,
+            'inside' => false, 'reason' => 'restaurant_closed',
+            'start' => null, 'end' => null, 'timezone' => $timezone,
         ];
     }
 
