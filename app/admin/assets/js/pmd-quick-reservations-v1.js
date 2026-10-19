@@ -204,51 +204,47 @@
 
   function openingForDate(value) {
     if (!state.openingHours.length) {
-      return {
-        configured: false,
-        closed: false,
-        start: 8 * 60,
-        end: 24 * 60
-      };
+      return {configured:false,closed:true,start:8*60,end:24*60,intervals:[]};
     }
-
     var weekday = weekdayForDate(value);
-    var row = state.openingHours.find(function (item) {
-      return Number(item && item.weekday) === weekday;
+    var rows = state.openingHours;
+    var current = rows.find(function (r) {return Number(r.weekday) === weekday;});
+    var previous = rows.find(function (r) {return Number(r.weekday) === (weekday+6)%7;});
+    var closedDates = rows[0] && Array.isArray(rows[0].closed_dates)
+      ? rows[0].closed_dates : [];
+    if (closedDates.indexOf(value) !== -1) {
+      return {configured:true,closed:true,start:8*60,end:24*60,intervals:[]};
+    }
+    var intervals = [];
+    function dayWindows(row) {
+      if (!row || !row.enabled) return [];
+      return Array.isArray(row.windows) ? row.windows : [row];
+    }
+    var bits = String(value).split('-').map(Number);
+    var previousDay = new Date(Date.UTC(bits[0],bits[1]-1,bits[2],12));
+    previousDay.setUTCDate(previousDay.getUTCDate()-1);
+    var prevKey = previousDay.getUTCFullYear()+'-'+pad(previousDay.getUTCMonth()+1)+'-'+pad(previousDay.getUTCDate());
+    if (closedDates.indexOf(prevKey) === -1) {
+      dayWindows(previous).forEach(function (range) {
+        var op = parseMinutes(range.opening_time);
+        var cl = parseMinutes(range.closing_time);
+        if (op !== null && cl !== null && cl <= op && cl > 0) intervals.push([0,cl]);
+      });
+    }
+    dayWindows(current).forEach(function (range) {
+      var op = parseMinutes(range.opening_time);
+      var cl = parseMinutes(range.closing_time);
+      if (op !== null && cl !== null) {
+        intervals.push([op,cl <= op ? cl+1440 : cl]);
+      }
     });
-
-    if (!row || row.enabled === false) {
-      return {
-        configured: true,
-        closed: true,
-        start: 8 * 60,
-        end: 24 * 60
-      };
-    }
-
-    var start = parseMinutes(row.opening_time);
-    var end = parseMinutes(row.closing_time);
-
-    if (start === null || end === null) {
-      return {
-        configured: true,
-        closed: true,
-        start: 8 * 60,
-        end: 24 * 60
-      };
-    }
-
-    if (end <= start) end += 1440;
-
-    return {
-      configured: true,
-      closed: false,
-      start: start,
-      end: end
-    };
+    intervals.sort(function (a,b) {return a[0]-b[0];});
+    return intervals.length
+      ? {configured:true,closed:false,start:intervals[0][0],end:intervals[intervals.length-1][1],intervals:intervals,closedDates:closedDates}
+      : {configured:true,closed:true,start:8*60,end:24*60,intervals:[],closedDates:closedDates};
   }
 
-  function rowName(row) {
+    function rowName(row) {
     return String(
       row.customer_name ||
       row.guest_name ||
@@ -1101,29 +1097,31 @@
 
   function quickTimeAllowedSlots() {
     if (state.editor.mode === 'edit') return quickTimeAllSlots();
-
     var date = String((quickField('reserve_date') || {}).value || state.date || '');
     var duration = Math.max(
-      30,
-      Math.min(180, Number((quickField('duration') || {}).value || 45))
+      30, Math.min(180, Number((quickField('duration') || {}).value || 45))
     );
     var opening = openingForDate(date);
+    if (opening.closed || !opening.configured) return [];
 
-    if (opening.closed) return [];
-    if (!opening.configured) return quickTimeAllSlots();
-
-    var start = Math.ceil(Number(opening.start || 0) / 15) * 15;
-    var lastStart = Number(opening.end || 0) - duration;
     var slots = [];
-
-    for (var minute = start; minute <= lastStart; minute += 15) {
-      if (minute >= 0 && minute < 1440) slots.push(minuteLabel(minute));
-    }
-
-    return slots;
+    var day = new Date(date + 'T12:00:00Z');
+    day.setUTCDate(day.getUTCDate()+1);
+    var nextKey = day.toISOString().slice(0,10);
+    (opening.intervals || []).forEach(function (period) {
+      var start = Math.ceil(period[0]/15)*15;
+      var lastStart = Math.min(1439,period[1]-duration);
+      for (var minute=start;minute<=lastStart;minute+=15) {
+        if (minute+duration>1440
+            && (opening.closedDates||[]).indexOf(nextKey)!==-1) continue;
+        var clock = minuteLabel(minute);
+        if (slots.indexOf(clock) === -1) slots.push(clock);
+      }
+    });
+    return slots.sort();
   }
 
-  function quickTimeNearestSlot(value, slots) {
+    function quickTimeNearestSlot(value, slots) {
     if (!slots || !slots.length) return '';
     var target = parseMinutes(value);
     if (target === null) return slots[0];
