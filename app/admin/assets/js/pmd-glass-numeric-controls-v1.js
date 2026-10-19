@@ -79,9 +79,11 @@
     var unit = wrap.querySelector('[data-pmd-numeric-unit]');
     var label = unitFor(input);
     if (unit) {
-      unit.textContent = label;
-      unit.title = label === '%' ? 'Percentage' : 'Currency: ' + label;
-      unit.hidden = !label;
+      // PMD_GLASS_NUMERIC_CONTROLS_QA_R2_20261019: no childList writes when unchanged (observer loop guard).
+      var caption = label === '%' ? 'Percentage' : 'Currency: ' + label;
+      if (unit.textContent !== label) unit.textContent = label;
+      if (unit.title !== caption) unit.title = caption;
+      if (unit.hidden !== !label) unit.hidden = !label;
     }
     wrap.classList.toggle('pmd-glass-stepper--has-unit', Boolean(label));
     wrap.classList.toggle('pmd-glass-stepper--disabled', disabled);

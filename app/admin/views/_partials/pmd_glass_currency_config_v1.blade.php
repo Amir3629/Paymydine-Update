@@ -6,9 +6,15 @@
     try {
         $pmdGlassCurrencyCodeV1 = strtoupper(trim((string) setting('default_currency_code', '')));
         if (!preg_match('/^[A-Z]{3}$/', $pmdGlassCurrencyCodeV1)) {
-            $pmdGlassCurrencyCodeV1 = '';
-            $pmdDefaultCurrencyV1 = \System\Models\Currencies_model::getDefault();
-            $pmdGlassCurrencyCodeV1 = strtoupper(trim((string) ($pmdDefaultCurrencyV1->currency_code ?? '')));
+            // PMD_GLASS_NUMERIC_CONTROLS_QA_R2_20261019: query-only fallback; getDefault() may write settings.
+            $pmdGlassCurrencyRawV1 = trim((string) setting('default_currency_code', ''));
+            $pmdGlassCurrencyQueryV1 = \System\Models\Currencies_model::query();
+            $pmdGlassCurrencyRowV1 = preg_match('/^\\d+$/', $pmdGlassCurrencyRawV1)
+                ? $pmdGlassCurrencyQueryV1->where('currency_id', (int) $pmdGlassCurrencyRawV1)->first()
+                : null;
+            if ($pmdGlassCurrencyRowV1) {
+                $pmdGlassCurrencyCodeV1 = strtoupper(trim((string) $pmdGlassCurrencyRowV1->currency_code));
+            }
         }
         if (!preg_match('/^[A-Z]{3}$/', $pmdGlassCurrencyCodeV1)) {
             $pmdGlassCurrencyCodeV1 = '';
