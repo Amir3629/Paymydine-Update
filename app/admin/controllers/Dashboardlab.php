@@ -89,7 +89,15 @@ class Dashboardlab extends AdminController
 
         /* PMD_DASHBOARD_LAB_STEP4_ALL_DASHBOARD2_ANALYTICS_ASSETS_V1 */
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
-        $this->addCss('css/pmd-manager-online-staff-v1.css');
+        // PMD_SHARED_STAFF_CARD_RHYTHM_R2 - force new CSS onto browsers/CDNs.
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-manager-online-staff-v1.css')
+            .'?v='.(string)(
+                @filemtime(
+                    base_path('app/admin/assets/css/pmd-manager-online-staff-v1.css')
+                ) ?: 'r2'
+            )
+        );
 
         // PMD_DASHBOARD_FIRSTPAINT_V141
         // Load KPI geometry authority after dashboard analytics/layout CSS so
