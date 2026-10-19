@@ -16,6 +16,18 @@
     var monthText = card.querySelector('[data-pmd-service-month]');
     var closureList = card.querySelector('[data-pmd-service-closed-list]');
     var inputDate = card.querySelector('[data-pmd-service-date-input]');
+    var closedCount = card.querySelector('[data-pmd-service-closed-count]');
+    var weekdayLabels = card.querySelectorAll('.pmd-profile-calendar-weekdays > span');
+    var locale = document.documentElement.lang || 'en';
+    var readableDate = new Intl.DateTimeFormat(locale, {
+      day: 'numeric', month: 'short', year: 'numeric'
+    });
+    var weekdayFormat = new Intl.DateTimeFormat(locale, {weekday: 'short'});
+    weekdayLabels.forEach(function (label, index) {
+      var weekday = weekdayFormat.format(new Date(2024, 0, 1 + index, 12));
+      label.textContent = weekday.replace('.', '');
+      label.setAttribute('title', weekday);
+    });
     var maxPeriods = 4;
     var serverTodayKey = String(
       card.getAttribute('data-pmd-service-today') || ''
@@ -55,19 +67,33 @@
     function renderClosedList() {
       closureList.replaceChildren();
       var values = Array.from(closed).sort();
+      if (closedCount) {
+        closedCount.textContent = values.length + ' ' +
+          (card.getAttribute('data-pmd-service-closed-count-label') || 'dates');
+      }
       if (!values.length) {
         var none = document.createElement('span');
         none.className = 'pmd-profile-calendar-none';
-        none.textContent = 'No special closed dates.';
+        none.textContent = card.getAttribute('data-pmd-service-no-closures-label') ||
+          'No special closed dates.';
         closureList.appendChild(none);
         return;
       }
       values.forEach(function (key) {
+        var parts = key.split('-').map(Number);
+        var date = new Date(parts[0], parts[1] - 1, parts[2], 12);
+        var label = readableDate.format(date);
         var button = document.createElement('button');
         button.type = 'button';
-        button.textContent = key;
-        button.setAttribute('aria-label', 'Reopen ' + key);
-        button.addEventListener('click', function () { closed.delete(key); syncClosed(); });
+        button.textContent = label;
+        button.dataset.closedDate = key;
+        button.setAttribute('aria-label',
+          (card.getAttribute('data-pmd-service-reopen-label') || 'Reopen') +
+          ' ' + label);
+        button.addEventListener('click', function () {
+          closed.delete(key);
+          syncClosed();
+        });
         closureList.appendChild(button);
       });
     }
@@ -114,16 +140,52 @@
     }
     function renumber(row) {
       var weekday = Number(row.getAttribute('data-pmd-weekday'));
+      var enabled = !!row.querySelector('[data-pmd-hours-enabled]').checked;
       var windows = row.querySelectorAll('[data-pmd-service-window]');
       windows.forEach(function (node, index) {
         var start = node.querySelector('[data-pmd-service-open]');
         var end = node.querySelector('[data-pmd-service-close]');
         start.name = rowName(weekday, index, 'opening_time');
         end.name = rowName(weekday, index, 'closing_time');
+        start.required = enabled;
+        end.required = enabled;
+        start.disabled = !enabled;
+        end.disabled = !enabled;
       });
       var add = row.querySelector('[data-pmd-service-add]');
-      add.disabled = !row.querySelector('[data-pmd-hours-enabled]').checked ||
-        windows.length >= maxPeriods;
+      add.disabled = !enabled || windows.length >= maxPeriods;
+    }
+
+    function minutes(clock) {
+      var match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(clock || ''));
+      return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+    }
+    function proposeWindow(row) {
+      var occupied = Array.from(row.querySelectorAll('[data-pmd-service-window]'))
+        .map(function (node) {
+          var start = minutes(node.querySelector('[data-pmd-service-open]').value);
+          var end = minutes(node.querySelector('[data-pmd-service-close]').value);
+          if (start === null || end === null) return null;
+          return [start, end <= start ? end + 1440 : end];
+        }).filter(Boolean);
+      var suggested = [
+        ['18:00','22:00'], ['11:30','15:00'],
+        ['08:00','11:00'], ['15:30','17:30']
+      ];
+      for (var i = 0; i < suggested.length; i++) {
+        var proposed = suggested[i];
+        var start = minutes(proposed[0]);
+        var end = minutes(proposed[1]);
+        if (occupied.every(function (window) {
+          return end <= window[0] || start >= window[1];
+        })) return proposed;
+      }
+      // Never invent an overlapping dinner shift on an already full day.
+      return ['', ''];
+    }
+    function setHint(row, message) {
+      var hint = row.querySelector('[data-pmd-service-hint]');
+      if (hint) hint.textContent = message || '';
     }
     function createWindow(row, startTime, endTime) {
       var container = row.querySelector('[data-pmd-service-windows]');
@@ -131,8 +193,6 @@
       var node = document.createElement('div');
       node.className = 'pmd-profile-service-window';
       node.setAttribute('data-pmd-service-window', '');
-      var localeText = container.querySelector('.pmd-profile-time span');
-      var labels = localeText ? localeText.textContent : 'Opens';
       var makeLabel = function (text, value, attr) {
         var label = document.createElement('label');
         label.className = 'pmd-profile-time';
@@ -141,6 +201,7 @@
         var input = document.createElement('input');
         input.type = 'time';
         input.step = '60';
+        input.lang = 'en-GB';
         input.value = value;
         input.setAttribute('data-pmd-hours-time', '');
         input.setAttribute(attr, '');
@@ -148,17 +209,31 @@
         label.appendChild(input);
         return label;
       };
-      node.appendChild(makeLabel(labels, startTime, 'data-pmd-service-open'));
-      node.appendChild(makeLabel('Closes', endTime, 'data-pmd-service-close'));
+      node.appendChild(makeLabel(
+        row.getAttribute('data-pmd-service-open-label') || 'Opens',
+        startTime, 'data-pmd-service-open'
+      ));
+      node.appendChild(makeLabel(
+        row.getAttribute('data-pmd-service-close-label') || 'Closes',
+        endTime, 'data-pmd-service-close'
+      ));
       var remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'pmd-profile-service-remove';
       remove.setAttribute('data-pmd-service-remove', '');
-      remove.setAttribute('aria-label', 'Remove service period');
+      remove.setAttribute('aria-label',
+        row.getAttribute('data-pmd-service-remove-label') || 'Remove service period');
       remove.textContent = '×';
       node.appendChild(remove);
       container.appendChild(node);
       renumber(row);
+      if (!startTime || !endTime) {
+        setHint(row, row.getAttribute('data-pmd-service-adjust-label') ||
+          'This day is fully covered. Adjust a previous period and set the new times.');
+        node.querySelector('[data-pmd-service-open]').focus();
+      } else {
+        setHint(row, '');
+      }
       notifyDirty();
     }
     root.querySelectorAll('[data-pmd-hours-row]').forEach(function (row) {
@@ -171,12 +246,26 @@
         event.preventDefault();
         var row = add.closest('[data-pmd-hours-row]');
         if (row && row.querySelector('[data-pmd-hours-enabled]').checked) {
-          createWindow(row, '18:00', '22:00');
+          var suggested = proposeWindow(row);
+          createWindow(row, suggested[0], suggested[1]);
         }
       } else if (remove && form.contains(remove)) {
         event.preventDefault();
         var hoursRow = remove.closest('[data-pmd-hours-row]');
+        if (!hoursRow) return;
         remove.closest('[data-pmd-service-window]').remove();
+        setHint(hoursRow, '');
+        if (!hoursRow.querySelector('[data-pmd-service-window]')) {
+          // An open day must have at least one period. Removing the last
+          // period means Closed, and the old profile runtime updates its badge.
+          var toggle = hoursRow.querySelector('[data-pmd-hours-enabled]');
+          toggle.checked = false;
+          toggle.dispatchEvent(new Event('change', {bubbles:true}));
+          hoursRow.classList.add('is-closed');
+          var state = hoursRow.querySelector('[data-pmd-hours-state]');
+          if (state) state.textContent = hoursRow.getAttribute(
+            'data-pmd-service-closed-label') || 'Closed';
+        }
         renumber(hoursRow);
         notifyDirty();
       }
@@ -189,6 +278,7 @@
       if (toggle.checked && !row.querySelector('[data-pmd-service-window]')) {
         createWindow(row, '09:00', '22:00');
       }
+      if (!toggle.checked) setHint(row, '');
       renumber(row);
     });
     card.querySelector('[data-pmd-service-prev]').addEventListener('click', function () {
@@ -210,7 +300,7 @@
     inputDate.min = iso(today);
     syncClosed();
     window.PMDRestaurantServiceCalendarR1 = {
-      version: '1.0.0',
+      version: '2.0.0-ui',
       audit: function () {
         return {closedDates:closed.size,daysConfigured:root.querySelectorAll('[data-pmd-hours-row]').length};
       }

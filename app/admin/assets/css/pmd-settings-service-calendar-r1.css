@@ -1,36 +1,660 @@
-/* PMD_SETTINGS_SERVICE_CALENDAR_R1
- * Scoped extension of the existing Restaurant Profile opening-hour cards. */
-#pmd-restaurant-profile .pmd-profile-service-windows{display:grid;gap:9px;min-width:0}
-#pmd-restaurant-profile .pmd-profile-service-window{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px;gap:9px;align-items:end;min-width:0}
-#pmd-restaurant-profile .pmd-profile-service-window .pmd-profile-time{min-width:0}
-#pmd-restaurant-profile .pmd-profile-service-window .pmd-profile-time input{width:100%;min-width:0}
-#pmd-restaurant-profile .pmd-profile-service-remove{display:grid;place-items:center;height:38px;width:32px;margin:0;border:1px solid #dfebea;border-radius:10px;color:#a33444;background:#fff;font-size:22px;cursor:pointer}
-#pmd-restaurant-profile .pmd-profile-service-add{display:inline-flex;align-items:center;justify-content:center;min-height:33px;padding:6px 11px;margin-top:10px;border:1px dashed #94bcb3;border-radius:10px;background:#f6fbf9;color:#075548;font-size:12px;font-weight:760;cursor:pointer}
-#pmd-restaurant-profile .pmd-profile-service-add:disabled{opacity:.45;cursor:not-allowed}
-#pmd-restaurant-profile .pmd-profile-calendar-card{margin-top:18px;padding:17px;border:1px solid #dbe8e5;border-radius:16px;background:#fff;min-width:0}
-#pmd-restaurant-profile .pmd-profile-calendar-top{display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:15px;margin-bottom:14px}
-#pmd-restaurant-profile .pmd-profile-calendar-top h3{margin:0 0 5px;font-size:15px;font-weight:820;color:#16352e}
-#pmd-restaurant-profile .pmd-profile-calendar-top p,#pmd-restaurant-profile .pmd-profile-calendar-closures p{margin:0;color:#677d76;font-size:12px;line-height:1.5}
-#pmd-restaurant-profile .pmd-profile-calendar-advance{display:grid;gap:5px;min-width:195px;font-size:12px;font-weight:750;color:#49695f}
-#pmd-restaurant-profile .pmd-profile-calendar-advance select{height:39px;min-width:0;padding:7px 11px;border:1px solid #d5e3df;border-radius:11px;background:#fff;color:#123b30}
-#pmd-restaurant-profile .pmd-profile-calendar-shell{display:grid;grid-template-columns:minmax(270px,1fr) minmax(230px,1fr);gap:17px}
-#pmd-restaurant-profile .pmd-profile-calendar-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-#pmd-restaurant-profile .pmd-profile-calendar-nav strong{font-size:14px;font-weight:820;color:#173b30}
-#pmd-restaurant-profile .pmd-profile-calendar-nav button{width:32px;height:32px;border:1px solid #d8e8e2;border-radius:10px;background:#fff;color:#204e42;font-size:22px;cursor:pointer}
-#pmd-restaurant-profile .pmd-profile-calendar-weekdays,#pmd-restaurant-profile .pmd-profile-calendar-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
-#pmd-restaurant-profile .pmd-profile-calendar-weekdays span{text-align:center;color:#7b8984;font-size:11px;font-weight:750}
-#pmd-restaurant-profile .pmd-profile-calendar-days button{display:grid;place-items:center;position:relative;height:36px;min-width:0;padding:0;border:1px solid #e0eae7;border-radius:9px;background:#fff;color:#193b33;font-size:12px;font-weight:760;cursor:pointer}
-#pmd-restaurant-profile .pmd-profile-calendar-days button[aria-pressed=true]{background:#ffe8e7;color:#8f2631;border-color:#de9d9d}
-#pmd-restaurant-profile .pmd-profile-calendar-days button[aria-pressed=true]::after{content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);height:4px;width:4px;border-radius:50%;background:#e04652}
-#pmd-restaurant-profile .pmd-profile-calendar-days button:disabled{opacity:.24;cursor:default}
-#pmd-restaurant-profile .pmd-profile-calendar-closures{padding:15px;background:#f7fbfa;border-radius:13px;min-width:0}
-#pmd-restaurant-profile .pmd-profile-calendar-closures>strong{font-size:13px;color:#1b3a30}
-#pmd-restaurant-profile .pmd-profile-calendar-closures p{margin:8px 0 13px}
-#pmd-restaurant-profile .pmd-profile-calendar-add-row{display:flex;gap:7px;flex-wrap:wrap}
-#pmd-restaurant-profile .pmd-profile-calendar-add-row input{min-width:120px;flex:1;height:38px;padding:6px 8px;border:1px solid #d6e4df;border-radius:9px;background:white}
-#pmd-restaurant-profile .pmd-profile-calendar-add-row button{min-height:38px;padding:6px 10px;border:1px solid #b6d3c7;border-radius:9px;background:#e9f6ef;color:#075548;font-size:12px;font-weight:780;cursor:pointer}
-#pmd-restaurant-profile .pmd-profile-calendar-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;max-height:154px;overflow:auto}
-#pmd-restaurant-profile .pmd-profile-calendar-chips button{display:inline-flex;align-items:center;gap:8px;padding:6px 9px;border:1px solid #e0c6c3;border-radius:99px;background:#fff6f6;color:#943343;font-size:11px;cursor:pointer}
-#pmd-restaurant-profile .pmd-profile-calendar-chips button::after{content:"×";font-size:15px;font-weight:800}
-#pmd-restaurant-profile .pmd-profile-calendar-chips .pmd-profile-calendar-none{font-size:12px;color:#6c827a}
-@media(max-width:760px){#pmd-restaurant-profile .pmd-profile-calendar-shell{grid-template-columns:1fr}#pmd-restaurant-profile .pmd-profile-calendar-card{padding:12px}}
+/*
+ * PMD_RESTAURANT_SERVICE_CALENDAR_UI_R2
+ * Restaurant Profile only. Layout repair after split-service R1.
+ * No global theme, reservation, payment, tenant, or data changes.
+ */
+html body.pmd-settings-center-page #pmd-restaurant-profile {
+  --pmd-svc-ink: #173b33;
+  --pmd-svc-muted: #637a74;
+  --pmd-svc-line: #d6e5e5;
+  --pmd-svc-surface: #fff;
+  --pmd-svc-soft: #f7fbfa;
+  --pmd-svc-accent: #075c47;
+}
+
+/* Day cards use one intentional rhythm instead of the old one-window form. */
+html body.pmd-settings-center-page #pmd-restaurant-profile [data-pmd-service-weekly] {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row] {
+  display: block !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 18px !important;
+  border: 1px solid var(--pmd-svc-line) !important;
+  border-radius: 16px !important;
+  background: var(--pmd-svc-surface) !important;
+  box-shadow: 0 3px 13px rgba(16,57,47,.032) !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd) {
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  grid-template-columns: minmax(150px,.28fr) minmax(0,1fr) !important;
+  align-content: center !important;
+  align-items: start !important;
+  column-gap: 22px !important;
+  row-gap: 9px !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd)
+.pmd-profile-day-card__top {
+  grid-column: 1 !important;
+  grid-row: 1 / 3 !important;
+  margin: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd)
+[data-pmd-service-windows],
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd)
+[data-pmd-service-add],
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd)
+[data-pmd-service-hint] {
+  grid-column: 2 !important;
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd)
+[data-pmd-service-windows] {grid-row:1 !important;}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd)
+[data-pmd-service-add] {grid-row:2 !important;justify-self:start !important;}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd)
+[data-pmd-service-hint] {grid-row:3 !important;}
+
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-hours-row] .pmd-profile-day-card__top {
+  display:flex !important;
+  justify-content:space-between !important;
+  align-items:center !important;
+  gap:12px !important;
+  min-height:26px !important;
+  margin:0 0 14px !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-hours-row] .pmd-profile-day-card__top strong {
+  font-size:14px !important;
+  font-weight:800 !important;
+  line-height:1.3 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-hours-row] [data-pmd-hours-state] {
+  font-size:11px !important;
+  font-weight:650 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-hours-row].is-closed {
+  background:#f8faf9 !important;
+  border-color:#dfe7e5 !important;
+}
+
+/* Independent window rows: labels directly above time fields, no floating icons. */
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-windows] {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  align-content:start !important;
+  gap:10px !important;
+  min-width:0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) 42px !important;
+  align-items:end !important;
+  column-gap:10px !important;
+  row-gap:0 !important;
+  min-width:0 !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] + [data-pmd-service-window] {
+  padding-top:12px !important;
+  border-top:1px dashed #dbe9e5 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] > .pmd-profile-time {
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-end !important;
+  align-items:stretch !important;
+  gap:7px !important;
+  min-width:0 !important;
+  width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  position:relative !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] > .pmd-profile-time::before,
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] > .pmd-profile-time::after,
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] > .pmd-profile-time > :not(span):not(input) {
+  display:none !important;
+  content:none !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] > .pmd-profile-time > span {
+  display:block !important;
+  position:static !important;
+  width:auto !important;
+  margin:0 !important;
+  padding:0 !important;
+  color:#36584e !important;
+  font-size:12px !important;
+  font-weight:750 !important;
+  line-height:1.2 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] .pmd-profile-time > input[type="time"] {
+  box-sizing:border-box !important;
+  display:block !important;
+  flex:0 0 44px !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:44px !important;
+  min-height:44px !important;
+  margin:0 !important;
+  padding:0 12px !important;
+  border:1px solid #d2e1e9 !important;
+  border-radius:11px !important;
+  background:#fff !important;
+  background-image:none !important;
+  box-shadow:none !important;
+  color:#182f2a !important;
+  font-size:14px !important;
+  font-weight:650 !important;
+  line-height:1.25 !important;
+  text-align:start !important;
+  -webkit-appearance:auto !important;
+  appearance:auto !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] input[type="time"]:focus {
+  outline:2px solid rgba(17,114,83,.18) !important;
+  outline-offset:1px !important;
+  border-color:#579f8a !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity:.65 !important;
+  position:static !important;
+  width:17px !important;
+  height:17px !important;
+  cursor:pointer;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-window] input[type="time"]:disabled {
+  opacity:.50 !important;
+  background:#f2f7f6 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-remove] {
+  box-sizing:border-box !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  width:42px !important;
+  min-width:42px !important;
+  height:44px !important;
+  min-height:44px !important;
+  align-self:end !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:1px solid #eed7d5 !important;
+  border-radius:11px !important;
+  background:#fffafb !important;
+  box-shadow:none !important;
+  color:#a0424b !important;
+  font-size:20px !important;
+  line-height:1 !important;
+  cursor:pointer !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-remove]:hover {
+  background:#fff0f0 !important;
+  border-color:#dba8a8 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-add] {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:max-content !important;
+  max-width:100% !important;
+  min-height:38px !important;
+  margin:13px 0 0 !important;
+  padding:7px 13px !important;
+  border:1px solid #b6d7cb !important;
+  border-radius:10px !important;
+  background:#eff8f3 !important;
+  box-shadow:none !important;
+  color:var(--pmd-svc-accent) !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  white-space:normal !important;
+  cursor:pointer !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-add]:hover:not(:disabled) {background:#e2f3eb !important;}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-add]:disabled {opacity:.48 !important;cursor:not-allowed !important;}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-hint] {
+  display:block !important;
+  margin:8px 0 0 !important;
+  color:#8c5a28 !important;
+  font-size:11px !important;
+  line-height:1.45 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-hint]:empty {display:none !important;}
+
+/* Reservation calendar: compact, legible, stable in Safari + mobile. */
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] {
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  margin:18px 0 0 !important;
+  padding:20px !important;
+  border:1px solid var(--pmd-svc-line) !important;
+  border-radius:16px !important;
+  background:#fff !important;
+  box-shadow:none !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-top {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(205px,245px) !important;
+  align-items:start !important;
+  gap:24px !important;
+  margin:0 0 18px !important;
+  padding:0 0 18px !important;
+  border-bottom:1px solid #e7efed !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-top h3 {
+  margin:0 0 6px !important;
+  font-size:16px !important;
+  line-height:1.3 !important;
+  font-weight:820 !important;
+  color:#173b33 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-top p {
+  max-width:630px !important;
+  margin:0 !important;
+  font-size:12px !important;
+  line-height:1.55 !important;
+  color:var(--pmd-svc-muted) !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-advance {
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+  gap:7px !important;
+  min-width:0 !important;
+  max-width:245px !important;
+  margin:0 !important;
+  color:#36554c !important;
+  font-size:12px !important;
+  font-weight:750 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-advance] {
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:44px !important;
+  min-height:44px !important;
+  padding:0 38px 0 13px !important;
+  border:1px solid #d1e1e3 !important;
+  border-radius:11px !important;
+  background-color:#fff !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='10' viewBox='0 0 16 10'%3E%3Cpath d='m2 2 6 6 6-6' fill='none' stroke='%23395750' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important;
+  background-position:right 13px center !important;
+  background-size:13px 9px !important;
+  color:#173b33 !important;
+  font-size:13px !important;
+  font-weight:700 !important;
+  -webkit-appearance:none !important;
+  appearance:none !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-shell {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.05fr) !important;
+  gap:20px !important;
+  align-items:start !important;
+  min-width:0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-nav {
+  display:grid !important;
+  grid-template-columns:38px minmax(0,1fr) 38px !important;
+  align-items:center !important;
+  gap:9px !important;
+  width:100% !important;
+  margin:0 0 13px !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-nav strong {
+  min-width:0 !important;
+  color:#173b33 !important;
+  font-size:15px !important;
+  font-weight:820 !important;
+  line-height:1.3 !important;
+  text-align:center !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-nav button {
+  display:inline-grid !important;
+  place-items:center !important;
+  width:38px !important;
+  min-width:38px !important;
+  height:38px !important;
+  min-height:38px !important;
+  padding:0 !important;
+  border:1px solid var(--pmd-svc-line) !important;
+  border-radius:11px !important;
+  background:#fff !important;
+  color:#245448 !important;
+  font-size:22px !important;
+  cursor:pointer !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-nav button:disabled {opacity:.30 !important;cursor:not-allowed !important;}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-weekdays,
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-days] {
+  display:grid !important;
+  grid-template-columns:repeat(7,minmax(0,1fr)) !important;
+  column-gap:6px !important;
+  row-gap:6px !important;
+  min-width:0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-weekdays {
+  margin:0 0 7px !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-weekdays span {
+  display:grid !important;
+  place-items:center !important;
+  min-width:0 !important;
+  height:27px !important;
+  font-size:11px !important;
+  color:#647c73 !important;
+  font-weight:780 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-days] > button {
+  box-sizing:border-box !important;
+  display:grid !important;
+  place-items:center !important;
+  position:relative !important;
+  min-width:0 !important;
+  width:100% !important;
+  height:43px !important;
+  min-height:43px !important;
+  padding:0 !important;
+  margin:0 !important;
+  border:1px solid #e0eae7 !important;
+  border-radius:10px !important;
+  background:#fff !important;
+  box-shadow:none !important;
+  color:#1e3d36 !important;
+  font-size:13px !important;
+  font-weight:750 !important;
+  cursor:pointer !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-days] > button[aria-pressed="true"] {
+  border-color:#dea0a4 !important;
+  background:#fff0f1 !important;
+  color:#9c3843 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-days] > button[aria-pressed="true"]::after {
+  content:"" !important;
+  display:block !important;
+  position:absolute !important;
+  width:5px !important;
+  height:5px !important;
+  bottom:5px !important;
+  left:calc(50% - 2.5px) !important;
+  background:#d3525e !important;
+  border-radius:50% !important;
+  transform:none !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-days] > button:disabled {
+  opacity:.3 !important;
+  cursor:default !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-closures {
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  padding:18px !important;
+  border:1px solid #e1ece8 !important;
+  border-radius:14px !important;
+  background:#f8fbfa !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-closures__heading {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:8px !important;
+  flex-wrap:wrap !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-closures__heading > strong {
+  font-size:14px !important;
+  color:#173b33 !important;
+  font-weight:800 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-closures > p {
+  margin:8px 0 14px !important;
+  color:var(--pmd-svc-muted) !important;
+  font-size:12px !important;
+  line-height:1.55 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-closed-count] {
+  display:inline-block !important;
+  margin:0 !important;
+  padding:4px 9px !important;
+  border-radius:999px !important;
+  background:#e9f2ef !important;
+  color:#245347 !important;
+  font-size:11px !important;
+  line-height:1.3 !important;
+  font-weight:800 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-add-row {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) auto !important;
+  gap:9px !important;
+  align-items:stretch !important;
+  min-width:0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-add-row [data-pmd-service-date-input] {
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:44px !important;
+  min-height:44px !important;
+  padding:0 12px !important;
+  margin:0 !important;
+  border:1px solid #d1e1e3 !important;
+  border-radius:11px !important;
+  background:#fff !important;
+  color:#193b32 !important;
+  font-size:13px !important;
+  -webkit-appearance:auto !important;
+  appearance:auto !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] .pmd-profile-calendar-add-row [data-pmd-service-date-add] {
+  box-sizing:border-box !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:auto !important;
+  min-height:44px !important;
+  padding:0 14px !important;
+  margin:0 !important;
+  border:1px solid #b8d6c9 !important;
+  border-radius:11px !important;
+  background:#e8f5ed !important;
+  color:#075c47 !important;
+  box-shadow:none !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  cursor:pointer !important;
+  white-space:nowrap !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-closed-list] {
+  display:flex !important;
+  align-items:start !important;
+  align-content:start !important;
+  flex-wrap:wrap !important;
+  gap:8px !important;
+  min-height:28px !important;
+  max-height:190px !important;
+  margin:14px 0 0 !important;
+  padding:0 0 2px !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-closed-list] button {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:9px !important;
+  box-sizing:border-box !important;
+  min-height:35px !important;
+  max-width:100% !important;
+  width:auto !important;
+  margin:0 !important;
+  padding:5px 8px 5px 11px !important;
+  border:1px solid #ebcaca !important;
+  border-radius:999px !important;
+  background:#fff !important;
+  box-shadow:none !important;
+  color:#943b47 !important;
+  font-size:12px !important;
+  font-weight:750 !important;
+  line-height:1.2 !important;
+  white-space:nowrap !important;
+  cursor:pointer !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-closed-list] button::after {
+  content:"×" !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  flex:0 0 20px !important;
+  width:20px !important;
+  height:20px !important;
+  border-radius:50% !important;
+  background:#ffeded !important;
+  color:#a54754 !important;
+  font-size:15px !important;
+  font-weight:800 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-closed-list] button:hover {background:#fff3f3 !important;}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+[data-pmd-service-calendar] [data-pmd-service-closed-list] .pmd-profile-calendar-none {
+  font-size:12px !important;
+  color:var(--pmd-svc-muted) !important;
+}
+
+/* Keep one column when either the page or viewport is narrow. */
+@media (max-width:1050px) {
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-calendar] .pmd-profile-calendar-shell {
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+}
+@media (max-width:900px) {
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-weekly] {
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-weekly] > [data-pmd-hours-row]:last-child:nth-child(odd) {
+    display:block !important;
+    grid-column:auto !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-calendar] .pmd-profile-calendar-top {
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:12px !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-calendar] .pmd-profile-calendar-advance {max-width:100% !important;}
+}
+@media (max-width:560px) {
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-weekly] > [data-pmd-hours-row] {
+    padding:14px !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-calendar] {
+    padding:14px !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-window] {
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 38px !important;
+    column-gap:7px !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-remove] {
+    width:38px !important;
+    min-width:38px !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-calendar] .pmd-profile-calendar-add-row {
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-calendar] [data-pmd-service-date-add] {
+    width:100% !important;
+  }
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-calendar] [data-pmd-service-days] > button {
+    height:38px !important;
+    min-height:38px !important;
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-calendar] button,
+  html body.pmd-settings-center-page #pmd-restaurant-profile
+  [data-pmd-service-weekly] button {transition:none !important;}
+}
