@@ -860,6 +860,7 @@ class Pmdsettings extends AdminController
             'postcode' => ['nullable', 'string', 'max:32'],
             'website_url' => ['nullable', 'url', 'max:500'],
             'instagram_url' => ['nullable', 'url', 'max:500'],
+            'tiktok_url' => ['nullable', 'url', 'max:500'],
             'google_url' => ['nullable', 'url', 'max:500'],
             'trustpilot_url' => ['nullable', 'url', 'max:500'],
         ]);
@@ -965,6 +966,15 @@ class Pmdsettings extends AdminController
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
 
             ];
+
+            // PMD_RESTAURANT_TIKTOK_SOCIAL_R1
+            // Old cached profile tabs did not contain these fields; do not
+            // disable or clear the TikTok saved value on an unrelated save.
+            if (array_key_exists('tiktok_url', $profile)
+                || array_key_exists('tiktok_enabled', $profile)) {
+                $settings['pmd_social_tiktok_enabled'] = !empty($profile['tiktok_enabled']) ? 1 : 0;
+                $settings['pmd_social_tiktok_url'] = trim((string)($clean['tiktok_url'] ?? ''));
+            }
 
             // PMD_FLOOR_RESERVATION_NOTICE_SETTING_R1
             // Older form revisions omit this setting; never overwrite it unless
@@ -1279,6 +1289,8 @@ class Pmdsettings extends AdminController
             'website_url' => (string)$value('pmd_social_website_url', ''),
             'instagram_enabled' => (bool)$value('pmd_social_instagram_enabled', 0),
             'instagram_url' => (string)$value('pmd_social_instagram_url', ''),
+            'tiktok_enabled' => (bool)$value('pmd_social_tiktok_enabled', 0),
+            'tiktok_url' => (string)$value('pmd_social_tiktok_url', ''),
             'google_enabled' => (bool)$value('pmd_social_google_enabled', 0),
             'google_url' => (string)$value('pmd_social_google_url', ''),
             'trustpilot_enabled' => (bool)$value('pmd_social_trustpilot_enabled', 0),
