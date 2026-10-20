@@ -31,6 +31,17 @@ $config['form']['fields'] = [
         'default' => '',
     ],
 
+    'pmd_social_tiktok_enabled' => [
+        'label' => 'TikTok enabled',
+        'type' => 'switch',
+        'default' => 0,
+    ],
+    'pmd_social_tiktok_url' => [
+        'label' => 'TikTok URL',
+        'type' => 'text',
+        'default' => '',
+    ],
+
     'pmd_social_google_enabled' => [
         'label' => 'Google / Maps enabled',
         'type' => 'switch',
