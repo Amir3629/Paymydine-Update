@@ -34,11 +34,13 @@ function normalizeKazenStandaloneMenuLayout(value: unknown): "accordion" | "tabs
 type KazenHeaderLinksV1 = {
   website: { enabled: boolean; url: string }
   social: { enabled: boolean; platform: string; url: string }
+  tiktok: { enabled: boolean; url: string }
 }
 
 const PMD_KAZEN_HEADER_LINKS_DEFAULT_V1: KazenHeaderLinksV1 = {
   website: { enabled: false, url: "" },
   social: { enabled: false, platform: "instagram", url: "" },
+  tiktok: { enabled: false, url: "" },
 }
 
 
@@ -88,6 +90,13 @@ function pmdKazenReadHeaderLinksV1(payload: any): KazenHeaderLinksV1 {
     data?.pmd_social_url
   )
 
+  // PMD_PROFILE_TIKTOK_R1: independent of existing featured social.
+  const tiktokUrl = pmdKazenUrlV1(
+    links?.tiktok?.url ||
+    payload?.pmd_social_tiktok_url ||
+    data?.pmd_social_tiktok_url
+  )
+
   const socialPlatform = String(
     links?.social?.platform ||
     payload?.pmd_kazen_social_platform ||
@@ -113,11 +122,20 @@ function pmdKazenReadHeaderLinksV1(payload: any): KazenHeaderLinksV1 {
       platform: socialPlatform,
       url: socialUrl,
     },
+    tiktok: {
+      enabled: Boolean(tiktokUrl) && pmdKazenBoolV1(
+        links?.tiktok?.enabled ??
+        payload?.pmd_social_tiktok_enabled ??
+        data?.pmd_social_tiktok_enabled
+      ),
+      url: tiktokUrl,
+    },
   }
 }
 
 function pmdKazenSocialLabelV1(platform: string): string {
   const normalized = String(platform || "").trim().toLowerCase()
+  if (normalized === "tiktok") return "TikTok"
   if (normalized === "facebook") return "Facebook"
   if (normalized === "trustpilot") return "Trustpilot"
   if (normalized === "reviews") return "Reviews"
@@ -345,6 +363,9 @@ export default function KazenStandalonePage() {
     const iconInstagram =
       '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.1" y="5.1" width="13.8" height="13.8" rx="3.5"></rect><circle cx="12" cy="12" r="2.95"></circle><path d="M16.45 7.65h.01"></path></svg>'
 
+    const iconTikTok =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v11.5a4.5 4.5 0 1 1-4.5-4.5"></path><path d="M14 4c1 3.1 3.2 4.7 6 4.7"></path></svg>'
+
     const iconFacebook =
       '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.35 5.2h-1.9c-2.15 0-3.45 1.35-3.45 3.7v2.15H6.8v3H9V20h3.05v-5.95h2.35l.38-3h-2.73V9.15c0-.72.28-1.08 1.08-1.08h1.22V5.2Z"></path></svg>'
 
@@ -359,6 +380,7 @@ export default function KazenStandalonePage() {
 
     const socialIcon = () => {
       const platform = String(kazenHeaderLinksV1.social.platform || "").trim().toLowerCase()
+      if (platform === "tiktok") return iconTikTok
       if (platform === "facebook") return iconFacebook
       if (platform === "trustpilot") return iconTrust
       if (platform === "reviews") return iconReviews
@@ -368,7 +390,7 @@ export default function KazenStandalonePage() {
 
     const upsertHeaderLink = (
       group: HTMLElement,
-      action: "website" | "social",
+      action: "website" | "social" | "tiktok",
       enabled: boolean,
       url: string,
       label: string,
@@ -425,10 +447,21 @@ export default function KazenStandalonePage() {
           socialIcon()
         )
 
+        // TikTok is its own optional profile link, not a replacement for Instagram.
+        upsertHeaderLink(
+          group,
+          "tiktok",
+          kazenHeaderLinksV1.tiktok.enabled && !(kazenHeaderLinksV1.social.enabled && kazenHeaderLinksV1.social.platform === "tiktok"),
+          kazenHeaderLinksV1.tiktok.url,
+          "TikTok",
+          iconTikTok
+        )
+
         group.setAttribute("data-pmd-kazen-clean-header-links-v21", "1")
         ;(window as any).__PMD_KAZEN_HEADER_LINKS_V21 = {
           website: !!group.querySelector('[data-pmd-kazen-clean-action="website"]'),
           social: !!group.querySelector('[data-pmd-kazen-clean-action="social"]'),
+          tiktok: !!group.querySelector('[data-pmd-kazen-clean-action="tiktok"]'),
           platform: kazenHeaderLinksV1.social.platform,
           childCount: group.children.length,
         }
@@ -454,6 +487,8 @@ export default function KazenStandalonePage() {
     kazenHeaderLinksV1.social.enabled,
     kazenHeaderLinksV1.social.url,
     kazenHeaderLinksV1.social.platform,
+    kazenHeaderLinksV1.tiktok.enabled,
+    kazenHeaderLinksV1.tiktok.url,
   ])
 
 const [waiterConfirmed, setWaiterConfirmed] = useState(false)
