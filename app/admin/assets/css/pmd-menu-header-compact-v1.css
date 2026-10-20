@@ -134,6 +134,21 @@ html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header
   -webkit-backdrop-filter:blur(16px);
   backdrop-filter:blur(16px);
 }
+/* PMD_MENU_HEADER_TOOLS_NATIVE_DETAILS_CLOSED_GUARD_V1_20261020
+   UA details[closed] display:none is lower priority than author !important.
+   Explicitly hide the panel when native details is closed. */
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header
+details.pmd-menu-header-tools-v1:not([open]) > .pmd-menu-header-tools-v1__panel {
+  display:none !important;
+  visibility:hidden !important;
+  pointer-events:none !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header
+details.pmd-menu-header-tools-v1[open] > .pmd-menu-header-tools-v1__panel {
+  visibility:visible !important;
+  pointer-events:auto !important;
+}
+
 html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header
 .pmd-menu-header-tools-v1__heading {
   display:block !important;
