@@ -79,7 +79,10 @@
   background:#f9fbfa !important;
   color:#153b32 !important;
   padding:0 13px !important;
-  font:600 13px/1.4 inherit !important;
+  font-family:inherit !important;
+  font-size:13px !important;
+  font-weight:600 !important;
+  line-height:1.4 !important;
   outline:none !important;
 }
 #pmd-r2-clean-header .pmd-rsearch__input:focus {
