@@ -46,8 +46,8 @@ files=(
   scripts/pmd-rollback-pr512-r1.sh
   scripts/test-pmd-reservation-search-nav-tiktok-r1.js
 )
-mapfile -t real_diff < <(git diff --name-only "$BASE" "$REF")
-mapfile -t expected < <(printf '%s\n' "${files[@]}" | sort)
+mapfile -t real_diff < <(git diff --name-only "$BASE" "$REF" | LC_ALL=C sort)
+mapfile -t expected < <(printf '%s\n' "${files[@]}" | LC_ALL=C sort)
 if ! diff -u <(printf '%s\n' "${expected[@]}") <(printf '%s\n' "${real_diff[@]}"); then
   echo "STOP: PR512 contains unexpected changes or the allowlist is stale." >&2; exit 2;
 fi
