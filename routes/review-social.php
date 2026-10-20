@@ -29,6 +29,8 @@ use Illuminate\Support\Facades\DB;
 
         'pmd_social_instagram_enabled',
         'pmd_social_instagram_url',
+        'pmd_social_tiktok_enabled',
+        'pmd_social_tiktok_url',
 
         'pmd_social_google_enabled',
         'pmd_social_google_url',
