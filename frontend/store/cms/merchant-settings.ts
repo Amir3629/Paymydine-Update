@@ -20,7 +20,7 @@ export function buildMerchantSettingsFromSettingsPayload(payload: any): Merchant
     return undefined
   }
 
-  const platformIds: PmdSocialPlatformId[] = ["trustpilot", "instagram", "google", "website", "reviews"]
+  const platformIds: PmdSocialPlatformId[] = ["trustpilot", "instagram", "tiktok", "google", "website", "reviews"]
   const reviewSocial: PmdReviewSocialSettings = {
     sharePromptEnabled: parseCmsBoolean(get("pmd_review_share_prompt_enabled"), initialReviewSocialSettings.sharePromptEnabled),
     homepageSocialIconsEnabled: parseCmsBoolean(get("pmd_homepage_social_icons_enabled"), initialReviewSocialSettings.homepageSocialIconsEnabled),
