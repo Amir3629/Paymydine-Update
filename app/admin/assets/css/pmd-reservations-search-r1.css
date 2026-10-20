@@ -1,0 +1,153 @@
+/* PMD_RESERVATION_SEARCH_R1 — isolated to canonical reservations header. */
+#pmd-r2-clean-header .pmd-r2-clean-actions:has([data-pmd-reservation-search-trigger]) {
+  position:relative !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__trigger {
+  width:46px !important;
+  min-width:46px !important;
+  max-width:46px !important;
+  height:46px !important;
+  min-height:46px !important;
+  flex:0 0 46px !important;
+  display:inline-grid !important;
+  place-items:center !important;
+  border:1px solid #cfe0ec !important;
+  border-radius:14px !important;
+  background:#fff !important;
+  color:#173752 !important;
+  cursor:pointer !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__trigger[aria-expanded="true"] {
+  background:#eaf7f2 !important;
+  border-color:#6fbaab !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__trigger svg {
+  width:21px !important;
+  height:21px !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__panel {
+  box-sizing:border-box !important;
+  position:absolute !important;
+  top:calc(100% + 10px) !important;
+  right:0 !important;
+  width:min(440px,calc(100vw - 32px)) !important;
+  max-height:min(72vh,620px) !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:11px !important;
+  padding:16px !important;
+  border:1px solid #d4e5df !important;
+  border-radius:17px !important;
+  background:#fff !important;
+  color:#153b32 !important;
+  box-shadow:0 20px 60px rgba(7,39,31,.17) !important;
+  z-index:200000 !important;
+  text-align:left !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__panel[hidden] {
+  display:none !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__head {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:12px !important;
+  min-height:28px !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__head strong {
+  font-size:15px !important;
+  font-weight:800 !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__close {
+  border:0 !important;
+  background:#f3f7f6 !important;
+  border-radius:9px !important;
+  width:30px !important;
+  height:30px !important;
+  font-size:22px !important;
+  line-height:1 !important;
+  color:#28463e !important;
+  cursor:pointer !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__input {
+  box-sizing:border-box !important;
+  width:100% !important;
+  height:46px !important;
+  flex:0 0 46px !important;
+  border:1px solid #cedfdb !important;
+  border-radius:12px !important;
+  background:#f9fbfa !important;
+  color:#153b32 !important;
+  padding:0 13px !important;
+  font:600 13px/1.4 inherit !important;
+  outline:none !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__input:focus {
+  border-color:#087e67 !important;
+  box-shadow:0 0 0 3px rgba(8,126,103,.12) !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__feedback {
+  font-size:12px !important;
+  font-weight:600 !important;
+  color:#63746e !important;
+  min-height:16px !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__results {
+  min-height:0 !important;
+  overflow-y:auto !important;
+  display:grid !important;
+  gap:7px !important;
+  overscroll-behavior:contain !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__result {
+  box-sizing:border-box !important;
+  display:flex !important;
+  flex-direction:column !important;
+  gap:5px !important;
+  padding:11px 12px !important;
+  border:1px solid #dce9e5 !important;
+  border-radius:11px !important;
+  color:#12382f !important;
+  text-decoration:none !important;
+  background:#fbfdfc !important;
+  min-height:65px !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__result:hover,
+#pmd-r2-clean-header .pmd-rsearch__result:focus-visible {
+  border-color:#56a995 !important;
+  background:#effaf5 !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__result-top {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__result-top strong {
+  font-size:13px !important;
+  font-weight:800 !important;
+  overflow-wrap:anywhere !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__result-top b {
+  font-size:11px !important;
+  flex:none !important;
+  color:#365c50 !important;
+}
+#pmd-r2-clean-header .pmd-rsearch__result-meta {
+  font-size:11px !important;
+  font-weight:550 !important;
+  line-height:1.5 !important;
+  color:#60756d !important;
+  overflow-wrap:anywhere !important;
+}
+@media(max-width:650px) {
+  #pmd-r2-clean-header .pmd-rsearch__panel {
+    position:fixed !important;
+    top:76px !important;
+    right:12px !important;
+    left:12px !important;
+    width:auto !important;
+    max-height:calc(100dvh - 95px) !important;
+    padding:12px !important;
+  }
+}
