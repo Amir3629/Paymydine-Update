@@ -276,6 +276,9 @@ final class PmdReservationsScheduleV1
                 $reservationQuery
                     ->where('first_name', 'like', $like)
                     ->orWhere('last_name', 'like', $like)
+                    // Combined guest name: a search such as "Max Mustermann"
+                    // must match, not just isolated first/last name terms.
+                    ->orWhereRaw("CONCAT_WS(' ', first_name, last_name) LIKE ?", [$like])
                     ->orWhere('telephone', 'like', $like)
                     ->orWhere('email', 'like', $like)
                     ->orWhere('comment', 'like', $like)
