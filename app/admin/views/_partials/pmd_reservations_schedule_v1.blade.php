@@ -187,25 +187,9 @@
 
     if ($pmdReservationsLocationId > 0) {
         try {
-            $pmdOpeningHourRows = \Illuminate\Support\Facades\DB::table('working_hours')
-                ->where('location_id', $pmdReservationsLocationId)
-                ->where('type', 'opening')
-                ->orderBy('weekday')
-                ->get();
-
-            foreach ($pmdOpeningHourRows as $pmdOpeningHourRow) {
-                $pmdWeekday = (int)$pmdOpeningHourRow->weekday;
-                if ($pmdWeekday < 0 || $pmdWeekday > 6) {
-                    continue;
-                }
-
-                $pmdReservationsOpeningHours[$pmdWeekday] = [
-                    'weekday' => $pmdWeekday,
-                    'enabled' => (bool)$pmdOpeningHourRow->status,
-                    'opening_time' => substr((string)$pmdOpeningHourRow->opening_time, 0, 5),
-                    'closing_time' => substr((string)$pmdOpeningHourRow->closing_time, 0, 5),
-                ];
-            }
+            $pmdReservationsOpeningHours = app(
+                \App\Services\Reservations\PmdRestaurantServiceCalendarR1::class
+            )->weeklyRows((int)$pmdReservationsLocationId);
         } catch (\Throwable $pmdOpeningHoursReadError) {
             $pmdReservationsOpeningHours = [];
         }

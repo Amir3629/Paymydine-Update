@@ -147,45 +147,10 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
              * hours authority as the full Reservations Hour screen and the
              * canonical Composer. This is read-only presentation data.
              */
-            $openingHours = [];
-
-            try {
-                if (
-                    $locationId > 0
-                    && Schema::hasTable('working_hours')
-                ) {
-                    $rows = DB::table('working_hours')
-                        ->where('location_id', $locationId)
-                        ->where('type', 'opening')
-                        ->orderBy('weekday')
-                        ->get();
-
-                    foreach ($rows as $row) {
-                        $weekday = (int)($row->weekday ?? -1);
-                        if ($weekday < 0 || $weekday > 6) {
-                            continue;
-                        }
-
-                        $openingHours[$weekday] = [
-                            'weekday' => $weekday,
-                            'enabled' => (bool)($row->status ?? false),
-                            'opening_time' => substr(
-                                (string)($row->opening_time ?? ''),
-                                0,
-                                5
-                            ),
-                            'closing_time' => substr(
-                                (string)($row->closing_time ?? ''),
-                                0,
-                                5
-                            ),
-                        ];
-                    }
-                }
-            } catch (\Throwable $openingHoursError) {
-                report($openingHoursError);
-                $openingHours = [];
-            }
+            $openingHours = $locationId > 0
+                ? app(\App\Services\Reservations\PmdRestaurantServiceCalendarR1::class)
+                    ->weeklyRows($locationId)
+                : [];
 
             ksort($openingHours);
 

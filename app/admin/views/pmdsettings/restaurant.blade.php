@@ -526,52 +526,109 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                 </div>
 
                 <div class="pmd-profile-card__body pmd-profile-card__body--hours">
-                    <div class="pmd-profile-hours-grid">
+                    {{-- PMD_MULTI_SERVICE_OPENING_HOURS_R1
+                         One location-scoped schedule, up to four periods/day. --}}
+                    <div class="pmd-profile-hours-grid" data-pmd-service-weekly>
                         @foreach(($pmdProfileHours ?? []) as $day)
-                            <div class="pmd-profile-day-card" data-pmd-hours-row>
+                            <div class="pmd-profile-day-card" data-pmd-hours-row data-pmd-weekday="{{ (int)$day['weekday'] }}">
                                 <div class="pmd-profile-day-card__top">
                                     <div>
                                         <strong>{{ $pmdSettingsText($day['label']) }}</strong>
                                         <span data-pmd-hours-state>{{ $pmdSettingsText(!empty($day['enabled']) ? 'Open' : 'Closed') }}</span>
                                     </div>
-
                                     <label class="pmd-profile-switch" aria-label="{{ $pmdSettingsText($day['label']) }} open">
-                                        <input
-                                            type="checkbox"
-                                            name="hours[{{ $day['weekday'] }}][enabled]"
-                                            value="1"
-                                            data-pmd-hours-enabled
-                                            {{ !empty($day['enabled']) ? 'checked' : '' }}
-                                        >
+                                        <input type="checkbox"
+                                            name="hours[{{ (int)$day['weekday'] }}][enabled]"
+                                            value="1" data-pmd-hours-enabled
+                                            {{ !empty($day['enabled']) ? 'checked' : '' }}>
                                         <span></span>
                                     </label>
                                 </div>
-
-                                <div class="pmd-profile-day-card__times">
-                                    <label class="pmd-profile-time">
-                                        <span>{{ $pmdSettingsText('Opens') }}</span>
-                                        <input
-                                            type="time"
-                                            name="hours[{{ $day['weekday'] }}][opening_time]"
-                                            value="{{ $day['opening_time'] ?: '09:00' }}"
-                                            step="60"
-                                            data-pmd-hours-time
-                                        >
-                                    </label>
-
-                                    <label class="pmd-profile-time">
-                                        <span>{{ $pmdSettingsText('Closes') }}</span>
-                                        <input
-                                            type="time"
-                                            name="hours[{{ $day['weekday'] }}][closing_time]"
-                                            value="{{ $day['closing_time'] ?: '22:00' }}"
-                                            step="60"
-                                            data-pmd-hours-time
-                                        >
-                                    </label>
+                                <div class="pmd-profile-service-windows" data-pmd-service-windows>
+                                    @foreach(($day['windows'] ?? []) as $index => $window)
+                                        <div class="pmd-profile-service-window" data-pmd-service-window>
+                                            <label class="pmd-profile-time">
+                                                <span>{{ $pmdSettingsText('Opens') }}</span>
+                                                <input type="time" step="60"
+                                                    name="hours[{{ (int)$day['weekday'] }}][windows][{{ (int)$index }}][opening_time]"
+                                                    value="{{ $window['opening_time'] }}"
+                                                    data-pmd-hours-time data-pmd-service-open>
+                                            </label>
+                                            <label class="pmd-profile-time">
+                                                <span>{{ $pmdSettingsText('Closes') }}</span>
+                                                <input type="time" step="60"
+                                                    name="hours[{{ (int)$day['weekday'] }}][windows][{{ (int)$index }}][closing_time]"
+                                                    value="{{ $window['closing_time'] }}"
+                                                    data-pmd-hours-time data-pmd-service-close>
+                                            </label>
+                                            <button type="button" class="pmd-profile-service-remove"
+                                                data-pmd-service-remove
+                                                aria-label="{{ $pmdSettingsText('Remove service period') }}"
+                                                title="{{ $pmdSettingsText('Remove service period') }}">×</button>
+                                        </div>
+                                    @endforeach
                                 </div>
+                                <button type="button" class="pmd-profile-service-add"
+                                    data-pmd-service-add
+                                    data-pmd-service-label="{{ $pmdSettingsText('Add service period') }}">
+                                    + {{ $pmdSettingsText('Add service period') }}
+                                </button>
                             </div>
                         @endforeach
+                    </div>
+
+                    <div class="pmd-profile-calendar-card" data-pmd-service-calendar
+                        data-pmd-service-today="{{ $pmdProfileServiceToday ?? \Carbon\Carbon::now('Europe/Berlin')->toDateString() }}">
+                        <input type="hidden" name="schedule[version]" value="1">
+                        <input type="hidden" name="schedule[closed_dates_json]"
+                            data-pmd-service-closed-json
+                            value="{{ json_encode($pmdProfileSchedule['closed_dates'] ?? []) }}">
+                        <div class="pmd-profile-calendar-top">
+                            <div>
+                                <h3>{{ $pmdSettingsText('Reservation calendar & special closures') }}</h3>
+                                <p>{{ $pmdSettingsText('Closed dates override weekly hours and prevent new online reservations. Existing reservations remain visible.') }}</p>
+                            </div>
+                            <label class="pmd-profile-calendar-advance">
+                                <span>{{ $pmdSettingsText('Accept online reservations up to') }}</span>
+                                <select name="schedule[advance_days]" data-pmd-service-advance>
+                                    @foreach([7, 14, 30, 60, 90, 180, 365] as $daysAhead)
+                                        <option value="{{ $daysAhead }}"
+                                            {{ (int)($pmdProfileSchedule['advance_days'] ?? 180) === $daysAhead ? 'selected' : '' }}>
+                                            {{ $daysAhead }} {{ $pmdSettingsText('days') }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </label>
+                        </div>
+                        <div class="pmd-profile-calendar-shell">
+                            <div>
+                                <div class="pmd-profile-calendar-nav">
+                                    <button type="button" data-pmd-service-prev aria-label="{{ $pmdSettingsText('Previous month') }}">‹</button>
+                                    <strong data-pmd-service-month></strong>
+                                    <button type="button" data-pmd-service-next aria-label="{{ $pmdSettingsText('Next month') }}">›</button>
+                                </div>
+                                <div class="pmd-profile-calendar-weekdays" aria-hidden="true">
+                                    @foreach(['M','T','W','T','F','S','S'] as $weekdayLabel)
+                                        <span>{{ $weekdayLabel }}</span>
+                                    @endforeach
+                                </div>
+                                <div class="pmd-profile-calendar-days" data-pmd-service-days
+                                    aria-label="{{ $pmdSettingsText('Choose calendar dates to close or reopen') }}">
+                                </div>
+                            </div>
+                            <div class="pmd-profile-calendar-closures">
+                                <strong>{{ $pmdSettingsText('Special closed days') }}</strong>
+                                <p>{{ $pmdSettingsText('Select a date on the calendar, or add one below. Select again to reopen it.') }}</p>
+                                <div class="pmd-profile-calendar-add-row">
+                                    <input type="date" data-pmd-service-date-input
+                                        aria-label="{{ $pmdSettingsText('Closed date') }}">
+                                    <button type="button" data-pmd-service-date-add>
+                                        + {{ $pmdSettingsText('Close date') }}
+                                    </button>
+                                </div>
+                                <div class="pmd-profile-calendar-chips" data-pmd-service-closed-list></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1017,7 +1074,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
     </form>
 </div>
 
-<script defer src="/app/admin/assets/js/pmd-settings-restaurant-v1.js?v=20260809_2"></script>
+<script defer src="/app/admin/assets/js/pmd-settings-restaurant-v1.js?v=20261019-calendar-r1"></script>
 
 <script id="pmd-restaurant-native-multipart-r22">
 // PMD_NATIVE_MULTIPART_LOGO_UPLOAD_R22
