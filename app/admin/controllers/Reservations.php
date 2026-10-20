@@ -92,6 +92,11 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         $this->addCss('css/pmd-reservations-guarantee-v1.css');
         $this->addJs('js/pmd-reservations-table-card-filter-v1.js');
         $this->addJs('js/pmd-reservations-live-sync-v1.js');
+        // PMD_RESERVATIONS_SEARCH_R1: one localized, location-scoped search.
+        $pmdSearchCss = 'app/admin/assets/css/pmd-reservations-search-r1.css';
+        $pmdSearchJs = 'app/admin/assets/js/pmd-reservations-search-r1.js';
+        $this->addCss(asset($pmdSearchCss).'?v='.(string)(@filemtime(base_path($pmdSearchCss)) ?: 'r1'));
+        $this->addJs(asset($pmdSearchJs).'?v='.(string)(@filemtime(base_path($pmdSearchJs)) ?: 'r1'));
     }
 
     /*
@@ -172,6 +177,20 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
         $this->vars['pmdReservationsSchedule'] =
             $schedule;
+
+        // Search ALL reservation dates via existing SQL-scoped schedule
+        // authority, not only the 1,500 records hydrated for the calendar.
+        // The normal calendar/floor payload is never changed by searching.
+        $searchTerm = trim((string)request()->query('pmd_search', ''));
+        $searchTerm = mb_substr($searchTerm, 0, 120);
+        $searchActive = mb_strlen($searchTerm) >= 2;
+        $this->vars['pmdReservationSearchQuery'] = $searchActive ? $searchTerm : '';
+        $this->vars['pmdReservationSearchActive'] = $searchActive;
+        $this->vars['pmdReservationSearchResults'] = $searchActive
+            ? app(PmdReservationsScheduleV1::class)
+                ->searchOtherDates($locationId, $locale, $searchTerm, null, null, 100)
+            : [];
+
 
         /*
          * PMD_RESERVATION_COMPOSER_SERVER_PRIMER_R11
