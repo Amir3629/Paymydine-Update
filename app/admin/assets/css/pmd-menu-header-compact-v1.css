@@ -349,3 +349,234 @@ html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header
     left:0 !important;
   }
 }
+
+
+/* PMD_MENU_HEADER_SPECIFICITY_AND_LAYOUT_V2_20261020
+   ROOT CAUSE (verified by Chrome CSS specificity regression):
+   legacy :is(.pmd-dashboard-lab__header-action,#notifDropdown) raises its
+   selector to 3 ID specificity, forcing EVERY Tools row and Inventory back to
+   the old 46x46 grid. These local, 3-ID+ selectors are limited to /admin/menu.
+   Keep all data-* attributes, aria labels, menu permissions and actions. */
+
+/* Localized "Werkzeuge" must never overflow the toolbar. An icon-only
+   disclosure matches Search/Bell, with accessible aria-label + title intact. */
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-r2-clean-actions > details.pmd-menu-header-tools-v1 {
+  display:block !important;
+  flex:0 0 48px !important;
+  width:48px !important;
+  min-width:48px !important;
+  max-width:48px !important;
+  height:46px !important;
+  min-height:46px !important;
+  max-height:46px !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1 > summary.pmd-menu-header-tools-v1__trigger {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  flex-wrap:nowrap !important;
+  gap:3px !important;
+  height:46px !important;
+  min-height:46px !important;
+  max-height:46px !important;
+  padding:0 4px !important;
+  overflow:hidden !important;
+  border-radius:14px !important;
+  font-size:12px !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1 > summary.pmd-menu-header-tools-v1__trigger > span {
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  margin:-1px !important;
+  padding:0 !important;
+  overflow:hidden !important;
+  clip-path:inset(50%) !important;
+  white-space:nowrap !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1 > summary.pmd-menu-header-tools-v1__trigger > svg:first-of-type {
+  display:block !important;
+  flex:0 0 20px !important;
+  width:20px !important;
+  min-width:20px !important;
+  max-width:20px !important;
+  height:20px !important;
+  min-height:20px !important;
+  max-height:20px !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1 > summary.pmd-menu-header-tools-v1__trigger > svg.pmd-menu-header-tools-v1__chevron {
+  display:block !important;
+  flex:0 0 11px !important;
+  width:11px !important;
+  min-width:11px !important;
+  max-width:11px !important;
+  height:11px !important;
+  min-height:11px !important;
+  max-height:11px !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1__panel {
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:4px !important;
+  width:248px !important;
+  min-width:230px !important;
+  max-width:min(280px,calc(100vw - 24px)) !important;
+  padding:9px !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+details.pmd-menu-header-tools-v1:not([open]) > .pmd-menu-header-tools-v1__panel {
+  display:none !important;
+}
+
+/* MUST beat old 3-ID :is() grid/46px rule on each nested action. */
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1__panel > button.pmd-dashboard-lab__header-action {
+  position:relative !important;
+  display:flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  place-items:initial !important;
+  box-sizing:border-box !important;
+  flex:0 0 44px !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:44px !important;
+  min-height:44px !important;
+  max-height:44px !important;
+  margin:0 !important;
+  padding:0 12px !important;
+  gap:12px !important;
+  border:1px solid transparent !important;
+  border-radius:12px !important;
+  background:transparent !important;
+  background-image:none !important;
+  color:#173f34 !important;
+  box-shadow:none !important;
+  overflow:hidden !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  font:750 12px/1.25 system-ui,sans-serif !important;
+  white-space:nowrap !important;
+  text-align:left !important;
+  transition:none !important;
+  transform:none !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1__panel > button.pmd-dashboard-lab__header-action:is(:hover,:focus-visible,[aria-pressed="true"],.is-active) {
+  border-color:#c8e5d8 !important;
+  background:#eef8f3 !important;
+  color:#075c47 !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1__panel > button.pmd-dashboard-lab__header-action > svg {
+  display:block !important;
+  position:static !important;
+  flex:0 0 20px !important;
+  width:20px !important;
+  min-width:20px !important;
+  max-width:20px !important;
+  height:20px !important;
+  min-height:20px !important;
+  max-height:20px !important;
+  margin:0 !important;
+  padding:0 !important;
+  transform:none !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-menu-header-tools-v1__panel > button.pmd-dashboard-lab__header-action::after {
+  display:block !important;
+  position:static !important;
+  flex:1 1 auto !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  text-align:left !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  line-height:1.25 !important;
+}
+/* Existing :is() grid also makes the Inventory label a second grid row.
+   Force a single horizontal pill with enough room for German/English. */
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-r2-clean-actions > button.pmd-workspace-toggle-r23 {
+  position:relative !important;
+  display:inline-flex !important;
+  flex-direction:row !important;
+  flex-wrap:nowrap !important;
+  align-items:center !important;
+  justify-content:center !important;
+  place-items:initial !important;
+  box-sizing:border-box !important;
+  flex:0 0 124px !important;
+  width:124px !important;
+  min-width:124px !important;
+  max-width:124px !important;
+  height:46px !important;
+  min-height:46px !important;
+  max-height:46px !important;
+  padding:0 10px !important;
+  margin:0 !important;
+  gap:8px !important;
+  border-radius:14px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  transition:none !important;
+  transform:none !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-r2-clean-actions > button.pmd-workspace-toggle-r23 > svg {
+  position:static !important;
+  display:block !important;
+  flex:0 0 19px !important;
+  width:19px !important;
+  min-width:19px !important;
+  max-width:19px !important;
+  height:19px !important;
+  min-height:19px !important;
+  max-height:19px !important;
+  margin:0 !important;
+  padding:0 !important;
+  transform:none !important;
+}
+html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+.pmd-r2-clean-actions > button.pmd-workspace-toggle-r23 > [data-pmd-workspace-toggle-label] {
+  position:static !important;
+  display:inline-block !important;
+  flex:0 1 auto !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+  font:850 12px/1.2 system-ui,sans-serif !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+@media (max-width:720px) {
+  html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+  .pmd-r2-clean-actions > button.pmd-workspace-toggle-r23 {
+    flex:0 0 46px !important;
+    width:46px !important;
+    min-width:46px !important;
+    max-width:46px !important;
+    padding:0 !important;
+  }
+  html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pmd-r2-clean-header
+  .pmd-r2-clean-actions > button.pmd-workspace-toggle-r23 > [data-pmd-workspace-toggle-label] {
+    display:none !important;
+  }
+}
