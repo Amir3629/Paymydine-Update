@@ -176,7 +176,7 @@ html #pmd-sidebar-language {
         {{-- PMD_RESERVATIONS_CANONICAL_NAV_V131 --}}
         <a class="pmd-sm2__item {{ $pmdSm2ReservationsIsActive ? 'is-active' : '' }}" href="{{ admin_url('reservations') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"/><path d="M16 3v4M8 3v4M4 11h16M8 15h2v2h-2z"/></svg>
-            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.reservations', 'Reservations') }}</span>
+            <span class="pmd-sm2__label" data-pmd-no-translate="true" title="{{ $pmdSm2T('nav.reservations', 'Reservations') }}">{{ $pmdSm2IsDe ? 'Buchungen' : $pmdSm2T('nav.reservations', 'Reservations') }}</span>
         </a>
         @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
         {{-- PMD_SHIFTS_CANONICAL_NAV_V153
@@ -194,12 +194,12 @@ html #pmd-sidebar-language {
         @endif
         <a class="pmd-sm2__item {{ $pmdActive(['discounts', 'coupons']) ? 'is-active' : '' }}" href="/admin/discounts">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5v2M15 11v2M15 17v2M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-3a2 2 0 0 0 0 -4v-3a2 2 0 0 1 2 -2"/></svg>
-            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.coupons_gifts', 'Discount') }}</span>
+            <span class="pmd-sm2__label" data-pmd-no-translate="true" title="{{ $pmdSm2T('nav.coupons_gifts', 'Discount') }}">{{ $pmdSm2IsDe ? 'Gutscheine' : $pmdSm2T('nav.coupons_gifts', 'Discount') }}</span>
         </a>
 
         <a class="pmd-sm2__item {{ $pmdSm2MenuWorkspace ? 'is-active' : '' }}" href="{{ admin_url('pmdmenus') }}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3v12h-5c-.023-3.681.184-7.406 5-12M19 15v6M8 4v17M5 4v3a3 3 0 1 0 6 0V4"/></svg>
-            <span class="pmd-sm2__label">Menu &amp; Inventory</span>
+            <span class="pmd-sm2__label" data-pmd-no-translate="true" title="{{ $pmdSm2IsDe ? 'Menü und Inventar' : 'Menu &amp; Inventory' }}">{{ $pmdSm2T('nav.menu', 'Menu') }}</span>
         </a>
 
         {{-- PMD_MENU_INVENTORY_UNIFIED_R20: separate Stock nav removed; use Menu > Inventory. --}}
