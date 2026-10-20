@@ -40,6 +40,7 @@ export const initialReviewSocialSettings: PmdReviewSocialSettings = {
   platforms: {
     trustpilot: { enabled: false, url: "" },
     instagram: { enabled: false, url: "" },
+    tiktok: { enabled: false, url: "" },
     google: { enabled: false, url: "" },
     website: { enabled: false, url: "" },
     reviews: { enabled: false, url: "" },

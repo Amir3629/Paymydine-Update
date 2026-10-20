@@ -663,6 +663,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         $socialRows = [
                             ['key' => 'website', 'label' => 'Website', 'placeholder' => 'https://yourrestaurant.com', 'icon' => 'globe'],
                             ['key' => 'instagram', 'label' => 'Instagram', 'placeholder' => 'https://instagram.com/...', 'icon' => 'instagram'],
+                            // PMD_PROFILE_TIKTOK_R1: same card/toggle/save as other social links.
+                            ['key' => 'tiktok', 'label' => 'TikTok', 'placeholder' => 'https://www.tiktok.com/@restaurant', 'icon' => 'tiktok'],
                             ['key' => 'google', 'label' => 'Google / Maps', 'placeholder' => 'https://maps.google.com/...', 'icon' => 'pin'],
                             ['key' => 'trustpilot', 'label' => 'Trustpilot', 'placeholder' => 'https://trustpilot.com/...', 'icon' => 'star'],
                         ];
@@ -676,6 +678,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                         <div class="pmd-profile-social-mini-icon">
                                             @if($social['icon'] === 'instagram')
                                                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg>
+                                            @elseif($social['icon'] === 'tiktok')
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v11.5a4.5 4.5 0 1 1-4.5-4.5"></path><path d="M14 4c1 3.1 3.2 4.7 6 4.7"></path></svg>
                                             @elseif($social['icon'] === 'pin')
                                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
                                             @elseif($social['icon'] === 'star')

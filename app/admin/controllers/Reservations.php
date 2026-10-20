@@ -92,6 +92,77 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         $this->addCss('css/pmd-reservations-guarantee-v1.css');
         $this->addJs('js/pmd-reservations-table-card-filter-v1.js');
         $this->addJs('js/pmd-reservations-live-sync-v1.js');
+        // PMD_RESERVATION_SEARCH_R1: existing authenticated reservation workspace only.
+        $this->addCss('css/pmd-reservations-search-r1.css');
+        $this->addJs('js/pmd-reservations-search-r1.js');
+    }
+
+
+    /**
+     * PMD_RESERVATION_SEARCH_R1
+     * Explicit user-initiated, read-only, cross-date tenant/location search.
+     * The client never supplies the location or an arbitrary table identifier.
+     * Reuses the existing bounded tenant-scoped SQL search authority.
+     */
+    public function onPmdSearchReservationsR1(): array
+    {
+        $user = $this->getUser();
+        if (!$user || !(
+            $user->hasPermission('Admin.Reservations')
+            || $user->hasPermission('Admin.AssignReservations')
+            || $user->hasPermission('PMD.Workspace.Cashier')
+        )) {
+            abort(403, 'Reservation access required.');
+        }
+
+        $term = trim((string)post('term', ''));
+        if ($term === '' || mb_strlen($term) < 2) {
+            return ['success' => true, 'results' => [], 'count' => 0];
+        }
+
+        if (mb_strlen($term) > 100) {
+            throw ValidationException::withMessages([
+                'term' => ['Search is limited to 100 characters.'],
+            ]);
+        }
+
+        $locationId = (int)(app(PmdCleanWorkspaceSharedV1::class)->locationId() ?? 0);
+        if ($locationId < 1) {
+            abort(404, 'Select a restaurant location before searching.');
+        }
+
+        $matches = app(PmdReservationsScheduleV1::class)->searchOtherDates(
+            $locationId,
+            (string)app()->getLocale(),
+            $term,
+            null,
+            null,
+            60
+        );
+
+        $results = [];
+        foreach ($matches as $row) {
+            $id = (int)($row['reservation_id'] ?? 0);
+            if ($id < 1) {
+                continue;
+            }
+            $results[] = [
+                'id' => $id,
+                'name' => trim((string)($row['guest_name'] ?? '')),
+                'date' => substr((string)($row['reserve_date'] ?? ''), 0, 10),
+                'time' => substr((string)($row['reserve_time'] ?? ''), 0, 5),
+                'guests' => max(0, (int)($row['guest_num'] ?? 0)),
+                'tables' => implode(', ', (array)($row['table_names'] ?? [])),
+                'status' => (string)($row['status_name'] ?? ''),
+            ];
+        }
+
+        return [
+            'success' => true,
+            'results' => $results,
+            'count' => count($results),
+            'limit' => 60,
+        ];
     }
 
     /*

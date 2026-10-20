@@ -799,6 +799,10 @@
                 @if($bookingProfile['instagram_url'])
                     <a href="{{ $bookingProfile['instagram_url'] }}" rel="noopener noreferrer">Instagram</a>
                 @endif
+                {{-- PMD_PROFILE_TIKTOK_R1: only render the owner's enabled URL. --}}
+                @if(!empty($bookingProfile['tiktok_url']))
+                    <a href="{{ $bookingProfile['tiktok_url'] }}" target="_blank" rel="noopener noreferrer">TikTok</a>
+                @endif
                 @if($bookingProfile['google_url'])
                     <a href="{{ $bookingProfile['google_url'] }}" rel="noopener noreferrer">Google</a>
                 @endif

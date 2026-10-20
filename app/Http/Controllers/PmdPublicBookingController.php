@@ -2372,6 +2372,8 @@ class PmdPublicBookingController extends Controller
             'pmd_social_website_url',
             'pmd_social_instagram_enabled',
             'pmd_social_instagram_url',
+            'pmd_social_tiktok_enabled',
+            'pmd_social_tiktok_url',
             'pmd_social_google_enabled',
             'pmd_social_google_url',
             'pmd_social_trustpilot_enabled',
@@ -2423,6 +2425,9 @@ class PmdPublicBookingController extends Controller
                 : '',
             'instagram_url' => !empty($settings['pmd_social_instagram_enabled'])
                 ? trim((string)($settings['pmd_social_instagram_url'] ?? ''))
+                : '',
+            'tiktok_url' => !empty($settings['pmd_social_tiktok_enabled'])
+                ? trim((string)($settings['pmd_social_tiktok_url'] ?? ''))
                 : '',
             'google_url' => !empty($settings['pmd_social_google_enabled'])
                 ? trim((string)($settings['pmd_social_google_url'] ?? ''))

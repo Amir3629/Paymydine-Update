@@ -57,6 +57,7 @@ export function useCheckoutReviewInvoiceActions({
     const platformMeta: Array<{ id: PmdSocialPlatformId; label: string; icon: typeof Star }> = [
       { id: "trustpilot", label: "Trustpilot", icon: Star },
       { id: "instagram", label: "Instagram", icon: Link2 },
+      { id: "tiktok", label: "TikTok", icon: Link2 },
       { id: "google", label: "Google Reviews", icon: QrCode },
       { id: "website", label: "Website", icon: Link2 },
       { id: "reviews", label: "Reviews page", icon: MessageSquare },
