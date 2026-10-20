@@ -282,6 +282,9 @@
   function renderCards(schedule) {
     root = root || document.getElementById('pmd-reservations-cards-v2-1');
     if (!root || !schedule || !Array.isArray(schedule.reservations)) return false;
+    // Server-side cross-date search must not be overwritten by the live
+    // calendar snapshot (which includes only the normal booking date range).
+    if (root.getAttribute('data-pmd-search-active') === '1') return false;
 
     var labels = text();
     var from = String(root.getAttribute('data-pmd-range-from') || '');
