@@ -1,0 +1,106 @@
+/* PMD_RESERVATIONS_SEARCH_R1 - canonical Reservations only */
+#pmd-reservations-cards-v2-1 .pmd-ops-section__tools {
+  display:flex !important;
+  align-items:center !important;
+  flex-wrap:wrap !important;
+  gap:10px !important;
+}
+#pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 {
+  display:flex;
+  align-items:center;
+  flex:1 1 300px;
+  min-width:min(100%,255px);
+  max-width:650px;
+  gap:8px;
+  padding:0;
+  margin:0;
+}
+#pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 > input {
+  display:block;
+  flex:1 1 auto;
+  min-width:0;
+  height:44px;
+  margin:0;
+  padding:0 13px;
+  border:1px solid #d0e1df;
+  border-radius:12px;
+  background:white;
+  box-shadow:none;
+  color:#173d34;
+  font-size:13px;
+  font-weight:620;
+}
+#pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 > input:focus {
+  border-color:#0a856b;
+  outline:2px solid rgba(10,133,107,.16);
+  outline-offset:1px;
+}
+#pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 > button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  gap:7px;
+  height:44px;
+  padding:0 13px;
+  border:1px solid #055545;
+  border-radius:12px;
+  background:#054537;
+  color:#fff;
+  font-size:12px;
+  font-weight:780;
+  cursor:pointer;
+}
+#pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 > button svg {
+  display:block;
+  width:17px;
+  height:17px;
+}
+#pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 > a {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+  height:44px;
+  padding:0 10px;
+  border:1px solid #d6e5e2;
+  border-radius:10px;
+  background:#fff;
+  color:#25564d;
+  text-decoration:none;
+  font-size:12px;
+  font-weight:700;
+}
+#pmd-r2-clean-header .pmd-reservations-search-header-r1 {
+  display:inline-grid !important;
+  place-items:center !important;
+  box-sizing:border-box !important;
+  flex:0 0 46px !important;
+  width:46px !important;
+  min-width:46px !important;
+  height:46px !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:1px solid #cfe0e7 !important;
+  border-radius:14px !important;
+  background:#fff !important;
+  box-shadow:0 3px 9px rgba(15,50,40,.05) !important;
+  color:#173b34 !important;
+  cursor:pointer !important;
+}
+#pmd-r2-clean-header .pmd-reservations-search-header-r1 svg {
+  display:block !important;
+  width:20px !important;
+  height:20px !important;
+  stroke:currentColor !important;
+  stroke-width:1.8 !important;
+  fill:none !important;
+}
+@media (max-width:730px) {
+  #pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 {
+    flex:1 1 100%;
+    max-width:100%;
+  }
+  #pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 > button > span {display:none}
+  #pmd-reservations-cards-v2-1 .pmd-reservations-search-r1 > button {width:44px;padding:0}
+}
