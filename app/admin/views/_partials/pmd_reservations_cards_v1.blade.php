@@ -41,6 +41,10 @@
             'from' => 'Von',
             'to' => 'Bis',
             'apply' => 'Anwenden',
+            'search' => 'Suchen',
+            'search_placeholder' => 'Name, Telefon, E-Mail oder Buchungsnummer',
+            'search_clear' => 'Zurücksetzen',
+            'search_results' => 'Suchergebnisse',
         ]
         : [
             'title_today' => "Today's reservations",
@@ -71,6 +75,10 @@
             'from' => 'From',
             'to' => 'To',
             'apply' => 'Apply',
+            'search' => 'Search',
+            'search_placeholder' => 'Name, phone, email or reservation ID',
+            'search_clear' => 'Clear',
+            'search_results' => 'Search results',
         ];
 
     if ($pmdOpsLocale === 'tr') {
@@ -161,9 +169,15 @@
         return preg_replace('/^(?:table|tisch)\s*#?\s*/iu', '', $value);
     };
 
+    $pmdOpsSearchQuery = trim((string)($pmdReservationSearchQuery ?? ''));
+    $pmdOpsSearchActive = !empty($pmdReservationSearchActive);
+    $pmdOpsSourceReservations = $pmdOpsSearchActive
+        ? (array)($pmdReservationSearchResults ?? [])
+        : (array)($pmdOpsSchedule['reservations'] ?? []);
+
     $pmdOpsCards = [];
 
-    foreach ((array)($pmdOpsSchedule['reservations'] ?? []) as $reservation) {
+    foreach ($pmdOpsSourceReservations as $reservation) {
         if (!is_array($reservation)) continue;
 
         $date = substr((string)(
@@ -175,8 +189,8 @@
 
         if (
             !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)
-            || $date < $pmdOpsFrom
-            || $date > $pmdOpsTo
+            || (!$pmdOpsSearchActive && $date < $pmdOpsFrom)
+            || (!$pmdOpsSearchActive && $date > $pmdOpsTo)
         ) {
             continue;
         }
@@ -295,8 +309,10 @@
         ];
     }
 
-    usort($pmdOpsCards, static function ($left, $right) {
-        return strcmp($left['sort_key'], $right['sort_key']);
+    usort($pmdOpsCards, static function ($left, $right) use ($pmdOpsSearchActive) {
+        return $pmdOpsSearchActive
+            ? strcmp($right['sort_key'], $left['sort_key'])
+            : strcmp($left['sort_key'], $right['sort_key']);
     });
 
     $pmdOpsCount = count($pmdOpsCards);
@@ -313,6 +329,7 @@
     data-pmd-ops-kind="reservations"
     data-pmd-range-from="{{ $pmdOpsFrom }}"
     data-pmd-range-to="{{ $pmdOpsTo }}"
+    data-pmd-search-active="{{ $pmdOpsSearchActive ? '1' : '0' }}"
 >
     <header class="pmd-ops-section__header pmd-ops-section__header--tools-only">
         <div class="pmd-ops-section__tools">
@@ -320,11 +337,37 @@
                 'pmdOpsRange' => $pmdOpsRange,
             ])
 
+            <form method="get"
+                action="{{ admin_url('reservations') }}#pmd-reservations-cards-v2-1"
+                class="pmd-reservations-search-r1"
+                role="search"
+                data-pmd-reservations-search-form>
+                <label class="sr-only" for="pmd-reservations-search-input-r1">{{ $pmdOpsText['search'] }}</label>
+                <input id="pmd-reservations-search-input-r1"
+                    type="search"
+                    name="pmd_search"
+                    value="{{ $pmdOpsSearchQuery }}"
+                    placeholder="{{ $pmdOpsText['search_placeholder'] }}"
+                    minlength="2" maxlength="120"
+                    autocomplete="off"
+                    required
+                    data-pmd-reservations-search-input>
+                <button type="submit" aria-label="{{ $pmdOpsText['search'] }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>
+                    <span>{{ $pmdOpsText['search'] }}</span>
+                </button>
+                @if($pmdOpsSearchActive)
+                    <a href="{{ admin_url('reservations') }}#pmd-reservations-cards-v2-1" data-pmd-reservations-search-clear>{{ $pmdOpsText['search_clear'] }}</a>
+                @endif
+            </form>
+
             <span class="pmd-ops-section__count">
                 <strong>{{ $pmdOpsCount }}</strong>
-                {{ $pmdOpsCount === 1
-                    ? $pmdOpsText['reservation']
-                    : $pmdOpsText['reservations'] }}
+                {{ $pmdOpsSearchActive
+                    ? $pmdOpsText['search_results']
+                    : ($pmdOpsCount === 1
+                        ? $pmdOpsText['reservation']
+                        : $pmdOpsText['reservations']) }}
             </span>
         </div>
     </header>
