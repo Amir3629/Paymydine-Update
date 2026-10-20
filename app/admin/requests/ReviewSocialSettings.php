@@ -20,6 +20,9 @@ class ReviewSocialSettings extends FormRequest
             'pmd_social_instagram_enabled' => ['nullable'],
             'pmd_social_instagram_url' => ['nullable', 'string', 'max:500'],
 
+            'pmd_social_tiktok_enabled' => ['nullable'],
+            'pmd_social_tiktok_url' => ['nullable', 'url', 'max:500'],
+
             'pmd_social_google_enabled' => ['nullable'],
             'pmd_social_google_url' => ['nullable', 'string', 'max:500'],
 
