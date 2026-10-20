@@ -11,7 +11,7 @@ export type PaymentOption = {
   enabled: boolean
 }
 
-export type PmdSocialPlatformId = "trustpilot" | "instagram" | "google" | "website" | "reviews"
+export type PmdSocialPlatformId = "trustpilot" | "instagram" | "tiktok" | "google" | "website" | "reviews"
 
 export type PmdSocialPlatformSettings = {
   enabled: boolean
