@@ -1309,7 +1309,27 @@ if (!defined('PMD_CONNECT_VELVET_PUBLIC_V14B')) {
 
         $themeColors = $colors[$publicTheme] ?? $colors['kazen_japanese'];
 
+        // PMD_TIKTOK_PUBLIC_THEME_R1: the final /simple-theme responder
+        // must include the one opt-in social field from Restaurant Profile.
+        // Preserve the existing website and featured-social links untouched.
+        $tiktokRaw = trim((string)$setting('pmd_social_tiktok_url', ''));
+        $tiktokHost = strtolower((string)(parse_url($tiktokRaw, PHP_URL_HOST) ?: ''));
+        $tiktokUrl = preg_match('#^https://#i', $tiktokRaw)
+            && ($tiktokHost === 'tiktok.com' || str_ends_with($tiktokHost, '.tiktok.com'))
+            ? $tiktokRaw : '';
+        $tiktokActive = $tiktokUrl !== ''
+            && in_array(strtolower(trim((string)$setting('pmd_social_tiktok_enabled', '0'))), ['1', 'true', 'on', 'yes'], true);
+        $tiktokLinks = is_array($data['kazen_header_links'] ?? null)
+            ? $data['kazen_header_links'] : [];
+        $tiktokLinks['tiktok'] = [
+            'enabled' => $tiktokActive,
+            'url' => $tiktokActive ? $tiktokUrl : '',
+        ];
+
         $payloadData = array_replace($data, [
+            'kazen_header_links' => $tiktokLinks,
+            'pmd_social_tiktok_enabled' => $tiktokActive ? '1' : '0',
+            'pmd_social_tiktok_url' => $tiktokActive ? $tiktokUrl : '',
             'theme_configuration' => $publicTheme,
             'theme_id' => $publicTheme,
             'frontend_theme' => $publicTheme,
