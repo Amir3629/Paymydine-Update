@@ -68,10 +68,9 @@
 
     $pmdSm2DashboardIsActive = $pmdActive([$pmdSm2DashboardRoute]);
 
-    /* PMD_SIDE_MENU_ROLE_WORKSPACE_SHORTCUTS_V1
-     * Reuse the canonical landing-route authority instead of adding a second
-     * role lookup. Owner gets Manager + Accountant; Manager gets Accountant.
-     * These are navigation links only and do not grant target permissions.
+    /* PMD_SIDE_MENU_ROLE_WORKSPACE_SHORTCUTS_V2
+     * Owner has a single canonical dashboard: hide redundant Manager nav.
+     * Owner/Manager still see Accountant where allowed. No permission changes.
      */
     $pmdSm2IsOwnerNav = $pmdSm2DashboardRoute === 'ownerdashboard';
     $pmdSm2IsManagerNav = $pmdSm2DashboardRoute === 'managerdashboard';
@@ -155,13 +154,7 @@ html #pmd-sidebar-language {
         </a>
         @endif
 
-        @if($pmdSm2IsOwnerNav)
-        <a class="pmd-sm2__item {{ $pmdActive(['managerlab']) ? 'is-active' : '' }}" href="{{ admin_url('managerdashboard') }}" data-pmd-role-workspace-shortcut="manager">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"/></svg>
-            <span class="pmd-sm2__label">{{ $pmdSm2T('nav.manager', 'Manager') }}</span>
-        </a>
-        @endif
-
+        {{-- PMD_OWNER_SINGLE_DASHBOARD_NAV_V1: no redundant Manager shortcut --}}
         @if($pmdSm2IsOwnerNav || $pmdSm2IsManagerNav)
         <a class="pmd-sm2__item {{ $pmdActive(['accountantlab']) ? 'is-active' : '' }}" href="{{ admin_url('accountantdashboard') }}" data-pmd-role-workspace-shortcut="accountant">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 19h8"/></svg>
