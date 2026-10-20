@@ -150,6 +150,13 @@ class Pmdmenus extends AdminController
             $this->addJs(asset($pmdGlassInputJsV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputJsV1)) ?: '20261019'));
         }
 
+        // PMD_MENU_HEADER_COMPACT_TOOLS_V1_20261020: last-loaded route-only header declutter.
+        // All earlier inventory/header/notification handlers remain authoritative.
+        $pmdCompactHeaderCssV1 = 'app/admin/assets/css/pmd-menu-header-compact-v1.css';
+        $this->addCss(asset($pmdCompactHeaderCssV1).'?v='.(string)(@filemtime(base_path($pmdCompactHeaderCssV1)) ?: '20261020'));
+        $pmdCompactHeaderJsV1 = 'app/admin/assets/js/pmd-menu-header-compact-v1.js';
+        $this->addJs(asset($pmdCompactHeaderJsV1).'?v='.(string)(@filemtime(base_path($pmdCompactHeaderJsV1)) ?: '20261020'));
+
         AdminMenu::setContext('menus', 'restaurant');
     }
 

@@ -222,25 +222,6 @@
     >
         @include('admin::_partials.pmd_group_scope_firstpaint')
         @include('admin::_partials.pmd_quick_setup_return')
-        @if(!empty($pmdMenuCanManageInventoryR20))
-            <button
-                type="button"
-                class="pmd-dashboard-lab__header-action pmd-menu-stock-usage-setup-r22"
-                data-pmd-stock-usage-setup-r22
-                aria-pressed="false"
-                aria-label="Set stock usage"
-                title="Set stock usage"
-            >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M4 6h16"></path>
-                    <path d="M4 12h10"></path>
-                    <path d="M4 18h7"></path>
-                    <path d="M17 11v8"></path>
-                    <path d="M13 15h8"></path>
-                </svg>
-            </button>
-        @endif
-
         <button
             type="button"
             class="pmd-dashboard-lab__header-action"
@@ -292,6 +273,52 @@
                     <path d="m4 17 8 4 8-4"></path>
                     <path d="M18 3v6"></path>
                     <path d="M15 6h6"></path>
+                </svg>
+            </button>
+        @endif
+
+
+        {{-- PMD_MENU_HEADER_COMPACT_TOOLS_V1_20261020
+             Secondary Menu controls live in a native disclosure.
+             Preserve their EXACT nodes/data attributes for existing event handlers.
+             Primary / combo confirm / cancel hooks stay outside this disclosure. --}}
+        <details class="pmd-menu-header-tools-v1" data-pmd-menu-header-tools-v1>
+            <summary class="pmd-menu-header-tools-v1__trigger"
+                     aria-label="Show Menu tools" title="Menu tools">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none"
+                     stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 6h16M4 12h16M4 18h16"></path>
+                    <circle cx="9" cy="6" r="2.2" fill="white"></circle>
+                    <circle cx="16" cy="12" r="2.2" fill="white"></circle>
+                    <circle cx="8" cy="18" r="2.2" fill="white"></circle>
+                </svg>
+                <span>Tools</span>
+                <svg class="pmd-menu-header-tools-v1__chevron" viewBox="0 0 24 24"
+                     aria-hidden="true" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m7 10 5 5 5-5"></path>
+                </svg>
+            </summary>
+            <div class="pmd-menu-header-tools-v1__panel"
+                 data-pmd-menu-header-tools-panel-v1 role="group"
+                 aria-label="Menu tools">
+                <span class="pmd-menu-header-tools-v1__heading">Menu tools</span>
+        @if(!empty($pmdMenuCanManageInventoryR20))
+            <button
+                type="button"
+                class="pmd-dashboard-lab__header-action pmd-menu-stock-usage-setup-r22"
+                data-pmd-stock-usage-setup-r22
+                aria-pressed="false"
+                aria-label="Set stock usage"
+                title="Set stock usage"
+            >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 6h16"></path>
+                    <path d="M4 12h10"></path>
+                    <path d="M4 18h7"></path>
+                    <path d="M17 11v8"></path>
+                    <path d="M13 15h8"></path>
                 </svg>
             </button>
         @endif
@@ -357,6 +384,10 @@
             </svg>
             <span class="sr-only" data-pmd-menu-sort-label>{{ $pmdT('sort_edit') }}</span>
         </button>
+
+
+            </div>
+        </details>
 
         {{-- PMD_HEADER_SINGLE_FRAME_SEARCH_V160: Menu --}}
         <div
