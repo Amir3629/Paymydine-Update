@@ -206,7 +206,12 @@
                 $pmdKazenSocialUrlV1 = $pmdKazenUrlV1($pmdKazenSettingV1('pmd_kazen_social_url', $pmdKazenLegacySocialUrlV1));
                 $pmdKazenSocialEnabledV1 = $pmdKazenBoolV1($pmdKazenSettingV1('pmd_kazen_social_enabled', $pmdKazenSocialUrlV1 !== '' ? '1' : '0')) && $pmdKazenSocialUrlV1 !== '';
 
+                $pmdKazenTiktokUrlR1 = $pmdKazenUrlV1($pmdKazenSettingV1('pmd_social_tiktok_url', ''));
+                $pmdKazenTiktokEnabledR1 = $pmdKazenTiktokUrlR1 !== ''
+                    && $pmdKazenBoolV1($pmdKazenSettingV1('pmd_social_tiktok_enabled', '0'));
+
                 $pmdKazenHeaderLinksV1 = [
+                    'tiktok' => ['enabled' => $pmdKazenTiktokEnabledR1, 'url' => $pmdKazenTiktokUrlR1],
                     'website' => [
                         'enabled' => $pmdKazenWebsiteEnabledV1,
                         'url' => $pmdKazenWebsiteUrlV1,
@@ -238,6 +243,8 @@
                     'kazen_menu_layout' => $pmdKazenMenuLayoutV5,
                     'menuLayout' => $pmdKazenMenuLayoutV5,
                     'kazen_header_links' => $pmdKazenHeaderLinksV1,
+                    'pmd_social_tiktok_enabled' => $pmdKazenTiktokEnabledR1 ? '1' : '0',
+                    'pmd_social_tiktok_url' => $pmdKazenTiktokUrlR1,
                     'pmd_kazen_website_enabled' => $pmdKazenWebsiteEnabledV1 ? '1' : '0',
                     'pmd_kazen_website_url' => $pmdKazenWebsiteUrlV1,
                     'pmd_kazen_social_enabled' => $pmdKazenSocialEnabledV1 ? '1' : '0',
@@ -247,6 +254,8 @@
                         'kazen_menu_layout' => $pmdKazenMenuLayoutV5,
                         'menuLayout' => $pmdKazenMenuLayoutV5,
                         'kazen_header_links' => $pmdKazenHeaderLinksV1,
+                        'pmd_social_tiktok_enabled' => $pmdKazenTiktokEnabledR1 ? '1' : '0',
+                        'pmd_social_tiktok_url' => $pmdKazenTiktokUrlR1,
                         'pmd_kazen_website_enabled' => $pmdKazenWebsiteEnabledV1 ? '1' : '0',
                         'pmd_kazen_website_url' => $pmdKazenWebsiteUrlV1,
                         'pmd_kazen_social_enabled' => $pmdKazenSocialEnabledV1 ? '1' : '0',
@@ -767,11 +776,18 @@ if (!defined('PMD_KAZEN_SIMPLE_THEME_OVERRIDE_ROUTE_V14')) {
 
         $frontend = 'kazen_japanese';
 
+        $pmdKazenTiktokUrlR1b = $url($setting('pmd_social_tiktok_url', ''));
+        $pmdKazenTiktokEnabledR1b = $pmdKazenTiktokUrlR1b !== ''
+            && $bool($setting('pmd_social_tiktok_enabled', '0'));
+
         $payloadData = array_replace($data, [
             'theme_configuration' => 'kazen_japanese',
+            'pmd_social_tiktok_enabled' => $pmdKazenTiktokEnabledR1b ? '1' : '0',
+            'pmd_social_tiktok_url' => $pmdKazenTiktokUrlR1b,
             'kazen_menu_layout' => $menuLayout,
             'menuLayout' => $menuLayout,
             'kazen_header_links' => [
+                'tiktok' => ['enabled' => $pmdKazenTiktokEnabledR1b, 'url' => $pmdKazenTiktokUrlR1b],
                 'website' => [
                     'enabled' => $websiteEnabled,
                     'url' => $websiteUrl,
