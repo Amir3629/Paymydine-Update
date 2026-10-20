@@ -102,7 +102,7 @@ class Reservations extends PmdCleanWorkspaceControllerV1
      * PMD_RESERVATION_SEARCH_R1
      * Explicit user-initiated, read-only, cross-date tenant/location search.
      * The client never supplies the location or an arbitrary table identifier.
-     * Reuses the existing indexed SQL-backed SearchOtherDates authority.
+     * Reuses the existing bounded tenant-scoped SQL search authority.
      */
     public function onPmdSearchReservationsR1(): array
     {
