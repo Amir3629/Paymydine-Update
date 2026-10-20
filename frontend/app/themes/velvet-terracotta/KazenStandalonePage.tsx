@@ -34,11 +34,13 @@ function normalizeKazenStandaloneMenuLayout(value: unknown): "accordion" | "tabs
 type KazenHeaderLinksV1 = {
   website: { enabled: boolean; url: string }
   social: { enabled: boolean; platform: string; url: string }
+  tiktok: { enabled: boolean; url: string }
 }
 
 const PMD_KAZEN_HEADER_LINKS_DEFAULT_V1: KazenHeaderLinksV1 = {
   website: { enabled: false, url: "" },
   social: { enabled: false, platform: "instagram", url: "" },
+  tiktok: { enabled: false, url: "" },
 }
 
 
@@ -95,7 +97,19 @@ function pmdKazenReadHeaderLinksV1(payload: any): KazenHeaderLinksV1 {
     "instagram"
   ).trim().toLowerCase() || "instagram"
 
+  const tiktokUrl = pmdKazenUrlV1(
+    links?.tiktok?.url ||
+    payload?.pmd_social_tiktok_url ||
+    data?.pmd_social_tiktok_url
+  )
+  const tiktokEnabled = Boolean(tiktokUrl) && pmdKazenBoolV1(
+    links?.tiktok?.enabled ??
+    payload?.pmd_social_tiktok_enabled ??
+    data?.pmd_social_tiktok_enabled
+  )
+
   return {
+    tiktok: { enabled: tiktokEnabled, url: tiktokUrl },
     website: {
       enabled: Boolean(websiteUrl) && pmdKazenBoolV1(
         links?.website?.enabled ??
@@ -339,6 +353,9 @@ export default function KazenStandalonePage() {
     let frame = 0
     const timers: number[] = []
 
+    const iconTikTok =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v11.2a4.8 4.8 0 1 1-4.8-4.8"></path><path d="M14 3c.6 3.1 2.8 5.1 6 5.3"></path></svg>'
+
     const iconWebsite =
       '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25"></circle><path d="M3.75 12h16.5"></path><path d="M12 3.75c2 2.25 3.05 5.05 3.05 8.25S14 18 12 20.25"></path><path d="M12 3.75C10 6 8.95 8.8 8.95 12S10 18 12 20.25"></path></svg>'
 
@@ -368,7 +385,7 @@ export default function KazenStandalonePage() {
 
     const upsertHeaderLink = (
       group: HTMLElement,
-      action: "website" | "social",
+      action: "website" | "social" | "tiktok",
       enabled: boolean,
       url: string,
       label: string,
@@ -415,6 +432,15 @@ export default function KazenStandalonePage() {
           iconWebsite
         )
 
+        upsertHeaderLink(
+          group,
+          "tiktok",
+          kazenHeaderLinksV1.tiktok.enabled,
+          kazenHeaderLinksV1.tiktok.url,
+          "TikTok",
+          iconTikTok
+        )
+
         const socialLabel = pmdKazenSocialLabelV1(kazenHeaderLinksV1.social.platform)
         upsertHeaderLink(
           group,
@@ -429,6 +455,7 @@ export default function KazenStandalonePage() {
         ;(window as any).__PMD_KAZEN_HEADER_LINKS_V21 = {
           website: !!group.querySelector('[data-pmd-kazen-clean-action="website"]'),
           social: !!group.querySelector('[data-pmd-kazen-clean-action="social"]'),
+          tiktok: !!group.querySelector('[data-pmd-kazen-clean-action="tiktok"]'),
           platform: kazenHeaderLinksV1.social.platform,
           childCount: group.children.length,
         }
@@ -454,6 +481,8 @@ export default function KazenStandalonePage() {
     kazenHeaderLinksV1.social.enabled,
     kazenHeaderLinksV1.social.url,
     kazenHeaderLinksV1.social.platform,
+    kazenHeaderLinksV1.tiktok.enabled,
+    kazenHeaderLinksV1.tiktok.url,
   ])
 
 const [waiterConfirmed, setWaiterConfirmed] = useState(false)
