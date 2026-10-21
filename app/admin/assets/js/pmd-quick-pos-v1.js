@@ -877,18 +877,20 @@
     customerDisplayInstallAttemptsV122 = 0;
 
     /* PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119
-     * Keep the profile menu calm: one status row + Settings button.
-     * All customer-display controls live in a dedicated operator card. */
+     * PMD_ZCS_CUSTOMER_DISPLAY_VISIBLE_SETTINGS_GEAR_V123
+     * Keep the profile menu calm: one compact status row + a fixed gear button.
+     * The gear must remain visible even in the narrow Profile/History dock. */
     if (!document.getElementById('pmd-customer-display-settings-style-v119')) {
       var style = document.createElement('style');
       style.id = 'pmd-customer-display-settings-style-v119';
       style.textContent =
-        '.pmd-cd-v119{border-top:1px solid rgba(148,163,184,.22);margin-top:10px;padding-top:10px}' +
-        '.pmd-cd-v119__row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px}' +
-        '.pmd-cd-v119__title{display:grid;gap:2px;min-width:0}' +
-        '.pmd-cd-v119__title strong{font-size:14px;line-height:1.2}' +
-        '.pmd-cd-v119__title small{font-size:11px;opacity:.68}' +
-        '.pmd-cd-v119__settings{border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.10);color:inherit;border-radius:10px;padding:8px 11px;font:inherit;font-weight:700;cursor:pointer}' +
+        '.pmd-cd-v119{margin:6px 0 0!important;padding:8px 0 0!important;border-top:1px solid rgba(148,163,184,.22)!important;border-bottom:0!important}' +
+        '.pmd-cd-v119__row{display:grid!important;grid-template-columns:minmax(0,1fr) 38px!important;align-items:center!important;gap:8px!important;padding:0!important;min-width:0!important}' +
+        '.pmd-cd-v119__title{display:grid!important;gap:2px!important;min-width:0!important;overflow:hidden!important}' +
+        '.pmd-cd-v119__title strong{font-size:12px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}' +
+        '.pmd-cd-v119__title small{font-size:10px!important;line-height:1.2!important;opacity:.68!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}' +
+        '.pmd-cd-v119__settings{width:38px!important;height:38px!important;min-width:38px!important;padding:0!important;display:grid!important;place-items:center!important;border:1px solid #a7c7b8!important;background:#edf8f2!important;color:#064e3b!important;border-radius:10px!important;cursor:pointer!important;visibility:visible!important;opacity:1!important}' +
+        '.pmd-cd-v119__settings svg{width:18px!important;height:18px!important;display:block!important;fill:none!important;stroke:currentColor!important;stroke-width:2!important;stroke-linecap:round!important;stroke-linejoin:round!important}' +
         '.pmd-cd-v119__overlay[hidden]{display:none!important}' +
         '.pmd-cd-v119__overlay{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.42);backdrop-filter:blur(3px)}' +
         '.pmd-cd-v119__card{width:min(430px,calc(100vw - 28px));max-height:min(680px,calc(100vh - 36px));overflow:auto;background:#fff;color:#103b52;border-radius:20px;box-shadow:0 24px 70px rgba(15,23,42,.28);border:1px solid rgba(15,71,96,.12)}' +
@@ -922,9 +924,21 @@
           '<strong>Customer display</strong>' +
           '<small data-pmd-customer-display-status>Checking…</small>' +
         '</div>' +
-        '<button type="button" class="pmd-cd-v119__settings" data-pmd-customer-display-settings>Settings</button>' +
+        '<button type="button" class="pmd-cd-v119__settings" data-pmd-customer-display-settings aria-label="Customer display settings" title="Settings">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+            '<circle cx="12" cy="12" r="3"></circle>' +
+            '<path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20.3h-3v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.56-1.03H5.3v-3h.14A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.69 4.7V4.6h3v.1a1.7 1.7 0 0 0 1.03 1.58 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.78 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.16v3h-.16A1.7 1.7 0 0 0 19.4 15Z"></path>' +
+          '</svg>' +
+        '</button>' +
       '</div>';
-    profileMenu.appendChild(wrap);
+    /* PMD_ZCS_CUSTOMER_DISPLAY_PROFILE_ORDER_V123
+     * Keep display settings above Sign out and inside the narrow menu viewport. */
+    var logoutLink = profileMenu.querySelector('a[href*="/logout"]');
+    if (logoutLink) {
+      profileMenu.insertBefore(wrap, logoutLink);
+    } else {
+      profileMenu.appendChild(wrap);
+    }
 
     var overlay = document.createElement('div');
     overlay.className = 'pmd-cd-v119__overlay';
