@@ -217,6 +217,9 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         }
 
         if (empty($result['ok'])) {
+            if (($result['reason'] ?? '') === 'wrong_location') {
+                return redirect('/staff#schedule')->with('error', 'This open shift belongs to another workplace. Ask your manager to correct it.');
+            }
             return redirect('/staff#schedule')->with('error', 'There is no running shift to end.');
         }
 
