@@ -10,7 +10,7 @@ android {
         applicationId = "com.paymydine.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 71 // PMD_KIOSK_V22_SINGLE_SURFACE
+        versionCode = 72 // PMD_ZCS_Z100_AUTO_SECONDARY_V18
         // PMD_DEVICE_APP_0_5_4_KIOSK_V18
         // PMD_ANDROID_0_3_34_PHONE_WEB_ORIENTATION_V115
         // Phones stay portrait like mobile Web; tablets retain full-sensor rotation.
@@ -40,7 +40,10 @@ android {
         // PMD_ANDROID_0_3_20_MOBILE_UI_V94 (preserved baseline)
         // PMD_ANDROID_0_3_20_OFFLINE_COMPLETE_V23 (preserved contract)
         // V99 trims the V98 scale slightly while preserving natural mobile fit.
-        versionName = "0.5.8-device-app-v17" // PMD_ANDROID_0_3_28_RESPONSIVE_MATRIX_V102
+        versionName = "0.5.9-device-app-v18" // PMD_ZCS_Z100_AUTO_SECONDARY_V18
+        // V18 packages the verified ZCS SmartPos SDK into the universal Device App.
+        // On ZCS Z100/SmartPOS hardware the customer display auto-connects locally.
+        // Non-ZCS devices keep the same app; unsupported hardware fails closed.
         // PMD_ANDROID_0_3_37_V129_CLOUD_REENTRY
         // PMD_ANDROID_0_3_36_V120_LOCAL_FIRST
         // V120 = Local-First transport + latest V119 kitchen-round behavior
