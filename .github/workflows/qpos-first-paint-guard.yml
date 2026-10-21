@@ -6,6 +6,7 @@ on:
       - fix/qpos-fast-first-paint-r132
       - fix/qpos-r134-lazy-floor-boot
       - fix/qpos-r135-minimal-boot
+      - fix/zcs-v123-visible-settings-gear
       - main
     paths:
       - 'app/admin/assets/js/pmd-quick-pos-v1.js'
