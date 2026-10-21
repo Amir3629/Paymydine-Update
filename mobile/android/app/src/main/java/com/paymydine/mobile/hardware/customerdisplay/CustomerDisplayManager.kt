@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 /**
  * PMD_ZCS_CUSTOMER_DISPLAY_V1
+ * PMD_ZCS_Z100_AUTO_SECONDARY_V18
  *
  * Device-local authority for the customer-facing display. Nothing is shared
  * between cashiers: each Android installation owns its own manager and its own
@@ -162,6 +163,9 @@ class CustomerDisplayManager(
         val json =
             JSONObject()
                 .put("customer_display", capabilities.available)
+                .put("sdk_packaged", zcs.sdkPackaged())
+                .put("connection", "internal")
+                .put("auto_connect", true)
                 .put("vendor", capabilities.vendor)
                 .put("model", capabilities.model)
                 .put("width", CustomerDisplayRenderer.WIDTH)
@@ -344,6 +348,12 @@ class CustomerDisplayManager(
         }
 
         fun lastError(): String? = failure
+
+        fun sdkPackaged(): Boolean =
+            runCatching {
+                Class.forName("com.zcs.sdk.DriverManager")
+                true
+            }.getOrDefault(false)
 
         fun show(bitmap: Bitmap): Boolean {
             if (!ensureInitialized()) return false
