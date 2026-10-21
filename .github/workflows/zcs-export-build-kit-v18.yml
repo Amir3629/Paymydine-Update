@@ -76,16 +76,16 @@ jobs:
           cp -a "$GRADLE_USER_HOME/caches" "$OUT/toolchain/gradle-user-home/caches"
 
           cat > "$OUT/BUILD_KIT_INFO.txt" <<EOF
-source_commit=$GITHUB_SHA
-version=0.5.9-device-app-v18
-version_code=72
-java_home=toolchain/jdk17
-android_home=toolchain/android-sdk
-gradle_home=toolchain/gradle-8.13
-gradle_user_home=toolchain/gradle-user-home
-zcs_aar_expected=SmartPos_2.0.6_R260615.aar
-zcs_aar_sha256=fe2269746167064571ae23fc655838f203436deeb145606ff5c2d34b0054db18
-EOF
+          source_commit=$GITHUB_SHA
+          version=0.5.9-device-app-v18
+          version_code=72
+          java_home=toolchain/jdk17
+          android_home=toolchain/android-sdk
+          gradle_home=toolchain/gradle-8.13
+          gradle_user_home=toolchain/gradle-user-home
+          zcs_aar_expected=SmartPos_2.0.6_R260615.aar
+          zcs_aar_sha256=fe2269746167064571ae23fc655838f203436deeb145606ff5c2d34b0054db18
+          EOF
 
           tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/pmd-zcs-v18-build-kit.tar.gz" pmd-zcs-v18-build-kit
           ls -lh "$RUNNER_TEMP/pmd-zcs-v18-build-kit.tar.gz"
