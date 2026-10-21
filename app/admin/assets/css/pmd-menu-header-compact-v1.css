@@ -518,7 +518,9 @@ html body.pmd-menu-manager-page #pmd-menu-manager-main > #pmd-r2-clean-header#pm
   flex-wrap:nowrap !important;
   align-items:center !important;
   justify-content:center !important;
-  place-items:initial !important;
+  /* PMD_MENU_INVENTORY_TRUE_CENTER_V3_20261021: place-items is a shorthand and its old
+     initial value reset align-items:center, making icon/text stick to top. */
+  place-items:center !important;
   box-sizing:border-box !important;
   flex:0 0 124px !important;
   width:124px !important;
