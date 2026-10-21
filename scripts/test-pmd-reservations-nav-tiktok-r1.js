@@ -9,6 +9,7 @@ const root = path.resolve(__dirname, '..');
 function read(p) { return fs.readFileSync(path.join(root,p),'utf8'); }
 function need(condition,label) {if(!condition) throw new Error('FAIL: '+label);}
 const resController=read('app/admin/controllers/Reservations.php');
+const sharedHeader=read('app/admin/views/_partials/pmd_clean_workspace_shared_v1.blade.php');
 const resService=read('app/admin/Services/PmdReservationsScheduleV1.php');
 const resView=read('app/admin/views/_partials/pmd_reservations_cards_v1.blade.php');
 const nav=read('app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php');
@@ -16,6 +17,9 @@ const css=read('app/admin/assets/css/pmd-reservation-search-r1.css');
 const profile=read('app/admin/views/pmdsettings/restaurant.blade.php');
 const settings=read('app/admin/controllers/Pmdsettings.php');
 need(resController.includes("request()->query('pmd_reservation_search'"),'GET search');
+need(sharedHeader.includes('data-pmd-reservation-search-header'),'search icon in Reservations header');
+need(sharedHeader.includes('href="#pmd-reservations-search-input-r1"'),'header button links to search field');
+need(sharedHeader.includes('@if($pmdCleanWorkspaceReservationsSurface)'),'search only on Reservations page');
 need(resController.includes("searchOtherDates("),'SQL search reused');
 need(resController.includes("$locationId, $locale, $searchNeedle, null, null, 80"),'tenant/location bounded');
 need(resService.includes("->where('location_id', $locationId)"),'location query scope');
