@@ -1,0 +1,45 @@
+name: Inspect Existing ZCS SDK Carrier
+
+on:
+  push:
+    branches:
+      - feature/zcs-z100-auto-secondary-v18
+    paths:
+      - '.github/workflows/zcs-inspect-carrier-v18.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inspect ZCS V6 APK dex/native layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='public/downloads/paymydine/PayMyDine-ZCS-Customer-Display-V6.apk'
+          test -f "$APK"
+          echo "APK_SHA256=$(sha256sum "$APK" | awk '{print $1}')"
+          echo '--- DEX FILES ---'
+          while IFS= read -r DEX; do
+            PMD_COUNT="$(unzip -p "$APK" "$DEX" | strings | grep -Fc 'com/paymydine/' || true)"
+            ZCS_COUNT="$(unzip -p "$APK" "$DEX" | strings | grep -Fc 'com/zcs/' || true)"
+            DRIVER=no
+            if unzip -p "$APK" "$DEX" | strings | grep -Fq 'com/zcs/sdk/DriverManager'; then
+              DRIVER=yes
+            fi
+            echo "$DEX PMD_STRINGS=$PMD_COUNT ZCS_STRINGS=$ZCS_COUNT DRIVER_MANAGER=$DRIVER"
+          done < <(zipinfo -1 "$APK" | grep -E '^classes[0-9]*[.]dex$')
+
+          echo '--- ZCS NATIVE LIBS ---'
+          zipinfo -1 "$APK" | grep -E 'libSmartPosJni[.]so|lib/.*/.*zcs|lib/.*/.*SmartPos' || true
+
+          echo '--- APK TOOLING ---'
+          command -v apkanalyzer || true
+          command -v dexdump || true
+          command -v d8 || true
