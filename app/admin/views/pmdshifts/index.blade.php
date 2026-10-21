@@ -252,7 +252,7 @@
         <!-- PMD_SHIFTS_HEADER_NOTIFICATION_ONLY_V6 -->
         <div class="pmd-shifts__header-actions" aria-label="Shift actions">
             {{-- PMD_SHIFTS_STAFF_CENTER_UI_V1_20261021: Owner/Manager center, lazy loaded without affecting rota. --}}
-            <button type="button" class="pmd-staff-ops__open" data-pmd-staff-ops-open aria-haspopup="dialog" aria-controls="pmd-staff-ops-dialog">
+            <button type="button" class="pmd-staff-ops__open" data-pmd-staff-ops-open data-pmd-staff-ops-url="{{ admin_url('shifts/staffcenter') }}" aria-haspopup="dialog" aria-controls="pmd-staff-ops-dialog">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V8m0 0 8-4 8 4v11M4 8h16M9 12h6m-6 4h6" /></svg>
                 <span>Staff activity</span>
             </button>
