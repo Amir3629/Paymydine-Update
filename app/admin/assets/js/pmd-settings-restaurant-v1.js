@@ -377,6 +377,7 @@
     ),
     dirtySaveEnabled: true,
     dirtyTrackingArmed: function () { return dirtyTrackingArmed; },
+    refreshDirtyState: refreshDirtyState,
     notificationNormalized: Boolean(document.querySelector('#pmd-profile-header .pmd-profile-notification-bell')),
     legacyNotificationIconRemoved: !Boolean(document.querySelector('#pmd-profile-header #notifDropdown i.fa')),
     actionAuthority: Boolean(document.getElementById('pmd-profile-header-button-authority-v6'))

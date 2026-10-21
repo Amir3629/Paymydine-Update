@@ -6,6 +6,7 @@ use Admin\Models\Locations_model;
 use Admin\Models\Reservations_model;
 use App\Services\Platform\LocationPlatformContext;
 use App\Services\Reservations\PmdGuestCommunicationService;
+use App\Services\Reservations\PmdRestaurantServiceCalendarR1;
 use App\Services\Reservations\PmdReservationGuaranteeService;
 use Carbon\Carbon;
 use DateTimeInterface;
@@ -21,11 +22,17 @@ use Throwable;
 
 class PmdPublicBookingController extends Controller
 {
-    private const MAX_BOOKING_DAYS = 180;
+    private const MAX_BOOKING_DAYS = 365; // safety cap; tenant sets effective range
     private const MAX_DATE_STATUS_DAYS = 14;
     private const DEFAULT_SLOT_MINUTES = 30;
     private const DEFAULT_STAY_MINUTES = 90;
     private const PUBLIC_LOCALES = ['en', 'de', 'tr', 'ar'];
+    private ?PmdRestaurantServiceCalendarR1 $restaurantCalendar = null;
+
+    private function restaurantCalendar(): PmdRestaurantServiceCalendarR1
+    {
+        return $this->restaurantCalendar ??= app(PmdRestaurantServiceCalendarR1::class);
+    }
 
     public function show(Request $request)
     {
@@ -105,11 +112,14 @@ class PmdPublicBookingController extends Controller
                 'bookingLanguages' => $languageContext['eligible'],
                 'bookingTimezone' => $timezone,
                 'bookingToday' => $today->toDateString(),
-                'bookingMaxDate' => $today->copy()->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
+                'bookingMaxDate' => $today->copy()->addDays(
+                    $this->restaurantCalendar()->advanceDays((int)$location->getKey())
+                )->toDateString(),
                 'bookingMaxGuests' => $maxGuests,
                 'bookingStayMinutes' => $stayMinutes,
                 'bookingAvailabilitySeed' => $availabilitySeed,
                 'bookingOpeningHours' => $openingHours,
+                'bookingClosedDates' => $this->restaurantCalendar()->closedDates((int)$location->getKey()),
                 'bookingTableRules' => $this->tableRules($location),
                 'bookingGuarantee' => $guaranteeByLocale[$locale]
                     ?? $guaranteeService->publicConfig($location, $locale),
@@ -426,7 +436,9 @@ class PmdPublicBookingController extends Controller
     ): array {
         $days = min(self::MAX_DATE_STATUS_DAYS, max(1, $days));
         $timezone = $this->timezone();
-        $latest = Carbon::now($timezone)->startOfDay()->addDays(self::MAX_BOOKING_DAYS);
+        $latest = Carbon::now($timezone)->startOfDay()->addDays(
+            $this->restaurantCalendar()->advanceDays((int)$location->getKey())
+        );
         $lastDate = $start->copy()->addDays($days - 1);
 
         if ($lastDate->greaterThan($latest)) {
@@ -456,13 +468,8 @@ class PmdPublicBookingController extends Controller
                 break;
             }
 
-            $weekday = max(0, min(6, ((int)$date->isoWeekday()) - 1));
-            $opening = $openingHours[$weekday] ?? [
-                'weekday' => $weekday,
-                'enabled' => false,
-                'opening_time' => null,
-                'closing_time' => null,
-            ];
+            // Date-specific overrides and all service windows are authoritative.
+            $opening = $this->hoursForDate($location, $date);
 
             $reservationDateMin = $date->copy()->subDay()->toDateString();
             $reservationDateMax = $date->copy()->addDay()->toDateString();
@@ -706,6 +713,16 @@ class PmdPublicBookingController extends Controller
 
                 $start = Carbon::parse($date->toDateString().' '.$time, $timezone);
                 $duration = (int)$availability['duration'];
+                // Refresh cached schedule after table locks so a recently
+                // closed service window cannot be committed from stale HTML.
+                $this->restaurantCalendar()->forget((int)$location->getKey());
+                if (!$this->restaurantCalendar()->allows(
+                    (int)$location->getKey(), $date->toDateString(), $time, $duration
+                )) {
+                    throw ValidationException::withMessages([
+                        'reserve_time' => ['Restaurant service hours changed. Please choose a new time.'],
+                    ]);
+                }
                 $end = $start->copy()->addMinutes($duration);
 
                 $activeReservations = $this->activeReservations($location, $start, $end);
@@ -1508,7 +1525,9 @@ class PmdPublicBookingController extends Controller
                 'bookingLanguages' => $languageContext['eligible'],
                 'bookingTimezone' => $timezone,
                 'bookingToday' => $today->toDateString(),
-                'bookingMaxDate' => $today->copy()->addDays(self::MAX_BOOKING_DAYS)->toDateString(),
+                'bookingMaxDate' => $today->copy()->addDays(
+                    $this->restaurantCalendar()->advanceDays((int)$location->getKey())
+                )->toDateString(),
                 'bookingMaxGuests' => $this->maxBookableGuests($location),
                 'bookingStayMinutes' => $this->stayMinutes($location),
                 'bookingTableRules' => $this->tableRules($location),
@@ -1639,39 +1658,26 @@ class PmdPublicBookingController extends Controller
         int $guests,
         int $excludeReservationId
     ): array {
-        $opening = $this->hoursForDate($location, $date);
-        $duration = $this->stayMinutes($location);
-        $interval = $this->slotInterval($location);
-
-        if (!$opening['enabled'] || !$opening['opening_time'] || !$opening['closing_time']) {
+        $windows = $this->restaurantCalendar()->windowsForDate(
+            (int)$location->getKey(), $date
+        );
+        if (!$windows) {
             return [
-                'opening' => $opening,
-                'duration' => $duration,
-                'interval' => $interval,
+                'opening' => $this->hoursForDate($location, $date),
+                'duration' => $this->stayMinutes($location),
+                'interval' => $this->slotInterval($location),
                 'slots' => [],
                 'capacity_slots' => [],
             ];
         }
 
-        $timezone = $this->timezone();
-        $opensAt = Carbon::parse($date->toDateString().' '.$opening['opening_time'], $timezone);
-        $closesAt = Carbon::parse($date->toDateString().' '.$opening['closing_time'], $timezone);
-        if ($closesAt->lessThanOrEqualTo($opensAt)) {
-            $closesAt->addDay();
-        }
-
-        $active = $this->activeReservations($location, $opensAt, $closesAt)
-            ->reject(static fn ($item) => (int)$item->getKey() === $excludeReservationId)
-            ->values();
+        $active = $this->activeReservations(
+            $location, $windows[0]['start'], $windows[count($windows)-1]['end']
+        )->reject(static fn ($row) => (int)$row->getKey() === $excludeReservationId)
+         ->values();
 
         return $this->availabilityPayload(
-            $location,
-            $date,
-            $guests,
-            $opening,
-            $duration,
-            $interval,
-            $active
+            $location, $date, $guests, null, null, null, $active
         );
     }
 
@@ -1913,73 +1919,59 @@ class PmdPublicBookingController extends Controller
         int $interval,
         Collection $activeReservations
     ): array {
-        if (!$opening['enabled'] || !$opening['opening_time'] || !$opening['closing_time']) {
-            return [
-                'opening' => $opening,
-                'duration' => $duration,
-                'interval' => $interval,
-                'slots' => [],
-                'capacity_slots' => [],
-            ];
-        }
-
-        $timezone = $this->timezone();
-        $opensAt = Carbon::parse($date->toDateString().' '.$opening['opening_time'], $timezone);
-        $closesAt = Carbon::parse($date->toDateString().' '.$opening['closing_time'], $timezone);
-        if ($closesAt->lessThanOrEqualTo($opensAt)) {
-            $closesAt->addDay();
-        }
-
-        $lastStart = $closesAt->copy()->subMinutes($duration);
-        if ($lastStart->lessThan($opensAt)) {
-            return [
-                'opening' => $opening,
-                'duration' => $duration,
-                'interval' => $interval,
-                'slots' => [],
-                'capacity_slots' => [],
-            ];
-        }
-
-        $now = Carbon::now($timezone);
+        $calendar = $this->restaurantCalendar();
+        $locationId = (int)$location->getKey();
+        $windows = $calendar->windowsForDate($locationId, $date);
         $slots = [];
         $capacitySlots = [];
 
-        for ($cursor = $opensAt->copy(); $cursor->lessThanOrEqualTo($lastStart); $cursor->addMinutes($interval)) {
-            if ($cursor->lessThanOrEqualTo($now)) {
-                continue;
-            }
-
-            $slotEnd = $cursor->copy()->addMinutes($duration);
-            $tables = $this->availableTablesForWindow(
-                $location,
-                $activeReservations,
-                $cursor,
-                $slotEnd
-            );
-
-            if ($tables->isEmpty()) {
-                continue;
-            }
-
-            $tableIds = $tables
-                ->pluck('table_id')
-                ->map(static fn ($id) => (int)$id)
-                ->filter()
-                ->values()
-                ->all();
-
-            $slot = [
-                'value' => $cursor->format('H:i'),
-                'label' => $cursor->format('H:i'),
-                'period' => ((int)$cursor->format('H') < 16) ? 'day' : 'evening',
-                'table_ids' => $tableIds,
+        if (!$windows || empty($opening['enabled'])) {
+            return [
+                'opening' => $opening,
+                'duration' => $duration,
+                'interval' => $interval,
+                'slots' => [],
+                'capacity_slots' => [],
             ];
+        }
 
-            $capacitySlots[] = $slot;
+        $now = Carbon::now($this->timezone());
+        foreach ($windows as $window) {
+            $opensAt = $window['start'];
+            $lastStart = $window['end']->copy()->subMinutes($duration);
+            if ($lastStart->lt($opensAt)) continue;
 
-            if ($this->selectTableIdsFromAvailableTables($tables, $guests)) {
-                $slots[] = $slot;
+            for (
+                $cursor = $opensAt->copy();
+                $cursor->lte($lastStart);
+                $cursor->addMinutes($interval)
+            ) {
+                // Do not show tomorrow's early hours as a booking on today.
+                if ($cursor->toDateString() !== $date->toDateString()
+                    || $cursor->lte($now)
+                    || !$calendar->allows(
+                        $locationId, $date->toDateString(),
+                        $cursor->format('H:i'), $duration
+                    )) continue;
+
+                $slotEnd = $cursor->copy()->addMinutes($duration);
+                $tables = $this->availableTablesForWindow(
+                    $location, $activeReservations, $cursor, $slotEnd
+                );
+                if ($tables->isEmpty()) continue;
+                $tableIds = $tables->pluck('table_id')
+                    ->map(static fn ($id) => (int)$id)
+                    ->filter()->values()->all();
+                $slot = [
+                    'value' => $cursor->format('H:i'),
+                    'label' => $cursor->format('H:i'),
+                    'period' => ((int)$cursor->format('H') < 16) ? 'day' : 'evening',
+                    'table_ids' => $tableIds,
+                ];
+                $capacitySlots[] = $slot;
+                if ($this->selectTableIdsFromAvailableTables($tables, $guests)) {
+                    $slots[] = $slot;
+                }
             }
         }
 
@@ -2090,8 +2082,10 @@ class PmdPublicBookingController extends Controller
         $opening = $openingOverride ?? $this->hoursForDate($location, $date);
         $duration = $durationOverride ?? $this->stayMinutes($location);
         $interval = $intervalOverride ?? $this->slotInterval($location);
-
-        if (!$opening['enabled'] || !$opening['opening_time'] || !$opening['closing_time']) {
+        $windows = $this->restaurantCalendar()->windowsForDate(
+            (int)$location->getKey(), $date
+        );
+        if (!$windows || empty($opening['enabled'])) {
             return [
                 'opening' => $opening,
                 'duration' => $duration,
@@ -2101,32 +2095,13 @@ class PmdPublicBookingController extends Controller
             ];
         }
 
-        $timezone = $this->timezone();
-        $opensAt = Carbon::parse(
-            $date->toDateString().' '.$opening['opening_time'],
-            $timezone
-        );
-        $closesAt = Carbon::parse(
-            $date->toDateString().' '.$opening['closing_time'],
-            $timezone
-        );
-        if ($closesAt->lessThanOrEqualTo($opensAt)) {
-            $closesAt->addDay();
-        }
-
         $activeReservations = $activeReservationsOverride
-            ?? $this->activeReservations($location, $opensAt, $closesAt);
+            ?? $this->activeReservations(
+                $location, $windows[0]['start'], $windows[count($windows)-1]['end']
+            );
 
-        // PMD_PUBLIC_BOOKING_ZERO_WAIT_R27
-        // Always return the full free-table capacity map. The browser can then
-        // recalculate every party-size change locally without another request.
         return $this->availabilityTablePayload(
-            $location,
-            $date,
-            $guests,
-            $opening,
-            $duration,
-            $interval,
+            $location, $date, $guests, $opening, $duration, $interval,
             $activeReservations
         );
     }
@@ -2292,61 +2267,36 @@ class PmdPublicBookingController extends Controller
 
     private function openingHours(Locations_model $location): array
     {
-        $hours = [];
-        foreach (range(0, 6) as $weekday) {
-            $hours[$weekday] = [
-                'weekday' => $weekday,
-                'enabled' => false,
-                'opening_time' => null,
-                'closing_time' => null,
-            ];
-        }
-
-        try {
-            if (!Schema::hasTable('working_hours')) {
-                return array_values($hours);
-            }
-
-            $rows = DB::table('working_hours')
-                ->where('location_id', (int)$location->getKey())
-                ->where('type', 'opening')
-                ->orderBy('weekday')
-                ->get();
-
-            foreach ($rows as $row) {
-                $weekday = (int)$row->weekday;
-                if (!array_key_exists($weekday, $hours)) {
-                    continue;
-                }
-
-                $hours[$weekday] = [
-                    'weekday' => $weekday,
-                    'enabled' => (bool)$row->status,
-                    'opening_time' => substr((string)$row->opening_time, 0, 5),
-                    'closing_time' => substr((string)$row->closing_time, 0, 5),
-                ];
-            }
-        } catch (Throwable $error) {
-            Log::warning('PMD public booking opening-hours read failed', [
-                'location_id' => (int)$location->getKey(),
-                'message' => $error->getMessage(),
-            ]);
-        }
-
-        return array_values($hours);
+        return $this->restaurantCalendar()->weeklyRows((int)$location->getKey());
     }
 
     private function hoursForDate(Locations_model $location, Carbon $date): array
     {
-        $hours = $this->openingHours($location);
-        $weekday = max(0, min(6, ((int)$date->isoWeekday()) - 1));
-
-        return $hours[$weekday] ?? [
+        $weekday = $date->isoWeekday() - 1;
+        $base = $this->openingHours($location)[$weekday] ?? [
             'weekday' => $weekday,
             'enabled' => false,
+            'windows' => [],
             'opening_time' => null,
             'closing_time' => null,
         ];
+
+        $windows = $this->restaurantCalendar()->windowsForDate(
+            (int)$location->getKey(), $date
+        );
+        $base['enabled'] = count($windows) > 0;
+        $base['closed'] = $this->restaurantCalendar()->isClosedDate(
+            (int)$location->getKey(), $date->toDateString()
+        );
+        $base['windows'] = array_map(static fn (array $window) => [
+            'opening_time' => $window['start']->format('H:i'),
+            'closing_time' => $window['end']->format('H:i'),
+            'start_at' => $window['start']->toIso8601String(),
+            'end_at' => $window['end']->toIso8601String(),
+        ], $windows);
+        $base['opening_time'] = $windows ? $windows[0]['start']->format('H:i') : null;
+        $base['closing_time'] = $windows ? $windows[count($windows)-1]['end']->format('H:i') : null;
+        return $base;
     }
 
     private function slotInterval(Locations_model $location): int
@@ -2399,11 +2349,13 @@ class PmdPublicBookingController extends Controller
     private function guardBookableDate(Carbon $date, string $timezone): void
     {
         $today = Carbon::now($timezone)->startOfDay();
-        $latest = $today->copy()->addDays(self::MAX_BOOKING_DAYS);
-
-        if ($date->lessThan($today) || $date->greaterThan($latest)) {
+        $daysAhead = $this->restaurantCalendar()->advanceDays(
+            (int)$this->location()->getKey()
+        );
+        $latest = $today->copy()->addDays($daysAhead);
+        if ($date->lt($today) || $date->gt($latest)) {
             throw ValidationException::withMessages([
-                'date' => ['Please choose a date within the next '.self::MAX_BOOKING_DAYS.' days.'],
+                'date' => ['Please choose a date within the next '.$daysAhead.' days.'],
             ]);
         }
     }
@@ -2420,6 +2372,8 @@ class PmdPublicBookingController extends Controller
             'pmd_social_website_url',
             'pmd_social_instagram_enabled',
             'pmd_social_instagram_url',
+            'pmd_social_tiktok_enabled',
+            'pmd_social_tiktok_url',
             'pmd_social_google_enabled',
             'pmd_social_google_url',
             'pmd_social_trustpilot_enabled',
@@ -2471,6 +2425,9 @@ class PmdPublicBookingController extends Controller
                 : '',
             'instagram_url' => !empty($settings['pmd_social_instagram_enabled'])
                 ? trim((string)($settings['pmd_social_instagram_url'] ?? ''))
+                : '',
+            'tiktok_url' => !empty($settings['pmd_social_tiktok_enabled'])
+                ? trim((string)($settings['pmd_social_tiktok_url'] ?? ''))
                 : '',
             'google_url' => !empty($settings['pmd_social_google_enabled'])
                 ? trim((string)($settings['pmd_social_google_url'] ?? ''))

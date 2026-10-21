@@ -7,6 +7,10 @@ use Admin\Facades\AdminMenu;
 use Admin\Facades\Template;
 use Admin\Services\PmdRoleDashboardDataV1;
 use Admin\Services\PmdDashboardAnalyticsSnapshotV132;
+use Admin\Services\PmdOnlineStaffCardV1;
+
+// Runtime-safe before the module's generated classmap is rebuilt on VPS.
+require_once dirname(__DIR__).'/services/PmdOnlineStaffCardV1.php';
 
 /**
  * PMD Dashboard Lab
@@ -85,6 +89,15 @@ class Dashboardlab extends AdminController
 
         /* PMD_DASHBOARD_LAB_STEP4_ALL_DASHBOARD2_ANALYTICS_ASSETS_V1 */
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
+        // PMD_SHARED_STAFF_CARD_RHYTHM_R2 - force new CSS onto browsers/CDNs.
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-manager-online-staff-v1.css')
+            .'?v='.(string)(
+                @filemtime(
+                    base_path('app/admin/assets/css/pmd-manager-online-staff-v1.css')
+                ) ?: 'r2'
+            )
+        );
 
         // PMD_DASHBOARD_FIRSTPAINT_V141
         // Load KPI geometry authority after dashboard analytics/layout CSS so
@@ -133,6 +146,7 @@ class Dashboardlab extends AdminController
 
         // PMD_DASHBOARD_LIVE_REFRESH_ASSET_V1
         $this->addJs('js/pmd-dashboard-live-refresh-v1.js');
+        $this->addJs('js/pmd-online-staff-live-v1.js');
 
         AdminMenu::setContext('dashboard');
     }
@@ -186,6 +200,27 @@ class Dashboardlab extends AdminController
         $this->vars['pmdCleanWorkspaceLocale'] = strtolower(
             (string)app()->getLocale()
         );
+
+        // PMD_OWNER_ONLINE_STAFF_V1
+        // Authenticated lightweight read-only presence, no Floor/KPI bootstrap.
+        if ((string)request()->query('pmd_staff_online', '') === '1') {
+            return response()->json([
+                'success' => true,
+                'staff' => app(PmdOnlineStaffCardV1::class)->snapshot(
+                    $workspaceLocationId,
+                    (string)request()->cookie('pmd_admin_locale', app()->getLocale())
+                ),
+            ])->header('Cache-Control', 'private, no-store');
+        }
+
+        if ((string)request()->query('pmd_live', '') !== '1') {
+            $this->vars['pmdOwnerOnlineStaff'] = app(
+                PmdOnlineStaffCardV1::class
+            )->snapshot(
+                $workspaceLocationId,
+                (string)request()->cookie('pmd_admin_locale', app()->getLocale())
+            );
+        }
 
         $payload = $this->resolveKpiPayload($workspaceLocationId);
         $cards = [];

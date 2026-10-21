@@ -379,6 +379,7 @@
         'stayMinutes' => $bookingStayMinutes,
         'availabilitySeed' => $bookingAvailabilitySeed,
         'openingHours' => $bookingOpeningHours ?? [],
+        'closedDates' => $bookingClosedDates ?? [],
         'tableRules' => $bookingTableRules,
         'availabilityUrl' => url('/book/availability'),
         'dateStatusesUrl' => url('/book/availability').'?mode=date-statuses',
@@ -798,6 +799,10 @@
                 @if($bookingProfile['instagram_url'])
                     <a href="{{ $bookingProfile['instagram_url'] }}" rel="noopener noreferrer">Instagram</a>
                 @endif
+                {{-- PMD_PROFILE_TIKTOK_R1: only render the owner's enabled URL. --}}
+                @if(!empty($bookingProfile['tiktok_url']))
+                    <a href="{{ $bookingProfile['tiktok_url'] }}" target="_blank" rel="noopener noreferrer">TikTok</a>
+                @endif
                 @if($bookingProfile['google_url'])
                     <a href="{{ $bookingProfile['google_url'] }}" rel="noopener noreferrer">Google</a>
                 @endif
@@ -806,6 +811,6 @@
     </div>
 
     <script type="application/json" id="pmd-booking-config">{!! json_encode($bookingConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
-    <script src="/public/assets/pmd/public-booking-v1.js?v=20261007-r27" defer></script>
+    <script src="/public/assets/pmd/public-booking-v1.js?v=20261019-calendar-r1" defer></script>
 </body>
 </html>

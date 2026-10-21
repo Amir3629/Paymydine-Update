@@ -6,8 +6,10 @@ use Admin\Classes\PmdCleanWorkspaceControllerV1;
 use Admin\Services\PmdCleanWorkspaceSharedV1;
 use Admin\Services\PmdRoleDashboardDataV1;
 use Admin\Services\PmdDashboardAnalyticsSnapshotV132;
-use Admin\Services\PmdAdminPresenceService;
-use Illuminate\Support\Carbon;
+use Admin\Services\PmdOnlineStaffCardV1;
+
+// Runtime-safe before the module's generated classmap is rebuilt on VPS.
+require_once dirname(__DIR__).'/services/PmdOnlineStaffCardV1.php';
 
 /**
  * PMD_MANAGER_EXACT_OWNER_COMPONENT_V3_5_2
@@ -15,8 +17,8 @@ use Illuminate\Support\Carbon;
  * PMD_MANAGER_ONLINE_STAFF_CARD_V3_5_2
  *
  * Manager keeps the approved four top KPI cards and exact Owner analytics.
- * The six V3.5 manager-only insight cards are removed completely. A single
- * Manager-only online-staff card is rendered AFTER all Owner analytics cards.
+ * The six V3.5 manager-only insight cards are removed completely. The
+ * shared Owner/Manager online-staff card follows all analytics cards.
  */
 class Managerlab extends PmdCleanWorkspaceControllerV1
 {
@@ -27,7 +29,16 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
         parent::__construct();
         $this->addCss('css/pmd-dashboard-lab-analytics-v1.css');
         $this->addCss('css/pmd-role-dashboard-v1.css');
-        $this->addCss('css/pmd-manager-online-staff-v1.css');
+        // PMD_SHARED_STAFF_CARD_RHYTHM_R2 - force new CSS onto browsers/CDNs.
+        $this->addCss(
+            asset('app/admin/assets/css/pmd-manager-online-staff-v1.css')
+            .'?v='.(string)(
+                @filemtime(
+                    base_path('app/admin/assets/css/pmd-manager-online-staff-v1.css')
+                ) ?: 'r2'
+            )
+        );
+        $this->addJs('js/pmd-online-staff-live-v1.js');
         $this->addCss('css/pmd-kitchen-today-team-v1.css');
         // PMD_DASHBOARD_FIRSTPAINT_V141
         // Keep the shared KPI grid at final geometry on the first visible paint.
@@ -77,6 +88,26 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
 
     public function index()
     {
+        // PMD_ONLINE_STAFF_LIGHTWEIGHT_ENDPOINT_V1
+        // The authenticated Manager route avoids loading full Floor/Analytics.
+        if ((string)request()->query('pmd_staff_online', '') === '1') {
+            $locationId = 0;
+            try {
+                $locationId = max(
+                    0,
+                    (int)app(PmdCleanWorkspaceSharedV1::class)->locationId()
+                );
+            } catch (\Throwable $ignored) {}
+
+            return response()->json([
+                'success' => true,
+                'staff' => app(PmdOnlineStaffCardV1::class)->snapshot(
+                    $locationId,
+                    (string)request()->cookie('pmd_admin_locale', app()->getLocale())
+                ),
+            ])->header('Cache-Control', 'private, no-store');
+        }
+
         if ((string)request()->query('pmd_analytics', '') === '1') {
             /** @var PmdRoleDashboardDataV1 $dashboard */
             $dashboard = app(PmdRoleDashboardDataV1::class);
@@ -200,7 +231,6 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
             foreach ([
                 'pmdCleanWorkspaceKpiCards',
                 'pmdRoleDashboardBundle',
-                'pmdManagerOnlineStaff',
             ] as $pmdManagerVar) {
                 if (isset($this->vars[$pmdManagerVar]) && is_array($this->vars[$pmdManagerVar])) {
                     $this->vars[$pmdManagerVar] =
@@ -214,22 +244,7 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
 
             $this->vars['pmdCleanWorkspaceKpiAriaLabel'] = $pmdManagerT('Manager KPIs');
 
-            if (is_array($this->vars['pmdManagerOnlineStaff']['rows'] ?? null)) {
-                foreach ($this->vars['pmdManagerOnlineStaff']['rows'] as &$pmdManagerStaffRow) {
-                    if (!is_array($pmdManagerStaffRow)) continue;
-                    $since = (string)($pmdManagerStaffRow['since'] ?? '');
-                    if (preg_match('/^Since\s+(.+)$/', $since, $match)) {
-                        $pmdManagerStaffRow['since'] = $pmdManagerT('Since').' '.$match[1];
-                    }
-                }
-                unset($pmdManagerStaffRow);
-            }
 
-            $asOf = (string)($this->vars['pmdManagerOnlineStaff']['as_of'] ?? '');
-            if (preg_match('/^As of\s+(.+)$/', $asOf, $match)) {
-                $this->vars['pmdManagerOnlineStaff']['as_of'] =
-                    $pmdManagerT('As of').' '.$match[1];
-            }
         }
     }
 
@@ -389,10 +404,9 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
                     ? 'Mitarbeiter online'
                     : 'Staff online',
 
-                'value' => (string)max(
-                    0,
-                    (int)($onlineStaff['count'] ?? 0)
-                ),
+                'value' => ($onlineStaff['connected'] ?? false) === true
+                    ? (string)max(0, (int)($onlineStaff['count'] ?? 0))
+                    : '—',
 
                 'description' => $de
                     ? 'Aktuell angemeldete Mitarbeiter an diesem Standort'
@@ -447,72 +461,7 @@ class Managerlab extends PmdCleanWorkspaceControllerV1
 
     private function managerOnlineStaffSnapshot(int $locationId, string $locale): array
     {
-        $de = strtolower($locale) === 'de';
-        $businessTimezone = 'Europe/Berlin';
-        $now = Carbon::now($businessTimezone);
-
-        try {
-            /*
-             * PMD_MANAGER_ONLINE_STAFF_SESSION_PRESENCE_V1
-             *
-             * "Online" means an authenticated admin session still exists.
-             * It ends immediately on Logout and otherwise expires with the
-             * configured Laravel session lifetime. Biometric/time-clock
-             * attendance remains a separate workforce concept.
-             */
-            $snapshot = app(PmdAdminPresenceService::class)
-                ->onlineStaffAtLocation($locationId);
-
-            $rows = [];
-            foreach (($snapshot['rows'] ?? []) as $row) {
-                $loginAt = null;
-                try {
-                    $loginAt = Carbon::parse((string)($row['login_at'] ?? ''), config('app.timezone'))
-                        ->setTimezone($businessTimezone);
-                } catch (\Throwable $error) {}
-
-                $minutes = $loginAt ? max(0, $loginAt->diffInMinutes($now)) : 0;
-                $duration = $minutes < 60
-                    ? $minutes.' min'
-                    : intdiv($minutes, 60).'h '.($minutes % 60).'m';
-
-                $rows[] = [
-                    'staff_id' => (int)($row['staff_id'] ?? 0),
-                    'user_id' => (int)($row['user_id'] ?? 0),
-                    'name' => (string)($row['name'] ?? ($de ? 'Mitarbeiter' : 'Staff')),
-                    'role' => (string)($row['role'] ?? ($de ? 'Mitarbeiter' : 'Staff')),
-                    'since' => $loginAt
-                        ? (($de ? 'Seit ' : 'Since ').$loginAt->format('H:i'))
-                        : ($de ? 'Angemeldet' : 'Signed in'),
-                    'duration' => $duration,
-                    'session_count' => (int)($row['session_count'] ?? 1),
-                    'device' => '',
-                ];
-            }
-
-            $connected = ($snapshot['connected'] ?? false) === true;
-            $source = (string)($snapshot['source'] ?? 'PmdAdminPresenceService session registry');
-        } catch (\Throwable $error) {
-            $rows = [];
-            $connected = false;
-            $source = 'PmdAdminPresenceService unavailable: '.$error->getMessage();
-        }
-
-        return [
-            'title' => $de ? 'Mitarbeiter online' : 'Staff online',
-            'subtitle' => $de
-                ? 'Angemeldete Admin-Sitzungen an diesem Standort'
-                : 'Signed-in admin sessions at this location',
-            'count' => count($rows),
-            'count_label' => 'online',
-            'empty' => $de
-                ? 'Aktuell ist kein Mitarbeiter angemeldet.'
-                : 'No staff are currently signed in.',
-            'as_of' => ($de ? 'Stand ' : 'As of ').$now->format('H:i'),
-            'connected' => $connected,
-            'rows' => $rows,
-            'source' => $source,
-        ];
+        return app(PmdOnlineStaffCardV1::class)->snapshot($locationId, $locale);
     }
 
     private function roleCard(

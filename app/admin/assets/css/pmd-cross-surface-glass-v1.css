@@ -1,0 +1,1200 @@
+
+/*
+ * PMD_CROSS_SURFACE_GLASS_CARDS_V1_20261018
+ *
+ * PMD Table Manager R32-R40 + Reservation Composer R35-R37 parity for:
+ * Shifts create/edit member + shift, Discounts create/edit,
+ * Settings hub, Restaurant Profile, Customer Experience,
+ * Devices create/edit, and Payments & Finance cards and inline editor.
+ *
+ * Presentation only. No change to writers, fields, permissions, data, QR,
+ * payment routing, member access or calendar geometry.
+ *
+ * Scoped high-specificity !important overrides are needed here because the
+ * platform card authority and historical feature CSS use !important.
+ * Avoid global button/input/card selectors and double backdrop-blurs.
+ */
+
+/* Design tokens used only by the named admin pages. */
+body:is(.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page) {
+  --pmd-glass-jade: #075c47;
+  --pmd-glass-jade-strong: #064b3c;
+  --pmd-glass-ink: #173b33;
+  --pmd-glass-muted: #6b817c;
+  --pmd-glass-line: rgba(202,222,232,.88);
+  --pmd-glass-radius: 16px;
+  --pmd-glass-surface:
+    radial-gradient(circle at 9% 8%,rgba(230,248,237,.70),transparent 32%),
+    radial-gradient(circle at 76% 10%,rgba(229,244,252,.61),transparent 33%),
+    radial-gradient(circle at 39% 59%,rgba(255,232,232,.47),transparent 32%),
+    rgba(252,254,253,.985);
+  --pmd-glass-shadow: 0 26px 62px rgba(21,49,44,.14),inset 0 1px 0 rgba(255,255,255,.98);
+  --pmd-glass-field-shadow: 0 4px 14px rgba(22,52,47,.035),inset 0 1px 0 rgba(255,255,255,.97);
+}
+
+/* ------------------------------------------------------------------
+   1. Shifts: member and shift editors. Keep form/action DOM untouched.
+   The calendar timeline, team portal access and role-selection JS stay
+   owned by Shifts. The existing global overlay handles the blur.
+   ------------------------------------------------------------------ */
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-card,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-card {
+  width: min(660px,calc(100vw - 32px)) !important;
+  max-width: 660px !important;
+  max-height: calc(100dvh - 32px) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+  transform: none !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-header,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header {
+  min-height: 70px !important;
+  padding: 17px 24px 12px !important;
+  border-bottom: 1px solid rgba(202,222,232,.55) !important;
+  background: transparent !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-header h2,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header h2 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 0 !important;
+  color: #113d34 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+  letter-spacing: -.03em !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-header h2::before,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header h2::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border: 1px solid rgba(83,166,111,.12) !important;
+  border-radius: 14px !important;
+  background: rgba(249,254,250,.97) center / 20px 20px no-repeat !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f866f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21v-2a8 8 0 0 1 16 0v2'/%3E%3C/svg%3E") !important;
+}
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header h2::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f866f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-close,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-close {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+  color: var(--pmd-glass-ink) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor {
+  min-height: 0 !important;
+  gap: 13px !important;
+  padding: 17px 24px 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-body {
+  min-height: 0;
+  padding: 18px 24px 20px !important;
+  background: transparent !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor label > span:first-child,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid label > span:first-child {
+  color: #28483f !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor input:not([type=hidden]),
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor select:not(.pmd-shifts__role-select-source),
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid :is(input,textarea) {
+  min-height: 48px !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+  color: #102a43 !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+  font-size: 13px !important;
+  outline: none !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor input:focus,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid :is(input,textarea):focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__role-card:not(.is-selected) {
+  border-color: var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__role-card.is-selected {
+  border-color: var(--pmd-glass-jade-strong) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.13) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-password-row button {
+  min-height: 44px !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: var(--pmd-glass-jade) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-footer,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-footer {
+  min-height: 68px !important;
+  padding: 11px 24px 13px !important;
+  border-top: 1px solid rgba(205,222,229,.75) !important;
+  background: rgba(255,255,255,.88) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-footer {
+  margin: 8px -24px 0 !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__button,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-footer .pmd-shifts__button {
+  min-height: 44px !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__button:not(.is-soft):not(.is-danger),
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-footer .pmd-shifts__button:not(.is-soft):not(.is-danger) {
+  min-width: 145px !important;
+  border: 1px solid var(--pmd-glass-jade-strong) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+}
+body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__button.is-soft,
+body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__button.is-soft {
+  border: 1px solid var(--pmd-glass-line) !important;
+  background: rgba(255,255,255,.94) !important;
+  color: #243f38 !important;
+}
+
+/* ------------------------------------------------------------------
+   2. Discounts: Coupon/Gift Card/Voucher modal and catalog cards.
+   Keep card-type, discount-type, expired and enabled semantics.
+   ------------------------------------------------------------------ */
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__card {
+  width: min(800px,calc(100vw - 32px)) !important;
+  max-width: 800px !important;
+  max-height: calc(100dvh - 36px) !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+  transform: none !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__header {
+  min-height: 72px !important;
+  padding: 18px 26px 12px !important;
+  background: transparent !important;
+  border-bottom: 1px solid rgba(202,222,232,.55) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__header h2 {
+  color: #113d34 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__eyebrow {
+  color: #2f866f !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__close {
+  width: 42px !important;
+  height: 42px !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__scroll {
+  padding: 10px 26px 24px !important;
+  background: transparent !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form {
+  gap: 0 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__section {
+  margin: 0 !important;
+  padding: 21px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__section + .pmd-coupon-form__section {
+  border-top: 1px solid rgba(202,222,232,.70) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__section-icon {
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border: 1px solid rgba(83,166,111,.11) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(248,253,249,.98) !important;
+  color: #2f866f !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__section-head h3 {
+  font-size: 15px !important;
+  font-weight: 820 !important;
+  color: #173b33 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__type-grid button:not(.is-selected),
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__feature-grid button:not(.is-selected),
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__segmented button:not(.is-selected) {
+  border-radius: var(--pmd-glass-radius) !important;
+  border-color: var(--pmd-glass-line) !important;
+  background: rgba(255,255,255,.91) !important;
+  color: #274940 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__type-grid button.is-selected,
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__feature-grid button.is-selected,
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__segmented button.is-selected {
+  border-color: var(--pmd-glass-jade-strong) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 7px 17px rgba(7,92,71,.13) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field input:not([type=hidden]),
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field textarea {
+  min-height: 48px !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+  color: #102a43 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field input:focus,
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field textarea:focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__footer {
+  min-height: 68px !important;
+  padding: 11px 24px 13px !important;
+  border-top: 1px solid rgba(205,222,229,.75) !important;
+  background: rgba(255,255,255,.87) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] :is(.pmd-coupon-modal__save,.pmd-coupon-modal__cancel,.pmd-coupon-modal__delete) {
+  min-height: 44px !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__save {
+  min-width: 146px !important;
+  border-color: var(--pmd-glass-jade-strong) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+}
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__cancel {
+  border-color: var(--pmd-glass-line) !important;
+  background: rgba(255,255,255,.96) !important;
+}
+body.pmd-coupon-manager-page #pmd-coupon-manager-main .pmd-coupon-card:not(.is-expired) {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 10px 30px rgba(21,49,44,.065) !important;
+}
+body.pmd-coupon-manager-page #pmd-coupon-manager-main .pmd-coupon-card.is-expired {
+  border-radius: var(--pmd-glass-radius) !important;
+  box-shadow: 0 8px 24px rgba(21,49,44,.045) !important;
+}
+
+/* ------------------------------------------------------------------
+   3. Settings landing page: navigational cards only.
+   Retain per-group icon accents configured inline by the server.
+   ------------------------------------------------------------------ */
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 10px 29px rgba(21,49,44,.07),inset 0 1px 0 rgba(255,255,255,.96) !important;
+  transform: none !important;
+  transition: border-color .15s ease, box-shadow .15s ease !important;
+}
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card:hover {
+  border-color: rgba(99,161,140,.60) !important;
+  box-shadow: 0 16px 33px rgba(21,49,44,.10) !important;
+  transform: none !important;
+}
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__icon {
+  border-radius: 14px !important;
+  border-color: rgba(205,224,216,.8) !important;
+  box-shadow: 0 3px 10px rgba(25,78,58,.04) !important;
+}
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__title-row strong {
+  color: #173b33 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__description {
+  color: #6b817c !important;
+  font-size: 12px !important;
+}
+
+/* ------------------------------------------------------------------
+   4. Restaurant Profile: six canonical section cards, operating hours,
+   social links and Google Business editor. Do not touch warning states.
+   ------------------------------------------------------------------ */
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 15px 35px rgba(21,49,44,.08),inset 0 1px 0 rgba(255,255,255,.97) !important;
+  overflow: hidden;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-card__header {
+  border-color: rgba(202,222,232,.6) !important;
+  background: rgba(255,255,255,.30) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-card__header h2 {
+  color: #173b33 !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-section-icon {
+  border: 1px solid rgba(83,166,111,.12) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(248,253,249,.98) !important;
+  color: #2f866f !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea),
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time input {
+  border-color: #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field :is(input,select,textarea):focus,
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time input:focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-day-card:not(.is-closed),
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-social-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.79) !important;
+  box-shadow: 0 4px 13px rgba(21,49,44,.035) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-day-card.is-closed {
+  border-radius: var(--pmd-glass-radius) !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-bottom-save__button {
+  border: 1px solid #064b3c !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+  color: #fff !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-provider-modal__dialog {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-provider-modal__header,
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-provider-modal__body {
+  background: transparent !important;
+}
+body.pmd-settings-center-page #pmd-restaurant-profile .pmd-provider-primary {
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  border-color: #064b3c !important;
+  color: #fff !important;
+}
+
+/* ------------------------------------------------------------------
+   5. Customer Experience: outer cards + nested form fields.
+   Preserve Theme/QR previews, selected styling and user choices.
+   ------------------------------------------------------------------ */
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 15px 35px rgba(21,49,44,.08),inset 0 1px 0 rgba(255,255,255,.97) !important;
+  overflow: hidden;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-card__header {
+  border-color: rgba(202,222,232,.6) !important;
+  background: rgba(255,255,255,.28) !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-section-icon {
+  border: 1px solid rgba(83,166,111,.12) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(248,253,249,.98) !important;
+  color: #2f866f !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-card--nested {
+  border-color: rgba(202,222,232,.65) !important;
+  background: rgba(255,255,255,.72) !important;
+  box-shadow: none !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-subcard {
+  border-radius: var(--pmd-glass-radius) !important;
+  border-color: var(--pmd-glass-line) !important;
+  background: rgba(255,255,255,.8) !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-field :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
+  border: 1px solid #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-field :is(input,select,textarea):focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-primary-button {
+  border: 1px solid #064b3c !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+  color: #fff !important;
+}
+/* Selected Theme/QR preview tiles are not recolored: previews are content. */
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-theme-option:not(.is-selected):not([aria-pressed=true]),
+body.pmd-settings-center-page #pmd-frontend-settings .pmd-customer-qr-template-r39:not(.is-selected):not([aria-pressed=true]) {
+  border-radius: var(--pmd-glass-radius) !important;
+}
+
+/* ------------------------------------------------------------------
+   6. Devices: settings overview + device create/edit card.
+   Portaled dialog keeps its own scrolling and its 8px blur authority.
+   ------------------------------------------------------------------ */
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: 0 15px 35px rgba(21,49,44,.08),inset 0 1px 0 rgba(255,255,255,.97) !important;
+  overflow: hidden;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__header,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__header {
+  border-color: rgba(202,222,232,.65) !important;
+  background: rgba(255,255,255,.29) !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__icon,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__icon {
+  border: 1px solid rgba(83,166,111,.14) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(248,253,249,.98) !important;
+  color: #2f866f !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__title h2,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__title h2 {
+  color: #173b33 !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-panel,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-panel {
+  border: 1px solid rgba(202,222,232,.68) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.69) !important;
+  box-shadow: none !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea) {
+  border-color: #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+}
+body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field :is(input,select,textarea):focus,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field :is(input,select,textarea):focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card {
+  width: min(760px,calc(100vw - 32px)) !important;
+  max-width: 760px !important;
+  max-height: calc(100dvh - 32px) !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+  transform: none !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__header {
+  min-height: 72px !important;
+  padding: 18px 24px 12px !important;
+  background: transparent !important;
+  border-color: rgba(202,222,232,.63) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__header h2 {
+  color: #113d34 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-close {
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__body {
+  padding: 6px 24px 20px !important;
+  background: transparent !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section {
+  margin: 0 !important;
+  padding: 20px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section + .pmd-device-v6-section {
+  border-top: 1px solid rgba(202,222,232,.7) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section__head h3 {
+  color: #173b33 !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__footer {
+  min-height: 68px !important;
+  padding: 11px 24px 13px !important;
+  background: rgba(255,255,255,.88) !important;
+  border-color: rgba(205,222,229,.75) !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-secondary,
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-save {
+  min-height: 44px !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  font-size: 13px !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-secondary {
+  background: rgba(255,255,255,.96) !important;
+  border-color: #d2dee5 !important;
+  color: #243f38 !important;
+}
+body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-save {
+  min-width: 145px !important;
+  border-color: #064b3c !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+}
+
+/* ------------------------------------------------------------------
+   7. Finance: payment/provider settings, reservation guarantee panel,
+   inline edit dialog. Do not rewrite receipt/tax/provider logic.
+   ------------------------------------------------------------------ */
+body.pmd-finance-settings-page #pmd-finance-page .pmd-guarantee-r22-card {
+  border-color: var(--pmd-glass-line) !important;
+  background: var(--pmd-glass-surface) !important;
+}
+body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-save,
+body.pmd-finance-settings-page #pmd-finance-page .pmd-settings-inline-action[data-pmd-inline-action] {
+  border-radius: var(--pmd-glass-radius) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card {
+  width: min(740px,calc(100vw - 32px)) !important;
+  max-width: 740px !important;
+  max-height: calc(100dvh - 32px) !important;
+  border: 1px solid var(--pmd-glass-line) !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: var(--pmd-glass-surface) !important;
+  box-shadow: var(--pmd-glass-shadow) !important;
+  animation: none !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__header {
+  min-height: 70px !important;
+  padding: 17px 24px 11px !important;
+  border-color: rgba(202,222,232,.66) !important;
+  background: transparent !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__header h2 {
+  color: #113d34 !important;
+  font-size: 23px !important;
+  font-weight: 850 !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__body {
+  padding: 6px 24px 20px !important;
+  background: transparent !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section {
+  margin: 0 !important;
+  padding: 20px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section + .pmd-inline-section {
+  border-top: 1px solid rgba(202,222,232,.7) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section__head h3 {
+  color: #173b33 !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
+  border: 1px solid #c9dce8 !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  background: rgba(255,255,255,.95) !important;
+  box-shadow: var(--pmd-glass-field-shadow) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field :is(input,select,textarea):focus {
+  border-color: #79bda8 !important;
+  box-shadow: 0 0 0 3px rgba(47,134,111,.10) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__footer {
+  min-height: 68px !important;
+  padding: 11px 24px 13px !important;
+  border-top: 1px solid rgba(205,222,229,.75) !important;
+  background: rgba(255,255,255,.88) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-save,
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-secondary {
+  min-height: 44px !important;
+  border-radius: var(--pmd-glass-radius) !important;
+  font-size: 13px !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-save {
+  min-width: 145px !important;
+  border: 1px solid #064b3c !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15) !important;
+}
+body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-secondary {
+  border-color: #d2dee5 !important;
+  background: rgba(255,255,255,.96) !important;
+  color: #243f38 !important;
+}
+
+/* ------------------------------------------------------------------
+   Accessibility, smaller screens and motion. Only modal presentation;
+   all interactive state and disabled elements remain feature-owned.
+   ------------------------------------------------------------------ */
+body.pmd-shifts-page [data-pmd-team-modal] :is(button,input,select):focus-visible,
+body.pmd-coupon-manager-page [data-pmd-coupon-modal] :is(button,input,textarea):focus-visible,
+body.pmd-devices-settings-page [data-pmd-device-modal] :is(button,input,select,textarea):focus-visible,
+body.pmd-finance-settings-page .pmd-settings-inline-modal :is(button,input,select,textarea):focus-visible {
+  outline: 2px solid rgba(7,92,71,.6) !important;
+  outline-offset: 2px !important;
+}
+@media (max-width: 760px) {
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-card,
+  body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-card,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__card,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - 20px) !important;
+  }
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__modal-header,
+  body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-header,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__header,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__header,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__header {
+    padding: 13px 16px 10px !important;
+  }
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor,
+  body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__modal-body,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__scroll,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__body,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__body {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-footer {
+    margin-left: -16px !important;
+    margin-right: -16px !important;
+  }
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__type-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+}
+@media (max-width: 480px) {
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-footer,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__footer,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card__footer,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card__footer {
+    padding: 10px 14px 12px !important;
+  }
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor .pmd-shifts__team-access-fields,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__grid,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__grid--rules,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__discount-row {
+    grid-template-columns: minmax(0,1fr) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card,
+  body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor-card,
+  body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-modal__card,
+  body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-card,
+  body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* ======================================================================
+   PMD_CROSS_SURFACE_GLASS_QA_R2_20261019
+   Cross-surface geometry / icon / accessibility audit.
+   Applies AFTER glass V1. Reference: Create Food + Table + Reservation.
+   All selectors are page- and component-scoped. No DOM / JS modifications.
+   ====================================================================== */
+
+/* SETTINGS INDEX -- 38px icon box, 19px line icons, aligned grid tracks. */
+html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card {
+  grid-template-columns: 38px minmax(0,1fr) 16px !important;
+  gap: 14px !important;
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__icon {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.8 !important;
+}
+html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card__arrow {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+/* RESTAURANT PROFILE -- section icons, input geometry, state safety. */
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-section-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-section-icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.8 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field {
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field > span,
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time > span {
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.35 !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field :is(
+  input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=file]),
+  select
+) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 48px !important;
+  font-size: 13px !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time input {
+  min-height: 44px !important;
+  font-size: 12px !important;
+}
+/* Guest-communications overflow is intentionally visible for readiness
+   popovers; glass V1 must not clip it. */
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-profile-section--communications .pmd-profile-card {
+  overflow: visible !important;
+}
+/* Closed days must remain visibly inactive. */
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-profile-day-card.is-closed .pmd-profile-time input,
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-profile-field :is(input,select,textarea):disabled {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-profile-header-button,
+html body.pmd-settings-center-page #pmd-restaurant-profile
+.pmd-provider-secondary {
+  border-radius: 16px !important;
+}
+
+/* CUSTOMER EXPERIENCE -- replace old blue UI controls with PMD jade.
+   Previews and swatches retain their real theme colors. */
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-section-icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-section-icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.8 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-save-icon {
+  width: 42px !important;
+  height: 42px !important;
+  border: 1px solid #064b3c !important;
+  border-radius: 16px !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+  box-shadow: 0 7px 17px rgba(7,92,71,.14) !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+:is(.pmd-frontend-icon-button,.pmd-frontend-secondary-button,.pmd-customer-qr-open-r39) {
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-customer-qr-open-r39 {
+  border-color: #064b3c !important;
+  background: linear-gradient(180deg,#0b765e,#075c47) !important;
+  color: #fff !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field {
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field > span {
+  color: #28463f !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field
+:is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select) {
+  min-width: 0 !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  font-size: 13px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-theme-option {
+  border-radius: 16px !important;
+  min-width: 0 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-theme-option.is-selected,
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-theme-option:has(input:checked) {
+  border-color: #075c47 !important;
+  box-shadow: 0 0 0 2px rgba(7,92,71,.10),0 7px 17px rgba(7,92,71,.06) !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-theme-option.is-selected .pmd-theme-option__check,
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-theme-option:has(input:checked) .pmd-theme-option__check {
+  background: #075c47 !important;
+  color: #fff !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-language-chip > span {
+  min-height: 46px !important;
+  border-color: #c9dce8 !important;
+  border-radius: 16px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-language-chip input:checked + span {
+  border-color: #075c47 !important;
+  background: #eaf5ef !important;
+  color: #075c47 !important;
+  box-shadow: 0 0 0 2px rgba(7,92,71,.08) !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-language-chip input:checked + span strong {
+  color: #064b3c !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-switch input:checked + i {
+  background: #075c47 !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-theme-option:focus-within,
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-language-chip input:focus-visible + span,
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-switch input:focus-visible + i {
+  outline: 2px solid rgba(7,92,71,.65) !important;
+  outline-offset: 3px !important;
+}
+html body.pmd-settings-center-page #pmd-frontend-settings
+.pmd-field :is(input,select,textarea):disabled {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+
+/* DEVICES + FINANCE -- 38/19 icon pairing, 48px forms, 44px actions. */
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__icon,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__icon {
+  display: grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-card__icon svg,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-card__icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.8 !important;
+}
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field {
+  min-width: 0 !important;
+}
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field
+:is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select),
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field
+:is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select) {
+  min-width: 0 !important;
+  min-height: 48px !important;
+  font-size: 13px !important;
+}
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-action,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-action {
+  min-height: 44px !important;
+  border: 1px solid #c9dce8 !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.95) !important;
+  color: #075c47 !important;
+}
+/* Preserve original read-only and disabled feedback (glass V1 made it white). */
+html body.pmd-devices-settings-page
+[data-pmd-device-modal] .pmd-owner-field :is(input,textarea,select):is([readonly],:disabled),
+html body.pmd-finance-settings-page
+.pmd-settings-inline-modal .pmd-inline-field :is(input,textarea,select):is([readonly],:disabled),
+html body.pmd-finance-settings-page
+#pmd-finance-page .pmd-owner-field :is(input,textarea,select):is([readonly],:disabled) {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+/* Device & finance dialogs already provide dedicated scroll containers.
+   Keep them, but normalize their headers and section-title icons. */
+html body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-close,
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-settings-inline-close {
+  width: 42px !important;
+  height: 42px !important;
+  min-width: 42px !important;
+  border-radius: 16px !important;
+}
+html body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section__head h3,
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section__head h3 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 38px !important;
+  color: #173b33 !important;
+}
+html body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section__head h3::before,
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section__head h3::before {
+  content: "" !important;
+  display: inline-block !important;
+  flex: 0 0 38px !important;
+  width: 38px !important;
+  height: 38px !important;
+  border: 1px solid rgba(83,166,111,.12) !important;
+  border-radius: 16px !important;
+  background: rgba(248,253,249,.98)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f866f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M4 12h16M4 17h16'/%3E%3Ccircle cx='9' cy='7' r='2' fill='white'/%3E%3Ccircle cx='15' cy='12' r='2' fill='white'/%3E%3Ccircle cx='9' cy='17' r='2' fill='white'/%3E%3C/svg%3E")
+    center / 20px 20px no-repeat !important;
+}
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field
+:is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select) {
+  min-width: 0 !important;
+  min-height: 48px !important;
+  font-size: 13px !important;
+}
+
+/* DISCOUNTS -- normalize field captions, focus & read-only treatment. */
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal]
+.pmd-coupon-field > span {
+  color: #28463f !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal]
+.pmd-coupon-field input[readonly],
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal]
+.pmd-coupon-field :is(input,textarea):disabled {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal]
+.pmd-coupon-field__with-action button {
+  min-height: 48px !important;
+  border-radius: 16px !important;
+}
+
+/* SHIFTS -- preserve edit/save footer inside the real scrolling form,
+   do not touch the 1px hidden backend role select. */
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor {
+  min-height: 0 !important;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor-footer {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 2 !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor :is(input:not([type=hidden]),select):disabled {
+  background: #f3f7f6 !important;
+  color: #80918c !important;
+  box-shadow: none !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor .pmd-shifts__role-card.is-selected::after {
+  background: rgba(255,255,255,.96) !important;
+  color: #075c47 !important;
+}
+
+/* Make text fields flexible in narrow modals without changing semantic grids. */
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor .pmd-shifts__team-password-row {
+  min-width: 0 !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal]
+.pmd-shifts__team-editor .pmd-shifts__team-password-row input {
+  min-width: 0 !important;
+}
+
+/* Desktop field type scale: 13px + 48px form controls; small-screen grids
+   stay owned by each feature's mobile stylesheet. */
+@media (max-width: 760px) {
+  html body.pmd-settings-center-page #pmd-settings-center .pmd-settings-card {
+    gap: 12px !important;
+  }
+  html body.pmd-settings-center-page #pmd-frontend-settings .pmd-frontend-section-icon,
+  html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-section-icon {
+    width: 38px !important;
+    height: 38px !important;
+    flex-basis: 38px !important;
+  }
+  html body.pmd-devices-settings-page [data-pmd-device-modal] .pmd-device-v6-section__head h3::before,
+  html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-section__head h3::before {
+    flex-basis: 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+    background-size: 19px 19px !important;
+  }
+}
+
+/* /* PMD_CROSS_SURFACE_FIELD_ICONS_R3_SELECTOR_FIX_20261019: semantic icon mapping attaches to FIELD LABEL, not its caption child. */
+PMD_CROSS_SURFACE_FIELD_ICONS_R3_20261019
+   Full field-first visual parity for Shifts, Discounts and four Settings
+   sections. Pseudo icons are decorative; labels, inputs, names, writers
+   and selected-state logic are unchanged.
+   Restrict to actual form-field captions; not checkboxes or card headings. */
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor > label > span:first-child,
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-access-fields > label > span:first-child,
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__role-label,
+html body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid > label > span:first-child,
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field > span:first-child,
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field > span:first-child,
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time > span:first-child,
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field > span:first-child,
+html body.pmd-devices-settings-page .pmd-device-v6-form .pmd-owner-field > label:first-child,
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field > label:first-child,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field > label:first-child,
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field > label:first-child {
+ display:flex !important; align-items:center !important; gap:8px !important;
+ flex-wrap:wrap !important; min-width:0 !important; min-height:34px !important;
+ line-height:1.35 !important; color:#28463f !important; font-size:12px !important;
+ font-weight:750 !important;
+}
+
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor > label > span:first-child::before,
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-access-fields > label > span:first-child::before,
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__role-label::before,
+html body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid > label > span:first-child::before,
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field > span:first-child::before,
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field > span:first-child::before,
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time > span:first-child::before,
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field > span:first-child::before,
+html body.pmd-devices-settings-page .pmd-device-v6-form .pmd-owner-field > label:first-child::before,
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field > label:first-child::before,
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field > label:first-child::before,
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field > label:first-child::before {
+ content:"" !important; box-sizing:border-box !important;
+ display:block !important; flex:0 0 34px !important; width:34px !important; height:34px !important;
+ border:1px solid rgba(83,166,111,.11) !important; border-radius:14px !important;
+ background-color:#f8fdf9 !important;
+ background-image:var(--pmd-suite-field-icon,url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M5%206h14M5%2011h14M5%2016h9M5%2021h7%22%2F%3E%3C%2Fsvg%3E")) !important;
+ background-position:center !important; background-size:19px 19px !important;
+ background-repeat:no-repeat !important;
+}
+
+
+/* Avoid implicit min-content width when translation, form labels, generated
+   options or device/payment fields contain long values. */
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor :is(.pmd-owner-field,.pmd-coupon-field,.pmd-inline-field,.pmd-shifts__team-access-fields,.pmd-profile-field,.pmd-field,.pmd-owner-form-grid,.pmd-coupon-form__grid),
+html body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid :is(.pmd-owner-field,.pmd-coupon-field,.pmd-inline-field,.pmd-shifts__team-access-fields,.pmd-profile-field,.pmd-field,.pmd-owner-form-grid,.pmd-coupon-form__grid),
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form :is(.pmd-owner-field,.pmd-coupon-field,.pmd-inline-field,.pmd-shifts__team-access-fields,.pmd-profile-field,.pmd-field,.pmd-owner-form-grid,.pmd-coupon-form__grid),
+html body.pmd-devices-settings-page .pmd-device-v6-form :is(.pmd-owner-field,.pmd-coupon-field,.pmd-inline-field,.pmd-shifts__team-access-fields,.pmd-profile-field,.pmd-field,.pmd-owner-form-grid,.pmd-coupon-form__grid),
+html body.pmd-finance-settings-page .pmd-settings-inline-modal :is(.pmd-owner-field,.pmd-coupon-field,.pmd-inline-field,.pmd-shifts__team-access-fields,.pmd-profile-field,.pmd-field,.pmd-owner-form-grid,.pmd-coupon-form__grid),
+html body.pmd-settings-center-page #pmd-restaurant-profile :is(.pmd-owner-field,.pmd-coupon-field,.pmd-inline-field,.pmd-shifts__team-access-fields,.pmd-profile-field,.pmd-field,.pmd-owner-form-grid,.pmd-coupon-form__grid),
+html body.pmd-settings-center-page #pmd-frontend-settings :is(.pmd-owner-field,.pmd-coupon-field,.pmd-inline-field,.pmd-shifts__team-access-fields,.pmd-profile-field,.pmd-field,.pmd-owner-form-grid,.pmd-coupon-form__grid) {
+  min-width:0 !important; max-width:100% !important;
+}
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),
+html body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),
+html body.pmd-devices-settings-page .pmd-device-v6-form :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),
+html body.pmd-finance-settings-page .pmd-settings-inline-modal :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),
+html body.pmd-settings-center-page #pmd-restaurant-profile :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),
+html body.pmd-settings-center-page #pmd-frontend-settings :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea) {
+  box-sizing:border-box !important; max-width:100% !important;
+}
+@media(max-width:560px) {
+  html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-identity-row,
+  html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-access-fields,
+  html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-form__grid,
+  html body.pmd-devices-settings-page .pmd-device-v6-form .pmd-owner-form-grid,
+  html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-owner-form-grid {
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+}
+
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor > label:has([data-pmd-team-name]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%228%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22M4%2021v-2a8%208%200%200%201%2016%200v2%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-editor > label:has([data-pmd-team-role]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2215%22%20rx%3D%222%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2211%22%20r%3D%222%22%2F%3E%3Cpath%20d%3D%22M6%2016c1-2%205-2%206%200M15%2010h4M15%2014h4%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-access-fields > label:has([data-pmd-team-username]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%228%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22M4%2021v-2a8%208%200%200%201%2016%200v2%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-access-fields > label:has([data-pmd-team-password]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%224%22%20y%3D%2210%22%20width%3D%2216%22%20height%3D%2211%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M8%2010V7a4%204%200%200%201%208%200v3M12%2015v2%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-shifts-page [data-pmd-team-modal] .pmd-shifts__team-access-fields > label:has([data-pmd-team-pin]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%2214%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22m10%2011%2010-8v5l-3%202v3l-3%202%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid > label:has([data-pmd-shift-date-input]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2216%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M7%203v4M17%203v4M3%2010h18M8%2015h4%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid > label:has([data-pmd-shift-start]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22M12%207v5l3%202%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid > label:has([data-pmd-shift-end]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22M12%207v5l3%202%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-shifts-page [data-pmd-shift-modal] .pmd-shifts__form-grid > label:has([data-pmd-shift-break]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22M12%207v5l3%202%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field:has([data-pmd-coupon-name]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%2013%2013%2020%204%2011V4h7z%22%2F%3E%3Ccircle%20cx%3D%228%22%20cy%3D%228%22%20r%3D%221%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field:has([data-pmd-coupon-code]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%2214%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22m10%2011%2010-8v5l-3%202v3l-3%202%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field:has([data-pmd-coupon-discount]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%227%22%20cy%3D%227%22%20r%3D%222%22%2F%3E%3Ccircle%20cx%3D%2217%22%20cy%3D%2217%22%20r%3D%222%22%2F%3E%3Cpath%20d%3D%22m6%2018%2012-12%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field:has([data-pmd-coupon-expiry]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2216%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22M7%203v4M17%203v4M3%2010h18M8%2015h4%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-coupon-manager-page [data-pmd-coupon-modal] .pmd-coupon-field:has([data-pmd-coupon-initial-balance]) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2215%22%20rx%3D%223%22%2F%3E%3Cpath%20d%3D%22M3%2010h18M16%2015h2%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field:has(input[type='email']) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2214%22%20rx%3D%222%22%2F%3E%3Cpath%20d%3D%22m3%207%209%207%209-7%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field:has(input[name*='telephone']) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%203%203%203-2%203a15%2015%200%200%200%208%208l3-2%203%203c0%202-2%204-4%204C8%2020%203%2012%203%206c0-2%201-3%203-3z%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field:has(input[name*='address']) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%2010c0%206-8%2012-8%2012S4%2016%204%2010a8%208%200%201%201%2016%200z%22%2F%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2210%22%20r%3D%222%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-field:has(input[name*='website']) > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22M3%2012h18M12%203c4%204%204%2014%200%2018M12%203c-4%204-4%2014%200%2018%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-settings-center-page #pmd-restaurant-profile .pmd-profile-time > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22M12%207v5l3%202%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-settings-center-page #pmd-frontend-settings .pmd-field > span:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%206h5M13%206h7M9%204v4M4%2012h11M19%2012h1M15%2010v4M4%2018h2M10%2018h10M6%2016v4%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-devices-settings-page .pmd-device-v6-form .pmd-owner-field > label:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%206h5M13%206h7M9%204v4M4%2012h11M19%2012h1M15%2010v4M4%2018h2M10%2018h10M6%2016v4%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-devices-settings-page #pmd-devices-page .pmd-owner-field > label:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%206h5M13%206h7M9%204v4M4%2012h11M19%2012h1M15%2010v4M4%2018h2M10%2018h10M6%2016v4%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-finance-settings-page #pmd-finance-page .pmd-owner-field > label:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2215%22%20rx%3D%223%22%2F%3E%3Cpath%20d%3D%22M3%2010h18M16%2015h2%22%2F%3E%3C%2Fsvg%3E") !important; }
+html body.pmd-finance-settings-page .pmd-settings-inline-modal .pmd-inline-field > label:first-child { --pmd-suite-field-icon:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232f866f%22%20stroke-width%3D%221.8%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%2218%22%20height%3D%2215%22%20rx%3D%223%22%2F%3E%3Cpath%20d%3D%22M3%2010h18M16%2015h2%22%2F%3E%3C%2Fsvg%3E") !important; }

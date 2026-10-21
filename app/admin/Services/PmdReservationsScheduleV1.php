@@ -281,6 +281,8 @@ final class PmdReservationsScheduleV1
                     ->orWhere('comment', 'like', $like)
                     ->orWhere('reserve_date', 'like', $like)
                     ->orWhere('reserve_time', 'like', $like)
+                    // PMD_RESERVATION_SEARCH_R1: also match the displayed full guest name.
+                    ->orWhereRaw("CONCAT_WS(' ', first_name, last_name) LIKE ?", [$like])
                     ->orWhereHas('tables', function ($tableQuery) use ($like) {
                         $tableQuery->where('tables.table_name', 'like', $like);
                     });

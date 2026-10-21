@@ -1,0 +1,785 @@
+/* PMD_GLASS_NUMERIC_CONTROLS_V1_20261019
+   One reusable, accessible minus/input/plus design across the seven Admin
+   workspaces. Real numeric constraints and values are controlled by HTML. */
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper {
+  display:grid !important;
+  grid-template-columns:42px minmax(0,1fr) 42px !important;
+  gap:8px !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:48px !important;
+  min-height:48px !important;
+  align-items:stretch !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 !important;
+  background:transparent !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__button {
+  display:grid !important;
+  place-items:center !important;
+  box-sizing:border-box !important;
+  width:42px !important;
+  height:48px !important;
+  min-width:0 !important;
+  min-height:48px !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.94) !important;
+  color:#075c47 !important;
+  box-shadow:0 3px 12px rgba(23,57,50,.035) !important;
+  font:850 22px/1 system-ui,sans-serif !important;
+  cursor:pointer !important;
+  touch-action:manipulation;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__button:focus-visible {
+  outline:2px solid #167c65 !important;
+  outline-offset:2px !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__button:disabled {
+  opacity:.42 !important;
+  cursor:not-allowed !important;
+  background:#f5f7f7 !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__center {
+  position:relative !important;
+  display:flex !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:48px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__center > input[type=number] {
+  box-sizing:border-box !important;
+  display:block !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  width:100% !important;
+  height:48px !important;
+  min-height:48px !important;
+  margin:0 !important;
+  padding:0 12px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background-color:rgba(255,255,255,.96) !important;
+  box-shadow:0 4px 14px rgba(22,52,47,.035) !important;
+  color:#102a43 !important;
+  font-size:13px !important;
+  font-weight:750 !important;
+  appearance:textfield !important;
+  -moz-appearance:textfield !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__center > input::-webkit-inner-spin-button,
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__center > input::-webkit-outer-spin-button {
+  -webkit-appearance:none !important;
+  margin:0 !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper--has-unit .pmd-glass-stepper__center > input {
+  padding-right:54px !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__unit {
+  position:absolute !important;
+  right:9px !important;
+  top:50% !important;
+  transform:translateY(-50%) !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:26px !important;
+  max-width:48px !important;
+  min-height:22px !important;
+  padding:0 5px !important;
+  border-radius:7px !important;
+  background:#eaf5ef !important;
+  color:#075c47 !important;
+  font:800 10px/1 system-ui,sans-serif !important;
+  text-align:center !important;
+  pointer-events:none !important;
+}
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper__unit[hidden] { display:none !important; }
+body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+.pmd-glass-stepper--disabled .pmd-glass-stepper__center > input {
+  background:#f3f7f6 !important;
+  box-shadow:none !important;
+}
+@media(max-width:700px) {
+  body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+  .pmd-glass-stepper {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+    gap:6px !important;
+  }
+  body:is(.pmd-menu-manager-page,.pmd-shifts-page,.pmd-coupon-manager-page,.pmd-settings-center-page,.pmd-devices-settings-page,.pmd-finance-settings-page)
+  .pmd-glass-stepper__button { width:38px !important; }
+}
+
+/* FOOD: align dynamic language switch and the allergen title with field icons. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__subhead--allergens {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  margin:2px 0 14px !important;
+  min-height:38px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__allergens-heading {
+  display:flex !important;
+  align-items:center !important;
+  min-width:0 !important;
+  gap:10px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__allergens-icon {
+  display:grid !important;
+  place-items:center !important;
+  flex:0 0 36px !important;
+  width:36px !important;
+  height:36px !important;
+  border:1px solid rgba(83,166,111,.12) !important;
+  border-radius:14px !important;
+  background:#f8fdf9 !important;
+  color:#2f866f !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__allergens-icon svg {
+  width:19px !important;
+  height:19px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3 {
+  display:inline-flex !important;
+  align-items:center !important;
+  flex-wrap:wrap !important;
+  gap:9px !important;
+  max-width:100% !important;
+  min-height:44px !important;
+  padding:7px 12px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.96) !important;
+  color:#075c47 !important;
+  font-size:12px !important;
+  font-weight:850 !important;
+  cursor:pointer !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3[aria-expanded=true] {
+  border-color:#075c47 !important;
+  background:#eaf5ef !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3__direction {
+  font-size:11px !important;
+  font-weight:700 !important;
+  color:#46685e !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3 svg {
+  width:16px !important;
+  height:16px !important;
+  flex:0 0 16px !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+  transition:transform .15s ease !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-switch-v3[aria-expanded=true] svg { transform:rotate(180deg) !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-tabs-v3 {
+  display:flex !important;
+  align-items:center !important;
+  gap:7px !important;
+  flex-wrap:wrap !important;
+  min-width:0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-tabs-v3[hidden],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+[data-pmd-menu-translation-panels][hidden] { display:none !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__head {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  flex-wrap:wrap !important;
+  gap:10px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__title { min-width:0 !important; flex:1 1 230px !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__actions { margin-left:auto !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__actions [data-pmd-menu-auto-translate] {
+  min-height:44px !important;
+  border-radius:16px !important;
+}
+@media(max-width:520px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-translation-switch-v3 { width:100% !important; justify-content:center !important; }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-content-translations__actions { width:100% !important; }
+}
+
+/* PMD_GLASS_NUMERIC_COMPACT_MONEY_R3_20261019: Option price is narrow even on desktop. Keep +/- usable,
+   the currency fully visible, and the choice name editable. */
+@media(min-width:651px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-option-value {
+    grid-template-columns:minmax(0,1fr) minmax(0,192px) minmax(0,96px) 42px !important;
+    gap:9px !important;
+  }
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-option-value__price .pmd-glass-stepper {
+  grid-template-columns:32px minmax(0,1fr) 32px !important;
+  gap:4px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-option-value__price .pmd-glass-stepper__button {
+  width:32px !important;
+  min-width:32px !important;
+  font-size:20px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-option-value__price .pmd-glass-stepper__unit {
+  right:5px !important;
+  padding:0 3px !important;
+  min-width:24px !important;
+  font-size:9px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-option-value__price .pmd-glass-stepper--has-unit input[type=number] {
+  padding-right:40px !important;
+}
+@media(max-width:650px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-option-value__price .pmd-glass-stepper {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+    gap:6px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-option-value__price .pmd-glass-stepper__button {
+    width:38px !important;
+  }
+}
+
+
+/* PMD_MENU_TRANSLATION_LEGACY_COLLAPSE_GUARD_V4_20261019: even a cached legacy renderer must default to closed.
+   The modern translation component already handles this natively. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+[data-pmd-menu-translation-tabs][hidden],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+[data-pmd-menu-translation-panels][hidden] {
+  display:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__title {
+  flex-wrap:wrap !important;
+  gap:10px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__title > [data-pmd-menu-translation-legacy-switch] {
+  min-width:0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-content-translations__title > [data-pmd-menu-translation-legacy-switch] + [data-pmd-menu-translation-tabs] {
+  flex:1 1 100% !important;
+  margin-top:4px !important;
+}
+/* Nutrition is a three-column form: gain 16px per input by keeping the
+   step buttons unobtrusive while retaining 38px-ish PMD touch targets. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper {
+  grid-template-columns:36px minmax(0,1fr) 36px !important;
+  gap:6px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper__button {
+  width:36px !important;
+  min-width:36px !important;
+  border-radius:14px !important;
+  font-size:20px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper__center > input[type="number"] {
+  text-align:center !important;
+  padding:0 8px !important;
+  font-variant-numeric:tabular-nums !important;
+}
+@media(max-width:440px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-nutrition-grid .pmd-glass-stepper {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-nutrition-grid .pmd-glass-stepper__button {
+    width:38px !important;
+  }
+}
+
+
+
+/* PMD_MENU_INLINE_LANGUAGE_FIELDS_V4_20261019
+   Language tabs switch existing Food Name and Description INPUT SLOTS.
+   Both translations and canonical values keep their original form keys. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4 {
+  display:block !important;
+  position:relative !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  width:100% !important;
+  margin:0 0 18px !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4[hidden] { display:none !important; }
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4__head {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:12px !important;
+  flex-wrap:wrap !important;
+  min-height:48px !important;
+  padding:0 !important;
+  margin:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4__switch {
+  display:flex !important;
+  align-items:center !important;
+  flex:1 1 250px !important;
+  min-width:0 !important;
+  width:auto !important;
+  gap:10px !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4__switch::before {
+  content:"" !important;
+  display:inline-block !important;
+  flex:0 0 38px !important;
+  width:38px !important;
+  height:38px !important;
+  margin:0 !important;
+  border:1px solid rgba(83,166,111,.12) !important;
+  border-radius:15px !important;
+  background:#f8fdf9 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f866f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h9M8 3v2m3 0c-.5 5-3 8-6 10M5 9c1 3 3 5 6 7M14 20l4-11 4 11m-6-4h5'/%3E%3C/svg%3E") center / 20px 20px no-repeat !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-translation-tabs-v4 {
+  display:flex !important;
+  align-items:center !important;
+  flex-wrap:wrap !important;
+  gap:4px !important;
+  min-width:0 !important;
+  padding:4px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.94) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4__tab {
+  min-height:38px !important;
+  height:38px !important;
+  min-width:84px !important;
+  padding:7px 13px !important;
+  border:1px solid transparent !important;
+  border-radius:12px !important;
+  box-shadow:none !important;
+  background:transparent !important;
+  color:#385a50 !important;
+  font-size:12px !important;
+  font-weight:800 !important;
+  line-height:1.3 !important;
+  cursor:pointer !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4__tab[aria-pressed="true"] {
+  border-color:#064b3c !important;
+  background:linear-gradient(180deg,#0b765e,#075c47) !important;
+  color:#fff !important;
+  box-shadow:0 5px 12px rgba(7,92,71,.12) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4__tab:focus-visible {
+  outline:2px solid #167c65 !important;
+  outline-offset:2px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4__head .pmd-menu-content-translations__actions {
+  display:flex !important;
+  flex:0 0 auto !important;
+  width:auto !important;
+  align-items:center !important;
+  margin-left:auto !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4 [data-pmd-menu-auto-translate] {
+  min-height:44px !important;
+  padding:8px 14px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.96) !important;
+  color:#075c47 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4 [data-pmd-menu-translation-status]:empty {
+  display:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-language-inline-v4 [data-pmd-menu-translation-status]:not(:empty) {
+  display:block !important;
+  width:100% !important;
+  margin-top:8px !important;
+  font-size:12px !important;
+}
+/* Hide the source field only while a different language is selected.
+   The canonical Food field is still submitted, never renamed/overwritten. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__grid .pmd-menu-field > :is(
+  [data-pmd-menu-name][hidden],
+  [data-pmd-menu-description][hidden],
+  [data-pmd-menu-inline-translation][hidden]
+) {
+  display:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__grid .pmd-menu-field > [data-pmd-menu-inline-translation]:not([hidden]) {
+  display:block !important;
+  width:100% !important;
+  box-sizing:border-box !important;
+  min-width:0 !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.97) !important;
+  color:#102a43 !important;
+  font-size:13px !important;
+  box-shadow:0 4px 14px rgba(22,52,47,.035) !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__grid .pmd-menu-field > input[data-pmd-menu-inline-translation]:not([hidden]) {
+  min-height:48px !important;
+  height:48px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-form__grid .pmd-menu-field > textarea[data-pmd-menu-inline-translation]:not([hidden]) {
+  min-height:104px !important;
+  resize:vertical !important;
+}
+html body.pmd-menu-manager-page
+.pmd-menu-language-inline-v4__option-panels {
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  margin:0 !important;
+  padding:0 24px !important;
+  border:0 !important;
+  background:transparent !important;
+}
+html body.pmd-menu-manager-page
+.pmd-menu-language-inline-v4__option-panels[hidden] {
+  display:none !important;
+}
+@media(max-width:650px) {
+  html body.pmd-menu-manager-page
+  .pmd-menu-language-inline-v4__option-panels {
+    padding:0 16px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-language-inline-v4__head .pmd-menu-content-translations__actions {
+    margin-left:0 !important;
+  }
+}
+
+
+/* PMD_FOOD_SERVING_AND_EMPTY_OPTIONS_QA_V5_20261019
+   Root cause: the author stylesheet gave the hidden empty Options placeholder
+   display:grid; override [hidden] so an empty section doesn't leave a fake card.
+   The serving-size input remains a text field to preserve "350 g", "1 portion",
+   and existing tenant data; buttons only change recognized numeric amounts. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-options-builder__empty[hidden],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-options-builder__groups:empty {
+  display:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-options-builder:has(.pmd-menu-options-builder__groups:empty)
+.pmd-menu-options-builder__head {
+  margin-bottom:0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-options-builder:has(.pmd-menu-options-builder__groups:empty) {
+  padding-bottom:14px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper--serving {
+  display:grid !important;
+  grid-template-columns:36px minmax(0,1fr) 36px !important;
+  gap:6px !important;
+  min-width:0 !important;
+  width:100% !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper--serving
+.pmd-glass-stepper__button {
+  min-width:36px !important;
+  width:36px !important;
+  border-radius:14px !important;
+  font-size:20px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper--serving
+.pmd-glass-stepper__center > input[type="text"] {
+  display:block !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:48px !important;
+  min-height:48px !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 9px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:rgba(255,255,255,.96) !important;
+  box-shadow:0 4px 14px rgba(22,52,47,.035) !important;
+  color:#102a43 !important;
+  font-size:12px !important;
+  font-weight:750 !important;
+  text-align:center !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-nutrition-grid .pmd-glass-stepper--serving
+.pmd-glass-stepper__center > input[type="text"]:focus {
+  outline:none !important;
+  border-color:#79bda8 !important;
+  box-shadow:0 0 0 3px rgba(47,134,111,.09) !important;
+}
+@media(max-width:440px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-nutrition-grid .pmd-glass-stepper--serving {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-nutrition-grid .pmd-glass-stepper--serving .pmd-glass-stepper__button {
+    width:38px !important; min-width:38px !important;
+  }
+}
+
+
+
+/* PMD_FOOD_PREP_INLINE_STEP_ONE_V6_20261019
+   Five preparation tiles with readable clock-icon spacing. The Custom cell
+   becomes the existing input when activated, and nothing appears below. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > button[data-pmd-prep-preset] {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:12px !important;
+  min-width:0 !important;
+  white-space:nowrap !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > button[data-pmd-prep-preset] > svg {
+  display:block !important;
+  width:20px !important;
+  height:20px !important;
+  min-width:20px !important;
+  flex:0 0 20px !important;
+  margin:0 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > button[data-pmd-prep-preset] > span {
+  display:inline-block !important;
+  min-width:0 !important;
+  line-height:1.2 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > [data-pmd-prep-custom][hidden],
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > [data-pmd-prep-custom-wrap][hidden] {
+  display:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets > .pmd-menu-prep-custom--inline {
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  grid-column:auto !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:48px !important;
+  min-height:48px !important;
+  box-sizing:border-box !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper {
+  /* PMD_FOOD_PREP_CUSTOM_STEPPER_PARITY_V7_20261019: exactly match desktop Nutrition +/- size; give the central
+     Custom minutes input less width without changing the tile or JS. */
+  grid-template-columns:36px minmax(0,1fr) 36px !important;
+  align-items:stretch !important;
+  width:100% !important;
+  min-width:0 !important;
+  height:48px !important;
+  gap:6px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper__button {
+  display:grid !important;
+  place-items:center !important;
+  width:36px !important;
+  min-width:36px !important;
+  max-width:36px !important;
+  height:48px !important;
+  min-height:48px !important;
+  padding:0 !important;
+  margin:0 !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:12px !important;
+  background:rgba(255,255,255,.96) !important;
+  color:#075c47 !important;
+  font-size:18px !important;
+  font-weight:800 !important;
+  box-shadow:none !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper__center {
+  width:100% !important;
+  min-width:0 !important;
+  height:48px !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline input[data-pmd-menu-prep-time] {
+  display:block !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  height:48px !important;
+  min-height:48px !important;
+  margin:0 !important;
+  padding:0 2px !important;
+  text-align:center !important;
+  font-size:13px !important;
+  font-weight:800 !important;
+  font-variant-numeric:tabular-nums !important;
+  border:1px solid #81b8a9 !important;
+  border-radius:12px !important;
+  background:#fff !important;
+  color:#153e34 !important;
+}
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline input[data-pmd-menu-prep-time]:focus {
+  outline:2px solid rgba(7,92,71,.45) !important;
+  outline-offset:1px !important;
+}
+@media(max-width:650px) {
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-prep-presets > [data-pmd-prep-custom],
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-prep-presets > [data-pmd-prep-custom-wrap] {
+    grid-column:1 / -1 !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper {
+    grid-template-columns:38px minmax(0,1fr) 38px !important;
+    gap:6px !important;
+  }
+  html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+  .pmd-menu-prep-presets .pmd-menu-prep-custom--inline .pmd-glass-stepper__button {
+    width:38px !important;
+    min-width:38px !important;
+    max-width:38px !important;
+  }
+}
+
+/* The Add option shadow was amplified by the global modal-button equalizer.
+   Give this ONE local action stable, non-animated, non-primary chrome across
+   normal / hover / focus / active, including the equalizer's button attribute. */
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add,
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add:is(:hover,:active,:focus,:focus-visible) {
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-height:44px !important;
+  padding:0 16px !important;
+  border:1px solid #c9dce8 !important;
+  border-radius:16px !important;
+  background:#fff !important;
+  background-image:none !important;
+  color:#075c47 !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  filter:none !important;
+  text-shadow:none !important;
+  box-shadow:none !important;
+  animation:none !important;
+  transition:none !important;
+  transform:none !important;
+  will-change:auto !important;
+}
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add::before,
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add::after {
+  content:none !important;
+  display:none !important;
+  box-shadow:none !important;
+  animation:none !important;
+}
+html body.pmd-menu-manager-page [data-pmd-menu-modal] .pmd-menu-food-glass-v1
+button.pmd-menu-options-builder__add:focus-visible {
+  outline:2px solid #167c65 !important;
+  outline-offset:2px !important;
+}
+
+
+/* PMD_FOOD_PREP_INLINE_MOBILE_LASTCHILD_GUARD_V6_20261019
+   Legacy mobile selector ".pmd-menu-prep-presets button:last-child" also
+   matches the nested '+' button. Never allow it to span the entire tile. */
+html body.pmd-menu-manager-page .pmd-menu-food-glass-v1
+.pmd-menu-prep-presets .pmd-menu-prep-custom--inline
+.pmd-glass-stepper > button.pmd-glass-stepper__button {
+  grid-column:auto !important;
+  grid-row:auto !important;
+  align-self:stretch !important;
+  justify-self:stretch !important;
+}

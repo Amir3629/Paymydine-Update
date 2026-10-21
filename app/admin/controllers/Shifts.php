@@ -92,6 +92,10 @@ class Shifts extends AdminController
         // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
         // Load the exact shared KPI info visual authority used by the other KPI pages.
         $this->addCss('css/pmd-kpi-info-v1.css');
+        // PMD_CROSS_SURFACE_GLASS_CARDS_V1_20261018: route-scoped presentation only, cache-busted by filemtime.
+        $pmdGlassSuiteCss = 'app/admin/assets/css/pmd-cross-surface-glass-v1.css';
+        $this->addCss(asset($pmdGlassSuiteCss).'?v='.(string)(@filemtime(base_path($pmdGlassSuiteCss)) ?: '20261018'));
+
         // PMD_SHIFTS_MIDNIGHT_TIMELINE_V17N
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.
@@ -112,6 +116,14 @@ class Shifts extends AdminController
         // Register the attendance runtime explicitly on the Shifts surface.
         // PMD_SHIFT_FRAME_GEOMETRY_READONLY_V135
         $this->addJs('js/pmd-shifts-live-attendance-v3.js');
+                // PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: route-scoped accessible steppers & true tenant currency.
+        foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
+            $this->addCss(asset($pmdGlassInputCssV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputCssV1)) ?: '20261019'));
+        }
+        foreach (['app/admin/assets/js/pmd-glass-numeric-controls-v1.js'] as $pmdGlassInputJsV1) {
+            $this->addJs(asset($pmdGlassInputJsV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputJsV1)) ?: '20261019'));
+        }
+
         AdminMenu::setContext('dashboard');
     }
 

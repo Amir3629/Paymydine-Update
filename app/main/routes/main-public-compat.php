@@ -47,6 +47,8 @@ Route::get('/api/v1/settings-wrapped', function () {
 
                 'pmd_social_instagram_enabled' => $get('pmd_social_instagram_enabled', '0'),
                 'pmd_social_instagram_url' => $get('pmd_social_instagram_url', ''),
+                'pmd_social_tiktok_enabled' => $get('pmd_social_tiktok_enabled', '0'),
+                'pmd_social_tiktok_url' => $get('pmd_social_tiktok_url', ''),
 
                 'pmd_social_google_enabled' => $get('pmd_social_google_enabled', '0'),
                 'pmd_social_google_url' => $get('pmd_social_google_url', ''),

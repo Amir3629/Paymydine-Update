@@ -1012,6 +1012,9 @@
 
   async function saveFood() {
     if (busy || !foodForm) return;
+    // PMD_MENU_INLINE_LANGUAGE_FIELDS_V4_20261019: only canonical source fields may save the base Food record.
+    if (typeof window.PMDMenuLanguageBeforeSaveV4 === 'function' &&
+        !window.PMDMenuLanguageBeforeSaveV4()) return;
     if (typeof foodForm.reportValidity === 'function' && !foodForm.reportValidity()) return;
     var formData = new FormData(foodForm);
     setBusy(true);

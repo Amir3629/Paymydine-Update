@@ -1,5 +1,5 @@
-/* PMD_MANAGER_ONLINE_STAFF_CARD_V3_5_2
-   Manager-only card placed after the exact Owner analytics component. */
+/* PMD_SHARED_ONLINE_STAFF_CARD_V1
+   Identical Owner/Manager card placed after the shared analytics surface. */
 
 .pmd-manager-online-staff {
     margin-top: 16px;
@@ -199,4 +199,61 @@
         padding-left: 21px;
         text-align: left;
     }
+}
+
+
+/* PMD_SHARED_STAFF_CARD_RHYTHM_R2
+ * The Analytics section already owns a 28px bottom padding. Staff Online
+ * previously added 16px more margin, producing a 44px gap rather than the
+ * canonical 14px inter-card gap. Owner and Manager use one exact rhythm.
+ * Important: Manager first-paint style in pmd_role_dashboard_v1 has a
+ * role-specific !important padding, so the role selector below wins it.
+ */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1.pmd-dashboard-lab-analytics,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+[data-pmd-role-dashboard="manager"]
+#pmd-dashboard-lab-analytics-v1.pmd-dashboard-lab-analytics {
+  padding-bottom: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-manager-online-staff[data-pmd-online-staff] {
+  box-sizing: border-box !important;
+  width: min(1480px, 100%) !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 14px auto 28px !important;
+  padding: 0 !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-manager-online-staff[data-pmd-online-staff]
+.pmd-manager-online-staff__grid {
+  width: 100% !important;
+  min-width: 0 !important;
+  gap: 14px !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+.pmd-manager-online-staff[data-pmd-online-staff]
+.pmd-manager-online-staff__card {
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 14px !important;
+  border-radius: 16px !important;
+}
+
+@media (max-width: 760px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  .pmd-manager-online-staff[data-pmd-online-staff] {
+    margin-top: 10px !important;
+  }
 }

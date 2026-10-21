@@ -34,7 +34,8 @@
         </header>
 
         <div class="pmd-menu-modal__body">
-            <div data-pmd-food-modal-content>
+                            {{-- PMD_MENU_FOOD_MODAL_GLASS_V1_20261018: only food presentation, no writer/JS changes --}}
+            <div class="pmd-menu-food-glass-v1" data-pmd-food-modal-content>
                 <form class="pmd-menu-form" data-pmd-menu-form enctype="multipart/form-data">
                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="menu_id" value="" data-pmd-menu-id>
@@ -57,11 +58,11 @@
                                 <img src="" alt="{{ $pmdT('food_preview') }}" hidden>
                             </div>
                             <div class="pmd-menu-form__image-copy">
-                                <h3>{{ $pmdT('food_image') }}</h3>
+                                <h3 class="pmd-menu-form__icon-heading"><span class="pmd-menu-form__section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="15" rx="3"></rect><path d="M8 6 9.5 3h5L16 6"></path><circle cx="12" cy="13" r="3"></circle></svg></span>{{ $pmdT('food_image') }}</h3>
                                 <p>{{ $pmdT('food_image_help') }}</p>
                                 <label class="pmd-menu-form__upload">
                                     <input type="file" name="image" accept="image/jpeg,image/png,image/webp" data-pmd-menu-image-input>
-                                    <span>{{ $pmdT('choose_image') }}</span>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L8 8m4-4 4 4"></path><path d="M5 15v5h14v-5"></path></svg><span>{{ $pmdT('choose_image') }}</span>
                                 </label>
                             </div>
                         </div>
@@ -69,20 +70,20 @@
 
                     <section class="pmd-menu-form__section">
                         <div class="pmd-menu-form__section-head">
-                            <h3>{{ $pmdT('food_details') }}</h3>
+                            <h3 class="pmd-menu-form__icon-heading"><span class="pmd-menu-form__section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v8M8 3v8M5 7h3M6.5 11v10"></path><path d="M18 3c-3 3-4 7-4 11h4V3zM18 14v7"></path></svg></span>{{ $pmdT('food_details') }}</h3>
                             <p>{{ $pmdT('food_details_help') }}</p>
                         </div>
                         <div class="pmd-menu-form__grid">
                             <label class="pmd-menu-field pmd-menu-field--wide">
-                                <span>{{ $pmdT('name') }}</span>
+                                <span class="pmd-menu-field__label"><span class="pmd-menu-field__glyph" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21v-2a8 8 0 0 1 16 0v2"></path></svg></span>{{ $pmdT('name') }}</span>
                                 <input type="text" name="menu_name" maxlength="128" required autocomplete="off" data-pmd-menu-name>
                             </label>
                             <label class="pmd-menu-field">
-                                <span>{{ $pmdT('price') }}</span>
+                                <span class="pmd-menu-field__label"><span class="pmd-menu-field__glyph" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="15" rx="3"></rect><path d="M3 10h18M16 15h2"></path></svg></span>{{ $pmdT('price') }}</span>
                                 <input type="number" name="menu_price" min="0" step="0.01" required inputmode="decimal" data-pmd-menu-price>
                             </label>
                             <label class="pmd-menu-field pmd-menu-field--full">
-                                <span>{{ $pmdT('description') }}</span>
+                                <span class="pmd-menu-field__label"><span class="pmd-menu-field__glyph" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M8 8h8M8 12h8M8 16h5"></path></svg></span>{{ $pmdT('description') }}</span>
                                 <textarea name="menu_description" maxlength="1028" rows="4" placeholder="{{ $pmdT('food_description_placeholder') }}" data-pmd-menu-description></textarea>
                             </label>
                         </div>
@@ -90,7 +91,7 @@
 
                     <section class="pmd-menu-form__section">
                         <div class="pmd-menu-form__section-head">
-                            <h3>{{ $pmdT('categories') }}</h3>
+                            <h3 class="pmd-menu-form__icon-heading"><span class="pmd-menu-form__section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg></span>{{ $pmdT('categories') }}</h3>
                             <p>{{ $pmdT('categories_help') }}</p>
                         </div>
                         <div class="pmd-menu-choice-grid pmd-menu-choice-grid--categories" data-pmd-menu-category-choices>
@@ -111,7 +112,7 @@
 
                     <section class="pmd-menu-form__section">
                         <div class="pmd-menu-form__section-head">
-                            <h3>{{ $pmdT('food_features') }}</h3>
+                            <h3 class="pmd-menu-form__icon-heading"><span class="pmd-menu-form__section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h5M13 6h7M9 4v4M4 12h11M19 12h1M15 10v4M4 18h2M10 18h10M6 16v4"></path></svg></span>{{ $pmdT('food_features') }}</h3>
                             <p>{{ $pmdT('food_features_help') }}</p>
                         </div>
 
@@ -142,10 +143,13 @@
                             </label>
                         </div>
 
-                        <div class="pmd-menu-form__subhead">
-                            <div>
+                        {{-- PMD_MENU_ALLERGEN_COMPACT_HEADER_V3_20261019 --}}
+                        <div class="pmd-menu-form__subhead pmd-menu-form__subhead--allergens">
+                            <div class="pmd-menu-form__allergens-heading">
+                                <span class="pmd-menu-form__allergens-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3z"></path><path d="M12 9v4M12 17h.01"></path></svg>
+                                </span>
                                 <strong>{{ $pmdT('allergens') }}</strong>
-                                <small>{{ $pmdT('allergens_help') }}</small>
                             </div>
                             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.5 20h19L12 3z"></path><path d="M12 9v4M12 17h.01"></path></svg>
                         </div>
@@ -167,7 +171,7 @@
 
                     <section class="pmd-menu-form__section">
                         <div class="pmd-menu-form__section-head">
-                            <h3>{{ $pmdT('nutrition_prep') }}</h3>
+                            <h3 class="pmd-menu-form__icon-heading"><span class="pmd-menu-form__section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 17V9M12 17V4M18 17v-6"></path></svg></span>{{ $pmdT('nutrition_prep') }}</h3>
                             <p>{{ $pmdT('nutrition_prep_help') }}</p>
                         </div>
                         <div class="pmd-menu-nutrition-grid">
@@ -184,12 +188,12 @@
                                     <button type="button" data-pmd-prep-preset data-store="20"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>10–20 min</span></button>
                                     <button type="button" data-pmd-prep-preset data-store="30"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>20–30 min</span></button>
                                     <button type="button" data-pmd-prep-preset data-store="45"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>30–45 min</span></button>
-                                    <button type="button" data-pmd-prep-custom>Custom</button>
+                                    {{-- PMD_FOOD_PREP_INLINE_STEP_ONE_V6_20261019: one fifth tile switches between Custom button and numeric editor. --}}
+                                    <button type="button" data-pmd-prep-custom aria-pressed="false">Custom</button>
+                                    <div class="pmd-menu-prep-custom pmd-menu-prep-custom--inline" data-pmd-prep-custom-wrap hidden>
+                                        <input type="number" name="prep_time_minutes" min="1" max="240" step="1" inputmode="numeric" value="20" aria-label="{{ $pmdT('prep_time') }}" data-pmd-menu-prep-time>
+                                    </div>
                                 </div>
-                                <label class="pmd-menu-prep-custom" data-pmd-prep-custom-wrap hidden>
-                                    <span>Custom minutes</span>
-                                    <input type="number" name="prep_time_minutes" min="1" max="240" step="1" inputmode="numeric" value="20" data-pmd-menu-prep-time>
-                                </label>
                             </div>
                         </div>
                     </section>

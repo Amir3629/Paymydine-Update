@@ -14,9 +14,13 @@
         item.classList.toggle('is-active', item === button);
         item.setAttribute('aria-pressed', item === button ? 'true' : 'false');
       });
+      // PMD_FOOD_PREP_INLINE_STEP_ONE_V6_20261019: Custom is the fifth PRESET CELL, not a second row.
+      // When active, the same cell displays the original prep_time_minutes input.
       if (custom) {
-        custom.classList.toggle('is-active', button === null);
-        custom.setAttribute('aria-pressed', button === null ? 'true' : 'false');
+        var customActive = button === null;
+        custom.classList.toggle('is-active', customActive);
+        custom.setAttribute('aria-pressed', customActive ? 'true' : 'false');
+        custom.hidden = customActive;
       }
       if (customWrap) customWrap.hidden = button !== null;
     }

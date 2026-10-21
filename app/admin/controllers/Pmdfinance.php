@@ -41,9 +41,21 @@ class Pmdfinance extends AdminController
         $this->addCss('css/pmd-finance-flat-ui-v1.css');
         // PMD_FINANCE_GUARANTEE_R22
         $this->addCss('css/pmd-finance-guarantee-r22.css');
+        // PMD_CROSS_SURFACE_GLASS_CARDS_V1_20261018: route-scoped presentation only, cache-busted by filemtime.
+        $pmdGlassSuiteCss = 'app/admin/assets/css/pmd-cross-surface-glass-v1.css';
+        $this->addCss(asset($pmdGlassSuiteCss).'?v='.(string)(@filemtime(base_path($pmdGlassSuiteCss)) ?: '20261018'));
+
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-settings-inline-detail-v1.js');
         $this->addJs('js/pmd-finance-guarantee-r22.js');
+                // PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: route-scoped accessible steppers & true tenant currency.
+        foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
+            $this->addCss(asset($pmdGlassInputCssV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputCssV1)) ?: '20261019'));
+        }
+        foreach (['app/admin/assets/js/pmd-glass-numeric-controls-v1.js'] as $pmdGlassInputJsV1) {
+            $this->addJs(asset($pmdGlassInputJsV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputJsV1)) ?: '20261019'));
+        }
+
         AdminMenu::setContext('settings', 'system');
     }
 
