@@ -414,6 +414,8 @@ Route::middleware(['cors'])->group(function () {
                 'pmd_social_trustpilot_url' => $settings['pmd_social_trustpilot_url']->value ?? '',
                 'pmd_social_instagram_enabled' => $settings['pmd_social_instagram_enabled']->value ?? '0',
                 'pmd_social_instagram_url' => $settings['pmd_social_instagram_url']->value ?? '',
+                'pmd_social_tiktok_enabled' => $settings['pmd_social_tiktok_enabled']->value ?? '0',
+                'pmd_social_tiktok_url' => $settings['pmd_social_tiktok_url']->value ?? '',
                 'pmd_social_google_enabled' => $settings['pmd_social_google_enabled']->value ?? '0',
                 'pmd_social_google_url' => $settings['pmd_social_google_url']->value ?? '',
                 'pmd_google_business_connected' => $settings['pmd_google_business_connected']->value ?? '0',
