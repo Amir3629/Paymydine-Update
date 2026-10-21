@@ -1,5 +1,6 @@
 /* PMD_STAFF_PORTAL_TIME_CLOCK_CLIENT_V1 */
 /* PMD_STAFF_GEOFENCE_ONDEMAND_V1_20261021 */
+/* PMD_STAFF_CLOCK_GPS_PERMISSION_GUIDANCE_V2_20261021 */
 (function () {
   'use strict';
 
@@ -81,6 +82,27 @@
     status.setAttribute('role', 'status');
     status.setAttribute('aria-live', 'polite');
     punchForm.appendChild(status);
+    // A geolocation PERMISSION_DENIED happens in this browser/WebView before
+    // any attendance POST. This advice never relaxes the server geofence.
+    function explainGeoPermissionDenied() {
+      var policy = document.permissionsPolicy || document.featurePolicy;
+      if (policy && typeof policy.allowsFeature === 'function') {
+        try {
+          if (!policy.allowsFeature('geolocation')) {
+            return 'GPS is blocked by this page\'s permissions policy. Open Staff Portal directly in the restaurant website.';
+          }
+        } catch (ignored) {}
+      }
+      var agent = String(navigator.userAgent || '');
+      if (/Android/i.test(agent) && /;\\s*wv\\b/i.test(agent)) {
+        return 'Android GPS permission denied. Open Settings > Apps > PayMyDine Staff > Permissions > Location; allow while using the app and turn on Precise location. Then retry.';
+      }
+      if (/Android/i.test(agent)) {
+        return 'GPS permission denied. Enable phone Location and allow precise Location for this restaurant in browser site settings, then retry.';
+      }
+      return 'GPS permission denied. Allow Location for this restaurant in browser site permissions and enable device Location, then retry.';
+    }
+
     punchForm.addEventListener('submit', function (event) {
       event.preventDefault();
       if (checking) return;
@@ -91,6 +113,7 @@
       checking = true;
       var submit = punchForm.querySelector('button[type="submit"]');
       if (submit) submit.disabled = true;
+      status.removeAttribute('data-pmd-gps-error');
       status.textContent = 'Checking your location near the restaurant…';
       navigator.geolocation.getCurrentPosition(function (position) {
         var c = position.coords || {};
@@ -117,9 +140,22 @@
       }, function (error) {
         checking = false;
         if (submit) submit.disabled = false;
-        status.textContent = error && error.code === 1
-          ? 'Permission denied. Enable precise location to clock in or out.'
-          : 'No fresh position found. Please retry onsite.';
+        if (error && error.code === 1) {
+          status.setAttribute('data-pmd-gps-error', 'denied');
+          status.textContent = explainGeoPermissionDenied();
+          if (window.console && typeof window.console.warn === 'function') {
+            // No staff coordinates, tokens or identities are written to the console.
+            window.console.warn('[PMD Staff Clock] GPS permission denied before attendance POST', {
+              secureContext: !!window.isSecureContext,
+              embedded: window.self !== window.top
+            });
+          }
+        } else {
+          status.setAttribute('data-pmd-gps-error', 'unavailable');
+          status.textContent = error && error.code === 3
+            ? 'GPS timed out. Enable device Location, move near a window and retry.'
+            : 'No fresh GPS position found. Enable device Location and retry onsite.';
+        }
       }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
     });
   }
