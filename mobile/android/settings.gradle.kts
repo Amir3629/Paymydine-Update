@@ -7,3 +7,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "PayMyDineAndroid"
 include(":app")
+// PMD_STAFF_ANDROID_SEPARATE_APP_V1_20261021 — independent installable APK.
+include(":staff")
