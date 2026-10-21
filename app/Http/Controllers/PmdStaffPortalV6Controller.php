@@ -77,7 +77,9 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 
         // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: no unverified writes. Existing browser and Android
         // clients must both pass this server-side validation.
-        if (!Schema::hasColumn('staff_attendance', 'metadata')) {
+        // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: location_id is required to bind punch to a single workplace.
+        if (!Schema::hasColumn('staff_attendance', 'metadata')
+            || !Schema::hasColumn('staff_attendance', 'location_id')) {
             return redirect('/staff#schedule')->with('error', 'Apply attendance storage updates before GPS clocking.');
         }
         $geo = app(PmdStaffClockGeofenceV1::class)->validatePunch((int)$identity['location_id'], $request);
@@ -153,7 +155,9 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 
         // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: no unverified writes. Existing browser and Android
         // clients must both pass this server-side validation.
-        if (!Schema::hasColumn('staff_attendance', 'metadata')) {
+        // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: location_id is required to bind punch to a single workplace.
+        if (!Schema::hasColumn('staff_attendance', 'metadata')
+            || !Schema::hasColumn('staff_attendance', 'location_id')) {
             return redirect('/staff#schedule')->with('error', 'Apply attendance storage updates before GPS clocking.');
         }
         $geo = app(PmdStaffClockGeofenceV1::class)->validatePunch((int)$identity['location_id'], $request);
@@ -164,7 +168,7 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         $locationId = (int)$identity['location_id'];
 
         try {
-            $result = DB::transaction(function () use ($staffId, $now, $geo) {
+            $result = DB::transaction(function () use ($staffId, $locationId, $now, $geo) {
                 DB::table('staffs')->where('staff_id', $staffId)->lockForUpdate()->first();
 
                 $open = DB::table('staff_attendance')
@@ -174,6 +178,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                     ->lockForUpdate()
                     ->first();
                 if (!$open) return ['ok' => false, 'reason' => 'not_open'];
+                // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: cannot finish an active punch from another location.
+                if ((int)$open->location_id !== $locationId) {
+                    return ['ok' => false, 'reason' => 'wrong_location'];
+                }
 
                 try {
                     $checkIn = Carbon::parse($open->check_in_time);
@@ -236,7 +244,8 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         $identity = $this->clockIdentity();
         if (!$identity || !$this->attendanceReady()) return $base;
         $base['ready'] = app(PmdStaffClockGeofenceV1::class)->site((int)$identity['location_id'])['configured']
-            && Schema::hasColumn('staff_attendance', 'metadata');
+            && Schema::hasColumn('staff_attendance', 'metadata')
+            && Schema::hasColumn('staff_attendance', 'location_id');
 
         $staffId = (int)$identity['staff_id'];
         $locationId = (int)$identity['location_id'];

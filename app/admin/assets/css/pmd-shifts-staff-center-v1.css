@@ -1,5 +1,5 @@
 /* PMD_SHIFTS_STAFF_CENTER_UI_V1_20261021 */
-.pmd-shifts__header-actions .pmd-staff-ops__open{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;margin-right:12px;padding:0 15px;border:1px solid #a8cdbd;border-radius:14px;background:#edf8f3;color:#075745;font:800 12px/1.2 inherit;white-space:nowrap;cursor:pointer}
+.pmd-shifts__header-actions .pmd-staff-ops__open{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;margin-right:12px;padding:0 15px;border:1px solid #a8cdbd;border-radius:14px;background:#edf8f3;color:#075745;font-size:12px;font-weight:800;line-height:1.2;white-space:nowrap;cursor:pointer}
 .pmd-shifts__header-actions .pmd-staff-ops__open svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .pmd-shifts__header-actions .pmd-staff-ops__open:hover{background:#ddf1e7;border-color:#6aab95}
 .pmd-shifts__header-actions .pmd-staff-ops__open:focus-visible{outline:2px solid #08705a;outline-offset:3px}
@@ -22,7 +22,7 @@
 .pmd-staff-ops__kpis strong.pmd-staff-ops__status-text{font-size:19px}
 .pmd-staff-ops__kpis span{font-size:10px;color:#6f8880;line-height:1.4}
 .pmd-staff-ops__tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;border:1px solid #d3e3e8;border-radius:15px;background:#fff;padding:4px}
-.pmd-staff-ops__tabs button{min-height:40px;padding:6px 8px;border:0;border-radius:11px;background:transparent;color:#31584e;font:800 12px/1.2 inherit;cursor:pointer;white-space:nowrap}
+.pmd-staff-ops__tabs button{min-height:40px;padding:6px 8px;border:0;border-radius:11px;background:transparent;color:#31584e;font-size:12px;font-weight:800;line-height:1.2;cursor:pointer;white-space:nowrap}
 .pmd-staff-ops__tabs button[aria-selected="true"]{color:#fff;background:#08624d}
 .pmd-staff-ops__tabs button span{margin-left:4px;font-size:10px}
 .pmd-staff-ops__section{padding:20px 2px 10px}
