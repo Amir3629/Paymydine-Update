@@ -251,12 +251,34 @@
         </div>
         <!-- PMD_SHIFTS_HEADER_NOTIFICATION_ONLY_V6 -->
         <div class="pmd-shifts__header-actions" aria-label="Shift actions">
+            {{-- PMD_SHIFTS_STAFF_CENTER_UI_V1_20261021: Owner/Manager center, lazy loaded without affecting rota. --}}
+            <button type="button" class="pmd-staff-ops__open" data-pmd-staff-ops-open aria-haspopup="dialog" aria-controls="pmd-staff-ops-dialog">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V8m0 0 8-4 8 4v11M4 8h16M9 12h6m-6 4h6" /></svg>
+                <span>Staff activity</span>
+            </button>
             {{-- PMD_SHIFTS_REAL_NOTIFICATION_V1: render the shared functional notification dropdown here. --}}
             <ul class="pmd-shifts__notification-slot" data-pmd-shifts-notification-slot aria-label="Notifications">
                 @include('admin::_partials.notification_bell')
             </ul>
         </div>
     </header>
+
+    {{-- PMD_SHIFTS_STAFF_CENTER_UI_V1_20261021: accessible management overlay, server renders only after role check. --}}
+    <div class="pmd-staff-ops" id="pmd-staff-ops-dialog" data-pmd-staff-ops-dialog role="dialog" aria-modal="true" aria-label="Staff operations" aria-hidden="true" hidden>
+        <button class="pmd-staff-ops__backdrop" type="button" data-pmd-staff-ops-close aria-label="Close staff operations"></button>
+        <div class="pmd-staff-ops__sheet" role="document">
+            <button type="button" class="pmd-staff-ops__close" data-pmd-staff-ops-close aria-label="Close">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18" /></svg>
+            </button>
+            <div class="pmd-staff-ops__content" data-pmd-staff-ops-content aria-live="polite">
+                <p class="pmd-staff-ops__empty">Open staff operations to review attendance and team activity.</p>
+            </div>
+            <footer class="pmd-staff-ops__footer">
+                <button type="button" data-pmd-staff-ops-refresh>Refresh activity</button>
+                <button type="button" data-pmd-staff-ops-close>Close</button>
+            </footer>
+        </div>
+    </div>
 
     @if(!$ready)
         <section class="pmd-shifts__schema-card">
