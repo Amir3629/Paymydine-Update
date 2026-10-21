@@ -10,6 +10,7 @@ use Admin\Facades\Template;
 use Admin\Models\Staffs_model;
 use Admin\Services\PmdDefaultStaffRoleService;
 use Admin\Services\PmdShiftAttendanceSnapshotV134;
+use Admin\Services\PmdStaffOperationsCenterV1;
 use App\Services\PmdKitchenOperationsSchemaService;
 use App\Services\PmdOperationalRosterReconciler;
 use App\Services\PmdStaffPinService;
@@ -124,7 +125,64 @@ class Shifts extends AdminController
             $this->addJs(asset($pmdGlassInputJsV1).'?v='.(string)(@filemtime(base_path($pmdGlassInputJsV1)) ?: '20261019'));
         }
 
+        // PMD_SHIFTS_STAFF_CENTER_V1_20261021: in-page Owner/Manager operations center.
+        $pmdCenterCssV1 = 'app/admin/assets/css/pmd-shifts-staff-center-v1.css';
+        $pmdCenterJsV1 = 'app/admin/assets/js/pmd-shifts-staff-center-v1.js';
+        $this->addCss(asset($pmdCenterCssV1).'?v='.(string)(@filemtime(base_path($pmdCenterCssV1)) ?: '20261021'));
+        $this->addJs(asset($pmdCenterJsV1).'?v='.(string)(@filemtime(base_path($pmdCenterJsV1)) ?: '20261021'));
+
         AdminMenu::setContext('dashboard');
+    }
+
+    /**
+     * PMD_SHIFTS_STAFF_CENTER_V1_20261021
+     * This admin route is never exposed to ordinary staff roles.
+     * Do not include private chat groups in management summaries.
+     */
+    public function staffcenter()
+    {
+        $this->assertOwnerOrManager();
+        $overview = app(PmdStaffOperationsCenterV1::class)->payload($this->locationId());
+        return response()
+            ->view('admin::pmdshifts._staff_operations_center_v1', [
+                'pmdStaffOperations' => $overview,
+            ])
+            ->header('Cache-Control', 'no-store, private');
+    }
+
+    public function sendteammessage()
+    {
+        $this->assertOwnerOrManager();
+        if (!Schema::hasTable('pmd_staff_chat_groups')
+            || !Schema::hasTable('pmd_staff_chat_messages')) abort(503);
+
+        $validator = Validator::make(request()->all(), [
+            'group_id' => ['required','integer','min:1'],
+            'message' => ['required','string','min:1','max:1500'],
+        ]);
+        if ($validator->fails()) throw new ValidationException($validator);
+        $clean = $validator->validated();
+
+        $group = DB::table('pmd_staff_chat_groups')
+            ->where('id', (int)$clean['group_id'])
+            ->where('location_id', $this->locationId())
+            ->where('group_type', 'team')
+            ->where('is_active', 1)->first();
+        if (!$group) abort(404);
+        $user = AdminAuth::getUser();
+        $staffId = (int)optional($user ? $user->staff : null)->staff_id;
+        if ($staffId < 1 || !DB::table('staffs')->where('staff_id', $staffId)->exists()) {
+            abort(403, 'Connect your Owner or Manager staff profile before posting to Team chat.');
+        }
+        DB::table('pmd_staff_chat_messages')->insert([
+            'location_id' => $this->locationId(),
+            'group_id' => (int)$group->id,
+            'staff_id' => $staffId,
+            'message' => trim((string)$clean['message']),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return redirect(admin_url('shifts'))->with('success', 'Team message sent.');
     }
 
     public function index()
