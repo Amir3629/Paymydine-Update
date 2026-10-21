@@ -118,6 +118,7 @@ function pmdKazenReadHeaderLinksV1(payload: any): KazenHeaderLinksV1 {
 
 function pmdKazenSocialLabelV1(platform: string): string {
   const normalized = String(platform || "").trim().toLowerCase()
+  if (normalized === "tiktok") return "TikTok"
   if (normalized === "facebook") return "Facebook"
   if (normalized === "trustpilot") return "Trustpilot"
   if (normalized === "reviews") return "Reviews"
