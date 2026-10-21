@@ -1,6 +1,7 @@
 /* PMD_STAFF_PORTAL_TIME_CLOCK_CLIENT_V1 */
 /* PMD_STAFF_GEOFENCE_ONDEMAND_V1_20261021 */
 /* PMD_STAFF_CLOCK_GPS_PERMISSION_GUIDANCE_V2_20261021 */
+/* PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022 */
 (function () {
   'use strict';
 
@@ -94,7 +95,7 @@
         } catch (ignored) {}
       }
       var agent = String(navigator.userAgent || '');
-      if (/Android/i.test(agent) && /;\\s*wv\\b/i.test(agent)) {
+      if (/Android/i.test(agent) && /;\s*wv\b/i.test(agent)) {
         return 'Android GPS permission denied. Open Settings > Apps > PayMyDine Staff > Permissions > Location; allow while using the app and turn on Precise location. Then retry.';
       }
       if (/Android/i.test(agent)) {
@@ -103,11 +104,69 @@
       return 'GPS permission denied. Allow Location for this restaurant in browser site permissions and enable device Location, then retry.';
     }
 
+    // A separate Staff Android APK can collect ONE fresh foreground fix directly
+    // from Android LocationManager. Old APKs and browsers use normal Web GPS.
+    // This avoids a second WebView site-permission layer, never bypasses Android
+    // runtime permission, and still submits to the original server geofence.
+    var nativeStaffClock = /PMDStaffNativeGPS\/1(?:\b|$)/.test(String(navigator.userAgent || ''));
+    var nativeCounter = 0;
+    var nativeTimeout = null;
+
+    function resetClockButton(message, reason) {
+      checking = false;
+      var submit = punchForm.querySelector('button[type="submit"]');
+      if (submit) submit.disabled = false;
+      if (reason) status.setAttribute('data-pmd-gps-error', reason);
+      status.textContent = message;
+    }
+
+    function savePosition(position) {
+      var c = position.coords || {};
+      var ts = Number(position.timestamp);
+      if (!Number.isFinite(c.latitude) || Math.abs(c.latitude) > 90 ||
+          !Number.isFinite(c.longitude) || Math.abs(c.longitude) > 180 ||
+          !Number.isFinite(c.accuracy) || c.accuracy <= 0 || c.accuracy > 90 ||
+          !Number.isFinite(ts) || Math.abs(Date.now() - ts) > 90000) {
+        resetClockButton('No recent precise GPS fix. Try near a window or outdoors.', 'accuracy');
+        return;
+      }
+
+      var fields = {
+        geo_lat: c.latitude, geo_lng: c.longitude,
+        geo_accuracy_m: c.accuracy, geo_captured_at_ms: ts
+      };
+      Object.keys(fields).forEach(function (key) {
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = key;
+        hidden.value = String(fields[key]);
+        punchForm.appendChild(hidden);
+      });
+      status.textContent = 'GPS checked. Saving the shift…';
+      HTMLFormElement.prototype.submit.call(punchForm);
+    }
+
+    function nativeGpsError(reason) {
+      if (reason === 'precise_denied') {
+        return 'Android did not grant precise GPS to PayMyDine Staff. Check Staff app permission (Precise), not the browser.';
+      }
+      if (reason === 'location_off') {
+        return 'Device Location is switched off. Turn on Location on your phone and retry.';
+      }
+      if (reason === 'timeout') {
+        return 'Android GPS did not find an accurate fresh position. Move near a window or outdoors and retry.';
+      }
+      if (reason === 'provider_unavailable') {
+        return 'Android location providers are unavailable. Check device Location services and retry.';
+      }
+      return 'Android could not obtain a fresh position. Retry onsite.';
+    }
+
     punchForm.addEventListener('submit', function (event) {
       event.preventDefault();
       if (checking) return;
-      if (!navigator.geolocation || !window.isSecureContext) {
-        status.textContent = 'Location needs HTTPS and permission to use precise GPS.';
+      if (!window.isSecureContext || (!nativeStaffClock && !navigator.geolocation)) {
+        status.textContent = 'Location requires HTTPS and an available GPS provider.';
         return;
       }
       checking = true;
@@ -115,46 +174,62 @@
       if (submit) submit.disabled = true;
       status.removeAttribute('data-pmd-gps-error');
       status.textContent = 'Checking your location near the restaurant…';
-      navigator.geolocation.getCurrentPosition(function (position) {
-        var c = position.coords || {};
-        if (!Number.isFinite(c.latitude) || !Number.isFinite(c.longitude)
-          || !Number.isFinite(c.accuracy) || c.accuracy > 90) {
-          checking = false;
-          if (submit) submit.disabled = false;
-          status.textContent = 'Your location is not precise enough. Try near a window.';
-          return;
-        }
-        var fields = {
-          geo_lat: c.latitude, geo_lng: c.longitude,
-          geo_accuracy_m: c.accuracy, geo_captured_at_ms: position.timestamp
+
+      if (nativeStaffClock) {
+        var request = String(Date.now()) + '_' + String(++nativeCounter) + '_' +
+          Math.random().toString(36).slice(2, 14);
+        window.PMD_STAFF_NATIVE_GPS_RESULT = function (data) {
+          if (!data || data.request !== request) return;
+          if (nativeTimeout !== null) window.clearTimeout(nativeTimeout);
+          nativeTimeout = null;
+          window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+
+          if (!data.ok) {
+            resetClockButton(nativeGpsError(data.error), 'native');
+            return;
+          }
+
+          savePosition({
+            coords: {
+              latitude: Number(data.latitude),
+              longitude: Number(data.longitude),
+              accuracy: Number(data.accuracy_m)
+            },
+            timestamp: Number(data.captured_at_ms)
+          });
         };
-        Object.keys(fields).forEach(function (key) {
-          var hidden = document.createElement('input');
-          hidden.type = 'hidden';
-          hidden.name = key;
-          hidden.value = String(fields[key]);
-          punchForm.appendChild(hidden);
-        });
-        status.textContent = 'GPS checked. Saving the shift…';
-        HTMLFormElement.prototype.submit.call(punchForm);
-      }, function (error) {
-        checking = false;
-        if (submit) submit.disabled = false;
+
+        // Do not put coordinates, tokens, or login details in the bridge URL.
+        nativeTimeout = window.setTimeout(function () {
+          window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+          nativeTimeout = null;
+          resetClockButton('No response from the Staff app GPS bridge. Update the Staff APK and retry.', 'native');
+        }, 25000);
+        try {
+          window.location.assign('pmdstaffgeo://clock?request=' + encodeURIComponent(request));
+        } catch (error) {
+          window.clearTimeout(nativeTimeout);
+          nativeTimeout = null;
+          window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+          resetClockButton('Could not start Android GPS. Reopen the Staff app and retry.', 'native');
+        }
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(savePosition, function (error) {
         if (error && error.code === 1) {
-          status.setAttribute('data-pmd-gps-error', 'denied');
-          status.textContent = explainGeoPermissionDenied();
+          resetClockButton(explainGeoPermissionDenied(), 'denied');
           if (window.console && typeof window.console.warn === 'function') {
-            // No staff coordinates, tokens or identities are written to the console.
-            window.console.warn('[PMD Staff Clock] GPS permission denied before attendance POST', {
+            // No personal data, raw GPS or tokens are emitted.
+            window.console.warn('[PMD Staff Clock] Web geolocation denied before attendance POST', {
               secureContext: !!window.isSecureContext,
               embedded: window.self !== window.top
             });
           }
         } else {
-          status.setAttribute('data-pmd-gps-error', 'unavailable');
-          status.textContent = error && error.code === 3
-            ? 'GPS timed out. Enable device Location, move near a window and retry.'
-            : 'No fresh GPS position found. Enable device Location and retry onsite.';
+          resetClockButton(error && error.code === 3
+            ? 'GPS timed out. Move near a window and retry onsite.'
+            : 'No fresh GPS fix found. Retry onsite.', 'unavailable');
         }
       }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
     });
