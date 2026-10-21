@@ -251,12 +251,34 @@
         </div>
         <!-- PMD_SHIFTS_HEADER_NOTIFICATION_ONLY_V6 -->
         <div class="pmd-shifts__header-actions" aria-label="Shift actions">
+            {{-- PMD_SHIFTS_STAFF_CENTER_UI_V1_20261021: Owner/Manager center, lazy loaded without affecting rota. --}}
+            <button type="button" class="pmd-staff-ops__open" data-pmd-staff-ops-open data-pmd-staff-ops-url="{{ admin_url('shifts/staffcenter') }}" aria-haspopup="dialog" aria-controls="pmd-staff-ops-dialog">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V8m0 0 8-4 8 4v11M4 8h16M9 12h6m-6 4h6" /></svg>
+                <span>Staff activity</span>
+            </button>
             {{-- PMD_SHIFTS_REAL_NOTIFICATION_V1: render the shared functional notification dropdown here. --}}
             <ul class="pmd-shifts__notification-slot" data-pmd-shifts-notification-slot aria-label="Notifications">
                 @include('admin::_partials.notification_bell')
             </ul>
         </div>
     </header>
+
+    {{-- PMD_SHIFTS_STAFF_CENTER_UI_V1_20261021: accessible management overlay, server renders only after role check. --}}
+    <div class="pmd-staff-ops" id="pmd-staff-ops-dialog" data-pmd-staff-ops-dialog role="dialog" aria-modal="true" aria-label="Staff operations" aria-hidden="true" hidden>
+        <button class="pmd-staff-ops__backdrop" type="button" data-pmd-staff-ops-close aria-label="Close staff operations"></button>
+        <div class="pmd-staff-ops__sheet" role="document">
+            <button type="button" class="pmd-staff-ops__close" data-pmd-staff-ops-close aria-label="Close">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18" /></svg>
+            </button>
+            <div class="pmd-staff-ops__content" data-pmd-staff-ops-content aria-live="polite">
+                <p class="pmd-staff-ops__empty">Open staff operations to review attendance and team activity.</p>
+            </div>
+            <footer class="pmd-staff-ops__footer">
+                <button type="button" data-pmd-staff-ops-refresh>Refresh activity</button>
+                <button type="button" data-pmd-staff-ops-close>Close</button>
+            </footer>
+        </div>
+    </div>
 
     @if(!$ready)
         <section class="pmd-shifts__schema-card">
@@ -461,13 +483,7 @@
                         <label class="is-password" data-pmd-team-password-field>
                             <span>Password <small data-pmd-team-password-hint>Web / Portal</small></span>
                             <span class="pmd-shifts__team-password-row">
-                                <span class="pmd-shifts__password-input-wrap">
-                                    <input type="password" minlength="12" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password aria-describedby="pmd-shifts-password-strength-advice">
-                                    <button type="button" data-pmd-team-password-visibility hidden disabled aria-pressed="false" aria-label="Show new password" title="Show new password">
-                                        <svg data-pmd-password-icon-show viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                        <svg data-pmd-password-icon-hide viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3 21 21M10.6 5.1A11 11 0 0 1 12 5c6.2 0 10 7 10 7a15 15 0 0 1-3.1 3.9M6.3 6.3C3.6 8.3 2 12 2 12s3.8 7 10 7c1.8 0 3.4-.6 4.8-1.5M10 10a3 3 0 0 0 4 4"></path></svg>
-                                    </button>
-                                </span>
+                                <input type="password" minlength="12" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password aria-describedby="pmd-shifts-password-strength-advice">
                                 <button type="button" data-pmd-team-password-generate>Generate</button>
                             </span>
                             <span class="pmd-shifts__password-strength" data-pmd-team-password-strength data-strength="empty" role="status" aria-live="polite" hidden>
