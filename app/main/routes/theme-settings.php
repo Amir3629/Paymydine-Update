@@ -179,6 +179,7 @@
                 $pmdKazenPickSocialV1 = function () use ($pmdKazenSettingV1, $pmdKazenBoolV1, $pmdKazenUrlV1) {
                     foreach ([
                         ['instagram', 'pmd_social_instagram_enabled', 'pmd_social_instagram_url'],
+                        ['tiktok', 'pmd_social_tiktok_enabled', 'pmd_social_tiktok_url'],
                         ['facebook', 'pmd_social_facebook_enabled', 'pmd_social_facebook_url'],
                         ['trustpilot', 'pmd_social_trustpilot_enabled', 'pmd_social_trustpilot_url'],
                         ['reviews', 'pmd_social_reviews_enabled', 'pmd_social_reviews_url'],
@@ -199,7 +200,7 @@
                 $pmdKazenWebsiteEnabledV1 = $pmdKazenBoolV1($pmdKazenSettingV1('pmd_kazen_website_enabled', $pmdKazenWebsiteUrlV1 !== '' ? '1' : '0')) && $pmdKazenWebsiteUrlV1 !== '';
 
                 $pmdKazenSocialPlatformV1 = strtolower(trim((string)$pmdKazenSettingV1('pmd_kazen_social_platform', $pmdKazenLegacySocialPlatformV1 ?: 'instagram')));
-                if (!in_array($pmdKazenSocialPlatformV1, ['instagram', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
+                if (!in_array($pmdKazenSocialPlatformV1, ['instagram', 'tiktok', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
                     $pmdKazenSocialPlatformV1 = 'instagram';
                 }
 
@@ -755,7 +756,7 @@ if (!defined('PMD_KAZEN_SIMPLE_THEME_OVERRIDE_ROUTE_V14')) {
             'pmd_kazen_social_platform',
             $data['kazen_header_links']['social']['platform'] ?? $setting('pmd_kazen_social_platform', 'instagram')
         )));
-        if (!in_array($socialPlatform, ['instagram', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
+        if (!in_array($socialPlatform, ['instagram', 'tiktok', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
             $socialPlatform = 'instagram';
         }
 
@@ -938,7 +939,7 @@ if (!defined('PMD_SIMPLE_THEME_DYNAMIC_ALL_EXISTING_THEMES_V8')) {
 
         $socialUrl = $url($pick('pmd_kazen_social_url', $data['kazen_header_links']['social']['url'] ?? ''));
         $socialPlatform = strtolower(trim((string)$pick('pmd_kazen_social_platform', $data['kazen_header_links']['social']['platform'] ?? 'instagram')));
-        if (!in_array($socialPlatform, ['instagram', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
+        if (!in_array($socialPlatform, ['instagram', 'tiktok', 'facebook', 'trustpilot', 'reviews', 'website'], true)) {
             $socialPlatform = 'instagram';
         }
         $socialEnabled = $socialUrl !== '' && $bool($pick('pmd_kazen_social_enabled', $data['kazen_header_links']['social']['enabled'] ?? '1'));
