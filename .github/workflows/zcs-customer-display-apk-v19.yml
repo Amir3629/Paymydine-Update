@@ -72,7 +72,7 @@ jobs:
           fi
           echo "$EXPECTED  $FILE" | sha256sum -c -
 
-      - name: Verify installed APK signing key matches preview update key
+      - name: Record APK signing compatibility
         shell: bash
         run: |
           set -euo pipefail
@@ -80,10 +80,15 @@ jobs:
           BASE_CERT="$("$APKSIGNER" verify --print-certs base-0.5.9.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
           KEY_CERT="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
           echo "Base cert: $BASE_CERT"
-          echo "Key  cert: $KEY_CERT"
+          echo "Stable key cert: $KEY_CERT"
           test -n "$BASE_CERT"
           test -n "$KEY_CERT"
-          test "$BASE_CERT" = "$KEY_CERT"
+          if [[ "$BASE_CERT" == "$KEY_CERT" ]]; then
+            echo 'PMD_ANDROID_UPDATE_IN_PLACE=YES'
+          else
+            echo 'PMD_ANDROID_UPDATE_IN_PLACE=NO'
+            echo 'The 0.5.9 build used a one-off signing key; 0.6.0 requires one clean reinstall.'
+          fi
 
       - name: Install apktool
         shell: bash
