@@ -960,14 +960,21 @@ class Pmdsettings extends AdminController
                 'pmd_social_website_url' => trim((string)($clean['website_url'] ?? '')),
                 'pmd_social_instagram_enabled' => !empty($profile['instagram_enabled']) ? 1 : 0,
                 'pmd_social_instagram_url' => trim((string)($clean['instagram_url'] ?? '')),
-                'pmd_social_tiktok_enabled' => !empty($profile['tiktok_enabled']) ? 1 : 0,
-                'pmd_social_tiktok_url' => trim((string)($clean['tiktok_url'] ?? '')),
                 'pmd_social_google_enabled' => !empty($profile['google_enabled']) ? 1 : 0,
                 'pmd_social_google_url' => trim((string)($clean['google_url'] ?? '')),
                 'pmd_social_trustpilot_enabled' => !empty($profile['trustpilot_enabled']) ? 1 : 0,
                 'pmd_social_trustpilot_url' => trim((string)($clean['trustpilot_url'] ?? '')),
 
             ];
+
+            // PMD_TIKTOK_OLD_PROFILE_TAB_SAFETY_R1
+            // Older admin tabs have no TikTok input. Saving an unrelated
+            // profile field must not silently erase a newly configured link.
+            // Current profile includes tiktok_url even when toggle is off.
+            if (array_key_exists('tiktok_url', $profile)) {
+                $settings['pmd_social_tiktok_enabled'] = !empty($profile['tiktok_enabled']) ? 1 : 0;
+                $settings['pmd_social_tiktok_url'] = trim((string)($clean['tiktok_url'] ?? ''));
+            }
 
             // PMD_FLOOR_RESERVATION_NOTICE_SETTING_R1
             // Older form revisions omit this setting; never overwrite it unless
