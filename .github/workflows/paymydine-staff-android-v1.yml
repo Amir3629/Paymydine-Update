@@ -1,0 +1,41 @@
+name: PayMyDine Staff Android (separate APK)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/android/staff/**'
+      - 'mobile/android/settings.gradle.kts'
+      - '.github/workflows/paymydine-staff-android-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staff-apk:
+    name: Build standalone Staff APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android 36 platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Build ONLY dedicated Staff application
+        working-directory: mobile/android
+        run: gradle --no-daemon :staff:assembleDebug
+      - name: Publish separate installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: PayMyDine-Staff-Android-debug
+          path: mobile/android/staff/build/outputs/apk/debug/staff-debug.apk
+          if-no-files-found: error
+          retention-days: 14
