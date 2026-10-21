@@ -7,12 +7,45 @@ on:
       - 'mobile/android/staff/**'
       - 'mobile/android/settings.gradle.kts'
       - '.github/workflows/paymydine-staff-android-v1.yml'
+      - 'app/Http/Controllers/PmdStaffPortalV6Controller.php'
+      - 'app/Services/PmdStaffClockGeofenceV1.php'
+      - 'app/admin/controllers/Shifts.php'
+      - 'app/admin/Services/PmdStaffOperationsCenterV1.php'
+      - 'app/admin/assets/js/pmd-staff-time-clock-v1.js'
+      - 'app/admin/assets/js/pmd-shifts-staff-center-v1.js'
+      - 'app/admin/views/pmdshifts/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  server-contract:
+    name: Validate tenant attendance and operations center
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: |
+          php -l app/Services/PmdStaffClockGeofenceV1.php
+          php -l app/Http/Controllers/PmdStaffPortalV6Controller.php
+          php -l app/admin/Services/PmdStaffOperationsCenterV1.php
+          php -l app/admin/controllers/Shifts.php
+      - name: Browser script syntax
+        run: |
+          node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
+          node --check app/admin/assets/js/pmd-shifts-staff-center-v1.js
+      - name: Separation, auth and privacy contracts
+        run: |
+          set -eu
+          grep -Fq 'applicationId = "com.paymydine.staff"' mobile/android/staff/build.gradle.kts
+          grep -Fq 'applicationId = "com.paymydine.mobile"' mobile/android/app/build.gradle.kts
+          grep -Fq 'PMD_STAFF_GEOFENCE_SERVER_V1_20261021' app/Services/PmdStaffClockGeofenceV1.php
+          grep -Fq 'validatePunch' app/Http/Controllers/PmdStaffPortalV6Controller.php
+          grep -Fq 'assertOwnerOrManager' app/admin/controllers/Shifts.php
+          ! grep -Fq 'ACCESS_BACKGROUND_LOCATION' mobile/android/staff/src/main/AndroidManifest.xml
+
   staff-apk:
     name: Build standalone Staff APK
     runs-on: ubuntu-latest
