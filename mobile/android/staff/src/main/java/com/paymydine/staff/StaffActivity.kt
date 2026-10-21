@@ -3,6 +3,12 @@ package com.paymydine.staff
 import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Handler
+import android.os.Looper
+import org.json.JSONObject
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
@@ -47,6 +53,13 @@ class StaffActivity : Activity() {
     private var pendingGeo: GeolocationPermissions.Callback? = null
     private var pendingOrigin: String? = null
     private val permissionCode = 4521
+    // PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022
+    // One-shot foreground-only bridge; no JavaScript interface, persistent GPS grant or background tracker.
+    private val nativePermissionCode = 4522
+    private val nativeLocationHandler = Handler(Looper.getMainLooper())
+    private var nativeRequestId: String? = null
+    private var nativeLocationListener: LocationListener? = null
+    private var nativeTimeout: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -158,6 +171,8 @@ class StaffActivity : Activity() {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.setGeolocationEnabled(true)
+            // Only the dedicated Staff APK advertises the native, one-shot time-clock GPS route.
+            settings.userAgentString = settings.userAgentString + " PMDStaffNativeGPS/1"
             settings.allowContentAccess = false
             settings.allowFileAccess = false
             settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
@@ -173,6 +188,18 @@ class StaffActivity : Activity() {
         browser.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url
+                // Intercept only a main-frame request from our authenticated restaurant Staff Portal.
+                // Never deliver raw GPS in a URL or grant it to third-party frames.
+                if (uri.scheme == "pmdstaffgeo") {
+                    if (request.isForMainFrame && uri.host == "clock"
+                        && isTrustedClockDocument(view.url)) {
+                        val id = uri.getQueryParameter("request")
+                        if (id != null && Regex("^[A-Za-z0-9_-]{12,80}$").matches(id)) {
+                            requestNativeClockGps(id)
+                        }
+                    }
+                    return true
+                }
                 // PMD_STAFF_WORKFORCE_DAILY_RELIABILITY_V2_20261021: keep the authenticated WebView on the chosen tenant only.
                 // Other PMD tenant origins open in the system browser, without Staff cookies.
                 if (uri.scheme == "https" && uri.host?.lowercase(Locale.ROOT) == restaurantHost) return false
@@ -222,6 +249,116 @@ class StaffActivity : Activity() {
         if (saved != null) connect(saved) else showSetup()
     }
 
+    private fun isTrustedClockDocument(url: String?): Boolean {
+        if (restaurantHost.isBlank() || url.isNullOrBlank()) return false
+        val uri = try { Uri.parse(url) } catch (_: Exception) { return false }
+        if (uri.scheme != "https" || uri.host?.lowercase(Locale.ROOT) != restaurantHost) return false
+        val path = uri.path ?: return false
+        return path == "/admin/mywork" || path.startsWith("/admin/mywork/") ||
+            path == "/staff" || path.startsWith("/staff/")
+    }
+
+    private fun requestNativeClockGps(id: String) {
+        if (nativeRequestId != null || !isTrustedClockDocument(browser.url)) return
+        nativeRequestId = id
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Android 12+ may grant approximate but not precise: request BOTH to let the user choose.
+            requestPermissions(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                nativePermissionCode
+            )
+            return
+        }
+        beginNativeClockGps()
+    }
+
+    private fun beginNativeClockGps() {
+        if (nativeRequestId == null) return
+        if (!isTrustedClockDocument(browser.url)) {
+            finishNativeClockGps(null, "cancelled", notify = false)
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            finishNativeClockGps(null, "precise_denied")
+            return
+        }
+
+        val manager = getSystemService(LOCATION_SERVICE) as LocationManager
+        val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+            .filter { provider ->
+                try { manager.isProviderEnabled(provider) } catch (_: Exception) { false }
+            }
+        if (providers.isEmpty()) {
+            finishNativeClockGps(null, "location_off")
+            return
+        }
+
+        val listener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                // Never submit a cached or low-precision fix. Server validation remains authoritative.
+                val ageMs = System.currentTimeMillis() - location.time
+                if (ageMs < -5_000L || ageMs > 20_000L ||
+                    !location.hasAccuracy() || location.accuracy <= 0f ||
+                    location.accuracy > 90f ||
+                    !location.latitude.isFinite() || !location.longitude.isFinite()) return
+                finishNativeClockGps(location, null)
+            }
+        }
+        nativeLocationListener = listener
+        val timeout = Runnable { finishNativeClockGps(null, "timeout") }
+        nativeTimeout = timeout
+        nativeLocationHandler.postDelayed(timeout, 20_000L)
+
+        var registered = 0
+        for (provider in providers) {
+            try {
+                manager.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
+                registered++
+            } catch (_: SecurityException) {
+                // The separate precise-permission check above controls this path.
+            } catch (_: Exception) {
+                // A provider can disappear while location settings are changing.
+            }
+        }
+        if (registered == 0) finishNativeClockGps(null, "provider_unavailable")
+    }
+
+    private fun finishNativeClockGps(
+        location: Location?,
+        error: String? = null,
+        notify: Boolean = true
+    ) {
+        val request = nativeRequestId
+        nativeRequestId = null
+        nativeTimeout?.let { nativeLocationHandler.removeCallbacks(it) }
+        nativeTimeout = null
+        nativeLocationListener?.let { listener ->
+            try {
+                (getSystemService(LOCATION_SERVICE) as LocationManager).removeUpdates(listener)
+            } catch (_: Exception) {}
+        }
+        nativeLocationListener = null
+
+        if (!notify || request == null || !isTrustedClockDocument(browser.url)) return
+        val payload = JSONObject()
+            .put("request", request)
+            .put("ok", location != null)
+        if (location != null) {
+            payload.put("latitude", location.latitude)
+                .put("longitude", location.longitude)
+                .put("accuracy_m", location.accuracy.toDouble())
+                .put("captured_at_ms", location.time)
+        } else {
+            payload.put("error", error ?: "unavailable")
+        }
+        // Evaluate only in the trusted top-level Staff Portal. The server still
+        // checks tenant, distance, accuracy and timestamp before inserting attendance.
+        browser.evaluateJavascript(
+            "window.PMD_STAFF_NATIVE_GPS_RESULT && window.PMD_STAFF_NATIVE_GPS_RESULT($payload);",
+            null
+        )
+    }
+
     private fun connect(host: String) {
         restaurantHost = host
         preferences.edit().putString("host", host).apply()
@@ -231,6 +368,7 @@ class StaffActivity : Activity() {
     }
 
     private fun showSetup() {
+        finishNativeClockGps(null, "cancelled", notify = false)
         pendingGeo?.invoke(pendingOrigin ?: "", false, false)
         pendingGeo = null
         pendingOrigin = null
@@ -271,6 +409,14 @@ class StaffActivity : Activity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == nativePermissionCode) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                beginNativeClockGps()
+            } else {
+                finishNativeClockGps(null, "precise_denied")
+            }
+            return
+        }
         if (requestCode != permissionCode) return
         val allowed = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         pendingGeo?.invoke(pendingOrigin ?: "", allowed, false)
@@ -286,6 +432,7 @@ class StaffActivity : Activity() {
     }
 
     override fun onDestroy() {
+        finishNativeClockGps(null, "cancelled", notify = false)
         pendingGeo?.invoke(pendingOrigin ?: "", false, false)
         pendingGeo = null
         browser.destroy()
