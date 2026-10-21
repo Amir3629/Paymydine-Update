@@ -19,6 +19,14 @@ on:
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
       - 'app/admin/views/pmdshifts/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'mobile/android/staff/**'
+      - 'app/admin/assets/js/pmd-staff-time-clock-v1.js'
+      - 'app/Http/Controllers/PmdStaffPortalV6Controller.php'
+      - '.github/workflows/paymydine-staff-android-v1.yml'
+      - 'pmd-qa/scripts/staff-native-gps-contract.test.cjs'
   workflow_dispatch:
 
 permissions:
@@ -44,6 +52,7 @@ jobs:
         run: |
           node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
           node --check app/admin/assets/js/pmd-shifts-staff-center-v1.js
+          node pmd-qa/scripts/staff-native-gps-contract.test.cjs
       - name: Separation, auth and privacy contracts
         run: |
           set -eu
@@ -54,6 +63,9 @@ jobs:
           grep -Fq 'assertOwnerOrManager' app/admin/controllers/Shifts.php
           ! grep -Fq 'ACCESS_BACKGROUND_LOCATION' mobile/android/staff/src/main/AndroidManifest.xml
           grep -Fq 'PMD_STAFF_WORKFORCE_DAILY_RELIABILITY_V2_20261021' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
+          grep -Fq 'PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
+          grep -Fq 'PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022' app/admin/assets/js/pmd-staff-time-clock-v1.js
+          grep -Fq 'pmdstaffgeo://clock?request=' app/admin/assets/js/pmd-staff-time-clock-v1.js
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
