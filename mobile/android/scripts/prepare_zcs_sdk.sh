@@ -64,8 +64,8 @@ parser = Parser()
 parser.feed(html_text)
 
 candidates = []
-for href, text in parser.links:
-    blob = (href + " " + text).lower()
+for href, label in parser.links:
+    blob = (href + " " + label).lower()
     if (
         ("z100" in blob and "sdk" in blob)
         or ("z90" in blob and "sdk" in blob)
@@ -87,7 +87,7 @@ normalized = []
 seen = set()
 for href in candidates:
     href = href.strip()
-    if not href or href.lower().startswith("javascript:"):
+    if not href or href.lower().startswith("javascript:") or href.endswith("#toform"):
         continue
     url = urllib.parse.urljoin(page_url, href)
     if url in seen:
@@ -95,10 +95,7 @@ for href in candidates:
     seen.add(url)
     normalized.append(url)
 
-if not normalized:
-    raise SystemExit("No official ZCS SDK archive URL found on the SDK page")
-
-out_path.write_text("\n".join(normalized) + "\n", encoding="utf-8")
+out_path.write_text("\n".join(normalized) + ("\n" if normalized else ""), encoding="utf-8")
 print("ZCS SDK candidates:")
 for url in normalized:
     print("  " + url)
@@ -111,7 +108,9 @@ while IFS= read -r URL; do
     INDEX=$((INDEX + 1))
     TARGET="$WORK_DIR/downloads/candidate-$INDEX"
     echo "Trying official ZCS SDK URL: $URL"
-    if curl -fL --retry 2 --connect-timeout 20 --max-time 180         -A 'Mozilla/5.0 PayMyDine-ZCS-Builder/2.0'         "$URL" -o "$TARGET"; then
+    if curl -fL --retry 2 --connect-timeout 20 --max-time 180 \
+        -A 'Mozilla/5.0 PayMyDine-ZCS-Builder/2.0' \
+        "$URL" -o "$TARGET"; then
         if file "$TARGET" | grep -qi 'Zip archive'; then
             SDK_ARCHIVE="$TARGET"
             break
@@ -120,27 +119,11 @@ while IFS= read -r URL; do
 done < "$WORK_DIR/candidates.txt"
 
 if [[ -z "$SDK_ARCHIVE" ]]; then
-    echo "Official ZCS page currently gates the SDK behind its request form."
-    echo "Inspecting our previously built ZCS V6 APK as a safe internal SDK carrier..."
-    CARRIER="$WORK_DIR/PayMyDine-ZCS-Customer-Display-V6.apk"
-    curl -fL --retry 2 \
-        "https://raw.githubusercontent.com/Amir3629/Paymydine-Update/main/public/downloads/paymydine/PayMyDine-ZCS-Customer-Display-V6.apk" \
-        -o "$CARRIER"
-    echo "Carrier SHA256: $(sha256sum "$CARRIER" | awk '{print $1}')"
-    while IFS= read -r DEX; do
-        echo "DEX=$DEX"
-        if unzip -p "$CARRIER" "$DEX" | strings | grep -Fq 'com/zcs/sdk/DriverManager'; then
-            echo "  ZCS_DRIVER_MANAGER=yes"
-        else
-            echo "  ZCS_DRIVER_MANAGER=no"
-        fi
-        PMD_COUNT="$(unzip -p "$CARRIER" "$DEX" | strings | grep -Fc 'com/paymydine/' || true)"
-        ZCS_COUNT="$(unzip -p "$CARRIER" "$DEX" | strings | grep -Fc 'com/zcs/' || true)"
-        echo "  PMD_STRINGS=$PMD_COUNT ZCS_STRINGS=$ZCS_COUNT"
-    done < <(zipinfo -1 "$CARRIER" | grep -E '^classes[0-9]*[.]dex
+    echo "Official ZCS page currently gates the raw SDK behind its request form."
+    echo "The build must receive the vendor AAR from a private build input."
+    exit 42
+fi
 
-# Extract the downloaded archive and any nested ZIPs. ZCS sometimes distributes
-# the SmartPos package directly and sometimes inside a larger POS-SDK bundle.
 unzip -q "$SDK_ARCHIVE" -d "$WORK_DIR/extracted/root"
 
 for DEPTH in 1 2 3; do
@@ -177,52 +160,5 @@ if [[ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]]; then
 fi
 
 cp "$AAR" "$DEST_DIR/$EXPECTED_NAME"
-
-test -s "$DEST_DIR/$EXPECTED_NAME"
-echo "PMD_ZCS_Z100_SDK_INJECTED=PASS"
-)
-    echo "ERROR: Official raw AAR is not directly downloadable; carrier diagnostics printed above." >&2
-    exit 1
-fi
-
-# Extract the downloaded archive and any nested ZIPs. ZCS sometimes distributes
-# the SmartPos package directly and sometimes inside a larger POS-SDK bundle.
-unzip -q "$SDK_ARCHIVE" -d "$WORK_DIR/extracted/root"
-
-for DEPTH in 1 2 3; do
-    mapfile -t NESTED < <(find "$WORK_DIR/extracted" -type f -iname '*.zip' -print)
-    [[ "${#NESTED[@]}" -gt 0 ]] || break
-    EXTRACTED_ANY=0
-    for ZIP in "${NESTED[@]}"; do
-        MARKER="$ZIP.pmd-extracted"
-        [[ -f "$MARKER" ]] && continue
-        OUT="$WORK_DIR/extracted/nested-$DEPTH-$(printf '%s' "$ZIP" | sha256sum | cut -c1-12)"
-        mkdir -p "$OUT"
-        if unzip -q "$ZIP" -d "$OUT"; then
-            touch "$MARKER"
-            EXTRACTED_ANY=1
-        fi
-    done
-    [[ "$EXTRACTED_ANY" -eq 1 ]] || break
-done
-
-AAR="$(find "$WORK_DIR/extracted" -type f -name "$EXPECTED_NAME" -print -quit)"
-if [[ -z "$AAR" ]]; then
-    echo "ERROR: $EXPECTED_NAME was not found in the official ZCS SDK archive." >&2
-    find "$WORK_DIR/extracted" -type f -iname 'SmartPos*.aar' -print >&2 || true
-    exit 1
-fi
-
-ACTUAL_SHA256="$(sha256sum "$AAR" | awk '{print $1}')"
-echo "ZCS_AAR=$AAR"
-echo "ZCS_AAR_SHA256=$ACTUAL_SHA256"
-
-if [[ "$ACTUAL_SHA256" != "$EXPECTED_SHA256" ]]; then
-    echo "ERROR: ZCS SmartPos AAR checksum mismatch." >&2
-    exit 1
-fi
-
-cp "$AAR" "$DEST_DIR/$EXPECTED_NAME"
-
 test -s "$DEST_DIR/$EXPECTED_NAME"
 echo "PMD_ZCS_Z100_SDK_INJECTED=PASS"
