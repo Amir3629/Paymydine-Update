@@ -1157,9 +1157,8 @@ window.PMDQuickPOSConfig = {
 @else
 <script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261003-r135"></script>
 @endif
-{{-- PMD_ZCS_CUSTOMER_DISPLAY_LIVE_HOTFIX_V120 --}}
 {{-- Same canonical window helper as the shared Floor; POST-only /admin/pos/reservation-busy. --}}
-<script src="{{ asset('app/admin/assets/js/pmd-qpos-reservation-rail-r2.js') }}?v=20261021-zcs-v120"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-qpos-reservation-rail-r2.js') }}?v=20261018-r2"></script>
 
 {{-- PMD_QPOS_MINIMAL_BOOT_R135
      Only the core POS runtime participates in initial document boot.
