@@ -24,3 +24,12 @@ Test a real restaurant tenant plus two phones, same role login and MFA, GPS perm
 
 ## Privacy and limitations
 No ACCESS_BACKGROUND_LOCATION, GPS polling or raw employee coordinate history. Permission is requested upon clock action only, with rounded distance and accuracy stored for verification audit. Device GPS may be spoofed; this is location evidence, not conclusive proof of presence. Plan a manual correction path and legal/privacy assessment before enforcing attendance. Private chat groups remain private; management sees the shared Team channel only. The webview is HTTPS only and honors certificate errors. Existing staff portal chat and requests remain canonical.
+
+
+## October 21 reliability update
+
+- PMD_STAFF_WORKFORCE_DAILY_RELIABILITY_V2_20261021: Staff operations reloads on every opening and after an Owner/Manager request decision or shared Team message; it retains the selected tab and does not grant staff access to the Owner controls.
+- The standalone Android WebView keeps restaurant authentication within the host chosen by the employee. External tenant links leave the Staff app instead of carrying the current WebView session.
+- Use scripts/pmd-install-staff-platform-v1.sh with a pinned 40-character Git commit. It now includes the Mywork bridge and Time Clock CSS alongside the server logic and Shifts drawer.
+- APK assembly is a separate GitHub Actions build. An Android project source commit is not an installed/verified release APK. Obtain the staff-debug.apk artifact after the Staff Android workflow completes successfully, and perform onsite device tests before distributing.
+- Only use the Staff app for employee accounts. Managers and owners use /admin/shifts > Staff activity; Staff chats are limited to the restaurant Team channel in the management drawer.

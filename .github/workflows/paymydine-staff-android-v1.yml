@@ -13,6 +13,9 @@ on:
       - 'app/admin/Services/PmdStaffOperationsCenterV1.php'
       - 'app/admin/assets/js/pmd-staff-time-clock-v1.js'
       - 'app/admin/assets/js/pmd-shifts-staff-center-v1.js'
+      - 'app/admin/controllers/Mywork.php'
+      - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
+      - 'scripts/pmd-install-staff-platform-v1.sh'
       - 'app/admin/views/pmdshifts/**'
   workflow_dispatch:
 
@@ -32,6 +35,8 @@ jobs:
           php -l app/Http/Controllers/PmdStaffPortalV6Controller.php
           php -l app/admin/Services/PmdStaffOperationsCenterV1.php
           php -l app/admin/controllers/Shifts.php
+          php -l app/admin/controllers/Mywork.php
+          bash -n scripts/pmd-install-staff-platform-v1.sh
       - name: Browser script syntax
         run: |
           node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
@@ -45,6 +50,9 @@ jobs:
           grep -Fq 'validatePunch' app/Http/Controllers/PmdStaffPortalV6Controller.php
           grep -Fq 'assertOwnerOrManager' app/admin/controllers/Shifts.php
           ! grep -Fq 'ACCESS_BACKGROUND_LOCATION' mobile/android/staff/src/main/AndroidManifest.xml
+          grep -Fq 'PMD_STAFF_WORKFORCE_DAILY_RELIABILITY_V2_20261021' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
+          grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
+          grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
 
   staff-apk:
     name: Build standalone Staff APK

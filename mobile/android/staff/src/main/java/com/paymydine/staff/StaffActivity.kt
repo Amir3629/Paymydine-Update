@@ -173,7 +173,9 @@ class StaffActivity : Activity() {
         browser.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url
-                if (uri.scheme == "https" && isPmdHost(uri.host)) return false
+                // PMD_STAFF_WORKFORCE_DAILY_RELIABILITY_V2_20261021: keep the authenticated WebView on the chosen tenant only.
+                // Other PMD tenant origins open in the system browser, without Staff cookies.
+                if (uri.scheme == "https" && uri.host?.lowercase(Locale.ROOT) == restaurantHost) return false
                 if (uri.scheme == "https") {
                     try { startActivity(Intent(Intent.ACTION_VIEW, uri)) } catch (_: Exception) {}
                 }

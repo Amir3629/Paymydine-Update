@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # PMD_STAFF_APP_SERVER_INSTALL_V1_20261021
+# PMD_STAFF_WORKFORCE_DAILY_RELIABILITY_V2_20261021: includes the canonical Mywork route and Time Clock stylesheet.
 # Only the staff backend + Shifts center. Never modifies POS/Device APK.
 set -Eeuo pipefail
 cd /var/www/paymydine
@@ -14,6 +15,8 @@ BACKUP="$HOME/pmd-backups/staff-platform-$(date -u +%Y%m%d-%H%M%S)"
 STAGE="$(mktemp -d)"
 INSTALLING=0
 FILES=(
+  "app/admin/controllers/Mywork.php"
+  "app/admin/assets/css/pmd-staff-time-clock-v1.css"
   "app/Services/PmdStaffClockGeofenceV1.php"
   "app/Http/Controllers/PmdStaffPortalV6Controller.php"
   "app/admin/assets/js/pmd-staff-time-clock-v1.js"
@@ -60,6 +63,8 @@ for f in "${FILES[@]}"; do
 done
 
 # Wrong commits / partial file uploads fail before touching production.
+grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' "$STAGE/app/admin/controllers/Mywork.php"
+grep -Fq 'PMD_STAFF_PORTAL_TIME_CLOCK_V1' "$STAGE/app/admin/assets/css/pmd-staff-time-clock-v1.css"
 grep -Fq 'PMD_STAFF_GEOFENCE_SERVER_V1_20261021' "$STAGE/app/Services/PmdStaffClockGeofenceV1.php"
 grep -Fq 'PMD_STAFF_GEOFENCE_SERVER_V1_20261021' "$STAGE/app/Http/Controllers/PmdStaffPortalV6Controller.php"
 grep -Fq 'PMD_STAFF_GEOFENCE_ONDEMAND_V1_20261021' "$STAGE/app/admin/assets/js/pmd-staff-time-clock-v1.js"
@@ -101,3 +106,4 @@ echo "Commit: $REV"
 echo "Backup: $BACKUP"
 echo "========================================"
 echo "Check restaurant GPS pin + tenant attendance metadata before time clock rollout."
+echo "IMPORTANT: do not enable employee GPS attendance until real-device checks pass."
