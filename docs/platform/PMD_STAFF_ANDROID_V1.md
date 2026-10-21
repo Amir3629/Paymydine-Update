@@ -8,7 +8,7 @@ Staff APK is separate from PayMyDine Device POS. No existing POS identity, permi
 - Staff login and personal portal: /admin/login?destination=staff and /admin/mywork.
 - Attendance: /admin/mywork/clockin and /admin/mywork/clockout, existing staff_attendance server-time authority.
 - Owner and Manager controls: /admin/shifts, Staff activity drawer (presence, requests, Team chat, schedule and clock history).
-- Restaurant pin: locations.location_lat and locations.location_lng, edited in Restaurant Profile.
+- Restaurant pin: locations.location_lat and locations.location_lng, edited in Restaurant Profile > Staff attendance location. Two validated coordinates save atomically to the selected location, while old tabs cannot clear the pin. An explicit owner checkbox can remove the pin, disabling mobile clocking.
 
 ## Setup
 Configure the restaurant coordinates and existing enhanced staff_attendance metadata column before enabling GPS punches. Every Start/Finish submission needs a new high-accuracy fix <= 90 meters, <= 90 seconds old and within 150 meters plus 25 meters building-edge tolerance. Failed checks refuse the clock change. The backend is tenant scoped and independent of Android device code. Database credentials and owner login are never embedded in the APK.
@@ -33,3 +33,5 @@ No ACCESS_BACKGROUND_LOCATION, GPS polling or raw employee coordinate history. P
 - Use scripts/pmd-install-staff-platform-v1.sh with a pinned 40-character Git commit. It now includes the Mywork bridge and Time Clock CSS alongside the server logic and Shifts drawer.
 - APK assembly is a separate GitHub Actions build. An Android project source commit is not an installed/verified release APK. Obtain the staff-debug.apk artifact after the Staff Android workflow completes successfully, and perform onsite device tests before distributing.
 - Only use the Staff app for employee accounts. Managers and owners use /admin/shifts > Staff activity; Staff chats are limited to the restaurant Team channel in the management drawer.
+
+- PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021: Owner must enter physical restaurant entrance latitude/longitude (not a staff-device reading). An unconfigured pin prevents attendance punches; clearing it intentionally disables staff clocking. The settings form stores no employee GPS fix.

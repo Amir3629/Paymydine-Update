@@ -17,6 +17,8 @@ INSTALLING=0
 FILES=(
   "app/admin/controllers/Mywork.php"
   "app/admin/assets/css/pmd-staff-time-clock-v1.css"
+  "app/admin/controllers/Pmdsettings.php"
+  "app/admin/views/pmdsettings/restaurant.blade.php"
   "app/Services/PmdStaffClockGeofenceV1.php"
   "app/Http/Controllers/PmdStaffPortalV6Controller.php"
   "app/admin/assets/js/pmd-staff-time-clock-v1.js"
@@ -63,6 +65,8 @@ for f in "${FILES[@]}"; do
 done
 
 # Wrong commits / partial file uploads fail before touching production.
+grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' "$STAGE/app/admin/controllers/Pmdsettings.php"
+grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' "$STAGE/app/admin/views/pmdsettings/restaurant.blade.php"
 grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' "$STAGE/app/admin/controllers/Mywork.php"
 grep -Fq 'PMD_STAFF_PORTAL_TIME_CLOCK_V1' "$STAGE/app/admin/assets/css/pmd-staff-time-clock-v1.css"
 grep -Fq 'PMD_STAFF_GEOFENCE_SERVER_V1_20261021' "$STAGE/app/Services/PmdStaffClockGeofenceV1.php"

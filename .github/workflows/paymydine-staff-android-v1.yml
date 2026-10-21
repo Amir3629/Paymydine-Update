@@ -14,6 +14,8 @@ on:
       - 'app/admin/assets/js/pmd-staff-time-clock-v1.js'
       - 'app/admin/assets/js/pmd-shifts-staff-center-v1.js'
       - 'app/admin/controllers/Mywork.php'
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
       - 'app/admin/views/pmdshifts/**'
@@ -36,6 +38,7 @@ jobs:
           php -l app/admin/Services/PmdStaffOperationsCenterV1.php
           php -l app/admin/controllers/Shifts.php
           php -l app/admin/controllers/Mywork.php
+          php -l app/admin/controllers/Pmdsettings.php
           bash -n scripts/pmd-install-staff-platform-v1.sh
       - name: Browser script syntax
         run: |
@@ -53,6 +56,8 @@ jobs:
           grep -Fq 'PMD_STAFF_WORKFORCE_DAILY_RELIABILITY_V2_20261021' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
+          grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
+          grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/views/pmdsettings/restaurant.blade.php
 
   staff-apk:
     name: Build standalone Staff APK
