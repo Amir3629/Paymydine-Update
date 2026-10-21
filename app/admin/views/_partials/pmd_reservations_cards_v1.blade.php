@@ -329,6 +329,76 @@
         </div>
     </header>
 
+    {{-- PMD_RESERVATIONS_GLOBAL_SEARCH_R1: server-rendered, tenant/location-scoped
+         matches from ALL dates. GET keeps the form usable with JS disabled. --}}
+    @php
+        $pmdReservationSearchTerm = trim((string)($pmdReservationSearchNeedle ?? ''));
+        $pmdReservationFound = (array)($pmdReservationSearchResults ?? []);
+        $pmdReservationSearchLabels = $pmdOpsIsGerman
+            ? ['search' => 'Reservierung suchen', 'placeholder' => 'Name, Telefonnummer, E-Mail oder Buchungsnummer',
+               'submit' => 'Suchen', 'clear' => 'Zurücksetzen', 'results' => 'Suchergebnisse',
+               'empty' => 'Keine passenden Reservierungen gefunden.', 'hint' => 'Alle Daten an diesem Standort durchsuchen',
+               'short' => 'Mindestens 2 Zeichen eingeben.', 'open' => 'Öffnen']
+            : ['search' => 'Search reservations', 'placeholder' => 'Name, phone, email, or reservation number',
+               'submit' => 'Search', 'clear' => 'Clear', 'results' => 'Search results',
+               'empty' => 'No matching reservations found.', 'hint' => 'Search all dates at this location',
+               'short' => 'Enter at least 2 characters.', 'open' => 'Open'];
+    @endphp
+    <div class="pmd-reservations-search-r1" data-pmd-reservations-global-search>
+        <form method="get" action="{{ admin_url('reservations') }}" role="search"
+            class="pmd-reservations-search-r1__form">
+            <label for="pmd-reservations-search-input-r1">{{ $pmdReservationSearchLabels['search'] }}</label>
+            <div class="pmd-reservations-search-r1__controls">
+                <input id="pmd-reservations-search-input-r1" type="search"
+                    name="pmd_reservation_search" minlength="2" maxlength="100"
+                    value="{{ $pmdReservationSearchTerm }}"
+                    placeholder="{{ $pmdReservationSearchLabels['placeholder'] }}"
+                    autocomplete="off" enterkeyhint="search">
+                <button type="submit">{{ $pmdReservationSearchLabels['submit'] }}</button>
+                @if($pmdReservationSearchTerm !== '')
+                    <a href="{{ admin_url('reservations') }}">{{ $pmdReservationSearchLabels['clear'] }}</a>
+                @endif
+            </div>
+            <small>{{ $pmdReservationSearchLabels['hint'] }}</small>
+        </form>
+        @if($pmdReservationSearchTerm !== '')
+            <div class="pmd-reservations-search-r1__results" role="region"
+                aria-live="polite" aria-label="{{ $pmdReservationSearchLabels['results'] }}">
+                <strong class="pmd-reservations-search-r1__heading">
+                    {{ $pmdReservationSearchLabels['results'] }}
+                    <span>({{ count($pmdReservationFound) }})</span>
+                </strong>
+                @if(mb_strlen($pmdReservationSearchTerm) < 2)
+                    <p>{{ $pmdReservationSearchLabels['short'] }}</p>
+                @elseif(count($pmdReservationFound) === 0)
+                    <p>{{ $pmdReservationSearchLabels['empty'] }}</p>
+                @else
+                    <div class="pmd-reservations-search-r1__list">
+                    @foreach($pmdReservationFound as $match)
+                        @php
+                            $pmdMatchId = (int)($match['reservation_id'] ?? 0);
+                            $pmdMatchDate = substr((string)($match['reserve_date'] ?? ''), 0, 10);
+                            $pmdMatchTime = substr((string)($match['reserve_time'] ?? ''), 0, 5);
+                            $pmdMatchName = trim((string)($match['guest_name'] ?? $match['customer_name'] ?? ''));
+                        @endphp
+                        @if($pmdMatchId > 0)
+                        <a class="pmd-reservations-search-r1__match"
+                            href="{{ admin_url('reservations').'?pmd_mode=edit&pmd_id='.$pmdMatchId }}"
+                            data-pmd-reservation-search-edit="{{ $pmdMatchId }}">
+                            <span class="pmd-reservations-search-r1__identity">
+                                <strong>{{ $pmdMatchName !== '' ? $pmdMatchName : '#'.$pmdMatchId }}</strong>
+                                <small>#{{ $pmdMatchId }} · {{ $pmdMatchDate }} · {{ $pmdMatchTime }}</small>
+                            </span>
+                            <span class="pmd-reservations-search-r1__open">{{ $pmdReservationSearchLabels['open'] }} →</span>
+                        </a>
+                        @endif
+                    @endforeach
+                    </div>
+                @endif
+            </div>
+        @endif
+    </div>
+
     {{-- PMD_RESERVATIONS_ADD_CARD_FIRST_V1
          Server-localized and excluded from the late global i18n rewrite.
          The href is a no-JS fallback; the schedule runtime opens the canonical
