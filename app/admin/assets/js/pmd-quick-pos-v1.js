@@ -632,16 +632,47 @@
   }
 
   function customerDisplayTableLabel() {
+    /* PMD_ZCS_CUSTOMER_DISPLAY_CONTEXT_V121
+     * A real selected table always wins over a stale off-premise mode flag. */
+    if (state.selectedTable) return compactTableLabel(state.selectedTable);
     if (state.serviceMode === 'takeaway') return 'Pickup';
-    if (!state.selectedTable) return '';
-    return compactTableLabel(state.selectedTable);
+    return '';
   }
 
   function customerDisplayImageForMenu(menuId) {
+    var id = Number(menuId || 0);
+
+    /* PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121
+     * Local-First menu images are device-private. Ask the Android bridge for
+     * the cached bytes as a data URI so the secondary renderer never needs
+     * to fetch the synthetic WebView-only /__pmd_offline/image URL. */
+    try {
+      var local = window.PayMyDineOffline;
+      if (local && typeof local.image === 'function' && id > 0) {
+        var cached = String(local.image(String(id)) || '');
+        if (cached.indexOf('data:image/') === 0) return cached;
+      }
+    } catch (ignored) {
+    }
+
     var row = state.menu.find(function (item) {
-      return Number(item.id || 0) === Number(menuId || 0);
+      return Number(item.id || 0) === id;
     });
-    return row ? String(row.image || '') : '';
+    var image = row ? String(row.image || '') : '';
+    if (!image) return '';
+
+    if (
+      image.indexOf('data:image/') === 0 ||
+      /^https?:\/\//i.test(image)
+    ) {
+      return image;
+    }
+
+    try {
+      return new URL(image, window.location.origin).href;
+    } catch (ignored) {
+      return image;
+    }
   }
 
   function customerDisplayCartRows() {
@@ -683,7 +714,9 @@
       highlight_name:
         highlight ? String(highlight.name || '') : '',
       highlight_image:
-        highlight ? String(highlight.image || '') : '',
+        highlight
+          ? customerDisplayImageForMenu(highlight.menu_id)
+          : '',
       items: customerDisplayCartRows()
     }, extras);
   }
@@ -733,6 +766,63 @@
     customerDisplaySuccessTimer = setTimeout(function () {
       pushCustomerDisplayIdle(true);
     }, 4500);
+  }
+
+  function pushCustomerDisplayTestOrder() {
+    var rows = customerDisplayCartRows();
+    if (rows.length) {
+      pushCustomerDisplay(
+        'order',
+        {
+          headline: 'Your order'
+        },
+        true
+      );
+      return;
+    }
+
+    var item = state.menu.find(function (row) {
+      return (
+        row &&
+        Number(row.id || 0) > 0 &&
+        Number(row.price || 0) > 0 &&
+        row.orderable !== false &&
+        row.price_configured !== false
+      );
+    }) || state.menu.find(function (row) {
+      return row && Number(row.id || 0) > 0;
+    }) || null;
+
+    var menuId = Number(item && item.id || 0);
+    var name = String(item && item.name || 'Sample item');
+    var unit = roundMoney(num(item && item.price, 9.9));
+    if (unit <= 0) unit = 9.9;
+    var image = customerDisplayImageForMenu(menuId);
+
+    pushCustomerDisplay(
+      'order',
+      {
+        total: unit,
+        amount_due: unit,
+        table_label:
+          state.selectedTable
+            ? customerDisplayTableLabel()
+            : 'Display test',
+        order_label: 'Display test',
+        headline: 'Your order',
+        highlight_name: name,
+        highlight_image: image,
+        items: [{
+          menu_id: menuId || null,
+          name: name,
+          quantity: 1,
+          unit_price: unit,
+          line_total: unit,
+          image: image
+        }]
+      },
+      true
+    );
   }
 
   function installCustomerDisplayControls() {
@@ -935,13 +1025,7 @@
             true
           );
         } else {
-          pushCustomerDisplay(
-            'order',
-            {
-              headline: 'Your order'
-            },
-            true
-          );
+          pushCustomerDisplayTestOrder();
         }
 
         if (message) message.textContent = 'Test sent to the customer screen.';

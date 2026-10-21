@@ -632,16 +632,47 @@
   }
 
   function customerDisplayTableLabel() {
+    /* PMD_ZCS_CUSTOMER_DISPLAY_CONTEXT_V121
+     * A real selected table always wins over a stale off-premise mode flag. */
+    if (state.selectedTable) return compactTableLabel(state.selectedTable);
     if (state.serviceMode === 'takeaway') return 'Pickup';
-    if (!state.selectedTable) return '';
-    return compactTableLabel(state.selectedTable);
+    return '';
   }
 
   function customerDisplayImageForMenu(menuId) {
+    var id = Number(menuId || 0);
+
+    /* PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121
+     * Local-First menu images are device-private. Ask the Android bridge for
+     * the cached bytes as a data URI so the secondary renderer never needs
+     * to fetch the synthetic WebView-only /__pmd_offline/image URL. */
+    try {
+      var local = window.PayMyDineOffline;
+      if (local && typeof local.image === 'function' && id > 0) {
+        var cached = String(local.image(String(id)) || '');
+        if (cached.indexOf('data:image/') === 0) return cached;
+      }
+    } catch (ignored) {
+    }
+
     var row = state.menu.find(function (item) {
-      return Number(item.id || 0) === Number(menuId || 0);
+      return Number(item.id || 0) === id;
     });
-    return row ? String(row.image || '') : '';
+    var image = row ? String(row.image || '') : '';
+    if (!image) return '';
+
+    if (
+      image.indexOf('data:image/') === 0 ||
+      /^https?:\/\//i.test(image)
+    ) {
+      return image;
+    }
+
+    try {
+      return new URL(image, window.location.origin).href;
+    } catch (ignored) {
+      return image;
+    }
   }
 
   function customerDisplayCartRows() {
@@ -683,7 +714,9 @@
       highlight_name:
         highlight ? String(highlight.name || '') : '',
       highlight_image:
-        highlight ? String(highlight.image || '') : '',
+        highlight
+          ? customerDisplayImageForMenu(highlight.menu_id)
+          : '',
       items: customerDisplayCartRows()
     }, extras);
   }
@@ -735,6 +768,63 @@
     }, 4500);
   }
 
+  function pushCustomerDisplayTestOrder() {
+    var rows = customerDisplayCartRows();
+    if (rows.length) {
+      pushCustomerDisplay(
+        'order',
+        {
+          headline: 'Your order'
+        },
+        true
+      );
+      return;
+    }
+
+    var item = state.menu.find(function (row) {
+      return (
+        row &&
+        Number(row.id || 0) > 0 &&
+        Number(row.price || 0) > 0 &&
+        row.orderable !== false &&
+        row.price_configured !== false
+      );
+    }) || state.menu.find(function (row) {
+      return row && Number(row.id || 0) > 0;
+    }) || null;
+
+    var menuId = Number(item && item.id || 0);
+    var name = String(item && item.name || 'Sample item');
+    var unit = roundMoney(num(item && item.price, 9.9));
+    if (unit <= 0) unit = 9.9;
+    var image = customerDisplayImageForMenu(menuId);
+
+    pushCustomerDisplay(
+      'order',
+      {
+        total: unit,
+        amount_due: unit,
+        table_label:
+          state.selectedTable
+            ? customerDisplayTableLabel()
+            : 'Display test',
+        order_label: 'Display test',
+        headline: 'Your order',
+        highlight_name: name,
+        highlight_image: image,
+        items: [{
+          menu_id: menuId || null,
+          name: name,
+          quantity: 1,
+          unit_price: unit,
+          line_total: unit,
+          image: image
+        }]
+      },
+      true
+    );
+  }
+
   function installCustomerDisplayControls() {
     var bridge = customerDisplayBridge();
     if (!bridge || document.getElementById('pmd-customer-display-control')) return;
@@ -742,117 +832,129 @@
     var profileMenu = document.querySelector('[data-qpos-profile-menu]');
     if (!profileMenu) return;
 
-    /* PMD_ZCS_CUSTOMER_DISPLAY_PROFILE_V2
-     * Keep customer-display controls inside the existing operator profile card.
-     * This avoids floating controls covering Quick POS actions on compact POS
-     * displays and keeps hardware controls out of normal browser sessions. */
+    /* PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119
+     * Keep the profile menu calm: one status row + Settings button.
+     * All customer-display controls live in a dedicated operator card. */
+    if (!document.getElementById('pmd-customer-display-settings-style-v119')) {
+      var style = document.createElement('style');
+      style.id = 'pmd-customer-display-settings-style-v119';
+      style.textContent =
+        '.pmd-cd-v119{border-top:1px solid rgba(148,163,184,.22);margin-top:10px;padding-top:10px}' +
+        '.pmd-cd-v119__row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px}' +
+        '.pmd-cd-v119__title{display:grid;gap:2px;min-width:0}' +
+        '.pmd-cd-v119__title strong{font-size:14px;line-height:1.2}' +
+        '.pmd-cd-v119__title small{font-size:11px;opacity:.68}' +
+        '.pmd-cd-v119__settings{border:1px solid rgba(148,163,184,.35);background:rgba(148,163,184,.10);color:inherit;border-radius:10px;padding:8px 11px;font:inherit;font-weight:700;cursor:pointer}' +
+        '.pmd-cd-v119__overlay[hidden]{display:none!important}' +
+        '.pmd-cd-v119__overlay{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:18px;background:rgba(15,23,42,.42);backdrop-filter:blur(3px)}' +
+        '.pmd-cd-v119__card{width:min(430px,calc(100vw - 28px));max-height:min(680px,calc(100vh - 36px));overflow:auto;background:#fff;color:#103b52;border-radius:20px;box-shadow:0 24px 70px rgba(15,23,42,.28);border:1px solid rgba(15,71,96,.12)}' +
+        '.pmd-cd-v119__head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:20px 20px 16px;border-bottom:1px solid rgba(15,71,96,.10)}' +
+        '.pmd-cd-v119__head-copy{display:grid;gap:5px}' +
+        '.pmd-cd-v119__head h3{margin:0;font-size:22px;line-height:1.1;color:#073e5b}' +
+        '.pmd-cd-v119__status{font-size:12px;font-weight:800;color:#0b7a53}' +
+        '.pmd-cd-v119__close{width:38px;height:38px;border:1px solid rgba(15,71,96,.18);border-radius:12px;background:#fff;color:#073e5b;font-size:24px;line-height:1;cursor:pointer}' +
+        '.pmd-cd-v119__body{padding:18px 20px 20px;display:grid;gap:16px}' +
+        '.pmd-cd-v119__note{margin:0;padding:12px 14px;border-left:4px solid #0b75a5;background:#f2f8fb;border-radius:0 12px 12px 0;font-size:13px;line-height:1.45;color:#315d70}' +
+        '.pmd-cd-v119__option{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 0;border-bottom:1px solid rgba(15,71,96,.09)}' +
+        '.pmd-cd-v119__option:last-of-type{border-bottom:0}' +
+        '.pmd-cd-v119__option-copy{display:grid;gap:3px}' +
+        '.pmd-cd-v119__option-copy strong{font-size:15px;color:#073e5b}' +
+        '.pmd-cd-v119__option-copy small{font-size:12px;color:#688392}' +
+        '.pmd-cd-v119__option input{width:22px;height:22px;accent-color:#0879ad}' +
+        '.pmd-cd-v119__tests{display:grid;grid-template-columns:1fr 1fr;gap:9px}' +
+        '.pmd-cd-v119__tests button{min-height:46px;border:1px solid rgba(8,121,173,.24);border-radius:12px;background:#f7fbfd;color:#073e5b;font:inherit;font-weight:750;cursor:pointer}' +
+        '.pmd-cd-v119__tests button:active{transform:translateY(1px)}' +
+        '.pmd-cd-v119__section-label{margin:2px 0 -4px;font-size:12px;font-weight:850;letter-spacing:.04em;text-transform:uppercase;color:#6a8796}' +
+        '@media(max-width:520px){.pmd-cd-v119__card{border-radius:16px}.pmd-cd-v119__head,.pmd-cd-v119__body{padding-left:16px;padding-right:16px}}';
+      document.head.appendChild(style);
+    }
+
     var wrap = document.createElement('div');
     wrap.id = 'pmd-customer-display-control';
-    wrap.style.cssText =
-      'border-top:1px solid rgba(148,163,184,.22);margin-top:8px;padding-top:8px';
-
+    wrap.className = 'pmd-cd-v119';
     wrap.innerHTML =
-      '<button type="button" data-pmd-customer-display-toggle ' +
-        'style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;' +
-        'border:0;background:transparent;color:inherit;text-align:left;padding:9px 2px;font:inherit;cursor:pointer">' +
-        '<span>Customer display</span>' +
-        '<small data-pmd-customer-display-status style="opacity:.7">Checking…</small>' +
-      '</button>' +
-      '<section data-pmd-customer-display-panel hidden ' +
-        'style="padding:8px 0 2px">' +
-        '<div data-pmd-customer-display-diagnostic ' +
-          'style="font-size:11px;line-height:1.45;padding:8px 10px;margin-bottom:8px;' +
-          'border-radius:8px;background:rgba(148,163,184,.10);white-space:normal;word-break:break-word">' +
-          'Reading ZCS status…' +
+      '<div class="pmd-cd-v119__row">' +
+        '<div class="pmd-cd-v119__title">' +
+          '<strong>Customer display</strong>' +
+          '<small data-pmd-customer-display-status>Checking…</small>' +
         '</div>' +
-        '<label style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 2px">' +
-          '<span>Enabled</span><input type="checkbox" data-pmd-customer-display-enabled>' +
-        '</label>' +
-        '<label style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 2px">' +
-          '<span>Show food images</span><input type="checkbox" data-pmd-customer-display-images>' +
-        '</label>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">' +
-          '<button type="button" data-pmd-customer-display-test="order" style="padding:8px 6px">Test order</button>' +
-          '<button type="button" data-pmd-customer-display-test="payment" style="padding:8px 6px">Test payment</button>' +
-          '<button type="button" data-pmd-customer-display-test="success" style="padding:8px 6px">Test success</button>' +
-          '<button type="button" data-pmd-customer-display-test="idle" style="padding:8px 6px">Idle</button>' +
-        '</div>' +
-      '</section>';
-
+        '<button type="button" class="pmd-cd-v119__settings" data-pmd-customer-display-settings>Settings</button>' +
+      '</div>';
     profileMenu.appendChild(wrap);
 
-    var toggle = wrap.querySelector('[data-pmd-customer-display-toggle]');
-    var panel = wrap.querySelector('[data-pmd-customer-display-panel]');
-    var enabled = wrap.querySelector('[data-pmd-customer-display-enabled]');
-    var images = wrap.querySelector('[data-pmd-customer-display-images]');
+    var overlay = document.createElement('div');
+    overlay.className = 'pmd-cd-v119__overlay';
+    overlay.setAttribute('data-pmd-customer-display-overlay', '');
+    overlay.hidden = true;
+    overlay.innerHTML =
+      '<section class="pmd-cd-v119__card" role="dialog" aria-modal="true" aria-label="Customer display settings">' +
+        '<header class="pmd-cd-v119__head">' +
+          '<div class="pmd-cd-v119__head-copy">' +
+            '<h3>Customer display</h3>' +
+            '<span class="pmd-cd-v119__status" data-pmd-customer-display-card-status>Checking…</span>' +
+          '</div>' +
+          '<button type="button" class="pmd-cd-v119__close" data-pmd-customer-display-close aria-label="Close">×</button>' +
+        '</header>' +
+        '<div class="pmd-cd-v119__body">' +
+          '<p class="pmd-cd-v119__note" data-pmd-customer-display-message>Checking the customer screen…</p>' +
+          '<div>' +
+            '<label class="pmd-cd-v119__option">' +
+              '<span class="pmd-cd-v119__option-copy"><strong>Enabled</strong><small>Show order and payment updates to the customer.</small></span>' +
+              '<input type="checkbox" data-pmd-customer-display-enabled>' +
+            '</label>' +
+            '<label class="pmd-cd-v119__option">' +
+              '<span class="pmd-cd-v119__option-copy"><strong>Show food images</strong><small>Include menu photos when available.</small></span>' +
+              '<input type="checkbox" data-pmd-customer-display-images>' +
+            '</label>' +
+          '</div>' +
+          '<p class="pmd-cd-v119__section-label">Test display</p>' +
+          '<div class="pmd-cd-v119__tests">' +
+            '<button type="button" data-pmd-customer-display-test="order">Test order</button>' +
+            '<button type="button" data-pmd-customer-display-test="payment">Test payment</button>' +
+            '<button type="button" data-pmd-customer-display-test="success">Test success</button>' +
+            '<button type="button" data-pmd-customer-display-test="idle">Show idle</button>' +
+          '</div>' +
+        '</div>' +
+      '</section>';
+    document.body.appendChild(overlay);
+
+    var settingsButton = wrap.querySelector('[data-pmd-customer-display-settings]');
+    var closeButton = overlay.querySelector('[data-pmd-customer-display-close]');
+    var enabled = overlay.querySelector('[data-pmd-customer-display-enabled]');
+    var images = overlay.querySelector('[data-pmd-customer-display-images]');
     var status = wrap.querySelector('[data-pmd-customer-display-status]');
-    var diagnostic = wrap.querySelector('[data-pmd-customer-display-diagnostic]');
+    var cardStatus = overlay.querySelector('[data-pmd-customer-display-card-status]');
+    var message = overlay.querySelector('[data-pmd-customer-display-message]');
 
     function readCapabilities() {
       try {
-        return JSON.parse(
-          String(bridge.customerDisplayCapabilities() || '{}')
-        );
+        return JSON.parse(String(bridge.customerDisplayCapabilities() || '{}'));
       } catch (error) {
-        return {
-          customer_display: false,
-          last_error: error && error.message ? error.message : 'Bridge status unavailable'
-        };
+        return { customer_display: false };
       }
     }
 
     function renderCapabilities(capabilities) {
       capabilities = capabilities || {};
-
-      if (enabled) {
-        enabled.checked = capabilities.enabled !== false;
-      }
-      if (images) {
-        images.checked = capabilities.images_enabled !== false;
-      }
-
       var connected = capabilities.customer_display === true;
-      if (status) {
-        status.textContent = connected ? 'Connected' : 'Unavailable';
+
+      if (enabled) enabled.checked = capabilities.enabled !== false;
+      if (images) images.checked = capabilities.images_enabled !== false;
+
+      if (status) status.textContent = connected ? 'Connected' : 'Unavailable';
+      if (cardStatus) {
+        cardStatus.textContent = connected ? 'Connected' : 'Unavailable';
+        cardStatus.style.color = connected ? '#0b7a53' : '#a14b18';
+      }
+      if (message) {
+        message.textContent = connected
+          ? 'Ready. Orders and payments can be shown on the customer screen.'
+          : 'The customer screen is not available right now.';
       }
 
-      var details = [];
-      if (capabilities.vendor) details.push(String(capabilities.vendor));
-      if (capabilities.model) details.push(String(capabilities.model));
-
-      if (capabilities.large_secondary_supported === true) {
-        details.push('large screen: yes');
-      } else if (capabilities.large_secondary_supported === false) {
-        details.push('large screen: no');
-      }
-
-      if (capabilities.touch_secondary_supported === true) {
-        details.push('touch: yes');
-      } else if (capabilities.touch_secondary_supported === false) {
-        details.push('touch: no');
-      }
-
-      if (capabilities.sdk_init_status !== undefined && capabilities.sdk_init_status !== null) {
-        details.push('sdkInit=' + capabilities.sdk_init_status);
-      }
-      if (capabilities.last_awake_status !== undefined && capabilities.last_awake_status !== null) {
-        details.push('awake=' + capabilities.last_awake_status);
-      }
-      if (capabilities.last_show_status !== undefined && capabilities.last_show_status !== null) {
-        details.push('show=' + capabilities.last_show_status);
-      }
-
-      if (capabilities.last_error) {
-        details.push('ERROR: ' + String(capabilities.last_error));
-      } else if (connected) {
-        details.push('Hardware bridge ready');
-      } else {
-        details.push('ZCS hardware not ready');
-      }
-
-      if (diagnostic) {
-        diagnostic.textContent = details.join(' · ');
-      }
+      /* Keep raw hardware diagnostics available to support tooling without
+       * putting SDK status codes in front of restaurant staff. */
+      overlay.setAttribute('data-pmd-customer-display-debug', JSON.stringify(capabilities));
     }
 
     function refreshCapabilities(delay) {
@@ -861,21 +963,32 @@
       }, Math.max(0, Number(delay || 0)));
     }
 
+    function openSettings() {
+      overlay.hidden = false;
+      refreshCapabilities(0);
+    }
+
+    function closeSettings() {
+      overlay.hidden = true;
+    }
+
     renderCapabilities(readCapabilities());
 
-    toggle.onclick = function () {
-      panel.hidden = !panel.hidden;
-      if (!panel.hidden) refreshCapabilities(0);
-    };
+    settingsButton.onclick = openSettings;
+    closeButton.onclick = closeSettings;
+    overlay.addEventListener('click', function (event) {
+      if (event.target === overlay) closeSettings();
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !overlay.hidden) closeSettings();
+    });
 
     enabled.onchange = function () {
       try {
         bridge.setCustomerDisplayEnabled(!!enabled.checked);
       } catch (ignored) {
       }
-      if (enabled.checked) {
-        pushCustomerDisplay('order', {}, true);
-      }
+      if (enabled.checked) pushCustomerDisplay('order', {}, true);
       refreshCapabilities(700);
     };
 
@@ -884,33 +997,24 @@
         bridge.setCustomerDisplayImages(!!images.checked);
       } catch (ignored) {
       }
-      pushCustomerDisplay(
-        state.payment.open ? 'payment' : 'order',
-        {},
-        true
-      );
+      pushCustomerDisplay(state.payment.open ? 'payment' : 'order', {}, true);
       refreshCapabilities(700);
     };
 
     Array.prototype.slice.call(
-      wrap.querySelectorAll('[data-pmd-customer-display-test]')
+      overlay.querySelectorAll('[data-pmd-customer-display-test]')
     ).forEach(function (button) {
       button.onclick = function () {
         var kind = button.getAttribute('data-pmd-customer-display-test');
+
         if (kind === 'idle') {
           pushCustomerDisplayIdle(true);
-          refreshCapabilities(900);
-          return;
-        }
-        if (kind === 'success') {
+        } else if (kind === 'success') {
           pushCustomerDisplaySuccess(
             cartTotal() || existingTotal() || 18,
             'Thank you!'
           );
-          refreshCapabilities(900);
-          return;
-        }
-        if (kind === 'payment') {
+        } else if (kind === 'payment') {
           pushCustomerDisplay(
             'payment',
             {
@@ -920,16 +1024,11 @@
             },
             true
           );
-          refreshCapabilities(900);
-          return;
+        } else {
+          pushCustomerDisplayTestOrder();
         }
-        pushCustomerDisplay(
-          'order',
-          {
-            headline: 'Your order'
-          },
-          true
-        );
+
+        if (message) message.textContent = 'Test sent to the customer screen.';
         refreshCapabilities(900);
       };
     });

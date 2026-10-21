@@ -58,5 +58,5 @@ jobs:
           ! grep -Fq '<script defer src="/app/admin/assets/js/pmd-site-access-hub-v13.js' app/admin/views/pmd_quick_pos_v1.blade.php
           grep -Fq 'window.PMDQuickPOSMinimalBootR135' app/admin/views/pmd_quick_pos_v1.blade.php
 
-          grep -Fq 'pmd-quick-pos-v1.js?v=20261003-r135'             app/admin/views/pmd_quick_pos_v1.blade.php
-          grep -Fq 'pmd-qpos-web-parity-v112.js?v=20261003-r135'      app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'pmd-quick-pos-v1.js?v=20261021-zcs-v121'             app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'pmd-qpos-web-parity-v112.js?v=20261021-zcs-v121'      app/admin/views/pmd_quick_pos_v1.blade.php
