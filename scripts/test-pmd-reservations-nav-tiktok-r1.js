@@ -31,7 +31,8 @@ need(css.includes('#pmd-reservations-cards-v2-1'),'scoped CSS');
 need((css.match(/{/g)||[]).length===(css.match(/}/g)||[]).length,'CSS balanced');
 need(profile.includes("['key' => 'tiktok'"),'profile TikTok card');
 need(settings.includes("'tiktok_url' => ['nullable', 'url'"),'TikTok validated');
-need(settings.includes("'pmd_social_tiktok_enabled' =>"),'TikTok persistence');
+need(settings.includes("$settings['pmd_social_tiktok_enabled'] ="),'TikTok persistence');
+need(settings.includes("array_key_exists('tiktok_url', $profile)"),'legacy tabs cannot clear TikTok');
 need(settings.includes("'tiktok_enabled' => (bool)"),'TikTok readback');
 for(const file of [
   'app/main/routes/next-proxy.php',
@@ -61,4 +62,13 @@ for(const file of [
 const theme=read('app/main/routes/theme-settings.php');
 need(theme.includes("['tiktok', 'pmd_social_tiktok_enabled', 'pmd_social_tiktok_url']"),'Kazen platform from tenant settings');
 need(theme.includes("'instagram', 'tiktok', 'facebook'"),'allow selected TikTok platform');
+need(theme.includes("'tiktok' => ["),'independent enabled TikTok header link');
+for(const file of [
+  'frontend/app/themes/kazen-japanese/KazenStandalonePage.tsx',
+  'frontend/app/themes/velvet-terracotta/KazenStandalonePage.tsx',
+]) {
+  const t = read(file);
+  need(t.includes('group, "tiktok"'),file+' renders independent TikTok link');
+  need(t.includes('tiktokIsFeatured'),file+' prevents duplicate featured TikTok');
+}
 console.log('PASS: reservation search, German navigation, TikTok profile/API/customer contract');
