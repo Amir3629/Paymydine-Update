@@ -234,6 +234,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
         </section>
 
 
+        {{-- PMD_STAFF_GPS_NO_STEPPER_V1_20261021: latitude/longitude are precise coordinates; never attach
+             generic + / - numeric steppers that jump by whole degrees. --}}
         {{-- PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021 — Owner-scoped onsite attendance site.
              Uses the existing Restaurant Profile Save Changes and tenant location row. --}}
         <section class="pmd-profile-section pmd-profile-section--booking" data-pmd-staff-workplace-gps-v1>
@@ -258,14 +260,14 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                     <div class="pmd-profile-grid pmd-profile-grid--2">
                         <label class="pmd-profile-field">
                             <span>{{ $pmdSettingsText('Restaurant latitude') }}</span>
-                            <input type="number" id="pmd-staff-clock-lat-v1" name="profile[staff_clock_lat]"
+                            <input type="number" id="pmd-staff-clock-lat-v1" data-pmd-no-stepper="true" name="profile[staff_clock_lat]"
                                 min="-90" max="90" step="any" inputmode="decimal"
                                 value="{{ $pmdProfile['staff_clock_lat'] ?? '' }}"
                                 placeholder="e.g. 50.110924" aria-describedby="pmd-staff-clock-pin-help">
                         </label>
                         <label class="pmd-profile-field">
                             <span>{{ $pmdSettingsText('Restaurant longitude') }}</span>
-                            <input type="number" id="pmd-staff-clock-lng-v1" name="profile[staff_clock_lng]"
+                            <input type="number" id="pmd-staff-clock-lng-v1" data-pmd-no-stepper="true" name="profile[staff_clock_lng]"
                                 min="-180" max="180" step="any" inputmode="decimal"
                                 value="{{ $pmdProfile['staff_clock_lng'] ?? '' }}"
                                 placeholder="e.g. 8.682127" aria-describedby="pmd-staff-clock-pin-help">
