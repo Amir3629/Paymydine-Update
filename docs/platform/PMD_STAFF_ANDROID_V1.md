@@ -35,3 +35,12 @@ No ACCESS_BACKGROUND_LOCATION, GPS polling or raw employee coordinate history. P
 - Only use the Staff app for employee accounts. Managers and owners use /admin/shifts > Staff activity; Staff chats are limited to the restaurant Team channel in the management drawer.
 
 - PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021: Owner must enter physical restaurant entrance latitude/longitude (not a staff-device reading). An unconfigured pin prevents attendance punches; clearing it intentionally disables staff clocking. The settings form stores no employee GPS fix.
+
+## GPS PERMISSION_DENIED troubleshooting (October 21, 2026)
+
+- The exact Staff Time Clock message `Permission denied. Enable precise location to clock in or out.` comes from browser `navigator.geolocation` error code 1. The form does **not** POST to `/admin/mywork/clockin` or `clockout` when this error occurs; absence of a Laravel clock-in log is therefore expected.
+- For the separate Android Staff app, check Android **Settings > Apps > PayMyDine Staff > Permissions > Location**. Select **Allow only while using the app** and enable **Use precise location** (Android 12+). Also enable device Location and retry from the staff screen. The app never needs background location.
+- For Chrome/Safari, allow Location for the *exact restaurant origin* in browser site permissions. Test the same Staff Portal URL in the device browser: if browser works but the app fails, check the Android WebView/app permission; if both fail, check OS/browser permission or a geolocation Permissions-Policy restriction.
+- In browser DevTools, check that `window.isSecureContext` is true and inspect the error code. Do not copy employee latitude/longitude, access tokens, session cookies or restaurant credentials into support logs.
+- In web-server access logs, check for a `POST /admin/mywork/clockin` or `clockout`. A geolocation error code 1 normally produces no such POST, so troubleshoot the client before modifying staff roles, geofence radius or attendance tables.
+- The guidance-only change `PMD_STAFF_CLOCK_GPS_PERMISSION_GUIDANCE_V2_20261021` also wraps long error messages on mobile. It does not auto-grant geolocation, bypass restaurant distance checks or modify attendance records.
