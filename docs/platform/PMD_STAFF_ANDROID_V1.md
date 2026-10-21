@@ -44,3 +44,15 @@ No ACCESS_BACKGROUND_LOCATION, GPS polling or raw employee coordinate history. P
 - In browser DevTools, check that `window.isSecureContext` is true and inspect the error code. Do not copy employee latitude/longitude, access tokens, session cookies or restaurant credentials into support logs.
 - In web-server access logs, check for a `POST /admin/mywork/clockin` or `clockout`. A geolocation error code 1 normally produces no such POST, so troubleshoot the client before modifying staff roles, geofence radius or attendance tables.
 - The guidance-only change `PMD_STAFF_CLOCK_GPS_PERMISSION_GUIDANCE_V2_20261021` also wraps long error messages on mobile. It does not auto-grant geolocation, bypass restaurant distance checks or modify attendance records.
+
+## Native one-shot GPS bridge (October 22, 2026)
+
+**Why:** Android's OS location approval and Android WebView's per-origin geolocation decision are separate. The original Staff clock used the latter even after the user had already granted app location. A previous diagnostic double-escaped the Android WebView UA regex; that only affected the wording of the error, not permission itself.
+
+**Change:** The dedicated **Staff APK 0.1.1** adds a PMDStaffNativeGPS/1 marker and an internal pmdstaffgeo://clock?request=opaque-id navigation intercepted by StaffActivity. Only a main-frame navigation from the selected restaurant's HTTPS admin/mywork or staff document may initiate it. On an explicit shift button tap, the Activity checks/requests precise foreground Android permission, acquires ONE fresh fix from enabled GPS/network location providers, and returns it only to the same trusted Staff document via evaluateJavascript with JSON escaping. Raw GPS never goes into the internal URL, Android logs, preferences or a background task; listeners are cancelled on success, timeout or Activity destruction.
+
+The Staff Portal JavaScript recognizes the new marker and uses the native path, otherwise it retains normal browser/WebView geolocation for Chrome, Safari and older APKs. Both submit the unchanged CSRF-protected /admin/mywork/clockin or /clockout form. Server checks are still authoritative: staff tenant identity, configured restaurant coordinates, accuracy <=90m, fix age <=90s, and radius 150m + 25m tolerance. No owner bypass or synthetic shift.
+
+**Deployment is two parts:** Deploy app/admin/assets/js/pmd-staff-time-clock-v1.js and app/Http/Controllers/PmdStaffPortalV6Controller.php (asset version v4) to VPS, then build and install the new Staff APK from PayMyDine Staff Android GitHub Actions artifact. Updating only VPS cannot add native GPS code to an installed APK. The debug APK package is com.paymydine.staff.debug, not the POS app com.paymydine.mobile. Different GitHub Actions runner debug signing keys may require uninstalling the previous debug APK; that clears the saved restaurant choice and login.
+
+**QA:** Onsite test Start/Finish Shift, precise permission denial, disabled device Location, poor accuracy, out-of-range and duplicate taps. Verify canonical Shifts attendance, tenant isolation, and database schema before declaring production completion.
