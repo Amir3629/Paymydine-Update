@@ -101,6 +101,9 @@ class Shifts extends AdminController
         // PMD_SONSTIGE_PORTAL_ONLY_UI_V18E
         // Versioned filename intentionally busts older Shifts role UI cache.
         $this->addJs('js/pmd-shifts-inpage-day-nav-v18i.js');
+        // PMD_SHIFTS_NEW_PASSWORD_VISIBILITY_V1: only just-entered web passwords can be shown.
+        $this->addCss('css/pmd-shifts-new-password-visibility-v1.css');
+        $this->addJs('js/pmd-shifts-new-password-visibility-v1.js');
         // PMD_SHIFTS_KPI_INFO_ASSET_PARITY_V155
         // @scripts renders after the Shifts DOM, so the shared info runtime can bind normally.
         // PMD_KPI_INFO_CURRENT_CARD_AUTHORITY_V158
