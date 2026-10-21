@@ -276,6 +276,7 @@ final class PmdReservationsScheduleV1
                 $reservationQuery
                     ->where('first_name', 'like', $like)
                     ->orWhere('last_name', 'like', $like)
+                    ->orWhereRaw("CONCAT(COALESCE(first_name, ''), ' ', COALESCE(last_name, '')) LIKE ?", [$like])
                     ->orWhere('telephone', 'like', $like)
                     ->orWhere('email', 'like', $like)
                     ->orWhere('comment', 'like', $like)

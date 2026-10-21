@@ -663,6 +663,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         $socialRows = [
                             ['key' => 'website', 'label' => 'Website', 'placeholder' => 'https://yourrestaurant.com', 'icon' => 'globe'],
                             ['key' => 'instagram', 'label' => 'Instagram', 'placeholder' => 'https://instagram.com/...', 'icon' => 'instagram'],
+                            ['key' => 'tiktok', 'label' => 'TikTok', 'placeholder' => 'https://www.tiktok.com/@restaurant', 'icon' => 'tiktok'],
                             ['key' => 'google', 'label' => 'Google / Maps', 'placeholder' => 'https://maps.google.com/...', 'icon' => 'pin'],
                             ['key' => 'trustpilot', 'label' => 'Trustpilot', 'placeholder' => 'https://trustpilot.com/...', 'icon' => 'star'],
                         ];
@@ -678,6 +679,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                                                 <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg>
                                             @elseif($social['icon'] === 'pin')
                                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+                                            @elseif($social['icon'] === 'tiktok')
+                                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v10.2a4.5 4.5 0 1 1-4.5-4.5"/><path d="M14 3c1 3.5 2.7 5 6.2 5.2"/></svg>
                                             @elseif($social['icon'] === 'star')
                                                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"></path></svg>
                                             @else

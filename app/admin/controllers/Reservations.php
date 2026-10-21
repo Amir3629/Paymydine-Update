@@ -92,6 +92,8 @@ class Reservations extends PmdCleanWorkspaceControllerV1
         $this->addCss('css/pmd-reservations-guarantee-v1.css');
         $this->addJs('js/pmd-reservations-table-card-filter-v1.js');
         $this->addJs('js/pmd-reservations-live-sync-v1.js');
+        $pmdSearchCss = 'app/admin/assets/css/pmd-reservation-search-r1.css';
+        $this->addCss(asset($pmdSearchCss).'?v='.(@filemtime(base_path($pmdSearchCss)) ?: 'r1'));
     }
 
     /*
@@ -172,6 +174,18 @@ class Reservations extends PmdCleanWorkspaceControllerV1
 
         $this->vars['pmdReservationsSchedule'] =
             $schedule;
+
+        // PMD_RESERVATIONS_GLOBAL_SEARCH_R1
+        // Search the current location's indexed reservations independently
+        // of the currently selected day/range. Never expose other locations.
+        $searchNeedle = trim((string)request()->query('pmd_reservation_search', ''));
+        $searchNeedle = mb_substr($searchNeedle, 0, 100);
+        $this->vars['pmdReservationSearchNeedle'] = $searchNeedle;
+        $this->vars['pmdReservationSearchResults'] = (
+            mb_strlen($searchNeedle) >= 2 && $locationId > 0
+        ) ? app(PmdReservationsScheduleV1::class)->searchOtherDates(
+            $locationId, $locale, $searchNeedle, null, null, 80
+        ) : [];
 
         /*
          * PMD_RESERVATION_COMPOSER_SERVER_PRIMER_R11
