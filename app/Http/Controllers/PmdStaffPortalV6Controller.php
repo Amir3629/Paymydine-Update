@@ -105,7 +105,11 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                     'check_in_time' => $now,
                     'check_out_time' => null,
                 ];
+                // PMD_STAFF_MOBILE_ATTENDANCE_STATUS_V1_20261021: GPS punches are mobile, never fingerprint/device-card.
                 if (Schema::hasColumn('staff_attendance', 'location_id')) $values['location_id'] = $locationId;
+                if (Schema::hasColumn('staff_attendance', 'device_type')) $values['device_type'] = 'manual';
+                if (Schema::hasColumn('staff_attendance', 'verification_method')) $values['verification_method'] = 'mobile';
+                if (Schema::hasColumn('staff_attendance', 'status')) $values['status'] = 'checked_in';
                 if (Schema::hasColumn('staff_attendance', 'created_at')) $values['created_at'] = $now;
                 if (Schema::hasColumn('staff_attendance', 'updated_at')) $values['updated_at'] = $now;
                 if (Schema::hasColumn('staff_attendance', 'metadata')) {
@@ -180,6 +184,7 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 $seconds = $checkIn->lt($now) ? $checkIn->diffInSeconds($now) : 0;
                 $hours = round($seconds / 3600, 2);
                 $values = ['check_out_time' => $now];
+                if (Schema::hasColumn('staff_attendance', 'status')) $values['status'] = 'checked_out';
                 // Keep location evidence without retaining the staff GPS fix.
                 $metadata = json_decode((string)($open->metadata ?? ''), true);
                 if (!is_array($metadata)) $metadata = [];
