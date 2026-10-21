@@ -461,7 +461,13 @@
                         <label class="is-password" data-pmd-team-password-field>
                             <span>Password <small data-pmd-team-password-hint>Web / Portal</small></span>
                             <span class="pmd-shifts__team-password-row">
-                                <input type="password" minlength="12" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password aria-describedby="pmd-shifts-password-strength-advice">
+                                <span class="pmd-shifts__password-input-wrap">
+                                    <input type="password" minlength="12" maxlength="32" name="password" autocomplete="new-password" data-pmd-team-password aria-describedby="pmd-shifts-password-strength-advice">
+                                    <button type="button" data-pmd-team-password-visibility hidden disabled aria-pressed="false" aria-label="Show new password" title="Show new password">
+                                        <svg data-pmd-password-icon-show viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        <svg data-pmd-password-icon-hide viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3 21 21M10.6 5.1A11 11 0 0 1 12 5c6.2 0 10 7 10 7a15 15 0 0 1-3.1 3.9M6.3 6.3C3.6 8.3 2 12 2 12s3.8 7 10 7c1.8 0 3.4-.6 4.8-1.5M10 10a3 3 0 0 0 4 4"></path></svg>
+                                    </button>
+                                </span>
                                 <button type="button" data-pmd-team-password-generate>Generate</button>
                             </span>
                             <span class="pmd-shifts__password-strength" data-pmd-team-password-strength data-strength="empty" role="status" aria-live="polite" hidden>
