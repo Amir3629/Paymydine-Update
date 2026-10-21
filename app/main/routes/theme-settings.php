@@ -207,6 +207,11 @@
                 $pmdKazenSocialUrlV1 = $pmdKazenUrlV1($pmdKazenSettingV1('pmd_kazen_social_url', $pmdKazenLegacySocialUrlV1));
                 $pmdKazenSocialEnabledV1 = $pmdKazenBoolV1($pmdKazenSettingV1('pmd_kazen_social_enabled', $pmdKazenSocialUrlV1 !== '' ? '1' : '0')) && $pmdKazenSocialUrlV1 !== '';
 
+                // PMD_TIKTOK_PROFILE_LINK_R1: independent of the existing
+                // single featured-social choice; only public when enabled.
+                $pmdKazenTikTokUrlV1 = $pmdKazenUrlV1($pmdKazenSettingV1('pmd_social_tiktok_url', ''));
+                $pmdKazenTikTokEnabledV1 = $pmdKazenTikTokUrlV1 !== ''
+                    && $pmdKazenBoolV1($pmdKazenSettingV1('pmd_social_tiktok_enabled', '0'));
                 $pmdKazenHeaderLinksV1 = [
                     'website' => [
                         'enabled' => $pmdKazenWebsiteEnabledV1,
@@ -216,6 +221,10 @@
                         'enabled' => $pmdKazenSocialEnabledV1,
                         'platform' => $pmdKazenSocialPlatformV1,
                         'url' => $pmdKazenSocialUrlV1,
+                    ],
+                    'tiktok' => [
+                        'enabled' => $pmdKazenTikTokEnabledV1,
+                        'url' => $pmdKazenTikTokEnabledV1 ? $pmdKazenTikTokUrlV1 : '',
                     ],
                 ];
                 $adminTheme = $data['theme_configuration'] ?? 'gold_luxury';
