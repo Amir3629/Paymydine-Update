@@ -825,12 +825,56 @@
     );
   }
 
+  var customerDisplayControlsInstalledV122 = false;
+  var customerDisplayInstallTimerV122 = null;
+  var customerDisplayInstallAttemptsV122 = 0;
+
+  function scheduleCustomerDisplayInstallV122() {
+    if (customerDisplayControlsInstalledV122 || customerDisplayInstallTimerV122) return;
+
+    var nativeShell = !!window.PayMyDineOffline ||
+      /PayMyDine-Android-POS\//i.test(String(navigator.userAgent || ''));
+    if (!nativeShell || customerDisplayInstallAttemptsV122 >= 8) return;
+
+    customerDisplayInstallAttemptsV122 += 1;
+    customerDisplayInstallTimerV122 = window.setTimeout(function () {
+      customerDisplayInstallTimerV122 = null;
+      installCustomerDisplayControls();
+    }, 250 + (customerDisplayInstallAttemptsV122 * 150));
+  }
+
   function installCustomerDisplayControls() {
+    if (customerDisplayControlsInstalledV122) return;
+
+    /* PMD_ZCS_CUSTOMER_DISPLAY_CACHED_DOM_REBIND_V122
+     * PosActivity persists document.documentElement.outerHTML. Controls injected
+     * by an older runtime therefore survive in the cached shell, but their event
+     * listeners do not. Always discard cached/stale customer-display DOM and
+     * rebuild it from the currently executing runtime. */
+    var cachedControl = document.getElementById('pmd-customer-display-control');
+    if (cachedControl && cachedControl.parentNode) {
+      cachedControl.parentNode.removeChild(cachedControl);
+    }
+    Array.prototype.slice.call(
+      document.querySelectorAll('[data-pmd-customer-display-overlay]')
+    ).forEach(function (node) {
+      if (node && node.parentNode) node.parentNode.removeChild(node);
+    });
+
     var bridge = customerDisplayBridge();
-    if (!bridge || document.getElementById('pmd-customer-display-control')) return;
+    if (!bridge) {
+      scheduleCustomerDisplayInstallV122();
+      return;
+    }
 
     var profileMenu = document.querySelector('[data-qpos-profile-menu]');
-    if (!profileMenu) return;
+    if (!profileMenu) {
+      scheduleCustomerDisplayInstallV122();
+      return;
+    }
+
+    customerDisplayControlsInstalledV122 = true;
+    customerDisplayInstallAttemptsV122 = 0;
 
     /* PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119
      * Keep the profile menu calm: one status row + Settings button.
@@ -1809,12 +1853,136 @@
     return true;
   }
 
+  var nativeImageRefreshTimerV122 = null;
+  var nativeImageRefreshAttemptsV122 = 0;
+
+  function scheduleNativeImageRefreshV122() {
+    if (
+      !nativeLocalTransportAvailable() ||
+      nativeImageRefreshTimerV122 ||
+      nativeImageRefreshAttemptsV122 >= 2
+    ) {
+      return;
+    }
+
+    var delay = nativeImageRefreshAttemptsV122 === 0 ? 2500 : 6500;
+    nativeImageRefreshTimerV122 = window.setTimeout(function () {
+      nativeImageRefreshTimerV122 = null;
+      nativeImageRefreshAttemptsV122 += 1;
+
+      try {
+        if (
+          window.PMDQuickPOSV1 &&
+          typeof window.PMDQuickPOSV1.refreshNativeState === 'function'
+        ) {
+          window.PMDQuickPOSV1.refreshNativeState();
+        }
+      } catch (ignored) {
+      }
+    }, delay);
+  }
+
+  function nativeBootstrapCollectionsV122(json, previousLocationId) {
+    var incomingFloors = Array.isArray(json.floors) ? json.floors : [];
+    var incomingTables = Array.isArray(json.tables) ? json.tables : [];
+    var incomingMenu = Array.isArray(json.menu_items) ? json.menu_items : [];
+    var incomingCategories = Array.isArray(json.categories) ? json.categories : [];
+    var incomingLocationId = Number(json.location_id || 0);
+    var sameLocation =
+      !previousLocationId ||
+      !incomingLocationId ||
+      incomingLocationId === previousLocationId;
+
+    if (!nativeLocalTransportAvailable() || !sameLocation) {
+      state.floors = incomingFloors;
+      state.defaultFloorId = String(json.default_floor_id || '');
+      state.activeFloorId = String(json.active_floor_id || '');
+      normalizeActiveFloor();
+      state.tables = incomingTables;
+      state.menu = incomingMenu;
+      state.categories = incomingCategories;
+      return;
+    }
+
+    /* PMD_ANDROID_LOCAL_BOOTSTRAP_NON_DESTRUCTIVE_V122
+     * The Cloud/server HTML or visual cache can already contain a complete POS
+     * while Android is still warming SQLite after login/restart. Never replace
+     * a healthy visible collection with a transient empty local collection. */
+    if (incomingFloors.length || !state.floors.length) {
+      state.floors = incomingFloors;
+    }
+
+    var defaultFloorId = String(json.default_floor_id || '');
+    var activeFloorId = String(json.active_floor_id || '');
+    if (defaultFloorId || !state.defaultFloorId) {
+      state.defaultFloorId = defaultFloorId;
+    }
+    if (activeFloorId || !state.activeFloorId) {
+      state.activeFloorId = activeFloorId;
+    }
+    normalizeActiveFloor();
+
+    if (incomingTables.length || !state.tables.length) {
+      state.tables = incomingTables;
+    }
+
+    if (incomingMenu.length) {
+      var previousMenuById = Object.create(null);
+      (state.menu || []).forEach(function (item) {
+        previousMenuById[String(Number(item && item.id || 0))] = item;
+      });
+
+      state.menu = incomingMenu.map(function (item) {
+        var id = String(Number(item && item.id || 0));
+        var previous = previousMenuById[id] || {};
+        var next = item || {};
+        var nextImage = String(next.image || '');
+        var previousImage = String(previous.image || '');
+
+        /* PMD_ANDROID_LOCAL_IMAGE_NON_DESTRUCTIVE_V122
+         * Clearing Android's cache can temporarily make the native bootstrap
+         * return image:"" while the background prefetch is rebuilding. Keep the
+         * already-rendered Cloud/cached-shell image until native bytes return. */
+        if (!nextImage && previousImage) {
+          next = Object.assign({}, next, {image: previousImage});
+          if (
+            (!Array.isArray(next.images) || !next.images.length) &&
+            Array.isArray(previous.images) &&
+            previous.images.length
+          ) {
+            next.images = previous.images.slice();
+          }
+        }
+        return next;
+      });
+    } else if (!state.menu.length) {
+      state.menu = incomingMenu;
+    }
+
+    if (incomingCategories.length || !state.categories.length) {
+      state.categories = incomingCategories;
+    }
+
+    if (incomingMenu.some(function (item) {
+      return item && !String(item.image || '');
+    })) {
+      scheduleNativeImageRefreshV122();
+    } else {
+      nativeImageRefreshAttemptsV122 = 0;
+      if (nativeImageRefreshTimerV122) {
+        window.clearTimeout(nativeImageRefreshTimerV122);
+        nativeImageRefreshTimerV122 = null;
+      }
+    }
+  }
+
   async function bootstrap(silent) {
     if (state.loading) return;
     state.loading = true;
     root.classList.add('is-loading');
 
     var selectedId = state.selectedTable ? Number(state.selectedTable.id) : 0;
+    var previousLocationId = Number(state.boot && state.boot.location_id || 0);
 
     try {
       var url = root.getAttribute('data-bootstrap-url');
@@ -1843,17 +2011,7 @@
       }
       state.mode = json.mode || state.mode;
       root.setAttribute('data-mode', state.mode);
-      state.floors = Array.isArray(json.floors) ? json.floors : [];
-      state.defaultFloorId = String(json.default_floor_id || '');
-      state.activeFloorId = String(
-        json.active_floor_id ||
-        state.activeFloorId ||
-        ''
-      );
-      normalizeActiveFloor();
-      state.tables = Array.isArray(json.tables) ? json.tables : [];
-      state.menu = Array.isArray(json.menu_items) ? json.menu_items : [];
-      state.categories = Array.isArray(json.categories) ? json.categories : [];
+      nativeBootstrapCollectionsV122(json, previousLocationId);
 
       var user = $('[data-qpos-user]');
       if (user) user.textContent = (json.user && json.user.name) || 'Staff';
