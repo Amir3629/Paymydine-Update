@@ -58,10 +58,12 @@ jobs:
           ! grep -Fq '<script defer src="/app/admin/assets/js/pmd-site-access-hub-v13.js' app/admin/views/pmd_quick_pos_v1.blade.php
           grep -Fq 'window.PMDQuickPOSMinimalBootR135' app/admin/views/pmd_quick_pos_v1.blade.php
 
-          grep -Fq 'pmd-quick-pos-v1.js?v=20261022-zcs-v122'             app/admin/views/pmd_quick_pos_v1.blade.php
-          grep -Fq 'pmd-qpos-web-parity-v112.js?v=20261022-zcs-v122'      app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'pmd-quick-pos-v1.js?v=20261022-zcs-v123'             app/admin/views/pmd_quick_pos_v1.blade.php
+          grep -Fq 'pmd-qpos-web-parity-v112.js?v=20261022-zcs-v123'      app/admin/views/pmd_quick_pos_v1.blade.php
 
           grep -Fq 'PMD_ANDROID_LOCAL_BOOTSTRAP_NON_DESTRUCTIVE_V122' app/admin/assets/js/pmd-quick-pos-v1.js
           grep -Fq 'PMD_ANDROID_LOCAL_BOOTSTRAP_NON_DESTRUCTIVE_V122' app/admin/assets/js/pmd-qpos-web-parity-v112.js
           grep -Fq 'PMD_ANDROID_LOCAL_IMAGE_NON_DESTRUCTIVE_V122' app/admin/assets/js/pmd-qpos-web-parity-v112.js
           grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_DOM_REBIND_V122' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_VISIBLE_SETTINGS_GEAR_V123' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'aria-label="Customer display settings"' app/admin/assets/js/pmd-qpos-web-parity-v112.js
