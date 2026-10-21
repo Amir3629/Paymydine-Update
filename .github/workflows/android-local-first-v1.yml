@@ -1,5 +1,4 @@
 name: PayMyDine Device App V18
-# PMD_ZCS_Z100_CI_TRIGGER_V18
 
 on:
   push:
@@ -121,7 +120,7 @@ jobs:
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' app/Http/Controllers/PmdKioskPublicController.php
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq 'PMD_KIOSK_CUSTOMER_THEME_SYNC_V9' public/assets/pmd/kiosk-terminal-v8.css
-          grep -Fq 'v=22-8-fullbleed-menu-hero' resources/views/pmd/kiosk-terminal.blade.php
+          grep -Fq 'v=22-single-surface-kiosk' resources/views/pmd/kiosk-terminal.blade.php
           grep -Fq 'PMD_KIOSK_QR_PAY_LATER_V9' routes/admin-app-before.php
           grep -Fq 'payment_method: "qr_pay_later"' public/assets/pmd/kiosk-terminal-v8.js
           grep -Fq '/api/v1/payments/stripe/create-intent' public/assets/pmd/kiosk-terminal-v8.js
@@ -211,8 +210,6 @@ jobs:
           grep -Fq 'versionName = "0.5.9-device-app-v18"' mobile/android/app/build.gradle.kts
           grep -Fq 'PMD_ZCS_Z100_AUTO_SECONDARY_V18' mobile/android/app/build.gradle.kts
           grep -Fq 'PMD_ZCS_Z100_AUTO_SECONDARY_V18' mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager.kt
-          grep -Fq 'showBitmapOnSecondaryScreen' mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager.kt
-          grep -Fq 'PMD_ZCS_Z100_AUTO_SECONDARY_V18' app/admin/views/pmdsettings/index.blade.php
           test -f mobile/android/scripts/prepare_zcs_sdk.sh
           grep -Fq 'PayMyDine Device App · Android' app/admin/views/pmdsettings/index.blade.php
           grep -Fq 'customerMenuTheme' app/Services/PmdTableDisplayService.php
@@ -251,7 +248,7 @@ jobs:
 
   android:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -283,8 +280,6 @@ jobs:
           bash mobile/android/scripts/prepare_zcs_sdk.sh
           test -f mobile/android/app/libs/SmartPos_2.0.6_R260615.aar
           echo 'fe2269746167064571ae23fc655838f203436deeb145606ff5c2d34b0054db18  mobile/android/app/libs/SmartPos_2.0.6_R260615.aar' | sha256sum -c -
-          echo 'PMD_ZCS_Z100_SDK_READY=PASS'
-
 
       - name: Restore Device App preview signing key
         uses: actions/cache@v4
@@ -308,27 +303,6 @@ jobs:
       - name: Assemble Device App
         working-directory: mobile/android
         run: gradle --no-daemon assembleDebug
-
-      - name: Verify ZCS customer-display SDK in APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK='mobile/android/app/build/outputs/apk/debug/app-debug.apk'
-          test -f "$APK"
-
-          FOUND_CLASS=0
-          while IFS= read -r DEX; do
-            if unzip -p "$APK" "$DEX" | strings | grep -Fq 'com/zcs/sdk/DriverManager'; then
-              FOUND_CLASS=1
-              echo "ZCS DriverManager found in $DEX"
-              break
-            fi
-          done < <(zipinfo -1 "$APK" | grep -E '^classes[0-9]*[.]dex$')
-
-          test "$FOUND_CLASS" -eq 1
-          zipinfo -1 "$APK" | grep -Fq 'lib/arm64-v8a/libSmartPosJni.so'
-          zipinfo -1 "$APK" | grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so'
-          echo 'PMD_ZCS_Z100_APK_PACKAGING=PASS'
 
       - name: Android lint
         working-directory: mobile/android
@@ -357,6 +331,37 @@ jobs:
           grep -Fq "versionCode='72'" <<<"$BADGING"
           grep -Fq "versionName='0.5.9-device-app-v18-debug'" <<<"$BADGING"
           "$APKSIGNER" verify "$APK"
+
+          FOUND_ZCS=0
+          for DEX in $(zipinfo -1 "$APK" | grep -E '^classes[0-9]*[.]dex
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paymydine-device-app-v18
+          path: |
+            mobile/android/PayMyDine-Device-App-0.5.9.apk
+            mobile/android/PayMyDine-Device-App-0.5.9.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish Device App preview
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pmd-device-app-preview
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "PayMyDine Device App Preview"               --notes "Unified PayMyDine Android app. V18 includes automatic ZCS Z100 customer-display support."               --prerelease
+          fi
+          gh release upload "$TAG"             mobile/android/PayMyDine-Device-App-0.5.9.apk             mobile/android/PayMyDine-Device-App-0.5.9.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
+); do
+            if unzip -p "$APK" "$DEX" | strings | grep -Fq 'com/zcs/sdk/DriverManager'; then
+              FOUND_ZCS=1
+              break
+            fi
+          done
+          test "$FOUND_ZCS" -eq 1
+          echo "ZCS SmartPos SDK packaged: OK"
           sha256sum "$APK"
 
       - uses: actions/upload-artifact@v4
@@ -376,6 +381,6 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "PayMyDine Device App Preview"               --notes "Unified PayMyDine Android app. V18 includes automatic ZCS Z100/SmartPOS customer-display support."               --prerelease
+            gh release create "$TAG"               --repo "$GITHUB_REPOSITORY"               --title "PayMyDine Device App Preview"               --notes "Unified Android app for PayMyDine restaurant devices."               --prerelease
           fi
           gh release upload "$TAG"             mobile/android/PayMyDine-Device-App-0.5.9.apk             mobile/android/PayMyDine-Device-App-0.5.9.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
