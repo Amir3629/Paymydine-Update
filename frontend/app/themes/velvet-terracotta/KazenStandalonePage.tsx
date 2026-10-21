@@ -118,6 +118,7 @@ function pmdKazenReadHeaderLinksV1(payload: any): KazenHeaderLinksV1 {
 
 function pmdKazenSocialLabelV1(platform: string): string {
   const normalized = String(platform || "").trim().toLowerCase()
+  if (normalized === "tiktok") return "TikTok"
   if (normalized === "facebook") return "Facebook"
   if (normalized === "trustpilot") return "Trustpilot"
   if (normalized === "reviews") return "Reviews"
@@ -345,6 +346,9 @@ export default function KazenStandalonePage() {
     const iconInstagram =
       '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.1" y="5.1" width="13.8" height="13.8" rx="3.5"></rect><circle cx="12" cy="12" r="2.95"></circle><path d="M16.45 7.65h.01"></path></svg>'
 
+    const iconTiktok =
+      '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3v10.5a4.5 4.5 0 1 1-4.5-4.5"/><path d="M14 3c1 3.4 2.9 5 6.4 5.2"/></svg>'
+
     const iconFacebook =
       '<svg class="pmd-kazen-header-link-svg" width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.35 5.2h-1.9c-2.15 0-3.45 1.35-3.45 3.7v2.15H6.8v3H9V20h3.05v-5.95h2.35l.38-3h-2.73V9.15c0-.72.28-1.08 1.08-1.08h1.22V5.2Z"></path></svg>'
 
@@ -359,6 +363,7 @@ export default function KazenStandalonePage() {
 
     const socialIcon = () => {
       const platform = String(kazenHeaderLinksV1.social.platform || "").trim().toLowerCase()
+      if (platform === "tiktok") return iconTiktok
       if (platform === "facebook") return iconFacebook
       if (platform === "trustpilot") return iconTrust
       if (platform === "reviews") return iconReviews
