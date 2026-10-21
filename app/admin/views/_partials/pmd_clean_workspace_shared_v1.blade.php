@@ -706,6 +706,20 @@ html body.page.pmd-clean-workspace-page #pmd-dashboard-lab {
                 </button>
             @endif
 
+            {{-- PMD_RESERVATION_SEARCH_HEADER_BUTTON_R1 --}}
+            @if($pmdCleanWorkspaceReservationsSurface)
+                <a class="pmd-dashboard-lab__header-action"
+                    href="#pmd-reservations-search-input-r1"
+                    data-pmd-reservation-search-header
+                    aria-label="{{ $pmdCleanWorkspaceUiLocale === 'de' ? 'Reservierung suchen' : 'Search reservations' }}"
+                    title="{{ $pmdCleanWorkspaceUiLocale === 'de' ? 'Reservierung suchen' : 'Search reservations' }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="10.8" cy="10.8" r="6.7"></circle>
+                        <path d="m16 16 5.1 5.1"></path>
+                    </svg>
+                </a>
+            @endif
+
             @if($pmdCleanWorkspaceHeaderCreateVisible)
                 <button
                     type="button"
