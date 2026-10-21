@@ -1,0 +1,160 @@
+name: PayMyDine ZCS Z100 Universal APK
+
+on:
+  push:
+    branches:
+      - feature/zcs-z100-auto-secondary-v18
+      - main
+    paths:
+      - 'mobile/android/**'
+      - '.github/workflows/zcs-z100-universal-v18.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pmd-zcs-z100-v18-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  android-zcs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 36
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platform-tools' 'platforms;android-36' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Restore preview signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: paymydine-device-app-preview-keystore-v1
+
+      - name: Prepare preview signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
+            keytool -genkeypair \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=PayMyDine Device App Preview,O=PayMyDine,C=DE" \
+              -noprompt >/dev/null 2>&1
+          fi
+
+      - name: Inject verified official ZCS SmartPos SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash mobile/android/scripts/prepare_zcs_sdk.sh
+          test -f mobile/android/app/libs/SmartPos_2.0.6_R260615.aar
+          echo 'fe2269746167064571ae23fc655838f203436deeb145606ff5c2d34b0054db18  mobile/android/app/libs/SmartPos_2.0.6_R260615.aar' | sha256sum -c -
+
+      - name: Unit tests
+        working-directory: mobile/android
+        run: gradle --no-daemon testDebugUnitTest
+
+      - name: Assemble universal Device App
+        working-directory: mobile/android
+        run: gradle --no-daemon assembleDebug
+
+      - name: Verify universal ZCS APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='mobile/android/app/build/outputs/apk/debug/app-debug.apk'
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+
+          test -f "$APK"
+          BADGING="$("$AAPT" dump badging "$APK" | head -1)"
+          echo "$BADGING"
+          grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
+          grep -Fq "versionCode='72'" <<<"$BADGING"
+          grep -Fq "versionName='0.5.9-device-app-v18-debug'" <<<"$BADGING"
+          "$APKSIGNER" verify "$APK"
+
+          FOUND_DRIVER=0
+          FOUND_DISPLAY_API=0
+          while IFS= read -r DEX; do
+            if unzip -p "$APK" "$DEX" | strings | grep -Eq 'com[./]zcs/sdk/DriverManager'; then
+              FOUND_DRIVER=1
+            fi
+            if unzip -p "$APK" "$DEX" | strings | grep -Fq 'showBitmapOnSecondaryScreen'; then
+              FOUND_DISPLAY_API=1
+            fi
+          done < <(zipinfo -1 "$APK" | grep -E '^classes[0-9]*[.]dex$')
+
+          test "$FOUND_DRIVER" -eq 1
+          test "$FOUND_DISPLAY_API" -eq 1
+          zipinfo -1 "$APK" | grep -Fq 'lib/arm64-v8a/libSmartPosJni.so'
+          zipinfo -1 "$APK" | grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so'
+
+          echo 'PMD_ZCS_Z100_UNIVERSAL_APK=PASS'
+
+      - name: Prepare canonical APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK_IN='mobile/android/app/build/outputs/apk/debug/app-debug.apk'
+          APK_OUT='mobile/android/PayMyDine-Device-App-0.5.9.apk'
+          cp "$APK_IN" "$APK_OUT"
+          sha256sum "$APK_OUT" > "$APK_OUT.sha256"
+          cat "$APK_OUT.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paymydine-device-app-v18-zcs-z100
+          path: |
+            mobile/android/PayMyDine-Device-App-0.5.9.apk
+            mobile/android/PayMyDine-Device-App-0.5.9.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish canonical Device App preview
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pmd-device-app-preview
+        run: |
+          set -euo pipefail
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "PayMyDine Device App Preview" \
+              --notes "Unified PayMyDine Android app. V18 includes automatic ZCS Z100 customer-display support." \
+              --prerelease
+          fi
+          gh release upload "$TAG" \
+            mobile/android/PayMyDine-Device-App-0.5.9.apk \
+            mobile/android/PayMyDine-Device-App-0.5.9.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
