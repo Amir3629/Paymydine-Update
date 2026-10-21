@@ -34,11 +34,13 @@ function normalizeKazenStandaloneMenuLayout(value: unknown): "accordion" | "tabs
 type KazenHeaderLinksV1 = {
   website: { enabled: boolean; url: string }
   social: { enabled: boolean; platform: string; url: string }
+  tiktok: { enabled: boolean; url: string }
 }
 
 const PMD_KAZEN_HEADER_LINKS_DEFAULT_V1: KazenHeaderLinksV1 = {
   website: { enabled: false, url: "" },
   social: { enabled: false, platform: "instagram", url: "" },
+  tiktok: { enabled: false, url: "" },
 }
 
 
@@ -112,6 +114,10 @@ function pmdKazenReadHeaderLinksV1(payload: any): KazenHeaderLinksV1 {
       ),
       platform: socialPlatform,
       url: socialUrl,
+    },
+    tiktok: {
+      enabled: Boolean(links?.tiktok?.url) && pmdKazenBoolV1(links?.tiktok?.enabled),
+      url: pmdKazenUrlV1(links?.tiktok?.url),
     },
   }
 }
@@ -373,7 +379,7 @@ export default function KazenStandalonePage() {
 
     const upsertHeaderLink = (
       group: HTMLElement,
-      action: "website" | "social",
+      action: "website" | "social" | "tiktok",
       enabled: boolean,
       url: string,
       label: string,
@@ -430,6 +436,18 @@ export default function KazenStandalonePage() {
           socialIcon()
         )
 
+        // TikTok can coexist with the existing featured Social choice.
+        // Do not duplicate when the featured social already IS TikTok.
+        const tiktokIsFeatured = kazenHeaderLinksV1.social.enabled &&
+          kazenHeaderLinksV1.social.platform === "tiktok" &&
+          kazenHeaderLinksV1.social.url === kazenHeaderLinksV1.tiktok.url
+        upsertHeaderLink(
+          group, "tiktok",
+          kazenHeaderLinksV1.tiktok.enabled && !tiktokIsFeatured,
+          kazenHeaderLinksV1.tiktok.url,
+          "TikTok", iconTiktok
+        )
+
         group.setAttribute("data-pmd-kazen-clean-header-links-v21", "1")
         ;(window as any).__PMD_KAZEN_HEADER_LINKS_V21 = {
           website: !!group.querySelector('[data-pmd-kazen-clean-action="website"]'),
@@ -459,6 +477,8 @@ export default function KazenStandalonePage() {
     kazenHeaderLinksV1.social.enabled,
     kazenHeaderLinksV1.social.url,
     kazenHeaderLinksV1.social.platform,
+    kazenHeaderLinksV1.tiktok.enabled,
+    kazenHeaderLinksV1.tiktok.url,
   ])
 
 const [waiterConfirmed, setWaiterConfirmed] = useState(false)
