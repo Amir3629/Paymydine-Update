@@ -3143,6 +3143,54 @@
     }
   }
 
+
+  /* PMD_QPOS_STABLE_TABLE_RAIL_R136
+   * Live heartbeats, payment/attention updates and reservation overlays
+   * must not unmount unchanged table buttons. Updating the existing nodes
+   * preserves cyan data-pmd-qpos-reservation-phase and feature/icon DOM.
+   * A real table addition, removal or reorder retains the full fallback.
+   */
+  function reconcileTableRailDomV136(box, nextMarkup) {
+    var staging = document.createElement('div');
+    staging.innerHTML = nextMarkup;
+
+    var current = Array.prototype.slice.call(box.children);
+    var next = Array.prototype.slice.call(staging.children);
+    function tableKey(node) {
+      if (!node || !node.getAttribute) return '';
+      var id = node.getAttribute('data-qpos-table');
+      return id !== null ? 'table:' + id
+        : node.hasAttribute('data-qpos-pickup') ? 'pickup' : '';
+    }
+
+    if (current.length !== next.length ||
+        current.some(function (node, index) {
+          return !tableKey(node) || tableKey(node) !== tableKey(next[index]);
+        })) {
+      box.innerHTML = nextMarkup;
+      return false;
+    }
+
+    current.forEach(function (node, index) {
+      var expected = next[index];
+      Array.prototype.slice.call(node.attributes).forEach(function (attr) {
+        // Reservation R2 and other visual overlays own their data-pmd-*
+        // attributes. A live heartbeat must never erase those phases.
+        if (attr.name.indexOf('data-pmd-') === 0) return;
+        if (!expected.hasAttribute(attr.name)) node.removeAttribute(attr.name);
+      });
+      Array.prototype.slice.call(expected.attributes).forEach(function (attr) {
+        if (node.getAttribute(attr.name) !== attr.value) {
+          node.setAttribute(attr.name, attr.value);
+        }
+      });
+      if (node.innerHTML !== expected.innerHTML) {
+        node.innerHTML = expected.innerHTML;
+      }
+    });
+    return true;
+  }
+
   function renderTables() {
     var box = $('[data-qpos-tables]');
     var count = $('[data-qpos-table-count]');
@@ -3335,7 +3383,7 @@
       );
     });
 
-    box.innerHTML = rows.join('');
+    reconcileTableRailDomV136(box, rows.join(''));
     bindRenderedTables();
   }
 

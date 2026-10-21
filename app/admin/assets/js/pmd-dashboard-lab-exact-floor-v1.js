@@ -2155,6 +2155,137 @@
       state.transitionReason = null;
     }
 
+
+    /* PMD_FLOOR_STABLE_LIVE_CARDS_R3
+     * Server-first-paint adoption and physical live snapshots must not
+     * destroy existing table buttons/icons. Only real structural layout
+     * changes use render(). Keep merged table status and reservation phase
+     * derived by the single canonical display-table builder.
+     */
+    function displayTablesPreservingCanvasStyleR3() {
+      var original = canvas.getAttribute('style');
+      var rows = buildDisplayTables();
+
+      if (original === null) canvas.removeAttribute('style');
+      else canvas.setAttribute('style', original);
+
+      return rows;
+    }
+
+    function adoptServerFilteredFloorR3() {
+      if (!canvas) return false;
+      // The Blade DOM already displays this active Floor. Rebuild only the
+      // internal model after the multi-floor registry filters state.tables.
+      displayTablesPreservingCanvasStyleR3();
+      updateCounts();
+      return true;
+    }
+
+    function reconcileLiveCardsR3() {
+      if (!canvas) return false;
+
+      var displayTables = displayTablesPreservingCanvasStyleR3();
+      var nodes = Array.prototype.slice.call(
+        canvas.querySelectorAll('[data-floor-table]')
+      );
+      var byId = Object.create(null);
+
+      nodes.forEach(function (node) {
+        var id = String(node.getAttribute('data-floor-table') || '');
+        if (id) byId[id] = node;
+      });
+
+      // Added/removed/merged/renumbered cards are structural. Preserve the
+      // established full renderer for those rare changes, never guess keys.
+      var structuralChange = nodes.length !== displayTables.length ||
+        displayTables.some(function (table) {
+          var node = byId[String(table.id)];
+          var number = node && node.querySelector('.pmd-floor-v1__table-number');
+          return !node || !number ||
+            String(number.textContent || '').trim() !== String(table.number);
+        });
+
+      if (structuralChange) {
+        render();
+        return false;
+      }
+
+      displayTables.forEach(function (table) {
+        var node = byId[String(table.id)];
+        var status = String(table.status || 'available');
+        var phase = String(table.reservationPhase || 'none');
+        var range = status === 'available' ? 'free'
+          : status === 'occupied' ? 'busy'
+          : status === 'reserved' ? 'rangeReservation' : '';
+        var label = String(table.name || '') +
+          (status === 'disabled' ? ' · Disabled' : '') +
+          (table.note ? ' · Internal note: ' + table.note : '');
+
+        if (node.getAttribute('data-status') !== status) {
+          node.setAttribute('data-status', status);
+        }
+        if (node.getAttribute('data-pmd-floor-reservation-state') !== phase) {
+          node.setAttribute('data-pmd-floor-reservation-state', phase);
+        }
+        if (range) {
+          if (node.getAttribute('data-pmd-range-color') !== range) {
+            node.setAttribute('data-pmd-range-color', range);
+          }
+        } else if (node.hasAttribute('data-pmd-range-color')) {
+          node.removeAttribute('data-pmd-range-color');
+        }
+        if (table.reservationBusy) {
+          if (node.getAttribute('data-pmd-reservation-busy') !== 'true') {
+            node.setAttribute('data-pmd-reservation-busy', 'true');
+          }
+        } else if (node.hasAttribute('data-pmd-reservation-busy')) {
+          node.removeAttribute('data-pmd-reservation-busy');
+        }
+        if (node.getAttribute('aria-label') !== label) {
+          node.setAttribute('aria-label', label);
+        }
+
+        var editableDisabled = root.getAttribute(
+          'data-pmd-floor-table-manager'
+        ) === 'true';
+        if (status === 'disabled' && !editableDisabled) {
+          node.setAttribute('aria-disabled', 'true');
+          node.setAttribute('tabindex', '-1');
+          node.removeAttribute('data-pmd-disabled-editable-r129');
+        } else if (status === 'disabled') {
+          node.removeAttribute('aria-disabled');
+          node.removeAttribute('tabindex');
+          node.setAttribute('data-pmd-disabled-editable-r129', 'true');
+        } else {
+          node.removeAttribute('aria-disabled');
+          node.removeAttribute('tabindex');
+          node.removeAttribute('data-pmd-disabled-editable-r129');
+        }
+
+        node.classList.toggle('is-filtered', !visible(table));
+
+        // Update the optional status label in place; the number, badges,
+        // feature SVGs and external reservation-time nodes stay mounted.
+        var meta = status === 'available' || status === 'occupied'
+          ? '' : status.replace('-', ' ');
+        var metaNode = node.querySelector('.pmd-floor-v1__table-meta');
+        if (meta) {
+          if (!metaNode) {
+            metaNode = document.createElement('span');
+            metaNode.className = 'pmd-floor-v1__table-meta';
+            node.appendChild(metaNode);
+          }
+          if (metaNode.textContent !== meta) metaNode.textContent = meta;
+        } else if (metaNode) {
+          metaNode.remove();
+        }
+      });
+
+      updateCounts();
+      updateMotherToolbar();
+      return true;
+    }
+
     function render() {
       if (!canvas) return;
 
@@ -7756,7 +7887,9 @@ function saveLayout() {
       },
 
       clearSelection:
-        clearFloorSelection
+        clearFloorSelection,
+      adoptServerFilteredFloorR3: adoptServerFilteredFloorR3,
+      reconcileLiveCardsR3: reconcileLiveCardsR3
     };
   }
 

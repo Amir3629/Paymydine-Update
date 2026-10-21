@@ -594,7 +594,13 @@
       renderSwitcher();
       updateTableFloorSelect();
 
-      if (typeof instance.clearSelection === 'function') instance.clearSelection();
+      if (opts.preserveServerDom && typeof instance.adoptServerFilteredFloorR3 === 'function') {
+        // First paint is already complete in Blade. Keep all existing table
+        // buttons (including feature SVGs and badges) and adopt only state.
+        instance.adoptServerFilteredFloorR3();
+      } else if (typeof instance.clearSelection === 'function') {
+        instance.clearSelection();
+      }
       if (opts.refit !== false && typeof instance.fit === 'function' && !state.editing) instance.fit();
 
       window.dispatchEvent(new CustomEvent('pmd:floor:changed', {
@@ -1787,13 +1793,14 @@
       });
 
       if (changed) {
-        applyActiveFloor(
-          activeId,
-          {
-            persist: false,
-            refit: false
-          }
-        );
+        // Snapshot rows update the same objects referenced by state.tables.
+        // Reconcile color/phase attributes in place instead of unmounting
+        // every table, discarding icon DOM and resetting table selection.
+        if (typeof instance.reconcileLiveCardsR3 === 'function') {
+          instance.reconcileLiveCardsR3();
+        } else {
+          applyActiveFloor(activeId, {persist: false, refit: false});
+        }
       }
 
       return changed;
@@ -2078,11 +2085,17 @@
      * This also migrates the old location-only first paint into the
      * new login+page scoped cookie without a network request.
      */
+    var preserveServerDomR3 =
+      root.getAttribute('data-pmd-floor-boot-source') === 'server' &&
+      clean(root.getAttribute('data-pmd-active-floor-id')) === activeId &&
+      !!root.querySelector('[data-floor-canvas] [data-floor-table]');
+
     applyActiveFloor(
       activeId,
       {
         persist: true,
-        refit: false
+        refit: false,
+        preserveServerDom: preserveServerDomR3
       }
     );
 
