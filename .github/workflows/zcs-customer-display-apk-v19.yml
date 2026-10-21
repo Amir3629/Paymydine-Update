@@ -19,6 +19,12 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/admin/assets/js/pmd-quick-pos-v1.js
+            app/admin/assets/js/pmd-qpos-web-parity-v112.js
+            .github/workflows/zcs-customer-display-apk-v19.yml
+          sparse-checkout-cone-mode: false
 
       - name: Restore stable Device App signing key
         uses: actions/cache@v4
