@@ -8,6 +8,7 @@ on:
       - 'app/admin/assets/js/pmd-quick-pos-v1.js'
       - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
       - '.github/workflows/zcs-customer-display-apk-v19.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,19 +20,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore Device App preview signing key
+      - name: Restore stable Device App signing key
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: paymydine-device-app-preview-keystore-v1
 
-      - name: Require existing signing key
+      - name: Require stable signing key
         shell: bash
         run: |
           set -euo pipefail
           test -f "$HOME/.android/debug.keystore"
 
-      - name: Install Android tools
+      - name: Install Android build tools
         shell: bash
         run: |
           set -euo pipefail
@@ -39,62 +40,46 @@ jobs:
           if [[ ! -x "$SDKMANAGER" ]]; then
             SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
           fi
-          test -n "$SDKMANAGER" && test -x "$SDKMANAGER"
+          test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" 'platform-tools' 'build-tools;35.0.0'
 
-      - name: Download exact installed 0.5.9 base APK
+      - name: Download exact ZCS 0.5.9 base
         shell: bash
         run: |
           set -euo pipefail
           EXPECTED='3384a692be5cbd9bee69461b8b3222458b3dcfc60cacad7b5b463fcbb73f8a9c'
-          FILE='base-0.5.9.apk'
-          URLS=(
-            'https://tomo.paymydine.com/public/downloads/paymydine/PayMyDine-Device-App-0.5.9.apk'
-            'https://tomo.paymydine.com/downloads/paymydine/PayMyDine-Device-App-0.5.9.apk'
-            'https://paymydine.com/public/downloads/paymydine/PayMyDine-Device-App-0.5.9.apk'
-          )
-          ok=0
-          for url in "${URLS[@]}"; do
-            echo "Trying $url"
-            if curl -fL --retry 2 --connect-timeout 10 --max-time 120 "$url" -o "$FILE"; then
-              ACTUAL="$(sha256sum "$FILE" | awk '{print $1}')"
-              if [[ "$ACTUAL" == "$EXPECTED" ]]; then
-                ok=1
-                break
-              fi
-              echo "Downloaded file hash mismatch: $ACTUAL"
-            fi
-          done
-          if [[ "$ok" != 1 ]]; then
-            echo "Could not retrieve the exact 0.5.9 APK."
-            exit 1
-          fi
-          echo "$EXPECTED  $FILE" | sha256sum -c -
+          curl -fL --retry 2 --connect-timeout 10 --max-time 120 \
+            'https://tomo.paymydine.com/public/downloads/paymydine/PayMyDine-Device-App-0.5.9.apk' \
+            -o base-0.5.9.apk
+          echo "$EXPECTED  base-0.5.9.apk" | sha256sum -c -
 
-      - name: Record APK signing compatibility
+      - name: Record legacy signer
         shell: bash
         run: |
           set -euo pipefail
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          BASE_CERT="$("$APKSIGNER" verify --print-certs base-0.5.9.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          KEY_CERT="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          echo "Base cert: $BASE_CERT"
-          echo "Stable key cert: $KEY_CERT"
+          "$APKSIGNER" verify --verbose --print-certs base-0.5.9.apk > base-cert.txt
+          keytool -list -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey > stable-cert.txt
+          BASE_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' base-cert.txt | awk 'NR==1{print}' | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
+          STABLE_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' stable-cert.txt | awk 'NR==1{print}' | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
+          echo "Legacy 0.5.9 signer: $BASE_CERT"
+          echo "Stable signer:       $STABLE_CERT"
           test -n "$BASE_CERT"
-          test -n "$KEY_CERT"
-          if [[ "$BASE_CERT" == "$KEY_CERT" ]]; then
+          test -n "$STABLE_CERT"
+          if [[ "$BASE_CERT" == "$STABLE_CERT" ]]; then
             echo 'PMD_ANDROID_UPDATE_IN_PLACE=YES'
           else
             echo 'PMD_ANDROID_UPDATE_IN_PLACE=NO'
-            echo 'The 0.5.9 build used a one-off signing key; 0.6.0 requires one clean reinstall.'
           fi
 
-      - name: Patch only bundled Quick POS assets
+      - name: Validate V121 JavaScript
         shell: bash
         run: |
           set -euo pipefail
-
           node --check app/admin/assets/js/pmd-quick-pos-v1.js
           node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
           grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119' app/admin/assets/js/pmd-qpos-web-parity-v112.js
@@ -102,43 +87,50 @@ jobs:
           grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CONTEXT_V121' app/admin/assets/js/pmd-qpos-web-parity-v112.js
           grep -Fq 'pushCustomerDisplayTestOrder' app/admin/assets/js/pmd-qpos-web-parity-v112.js
 
+      - name: Replace only bundled Quick POS assets
+        shell: bash
+        run: |
+          set -euo pipefail
           zipinfo -1 base-0.5.9.apk > base-entries.txt
-          echo '--- MATCHING BUNDLED POS ASSETS ---'
-          grep -E 'pmd-(quick-pos-v1|qpos-web-parity-v112)[.]js          echo "Parity asset:    $PARITY_PATH"
+          echo '--- matching bundled POS assets ---'
+          grep -E 'pmd-(quick-pos-v1|qpos-web-parity-v112)[.]js$' base-entries.txt || true
+
+          QUICK_PATH="$(awk '/(^|\/)pmd-quick-pos-v1[.]js$/{if(!found){print;found=1}}' base-entries.txt)"
+          PARITY_PATH="$(awk '/(^|\/)pmd-qpos-web-parity-v112[.]js$/{if(!found){print;found=1}}' base-entries.txt)"
+          echo "QUICK_PATH=$QUICK_PATH"
+          echo "PARITY_PATH=$PARITY_PATH"
           test -n "$QUICK_PATH"
           test -n "$PARITY_PATH"
 
           rm -rf patch-root
           mkdir -p "patch-root/$(dirname "$QUICK_PATH")"
           mkdir -p "patch-root/$(dirname "$PARITY_PATH")"
-
           cp app/admin/assets/js/pmd-quick-pos-v1.js "patch-root/$QUICK_PATH"
           cp app/admin/assets/js/pmd-qpos-web-parity-v112.js "patch-root/$PARITY_PATH"
 
           cp base-0.5.9.apk unsigned-r2.apk
+          zip -q -d unsigned-r2.apk \
+            'META-INF/*.RSA' 'META-INF/*.DSA' 'META-INF/*.EC' \
+            'META-INF/*.SF' 'META-INF/*.MF' || true
 
-          # The old APK signature becomes invalid after asset replacement.
-          # Remove legacy JAR signature entries, update only the two assets,
-          # then apply a fresh stable Android v2/v3 signature below.
-          zip -q -d unsigned-r2.apk 'META-INF/*.RSA' 'META-INF/*.DSA' 'META-INF/*.EC' 'META-INF/*.SF' 'META-INF/*.MF' || true
           (
             cd patch-root
             zip -q -0 ../unsigned-r2.apk "$QUICK_PATH" "$PARITY_PATH"
           )
 
+          unzip -p unsigned-r2.apk "$QUICK_PATH" > patched-quick.js
           unzip -p unsigned-r2.apk "$PARITY_PATH" > patched-parity.js
+          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121' patched-quick.js
           grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119' patched-parity.js
-          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121' patched-parity.js
           grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CONTEXT_V121' patched-parity.js
+          grep -Fq 'pushCustomerDisplayTestOrder' patched-parity.js
 
-      - name: Align, sign, and verify ZCS 0.5.9-r2
+      - name: Align and sign stable 0.5.9-r2
         shell: bash
         run: |
           set -euo pipefail
-
           ZIPALIGN="$ANDROID_HOME/build-tools/35.0.0/zipalign"
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
           APK='PayMyDine-Device-App-0.5.9-r2.apk'
 
           "$ZIPALIGN" -f -p 4 unsigned-r2.apk aligned-r2.apk
@@ -151,9 +143,19 @@ jobs:
             aligned-r2.apk
 
           "$ZIPALIGN" -c -p 4 "$APK"
-          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          "$APKSIGNER" verify --verbose --print-certs "$APK" > final-cert.txt
+          cat final-cert.txt
 
-          BADGING="$("$AAPT" dump badging "$APK" | head -1)"
+      - name: Verify package, V121 assets, and ZCS SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='PayMyDine-Device-App-0.5.9-r2.apk'
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+
+          "$AAPT" dump badging "$APK" > badging.txt
+          BADGING="$(sed -n '1p' badging.txt)"
           echo "$BADGING"
           grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
           grep -Fq "versionCode='72'" <<<"$BADGING"
@@ -166,154 +168,15 @@ jobs:
           unzip -p "$APK" "$PARITY_PATH" > final-parity.js
           grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121' final-quick.js
           grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119' final-parity.js
+          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CONTEXT_V121' final-parity.js
           grep -Fq 'pushCustomerDisplayTestOrder' final-parity.js
 
-          FOUND_DRIVER=0
-          FOUND_DISPLAY_API=0
-          zipinfo -1 "$APK" | grep -E '^classes[0-9]*[.]dex
-          test "$FOUND_DRIVER" -eq 1
-          test "$FOUND_DISPLAY_API" -eq 1
-          zipinfo -1 "$APK" | grep -Fq 'lib/arm64-v8a/libSmartPosJni.so'
-          zipinfo -1 "$APK" | grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so'
-
-          FINAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          STABLE_CERT="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          test "$FINAL_CERT" = "$STABLE_CERT"
-
-          echo 'PMD_ZCS_SDK_PRESERVED=PASS'
-          echo 'PMD_CUSTOMER_DISPLAY_V121_BUNDLED=PASS'
-          echo 'PMD_STABLE_SIGNING_KEY=PASS'
-
-          sha256sum "$APK" > "$APK.sha256"
-          cat "$APK.sha256"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: PayMyDine-Device-App-0.5.9-r2-ZCS-V19
-          path: |
-            PayMyDine-Device-App-0.5.9-r2.apk
-            PayMyDine-Device-App-0.5.9-r2.apk.sha256
-          if-no-files-found: error
-
-      - name: Publish verified 0.5.9-r2 preview
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: pmd-device-app-preview
-        run: |
-          set -euo pipefail
-          gh release upload "$TAG"             PayMyDine-Device-App-0.5.9-r2.apk             PayMyDine-Device-App-0.5.9-r2.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
- base-entries.txt || true
-          QUICK_PATH="$(awk '/(^|\/)pmd-quick-pos-v1[.]js$/{if(!found){print;found=1}}' base-entries.txt)"
-          PARITY_PATH="$(awk '/(^|\/)pmd-qpos-web-parity-v112[.]js$/{if(!found){print;found=1}}' base-entries.txt)"
-
-          echo "Quick POS asset: $QUICK_PATH"
-          echo "Parity asset:    $PARITY_PATH"
-          test -n "$QUICK_PATH"
-          test -n "$PARITY_PATH"
-
-          rm -rf patch-root
-          mkdir -p "patch-root/$(dirname "$QUICK_PATH")"
-          mkdir -p "patch-root/$(dirname "$PARITY_PATH")"
-
-          cp app/admin/assets/js/pmd-quick-pos-v1.js "patch-root/$QUICK_PATH"
-          cp app/admin/assets/js/pmd-qpos-web-parity-v112.js "patch-root/$PARITY_PATH"
-
-          cp base-0.5.9.apk unsigned-r2.apk
-
-          # The old APK signature becomes invalid after asset replacement.
-          # Remove legacy JAR signature entries, update only the two assets,
-          # then apply a fresh stable Android v2/v3 signature below.
-          zip -q -d unsigned-r2.apk 'META-INF/*.RSA' 'META-INF/*.DSA' 'META-INF/*.EC' 'META-INF/*.SF' 'META-INF/*.MF' || true
-          (
-            cd patch-root
-            zip -q -0 ../unsigned-r2.apk "$QUICK_PATH" "$PARITY_PATH"
-          )
-
-          unzip -p unsigned-r2.apk "$PARITY_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119'
-          unzip -p unsigned-r2.apk "$PARITY_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121'
-          unzip -p unsigned-r2.apk "$PARITY_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CONTEXT_V121'
-
-      - name: Align, sign, and verify ZCS 0.5.9-r2
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ZIPALIGN="$ANDROID_HOME/build-tools/35.0.0/zipalign"
-          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          APK='PayMyDine-Device-App-0.5.9-r2.apk'
-
-          "$ZIPALIGN" -f -p 4 unsigned-r2.apk aligned-r2.apk
-          "$APKSIGNER" sign \
-            --ks "$HOME/.android/debug.keystore" \
-            --ks-pass pass:android \
-            --ks-key-alias androiddebugkey \
-            --key-pass pass:android \
-            --out "$APK" \
-            aligned-r2.apk
-
-          "$ZIPALIGN" -c -p 4 "$APK"
-          "$APKSIGNER" verify --verbose --print-certs "$APK"
-
-          BADGING="$("$AAPT" dump badging "$APK" | head -1)"
-          echo "$BADGING"
-          grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='72'" <<<"$BADGING"
-          grep -Fq "versionName='0.5.9-device-app-v18-debug'" <<<"$BADGING"
-
-          QUICK_PATH="$(zipinfo -1 "$APK" | grep -E '(^|/)pmd-quick-pos-v1[.]js$' | head -1)"
-          PARITY_PATH="$(zipinfo -1 "$APK" | grep -E '(^|/)pmd-qpos-web-parity-v112[.]js$' | head -1)"
-          unzip -p "$APK" "$QUICK_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121'
-          unzip -p "$APK" "$PARITY_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119'
-          unzip -p "$APK" "$PARITY_PATH" | grep -Fq 'pushCustomerDisplayTestOrder'
-
+          grep -E '^classes[0-9]*[.]dex$' final-entries.txt > dex-list.txt
           FOUND_DRIVER=0
           FOUND_DISPLAY_API=0
           while IFS= read -r DEX; do
-            if unzip -p "$APK" "$DEX" | strings | grep -Eq 'com[./]zcs/sdk/DriverManager'; then
-              FOUND_DRIVER=1
-            fi
-            if unzip -p "$APK" "$DEX" | strings | grep -Fq 'showBitmapOnSecondaryScreen'; then
-              FOUND_DISPLAY_API=1
-            fi
-          done < <(zipinfo -1 "$APK" | grep -E '^classes[0-9]*[.]dex$')
-
-          test "$FOUND_DRIVER" -eq 1
-          test "$FOUND_DISPLAY_API" -eq 1
-          zipinfo -1 "$APK" | grep -Fq 'lib/arm64-v8a/libSmartPosJni.so'
-          zipinfo -1 "$APK" | grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so'
-
-          FINAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          STABLE_CERT="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          test "$FINAL_CERT" = "$STABLE_CERT"
-
-          echo 'PMD_ZCS_SDK_PRESERVED=PASS'
-          echo 'PMD_CUSTOMER_DISPLAY_V121_BUNDLED=PASS'
-          echo 'PMD_STABLE_SIGNING_KEY=PASS'
-
-          sha256sum "$APK" > "$APK.sha256"
-          cat "$APK.sha256"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: PayMyDine-Device-App-0.5.9-r2-ZCS-V19
-          path: |
-            PayMyDine-Device-App-0.5.9-r2.apk
-            PayMyDine-Device-App-0.5.9-r2.apk.sha256
-          if-no-files-found: error
-
-      - name: Publish verified 0.5.9-r2 preview
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: pmd-device-app-preview
-        run: |
-          set -euo pipefail
-          gh release upload "$TAG"             PayMyDine-Device-App-0.5.9-r2.apk             PayMyDine-Device-App-0.5.9-r2.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
- > dex-list.txt
-          while IFS= read -r DEX; do
-            unzip -p "$APK" "$DEX" | strings > dex-strings.txt
+            unzip -p "$APK" "$DEX" > one.dex
+            strings one.dex > dex-strings.txt
             if grep -Eq 'com[./]zcs/sdk/DriverManager' dex-strings.txt; then
               FOUND_DRIVER=1
             fi
@@ -321,14 +184,17 @@ jobs:
               FOUND_DISPLAY_API=1
             fi
           done < dex-list.txt
-
           test "$FOUND_DRIVER" -eq 1
           test "$FOUND_DISPLAY_API" -eq 1
-          zipinfo -1 "$APK" | grep -Fq 'lib/arm64-v8a/libSmartPosJni.so'
-          zipinfo -1 "$APK" | grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so'
+          grep -Fq 'lib/arm64-v8a/libSmartPosJni.so' final-entries.txt
+          grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so' final-entries.txt
 
-          FINAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          STABLE_CERT="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
+          keytool -list -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey > stable-cert-final.txt
+          FINAL_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' final-cert.txt | awk 'NR==1{print}' | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
+          STABLE_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' stable-cert-final.txt | awk 'NR==1{print}' | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
           test "$FINAL_CERT" = "$STABLE_CERT"
 
           echo 'PMD_ZCS_SDK_PRESERVED=PASS'
@@ -353,112 +219,8 @@ jobs:
           TAG: pmd-device-app-preview
         run: |
           set -euo pipefail
-          gh release upload "$TAG"             PayMyDine-Device-App-0.5.9-r2.apk             PayMyDine-Device-App-0.5.9-r2.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
- base-entries.txt || true
-          QUICK_PATH="$(awk '/(^|\/)pmd-quick-pos-v1[.]js$/{if(!found){print;found=1}}' base-entries.txt)"
-          PARITY_PATH="$(awk '/(^|\/)pmd-qpos-web-parity-v112[.]js$/{if(!found){print;found=1}}' base-entries.txt)"
-
-          echo "Quick POS asset: $QUICK_PATH"
-          echo "Parity asset:    $PARITY_PATH"
-          test -n "$QUICK_PATH"
-          test -n "$PARITY_PATH"
-
-          rm -rf patch-root
-          mkdir -p "patch-root/$(dirname "$QUICK_PATH")"
-          mkdir -p "patch-root/$(dirname "$PARITY_PATH")"
-
-          cp app/admin/assets/js/pmd-quick-pos-v1.js "patch-root/$QUICK_PATH"
-          cp app/admin/assets/js/pmd-qpos-web-parity-v112.js "patch-root/$PARITY_PATH"
-
-          cp base-0.5.9.apk unsigned-r2.apk
-
-          # The old APK signature becomes invalid after asset replacement.
-          # Remove legacy JAR signature entries, update only the two assets,
-          # then apply a fresh stable Android v2/v3 signature below.
-          zip -q -d unsigned-r2.apk 'META-INF/*.RSA' 'META-INF/*.DSA' 'META-INF/*.EC' 'META-INF/*.SF' 'META-INF/*.MF' || true
-          (
-            cd patch-root
-            zip -q -0 ../unsigned-r2.apk "$QUICK_PATH" "$PARITY_PATH"
-          )
-
-          unzip -p unsigned-r2.apk "$PARITY_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119'
-          unzip -p unsigned-r2.apk "$PARITY_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121'
-          unzip -p unsigned-r2.apk "$PARITY_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CONTEXT_V121'
-
-      - name: Align, sign, and verify ZCS 0.5.9-r2
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ZIPALIGN="$ANDROID_HOME/build-tools/35.0.0/zipalign"
-          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          APK='PayMyDine-Device-App-0.5.9-r2.apk'
-
-          "$ZIPALIGN" -f -p 4 unsigned-r2.apk aligned-r2.apk
-          "$APKSIGNER" sign \
-            --ks "$HOME/.android/debug.keystore" \
-            --ks-pass pass:android \
-            --ks-key-alias androiddebugkey \
-            --key-pass pass:android \
-            --out "$APK" \
-            aligned-r2.apk
-
-          "$ZIPALIGN" -c -p 4 "$APK"
-          "$APKSIGNER" verify --verbose --print-certs "$APK"
-
-          BADGING="$("$AAPT" dump badging "$APK" | head -1)"
-          echo "$BADGING"
-          grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
-          grep -Fq "versionCode='72'" <<<"$BADGING"
-          grep -Fq "versionName='0.5.9-device-app-v18-debug'" <<<"$BADGING"
-
-          QUICK_PATH="$(zipinfo -1 "$APK" | grep -E '(^|/)pmd-quick-pos-v1[.]js$' | head -1)"
-          PARITY_PATH="$(zipinfo -1 "$APK" | grep -E '(^|/)pmd-qpos-web-parity-v112[.]js$' | head -1)"
-          unzip -p "$APK" "$QUICK_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121'
-          unzip -p "$APK" "$PARITY_PATH" | grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_SETTINGS_CARD_V119'
-          unzip -p "$APK" "$PARITY_PATH" | grep -Fq 'pushCustomerDisplayTestOrder'
-
-          FOUND_DRIVER=0
-          FOUND_DISPLAY_API=0
-          while IFS= read -r DEX; do
-            if unzip -p "$APK" "$DEX" | strings | grep -Eq 'com[./]zcs/sdk/DriverManager'; then
-              FOUND_DRIVER=1
-            fi
-            if unzip -p "$APK" "$DEX" | strings | grep -Fq 'showBitmapOnSecondaryScreen'; then
-              FOUND_DISPLAY_API=1
-            fi
-          done < <(zipinfo -1 "$APK" | grep -E '^classes[0-9]*[.]dex$')
-
-          test "$FOUND_DRIVER" -eq 1
-          test "$FOUND_DISPLAY_API" -eq 1
-          zipinfo -1 "$APK" | grep -Fq 'lib/arm64-v8a/libSmartPosJni.so'
-          zipinfo -1 "$APK" | grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so'
-
-          FINAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          STABLE_CERT="$(keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
-          test "$FINAL_CERT" = "$STABLE_CERT"
-
-          echo 'PMD_ZCS_SDK_PRESERVED=PASS'
-          echo 'PMD_CUSTOMER_DISPLAY_V121_BUNDLED=PASS'
-          echo 'PMD_STABLE_SIGNING_KEY=PASS'
-
-          sha256sum "$APK" > "$APK.sha256"
-          cat "$APK.sha256"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: PayMyDine-Device-App-0.5.9-r2-ZCS-V19
-          path: |
-            PayMyDine-Device-App-0.5.9-r2.apk
-            PayMyDine-Device-App-0.5.9-r2.apk.sha256
-          if-no-files-found: error
-
-      - name: Publish verified 0.5.9-r2 preview
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: pmd-device-app-preview
-        run: |
-          set -euo pipefail
-          gh release upload "$TAG"             PayMyDine-Device-App-0.5.9-r2.apk             PayMyDine-Device-App-0.5.9-r2.apk.sha256             --repo "$GITHUB_REPOSITORY"             --clobber
+          gh release upload "$TAG" \
+            PayMyDine-Device-App-0.5.9-r2.apk \
+            PayMyDine-Device-App-0.5.9-r2.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
