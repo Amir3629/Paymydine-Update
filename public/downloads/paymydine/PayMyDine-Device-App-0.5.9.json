@@ -1,0 +1,11 @@
+{
+  "name": "PayMyDine Device App",
+  "filename": "PayMyDine-Device-App-0.5.9.apk",
+  "version_name": "0.5.9-device-app-v18-debug",
+  "version_code": 72,
+  "package": "com.paymydine.mobile.pospreview",
+  "sha256": "3384a692be5cbd9bee69461b8b3222458b3dcfc60cacad7b5b463fcbb73f8a9c",
+  "zcs_customer_display": true,
+  "zcs_sdk": "SmartPos_2.0.6_R260615",
+  "distribution": "PayMyDine Settings direct download"
+}
