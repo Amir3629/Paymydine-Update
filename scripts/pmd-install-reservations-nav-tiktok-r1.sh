@@ -23,6 +23,7 @@ allowed=(
   app/admin/assets/css/pmd-reservation-search-r1.css
   app/admin/controllers/Pmdsettings.php
   app/admin/controllers/Reservations.php
+  app/admin/views/_partials/pmd_clean_workspace_shared_v1.blade.php
   app/admin/views/_partials/pmd_reservations_cards_v1.blade.php
   app/admin/views/_partials/pmd_side_menu2_single_menu.blade.php
   app/admin/views/pmdsettings/restaurant.blade.php
