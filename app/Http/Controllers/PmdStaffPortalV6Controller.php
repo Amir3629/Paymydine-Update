@@ -50,8 +50,8 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         if ($payload === false) $payload = '{}';
 
         $html = $view->render();
-        $css = asset('app/admin/assets/css/pmd-staff-time-clock-v1.css').'?v=7';
-        $js = asset('app/admin/assets/js/pmd-staff-time-clock-v1.js').'?v=7';
+        $css = asset('app/admin/assets/css/pmd-staff-time-clock-v1.css').'?v=8';
+        $js = asset('app/admin/assets/js/pmd-staff-time-clock-v1.js').'?v=8';
 
         $html = str_replace(
             '</head>',
