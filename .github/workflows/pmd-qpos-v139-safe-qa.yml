@@ -21,6 +21,7 @@ jobs:
             app/admin/views/pmdsettings/index.blade.php
             tests/pmd-qpos-v139-payment-and-staff.test.cjs
             scripts/pmd-qpos-v139-safe-deploy.sh
+            scripts/pmd-qpos-v139-overlay-safe-deploy.sh
           sparse-checkout-cone-mode: false
       - name: Verify syntax and contracts
         run: |
@@ -30,3 +31,4 @@ jobs:
           node --check app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
           node --test tests/pmd-qpos-v139-payment-and-staff.test.cjs
           bash -n scripts/pmd-qpos-v139-safe-deploy.sh
+          bash -n scripts/pmd-qpos-v139-overlay-safe-deploy.sh
