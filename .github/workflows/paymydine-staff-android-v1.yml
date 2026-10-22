@@ -25,6 +25,7 @@ on:
       - 'app/admin/assets/js/pmd-staff-portal-locale-v2.js'
       - 'pmd-qa/scripts/staff-ux-v2-contract.test.cjs'
       - 'pmd-qa/scripts/staff-timebreak-v021-contract.test.cjs'
+      - 'scripts/pmd-staff-v021-clock-deploy.sh'
       - 'scripts/pmd-staff-v020-ux-deploy.sh'
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
@@ -46,6 +47,7 @@ on:
       - 'app/admin/assets/js/pmd-staff-portal-locale-v2.js'
       - 'pmd-qa/scripts/staff-ux-v2-contract.test.cjs'
       - 'pmd-qa/scripts/staff-timebreak-v021-contract.test.cjs'
+      - 'scripts/pmd-staff-v021-clock-deploy.sh'
       - 'scripts/pmd-staff-v020-ux-deploy.sh'
   workflow_dispatch:
 
@@ -72,6 +74,7 @@ jobs:
           bash -n scripts/pmd-staff-apk-settings-v1-deploy.sh
           bash -n scripts/pmd-staff-settings-download-path-v2-deploy.sh
           bash -n scripts/pmd-staff-v020-ux-deploy.sh
+          bash -n scripts/pmd-staff-v021-clock-deploy.sh
       - name: Browser script syntax
         run: |
           node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
