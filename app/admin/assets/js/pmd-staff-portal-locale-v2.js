@@ -120,7 +120,8 @@
     "Only satellite GPS is available and no fresh fix was received. Enable network location or Wi-Fi scanning, or try outdoors.": "Nur Satelliten-GPS ist verfügbar, aber kein aktueller Standort. Aktiviere die netzwerkbasierte Ortung oder WLAN-Suche.",
     "Network location is disabled and GPS could not find a position. Enable Location Accuracy or network location and retry.": "Netzwerkortung ist deaktiviert und GPS findet keinen Standort. Aktiviere die Standortgenauigkeit oder Netzwerkortung.",
     "Open phone location settings": "Standorteinstellungen öffnen",
-    "Open Staff app permission": "App-Standortberechtigung öffnen"
+    "Open Staff app permission": "App-Standortberechtigung öffnen",
+    "Location Accuracy is off. Accept the Android location prompt, or open Settings > Location > Location services > Location Accuracy and enable Improve Location Accuracy.": "Standortgenauigkeit ist ausgeschaltet. Bestätige die Android-Anfrage oder öffne Einstellungen > Standort > Standortdienste > Standortgenauigkeit und aktiviere die Verbesserung."
   },
   "tr": {
     "My shifts": "Vardiyalarım",
@@ -236,7 +237,8 @@
     "Only satellite GPS is available and no fresh fix was received. Enable network location or Wi-Fi scanning, or try outdoors.": "Yalnızca uydu GPS kullanılabiliyor ve yeni konum alınamadı. Ağ konumunu veya Wi-Fi taramasını aç.",
     "Network location is disabled and GPS could not find a position. Enable Location Accuracy or network location and retry.": "Ağ konumu kapalı ve GPS konum bulamadı. Konum Doğruluğu veya ağ konumunu aç.",
     "Open phone location settings": "Telefon konum ayarlarını aç",
-    "Open Staff app permission": "Staff konum iznini aç"
+    "Open Staff app permission": "Staff konum iznini aç",
+    "Location Accuracy is off. Accept the Android location prompt, or open Settings > Location > Location services > Location Accuracy and enable Improve Location Accuracy.": "Konum Doğruluğu kapalı. Android isteğini onayla veya Ayarlar > Konum > Konum hizmetleri > Konum Doğruluğu bölümünden iyileştirmeyi aç."
   }
 };
   var root = document.querySelector('[data-pmd-staff-portal]');

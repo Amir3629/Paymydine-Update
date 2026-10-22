@@ -7,6 +7,7 @@
 /* PMD_STAFF_TIME_AND_BREAK_V1_20261022 */
 /* PMD_STAFF_FAST_PRECISE_GPS_V2_20261022 */
 /* PMD_STAFF_FUSED_LOCATION_V3_20261022 */
+/* PMD_STAFF_LOCATION_SETTINGS_PREFLIGHT_V4_20261022 */
 (function () {
   'use strict';
 
@@ -240,7 +241,7 @@
       }
       locationButton.hidden = !reason;
       if (reason) {
-        locationButton.textContent = reason === 'denied' ? 'Open Staff app permission' : 'Open phone location settings';
+        locationButton.textContent = tr(reason === 'denied' ? 'Open Staff app permission' : 'Open phone location settings');
         locationButton.setAttribute('data-pmd-gps-settings', reason === 'denied' ? 'app' : 'phone');
       }
     }
@@ -290,6 +291,9 @@
         var accuracy = Number(reason.split(':')[1]);
         return 'Current GPS accuracy is about ' + accuracy +
           ' m. Clock-in requires 90 m or better. Try outdoors or enable Precise location, then retry.';
+      }
+      if (reason === 'location_accuracy_off') {
+        return 'Location Accuracy is off. Accept the Android location prompt, or open Settings > Location > Location services > Location Accuracy and enable Improve Location Accuracy.';
       }
       if (reason === 'no_fix' || reason === 'no_fix_fused') {
         return 'Phone GPS and Google location services returned no position. Open Google Maps and check the blue location dot; enable Location Accuracy and Wi-Fi scanning, then retry.';
@@ -358,7 +362,8 @@
           window.PMD_STAFF_NATIVE_GPS_PROGRESS = null;
 
           if (!data.ok) {
-            resetClockButton(nativeGpsError(data.error), 'native');
+            resetClockButton(nativeGpsError(data.error),
+              data.error === 'precise_denied' ? 'denied' : 'native');
             return;
           }
 

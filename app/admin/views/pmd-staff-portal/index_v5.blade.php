@@ -754,13 +754,21 @@
     var profileModal = root.querySelector('[data-pmd-profile-modal]');
     var profileOpeners = root.querySelectorAll('[data-pmd-profile-open]');
     var profileClosers = root.querySelectorAll('[data-pmd-profile-close]');
+    // PMD_STAFF_PROFILE_NO_KEYBOARD_V1_20261022:
+    // Opening Profile must NOT focus the editable name or summon Android IME.
+    // Focus the non-editable close control for keyboard/screenreader access.
+    var profileReturnFocus = null;
     function setProfile(open) {
         if (!profileModal) return;
+        if (open && profileModal.hidden) profileReturnFocus = document.activeElement;
         profileModal.hidden = !open;
         document.body.classList.toggle('pmd-staff-modal-open', open);
         if (open) {
-            var nameInput = profileModal.querySelector('input[name="display_name"]');
-            if (nameInput) window.setTimeout(function () { nameInput.focus(); }, 40);
+            var closeControl = profileModal.querySelector('.pmd-staff-modal-close');
+            if (closeControl) closeControl.focus({preventScroll: true});
+        } else if (profileReturnFocus && typeof profileReturnFocus.focus === 'function') {
+            profileReturnFocus.focus({preventScroll: true});
+            profileReturnFocus = null;
         }
     }
     profileOpeners.forEach(function (button) { button.addEventListener('click', function () { setProfile(true); }); });

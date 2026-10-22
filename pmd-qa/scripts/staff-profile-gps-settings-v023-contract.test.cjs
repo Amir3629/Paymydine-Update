@@ -1,0 +1,47 @@
+'use strict';
+// PMD_STAFF_PROFILE_GPS_SETTINGS_V023_QA_20261022
+// Source-only regression: does not touch real staff attendance or phone settings.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const read = p => fs.readFileSync(path.resolve(__dirname, '../../', p), 'utf8');
+const view = read('app/admin/views/pmd-staff-portal/index_v5.blade.php');
+const native = read('mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt');
+const js = read('app/admin/assets/js/pmd-staff-time-clock-v1.js');
+const gradle = read('mobile/android/staff/build.gradle.kts');
+const ctl = read('app/Http/Controllers/PmdStaffPortalV6Controller.php');
+const settings = read('app/admin/views/pmdsettings/index.blade.php');
+
+assert.match(view, /PMD_STAFF_PROFILE_NO_KEYBOARD_V1_20261022/);
+assert.doesNotMatch(view, /nameInput\.focus\(\)/);
+assert.match(view, /closeControl\.focus\(\{preventScroll: true\}\)/);
+assert.match(view, /profileReturnFocus\.focus\(\{preventScroll: true\}\)/);
+assert.match(view, /data-pmd-profile-open/);
+assert.match(view, /data-pmd-profile-close/);
+assert.match(view, /name="display_name"/);
+assert.match(native, /PMD_STAFF_LOCATION_SETTINGS_PREFLIGHT_V4_20261022/);
+assert.match(native, /isGoogleLocationAccuracyEnabled\(\)/);
+assert.match(native, /checkLocationSettings\(settingsRequest\)/);
+assert.match(native, /ResolvableApiException/);
+assert.match(native, /startResolutionForResult\(this, nativeSettingsCode\)/);
+assert.match(native, /override fun onActivityResult\(requestCode: Int, resultCode: Int, data: Intent\?\)/);
+assert.match(native, /checkLocationAccuracyThenBeginGps\(\)/);
+assert.match(native, /beginNativeClockGps\(\)/);
+assert.match(native, /Manifest\.permission\.ACCESS_FINE_LOCATION/);
+assert.match(native, /isTrustedClockDocument\(browser\.url\)/);
+assert.doesNotMatch(read('mobile/android/staff/src/main/AndroidManifest.xml'), /ACCESS_BACKGROUND_LOCATION/);
+assert.match(js, /location_accuracy_off/);
+assert.match(js, /PMD_STAFF_LOCATION_SETTINGS_PREFLIGHT_V4_20261022/);
+assert.match(js, /pmdstaff:\/\/locationsettings/);
+assert.match(gradle, /versionCode = 6/);
+assert.match(gradle, /versionName = "0\.2\.3"/);
+assert.match(settings, /PayMyDine-Staff-App-0\.2\.3-debug\.apk/);
+assert.match(ctl, /\?v=9/);
+const scriptAt = view.lastIndexOf('<script>');
+assert.ok(scriptAt > 0);
+const scriptEnd = view.indexOf('</script>', scriptAt);
+assert.ok(scriptEnd > scriptAt);
+new vm.Script(view.slice(scriptAt + 8, scriptEnd), {filename:'staff-profile-script.js'});
+new vm.Script(js, {filename:'staff-clock.js'});
+console.log('Staff 0.2.3 profile keyboard and Android Location Accuracy preflight contract PASSED');
