@@ -1,0 +1,34 @@
+name: Cashier V139 QA
+on:
+  push:
+    branches: [fix/qpos-v139-staff-safe-20261022]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/admin/controllers/PmdWaiterPosV1.php
+            app/admin/controllers/concerns/PmdWaiterPosTerminalProvidersConcern.php
+            app/Services/TerminalPayments/TerminalPaymentService.php
+            app/Services/PmdTableDisplayService.php
+            app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+            app/admin/views/pmd_quick_pos_v1.blade.php
+            app/admin/views/pmdsettings/index.blade.php
+            tests/pmd-qpos-v139-payment-and-staff.test.cjs
+            scripts/pmd-qpos-v139-safe-deploy.sh
+            scripts/pmd-qpos-v139-overlay-safe-deploy.sh
+          sparse-checkout-cone-mode: false
+      - name: Verify syntax and contracts
+        run: |
+          php -l app/admin/controllers/concerns/PmdWaiterPosTerminalProvidersConcern.php
+          php -l app/Services/TerminalPayments/TerminalPaymentService.php
+          php -l app/Services/PmdTableDisplayService.php
+          node --check app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+          node --test tests/pmd-qpos-v139-payment-and-staff.test.cjs
+          bash -n scripts/pmd-qpos-v139-safe-deploy.sh
+          bash -n scripts/pmd-qpos-v139-overlay-safe-deploy.sh

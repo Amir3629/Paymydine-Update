@@ -124,7 +124,7 @@ class TerminalPaymentService
                 ? 'TEST ONLY — '.(string)($result['message']??'VR simulator scenario completed.').' No payment was recorded and the order remains unpaid.'
                 : ($result['message']??null),
             'simulated'=>$isPmdVrSimulator,
-            'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
+            'payment_recorded'=>!$isPmdVrSimulator && $this->pmdTerminalPaymentRecordedV139($id),
             'tip_amount'=>$tipAmount,
             'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
             'fiscalization'=>$fiscalization,
@@ -161,7 +161,7 @@ class TerminalPaymentService
                 'status'=>'paid',
                 'message'=>'Payment already confirmed.',
                 'simulated'=>false,
-                'payment_recorded'=>true,
+                'payment_recorded'=>$this->pmdTerminalPaymentRecordedV139($attemptId),
                 'tip_amount'=>$this->terminalTipForAttemptV46($attemptId,$attempt,[]),
                 'fiscalization'=>$fiscalization,
             ];
@@ -246,7 +246,7 @@ class TerminalPaymentService
                 ? 'TEST ONLY — '.(string)($result['message']??'VR simulator scenario updated.').' No payment was recorded and the order remains unpaid.'
                 : ($result['message']??null),
             'simulated'=>$isPmdVrSimulator,
-            'payment_recorded'=>$isPmdVrSimulator?false:($status==='paid'),
+            'payment_recorded'=>!$isPmdVrSimulator && $this->pmdTerminalPaymentRecordedV139($attemptId),
             'tip_amount'=>$tipAmount,
             'simulator_scenario'=>$isPmdVrSimulator?($result['simulator_scenario']??null):null,
             'fiscalization'=>$fiscalization,
@@ -471,6 +471,52 @@ class TerminalPaymentService
         }
 
         return null;
+    }
+
+    /**
+     * PMD_TERMINAL_RECORDED_SETTLEMENT_V139
+     * A bank-approved attempt is not necessarily recorded in the order ledger.
+     */
+    private function pmdTerminalPaymentRecordedV139(int $attemptId): bool
+    {
+        if ($attemptId < 1) return false;
+        try {
+            if (!Schema::hasTable('payment_attempts')
+                || !Schema::hasTable('orders')
+                || !Schema::hasTable('order_payment_transactions')
+                || !Schema::hasColumn('order_payment_transactions', 'idempotency_key')) return false;
+
+            $attempt = DB::table('payment_attempts')->where('id', $attemptId)->first();
+            if (!$attempt
+                || strtolower((string)($attempt->status ?? '')) !== 'paid'
+                || $this->isPmdVrSimulatorAttempt((array)$attempt)) return false;
+            $orderId = (int)($attempt->order_id ?? 0);
+            if ($orderId < 1) return false;
+            $order = DB::table('orders')->where('order_id', $orderId)->first();
+            if (!$order) return false;
+
+            $total = (float)($order->order_total ?? 0);
+            $settled = (float)($order->settled_amount ?? 0);
+            $orderStatus = strtolower(trim((string)($order->settlement_status ?? '')));
+            if ($total <= 0 || $settled + 0.0001 < $total
+                || !in_array($orderStatus, ['paid', 'settled'], true)) return false;
+
+            $record = DB::table('order_payment_transactions')
+                ->where('order_id', $orderId)
+                ->where('idempotency_key', 'terminal-attempt-'.$attemptId)
+                ->first();
+            if (!$record
+                || !in_array(strtolower((string)($record->settlement_status ?? '')),
+                    ['paid', 'settled'], true)) return false;
+
+            return (float)($record->amount ?? 0) + 0.0001 >= (float)($attempt->amount ?? 0);
+        } catch (\Throwable $error) {
+            Log::warning('PMD_TERMINAL_SETTLEMENT_UNCONFIRMED_V139', [
+                'attempt_id' => $attemptId,
+                'error_class' => get_class($error),
+            ]);
+            return false;
+        }
     }
 
     private function settleSuccessfulAttempt(int $attemptId,array $providerResult):array
