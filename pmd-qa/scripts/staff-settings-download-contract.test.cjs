@@ -8,6 +8,7 @@ const read = (relative) => fs.readFileSync(path.resolve(__dirname, '..', '..', r
 
 const view = read('app/admin/views/pmdsettings/index.blade.php');
 const installer = read('scripts/pmd-staff-apk-settings-v1-deploy.sh');
+const pathFix = read('scripts/pmd-staff-settings-download-path-v2-deploy.sh');
 const android = read('mobile/android/staff/build.gradle.kts');
 const device = read('mobile/android/app/build.gradle.kts');
 
@@ -27,6 +28,10 @@ assert.match(view, /Windows 10 \/ 11/);
 assert.match(installer, /PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022/);
 assert.match(installer, /481c252ea4b50d336356c0eda64bb2818fe9c07615de954d621c061d6b542dc2/);
 assert.match(installer, /sha256sum -c -/);
+assert.match(pathFix, /PMD_STAFF_APP_DOWNLOAD_PATH_V2_DEPLOY_20261022/);
+assert.match(pathFix, /STAFF APP SETTINGS DOWNLOAD PATH FIXED/);
+assert.match(pathFix, /sha256sum -c -/);
+assert.match(pathFix, /php artisan view:clear/);
 assert.match(installer, /INSTALLING=1/);
 assert.match(installer, /php artisan view:clear/);
 assert.match(android, /applicationId = "com.paymydine.staff"/);
