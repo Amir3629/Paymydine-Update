@@ -2,6 +2,7 @@ package com.paymydine.staff
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.location.Location
 import android.location.LocationListener
@@ -26,6 +27,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.net.http.SslError
 import android.widget.Button
+import android.widget.CheckBox
+import android.widget.ImageView
+import android.widget.ScrollView
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -46,9 +50,12 @@ class StaffActivity : Activity() {
     private lateinit var root: LinearLayout
     private lateinit var toolbar: LinearLayout
     private lateinit var setup: LinearLayout
+    private lateinit var onboardingScroll: ScrollView
     private lateinit var browser: WebView
     private lateinit var progress: ProgressBar
     private lateinit var alert: TextView
+    // PMD_STAFF_NATIVE_ONBOARDING_V2_20261022: the only persistent value is workplace + notice acknowledgment.
+    private lateinit var noticeCheckbox: CheckBox
     private var restaurantHost: String = ""
     private var pendingGeo: GeolocationPermissions.Callback? = null
     private var pendingOrigin: String? = null
@@ -71,29 +78,13 @@ class StaffActivity : Activity() {
             setBackgroundColor(Color.rgb(247, 251, 250))
         }
         setContentView(root)
+
+        // The Staff Portal already has its own PayMyDine logo and navigation.
+        // Do not stack a native "PayMyDine / Staff / Restaurant" header above it.
         toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-            setPadding(dp(18), dp(11), dp(14), dp(11))
-            setBackgroundColor(Color.rgb(5, 85, 67))
+            visibility = View.GONE
         }
-        val name = TextView(this).apply {
-            text = "PayMyDine  /  Staff"
-            textSize = 17f
-            typeface = Typeface.DEFAULT_BOLD
-            setTextColor(Color.WHITE)
-        }
-        toolbar.addView(name, LinearLayout.LayoutParams(0, dp(42), 1f))
-        val change = Button(this).apply {
-            text = "Restaurant"
-            textSize = 11f
-            isAllCaps = false
-            setTextColor(Color.rgb(5, 85, 67))
-            background = rounded(Color.WHITE, dp(12), 0)
-            setOnClickListener { showSetup() }
-        }
-        toolbar.addView(change, LinearLayout.LayoutParams(dp(107), dp(40)))
-        root.addView(toolbar, LinearLayout.LayoutParams(-1, dp(64)))
 
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
@@ -101,70 +92,146 @@ class StaffActivity : Activity() {
         }
         root.addView(progress, LinearLayout.LayoutParams(-1, dp(3)))
 
+        val scroll = ScrollView(this).apply { fillViewport = true }
         setup = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(26), dp(40), dp(26), dp(24))
+            setPadding(dp(24), dp(36), dp(24), dp(28))
         }
-        val eyebrow = TextView(this).apply {
-            text = "YOUR WORKPLACE"
-            textSize = 11f
-            letterSpacing = .1f
-            setTextColor(Color.rgb(15, 113, 87))
+
+        val branding = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        branding.addView(ImageView(this).apply {
+            setImageResource(R.drawable.ic_staff_launcher)
+            contentDescription = getString(R.string.app_name)
+        }, LinearLayout.LayoutParams(dp(60), dp(60)))
+        branding.addView(TextView(this).apply {
+            text = "PayMyDine"
+            textSize = 19f
             typeface = Typeface.DEFAULT_BOLD
-        }
-        setup.addView(eyebrow)
-        val welcome = TextView(this).apply {
-            text = "Your shifts,\nyour team."
-            textSize = 30f
+            setTextColor(Color.rgb(7, 85, 67))
+            setPadding(dp(9), 0, 0, 0)
+        })
+        setup.addView(branding)
+
+        setup.addView(TextView(this).apply {
+            text = getString(R.string.staff_setup_title)
+            textSize = 28f
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.rgb(11, 58, 47))
-            setPadding(0, dp(9), 0, dp(13))
-        }
-        setup.addView(welcome)
-        val instructions = TextView(this).apply {
-            text = "Enter your restaurant's PayMyDine address to open My Work. Only when you tap Start or Finish Shift will the app request precise GPS. Your manager handles attendance, requests and team activity in Shifts."
+            setPadding(0, dp(21), 0, dp(7))
+        })
+        setup.addView(TextView(this).apply {
+            text = getString(R.string.staff_setup_subtitle)
             textSize = 14f
-            setTextColor(Color.rgb(71, 99, 92))
-            setPadding(0, 0, 0, dp(24))
+            setTextColor(Color.rgb(77, 103, 94))
+            setPadding(0, 0, 0, dp(25))
+        })
+        setup.addView(TextView(this).apply {
+            text = getString(R.string.staff_restaurant_code)
+            textSize = 13f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.rgb(16, 53, 43))
+            setPadding(0, 0, 0, dp(8))
+        })
+
+        val inputRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            background = rounded(Color.WHITE, dp(14), Color.rgb(189, 217, 205))
+            setPadding(dp(13), 0, dp(12), 0)
         }
-        setup.addView(instructions)
+        val savedCode = (preferences.getString("host", "") ?: "")
+            .removeSuffix(".paymydine.com")
         val hostInput = EditText(this).apply {
-            hint = "tomo.paymydine.com"
+            hint = getString(R.string.staff_restaurant_example)
             setSingleLine(true)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            textSize = 16f
             setTextColor(Color.rgb(12, 54, 44))
-            setText(preferences.getString("host", "") ?: "")
-            setPadding(dp(16), 0, dp(16), 0)
-            background = rounded(Color.WHITE, dp(15), Color.rgb(188, 217, 210))
+            setText(savedCode)
+            setSelectAllOnFocus(true)
+            background = null
+            setPadding(0, 0, dp(5), 0)
         }
-        setup.addView(hostInput, LinearLayout.LayoutParams(-1, dp(56)))
-        alert = TextView(this).apply {
+        inputRow.addView(hostInput, LinearLayout.LayoutParams(0, dp(54), 1f))
+        inputRow.addView(TextView(this).apply {
+            text = ".paymydine.com"
             textSize = 12f
-            setTextColor(Color.rgb(165, 54, 43))
-            setPadding(0, dp(9), 0, dp(8))
+            setTextColor(Color.rgb(100, 131, 121))
+        })
+        setup.addView(inputRow)
+        setup.addView(TextView(this).apply {
+            text = getString(R.string.staff_restaurant_hint)
+            textSize = 12f
+            setTextColor(Color.rgb(97, 120, 111))
+            setPadding(0, dp(9), 0, dp(17))
+        })
+
+        alert = TextView(this).apply {
+            textSize = 13f
+            setTextColor(Color.rgb(163, 50, 45))
+            setPadding(0, dp(6), 0, dp(12))
             visibility = View.GONE
         }
         setup.addView(alert)
+
+        setup.addView(TextView(this).apply {
+            text = getString(R.string.staff_location_summary)
+            textSize = 12f
+            setTextColor(Color.rgb(69, 95, 85))
+            setPadding(0, dp(6), 0, dp(10))
+        })
+        val privacyInfo = Button(this).apply {
+            text = getString(R.string.staff_privacy_view)
+            isAllCaps = false
+            textSize = 12f
+            setTextColor(Color.rgb(7, 95, 79))
+            background = rounded(Color.rgb(231, 245, 238), dp(10), 0)
+            setOnClickListener { showPrivacyNotice() }
+        }
+        setup.addView(privacyInfo, LinearLayout.LayoutParams(-1, dp(42)))
+
+        noticeCheckbox = CheckBox(this).apply {
+            text = getString(R.string.staff_notice_ack)
+            textSize = 12f
+            setTextColor(Color.rgb(36, 75, 61))
+            isChecked = preferences.getBoolean("staff_notice_ack_v2", false)
+            setPadding(0, dp(14), 0, dp(9))
+        }
+        setup.addView(noticeCheckbox)
+
         val launch = Button(this).apply {
-            text = "Open Staff Portal"
+            text = getString(R.string.staff_continue)
             isAllCaps = false
             typeface = Typeface.DEFAULT_BOLD
             setTextColor(Color.WHITE)
-            background = rounded(Color.rgb(7, 106, 82), dp(15), 0)
+            background = rounded(Color.rgb(7, 106, 82), dp(13), 0)
             setOnClickListener {
                 val host = normalizeHost(hostInput.text.toString())
-                if (host == null) {
-                    alert.text = "Use your *.paymydine.com restaurant address, without any path or port."
-                    alert.visibility = View.VISIBLE
-                } else {
-                    alert.visibility = View.GONE
-                    connect(host)
+                when {
+                    host == null -> {
+                        alert.text = getString(R.string.staff_invalid_code)
+                        alert.visibility = View.VISIBLE
+                    }
+                    !noticeCheckbox.isChecked -> {
+                        alert.text = getString(R.string.staff_notice_required)
+                        alert.visibility = View.VISIBLE
+                    }
+                    else -> {
+                        preferences.edit().putBoolean("staff_notice_ack_v2", true).apply()
+                        alert.visibility = View.GONE
+                        connect(host)
+                    }
                 }
             }
         }
-        val launchParams = LinearLayout.LayoutParams(-1, dp(54)).apply { topMargin = dp(16) }
-        setup.addView(launch, launchParams)
-        root.addView(setup, LinearLayout.LayoutParams(-1, -2))
+        setup.addView(launch, LinearLayout.LayoutParams(-1, dp(53)).apply {
+            topMargin = dp(5)
+        })
+        scroll.addView(setup)
+        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
 
         browser = WebView(this).apply {
             visibility = View.GONE
@@ -190,6 +257,14 @@ class StaffActivity : Activity() {
                 val uri = request.url
                 // Intercept only a main-frame request from our authenticated restaurant Staff Portal.
                 // Never deliver raw GPS in a URL or grant it to third-party frames.
+                if (uri.scheme == "pmdstaff" && request.isForMainFrame &&
+                    isTrustedClockDocument(view.url)) {
+                    when (uri.host) {
+                        "workplace" -> showSetup()
+                        "privacy" -> showPrivacyNotice()
+                    }
+                    return true
+                }
                 if (uri.scheme == "pmdstaffgeo") {
                     if (request.isForMainFrame && uri.host == "clock"
                         && isTrustedClockDocument(view.url)) {
@@ -244,9 +319,10 @@ class StaffActivity : Activity() {
             }
         }
         root.addView(browser, LinearLayout.LayoutParams(-1, 0, 1f))
+        onboardingScroll = scroll
 
         val saved = normalizeHost(preferences.getString("host", "") ?: "")
-        if (saved != null) connect(saved) else showSetup()
+        if (saved != null && preferences.getBoolean("staff_notice_ack_v2", false)) connect(saved) else showSetup()
     }
 
     private fun isTrustedClockDocument(url: String?): Boolean {
@@ -362,7 +438,8 @@ class StaffActivity : Activity() {
     private fun connect(host: String) {
         restaurantHost = host
         preferences.edit().putString("host", host).apply()
-        setup.visibility = View.GONE
+        onboardingScroll.visibility = View.GONE
+        toolbar.visibility = View.GONE
         browser.visibility = View.VISIBLE
         browser.loadUrl("https://$host/admin/login?destination=staff")
     }
@@ -376,15 +453,30 @@ class StaffActivity : Activity() {
         browser.loadUrl("about:blank")
         restaurantHost = ""
         browser.visibility = View.GONE
-        setup.visibility = View.VISIBLE
+        toolbar.visibility = View.GONE
+        onboardingScroll.visibility = View.VISIBLE
         progress.visibility = View.GONE
     }
 
     private fun normalizeHost(raw: String): String? {
         val candidate = raw.trim().lowercase(Locale.ROOT)
-            .removePrefix("https://").trimEnd('/')
-        return if (isPmdHost(candidate) && !candidate.contains('/') &&
-            !candidate.contains(':') && !candidate.contains('?')) candidate else null
+        if (candidate.isBlank() || candidate.startsWith("http://")) return null
+        val code = candidate.removePrefix("https://").trimEnd('/')
+        if (code.matches(Regex("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"))) {
+            return "$code.paymydine.com"
+        }
+        // Backwards compatible with a pasted, complete, secure tenant hostname.
+        return if (isPmdHost(code) && code != "paymydine.com" &&
+            !code.contains('/') && !code.contains(':') &&
+            !code.contains('?') && !code.contains('#')) code else null
+    }
+
+    private fun showPrivacyNotice() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.staff_privacy_title)
+            .setMessage(R.string.staff_privacy_details)
+            .setPositiveButton(R.string.staff_privacy_close, null)
+            .show()
     }
 
     private fun isPmdHost(host: String?): Boolean {
