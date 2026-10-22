@@ -1,4 +1,6 @@
 /* PMD_STAFF_PORTAL_TIME_CLOCK_V1 */
+/* PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022 */
+.pmd-staff-time-clock__copy span{white-space:normal;overflow-wrap:anywhere}
 .pmd-staff-time-clock{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:11px;margin:0 0 12px;padding:12px;border:1px solid #d8e6e1;border-radius:14px;background:#f8fbfa;color:#17342f}
 .pmd-staff-time-clock.is-active{border-color:#a7d9c7;background:#f0faf6}
 .pmd-staff-time-clock__icon{display:grid;width:42px;height:42px;place-items:center;border-radius:12px;background:#e9f3ef;color:#0a6552}
