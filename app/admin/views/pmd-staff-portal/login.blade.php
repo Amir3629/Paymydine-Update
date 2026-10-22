@@ -6,14 +6,15 @@
         $pmdCountryId = (int)setting('country_id');
         if ($pmdCountryId > 0) {
             $pmdStaffMarket = strtoupper((string)\Illuminate\Support\Facades\DB::table('countries')
-                ->where('country_id', $pmdCountryId)->value('country_code'));
+                ->where('country_id', $pmdCountryId)->value('iso_code_2'));
         }
         if ($pmdStaffMarket === '') {
             $pmdStaffMarket = strtoupper((string)\Illuminate\Support\Facades\DB::table('locations as loc')
                 ->join('countries as country', 'country.country_id', '=', 'loc.location_country_id')
-                ->orderBy('loc.location_id')->value('country.country_code'));
+                ->orderBy('loc.location_id')->value('country.iso_code_2'));
         }
     } catch (\Throwable $ignored) {}
+    // PMD_STAFF_LANGUAGE_COUNTRY_FIX_V3_20261022: countries.iso_code_2.
     $pmdStaffOtherLocale = $pmdStaffMarket === 'DE' ? 'de' : ($pmdStaffMarket === 'TR' ? 'tr' : 'en');
     $pmdStaffAllowed = $pmdStaffOtherLocale === 'en' ? ['en'] : ['en', $pmdStaffOtherLocale];
     $pmdStaffCookie = strtolower(trim((string)request()->cookie('pmd_admin_locale', '')));
