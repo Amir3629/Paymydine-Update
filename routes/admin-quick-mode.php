@@ -123,6 +123,12 @@ Route::middleware(['web'])->group(function () {
     // PMD_TABLE_DISPLAY_V1
     // Operational handoff to the Table Companion and its linked certified
     // terminal. Settlement remains owned by the canonical provider service.
+    // PMD_QPOS_TABLE_DEVICE_READINESS_V140: read-only; never starts a charge.
+    Route::get(
+        '/admin/pos/table-display-payment-availability/{order}',
+        [\App\Http\Controllers\PmdTableDisplayPaymentController::class, 'availability']
+    )->where('order', '[0-9]+');
+
     Route::post(
         '/admin/pos/table-display-payment/{order}',
         \App\Http\Controllers\PmdTableDisplayPaymentController::class
