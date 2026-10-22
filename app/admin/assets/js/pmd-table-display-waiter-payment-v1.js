@@ -17,6 +17,9 @@
   var observer = null;
   var timer = null;
 
+  // PMD_TABLE_DEVICE_DYNAMIC_AVAILABILITY_V140
+  var availability = {orderId: 0, ready: false, checkedAt: 0, pending: false};
+
   function api() {
     return window.PMDQuickPOSV1 || null;
   }
@@ -46,7 +49,73 @@
       'waiter'
     ].indexOf(role) !== -1;
 
-    return allowedRole && (mode === 'cashier' || mode === 'waiter');
+    return allowedRole &&
+      (mode === 'cashier' || mode === 'waiter') &&
+      Number(current.activeOrderId || 0) > 0 &&
+      !current.payment.batchModeV114 &&
+      !!(current.selectedTable && Number(current.selectedTable.id || 0) > 0);
+  }
+
+  // A physical Table Companion without a linked acquiring terminal cannot
+  // accept bank cards. Resolve the binding from an authenticated read-only
+  // backend endpoint; never infer it from the NFC badge or presence of a screen.
+  function tableDeviceAvailableV140() {
+    var current = state();
+    return !!(
+      current &&
+      availability.ready &&
+      availability.orderId === Number(current.activeOrderId || 0)
+    );
+  }
+
+  function nativeCloudReachableV140() {
+    var bridge = window.PayMyDineOffline;
+    if (!bridge || typeof bridge.syncStatus !== 'function') return true;
+    try {
+      var result = JSON.parse(String(bridge.syncStatus() || '{}'));
+      return result.cloud_available === true;
+    } catch (ignored) {
+      return false;
+    }
+  }
+
+  function refreshTableDeviceAvailabilityV140() {
+    if (!canUseTableDevicePayment() || !paymentOpen()) return;
+    var current = state();
+    var id = Number(current.activeOrderId || 0);
+    var now = Date.now();
+    if (!nativeCloudReachableV140()) {
+      availability.ready = false;
+      availability.orderId = id;
+      availability.checkedAt = 0;
+      return;
+    }
+    if (availability.orderId !== id) {
+      availability.orderId = id;
+      availability.ready = false;
+      availability.checkedAt = 0;
+    }
+    if (availability.pending || now - availability.checkedAt < 10000) return;
+    availability.checkedAt = now;
+    availability.pending = true;
+
+    fetch(
+      '/admin/pos/table-display-payment-availability/' +
+        encodeURIComponent(String(id)),
+      {method: 'GET', credentials: 'same-origin', cache: 'no-store',
+       headers: {'Accept': 'application/json'}}
+    ).then(function (response) {
+      if (!response.ok) throw new Error('Unavailable');
+      return response.json();
+    }).then(function (data) {
+      if (availability.orderId !== id) return;
+      availability.ready = !!(data && data.ok && data.available);
+    }).catch(function () {
+      if (availability.orderId === id) availability.ready = false;
+    }).finally(function () {
+      availability.pending = false;
+      if (availability.orderId === id) updateUi();
+    });
   }
 
   function paymentOpen() {
@@ -106,6 +175,12 @@
     if (!canUseTableDevicePayment() || !paymentOpen()) return;
     var box = methodBox();
     if (!box) return;
+
+    if (!tableDeviceAvailableV140()) {
+      var oldButton = box.querySelector('[data-pmd-table-card-method-v1]');
+      if (oldButton && !waiting && !sending) oldButton.remove();
+      return;
+    }
 
     var terminal = box.querySelector('[data-payment-method="direct_terminal"]');
     if (terminal && terminal.textContent.trim() !== 'Terminal') {
@@ -172,7 +247,7 @@
   }
 
   function chooseTableCard() {
-    if (!canUseTableDevicePayment() || !paymentOpen()) return;
+    if (!canUseTableDevicePayment() || !paymentOpen() || !tableDeviceAvailableV140()) return;
     active = true;
     sending = false;
     setStatus('', false);
@@ -209,8 +284,14 @@
       return;
     }
 
+    refreshTableDeviceAvailabilityV140();
     ensureMethod();
-    var p = ensurePanel();
+    if (!tableDeviceAvailableV140() && active && !waiting && !sending) {
+      leaveTableCard();
+    }
+    var p = tableDeviceAvailableV140() || waiting || sending
+      ? ensurePanel()
+      : panel();
     var method = methodBox() && methodBox().querySelector('[data-pmd-table-card-method-v1]');
     if (method) method.classList.toggle('is-active', active);
 
@@ -414,7 +495,7 @@
   }
 
   async function sendRequest() {
-    if (!active || sending || waiting) return;
+    if (!active || sending || waiting || !tableDeviceAvailableV140()) return;
     var current = state();
     var orderId = Number(current && current.activeOrderId || 0);
     if (orderId < 1) {
