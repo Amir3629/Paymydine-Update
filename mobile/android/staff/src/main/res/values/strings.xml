@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- PMD_STAFF_PRIVACY_COPY_V2_20261022 -->
     <string name="app_name">PayMyDine Staff</string>
+    <string name="staff_setup_title">Your shift starts here.</string>
+    <string name="staff_setup_subtitle">Enter your restaurant code to sign in.</string>
+    <string name="staff_restaurant_code">Restaurant code</string>
+    <string name="staff_restaurant_example">tomo</string>
+    <string name="staff_restaurant_hint">Ask your manager for your restaurant code.</string>
+    <string name="staff_location_summary">Location is checked only when you start or finish a shift. Your restaurant uses the result to verify attendance.</string>
+    <string name="staff_privacy_view">Privacy &amp; location information</string>
+    <string name="staff_privacy_title">Your data in PayMyDine Staff</string>
+    <string name="staff_privacy_details">Your login, shifts, requests and team messages are handled by the restaurant workspace. Only when you tap Start shift or Finish shift, the app requests precise location to verify on-site attendance. A location check and server-recorded work time may be stored and reviewed by authorized restaurant managers. There is no background location tracking. Ask your employer for its full employee privacy notice, retention periods and data protection contact.</string>
+    <string name="staff_privacy_close">Close</string>
+    <string name="staff_notice_ack">I have read the location and privacy information.</string>
+    <string name="staff_notice_required">Please read and acknowledge the privacy information.</string>
+    <string name="staff_continue">Continue to sign in</string>
+    <string name="staff_invalid_code">Enter your restaurant code (for example: tomo).</string>
 </resources>
