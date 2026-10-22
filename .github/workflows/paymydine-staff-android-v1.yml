@@ -16,9 +16,25 @@ on:
       - 'app/admin/controllers/Mywork.php'
       - 'app/admin/controllers/Pmdsettings.php'
       - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'app/admin/views/pmdsettings/index.blade.php'
+      - 'scripts/pmd-staff-apk-settings-v1-deploy.sh'
+      - 'scripts/pmd-staff-settings-download-path-v2-deploy.sh'
+      - 'pmd-qa/scripts/staff-settings-download-contract.test.cjs'
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
       - 'app/admin/views/pmdshifts/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'mobile/android/staff/**'
+      - 'app/admin/assets/js/pmd-staff-time-clock-v1.js'
+      - 'app/Http/Controllers/PmdStaffPortalV6Controller.php'
+      - '.github/workflows/paymydine-staff-android-v1.yml'
+      - 'pmd-qa/scripts/staff-native-gps-contract.test.cjs'
+      - 'app/admin/views/pmdsettings/index.blade.php'
+      - 'scripts/pmd-staff-apk-settings-v1-deploy.sh'
+      - 'scripts/pmd-staff-settings-download-path-v2-deploy.sh'
+      - 'pmd-qa/scripts/staff-settings-download-contract.test.cjs'
   workflow_dispatch:
 
 permissions:
@@ -40,10 +56,15 @@ jobs:
           php -l app/admin/controllers/Mywork.php
           php -l app/admin/controllers/Pmdsettings.php
           bash -n scripts/pmd-install-staff-platform-v1.sh
+          bash -n scripts/pmd-staff-native-gps-v1-deploy.sh
+          bash -n scripts/pmd-staff-apk-settings-v1-deploy.sh
+          bash -n scripts/pmd-staff-settings-download-path-v2-deploy.sh
       - name: Browser script syntax
         run: |
           node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
           node --check app/admin/assets/js/pmd-shifts-staff-center-v1.js
+          node pmd-qa/scripts/staff-native-gps-contract.test.cjs
+          node pmd-qa/scripts/staff-settings-download-contract.test.cjs
       - name: Separation, auth and privacy contracts
         run: |
           set -eu
@@ -54,6 +75,18 @@ jobs:
           grep -Fq 'assertOwnerOrManager' app/admin/controllers/Shifts.php
           ! grep -Fq 'ACCESS_BACKGROUND_LOCATION' mobile/android/staff/src/main/AndroidManifest.xml
           grep -Fq 'PMD_STAFF_WORKFORCE_DAILY_RELIABILITY_V2_20261021' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
+          grep -Fq 'PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
+          grep -Fq 'PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022' app/admin/assets/js/pmd-staff-time-clock-v1.js
+          grep -Fq 'pmdstaffgeo://clock?request=' app/admin/assets/js/pmd-staff-time-clock-v1.js
+          grep -Fq 'PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022' app/Http/Controllers/PmdStaffPortalV6Controller.php
+          grep -Fq "'schedule_status' => \$hasPlannedShift ? 'scheduled' : 'unscheduled'" app/Http/Controllers/PmdStaffPortalV6Controller.php
+          grep -Fq 'PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022' app/admin/Services/PmdStaffOperationsCenterV1.php
+          grep -Fq 'pmd-staff-ops__unscheduled' app/admin/views/pmdshifts/_staff_operations_center_v1.blade.php
+          grep -Fq 'PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022' scripts/pmd-staff-native-gps-v1-deploy.sh
+          grep -Fq 'PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022' app/admin/views/pmdsettings/index.blade.php
+          grep -Fq 'PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022' scripts/pmd-staff-apk-settings-v1-deploy.sh
+          grep -Fq 'PMD_STAFF_APP_DOWNLOAD_PATH_V2_20261022' app/admin/views/pmdsettings/index.blade.php
+          grep -Fq 'PMD_STAFF_APP_DOWNLOAD_PATH_V2_DEPLOY_20261022' scripts/pmd-staff-settings-download-path-v2-deploy.sh
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
@@ -69,7 +102,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
+      # v3 still requests retired SDK package 'tools' and fails before compiling.
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
       - name: Install Android 36 platform
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
