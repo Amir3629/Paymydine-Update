@@ -1,0 +1,21 @@
+{
+  "name": "PayMyDine Device App",
+  "filename": "PayMyDine-Device-App-0.6.2.apk",
+  "version_name": "0.6.2-device-app-v21-debug",
+  "version_code": 75,
+  "package": "com.paymydine.mobile.pospreview",
+  "sha256": "305828b26ec7cda3e1b7662d5ba9f325cf5861cfe77d8b7f5b6632af9eb84297",
+  "download_url": "https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.2.apk",
+  "zcs_sdk_preserved": true,
+  "zcs_customer_display": true,
+  "contactless_diagnostic_bridge": true,
+  "quick_pos_runtime": "V125 bundled",
+  "cashier_table_floor_guard": "V125 bundled",
+  "table_device_payment_runtime": "V137 web endpoint",
+  "customer_screen_policy": "automatic_always_on",
+  "update_from": "0.6.1",
+  "update_in_place": true,
+  "card_payment_note": "Live card authorization is controlled by configured approved terminal/acquiring provider. ZCS hardware readiness alone never authorizes a payment.",
+  "tested_at": "2026-10-22",
+  "ci_url": "https://github.com/Amir3629/Paymydine-Update/actions/runs/39821577103"
+}

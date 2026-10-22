@@ -1940,7 +1940,11 @@
         payment_state: String(button.getAttribute('data-payment-state') || 'none'),
         capacity: capacityNode
           ? Math.max(0, parseInt(String(capacityNode.textContent || '').replace(/\D+/g, ''), 10) || 0)
-          : 0
+          : 0,
+        floor_id: String(
+          button.getAttribute('data-qpos-table-floor') ||
+          state.activeFloorId || state.defaultFloorId || ''
+        )
       });
     });
     return rows;
@@ -1993,7 +1997,26 @@
     normalizeActiveFloor();
 
     if (incomingTables.length) {
-      state.tables = incomingTables;
+      /* PMD_QPOS_PRESERVE_TABLE_FLOOR_V125
+       * Preserve a known floor only if the incoming row omits floor_id.
+       * An explicit empty assignment is authoritative (default floor). */
+      var priorTableById = Object.create(null);
+      (state.tables || []).forEach(function (table) {
+        priorTableById[String(table && table.id || '')] = table;
+      });
+      state.tables = incomingTables.map(function (table) {
+        var previous = priorTableById[String(table && table.id || '')];
+        if (
+          table &&
+          !Object.prototype.hasOwnProperty.call(table, 'floor_id') &&
+          previous &&
+          previous.floor_id != null &&
+          String(previous.floor_id).trim()
+        ) {
+          return Object.assign({}, table, {floor_id: previous.floor_id});
+        }
+        return table;
+      });
     } else if (!state.tables.length) {
       var serverTables = serverRenderedTablesV124();
       if (serverTables.length) state.tables = serverTables;
@@ -2554,10 +2577,36 @@
     return name || String(table.id || '');
   }
 
+  /* PMD_QPOS_TABLE_FLOOR_FALLBACK_V125
+   * Native SQLite bootstraps can temporarily omit floor_id while the
+   * floor-map projection is warming. Unassigned tables belong to the
+   * restaurant's default floor; do not hide the whole rail except Pickup.
+   * An explicitly assigned, valid non-active floor remains filtered out. */
   function activeFloorTables() {
+    var tables = Array.isArray(state.tables) ? state.tables : [];
+    var floors = Array.isArray(state.floors) ? state.floors : [];
     var activeId = String(state.activeFloorId || '');
-    return state.tables.filter(function (table) {
-      return String(table.floor_id || '') === activeId;
+
+    if (!activeId || !floors.length) return tables.slice();
+
+    var knownFloors = Object.create(null);
+    floors.forEach(function (floor) {
+      var id = String(floor && floor.id || '');
+      if (id) knownFloors[id] = true;
+    });
+
+    var defaultId = String(state.defaultFloorId || '');
+    if (!knownFloors[defaultId]) {
+      defaultId = String(floors[0] && floors[0].id || '');
+    }
+
+    return tables.filter(function (table) {
+      var assignedId = table && table.floor_id != null
+        ? String(table.floor_id).trim()
+        : '';
+      // Deleted/stale floor IDs and missing assignments return to Main.
+      if (!assignedId || !knownFloors[assignedId]) assignedId = defaultId;
+      return assignedId === activeId;
     });
   }
 
