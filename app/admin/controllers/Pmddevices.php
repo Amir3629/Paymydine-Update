@@ -316,9 +316,20 @@ class Pmddevices extends AdminController
             $this->devicePlatformStaffId()
         );
 
-        flash()->success(
-            $action.' sent to '.(int)$result['count'].' PayMyDine device(s).'
-        );
+        // PMD_DEVICE_COMMAND_QUEUED_NOT_EXECUTED_V144
+        // Queueing is not equivalent to device acknowledgement/completion.
+        $queued = (int)($result['count'] ?? 0);
+        if ($queued < 1) {
+            flash()->warning(
+                'No eligible PayMyDine device is registered for this command. '.
+                'Nothing was sent. Check pairing and device capabilities.'
+            );
+        } else {
+            flash()->success(
+                $action.' queued for '.$queued.
+                ' device(s). Execution requires device acknowledgement.'
+            );
+        }
     }
 
     /** PMD_DEVICE_PLATFORM_V1 */
