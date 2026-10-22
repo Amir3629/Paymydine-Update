@@ -1231,9 +1231,26 @@ document.documentElement.classList.add(
                  A separate Staff Android APK; never point this at the POS/Device APK.
                  The link is activated only after the verified APK has been published to this VPS. --}}
             @php
+                // PMD_STAFF_APP_DOWNLOAD_PATH_V2_20261022:
+                // The VPS installer writes to the project-root public/downloads directory.
+                // On TastyIgniter deployments public_path() can resolve to a different webroot.
+                // Prefer the exact installation destination; keep public_path() as a fallback.
                 $pmdStaffApkFilename = 'PayMyDine-Staff-App-0.1.1-debug.apk';
-                $pmdStaffApkReady = is_file(public_path('downloads/paymydine/'.$pmdStaffApkFilename))
-                    && filesize(public_path('downloads/paymydine/'.$pmdStaffApkFilename)) > 100000;
+                $pmdStaffApkRelativePath = 'downloads/paymydine/'.$pmdStaffApkFilename;
+                $pmdStaffApkPaths = [
+                    base_path('public/'.$pmdStaffApkRelativePath),
+                    public_path($pmdStaffApkRelativePath),
+                ];
+                $pmdStaffApkReady = false;
+                foreach (array_unique($pmdStaffApkPaths) as $pmdStaffApkPath) {
+                    clearstatcache(true, $pmdStaffApkPath);
+                    if (is_file($pmdStaffApkPath)
+                        && is_readable($pmdStaffApkPath)
+                        && filesize($pmdStaffApkPath) > 100000) {
+                        $pmdStaffApkReady = true;
+                        break;
+                    }
+                }
             @endphp
             @if($pmdStaffApkReady)
                 <a
