@@ -1,0 +1,84 @@
+'use strict';
+// PMD_STAFF_TIMEBREAK_V021_CONTRACT_20261022
+// Cross-file guardrails. Runtime onsite QA remains required.
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const read = file => fs.readFileSync(path.resolve(__dirname,'../../',file),'utf8');
+const view=read('app/admin/views/pmd-staff-portal/index_v5.blade.php');
+const login=read('app/admin/views/pmd-staff-portal/login.blade.php');
+const clock=read('app/admin/assets/js/pmd-staff-time-clock-v1.js');
+const ctl=read('app/Http/Controllers/PmdStaffPortalV6Controller.php');
+const work=read('app/admin/controllers/Mywork.php');
+const native=read('mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt');
+const theme=read('app/admin/assets/css/pmd-staff-portal-v4.css');
+const clockStyle=read('app/admin/assets/css/pmd-staff-time-clock-v1.css');
+const gradle=read('mobile/android/staff/build.gradle.kts');
+const locale=read('app/admin/assets/js/pmd-staff-portal-locale-v2.js');
+
+assert.match(view,/PMD_STAFF_LANGUAGE_COUNTRY_FIX_V3_20261022/);
+assert.match(view,/country\.iso_code_2/);
+assert.doesNotMatch(view,/country\.country_code/);
+assert.match(login,/countries\.iso_code_2/);
+assert.doesNotMatch(login,/country\.country_code/);
+assert.match(view,/data-pmd-staff-language-picker/);
+assert.doesNotMatch(view,/@if\(count\(\$pmdStaffAllowedLocales\) > 1\)/);
+assert.match(view,/class="pmd-staff-top-profile" data-pmd-profile-open/);
+assert.match(view,/data-pmd-mobile-target="clock"/);
+assert.doesNotMatch(view,/<button type="button" data-pmd-profile-open><svg/);
+assert.match(view,/data-pmd-staff-clock-target/);
+assert.match(view,/id="clock" class="pmd-staff-tool-card/);
+assert.match(view,/if \(hash === '#clock'\) return 'clock'/);
+assert.doesNotMatch(view,/window\.scrollTo\(\{top: 0, behavior: 'auto'\}\)/);
+assert.match(theme,/PMD_STAFF_TIME_NAV_HEADER_V1_20261022/);
+assert.match(theme,/data-pmd-mobile-active="clock"/);
+assert.match(theme,/overflow-anchor:none/);
+
+assert.match(ctl,/PMD_STAFF_BREAK_EVENTS_V1_20261022/);
+assert.match(ctl,/public function clockBreak\(Request \$request\)/);
+assert.match(work,/public function clockbreak\(\)/);
+assert.match(work,/portalResponse\('clockBreak'\)/);
+assert.match(ctl,/clock_break_url.*admin_url\('mywork\/clockbreak'\)/);
+assert.match(ctl,/lockForUpdate/);
+assert.match(ctl,/staff_portal_breaks/);
+assert.match(ctl,/staff_portal_break_report/);
+assert.match(ctl,/break_minutes/);
+assert.match(ctl,/breakSeconds/);
+assert.match(ctl,/hours = round\(\(\$seconds - \$breakSeconds\) \/ 3600, 2\)/);
+assert.match(ctl,/clock_out_geo.*\$geo\['evidence'\]/);
+assert.match(ctl,/validatePunch/);
+assert.match(ctl,/where\('location_id', \$locationId\)/);
+
+assert.match(clock,/PMD_STAFF_TIME_AND_BREAK_V1_20261022/);
+assert.match(clock,/data-pmd-clock-break-form/);
+assert.match(clock,/data-pmd-break-question/);
+assert.match(clock,/data-pmd-break-no/);
+assert.match(clock,/data-pmd-break-yes/);
+assert.match(clock,/break_report/);
+assert.match(clock,/break_minutes/);
+assert.match(clock,/requestSubmit/);
+assert.match(clock,/PMD_STAFF_FAST_PRECISE_GPS_V2_20261022/);
+assert.match(clock,/PMD_STAFF_NATIVE_GPS_PROGRESS/);
+assert.match(clock,/GPS is locating you/);
+assert.match(clock,/getCurrentPosition/);
+assert.match(clock,/HTMLFormElement\.prototype\.submit\.call\(punchForm\)/);
+assert.match(clockStyle,/PMD_STAFF_BREAK_CLOCK_UI_V1_20261022/);
+assert.match(clockStyle,/pmd-staff-break-question\[hidden\]/);
+
+assert.match(native,/PMD_STAFF_FAST_PRECISE_GPS_V2_20261022/);
+assert.match(native,/getLastKnownLocation/);
+assert.match(native,/goodFreshFix/);
+assert.match(native,/postDelayed\(timeout, 15_000L\)/);
+assert.match(native,/reportNativeGpsAccuracy/);
+assert.match(native,/location\.accuracy <= 90f/);
+assert.match(native,/isTrustedClockDocument\(browser\.url\)/);
+assert.match(gradle,/versionName = "0\.2\.1"/);
+
+new vm.Script(clock,{filename:'pmd-staff-time-clock-v1.js'});
+new vm.Script(locale,{filename:'pmd-staff-portal-locale-v2.js'});
+const bodyScript=view.lastIndexOf('<script>');
+const end=view.indexOf('</script>',bodyScript);
+assert.ok(bodyScript>0&&end>bodyScript);
+new vm.Script(view.slice(bodyScript+8,end),{filename:'Staff Portal inline JS'});
+console.log('Staff Time/Break 0.2.1 contracts: precise native GPS, country ISO-2, stable nav, secure break endpoints, net hours PASSED');
