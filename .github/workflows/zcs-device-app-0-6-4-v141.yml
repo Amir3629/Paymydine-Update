@@ -76,16 +76,16 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" 'platform-tools' 'build-tools;35.0.0'
 
-      - name: Download and verify exact ZCS 0.6.3 base APK
+      - name: Download and verify exact immutable ZCS 0.6.2 base APK
         shell: bash
         run: |
           set -euo pipefail
           curl -fL --retry 3 --connect-timeout 20 --max-time 180 \
-            'https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.3.apk' \
-            -o base-0.6.3.apk
-          echo '255b26e6bdb646c99458c224fd36f95c56c9f7938d589d8061dd60848d43048c  base-0.6.3.apk' | sha256sum -c -
+            'https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.2.apk' \
+            -o base-0.6.2.apk
+          echo '305828b26ec7cda3e1b7662d5ba9f325cf5861cfe77d8b7f5b6632af9eb84297  base-0.6.2.apk' | sha256sum -c -
           APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          "$APKSIGNER" verify --print-certs base-0.6.3.apk > base-cert.txt
+          "$APKSIGNER" verify --print-certs base-0.6.2.apk > base-cert.txt
           keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey > key-cert.txt
           BASE_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' base-cert.txt | head -n 1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
           KEY_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' key-cert.txt | head -n 1 | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
@@ -98,7 +98,7 @@ jobs:
           curl -fL --retry 3 --connect-timeout 20 --max-time 180 \
             'https://github.com/iBotPeaches/Apktool/releases/download/v2.12.0/apktool_2.12.0.jar' -o apktool.jar
           test -s apktool.jar
-          java -jar apktool.jar d -f base-0.6.3.apk -o decoded
+          java -jar apktool.jar d -f base-0.6.2.apk -o decoded
           cp app/admin/assets/js/pmd-quick-pos-v1.js decoded/assets/pmd-canonical/js/pmd-quick-pos-v1.js
           cp app/admin/assets/js/pmd-qpos-web-parity-v112.js decoded/assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js
           python3 - <<'PY'
@@ -106,9 +106,9 @@ jobs:
           import re
           path = Path('decoded/apktool.yml')
           text = path.read_text()
-          text, n1 = re.subn(r"versionCode:\s*'?76'?", "versionCode: '77'", text, count=1)
+          text, n1 = re.subn(r"versionCode:\s*'?75'?", "versionCode: '77'", text, count=1)
           text, n2 = re.subn(
-              r"versionName:\s*'?0\.6\.3-device-app-v22-debug'?",
+              r"versionName:\s*'?0\.6\.2-device-app-v21-debug'?",
               "versionName: 0.6.4-device-app-v23-debug",
               text, count=1,
           )
