@@ -155,6 +155,7 @@ rollback_on_exit() {
     echo 'DEPLOY FAILED: restoring backed-up VPS files.' >&2
     sudo tar -xzf "$BACKUP/before.tgz" -C "$ROOT" || true
     (sudo -u www-data php artisan view:clear || php artisan view:clear) || true
+    (sudo -u www-data php artisan route:clear || php artisan route:clear) || true
   fi
   if [[ "$SUCCESS" != 1 ]]; then
     echo "STOP: original archive at $BACKUP/before.tgz" >&2
@@ -188,6 +189,7 @@ php -l routes/admin-quick-mode.php
 node --check app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
 
 sudo -u www-data php artisan view:clear || php artisan view:clear
+sudo -u www-data php artisan route:clear || php artisan route:clear
 SUCCESS=1
 trap - EXIT INT TERM
 
