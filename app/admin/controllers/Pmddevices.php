@@ -223,7 +223,25 @@ class Pmddevices extends AdminController
 
         $locationId = $this->devicePlatformLocationId();
         $service = app(PmdDevicePlatformService::class);
-        $action = strtoupper(trim((string)post('action', '')));
+        // PMD_DEVICE_COMMAND_SERIALIZED_SUBMITTER_V144
+        // TastyIgniter's AJAX request.js uses jQuery form.serialize(), which
+        // excludes the clicked submit button's name/value. The hidden
+        // pmd_device_command field carries the explicit user-selected action.
+        // Classic non-AJAX submissions still work through the action fallback.
+        $fieldAction = strtoupper(trim((string)post('pmd_device_command', '')));
+        $buttonAction = strtoupper(trim((string)post('action', '')));
+        if ($fieldAction !== '' && $buttonAction !== ''
+            && $fieldAction !== $buttonAction) {
+            abort(422, 'Device command selection does not match its form.');
+        }
+        $action = $fieldAction !== '' ? $fieldAction : $buttonAction;
+        $supported = array_merge(
+            PmdDevicePlatformService::COMMANDS,
+            ['OPEN_RESTAURANT', 'CLOSE_RESTAURANT', 'USE_SCHEDULE']
+        );
+        if (!in_array($action, $supported, true)) {
+            abort(422, 'Choose a valid PayMyDine device command.');
+        }
         $deviceId = (int)post('device_id', 0);
         $targetKind = trim((string)post('target_kind', ''));
         $payload = [];
