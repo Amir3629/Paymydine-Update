@@ -582,22 +582,36 @@ final class PmdDevicePlatformService
             return [];
         }
 
+        $ids = $trusted->pluck('id')->map(static fn ($id) => (int)$id)->all();
         $runtime = DB::table('pmd_device_runtime')
-            ->whereIn('device_id', $trusted->pluck('id')->map(static fn ($id) => (int)$id)->all())
+            ->whereIn('device_id', $ids)
             ->get()
+            ->keyBy('device_id');
+
+        // PMD_DEVICE_HEARTBEAT_AUTHORITY_V145
+        // The trusted device's last_seen can be updated by other Mobile APIs.
+        // ONLY pmd_device_runtime.last_seen_at proves a successful Device
+        // Platform heartbeat capable of receiving Wake/Sleep/Brightness.
+        $recentCommands = DB::table('pmd_device_commands')
+            ->whereIn('device_id', $ids)
+            ->orderByDesc('id')
+            ->limit(500)
+            ->get()
+            ->unique('device_id')
             ->keyBy('device_id');
 
         $tableOptions = collect($this->tableOptions($locationId))
             ->keyBy(static fn (array $row) => (int)($row['id'] ?? 0));
 
-        return $trusted->map(function ($device) use ($runtime, $tableOptions) {
+        return $trusted->map(function ($device) use ($runtime, $tableOptions, $recentCommands) {
             $platform = $this->decode((string)($device->platform_info ?? ''));
             $caps = $this->decodeList((string)($device->capabilities ?? ''));
             $live = $runtime->get((int)$device->id);
-            $seen = $live->last_seen_at ?? $device->last_seen_at ?? null;
+            $seen = $live->last_seen_at ?? null;
             $online = $seen
                 ? Carbon::parse($seen)->gte(now()->subSeconds(90))
                 : false;
+            $lastCommand = $recentCommands->get((int)$device->id);
 
             $kind = strtolower(trim((string)($device->device_kind ?? 'device')));
             $mode = strtolower(trim((string)($live->device_mode ?? $platform['device_mode'] ?? '')));
@@ -649,6 +663,17 @@ final class PmdDevicePlatformService
                 'manufacturer' => (string)($live->manufacturer ?? $platform['manufacturer'] ?? ''),
                 'model' => (string)($live->model ?? $platform['model'] ?? ''),
                 'last_seen_at' => $seen ? Carbon::parse($seen)->toIso8601String() : null,
+                'device_command_capable' => in_array('device_platform_v1', $caps, true),
+                'last_device_command' => $lastCommand ? [
+                    'action' => (string)($lastCommand->command ?? ''),
+                    'status' => (string)($lastCommand->status ?? ''),
+                    'requested_at' => !empty($lastCommand->requested_at)
+                        ? Carbon::parse($lastCommand->requested_at)->toIso8601String()
+                        : null,
+                    'acknowledged_at' => !empty($lastCommand->acknowledged_at)
+                        ? Carbon::parse($lastCommand->acknowledged_at)->toIso8601String()
+                        : null,
+                ] : null,
                 'capabilities' => $caps,
                 'managed' => $this->modeManagedBySchedule(
                     $kind,

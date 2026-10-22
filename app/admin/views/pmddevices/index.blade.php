@@ -344,7 +344,13 @@
                             </div>
 
                             <div class="pmd-device-platform-health">
-                                <span>{{ !empty($device['online']) ? $pmdSettingsText('Online') : $pmdSettingsText('Offline') }}</span>
+                                @php
+                                    // PMD_DEVICE_HEARTBEAT_STATUS_V145
+                                    $pmdDeviceControlReadyV145 = !empty($device['device_command_capable'])
+                                        && !empty($device['online']);
+                                    $pmdLastCommandV145 = (array)($device['last_device_command'] ?? []);
+                                @endphp
+                                <span>{{ !empty($device['online']) ? $pmdSettingsText('Device Control connected') : $pmdSettingsText('Device Control offline') }}</span>
                                 <small>
                                     {{ e($device['screen_state'] ?? 'unknown') }}
                                     @if(!empty($device['network_type']))
@@ -357,9 +363,30 @@
                                         · {{ (int)$device['battery_level'] }}%
                                     @endif
                                     @if(!empty($device['last_seen_at']))
-                                        · {{ $pmdSettingsText('last seen') }} {{ e(\Carbon\Carbon::parse($device['last_seen_at'])->diffForHumans()) }}
+                                        · {{ $pmdSettingsText('last Device Platform heartbeat') }} {{ e(\Carbon\Carbon::parse($device['last_seen_at'])->diffForHumans()) }}
                                     @endif
                                 </small>
+                                @if(empty($device['device_command_capable']))
+                                    <small class="pmd-device-platform-diagnostic-v145">{{ $pmdSettingsText('Remote control unavailable: device is not registered with Device Platform.') }}</small>
+                                @elseif(empty($device['online']))
+                                    <small class="pmd-device-platform-diagnostic-v145">{{ $pmdSettingsText('No Device Platform heartbeat within 90 seconds. App login does not prove remote commands work.') }}</small>
+                                @endif
+                                @if(!empty($pmdLastCommandV145))
+                                    <small class="pmd-device-platform-diagnostic-v145">
+                                        {{ $pmdSettingsText('Last command') }}:
+                                        {{ e((string)($pmdLastCommandV145['action'] ?? '')) }}
+                                        · {{ e((string)($pmdLastCommandV145['status'] ?? 'unknown')) }}
+                                        @if(in_array((string)($pmdLastCommandV145['status'] ?? ''), ['pending', 'delivered'], true))
+                                            · {{ $pmdSettingsText('waiting for device acknowledgement; not confirmed executed') }}
+                                        @elseif(($pmdLastCommandV145['status'] ?? '') === 'completed')
+                                            · {{ $pmdSettingsText('device reported completion') }}
+                                        @elseif(($pmdLastCommandV145['status'] ?? '') === 'failed')
+                                            · {{ $pmdSettingsText('device reported failure; inspect logs') }}
+                                        @elseif(($pmdLastCommandV145['status'] ?? '') === 'expired')
+                                            · {{ $pmdSettingsText('command expired before confirmation') }}
+                                        @endif
+                                    </small>
+                                @endif
                             </div>
 
                             <div class="pmd-device-platform-controlstack">
@@ -445,6 +472,7 @@
 
                                 <form
                                     class="pmd-device-platform-row-actions"
+                                    data-device-platform-ready-v145="{{ $pmdDeviceControlReadyV145 ? '1' : '0' }}"
                                     data-request="onPmdDevicePlatformCommand"
                                     data-pmd-device-command-form-v144
                                     data-request-flash
@@ -452,16 +480,16 @@
                                 >
                                     <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
                                     <input type="hidden" name="pmd_device_command" value="">
-                                    <button type="submit" name="action" value="WAKE">{{ $pmdSettingsText('Wake') }}</button>
-                                    <button type="submit" name="action" value="SLEEP">{{ $pmdSettingsText('Sleep') }}</button>
+                                    <button type="submit" name="action" value="WAKE" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Wake') }}</button>
+                                    <button type="submit" name="action" value="SLEEP" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Sleep') }}</button>
                                     <label class="pmd-device-platform-brightness">
                                         <span>{{ $pmdSettingsText('Brightness') }}</span>
                                         <input type="number" min="0" max="100" name="brightness" value="{{ (int)($device['brightness'] ?? 80) }}">
-                                        <button type="submit" name="action" value="SET_BRIGHTNESS">{{ $pmdSettingsText('Set') }}</button>
+                                        <button type="submit" name="action" value="SET_BRIGHTNESS" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Set') }}</button>
                                     </label>
-                                    <button type="submit" name="action" value="IDENTIFY">{{ $pmdSettingsText('Identify') }}</button>
-                                    <button type="submit" name="action" value="RELOAD_APP">{{ $pmdSettingsText('Reload') }}</button>
-                                    <button type="submit" name="action" value="REBOOT" data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
+                                    <button type="submit" name="action" value="IDENTIFY" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Identify') }}</button>
+                                    <button type="submit" name="action" value="RELOAD_APP" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Reload') }}</button>
+                                    <button type="submit" name="action" value="REBOOT" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
                                 </form>
                             </div>
                         </div>
