@@ -37,9 +37,29 @@
     $selectedShiftId = (int)old('shift_id', 0);
     $selectedShift = $selectedShiftId > 0 ? $shifts->firstWhere('id', $selectedShiftId) : null;
     $personInitial = strtoupper(mb_substr((string)$person->display_name, 0, 1));
+
+    // PMD_STAFF_MARKET_LOCALE_V2_20261022: match the actual selected restaurant,
+    // rather than using an IP, phone locale, hostname guess or another tenant.
+    $pmdStaffMarket = '';
+    try {
+        if (\Illuminate\Support\Facades\Schema::hasTable('locations')
+            && \Illuminate\Support\Facades\Schema::hasTable('countries')) {
+            $pmdStaffMarket = strtoupper((string)\Illuminate\Support\Facades\DB::table('locations as location')
+                ->join('countries as country', 'country.country_id', '=', 'location.location_country_id')
+                ->where('location.location_id', (int)$person->location_id)
+                ->value('country.country_code'));
+        }
+    } catch (\Throwable $ignored) {}
+    $pmdStaffAllowedLocales = $pmdStaffMarket === 'DE' ? ['de', 'en']
+        : ($pmdStaffMarket === 'TR' ? ['tr', 'en'] : ['en']);
+    $pmdStaffDefaultLocale = $pmdStaffMarket === 'DE' ? 'de'
+        : ($pmdStaffMarket === 'TR' ? 'tr' : 'en');
+    $pmdStaffSelectedCookie = strtolower(trim((string)request()->cookie('pmd_admin_locale', '')));
+    $pmdStaffLocale = in_array($pmdStaffSelectedCookie, $pmdStaffAllowedLocales, true)
+        ? $pmdStaffSelectedCookie : $pmdStaffDefaultLocale;
 @endphp
 <!doctype html>
-<html lang="en">
+<html lang="{{ $pmdStaffLocale }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -50,13 +70,15 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v1.css?v=5">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v2.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v3.css?v=1">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=1">
+    <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=1"></script>
 </head>
 <body class="pmd-staff-portal-page">
-<div class="pmd-staff-app" data-pmd-staff-portal data-pmd-mobile-active="chat">
+<div class="pmd-staff-app" data-pmd-staff-portal data-pmd-mobile-active="schedule" data-pmd-staff-locale="{{ $pmdStaffLocale }}">
     <header class="pmd-staff-topbar">
         <a href="{{ admin_url('mywork') }}" class="pmd-staff-brand" aria-label="PayMyDine Staff Portal">
             <img src="https://mimoza.paymydine.com/brand/paymydine-logo.svg" alt="PayMyDine">
-            <span>Staff Portal</span>
+
         </a>
 
         <div class="pmd-staff-topbar__actions">
@@ -67,21 +89,24 @@
                 </a>
             @endif
 
-            <button type="button" class="pmd-staff-person pmd-staff-person-button" data-pmd-profile-open aria-label="Edit my profile">
-                <span class="pmd-staff-person__avatar pmd-staff-avatar">
-                    @if(!empty($person->avatar_url))
-                        <img src="{{ $person->avatar_url }}" alt="{{ $person->display_name }}" data-pmd-avatar-image>
-                        <span data-pmd-avatar-fallback hidden>{{ $personInitial }}</span>
-                    @else
-                        <span>{{ $personInitial }}</span>
-                    @endif
-                </span>
-                <span class="pmd-staff-person__copy">
-                    <strong>{{ $person->display_name }}</strong>
-                    <small>{{ $person->job_role ?: 'Team member' }}</small>
-                </span>
-                <svg class="pmd-staff-person__edit" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4z"></path></svg>
-            </button>
+            {{-- PMD_STAFF_MARKET_LOCALE_V2_20261022: top right language replaces duplicate profile shortcut. --}}
+            @if(count($pmdStaffAllowedLocales) > 1)
+                <div class="pmd-staff-language-picker" data-pmd-staff-language-picker>
+                    <button class="pmd-staff-language-trigger" type="button" data-pmd-staff-language-toggle
+                        aria-label="Choose language" aria-expanded="false" aria-haspopup="true">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+                        <span>{{ strtoupper($pmdStaffLocale) }}</span>
+                    </button>
+                    <div class="pmd-staff-language-menu" data-pmd-staff-language-menu hidden>
+                        @foreach($pmdStaffAllowedLocales as $pmdStaffAllowedLocale)
+                            <button type="button" data-pmd-staff-set-language="{{ $pmdStaffAllowedLocale }}"
+                                @if($pmdStaffLocale === $pmdStaffAllowedLocale) aria-current="true" @endif>
+                                {{ ['de' => 'Deutsch', 'tr' => 'Türkçe', 'en' => 'English'][$pmdStaffAllowedLocale] }}
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <form method="post" action="{{ admin_url('mywork/stafflogout') }}">
                 @csrf
@@ -255,7 +280,7 @@
                 <header class="pmd-staff-panel-head">
                     <div class="pmd-staff-section-title">
                         <span class="pmd-staff-section-icon is-blue"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg></span>
-                        <div><small>Personal rota</small><h2>My schedule</h2></div>
+                        <div><small>Your working time</small><h2>My shifts</h2></div>
                     </div>
                     <b class="pmd-staff-count">{{ $shifts->count() }}</b>
                 </header>
@@ -448,9 +473,9 @@
         </aside>
     </div>
 
-    <nav class="pmd-staff-mobile-nav" aria-label="Staff Portal">
-        <button type="button" data-pmd-mobile-target="chat" class="is-active"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-15a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg><span>Chat</span></button>
-        <button type="button" data-pmd-mobile-target="schedule"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>Schedule</span></button>
+    <nav class="pmd-staff-mobile-nav" aria-label="Staff sections">
+        <button type="button" data-pmd-mobile-target="schedule" class="is-active"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>My shifts</span></button>
+        <button type="button" data-pmd-mobile-target="chat"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-15a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg><span>Chat</span></button>
         <button type="button" data-pmd-mobile-target="requests"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"></path></svg><span>Requests</span>@if($pending)<b>{{ $pending }}</b>@endif</button>
         <button type="button" data-pmd-profile-open><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span>Profile</span></button>
         @if($canManage)
@@ -497,7 +522,24 @@
                 <p class="pmd-staff-profile-note">Role, department and login username are managed by the restaurant Owner/Manager in Settings → Team.</p>
                 <footer><button type="button" class="pmd-staff-secondary" data-pmd-profile-close>Cancel</button><button type="submit" class="pmd-staff-primary">Save profile</button></footer>
             </form>
+            <div class="pmd-staff-profile-extra">
+                <button type="button" data-pmd-staff-privacy>Privacy &amp; location</button>
+                <a href="pmdstaff://workplace" data-pmd-staff-native-only hidden>Change restaurant</a>
+                <form method="post" action="{{ admin_url('mywork/stafflogout') }}">
+                    @csrf
+                    <button type="submit">Sign out</button>
+                </form>
+            </div>
         </section>
+    </div>
+    <div class="pmd-staff-privacy-modal" data-pmd-staff-privacy-modal role="dialog"
+        aria-modal="true" aria-label="Privacy and location" hidden>
+        <div class="pmd-staff-privacy-card">
+            <h2>Privacy &amp; location</h2>
+            <p>PayMyDine Staff uses your restaurant account to show shifts, requests and team messages. Precise location is requested only when you start or finish a shift to check onsite attendance. The result and work times may be recorded for authorized restaurant managers. No background location tracking is used.</p>
+            <p>For the complete employee privacy notice, retention period and privacy contact, please ask your employer.</p>
+            <button type="button" data-pmd-staff-privacy-close>Close</button>
+        </div>
     </div>
 </div>
 
@@ -509,7 +551,7 @@
     if (!root) return;
 
     function setMobileScreen(name) {
-        if (!name) name = 'chat';
+        if (!name) name = 'schedule';
         root.setAttribute('data-pmd-mobile-active', name);
         root.querySelectorAll('[data-pmd-mobile-target]').forEach(function (button) {
             button.classList.toggle('is-active', button.getAttribute('data-pmd-mobile-target') === name);
@@ -521,21 +563,74 @@
         if (hash === '#schedule' || hash === '#open-shifts') return 'schedule';
         if (hash === '#requests') return 'requests';
         if (hash === '#management') return 'manage';
-        return 'chat';
+        if (hash === '#chat') return 'chat';
+        return 'schedule';
     }
 
     root.querySelectorAll('[data-pmd-mobile-target]').forEach(function (button) {
         button.addEventListener('click', function () {
-            var target = button.getAttribute('data-pmd-mobile-target') || 'chat';
+            var target = button.getAttribute('data-pmd-mobile-target') || 'schedule';
             setMobileScreen(target);
             var targetId = target === 'manage' ? 'management' : target;
             if (target === 'chat') targetId = 'chat';
             var section = document.getElementById(targetId);
-            if (section) section.scrollIntoView({behavior: 'smooth', block: 'start'});
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', '#' + targetId);
+            }
+            if (section && window.innerWidth < 761) {
+                window.scrollTo({top: 0, behavior: 'auto'});
+            }
         });
     });
 
     setMobileScreen(screenFromHash());
+    window.addEventListener('hashchange', function () { setMobileScreen(screenFromHash()); });
+
+    var nativeOnly = /PMDStaffNativeGPS\\/1/.test(String(navigator.userAgent || ''));
+    root.querySelectorAll('[data-pmd-staff-native-only]').forEach(function (element) {
+        element.hidden = !nativeOnly;
+    });
+
+    var picker = root.querySelector('[data-pmd-staff-language-picker]');
+    if (picker) {
+        var toggle = picker.querySelector('[data-pmd-staff-language-toggle]');
+        var menu = picker.querySelector('[data-pmd-staff-language-menu]');
+        if (toggle && menu) {
+            function setLanguageOpen(open) {
+                menu.hidden = !open;
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            }
+            toggle.addEventListener('click', function () { setLanguageOpen(menu.hidden); });
+            picker.querySelectorAll('[data-pmd-staff-set-language]').forEach(function (option) {
+                option.addEventListener('click', function () {
+                    var code = option.getAttribute('data-pmd-staff-set-language');
+                    if (!/^(en|de|tr)$/.test(code)) return;
+                    var cookie = 'pmd_admin_locale=' + encodeURIComponent(code) +
+                        '; Path=/; Max-Age=31536000; SameSite=Lax';
+                    if (window.location.protocol === 'https:') cookie += '; Secure';
+                    document.cookie = cookie;
+                    window.location.reload();
+                });
+            });
+            document.addEventListener('click', function (event) {
+                if (!picker.contains(event.target)) setLanguageOpen(false);
+            });
+        }
+    }
+
+    var privacyDialog = root.querySelector('[data-pmd-staff-privacy-modal]');
+    var privacyOpen = root.querySelector('[data-pmd-staff-privacy]');
+    var privacyClose = root.querySelector('[data-pmd-staff-privacy-close]');
+    if (privacyDialog && privacyOpen && privacyClose) {
+        privacyOpen.addEventListener('click', function () {
+            privacyDialog.hidden = false;
+            privacyClose.focus();
+        });
+        privacyClose.addEventListener('click', function () {
+            privacyDialog.hidden = true;
+            privacyOpen.focus();
+        });
+    }
 
     var groupToggle = root.querySelector('[data-pmd-group-toggle]');
     var groupForm = root.querySelector('[data-pmd-group-form]');
