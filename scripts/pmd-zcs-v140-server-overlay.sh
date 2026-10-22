@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # PayMyDine ZCS V140 5-file server overlay local-change-preserving deploy.
-# Overlay the six reviewed file hunks onto COPIES of live VPS files first.
+# Overlay the five reviewed file hunks onto COPIES of live VPS files first.
 # Never resets Git, drops non-conflicting VPS changes, touches DB, or replaces APK.
 set -Eeuo pipefail
 umask 077
 
 ROOT='/var/www/paymydine'
 BASE='6772783b9c0fd1ec3fd3c2672036120e03b746a7'
-FIX='1a20f53388e4f3404d8294cb9dc8aefb7e27dbbb'
+FIX='90e952a16af7237bd0f581e2e6887ccd09a2111b'
 BRANCH='fix/android-pos-v140-stability-payment-20261022'
 MODE="${1:---check}"
 
@@ -196,7 +196,7 @@ echo 'PAYMYDINE ZCS V140 SERVER READY'
 echo 'Existing non-conflicting VPS edits: PRESERVED'
 echo 'Table Device readiness: verified live linked terminal'
 echo 'Payment runtime: V140 / V137'
-echo 'Device App download link: 0.6.3'
+echo 'Device App download link: 0.6.4'
 echo 'Separate Staff App download: PRESERVED'
 echo "Rollback archive: $BACKUP/before.tgz"
 echo 'Database: UNCHANGED'
