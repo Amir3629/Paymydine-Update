@@ -7,17 +7,17 @@ set -Eeuo pipefail
 REV="${1:-}"
 APK_SOURCE="${2:-}"
 if [[ ! "$REV" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "Usage: bash pmd-staff-v020-ux-deploy.sh <pinned-github-sha> [local-staff-0.2.1-apk]" >&2
+  echo "Usage: bash pmd-staff-v021-clock-deploy.sh <pinned-github-sha> [local-staff-0.2.1-apk]" >&2
   exit 2
 fi
 
 cd /var/www/paymydine
 BASE="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/$REV"
 APK_NAME="PayMyDine-Staff-App-0.2.1-debug.apk"
-APK_SHA="PENDING_SHA_NEVER_INSTALL"
+APK_SHA="e4b9416718e9d8b050ae767f18de696f457b6af713ac869c9ff1ea622fa8e381"
 APK_PATH="public/downloads/paymydine/$APK_NAME"
 RUN_ID="39850313853"
-BACKUP="$HOME/pmd-backups/staff-v020-ux-$(date -u +%Y%m%d-%H%M%S)"
+BACKUP="$HOME/pmd-backups/staff-v021-clock-$(date -u +%Y%m%d-%H%M%S)"
 STAGE="$(mktemp -d)"
 TEMP=""
 INSTALLING=0
@@ -123,7 +123,7 @@ echo "Backup: $BACKUP"
 echo "=== 4. Install Staff APK and 10 scoped files with rollback ==="
 INSTALLING=1
 mkdir -p "$(dirname "$APK_PATH")"
-TEMP="$(mktemp "$(dirname "$APK_PATH")/.pmd-staff-v020.XXXXXXXX")"
+TEMP="$(mktemp "$(dirname "$APK_PATH")/.pmd-staff-v021.XXXXXXXX")"
 cat "$APK_SOURCE" > "$TEMP"
 chmod 0644 "$TEMP"
 mv -f "$TEMP" "$APK_PATH"
@@ -132,7 +132,7 @@ echo "$APK_SHA  $APK_PATH" | sha256sum -c -
 
 for f in "${FILES[@]}"; do
   mkdir -p "$(dirname "$f")"
-  TEMP="$(mktemp "$(dirname "$f")/.pmd-staff-v020.XXXXXXXX")"
+  TEMP="$(mktemp "$(dirname "$f")/.pmd-staff-v021.XXXXXXXX")"
   if [[ -f "$f" ]]; then cp -a "$f" "$TEMP"; else chmod 0644 "$TEMP"; fi
   cat "$STAGE/$f" > "$TEMP"
   mv -f "$TEMP" "$f"
