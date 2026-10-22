@@ -66,6 +66,11 @@ jobs:
           grep -Fq 'PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
           grep -Fq 'PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022' app/admin/assets/js/pmd-staff-time-clock-v1.js
           grep -Fq 'pmdstaffgeo://clock?request=' app/admin/assets/js/pmd-staff-time-clock-v1.js
+          grep -Fq 'PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022' app/Http/Controllers/PmdStaffPortalV6Controller.php
+          grep -Fq "'schedule_status' => \$hasPlannedShift ? 'scheduled' : 'unscheduled'" app/Http/Controllers/PmdStaffPortalV6Controller.php
+          grep -Fq 'PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022' app/admin/Services/PmdStaffOperationsCenterV1.php
+          grep -Fq 'pmd-staff-ops__unscheduled' app/admin/views/pmdshifts/_staff_operations_center_v1.blade.php
+          grep -Fq 'PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022' scripts/pmd-staff-native-gps-v1-deploy.sh
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
