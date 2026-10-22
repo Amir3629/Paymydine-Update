@@ -168,7 +168,8 @@ jobs:
           if-no-files-found: error
 
       - name: Publish opt-in ZCS QA 0.6.3 APK
-        if: github.event_name == 'push' && github.ref == 'refs/heads/fix/android-pos-v140-stability-payment-20261022'
+        # 0.6.3 is frozen; V141 fixes settlement and publishes 0.6.4 separately.
+        if: false
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
