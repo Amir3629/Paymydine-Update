@@ -1,0 +1,81 @@
+name: ZCS V143 Legacy-Link-Safe VPS Overlay QA
+on:
+  push:
+    branches:
+      - fix/android-pos-v140-stability-payment-20261022
+    paths:
+      - 'scripts/pmd-zcs-v143-settings-anchor.py'
+      - 'scripts/pmd-zcs-v143-safe-overlay.sh'
+      - 'tests/test_pmd_zcs_v143_settings_anchor.py'
+      - '.github/workflows/pmd-zcs-v143-safe-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v143-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            scripts/pmd-zcs-v143-settings-anchor.py
+            scripts/pmd-zcs-v143-safe-overlay.sh
+            tests/test_pmd_zcs_v143_settings_anchor.py
+            app/admin/views/pmdsettings/index.blade.php
+            app/admin/views/pmd_quick_pos_v1.blade.php
+            app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+            app/Http/Controllers/PmdTableDisplayPaymentController.php
+            routes/admin-quick-mode.php
+          sparse-checkout-cone-mode: false
+
+      - name: Syntax, legacy-download regressions and fail-closed tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/pmd-zcs-v143-safe-overlay.sh
+          python3 -m py_compile scripts/pmd-zcs-v143-settings-anchor.py
+          python3 -m unittest discover -s tests -p 'test_pmd_zcs_v143_settings_anchor.py' -v
+
+      - name: Verify four hunks and surgically equivalent Settings diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=6772783b9c0fd1ec3fd3c2672036120e03b746a7
+          FIX=f935e01105f6b3efbb35b2048427a8e8851a6c76
+          git cat-file -e "$BASE^{commit}"
+          git cat-file -e "$FIX^{commit}"
+          PATCH_FILES=(
+            app/Http/Controllers/PmdTableDisplayPaymentController.php
+            routes/admin-quick-mode.php
+            app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+            app/admin/views/pmd_quick_pos_v1.blade.php
+          )
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          mkdir -p "$TMP/stage" "$TMP/expected"
+          git diff --binary "$BASE" "$FIX" -- "${PATCH_FILES[@]}" > "$TMP/4.patch"
+          test -s "$TMP/4.patch"
+          ! grep -Fq 'pmdsettings/index.blade.php' "$TMP/4.patch"
+          for f in "${PATCH_FILES[@]}"; do
+            mkdir -p "$TMP/stage/$(dirname "$f")" "$TMP/expected/$(dirname "$f")"
+            git show "$BASE:$f" > "$TMP/stage/$f"
+            git show "$FIX:$f" > "$TMP/expected/$f"
+          done
+          (
+            cd "$TMP/stage"
+            git apply --check "$TMP/4.patch"
+            git apply "$TMP/4.patch"
+          )
+          for f in "${PATCH_FILES[@]}"; do
+            cmp "$TMP/stage/$f" "$TMP/expected/$f"
+          done
+          git show "$BASE:app/admin/views/pmdsettings/index.blade.php" > "$TMP/old-settings.blade.php"
+          git show "$FIX:app/admin/views/pmdsettings/index.blade.php" > "$TMP/expected-settings.blade.php"
+          python3 scripts/pmd-zcs-v143-settings-anchor.py \
+            "$TMP/old-settings.blade.php" "$TMP/staged-settings.blade.php"
+          cmp "$TMP/staged-settings.blade.php" "$TMP/expected-settings.blade.php"
+          echo 'V143 FOUR-FILE PATCH + VERIFIED ANCHORED DOWNLOAD URL = PASS'

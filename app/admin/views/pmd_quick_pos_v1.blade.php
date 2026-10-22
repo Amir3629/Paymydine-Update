@@ -1223,7 +1223,7 @@ window.PMDQuickPOSConfig = {
     function loadTablePayment() {
         return loadScript(
             'pmd-qpos-table-payment-r135',
-            '/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261022-payment-v139',
+            '/app/admin/assets/js/pmd-table-display-waiter-payment-v1.js?v=20261022-payment-v140',
             function () { return !!window.PMDTableDisplayWaiterPaymentV1; }
         );
     }

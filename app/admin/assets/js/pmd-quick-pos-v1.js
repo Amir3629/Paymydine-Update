@@ -1357,6 +1357,9 @@
         status.cloud_state || (status.cloud_available === true ? 'online' : 'offline')
       );
       var cloud = cloudState === 'online';
+      // PMD_ANDROID_SYNC_TRANSPORT_SEPARATION_V140:
+      // the transport can remain SQLite while WAN access is restored.
+      if (nativeLocalTransportAvailable()) setOnline(cloud);
 
       el.classList.toggle('is-attention', rejected > 0);
       if (rejected > 0) {
@@ -1950,6 +1953,41 @@
     return rows;
   }
 
+  /* PMD_ANDROID_FOOD_IMAGE_CLOUD_FALLBACK_V140
+   * Existing Android 0.6.2 masks menu image URLs when its private cache is
+   * incomplete. While Cloud is verified reachable, recover same-tenant image
+   * references from the native SQLite snapshot. Never make an offline
+   * network request, trust an arbitrary domain, or drop a known-good photo.
+   */
+  var nativeTrustedImageSourcesV140 = null;
+  function trustedNativeImageSourcesV140() {
+    if (!nativeLocalTransportAvailable()) return null;
+    var native = window.PayMyDineOffline;
+    if (!native || typeof native.snapshot !== 'function' ||
+        typeof native.syncStatus !== 'function') return null;
+    try {
+      var status = JSON.parse(String(native.syncStatus() || '{}'));
+      if (!status || status.cloud_available !== true) return null;
+      if (nativeTrustedImageSourcesV140) return nativeTrustedImageSourcesV140;
+      var data = JSON.parse(String(native.snapshot('') || '{}'));
+      if (!data || data.ok !== true || !Array.isArray(data.menu)) return null;
+      var out = Object.create(null);
+      data.menu.forEach(function (entry) {
+        var raw = entry && entry.payload && String(entry.payload.image || '');
+        if (!raw || !entry.id) return;
+        try {
+          var url = new URL(raw, window.location.origin);
+          if (url.protocol !== 'https:' ||
+              url.host !== window.location.host ||
+              url.username || url.password) return;
+          out[String(Number(entry.id))] = url.href;
+        } catch (ignored) {}
+      });
+      nativeTrustedImageSourcesV140 = out;
+      return out;
+    } catch (ignored) { return null; }
+  }
+
   function nativeBootstrapCollectionsV122(json, previousLocationId) {
     var incomingFloors = Array.isArray(json.floors) ? json.floors : [];
     var incomingTables = Array.isArray(json.tables) ? json.tables : [];
@@ -2039,6 +2077,18 @@
          * Clearing Android's cache can temporarily make the native bootstrap
          * return image:"" while the background prefetch is rebuilding. Keep the
          * already-rendered Cloud/cached-shell image until native bytes return. */
+        if (!nextImage && !previousImage) {
+          var trustedImagesV140 = trustedNativeImageSourcesV140();
+          var trustedSourceV140 = trustedImagesV140 && trustedImagesV140[id];
+          if (trustedSourceV140) {
+            next = Object.assign({}, next, {
+              image: trustedSourceV140,
+              images: [trustedSourceV140]
+            });
+            nextImage = trustedSourceV140;
+          }
+        }
+
         if (!nextImage && previousImage) {
           next = Object.assign({}, next, {image: previousImage});
           if (
@@ -3714,7 +3764,14 @@
       );
     });
 
-    box.innerHTML = rows.join('');
+    /* PMD_ANDROID_POS_STABLE_TABLE_DOM_V140
+     * Unchanged native table HTML must not repaint and flash its status colors. */
+    var nextTableHtmlV140 = rows.join('');
+    if (nativeLocalTransportAvailable() &&
+        box.__pmdNativeTableMarkupV140 === nextTableHtmlV140 &&
+        box.querySelector('[data-qpos-pickup]')) return;
+    box.__pmdNativeTableMarkupV140 = nextTableHtmlV140;
+    box.innerHTML = nextTableHtmlV140;
     bindRenderedTables();
   }
 
@@ -3949,7 +4006,8 @@
       return;
     }
 
-    box.innerHTML = items.map(function (item) {
+    /* PMD_ANDROID_POS_STABLE_FOOD_DOM_V140 */
+    var nextFoodHtmlV140 = items.map(function (item) {
       var orderable =
         item.orderable !== false &&
         item.price_configured !== false &&
@@ -3998,7 +4056,11 @@
         '</button>'
       );
     }).join('');
-
+    if (nativeLocalTransportAvailable() &&
+        box.__pmdNativeFoodMarkupV140 === nextFoodHtmlV140 &&
+        box.querySelector('[data-qpos-product]')) return;
+    box.__pmdNativeFoodMarkupV140 = nextFoodHtmlV140;
+    box.innerHTML = nextFoodHtmlV140;
     bindRenderedProducts();
   }
 
@@ -7197,18 +7259,13 @@
     }
     root.classList.add('is-payment-workspace');
 
-    pushCustomerDisplay(
-      'payment',
-      {
-        headline: 'Please pay',
-        message:
-          state.payment.method === 'direct_terminal'
-            ? 'Tap or insert your card'
-            : 'Please follow the cashier',
-        amount_due: paymentCharge()
-      },
-      true
-    );
+    // PMD_ZCS_NO_PREMATURE_NFC_V140
+    // Opening Cashier Payment has not initialized any Z100 acquiring reader.
+    pushCustomerDisplay('order', {
+      headline: 'Your order',
+      message: 'Please follow the cashier',
+      amount_due: paymentCharge()
+    }, true);
 
     /* PMD_QPOS_CASH_AUTO_FOCUS_V46
      * Payment opens ready for immediate cashier input. */
@@ -7665,13 +7722,27 @@
     showPaymentError('');
   }
 
+  /* PMD_ANDROID_POS_REAL_TERMINAL_ONLY_V140
+   * Do not present disconnected readers, generic gateways or built-in Z100 NFC
+   * detection as a live acquiring terminal. */
+  function paymentReadyTerminalsV140() {
+    var payment = state.payment && state.payment.summary;
+    var rows = payment && Array.isArray(payment.terminal_providers)
+      ? payment.terminal_providers : [];
+    return rows.filter(function (reader) {
+      if (!reader || Number(reader.terminal_device_id || 0) < 1) return false;
+      var code = String(reader.provider_code || '').toLowerCase();
+      var status = String(reader.terminal_status || '').toLowerCase();
+      return ['sumup', 'worldline', 'square', 'vr_payment'].indexOf(code) !== -1 &&
+        ['online', 'ready', 'connected'].indexOf(status) !== -1;
+    });
+  }
+
   function renderPaymentMethods() {
     var box = $('[data-qpos-payment-methods]');
     if (!box || !state.payment.summary) return;
 
-    var providers = Array.isArray(state.payment.summary.terminal_providers)
-      ? state.payment.summary.terminal_providers
-      : [];
+    var providers = paymentReadyTerminalsV140();
 
     if (
       !state.payment.batchModeV114 &&
@@ -7694,19 +7765,12 @@
       state.payment.touchKeypadFresh = true;
     }
 
-    var methods = state.payment.batchModeV114
-      ? [
-          {code: 'cash', name: 'Cash', disabled: false},
-          {
-            code: 'external_terminal',
-            name: 'Card',
-            disabled: false
-          }
-        ]
-      : [
-          {code: 'cash', name: 'Cash', disabled: false},
-          {code: 'direct_terminal', name: 'Card', disabled: !providers.length}
-        ];
+    // PMD_ANDROID_POS_PAYMENT_METHOD_AVAILABILITY_V140
+    // Combined checks are Cash-only until approved batch terminal support.
+    var methods = [{code: 'cash', name: 'Cash', disabled: false}];
+    if (!state.payment.batchModeV114 && providers.length) {
+      methods.push({code: 'direct_terminal', name: 'Terminal', disabled: false});
+    }
 
     var methodSignature = methods.map(function (method) {
       return [
@@ -7784,9 +7848,7 @@
     var box = $('[data-qpos-terminal-list]');
     if (!wrap || !box || !state.payment.summary) return;
 
-    var providers = Array.isArray(state.payment.summary.terminal_providers)
-      ? state.payment.summary.terminal_providers
-      : [];
+    var providers = paymentReadyTerminalsV140();
 
     wrap.hidden = state.payment.method !== 'direct_terminal' || !providers.length;
 
@@ -8441,20 +8503,12 @@
 
     renderPaymentTotals();
 
-    pushCustomerDisplay(
-      'payment',
-      {
-        headline:
-          state.payment.method === 'direct_terminal'
-            ? 'Tap or insert card'
-            : 'Please pay',
-        message:
-          state.payment.method === 'direct_terminal'
-            ? 'Use the payment reader'
-            : 'Please follow the cashier',
-        amount_due: paymentCharge()
-      }
-    );
+    // PMD_ZCS_NO_PREMATURE_NFC_V140
+    pushCustomerDisplay('order', {
+      headline: 'Your order',
+      message: 'Please follow the cashier',
+      amount_due: paymentCharge()
+    });
   }
 
   function finishPaidOrderUi() {
@@ -9019,8 +9073,35 @@
 
       var status = String(result.status || '').toLowerCase();
 
-      if (status === 'paid') {
+      /* PMD_QPOS_TERMINAL_CANONICAL_SETTLEMENT_GUARD_V141
+       * Provider approved is NOT synonymous with ledger recorded. Never
+       * mark Cashier Paid or show ZCS success before canonical confirmation.
+       * Do not retry a possibly charged card: reconcile with provider. */
+      if (status === 'paid' &&
+          (result.payment_recorded !== true || result.simulated === true)) {
+        showPaymentError(
+          'Provider reports paid, but PayMyDine has not confirmed settlement. ' +
+          'Do not charge the card again. Check the provider and reconcile.'
+        );
+        return;
+      }
+
+      if (status === 'paid' &&
+          result.payment_recorded === true &&
+          result.simulated !== true) {
         await loadPaymentSummary(true);
+        var confirmedSettlementV141 =
+          state.payment.summary &&
+          state.payment.summary.settlement &&
+          String(state.payment.summary.settlement.status || '').toLowerCase() === 'paid' &&
+          num(state.payment.summary.settlement.remaining_amount, 1) <= 0.005;
+        if (!confirmedSettlementV141) {
+          showPaymentError(
+            'Terminal reports paid, but order settlement is still unconfirmed. ' +
+            'Do not charge the card again. Reconcile this payment.'
+          );
+          return;
+        }
         pushCustomerDisplaySuccess(
           num(
             state.payment.summary &&
@@ -12331,7 +12412,7 @@
     customerDisplay: {
       refresh: function () {
         pushCustomerDisplay(
-          state.payment.open ? 'payment' : 'order',
+          'order',
           {},
           true
         );
