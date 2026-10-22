@@ -1,0 +1,38 @@
+name: Z100 V145 Read-Only Device/Terminal Diagnosis QA
+on:
+  push:
+    branches:
+      - fix/z100-live-health-v145-20261022
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v145-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/Services/PmdDevicePlatformService.php
+            app/admin/views/pmddevices/index.blade.php
+            scripts/pmd-z100-live-readiness-v145.php
+            tests/pmd-z100-live-health-v145.test.cjs
+            mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/LocalPosBridge.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/device/DeviceControlService.kt
+          sparse-checkout-cone-mode: false
+      - name: Validate safe audit, server PHP and Z100 root-cause checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l scripts/pmd-z100-live-readiness-v145.php
+          php -l app/Services/PmdDevicePlatformService.php
+          node --test tests/pmd-z100-live-health-v145.test.cjs
+      - name: Explicitly refuse running tenant audit in CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -E 'php scripts/pmd-z100-live-readiness-v145.php' .github/workflows/pmd-z100-live-health-v145.yml
+          echo 'Production database is never accessed by CI.'
