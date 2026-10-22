@@ -20,6 +20,10 @@ on:
       - 'scripts/pmd-staff-apk-settings-v1-deploy.sh'
       - 'scripts/pmd-staff-settings-download-path-v2-deploy.sh'
       - 'pmd-qa/scripts/staff-settings-download-contract.test.cjs'
+      - 'app/admin/views/pmd-staff-portal/**'
+      - 'app/admin/assets/css/pmd-staff-portal-v4.css'
+      - 'app/admin/assets/js/pmd-staff-portal-locale-v2.js'
+      - 'pmd-qa/scripts/staff-ux-v2-contract.test.cjs'
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
       - 'app/admin/views/pmdshifts/**'
@@ -35,6 +39,10 @@ on:
       - 'scripts/pmd-staff-apk-settings-v1-deploy.sh'
       - 'scripts/pmd-staff-settings-download-path-v2-deploy.sh'
       - 'pmd-qa/scripts/staff-settings-download-contract.test.cjs'
+      - 'app/admin/views/pmd-staff-portal/**'
+      - 'app/admin/assets/css/pmd-staff-portal-v4.css'
+      - 'app/admin/assets/js/pmd-staff-portal-locale-v2.js'
+      - 'pmd-qa/scripts/staff-ux-v2-contract.test.cjs'
   workflow_dispatch:
 
 permissions:
@@ -65,6 +73,8 @@ jobs:
           node --check app/admin/assets/js/pmd-shifts-staff-center-v1.js
           node pmd-qa/scripts/staff-native-gps-contract.test.cjs
           node pmd-qa/scripts/staff-settings-download-contract.test.cjs
+          node --check app/admin/assets/js/pmd-staff-portal-locale-v2.js
+          node pmd-qa/scripts/staff-ux-v2-contract.test.cjs
       - name: Separation, auth and privacy contracts
         run: |
           set -eu
@@ -87,6 +97,10 @@ jobs:
           grep -Fq 'PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022' scripts/pmd-staff-apk-settings-v1-deploy.sh
           grep -Fq 'PMD_STAFF_APP_DOWNLOAD_PATH_V2_20261022' app/admin/views/pmdsettings/index.blade.php
           grep -Fq 'PMD_STAFF_APP_DOWNLOAD_PATH_V2_DEPLOY_20261022' scripts/pmd-staff-settings-download-path-v2-deploy.sh
+          grep -Fq 'PMD_STAFF_PORTAL_SHIFT_FIRST_UI_V4_20261022' app/admin/assets/css/pmd-staff-portal-v4.css
+          grep -Fq 'PMD_STAFF_NATIVE_ONBOARDING_V2_20261022' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
+          grep -Fq 'PMD_STAFF_BRANDED_CLOCK_ICON_V2_20261022' mobile/android/staff/src/main/res/drawable/ic_staff_launcher.xml
+          grep -Fq 'PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022' app/Http/Controllers/PmdStaffPortalV6Controller.php
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
