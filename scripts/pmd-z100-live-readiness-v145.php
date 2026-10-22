@@ -27,7 +27,13 @@ if ($host !== 'tomo.paymydine.com') {
     fwrite(STDERR, "STOP: --tenant-host=tomo.paymydine.com is required; other tenants are not audited.\n");
     exit(2);
 }
-$root = dirname(__DIR__);
+// Script may be fetched into $HOME; the operator must run it FROM the
+// verified PayMyDine application root, never an arbitrary directory.
+$root = '/var/www/paymydine';
+if (realpath((string)getcwd()) !== realpath($root)) {
+    fwrite(STDERR, "STOP: run this audit from /var/www/paymydine.\\n");
+    exit(2);
+}
 require $root.'/vendor/autoload.php';
 $app = require $root.'/bootstrap/app.php';
 $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
