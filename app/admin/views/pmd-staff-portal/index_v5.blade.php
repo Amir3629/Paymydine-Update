@@ -118,11 +118,14 @@
         </div>
     </header>
 
-    @if(session('success'))
+    {{-- PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022:
+         Cosmetic-only: don't repeat a clock failure in a transient toast.
+         Do not hide authentication failures or skip security verification. --}}
+    @if(session('success') && !preg_match('/portal\\s+security\\s+verified/i', (string)session('success')))
         <div class="pmd-staff-flash is-success">{{ session('success') }}</div>
     @endif
-    @if(session('error'))
-        <div class="pmd-staff-flash is-error">{{ session('error') }}</div>
+    @if(session('error') && !session('pmd_staff_clock_error'))
+        <div class="pmd-staff-flash is-error" role="alert">{{ session('error') }}</div>
     @endif
     @if($errors->any())
         <div class="pmd-staff-flash is-error">{{ $errors->first() }}</div>
