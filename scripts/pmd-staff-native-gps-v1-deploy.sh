@@ -56,8 +56,13 @@ done
 
 grep -Fq "PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022" \
   "$STAGE/app/admin/assets/js/pmd-staff-time-clock-v1.js"
-grep -Fq "PMDStaffNativeGPS/1" \
-  "$STAGE/app/admin/assets/js/pmd-staff-time-clock-v1.js"
+# JS regex escapes the slash (PMDStaffNativeGPS\\/1), so check the stable prefix.
+# Print a meaningful error instead of terminating silently on a grep miss.
+grep -Fq "PMDStaffNativeGPS" \
+  "$STAGE/app/admin/assets/js/pmd-staff-time-clock-v1.js" || {
+    echo "ERROR: Native Staff GPS user-agent check is absent from the JS asset." >&2
+    exit 1
+  }
 grep -Fq "pmdstaffgeo://clock?request=" \
   "$STAGE/app/admin/assets/js/pmd-staff-time-clock-v1.js"
 grep -Fq "'?v=4'" \
