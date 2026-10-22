@@ -61,7 +61,7 @@ assert.match(native,/return "\$code.paymydine.com"/);
 assert.match(native,/Manifest.permission.ACCESS_FINE_LOCATION/);
 assert.doesNotMatch(manifest,/ACCESS_BACKGROUND_LOCATION/);
 assert.match(gradle,/applicationId = "com.paymydine.staff"/);
-assert.match(gradle,/versionName = "0.2.1"/);
+assert.match(gradle,/versionName = "0.2.2"/);
 
 const officialLogoPaths = Array.from(logo.matchAll(/<path[^>]+\bd="([^"]+)"/g), x => x[1]);
 assert.equal(officialLogoPaths.length,2);
