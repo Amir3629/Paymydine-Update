@@ -28,6 +28,7 @@ on:
       - 'scripts/pmd-staff-v021-clock-deploy.sh'
       - 'scripts/pmd-staff-v022-fused-gps-deploy.sh'
       - 'pmd-qa/scripts/staff-profile-gps-settings-v023-contract.test.cjs'
+      - 'scripts/pmd-staff-v023-profile-gps-deploy.sh'
       - 'scripts/pmd-staff-v020-ux-deploy.sh'
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
@@ -52,6 +53,7 @@ on:
       - 'scripts/pmd-staff-v021-clock-deploy.sh'
       - 'scripts/pmd-staff-v022-fused-gps-deploy.sh'
       - 'pmd-qa/scripts/staff-profile-gps-settings-v023-contract.test.cjs'
+      - 'scripts/pmd-staff-v023-profile-gps-deploy.sh'
       - 'scripts/pmd-staff-v020-ux-deploy.sh'
   workflow_dispatch:
 
@@ -80,6 +82,7 @@ jobs:
           bash -n scripts/pmd-staff-v020-ux-deploy.sh
           bash -n scripts/pmd-staff-v021-clock-deploy.sh
           bash -n scripts/pmd-staff-v022-fused-gps-deploy.sh
+          bash -n scripts/pmd-staff-v023-profile-gps-deploy.sh
       - name: Browser script syntax
         run: |
           node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
@@ -118,6 +121,7 @@ jobs:
           grep -Fq 'PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022' app/Http/Controllers/PmdStaffPortalV6Controller.php
           grep -Fq 'PMD_STAFF_V020_UX_DEPLOY_20261022' scripts/pmd-staff-v020-ux-deploy.sh
           grep -Fq 'PMD_STAFF_V022_FUSED_GPS_DEPLOY_20261022' scripts/pmd-staff-v022-fused-gps-deploy.sh
+          grep -Fq 'PMD_STAFF_V023_PROFILE_GPS_DEPLOY_20261022' scripts/pmd-staff-v023-profile-gps-deploy.sh
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
