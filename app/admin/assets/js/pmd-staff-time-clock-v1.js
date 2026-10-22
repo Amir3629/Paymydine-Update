@@ -2,6 +2,7 @@
 /* PMD_STAFF_GEOFENCE_ONDEMAND_V1_20261021 */
 /* PMD_STAFF_CLOCK_GPS_PERMISSION_GUIDANCE_V2_20261021 */
 /* PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022 */
+/* PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022 */
 (function () {
   'use strict';
 
@@ -35,13 +36,14 @@
   var title = active ? 'Working now' : (ready ? 'Ready to start' : 'Time clock unavailable');
   var meta = '';
   if (active) {
-    meta = 'Started ' + escapeHtml(state.check_in_label || '') + ' · <b data-pmd-clock-elapsed>' + duration(state.elapsed_seconds) + '</b>';
+    meta = 'Started ' + escapeHtml(state.check_in_label || '') + ' · <b data-pmd-clock-elapsed>' + duration(state.elapsed_seconds) + '</b>' +
+      (state.unscheduled ? ' · Unscheduled work recorded' : '');
   } else if (ready && state.scheduled_label) {
     meta = escapeHtml(state.scheduled_label);
   } else if (ready && state.last_check_out_label) {
     meta = 'Last shift ended ' + escapeHtml(state.last_check_out_label) + (state.last_hours != null ? ' · ' + Number(state.last_hours).toFixed(2) + 'h' : '');
   } else if (ready) {
-    meta = 'Start onsite with precise location. Time is recorded by the server.';
+    meta = 'No rota shift assigned? You can still start onsite. Your real work time will be recorded for the manager.';
   } else {
     meta = state.geo_required && !state.geo_ready ? 'The restaurant location is missing. Ask the owner to set it in Restaurant Profile.' : 'Attendance storage is not ready for this restaurant.';
   }
