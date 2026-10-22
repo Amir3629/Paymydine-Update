@@ -13,6 +13,7 @@ on:
       - 'app/admin/views/pmdsettings/index.blade.php'
       - 'app/admin/assets/js/pmd-table-display-waiter-payment-v1.js'
       - 'tests/qpos-v125-table-floor-guard.test.cjs'
+      - 'tests/pmd-table-device-payment-v137.test.cjs'
       - '.github/workflows/zcs-device-app-0-6-2-v21.yml'
   workflow_dispatch:
 
@@ -39,6 +40,7 @@ jobs:
             app/admin/views/pmdsettings/index.blade.php
             app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
             tests/qpos-v125-table-floor-guard.test.cjs
+            tests/pmd-table-device-payment-v137.test.cjs
             .github/workflows/zcs-device-app-0-6-2-v21.yml
           sparse-checkout-cone-mode: false
 
@@ -57,6 +59,7 @@ jobs:
           grep -Fq 'PMD_TABLE_DEVICE_PROVIDER_SETTLEMENT_GUARD_V137' app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
           grep -Fq 'PayMyDine-Device-App-0.6.2.apk' app/admin/views/pmdsettings/index.blade.php
           node tests/qpos-v125-table-floor-guard.test.cjs
+          node tests/pmd-table-device-payment-v137.test.cjs
           for file in app/admin/assets/js/pmd-quick-pos-v1.js app/admin/assets/js/pmd-qpos-web-parity-v112.js; do
             grep -Fq 'PMD_QPOS_TABLE_FLOOR_FALLBACK_V125' "$file"
             grep -Fq 'PMD_QPOS_PRESERVE_TABLE_FLOOR_V125' "$file"
