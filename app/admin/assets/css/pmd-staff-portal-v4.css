@@ -100,3 +100,33 @@ body.pmd-staff-login-page{background:#f4f8f5}
 .pmd-staff-login-privacy p{margin:11px 0 0}
 .pmd-staff-language{border-color:#deebe2;background:#f4faf6;color:#075d48;box-shadow:none}
 @media(max-width:480px){.pmd-staff-login-card{padding:23px 19px 26px}.pmd-staff-login-brand{margin:0 38px 5px}}
+
+/* PMD_STAFF_TIME_NAV_HEADER_V1_20261022 — stable app surface & compact profile */
+.pmd-staff-topbar__actions{display:flex;align-items:center;gap:8px}
+.pmd-staff-language-picker{z-index:100;flex-shrink:0}
+.pmd-staff-top-profile{display:grid;place-items:center;width:39px;height:39px;flex:0 0 39px;border:1px solid #d8e7df;border-radius:50%;padding:2px;background:#fff;color:#0c624c;cursor:pointer}
+.pmd-staff-top-profile:focus-visible{outline:3px solid #78baa0;outline-offset:2px}
+.pmd-staff-top-profile__avatar{display:grid;place-items:center;width:33px;height:33px;border-radius:50%;overflow:hidden;background:#e0f4e8;color:#0b684f;font-weight:900;font-size:13px}
+.pmd-staff-top-profile__avatar img{width:100%;height:100%;object-fit:cover}
+.pmd-staff-clock-screen__content{padding:18px}
+.pmd-staff-clock-screen>.pmd-staff-panel-head{border-bottom:1px solid #e3eee7}
+.pmd-staff-clock-screen .pmd-staff-time-clock{border:0;border-radius:0;background:transparent;margin:0;padding:3px 0;box-shadow:none}
+.pmd-staff-mobile-nav button[data-pmd-time-tab][data-pmd-clock-working="true"] svg{stroke:#078058}
+.pmd-staff-mobile-nav button[data-pmd-time-tab][data-pmd-clock-working="true"] span{color:#08745a}
+.pmd-staff-app,.pmd-staff-layout{overflow-anchor:none}
+.pmd-staff-tools>.pmd-staff-tool-card,.pmd-staff-chat{transition:none!important;animation:none!important}
+@media(min-width:761px){
+  .pmd-staff-app[data-pmd-mobile-active="clock"] .pmd-staff-tools>[data-pmd-mobile-screen="clock"]{display:block!important;min-height:480px}
+  .pmd-staff-layout{min-height:calc(100dvh - 170px)}
+  .pmd-staff-clock-screen__content{max-width:700px;padding:25px 28px;margin:0 auto}
+}
+@media(max-width:760px){
+  .pmd-staff-topbar__actions{gap:6px}
+  .pmd-staff-language-menu{z-index:160}
+  .pmd-staff-top-profile{width:37px;height:37px;flex-basis:37px}
+  .pmd-staff-app[data-pmd-mobile-active="clock"] .pmd-staff-tools>[data-pmd-mobile-screen="clock"]{display:block!important}
+  .pmd-staff-layout{min-height:calc(100dvh - 147px)}
+  .pmd-staff-clock-screen{min-height:calc(100dvh - 166px)}
+  .pmd-staff-clock-screen__content{padding:14px}
+  .pmd-staff-mobile-nav{backdrop-filter:none;box-shadow:0 -3px 11px rgba(14,54,43,.07)}
+}
