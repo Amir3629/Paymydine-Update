@@ -122,21 +122,18 @@ class CustomerDisplayManager(
         }
     }
 
+    // PMD_ZCS_CUSTOMER_DISPLAY_ALWAYS_ON_V124
+    // The customer-facing screen is product behavior, not an operator preference.
+    // Compatibility setters intentionally heal old saved false values to true.
     fun setEnabled(value: Boolean) {
-        prefs.edit().putBoolean(KEY_ENABLED, value).apply()
-        if (value) {
-            worker.execute {
-                renderAndShow(latest.get())
-            }
-        } else {
-            worker.execute {
-                zcs.sleep()
-            }
+        prefs.edit().putBoolean(KEY_ENABLED, true).apply()
+        worker.execute {
+            renderAndShow(latest.get())
         }
     }
 
     fun setShowImages(value: Boolean) {
-        prefs.edit().putBoolean(KEY_SHOW_IMAGES, value).apply()
+        prefs.edit().putBoolean(KEY_SHOW_IMAGES, true).apply()
         worker.execute {
             renderAndShow(latest.get())
         }
@@ -151,11 +148,9 @@ class CustomerDisplayManager(
             .apply()
     }
 
-    fun enabled(): Boolean =
-        prefs.getBoolean(KEY_ENABLED, true)
+    fun enabled(): Boolean = true
 
-    fun showImages(): Boolean =
-        prefs.getBoolean(KEY_SHOW_IMAGES, true)
+    fun showImages(): Boolean = true
 
     fun capabilitiesJson(): String {
         val capabilities = zcs.capabilities()
