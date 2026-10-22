@@ -24,6 +24,7 @@ on:
       - 'app/admin/assets/css/pmd-staff-portal-v4.css'
       - 'app/admin/assets/js/pmd-staff-portal-locale-v2.js'
       - 'pmd-qa/scripts/staff-ux-v2-contract.test.cjs'
+      - 'scripts/pmd-staff-v020-ux-deploy.sh'
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
       - 'app/admin/views/pmdshifts/**'
@@ -43,6 +44,7 @@ on:
       - 'app/admin/assets/css/pmd-staff-portal-v4.css'
       - 'app/admin/assets/js/pmd-staff-portal-locale-v2.js'
       - 'pmd-qa/scripts/staff-ux-v2-contract.test.cjs'
+      - 'scripts/pmd-staff-v020-ux-deploy.sh'
   workflow_dispatch:
 
 permissions:
@@ -67,6 +69,7 @@ jobs:
           bash -n scripts/pmd-staff-native-gps-v1-deploy.sh
           bash -n scripts/pmd-staff-apk-settings-v1-deploy.sh
           bash -n scripts/pmd-staff-settings-download-path-v2-deploy.sh
+          bash -n scripts/pmd-staff-v020-ux-deploy.sh
       - name: Browser script syntax
         run: |
           node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
@@ -101,6 +104,7 @@ jobs:
           grep -Fq 'PMD_STAFF_NATIVE_ONBOARDING_V2_20261022' mobile/android/staff/src/main/java/com/paymydine/staff/StaffActivity.kt
           grep -Fq 'PMD_STAFF_BRANDED_CLOCK_ICON_V2_20261022' mobile/android/staff/src/main/res/drawable/ic_staff_launcher.xml
           grep -Fq 'PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022' app/Http/Controllers/PmdStaffPortalV6Controller.php
+          grep -Fq 'PMD_STAFF_V020_UX_DEPLOY_20261022' scripts/pmd-staff-v020-ux-deploy.sh
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
