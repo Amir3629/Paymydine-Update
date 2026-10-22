@@ -69,4 +69,4 @@ jobs:
           grep -Fq 'PMD_ZCS_AUTOMATIC_SETTINGS_V124' app/admin/assets/js/pmd-qpos-web-parity-v112.js
           grep -Fq 'PMD_ANDROID_NATIVE_BRIDGE_TABLE_GUARD_V124' app/admin/assets/js/pmd-qpos-web-parity-v112.js
           grep -Fq 'PMD_ANDROID_NATIVE_VISUAL_CACHE_GUARD_V124' app/admin/assets/js/pmd-qpos-web-parity-v112.js
-          grep -Fq 'aria-label="Customer display settings"' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'aria-label="Settings"' app/admin/assets/js/pmd-qpos-web-parity-v112.js
