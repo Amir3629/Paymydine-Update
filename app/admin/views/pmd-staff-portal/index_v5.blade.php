@@ -47,9 +47,16 @@
             $pmdStaffMarket = strtoupper((string)\Illuminate\Support\Facades\DB::table('locations as location')
                 ->join('countries as country', 'country.country_id', '=', 'location.location_country_id')
                 ->where('location.location_id', (int)$person->location_id)
-                ->value('country.country_code'));
+                ->value('country.iso_code_2'));
         }
     } catch (\Throwable $ignored) {}
+    // PMD_STAFF_LANGUAGE_COUNTRY_FIX_V3_20261022: ISO-2 column is canonical.
+    if ($pmdStaffMarket === '' && (int)setting('country_id') > 0) {
+        try {
+            $pmdStaffMarket = strtoupper((string)\Illuminate\Support\Facades\DB::table('countries')
+                ->where('country_id', (int)setting('country_id'))->value('iso_code_2'));
+        } catch (\Throwable $ignored) {}
+    }
     $pmdStaffAllowedLocales = $pmdStaffMarket === 'DE' ? ['de', 'en']
         : ($pmdStaffMarket === 'TR' ? ['tr', 'en'] : ['en']);
     $pmdStaffDefaultLocale = $pmdStaffMarket === 'DE' ? 'de'
