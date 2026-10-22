@@ -18,6 +18,7 @@ on:
       - 'app/admin/views/pmdsettings/restaurant.blade.php'
       - 'app/admin/views/pmdsettings/index.blade.php'
       - 'scripts/pmd-staff-apk-settings-v1-deploy.sh'
+      - 'scripts/pmd-staff-settings-download-path-v2-deploy.sh'
       - 'pmd-qa/scripts/staff-settings-download-contract.test.cjs'
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
@@ -32,6 +33,7 @@ on:
       - 'pmd-qa/scripts/staff-native-gps-contract.test.cjs'
       - 'app/admin/views/pmdsettings/index.blade.php'
       - 'scripts/pmd-staff-apk-settings-v1-deploy.sh'
+      - 'scripts/pmd-staff-settings-download-path-v2-deploy.sh'
       - 'pmd-qa/scripts/staff-settings-download-contract.test.cjs'
   workflow_dispatch:
 
@@ -56,6 +58,7 @@ jobs:
           bash -n scripts/pmd-install-staff-platform-v1.sh
           bash -n scripts/pmd-staff-native-gps-v1-deploy.sh
           bash -n scripts/pmd-staff-apk-settings-v1-deploy.sh
+          bash -n scripts/pmd-staff-settings-download-path-v2-deploy.sh
       - name: Browser script syntax
         run: |
           node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
@@ -82,6 +85,8 @@ jobs:
           grep -Fq 'PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022' scripts/pmd-staff-native-gps-v1-deploy.sh
           grep -Fq 'PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022' app/admin/views/pmdsettings/index.blade.php
           grep -Fq 'PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022' scripts/pmd-staff-apk-settings-v1-deploy.sh
+          grep -Fq 'PMD_STAFF_APP_DOWNLOAD_PATH_V2_20261022' app/admin/views/pmdsettings/index.blade.php
+          grep -Fq 'PMD_STAFF_APP_DOWNLOAD_PATH_V2_DEPLOY_20261022' scripts/pmd-staff-settings-download-path-v2-deploy.sh
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
