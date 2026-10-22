@@ -81,3 +81,22 @@ body.pmd-staff-portal-page{background:#f7faf8;color:#143b30}
   .pmd-staff-dates{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){.pmd-staff-mobile-nav button{transition:none}}
+
+/* PMD_STAFF_LOGIN_FOCUSED_V2_20261022 */
+body.pmd-staff-login-page{background:#f4f8f5}
+.pmd-staff-login-shell{padding:18px 14px}
+.pmd-staff-login-card{width:min(460px,100%);padding:24px 29px 26px;border:1px solid #deebe2;border-radius:18px;background:#fff;box-shadow:0 20px 56px rgba(5,53,36,.11)}
+.pmd-staff-login-brand{height:100px;margin:0 50px 5px}
+.pmd-staff-login-brand img{width:195px;height:100px}
+.pmd-staff-login-card h1{font-size:24px;font-weight:850;color:#103b2c}
+.pmd-staff-login-sub{font-size:13px;margin:8px auto 24px;color:#5f7b6d}
+.pmd-staff-login-form{gap:14px}
+.pmd-staff-login-form>button{border-color:#07604b;background:#07604b;box-shadow:none}
+.pmd-staff-login-form>button:hover{border-color:#044d3d;background:#044d3d}
+.pmd-staff-login-form input:focus{border-color:#42a67c;box-shadow:0 0 0 3px #e0f2e6}
+.pmd-staff-login-note{font-size:12px;margin:14px auto 0}
+.pmd-staff-login-privacy{max-width:360px;margin:13px auto 0;padding-top:12px;border-top:1px solid #e5eee6;color:#496e5b;font-size:12px;line-height:1.55}
+.pmd-staff-login-privacy summary{text-align:center;cursor:pointer;font-weight:750}
+.pmd-staff-login-privacy p{margin:11px 0 0}
+.pmd-staff-language{border-color:#deebe2;background:#f4faf6;color:#075d48;box-shadow:none}
+@media(max-width:480px){.pmd-staff-login-card{padding:23px 19px 26px}.pmd-staff-login-brand{margin:0 38px 5px}}
