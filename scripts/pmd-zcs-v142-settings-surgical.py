@@ -35,10 +35,15 @@ def patch_settings(original: bytes) -> bytes:
         b"PayMyDine-Staff-App-",
     )
     for required in staff_guards:
-        if original.count(required) != 1:
+        if required not in original:
             raise UnsafeSettingsError(
-                "Staff App section missing/ambiguous; refusing to edit Settings."
+                "Staff App section missing; refusing to edit Settings."
             )
+    # The Staff PHP download path and filename are unique; an extra CSS
+    # comment may legitimately repeat the Staff section marker.
+    if (original.count(staff_guards[0]) != 1 or
+            original.count(staff_guards[2]) != 1):
+        raise UnsafeSettingsError("Staff App path or filename is ambiguous.")
 
     urls = [URL_ROOT + version.encode("ascii") + b".apk"
             for version, _ in VERSIONS]
