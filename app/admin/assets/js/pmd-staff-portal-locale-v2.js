@@ -113,7 +113,14 @@
     "Your break is already running.": "Deine Pause läuft bereits.",
     "No break is running.": "Es läuft keine Pause.",
     "Ask your manager to review the break record.": "Bitte die Leitung, die Pausen zu prüfen.",
-    "Open profile": "Profil öffnen"
+    "Open profile": "Profil öffnen",
+    "Requesting a fresh location from Android and Google location services…": "Aktueller Standort wird über Android und Google ermittelt…",
+    "Phone GPS and Google location services returned no position. Open Google Maps and check the blue location dot; enable Location Accuracy and Wi-Fi scanning, then retry.": "Das Smartphone liefert keinen Standort. Prüfe den blauen Standortpunkt in Google Maps und aktiviere die Standortgenauigkeit sowie die WLAN-Suche.",
+    "Google location services are unavailable on this device; Android GPS also returned no position. Turn on precise Location and try outdoors.": "Google-Standortdienste sind nicht verfügbar und Android-GPS liefert keinen Standort. Aktiviere den genauen Standort und versuche es im Freien.",
+    "Only satellite GPS is available and no fresh fix was received. Enable network location or Wi-Fi scanning, or try outdoors.": "Nur Satelliten-GPS ist verfügbar, aber kein aktueller Standort. Aktiviere die netzwerkbasierte Ortung oder WLAN-Suche.",
+    "Network location is disabled and GPS could not find a position. Enable Location Accuracy or network location and retry.": "Netzwerkortung ist deaktiviert und GPS findet keinen Standort. Aktiviere die Standortgenauigkeit oder Netzwerkortung.",
+    "Open phone location settings": "Standorteinstellungen öffnen",
+    "Open Staff app permission": "App-Standortberechtigung öffnen"
   },
   "tr": {
     "My shifts": "Vardiyalarım",
@@ -222,7 +229,14 @@
     "Your break is already running.": "Molan zaten devam ediyor.",
     "No break is running.": "Devam eden bir mola yok.",
     "Ask your manager to review the break record.": "Mola kaydını yöneticinin kontrol etmesini iste.",
-    "Open profile": "Profili aç"
+    "Open profile": "Profili aç",
+    "Requesting a fresh location from Android and Google location services…": "Android ve Google konum hizmetlerinden güncel konum alınıyor…",
+    "Phone GPS and Google location services returned no position. Open Google Maps and check the blue location dot; enable Location Accuracy and Wi-Fi scanning, then retry.": "Telefon konum sağlayamadı. Google Haritalar'daki mavi konum noktasını kontrol et; Konum Doğruluğu ve Wi-Fi taramasını aç.",
+    "Google location services are unavailable on this device; Android GPS also returned no position. Turn on precise Location and try outdoors.": "Google konum hizmetleri kullanılamıyor ve Android GPS konum vermedi. Hassas konumu açıp dışarıda dene.",
+    "Only satellite GPS is available and no fresh fix was received. Enable network location or Wi-Fi scanning, or try outdoors.": "Yalnızca uydu GPS kullanılabiliyor ve yeni konum alınamadı. Ağ konumunu veya Wi-Fi taramasını aç.",
+    "Network location is disabled and GPS could not find a position. Enable Location Accuracy or network location and retry.": "Ağ konumu kapalı ve GPS konum bulamadı. Konum Doğruluğu veya ağ konumunu aç.",
+    "Open phone location settings": "Telefon konum ayarlarını aç",
+    "Open Staff app permission": "Staff konum iznini aç"
   }
 };
   var root = document.querySelector('[data-pmd-staff-portal]');

@@ -6,6 +6,7 @@
 /* PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022 */
 /* PMD_STAFF_TIME_AND_BREAK_V1_20261022 */
 /* PMD_STAFF_FAST_PRECISE_GPS_V2_20261022 */
+/* PMD_STAFF_FUSED_LOCATION_V3_20261022 */
 (function () {
   'use strict';
 
@@ -222,6 +223,27 @@
     // This avoids a second WebView site-permission layer, never bypasses Android
     // runtime permission, and still submits to the original server geofence.
     var nativeStaffClock = /PMDStaffNativeGPS\/1(?:\b|$)/.test(String(navigator.userAgent || ''));
+    var nativeHelp = /PMDStaffGPSHelp\/1(?:\b|$)/.test(String(navigator.userAgent || ''));
+    var locationButton = null;
+    function locationRecoveryButton(reason) {
+      if (!nativeHelp) return;
+      if (!locationButton) {
+        locationButton = document.createElement('button');
+        locationButton.type = 'button';
+        locationButton.className = 'pmd-staff-time-clock__location-help';
+        locationButton.addEventListener('click', function () {
+          var destination = locationButton.getAttribute('data-pmd-gps-settings');
+          window.location.assign(destination === 'app' ?
+            'pmdstaff://apppermissions' : 'pmdstaff://locationsettings');
+        });
+        punchForm.appendChild(locationButton);
+      }
+      locationButton.hidden = !reason;
+      if (reason) {
+        locationButton.textContent = reason === 'denied' ? 'Open Staff app permission' : 'Open phone location settings';
+        locationButton.setAttribute('data-pmd-gps-settings', reason === 'denied' ? 'app' : 'phone');
+      }
+    }
     var nativeCounter = 0;
     var nativeTimeout = null;
 
@@ -234,6 +256,7 @@
         status.setAttribute('role', 'alert');
       }
       status.textContent = tr(message);
+      locationRecoveryButton(reason);
     }
 
     function savePosition(position) {
@@ -268,8 +291,17 @@
         return 'Current GPS accuracy is about ' + accuracy +
           ' m. Clock-in requires 90 m or better. Try outdoors or enable Precise location, then retry.';
       }
-      if (reason === 'no_fix') {
-        return 'Android has no new GPS position yet. Try outdoors or enable high-accuracy location, then retry.';
+      if (reason === 'no_fix' || reason === 'no_fix_fused') {
+        return 'Phone GPS and Google location services returned no position. Open Google Maps and check the blue location dot; enable Location Accuracy and Wi-Fi scanning, then retry.';
+      }
+      if (reason === 'no_fix_no_google') {
+        return 'Google location services are unavailable on this device; Android GPS also returned no position. Turn on precise Location and try outdoors.';
+      }
+      if (reason === 'no_fix_gps_only') {
+        return 'Only satellite GPS is available and no fresh fix was received. Enable network location or Wi-Fi scanning, or try outdoors.';
+      }
+      if (reason === 'no_fix_network_off') {
+        return 'Network location is disabled and GPS could not find a position. Enable Location Accuracy or network location and retry.';
       }
       if (reason === 'precise_denied') {
         return 'Android did not grant precise GPS to PayMyDine Staff. Check Staff app permission (Precise), not the browser.';
@@ -304,10 +336,12 @@
       status.removeAttribute('data-pmd-gps-error');
       status.setAttribute('role', 'status');
       status.textContent = tr('Checking your location near the restaurant…');
+      locationRecoveryButton(null);
 
       if (nativeStaffClock) {
         var request = String(Date.now()) + '_' + String(++nativeCounter) + '_' +
           Math.random().toString(36).slice(2, 14);
+        status.textContent = tr('Requesting a fresh location from Android and Google location services…');
         window.PMD_STAFF_NATIVE_GPS_PROGRESS = function (data) {
           if (!data || data.request !== request) return;
           var estimate = Number(data.accuracy_m);

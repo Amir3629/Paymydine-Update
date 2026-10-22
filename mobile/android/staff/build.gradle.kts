@@ -12,8 +12,8 @@ android {
         applicationId = "com.paymydine.staff"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.2.1"
+        versionCode = 5
+        versionName = "0.2.2"
     }
     buildTypes {
         debug { applicationIdSuffix = ".debug" }
@@ -28,3 +28,9 @@ android {
     }
 }
 kotlin { jvmToolchain(17) }
+
+// PMD_STAFF_FUSED_LOCATION_V3_20261022: official Google Play Services foreground location;
+// devices without Google services fall back to Android LocationManager.
+dependencies {
+    implementation("com.google.android.gms:play-services-location:21.4.0")
+}
