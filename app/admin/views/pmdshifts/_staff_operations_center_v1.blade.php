@@ -42,6 +42,14 @@
                 @if(is_array($activeMeta) && ($activeMeta['schedule_status'] ?? '') === 'unscheduled')
                     <small class="pmd-staff-ops__unscheduled">Unscheduled work · actual time clocked</small>
                 @endif
+                @if(is_array($activeMeta) && is_array($activeMeta['staff_portal_breaks'] ?? null))
+                    @foreach($activeMeta['staff_portal_breaks'] as $breakEvent)
+                        @if(!empty($breakEvent['start_at']) && empty($breakEvent['end_at']))
+                            <small>On break · attendance session remains open</small>
+                            @break
+                        @endif
+                    @endforeach
+                @endif
             </div>
         </div>
     @empty
@@ -122,6 +130,17 @@
                 @php $geoEvidence = json_decode((string)($row->metadata ?? ''), true); @endphp
                 @if(is_array($geoEvidence) && ($geoEvidence['schedule_status'] ?? '') === 'unscheduled')
                     <small class="pmd-staff-ops__unscheduled">Unscheduled work · not assigned on the rota</small>
+                @endif
+                @if(is_array($geoEvidence) && $row->check_out_time)
+                    @if(isset($geoEvidence['staff_portal_break_minutes']))
+                        <small>Break: {{ number_format((float)$geoEvidence['staff_portal_break_minutes'], 0) }} min
+                            · {{ ($geoEvidence['staff_portal_break_report'] ?? '') === 'tracked' ? 'timer recorded' :
+                                    (($geoEvidence['staff_portal_break_report'] ?? '') === 'employee_reported' ? 'employee reported' : 'none reported') }}
+                        </small>
+                        @if(($geoEvidence['staff_portal_break_report'] ?? '') === 'not_reported')
+                            <small class="pmd-staff-ops__unscheduled">Break not reported · review attendance</small>
+                        @endif
+                    @endif
                 @endif
                 @if(is_array($geoEvidence) && !empty($geoEvidence['clock_in_geo']['verified']))
                     <small>GPS check: {{ (int)($geoEvidence['clock_in_geo']['distance_m'] ?? 0) }} m from site</small>

@@ -62,6 +62,12 @@ class Mywork extends AdminController
     {
         return $this->portalResponse('clockOut');
     }
+    
+    /** PMD_STAFF_BREAK_EVENTS_V1_20261022: authenticated pause/resume, no GPS. */
+    public function clockbreak()
+    {
+        return $this->portalResponse('clockBreak');
+    }
 
     /** Fallback dynamic action. V5 also has an explicit priority avatar route. */
     public function avatar()
