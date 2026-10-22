@@ -21,7 +21,7 @@ test('Table Device is hidden until live server confirms exact paired table and r
 test('Installed Settings keeps Staff and now links same-signer ZCS 0.6.3 APK',()=>{
  const settings=read('app/admin/views/pmdsettings/index.blade.php');
  const cashier=read('app/admin/views/pmd_quick_pos_v1.blade.php');
- assert.match(settings,/PayMyDine-Device-App-0\.6\.3\.apk/);
+ assert.match(settings,/PayMyDine-Device-App-0\.6\.4\.apk/);
  assert.match(settings,/PMD_STAFF_APP_DOWNLOAD_PATH_V2_20261022/);
  assert.match(cashier,/pmd-table-display-waiter-payment-v1\.js\?v=20261022-payment-v140/);
 });
