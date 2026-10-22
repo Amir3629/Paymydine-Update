@@ -5,6 +5,7 @@
 /* PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022 */
 /* PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022 */
 /* PMD_STAFF_TIME_AND_BREAK_V1_20261022 */
+/* PMD_STAFF_FAST_PRECISE_GPS_V2_20261022 */
 (function () {
   'use strict';
 
@@ -307,11 +308,20 @@
       if (nativeStaffClock) {
         var request = String(Date.now()) + '_' + String(++nativeCounter) + '_' +
           Math.random().toString(36).slice(2, 14);
+        window.PMD_STAFF_NATIVE_GPS_PROGRESS = function (data) {
+          if (!data || data.request !== request) return;
+          var estimate = Number(data.accuracy_m);
+          if (Number.isFinite(estimate) && estimate > 90 && estimate < 9999) {
+            status.textContent = tr('GPS is locating you: approximately ' +
+              Math.round(estimate) + ' m accuracy. Need 90 m or better.');
+          }
+        };
         window.PMD_STAFF_NATIVE_GPS_RESULT = function (data) {
           if (!data || data.request !== request) return;
           if (nativeTimeout !== null) window.clearTimeout(nativeTimeout);
           nativeTimeout = null;
           window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+          window.PMD_STAFF_NATIVE_GPS_PROGRESS = null;
 
           if (!data.ok) {
             resetClockButton(nativeGpsError(data.error), 'native');
@@ -331,15 +341,17 @@
         // Do not put coordinates, tokens, or login details in the bridge URL.
         nativeTimeout = window.setTimeout(function () {
           window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+          window.PMD_STAFF_NATIVE_GPS_PROGRESS = null;
           nativeTimeout = null;
-          resetClockButton('No response from the Staff app GPS bridge. Reopen the app and retry.', 'native');
-        }, 25000);
+          resetClockButton('No reply from Android location service. Reopen the Staff app and retry.', 'native');
+        }, 35000);
         try {
           window.location.assign('pmdstaffgeo://clock?request=' + encodeURIComponent(request));
         } catch (error) {
           window.clearTimeout(nativeTimeout);
           nativeTimeout = null;
           window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+          window.PMD_STAFF_NATIVE_GPS_PROGRESS = null;
           resetClockButton('Could not start Android GPS. Reopen the Staff app and retry.', 'native');
         }
         return;
