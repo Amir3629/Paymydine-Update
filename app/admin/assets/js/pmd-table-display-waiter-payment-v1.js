@@ -149,7 +149,7 @@
       '<div class="pmd-table-card-panel-v1__copy">' +
         '<span>TABLE DEVICE · CONTACTLESS</span>' +
         '<strong>Contactless payment on this table</strong>' +
-        '<small>Send the amount to the small table device for contactless/card payment. PayMyDine only accepts the real provider result.</small>' +
+        '<small>Send the amount to the payment terminal linked to this table. The table display may show payment status, but only the provider confirms card payment.</small>' +
       '</div>' +
       '<b data-pmd-table-card-amount-v1></b>' +
       '<div class="pmd-table-card-panel-v1__status" data-pmd-table-card-status-v1 hidden></div>';
@@ -332,7 +332,21 @@
         return;
       }
 
-      if (json.payment_recorded || status === 'paid') {
+      /* PMD_TABLE_DEVICE_PROVIDER_SETTLEMENT_GUARD_V137
+       * A provider "paid" response is not enough to close a PayMyDine
+       * order unless the canonical server confirms recording as well.
+       * Never instruct staff to retry a possibly charged card. */
+      if (status === 'paid' && json.payment_recorded !== true) {
+        waiting = true;
+        setStatus(
+          'Provider reports paid, but PayMyDine has not confirmed the settlement. Do not retry or charge the card again; check the payment provider.',
+          true
+        );
+        updateUi();
+        return;
+      }
+
+      if (status === 'paid' && json.payment_recorded === true) {
         waiting = false;
         setStatus('Payment approved and recorded.', false);
 
@@ -370,7 +384,7 @@
 
       setStatus(
         json.message ||
-          'Waiting for the customer to tap or insert their card…',
+          'Waiting for the customer to pay on the linked terminal…',
         false
       );
       updateUi();
