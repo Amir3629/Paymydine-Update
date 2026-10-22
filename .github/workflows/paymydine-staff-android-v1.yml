@@ -2,7 +2,7 @@ name: PayMyDine Staff Android (separate APK)
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'feat/staff-app-v020-ux-privacy-20261022']
     paths:
       - 'mobile/android/staff/**'
       - 'mobile/android/settings.gradle.kts'
@@ -128,10 +128,17 @@ jobs:
       - name: Build ONLY dedicated Staff application
         working-directory: mobile/android
         run: gradle --no-daemon :staff:assembleDebug
+      - name: Verify release version and write APK checksum
+        run: |
+          test -s mobile/android/staff/build/outputs/apk/debug/staff-debug.apk
+          grep -Fq 'versionName = "0.2.0"' mobile/android/staff/build.gradle.kts
+          sha256sum mobile/android/staff/build/outputs/apk/debug/staff-debug.apk             | sed 's#mobile/android/staff/build/outputs/apk/debug/staff-debug.apk#staff-debug.apk#'             > mobile/android/staff/build/outputs/apk/debug/staff-debug.apk.sha256
       - name: Publish separate installable APK
         uses: actions/upload-artifact@v4
         with:
           name: PayMyDine-Staff-Android-debug
-          path: mobile/android/staff/build/outputs/apk/debug/staff-debug.apk
+          path: |
+            mobile/android/staff/build/outputs/apk/debug/staff-debug.apk
+            mobile/android/staff/build/outputs/apk/debug/staff-debug.apk.sha256
           if-no-files-found: error
           retention-days: 14
