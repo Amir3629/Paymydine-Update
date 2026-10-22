@@ -40,6 +40,8 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         $clock['geo_required'] = true;
         $clock['geo_ready'] = (bool)$site['configured'];
         $clock['geo_radius_m'] = (int)$site['radius_m'];
+        // PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022: do not lose clock errors in toast.
+        $clock['flash_error'] = (string)session('pmd_staff_clock_error', '');
         $payload = json_encode(array_merge($clock, [
             'clock_in_url' => admin_url('mywork/clockin'),
             'clock_out_url' => admin_url('mywork/clockout'),
@@ -72,10 +74,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 
         $identity = $this->clockIdentity();
         if (!$identity) {
-            return redirect('/staff#schedule')->with('error', 'Your PMD login is not connected to an active Team profile.');
+            return $this->clockError('Your PMD login is not connected to an active Team profile.');
         }
         if (!$this->attendanceReady()) {
-            return redirect('/staff#schedule')->with('error', 'Time clock is not available for this restaurant yet.');
+            return $this->clockError('Time clock is not available for this restaurant yet.');
         }
 
         // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: no unverified writes. Existing browser and Android
@@ -83,10 +85,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: location_id is required to bind punch to a single workplace.
         if (!Schema::hasColumn('staff_attendance', 'metadata')
             || !Schema::hasColumn('staff_attendance', 'location_id')) {
-            return redirect('/staff#schedule')->with('error', 'Apply attendance storage updates before GPS clocking.');
+            return $this->clockError('Apply attendance storage updates before GPS clocking.');
         }
         $geo = app(PmdStaffClockGeofenceV1::class)->validatePunch((int)$identity['location_id'], $request);
-        if (!$geo['ok']) return redirect('/staff#schedule')->with('error', (string)$geo['message']);
+        if (!$geo['ok']) return $this->clockError((string)$geo['message']);
 
         $now = now();
         $staffId = (int)$identity['staff_id'];
@@ -157,11 +159,11 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 'location_id' => $locationId,
                 'message' => $error->getMessage(),
             ]);
-            return redirect('/staff#schedule')->with('error', 'Shift could not be started. Please try again.');
+            return $this->clockError('Shift could not be started. Please try again.');
         }
 
         if (empty($result['ok'])) {
-            return redirect('/staff#schedule')->with('error', 'Your shift is already running.');
+            return $this->clockError('Your shift is already running.');
         }
 
         $message = !empty($result['unscheduled'])
@@ -176,10 +178,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 
         $identity = $this->clockIdentity();
         if (!$identity) {
-            return redirect('/staff#schedule')->with('error', 'Your PMD login is not connected to an active Team profile.');
+            return $this->clockError('Your PMD login is not connected to an active Team profile.');
         }
         if (!$this->attendanceReady()) {
-            return redirect('/staff#schedule')->with('error', 'Time clock is not available for this restaurant yet.');
+            return $this->clockError('Time clock is not available for this restaurant yet.');
         }
 
         // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: no unverified writes. Existing browser and Android
@@ -187,10 +189,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: location_id is required to bind punch to a single workplace.
         if (!Schema::hasColumn('staff_attendance', 'metadata')
             || !Schema::hasColumn('staff_attendance', 'location_id')) {
-            return redirect('/staff#schedule')->with('error', 'Apply attendance storage updates before GPS clocking.');
+            return $this->clockError('Apply attendance storage updates before GPS clocking.');
         }
         $geo = app(PmdStaffClockGeofenceV1::class)->validatePunch((int)$identity['location_id'], $request);
-        if (!$geo['ok']) return redirect('/staff#schedule')->with('error', (string)$geo['message']);
+        if (!$geo['ok']) return $this->clockError((string)$geo['message']);
 
         $now = now();
         $staffId = (int)$identity['staff_id'];
@@ -242,20 +244,27 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 'location_id' => $locationId,
                 'message' => $error->getMessage(),
             ]);
-            return redirect('/staff#schedule')->with('error', 'Shift could not be ended. Please try again.');
+            return $this->clockError('Shift could not be ended. Please try again.');
         }
 
         if (empty($result['ok'])) {
             if (($result['reason'] ?? '') === 'wrong_location') {
-                return redirect('/staff#schedule')->with('error', 'This open shift belongs to another workplace. Ask your manager to correct it.');
+                return $this->clockError('This open shift belongs to another workplace. Ask your manager to correct it.');
             }
-            return redirect('/staff#schedule')->with('error', 'There is no running shift to end.');
+            return $this->clockError('There is no running shift to end.');
         }
 
         return redirect('/staff#schedule')->with(
             'success',
             'Shift ended at '.$now->format('H:i').' · '.number_format((float)$result['hours'], 2).'h recorded.'
         );
+    }
+
+    private function clockError(string $message): RedirectResponse
+    {
+        return redirect('/staff#schedule')
+            ->with('error', $message)
+            ->with('pmd_staff_clock_error', $message);
     }
 
     private function clockState(): array
