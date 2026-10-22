@@ -242,6 +242,15 @@
     });
   }
 
+  function isRecordedCardPaymentV137(result) {
+    return !!(
+      result &&
+      result.simulated !== true &&
+      String(result.status || '').toLowerCase() === 'paid' &&
+      result.payment_recorded === true
+    );
+  }
+
   function terminalFailureStatus(status) {
     return [
       'failed',
@@ -336,7 +345,7 @@
        * A provider "paid" response is not enough to close a PayMyDine
        * order unless the canonical server confirms recording as well.
        * Never instruct staff to retry a possibly charged card. */
-      if (status === 'paid' && json.payment_recorded !== true) {
+      if (status === 'paid' && !isRecordedCardPaymentV137(json)) {
         waiting = true;
         setStatus(
           'Provider reports paid, but PayMyDine has not confirmed the settlement. Do not retry or charge the card again; check the payment provider.',
@@ -346,7 +355,7 @@
         return;
       }
 
-      if (status === 'paid' && json.payment_recorded === true) {
+      if (isRecordedCardPaymentV137(json)) {
         waiting = false;
         setStatus('Payment approved and recorded.', false);
 
