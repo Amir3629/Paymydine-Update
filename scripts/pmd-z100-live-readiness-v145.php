@@ -92,9 +92,24 @@ try {
     $cut = static fn ($value): string => mb_substr(trim((string)($value ?? '')), 0, 55);
 
     $trusted = $table('pmd_site_access_devices');
-    $runtime = collect($table('pmd_device_runtime'))->keyBy('device_id');
-    $commands = collect($table('pmd_device_commands'));
-    $logs = collect($table('pmd_device_logs'));
+    $activeIds = array_values(array_map(
+        static fn ($row): int => (int)($row->id ?? 0),
+        array_filter($trusted, static fn ($row): bool =>
+            empty($row->revoked_at) && (int)($row->id ?? 0) > 0)
+    ));
+    $runtime = $exists('pmd_device_runtime') && $activeIds
+        ? $db->table('pmd_device_runtime')->whereIn('device_id', $activeIds)
+            ->get()->keyBy('device_id')
+        : collect();
+    // Bounded reads: do NOT load unbounded operational event/command history.
+    $commands = $exists('pmd_device_commands') && $activeIds
+        ? $db->table('pmd_device_commands')->whereIn('device_id', $activeIds)
+            ->orderByDesc('id')->limit(500)->get()
+        : collect();
+    $logs = $exists('pmd_device_logs') && $activeIds
+        ? $db->table('pmd_device_logs')->whereIn('device_id', $activeIds)
+            ->orderByDesc('id')->limit(200)->get()
+        : collect();
     $terminals = $table('terminal_devices');
     $providerConfigs = $table('terminal_provider_configs');
 
