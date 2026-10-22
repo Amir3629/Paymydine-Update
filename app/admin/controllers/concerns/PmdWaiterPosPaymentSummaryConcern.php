@@ -230,19 +230,79 @@ trait PmdWaiterPosPaymentSummaryConcern
         return array_values($methods);
     }
 
+    /**
+     * PMD_QPOS_TERMINAL_INVENTORY_V138
+     *
+     * Gateway payment methods are not payment-terminal inventory. The Cashier
+     * "Card" picker must use configured active physical readers, with their
+     * real terminal_device_id. The terminal provider service authorizes each
+     * payment; this method never claims a device/payment is approved.
+     */
     protected function terminalProviders(): array
     {
         try {
-            return Payments_model::query()
-                ->where('status', 1)
-                ->whereIn('code', ['worldline', 'vr_payment'])
-                ->orderBy('priority')
+            if (!$this->pmdPosHasTable('terminal_devices')) {
+                return [];
+            }
+
+            $columns = $this->pmdPosColumns('terminal_devices');
+            foreach (['terminal_device_id', 'provider_code', 'reader_id', 'is_active'] as $required) {
+                if (!in_array($required, $columns, true)) {
+                    return [];
+                }
+            }
+
+            $supported = ['sumup', 'worldline', 'vr_payment', 'square'];
+            $marketAllowed = array_keys(
+                \Admin\Models\Terminal_devices_model::listProviderOptions()
+            );
+            $allowed = array_values(array_intersect($supported, $marketAllowed));
+            if (!$allowed) {
+                return [];
+            }
+
+            $query = DB::table('terminal_devices')
+                ->where('is_active', 1)
+                ->whereIn('provider_code', $allowed)
+                ->whereNotNull('reader_id')
+                ->where('reader_id', '!=', '');
+
+            if (in_array('location_id', $columns, true)) {
+                $locationId = 0;
+                try {
+                    $locationId = (int)\Admin\Facades\AdminLocation::getId();
+                } catch (\Throwable $ignored) {
+                }
+                $query->where(function ($scope) use ($locationId) {
+                    $scope->whereNull('location_id');
+                    if ($locationId > 0) {
+                        $scope->orWhere('location_id', $locationId);
+                    }
+                });
+            }
+
+            return $query
+                ->orderBy('terminal_device_id')
                 ->get()
-                ->map(function ($row) {
-                    $code = strtolower((string)$row->code);
+                ->filter(function ($terminal) {
+                    // Provider simulators are never a live Card choice.
+                    $code = strtolower(trim((string)($terminal->provider_code ?? '')));
+                    $reader = strtoupper(trim((string)($terminal->reader_id ?? '')));
+                    return !($code === 'vr_payment' && str_starts_with($reader, 'PMD-VR-SIM-'));
+                })
+                ->map(function ($terminal) {
+                    $code = strtolower(trim((string)$terminal->provider_code));
+                    $id = (int)$terminal->terminal_device_id;
+                    $label = trim((string)($terminal->reader_label ?? ''));
+                    if ($label === '') {
+                        $label = ucwords(str_replace('_', ' ', $code)).' #'.$id;
+                    }
+
                     return [
                         'provider_code' => $code,
-                        'name' => (string)($row->name ?: strtoupper(str_replace('_', ' ', $code))),
+                        'terminal_device_id' => $id,
+                        'name' => $label,
+                        'terminal_status' => trim((string)($terminal->terminal_status ?? '')),
                     ];
                 })
                 ->values()
