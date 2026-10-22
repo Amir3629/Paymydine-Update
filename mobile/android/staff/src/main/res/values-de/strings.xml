@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- PMD_STAFF_PRIVACY_COPY_DE_V2_20261022 -->
+    <string name="app_name">PayMyDine Staff</string>
+    <string name="staff_setup_title">Deine Schicht beginnt hier.</string>
+    <string name="staff_setup_subtitle">Gib den Restaurant-Code ein, um dich anzumelden.</string>
+    <string name="staff_restaurant_code">Restaurant-Code</string>
+    <string name="staff_restaurant_example">tomo</string>
+    <string name="staff_restaurant_hint">Den Code bekommst du von deiner Restaurantleitung.</string>
+    <string name="staff_location_summary">Dein Standort wird nur beim Schichtbeginn und Schichtende geprüft, um deine Anwesenheit zu bestätigen.</string>
+    <string name="staff_privacy_view">Datenschutz &amp; Standort</string>
+    <string name="staff_privacy_title">Deine Daten in PayMyDine Staff</string>
+    <string name="staff_privacy_details">Anmeldung, Schichten, Anfragen und Teamnachrichten laufen über den Restaurant-Workspace. Nur wenn du eine Schicht beginnst oder beendest, fragt die App den genauen Standort für die Anwesenheitsprüfung ab. Der Standortnachweis und die erfasste Arbeitszeit können gespeichert und von berechtigten Restaurantleitungen eingesehen werden. Es gibt keine Standortüberwachung im Hintergrund. Die vollständigen Datenschutzhinweise für Beschäftigte, Aufbewahrungsfristen und Kontaktinformationen erhältst du von deinem Arbeitgeber.</string>
+    <string name="staff_privacy_close">Schließen</string>
+    <string name="staff_notice_ack">Ich habe die Datenschutz- und Standortinformationen gelesen.</string>
+    <string name="staff_notice_required">Bitte lies und bestätige die Datenschutzinformationen.</string>
+    <string name="staff_continue">Zur Anmeldung</string>
+    <string name="staff_invalid_code">Bitte Restaurant-Code eingeben (z. B. tomo).</string>
+</resources>
