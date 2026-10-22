@@ -9,6 +9,17 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Handler
 import android.os.Looper
+import android.os.Build
+import android.os.SystemClock
+import android.util.Log
+import android.provider.Settings
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
+import com.google.android.gms.location.CurrentLocationRequest
+import com.google.android.gms.location.Granularity
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import org.json.JSONObject
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -70,6 +81,8 @@ class StaffActivity : Activity() {
     // PMD_STAFF_FAST_PRECISE_GPS_V2_20261022: quick fresh fix, 15-second bound,
     // and non-sensitive accuracy progress (never location coordinates in logs).
     private var nativeBestAccuracy: Float? = null
+    private var nativeCancellationSource: CancellationTokenSource? = null
+    private val gpsLogTag = "PMDStaffGPS"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -242,7 +255,7 @@ class StaffActivity : Activity() {
             settings.domStorageEnabled = true
             settings.setGeolocationEnabled(true)
             // Only the dedicated Staff APK advertises the native, one-shot time-clock GPS route.
-            settings.userAgentString = settings.userAgentString + " PMDStaffNativeGPS/1"
+            settings.userAgentString = settings.userAgentString + " PMDStaffNativeGPS/1 PMDStaffGPSHelp/1"
             settings.allowContentAccess = false
             settings.allowFileAccess = false
             settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
@@ -265,6 +278,17 @@ class StaffActivity : Activity() {
                     when (uri.host) {
                         "workplace" -> showSetup()
                         "privacy" -> showPrivacyNotice()
+                        "locationsettings" -> {
+                            try {
+                                startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                            } catch (_: Exception) {}
+                        }
+                        "apppermissions" -> {
+                            try {
+                                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.parse("package:$packageName")))
+                            } catch (_: Exception) {}
+                        }
                     }
                     return true
                 }
@@ -351,89 +375,156 @@ class StaffActivity : Activity() {
         beginNativeClockGps()
     }
 
+    /**
+     * PMD_STAFF_FUSED_LOCATION_V3_20261022
+     * Google fused one-shot + Android native provider fallback, both on this explicit
+     * staff tap only. No background tracking, raw coordinate logs or server bypass.
+     * A fix must be <= 90m accurate and <= 45 sec old. The server still verifies
+     * the tenant pin, timestamp, accuracy and on-site distance.
+     */
     private fun beginNativeClockGps() {
-        if (nativeRequestId == null) return
+        val request = nativeRequestId ?: return
         if (!isTrustedClockDocument(browser.url)) {
             finishNativeClockGps(null, "cancelled", notify = false)
             return
         }
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.w(gpsLogTag, "Cannot request GPS: precise location permission not granted")
             finishNativeClockGps(null, "precise_denied")
             return
         }
 
         val manager = getSystemService(LOCATION_SERVICE) as LocationManager
-        val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+        val locationEnabled = try {
+            Build.VERSION.SDK_INT < 28 || manager.isLocationEnabled
+        } catch (_: Exception) { false }
+        val providers = listOf(LocationManager.NETWORK_PROVIDER, LocationManager.GPS_PROVIDER)
             .filter { provider ->
                 try { manager.isProviderEnabled(provider) } catch (_: Exception) { false }
             }
-        if (providers.isEmpty()) {
+        if (!locationEnabled || providers.isEmpty()) {
+            Log.w(gpsLogTag, "Device location switched off or no provider enabled")
             finishNativeClockGps(null, "location_off")
             return
         }
 
+        val hasGoogleServices = try {
+            GoogleApiAvailability.getInstance()
+                .isGooglePlayServicesAvailable(this) == ConnectionResult.SUCCESS
+        } catch (_: Exception) { false }
+        val hasNetworkProvider = providers.contains(LocationManager.NETWORK_PROVIDER)
+        Log.i(gpsLogTag, "Foreground location request: fused_available=$hasGoogleServices " +
+            "gps_enabled=${providers.contains(LocationManager.GPS_PROVIDER)} " +
+            "network_enabled=$hasNetworkProvider precise_permission=true")
         nativeBestAccuracy = null
 
-        fun goodFreshFix(location: Location): Boolean {
-            val ageMs = System.currentTimeMillis() - location.time
-            return ageMs in -5_000L..20_000L &&
-                location.hasAccuracy() && location.accuracy > 0f &&
-                location.accuracy <= 90f &&
-                location.latitude.isFinite() && location.longitude.isFinite()
+        fun acceptFix(fix: Location?, source: String) {
+            if (nativeRequestId != request || !isTrustedClockDocument(browser.url)) return
+            if (fix == null) {
+                Log.i(gpsLogTag, "No location returned by $source")
+                return
+            }
+            // Use a monotonic clock so manual clock changes cannot make stale
+            // coordinates look fresh. Android's Location.time is sent to server.
+            val ageMs = (SystemClock.elapsedRealtimeNanos() - fix.elapsedRealtimeNanos) / 1_000_000L
+            if (ageMs < -5_000L || ageMs > 45_000L) {
+                Log.i(gpsLogTag, "Ignored stale location from $source")
+                return
+            }
+            if (!fix.hasAccuracy() || !fix.accuracy.isFinite() ||
+                fix.accuracy <= 0f || !fix.latitude.isFinite() ||
+                !fix.longitude.isFinite() || kotlin.math.abs(fix.latitude) > 90 ||
+                kotlin.math.abs(fix.longitude) > 180) {
+                Log.i(gpsLogTag, "Ignored incomplete location from $source")
+                return
+            }
+            if (fix.accuracy > 90f) {
+                if (nativeBestAccuracy == null || fix.accuracy < nativeBestAccuracy!!) {
+                    nativeBestAccuracy = fix.accuracy
+                    reportNativeGpsAccuracy(fix.accuracy)
+                    Log.i(gpsLogTag, "Location from $source is not precise enough; " +
+                        "accuracy_band_m=${(fix.accuracy / 50).toInt() * 50}+")
+                }
+                return
+            }
+            Log.i(gpsLogTag, "Precise fresh location acquired from $source")
+            finishNativeClockGps(fix, null)
         }
-        // LocationManager may already hold a fix acquired seconds ago.
-        // Reuse only a truly fresh, precise one; older/city-level fixes still fail closed.
+
+        // Fast path: recent accurate system fix, checked every time (not persisted).
         for (provider in providers) {
             try {
-                val fix = manager.getLastKnownLocation(provider)
-                if (fix != null && goodFreshFix(fix)) {
-                    finishNativeClockGps(fix, null)
-                    return
-                }
+                acceptFix(manager.getLastKnownLocation(provider), "cache-$provider")
+                if (nativeRequestId != request) return
             } catch (_: SecurityException) {
                 finishNativeClockGps(null, "precise_denied")
                 return
             } catch (_: Exception) {}
         }
 
+        val timeout = Runnable {
+            if (nativeRequestId != request) return@Runnable
+            val result = when {
+                nativeBestAccuracy != null ->
+                    "inaccurate:" + nativeBestAccuracy!!.toInt().coerceIn(91, 9999)
+                !hasGoogleServices && !hasNetworkProvider -> "no_fix_gps_only"
+                !hasGoogleServices -> "no_fix_no_google"
+                !hasNetworkProvider -> "no_fix_network_off"
+                else -> "no_fix_fused"
+            }
+            Log.w(gpsLogTag, "GPS attempt ended: $result (no attendance POST)")
+            finishNativeClockGps(null, result)
+        }
+        nativeTimeout = timeout
+        nativeLocationHandler.postDelayed(timeout, 28_000L)
+
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                val ageMs = System.currentTimeMillis() - location.time
-                if (ageMs < -5_000L || ageMs > 20_000L ||
-                    !location.hasAccuracy() || location.accuracy <= 0f ||
-                    !location.latitude.isFinite() || !location.longitude.isFinite()) return
-                if (location.accuracy > 90f) {
-                    if (nativeBestAccuracy == null || location.accuracy < nativeBestAccuracy!!) {
-                        nativeBestAccuracy = location.accuracy
-                        reportNativeGpsAccuracy(location.accuracy)
-                    }
-                    return
-                }
-                finishNativeClockGps(location, null)
+                acceptFix(location, "native-${location.provider}")
             }
         }
         nativeLocationListener = listener
-        val timeout = Runnable {
-            val accuracy = nativeBestAccuracy
-            finishNativeClockGps(null,
-                if (accuracy != null) "inaccurate:" + accuracy.toInt().coerceIn(91, 9999)
-                else "no_fix")
-        }
-        nativeTimeout = timeout
-        nativeLocationHandler.postDelayed(timeout, 15_000L)
-
         var registered = 0
         for (provider in providers) {
             try {
-                manager.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
+                // Native fallback stays active in parallel so GPS-only phones work.
+                manager.requestLocationUpdates(provider, 1000L, 0f, listener, Looper.getMainLooper())
                 registered++
             } catch (_: SecurityException) {
-                // The separate precise-permission check above controls this path.
+                Log.w(gpsLogTag, "Native provider rejected precise permission")
             } catch (_: Exception) {
-                // A provider can disappear while location settings are changing.
+                Log.w(gpsLogTag, "Native provider $provider did not register")
             }
         }
-        if (registered == 0) finishNativeClockGps(null, "provider_unavailable")
+
+        if (hasGoogleServices) {
+            try {
+                val source = CancellationTokenSource()
+                nativeCancellationSource = source
+                val fusedRequest = CurrentLocationRequest.Builder()
+                    .setPriority(Priority.PRIORITY_HIGH_ACCURACY)
+                    .setGranularity(Granularity.GRANULARITY_FINE)
+                    .setMaxUpdateAgeMillis(30_000L)
+                    .setDurationMillis(25_000L)
+                    .build()
+                LocationServices.getFusedLocationProviderClient(this)
+                    .getCurrentLocation(fusedRequest, source.token)
+                    .addOnSuccessListener { fix -> acceptFix(fix, "fused") }
+                    .addOnFailureListener { error ->
+                        if (nativeRequestId == request) {
+                            Log.w(gpsLogTag, "Fused location request failed: " +
+                                error.javaClass.simpleName)
+                        }
+                    }
+            } catch (_: SecurityException) {
+                Log.w(gpsLogTag, "Fused request blocked by location permission")
+            } catch (error: Exception) {
+                Log.w(gpsLogTag, "Fused service cannot start: " + error.javaClass.simpleName)
+            }
+        }
+        if (registered == 0 && nativeCancellationSource == null) {
+            finishNativeClockGps(null, "provider_unavailable")
+        }
     }
 
     private fun reportNativeGpsAccuracy(accuracy: Float) {
@@ -463,6 +554,8 @@ class StaffActivity : Activity() {
             } catch (_: Exception) {}
         }
         nativeLocationListener = null
+        nativeCancellationSource?.cancel()
+        nativeCancellationSource = null
         nativeBestAccuracy = null
 
         if (!notify || request == null || !isTrustedClockDocument(browser.url)) return
