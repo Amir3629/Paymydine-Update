@@ -1,0 +1,40 @@
+name: Devices V144 AJAX Command QA
+on:
+  push:
+    branches:
+      - fix/devices-commands-and-payment-readiness-v144-20261022
+  pull_request:
+    paths:
+      - 'app/admin/controllers/Pmddevices.php'
+      - 'app/admin/views/pmddevices/index.blade.php'
+      - 'app/admin/assets/js/pmd-device-platform-v1.js'
+      - 'app/admin/assets/js/debug-redirects.js'
+      - 'tests/pmd-devices-v144-command-auth.test.cjs'
+      - '.github/workflows/pmd-devices-v144-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/admin/controllers/Pmddevices.php
+            app/admin/views/pmddevices/index.blade.php
+            app/admin/assets/js/pmd-device-platform-v1.js
+            app/admin/assets/js/debug-redirects.js
+            app/admin/assets/src/js/request.js
+            tests/pmd-devices-v144-command-auth.test.cjs
+          sparse-checkout-cone-mode: false
+      - name: Syntax and simulated user interaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/admin/controllers/Pmddevices.php
+          node --check app/admin/assets/js/pmd-device-platform-v1.js
+          node --check app/admin/assets/js/debug-redirects.js
+          node --test tests/pmd-devices-v144-command-auth.test.cjs
