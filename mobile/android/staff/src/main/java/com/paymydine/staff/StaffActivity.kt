@@ -92,7 +92,7 @@ class StaffActivity : Activity() {
         }
         root.addView(progress, LinearLayout.LayoutParams(-1, dp(3)))
 
-        val scroll = ScrollView(this).apply { fillViewport = true }
+        val scroll = ScrollView(this).apply { isFillViewport = true }
         setup = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(36), dp(24), dp(28))
