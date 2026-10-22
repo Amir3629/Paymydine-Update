@@ -3,6 +3,7 @@
 /* PMD_STAFF_CLOCK_GPS_PERMISSION_GUIDANCE_V2_20261021 */
 /* PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022 */
 /* PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022 */
+/* PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022 */
 (function () {
   'use strict';
 
@@ -48,6 +49,10 @@
     meta = state.geo_required && !state.geo_ready ? 'The restaurant location is missing. Ask the owner to set it in Restaurant Profile.' : 'Attendance storage is not ready for this restaurant.';
   }
 
+  var clockError = String(state.flash_error || '');
+  function tr(value) {
+    return window.PMD_STAFF_TRANSLATE ? window.PMD_STAFF_TRANSLATE(value) : value;
+  }
   var action = active ? state.clock_out_url : state.clock_in_url;
   var button = active ? 'Check out' : 'Start shift';
   var form = ready && action ? '' +
@@ -68,7 +73,19 @@
       '<strong>' + title + '</strong>' +
       '<span>' + meta + '</span>' +
     '</span>' +
-    form;
+    form +
+    (clockError ? '<div class="pmd-staff-time-clock__server-error" role="alert" data-pmd-clock-server-error>' +
+        '<strong>Shift not recorded</strong><span>' + escapeHtml(clockError) + '</span>' +
+        '<button type="button" data-pmd-clock-dismiss aria-label="Dismiss error">Dismiss</button>' +
+      '</div>' : '');
+
+  var dismissError = card.querySelector('[data-pmd-clock-dismiss]');
+  if (dismissError) {
+    dismissError.addEventListener('click', function () {
+      var notice = card.querySelector('[data-pmd-clock-server-error]');
+      if (notice) notice.hidden = true;
+    });
+  }
 
   var monthNav = schedule.querySelector('.pmd-staff-month-nav');
   if (monthNav) schedule.insertBefore(card, monthNav);
@@ -118,8 +135,11 @@
       checking = false;
       var submit = punchForm.querySelector('button[type="submit"]');
       if (submit) submit.disabled = false;
-      if (reason) status.setAttribute('data-pmd-gps-error', reason);
-      status.textContent = message;
+      if (reason) {
+        status.setAttribute('data-pmd-gps-error', reason);
+        status.setAttribute('role', 'alert');
+      }
+      status.textContent = tr(message);
     }
 
     function savePosition(position) {
@@ -144,7 +164,7 @@
         hidden.value = String(fields[key]);
         punchForm.appendChild(hidden);
       });
-      status.textContent = 'GPS checked. Saving the shift…';
+      status.textContent = tr('GPS checked. Saving the shift…');
       HTMLFormElement.prototype.submit.call(punchForm);
     }
 
@@ -175,7 +195,8 @@
       var submit = punchForm.querySelector('button[type="submit"]');
       if (submit) submit.disabled = true;
       status.removeAttribute('data-pmd-gps-error');
-      status.textContent = 'Checking your location near the restaurant…';
+      status.setAttribute('role', 'status');
+      status.textContent = tr('Checking your location near the restaurant…');
 
       if (nativeStaffClock) {
         var request = String(Date.now()) + '_' + String(++nativeCounter) + '_' +
