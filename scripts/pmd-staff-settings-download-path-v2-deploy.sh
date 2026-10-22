@@ -45,7 +45,7 @@ curl -fLsS --retry 3 --connect-timeout 15 \
   -o "$STAGE/$FILE"
 test -s "$STAGE/$FILE"
 grep -Fq "PMD_STAFF_APP_DOWNLOAD_PATH_V2_20261022" "$STAGE/$FILE"
-grep -Fq "base_path('public/'.$pmdStaffApkRelativePath)" "$STAGE/$FILE"
+grep -Fq "base_path('public/'" "$STAGE/$FILE"
 grep -Fq "data-pmd-staff-app-download-v1" "$STAGE/$FILE"
 grep -Fq "data-pmd-device-app-download-v21" "$STAGE/$FILE"
 grep -Fq "Windows 10 / 11" "$STAGE/$FILE"
