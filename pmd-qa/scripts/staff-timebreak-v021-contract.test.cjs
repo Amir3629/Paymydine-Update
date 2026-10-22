@@ -83,7 +83,7 @@ assert.match(native,/postDelayed\(timeout, 28_000L\)/);
 assert.match(native,/reportNativeGpsAccuracy/);
 assert.match(native,/fix\.accuracy > 90f/);
 assert.match(native,/isTrustedClockDocument\(browser\.url\)/);
-assert.match(gradle,/versionName = "0\.2\.2"/);
+assert.match(gradle,/versionName = "0\.2\.3"/);
 
 new vm.Script(clock,{filename:'pmd-staff-time-clock-v1.js'});
 new vm.Script(locale,{filename:'pmd-staff-portal-locale-v2.js'});
