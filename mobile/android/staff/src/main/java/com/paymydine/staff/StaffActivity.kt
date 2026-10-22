@@ -14,10 +14,13 @@ import android.os.SystemClock
 import android.util.Log
 import android.provider.Settings
 import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.location.CurrentLocationRequest
 import com.google.android.gms.location.Granularity
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import org.json.JSONObject
@@ -74,6 +77,7 @@ class StaffActivity : Activity() {
     // PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022
     // One-shot foreground-only bridge; no JavaScript interface, persistent GPS grant or background tracker.
     private val nativePermissionCode = 4522
+    private val nativeSettingsCode = 4523
     private val nativeLocationHandler = Handler(Looper.getMainLooper())
     private var nativeRequestId: String? = null
     private var nativeLocationListener: LocationListener? = null
@@ -372,7 +376,76 @@ class StaffActivity : Activity() {
             )
             return
         }
-        beginNativeClockGps()
+        checkLocationAccuracyThenBeginGps()
+    }
+
+    /**
+     * PMD_STAFF_LOCATION_SETTINGS_PREFLIGHT_V4_20261022
+     * On the staff's Start/Finish tap, check whether Google's network-based
+     * Location Accuracy is disabled before waiting for GPS satellites indoors.
+     * Only Android's own consent dialog can enable a setting. Never bypass
+     * the precise runtime permission, site restriction or server geofence.
+     */
+    private fun checkLocationAccuracyThenBeginGps() {
+        val request = nativeRequestId ?: return
+        if (!isTrustedClockDocument(browser.url)) {
+            finishNativeClockGps(null, "cancelled", notify = false)
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            finishNativeClockGps(null, "precise_denied")
+            return
+        }
+        val googleAvailable = try {
+            GoogleApiAvailability.getInstance()
+                .isGooglePlayServicesAvailable(this) == ConnectionResult.SUCCESS
+        } catch (_: Exception) { false }
+        if (!googleAvailable) {
+            beginNativeClockGps()
+            return
+        }
+
+        val settingsClient = LocationServices.getSettingsClient(this)
+        settingsClient.isGoogleLocationAccuracyEnabled()
+            .addOnSuccessListener { enabled ->
+                if (nativeRequestId != request) return@addOnSuccessListener
+                if (enabled) {
+                    beginNativeClockGps()
+                    return@addOnSuccessListener
+                }
+                Log.i(gpsLogTag, "Location Accuracy disabled; requesting Android settings resolution")
+                val settingsRequest = LocationSettingsRequest.Builder()
+                    .addLocationRequest(
+                        LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L).build()
+                    )
+                    .setAlwaysShow(true)
+                    .build()
+                settingsClient.checkLocationSettings(settingsRequest)
+                    .addOnSuccessListener {
+                        if (nativeRequestId == request) {
+                            // Accuracy is still reported disabled: do not waste
+                            // 28 seconds in satellite-only mode indoors.
+                            finishNativeClockGps(null, "location_accuracy_off")
+                        }
+                    }
+                    .addOnFailureListener { error ->
+                        if (nativeRequestId != request) return@addOnFailureListener
+                        if (error is ResolvableApiException) {
+                            try {
+                                error.startResolutionForResult(this, nativeSettingsCode)
+                            } catch (_: Exception) {
+                                finishNativeClockGps(null, "location_accuracy_off")
+                            }
+                        } else {
+                            finishNativeClockGps(null, "location_accuracy_off")
+                        }
+                    }
+            }
+            .addOnFailureListener {
+                // Some devices do not implement this optional Google setting
+                // query. Retain normal fused and native GPS fallback.
+                if (nativeRequestId == request) beginNativeClockGps()
+            }
     }
 
     /**
@@ -646,7 +719,7 @@ class StaffActivity : Activity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == nativePermissionCode) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                beginNativeClockGps()
+                checkLocationAccuracyThenBeginGps()
             } else {
                 finishNativeClockGps(null, "precise_denied")
             }
@@ -657,6 +730,17 @@ class StaffActivity : Activity() {
         pendingGeo?.invoke(pendingOrigin ?: "", allowed, false)
         pendingGeo = null
         pendingOrigin = null
+    }
+
+    @Deprecated("Android location settings resolution callback")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != nativeSettingsCode || nativeRequestId == null) return
+        if (resultCode == RESULT_OK) {
+            checkLocationAccuracyThenBeginGps()
+        } else {
+            finishNativeClockGps(null, "location_accuracy_off")
+        }
     }
 
     @Deprecated("Back press API is supported for Android 8+")
