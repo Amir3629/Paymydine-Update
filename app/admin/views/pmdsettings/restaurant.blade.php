@@ -233,6 +233,59 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
             </div>
         </section>
 
+
+        {{-- PMD_STAFF_GPS_NO_STEPPER_V1_20261021: latitude/longitude are precise coordinates; never attach
+             generic + / - numeric steppers that jump by whole degrees. --}}
+        {{-- PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021 — Owner-scoped onsite attendance site.
+             Uses the existing Restaurant Profile Save Changes and tenant location row. --}}
+        <section class="pmd-profile-section pmd-profile-section--booking" data-pmd-staff-workplace-gps-v1>
+            <div class="pmd-profile-card">
+                <div class="pmd-profile-card__header">
+                    <div class="pmd-profile-section-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path>
+                            <circle cx="12" cy="10" r="2.7"></circle>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2>{{ $pmdSettingsText('Staff attendance location') }}</h2>
+                        <p>{{ $pmdSettingsText('Set the restaurant entrance location used when employees start or finish their shifts.') }}</p>
+                    </div>
+                </div>
+                <div class="pmd-profile-card__body">
+                    <div class="pmd-profile-booking-note">
+                        <strong>{{ !empty($pmdProfile['staff_clock_configured']) ? $pmdSettingsText('GPS pin configured') : $pmdSettingsText('Setup needed') }}</strong>
+                        <span>{{ $pmdSettingsText('Employees need a fresh, accurate GPS reading near this location. The app does not track staff in the background. GPS is not proof of physical presence.') }}</span>
+                    </div>
+                    <div class="pmd-profile-grid pmd-profile-grid--2">
+                        <label class="pmd-profile-field">
+                            <span>{{ $pmdSettingsText('Restaurant latitude') }}</span>
+                            <input type="number" id="pmd-staff-clock-lat-v1" data-pmd-no-stepper="true" name="profile[staff_clock_lat]"
+                                min="-90" max="90" step="any" inputmode="decimal"
+                                value="{{ $pmdProfile['staff_clock_lat'] ?? '' }}"
+                                placeholder="e.g. 50.110924" aria-describedby="pmd-staff-clock-pin-help">
+                        </label>
+                        <label class="pmd-profile-field">
+                            <span>{{ $pmdSettingsText('Restaurant longitude') }}</span>
+                            <input type="number" id="pmd-staff-clock-lng-v1" data-pmd-no-stepper="true" name="profile[staff_clock_lng]"
+                                min="-180" max="180" step="any" inputmode="decimal"
+                                value="{{ $pmdProfile['staff_clock_lng'] ?? '' }}"
+                                placeholder="e.g. 8.682127" aria-describedby="pmd-staff-clock-pin-help">
+                        </label>
+                    </div>
+                    <p id="pmd-staff-clock-pin-help" class="pmd-profile-booking-note">
+                        {{ $pmdSettingsText('Use coordinates from a reliable map for the physical restaurant entrance. Save Changes above. Leaving both fields blank preserves the current pin; an incomplete pair is rejected. Employees can clock only when the GPS check succeeds.') }}
+                    </p>
+                    <label class="pmd-profile-field">
+                        <span>
+                            <input type="checkbox" name="profile[staff_clock_clear]" value="1">
+                            {{ $pmdSettingsText('Remove attendance GPS pin and disable mobile shift clocking') }}
+                        </span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
         {{-- PMD_FLOOR_RESERVATION_NOTICE_PROFILE_R1 --}}
         <section class="pmd-profile-section pmd-profile-section--booking" data-pmd-floor-reservation-settings="r1">
             <div class="pmd-profile-card">

@@ -1,0 +1,72 @@
+<?php
+namespace App\Services;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * PMD_STAFF_GEOFENCE_SERVER_V1_20261021
+ * Clock-event-only proximity evidence, not background tracking.
+ * Untrusted device GPS can be spoofed, so do not claim proof of presence.
+ * Raw employee coordinates are never persisted.
+ */
+final class PmdStaffClockGeofenceV1
+{
+    public const RADIUS_METERS = 150;
+    public const MAX_ACCURACY_METERS = 90;
+    public const MAX_AGE_SECONDS = 90;
+
+    public function site(int $locationId): array
+    {
+        $missing = ['configured' => false, 'radius_m' => self::RADIUS_METERS];
+        if ($locationId < 1 || !Schema::hasTable('locations')
+            || !Schema::hasColumn('locations', 'location_lat')
+            || !Schema::hasColumn('locations', 'location_lng')) return $missing;
+        $site = DB::table('locations')->where('location_id', $locationId)
+            ->select(['location_lat', 'location_lng'])->first();
+        if (!$site || !is_numeric($site->location_lat) || !is_numeric($site->location_lng)) return $missing;
+        $lat = (float)$site->location_lat;
+        $lng = (float)$site->location_lng;
+        if (!is_finite($lat) || !is_finite($lng)
+            || abs($lat) > 90 || abs($lng) > 180
+            || ($lat == 0.0 && $lng == 0.0)) return $missing;
+        return ['configured' => true, 'radius_m' => self::RADIUS_METERS, 'lat' => $lat, 'lng' => $lng];
+    }
+
+    public function validatePunch(int $locationId, Request $request): array
+    {
+        $site = $this->site($locationId);
+        if (!$site['configured']) {
+            return ['ok' => false, 'message' => 'Restaurant coordinates missing. Ask the manager to update Restaurant Profile.'];
+        }
+        $inputs = [$request->input('geo_lat'), $request->input('geo_lng'),
+            $request->input('geo_accuracy_m'), $request->input('geo_captured_at_ms')];
+        foreach ($inputs as $value) {
+            if (!is_scalar($value) || !is_numeric($value)) {
+                return ['ok' => false, 'message' => 'Allow precise location to clock in or out at your restaurant.'];
+            }
+        }
+        [$lat, $lng, $accuracy] = array_map('floatval', array_slice($inputs, 0, 3));
+        $timestamp = (float)$inputs[3];
+        if (!is_finite($lat) || !is_finite($lng) || !is_finite($accuracy)
+            || abs($lat) > 90 || abs($lng) > 180 || $accuracy < 0
+            || $accuracy > self::MAX_ACCURACY_METERS) {
+            return ['ok' => false, 'message' => 'Precise GPS unavailable. Move near a window and try again.'];
+        }
+        if (!is_finite($timestamp) || abs(time() - $timestamp / 1000) > self::MAX_AGE_SECONDS) {
+            return ['ok' => false, 'message' => 'Location result is too old. Request a fresh GPS fix.'];
+        }
+        $h = sin(deg2rad($lat - $site['lat']) / 2) ** 2
+            + cos(deg2rad($site['lat'])) * cos(deg2rad($lat))
+            * sin(deg2rad($lng - $site['lng']) / 2) ** 2;
+        $distance = 6371000 * 2 * asin(min(1.0, sqrt(max(0.0, $h))));
+        if ($distance > self::RADIUS_METERS + 25) {
+            return ['ok' => false, 'message' => 'You are outside the restaurant check-in area. Move closer and retry.'];
+        }
+        return ['ok' => true, 'evidence' => [
+            'verified' => true, 'distance_m' => round($distance),
+            'accuracy_m' => round($accuracy), 'verified_at' => now()->toIso8601String(),
+        ]];
+    }
+}

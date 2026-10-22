@@ -827,6 +827,54 @@ class Pmdsettings extends AdminController
             ]);
         }
         $profile = (array)post('profile', []);
+
+        // PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021
+        // The owner edits only the CURRENT restaurant's coordinates.
+        // Old tabs do not contain these fields and must never clear a saved pin.
+        $pinHasLat = array_key_exists('staff_clock_lat', $profile);
+        $pinHasLng = array_key_exists('staff_clock_lng', $profile);
+        $staffClockCoordinates = null;
+        if ($pinHasLat || $pinHasLng || !empty($profile['staff_clock_clear'])) {
+            if (!$pinHasLat || !$pinHasLng) {
+                throw ValidationException::withMessages([
+                    'profile.staff_clock_lat' => ['Both workplace coordinates must be provided together.'],
+                ]);
+            }
+            if (!Schema::hasColumn('locations', 'location_lat')
+                || !Schema::hasColumn('locations', 'location_lng')) {
+                throw ValidationException::withMessages([
+                    'profile.staff_clock_lat' => ['The restaurant location schema is not ready.'],
+                ]);
+            }
+            $latText = trim((string)($profile['staff_clock_lat'] ?? ''));
+            $lngText = trim((string)($profile['staff_clock_lng'] ?? ''));
+            if (!empty($profile['staff_clock_clear'])) {
+                $staffClockCoordinates = ['location_lat' => null, 'location_lng' => null];
+            } elseif ($latText !== '' || $lngText !== '') {
+                $pinValidator = Validator::make(
+                    ['lat' => $latText, 'lng' => $lngText],
+                    ['lat' => ['required', 'numeric', 'between:-90,90'],
+                     'lng' => ['required', 'numeric', 'between:-180,180']]
+                );
+                if ($pinValidator->fails()) {
+                    throw ValidationException::withMessages([
+                        'profile.staff_clock_lat' => ['Enter a valid latitude (-90 to 90) and longitude (-180 to 180).'],
+                    ]);
+                }
+                $lat = (float)$latText;
+                $lng = (float)$lngText;
+                if (!is_finite($lat) || !is_finite($lng) || ($lat == 0.0 && $lng == 0.0)) {
+                    throw ValidationException::withMessages([
+                        'profile.staff_clock_lat' => ['The coordinates 0, 0 are not a valid restaurant entrance.'],
+                    ]);
+                }
+                $staffClockCoordinates = [
+                    'location_lat' => round($lat, 6),
+                    'location_lng' => round($lng, 6),
+                ];
+            }
+        }
+
         $hours = (array)post('hours', []);
         $calendarInput = (array)post('schedule', []);
         $hasCalendarInput = (string)($calendarInput['version'] ?? '') === '1';
@@ -952,7 +1000,7 @@ class Pmdsettings extends AdminController
             }
         }
 
-        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $calendarPolicy, $calendarService, $uploadedLogo, $removeLogo, $resolvedLogo, $communicationClean, $communicationInput, $hasCommunicationInput, $reservationClean, $hasReservationNoticeInput) {
+        DB::transaction(function () use ($locationId, $clean, $profile, $hours, $calendarPolicy, $calendarService, $uploadedLogo, $removeLogo, $resolvedLogo, $communicationClean, $communicationInput, $hasCommunicationInput, $reservationClean, $hasReservationNoticeInput, $staffClockCoordinates) {
             $settings = [
                 'site_name' => trim((string)$clean['name']),
                 'site_email' => trim((string)($clean['email'] ?? '')),
@@ -1049,6 +1097,11 @@ class Pmdsettings extends AdminController
                     'location_state' => trim((string)($clean['state'] ?? '')),
                     'location_postcode' => trim((string)($clean['postcode'] ?? '')),
                 ]);
+            if ($staffClockCoordinates !== null) {
+                // Apply the owner's GPS pin transactionally to the same tenant row.
+                DB::table('locations')->where('location_id', $locationId)
+                    ->update($staffClockCoordinates);
+            }
 
             if ($calendarPolicy !== null) {
                 $calendarService->save($locationId, $calendarPolicy);
@@ -1283,6 +1336,16 @@ class Pmdsettings extends AdminController
             'city' => (string)($location->location_city ?? ''),
             'state' => (string)($location->location_state ?? ''),
             'postcode' => (string)($location->location_postcode ?? ''),
+            // PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021 — same row used by GPS validator.
+            'staff_clock_lat' => isset($location->location_lat) && is_numeric($location->location_lat)
+                ? (string)$location->location_lat : '',
+            'staff_clock_lng' => isset($location->location_lng) && is_numeric($location->location_lng)
+                ? (string)$location->location_lng : '',
+            'staff_clock_configured' => isset($location->location_lat, $location->location_lng)
+                && is_numeric($location->location_lat) && is_numeric($location->location_lng)
+                && abs((float)$location->location_lat) <= 90
+                && abs((float)$location->location_lng) <= 180
+                && !((float)$location->location_lat == 0.0 && (float)$location->location_lng == 0.0),
             'website_enabled' => (bool)$value('pmd_social_website_enabled', 0),
             'website_url' => (string)$value('pmd_social_website_url', ''),
             'instagram_enabled' => (bool)$value('pmd_social_instagram_enabled', 0),

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use App\Services\PmdStaffClockGeofenceV1;
 
 /**
  * PMD_STAFF_PORTAL_V6_TIME_CLOCK
@@ -20,6 +21,9 @@ use Illuminate\View\View;
  *
  * Planning and attendance intentionally remain separate: clock-in/out does not
  * rewrite pmd_operational_shift_people.attendance_status or the rota itself.
+ * PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022: a staff member can clock in
+ * without a rota assignment; the actual work session is marked unscheduled
+ * in staff_attendance.metadata for manager review, not written as a planned shift.
  */
 class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 {
@@ -28,7 +32,14 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         $view = parent::index($request);
         if (!$view instanceof View) return $view;
 
+        // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: do not expose raw restaurant pin to the client.
         $clock = $this->clockState();
+        $identity = $this->clockIdentity();
+        $site = $identity ? app(PmdStaffClockGeofenceV1::class)->site((int)$identity['location_id'])
+            : ['configured' => false, 'radius_m' => 150];
+        $clock['geo_required'] = true;
+        $clock['geo_ready'] = (bool)$site['configured'];
+        $clock['geo_radius_m'] = (int)$site['radius_m'];
         $payload = json_encode(array_merge($clock, [
             'clock_in_url' => admin_url('mywork/clockin'),
             'clock_out_url' => admin_url('mywork/clockout'),
@@ -36,8 +47,8 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         if ($payload === false) $payload = '{}';
 
         $html = $view->render();
-        $css = asset('app/admin/assets/css/pmd-staff-time-clock-v1.css').'?v=1';
-        $js = asset('app/admin/assets/js/pmd-staff-time-clock-v1.js').'?v=1';
+        $css = asset('app/admin/assets/css/pmd-staff-time-clock-v1.css').'?v=5';
+        $js = asset('app/admin/assets/js/pmd-staff-time-clock-v1.js').'?v=5';
 
         $html = str_replace(
             '</head>',
@@ -67,12 +78,22 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
             return redirect('/staff#schedule')->with('error', 'Time clock is not available for this restaurant yet.');
         }
 
+        // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: no unverified writes. Existing browser and Android
+        // clients must both pass this server-side validation.
+        // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: location_id is required to bind punch to a single workplace.
+        if (!Schema::hasColumn('staff_attendance', 'metadata')
+            || !Schema::hasColumn('staff_attendance', 'location_id')) {
+            return redirect('/staff#schedule')->with('error', 'Apply attendance storage updates before GPS clocking.');
+        }
+        $geo = app(PmdStaffClockGeofenceV1::class)->validatePunch((int)$identity['location_id'], $request);
+        if (!$geo['ok']) return redirect('/staff#schedule')->with('error', (string)$geo['message']);
+
         $now = now();
         $staffId = (int)$identity['staff_id'];
         $locationId = (int)$identity['location_id'];
 
         try {
-            $result = DB::transaction(function () use ($staffId, $locationId, $identity, $now) {
+            $result = DB::transaction(function () use ($staffId, $locationId, $identity, $now, $geo) {
                 // Serialize clock operations per staff member so a double-click
                 // cannot create two open attendance rows.
                 DB::table('staffs')->where('staff_id', $staffId)->lockForUpdate()->first();
@@ -84,23 +105,51 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                     ->first();
                 if ($open) return ['ok' => false, 'reason' => 'already_open', 'row' => $open];
 
+                // A manager might not yet have assigned today's rota. Actual onsite
+                // attendance is always permitted for an authenticated active member.
+                // Record the exception instead of silently editing the published rota.
+                $hasPlannedShift = false;
+                if (Schema::hasTable('pmd_operational_shifts')
+                    && Schema::hasTable('pmd_operational_shift_people')
+                    && Schema::hasTable('pmd_operational_people')) {
+                    $hasPlannedShift = DB::table('pmd_operational_shift_people as assignment')
+                        ->join('pmd_operational_shifts as shift', 'shift.id', '=', 'assignment.shift_id')
+                        ->join('pmd_operational_people as person', 'person.id', '=', 'assignment.person_id')
+                        ->where('person.staff_id', $staffId)
+                        ->where('person.location_id', $locationId)
+                        ->where('shift.location_id', $locationId)
+                        ->whereDate('shift.shift_date', $now->toDateString())
+                        ->whereNotIn('shift.status', ['cancelled', 'canceled'])
+                        ->exists();
+                }
+
                 $values = [
                     'staff_id' => $staffId,
                     'check_in_time' => $now,
                     'check_out_time' => null,
                 ];
+                // PMD_STAFF_MOBILE_ATTENDANCE_STATUS_V1_20261021: GPS punches are mobile, never fingerprint/device-card.
                 if (Schema::hasColumn('staff_attendance', 'location_id')) $values['location_id'] = $locationId;
+                if (Schema::hasColumn('staff_attendance', 'device_type')) $values['device_type'] = 'manual';
+                if (Schema::hasColumn('staff_attendance', 'verification_method')) $values['verification_method'] = 'mobile';
+                if (Schema::hasColumn('staff_attendance', 'status')) $values['status'] = 'checked_in';
                 if (Schema::hasColumn('staff_attendance', 'created_at')) $values['created_at'] = $now;
                 if (Schema::hasColumn('staff_attendance', 'updated_at')) $values['updated_at'] = $now;
                 if (Schema::hasColumn('staff_attendance', 'metadata')) {
                     $values['metadata'] = json_encode([
-                        'source' => 'staff_portal',
+                        'source' => 'staff_portal_geofence_v1',
                         'person_id' => (int)$identity['person_id'],
+                        'schedule_status' => $hasPlannedShift ? 'scheduled' : 'unscheduled',
+                        'clock_in_geo' => $geo['evidence'],
                     ], JSON_UNESCAPED_SLASHES);
                 }
 
                 $id = (int)DB::table('staff_attendance')->insertGetId($values, 'attendance_id');
-                return ['ok' => true, 'attendance_id' => $id];
+                return [
+                    'ok' => true,
+                    'attendance_id' => $id,
+                    'unscheduled' => !$hasPlannedShift,
+                ];
             });
         } catch (\Throwable $error) {
             logger()->error('PMD Staff Portal clock-in failed', [
@@ -115,7 +164,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
             return redirect('/staff#schedule')->with('error', 'Your shift is already running.');
         }
 
-        return redirect('/staff#schedule')->with('success', 'Shift started at '.$now->format('H:i').'.');
+        $message = !empty($result['unscheduled'])
+            ? 'Unscheduled shift started at '.$now->format('H:i').'. Your actual work time is recorded for your manager.'
+            : 'Shift started at '.$now->format('H:i').'.';
+        return redirect('/staff#schedule')->with('success', $message);
     }
 
     public function clockOut(Request $request): RedirectResponse
@@ -130,12 +182,22 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
             return redirect('/staff#schedule')->with('error', 'Time clock is not available for this restaurant yet.');
         }
 
+        // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: no unverified writes. Existing browser and Android
+        // clients must both pass this server-side validation.
+        // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: location_id is required to bind punch to a single workplace.
+        if (!Schema::hasColumn('staff_attendance', 'metadata')
+            || !Schema::hasColumn('staff_attendance', 'location_id')) {
+            return redirect('/staff#schedule')->with('error', 'Apply attendance storage updates before GPS clocking.');
+        }
+        $geo = app(PmdStaffClockGeofenceV1::class)->validatePunch((int)$identity['location_id'], $request);
+        if (!$geo['ok']) return redirect('/staff#schedule')->with('error', (string)$geo['message']);
+
         $now = now();
         $staffId = (int)$identity['staff_id'];
         $locationId = (int)$identity['location_id'];
 
         try {
-            $result = DB::transaction(function () use ($staffId, $now) {
+            $result = DB::transaction(function () use ($staffId, $locationId, $now, $geo) {
                 DB::table('staffs')->where('staff_id', $staffId)->lockForUpdate()->first();
 
                 $open = DB::table('staff_attendance')
@@ -145,6 +207,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                     ->lockForUpdate()
                     ->first();
                 if (!$open) return ['ok' => false, 'reason' => 'not_open'];
+                // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: cannot finish an active punch from another location.
+                if ((int)$open->location_id !== $locationId) {
+                    return ['ok' => false, 'reason' => 'wrong_location'];
+                }
 
                 try {
                     $checkIn = Carbon::parse($open->check_in_time);
@@ -155,6 +221,12 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 $seconds = $checkIn->lt($now) ? $checkIn->diffInSeconds($now) : 0;
                 $hours = round($seconds / 3600, 2);
                 $values = ['check_out_time' => $now];
+                if (Schema::hasColumn('staff_attendance', 'status')) $values['status'] = 'checked_out';
+                // Keep location evidence without retaining the staff GPS fix.
+                $metadata = json_decode((string)($open->metadata ?? ''), true);
+                if (!is_array($metadata)) $metadata = [];
+                $metadata['clock_out_geo'] = $geo['evidence'];
+                $values['metadata'] = json_encode($metadata, JSON_UNESCAPED_SLASHES);
                 if (Schema::hasColumn('staff_attendance', 'hours_worked')) $values['hours_worked'] = $hours;
                 if (Schema::hasColumn('staff_attendance', 'updated_at')) $values['updated_at'] = $now;
 
@@ -174,6 +246,9 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         }
 
         if (empty($result['ok'])) {
+            if (($result['reason'] ?? '') === 'wrong_location') {
+                return redirect('/staff#schedule')->with('error', 'This open shift belongs to another workplace. Ask your manager to correct it.');
+            }
             return redirect('/staff#schedule')->with('error', 'There is no running shift to end.');
         }
 
@@ -188,6 +263,7 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         $base = [
             'ready' => false,
             'active' => false,
+            'unscheduled' => false,
             'attendance_id' => null,
             'check_in_iso' => null,
             'check_in_label' => null,
@@ -200,7 +276,9 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 
         $identity = $this->clockIdentity();
         if (!$identity || !$this->attendanceReady()) return $base;
-        $base['ready'] = true;
+        $base['ready'] = app(PmdStaffClockGeofenceV1::class)->site((int)$identity['location_id'])['configured']
+            && Schema::hasColumn('staff_attendance', 'metadata')
+            && Schema::hasColumn('staff_attendance', 'location_id');
 
         $staffId = (int)$identity['staff_id'];
         $locationId = (int)$identity['location_id'];
@@ -219,6 +297,9 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
             try {
                 $checkIn = Carbon::parse($open->check_in_time);
                 $base['active'] = true;
+                $openMeta = json_decode((string)($open->metadata ?? ''), true);
+                $base['unscheduled'] = is_array($openMeta)
+                    && ($openMeta['schedule_status'] ?? '') === 'unscheduled';
                 $base['attendance_id'] = (int)$open->attendance_id;
                 $base['check_in_iso'] = $checkIn->toIso8601String();
                 $base['check_in_label'] = $checkIn->format('H:i');
