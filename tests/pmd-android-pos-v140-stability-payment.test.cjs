@@ -28,6 +28,11 @@ for (const path of paths) {
     assert.match(code, /methods\.push\(\{code: 'direct_terminal', name: 'Terminal'/);
     assert.doesNotMatch(code, /state\.payment\.open \? 'payment' : 'order'/);
     assert.doesNotMatch(code, /headline: 'Tap or insert card'/);
+    assert.match(code, /PMD_QPOS_TERMINAL_CANONICAL_SETTLEMENT_GUARD_V141/);
+    assert.match(code, /result\.payment_recorded !== true/);
+    assert.match(code, /result\.simulated === true/);
+    assert.match(code, /confirmedSettlementV141/);
+    assert.match(code, /Do not charge the card again/);
   });
 }
 test('Table Device requires a live paired terminal and server readiness', () => {
