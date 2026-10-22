@@ -75,7 +75,23 @@
     "No response from the Staff app GPS bridge. Update the Staff APK and retry.": "Keine Rückmeldung von der Staff-App. Bitte die App aktualisieren und erneut versuchen.",
     "Android did not grant precise GPS to PayMyDine Staff. Check Staff app permission (Precise), not the browser.": "Android hat keinen genauen Standort für PayMyDine Staff freigegeben. Prüfe die App-Berechtigung.",
     "Android GPS did not find an accurate fresh position. Move near a window or outdoors and retry.": "Android konnte keinen aktuellen genauen Standort bestimmen. Versuche es am Fenster oder im Freien.",
-    "No recent precise GPS fix. Try near a window or outdoors.": "Kein aktueller genauer Standort. Bitte am Fenster oder im Freien erneut versuchen."
+    "No recent precise GPS fix. Try near a window or outdoors.": "Kein aktueller genauer Standort. Bitte am Fenster oder im Freien erneut versuchen.",
+    "Shift not recorded": "Schicht nicht erfasst",
+    "Dismiss": "Schließen",
+    "Dismiss error": "Fehlermeldung schließen",
+    "Restaurant coordinates missing. Ask the manager to update Restaurant Profile.": "Restaurantstandort fehlt. Bitte die Leitung um die Einrichtung im Restaurantprofil.",
+    "Allow precise location to clock in or out at your restaurant.": "Bitte genauen Standort freigeben, damit du deine Schicht beginnen oder beenden kannst.",
+    "Precise GPS unavailable. Move near a window and try again.": "Kein genauer GPS-Standort verfügbar. Versuche es am Fenster erneut.",
+    "Location result is too old. Request a fresh GPS fix.": "Der Standort ist veraltet. Bitte einen neuen GPS-Standort ermitteln.",
+    "You are outside the restaurant check-in area. Move closer and retry.": "Du bist außerhalb des zulässigen Restaurantbereichs. Geh näher heran und versuche es erneut.",
+    "Your PMD login is not connected to an active Team profile.": "Dein Konto ist keinem aktiven Teamprofil zugeordnet. Bitte die Restaurantleitung informieren.",
+    "Time clock is not available for this restaurant yet.": "Die Zeiterfassung ist für dieses Restaurant noch nicht verfügbar.",
+    "Apply attendance storage updates before GPS clocking.": "Die Zeiterfassung muss von der Restaurantleitung zuerst eingerichtet werden.",
+    "Shift could not be started. Please try again.": "Deine Schicht konnte nicht gestartet werden. Bitte erneut versuchen.",
+    "Your shift is already running.": "Deine Schicht läuft bereits.",
+    "Shift could not be ended. Please try again.": "Deine Schicht konnte nicht beendet werden. Bitte erneut versuchen.",
+    "This open shift belongs to another workplace. Ask your manager to correct it.": "Diese laufende Schicht gehört zu einem anderen Standort. Bitte die Restaurantleitung um Korrektur.",
+    "There is no running shift to end.": "Es gibt keine laufende Schicht zum Beenden."
   },
   "tr": {
     "My shifts": "Vardiyalarım",
@@ -146,7 +162,23 @@
     "No response from the Staff app GPS bridge. Update the Staff APK and retry.": "Staff uygulamasından yanıt alınamadı. Uygulamayı güncelle ve yeniden dene.",
     "Android did not grant precise GPS to PayMyDine Staff. Check Staff app permission (Precise), not the browser.": "Android, PayMyDine Staff için hassas konum izni vermedi. Uygulama izinlerini kontrol et.",
     "Android GPS did not find an accurate fresh position. Move near a window or outdoors and retry.": "Android güncel ve doğru bir konum bulamadı. Pencere yanında veya dışarıda tekrar dene.",
-    "No recent precise GPS fix. Try near a window or outdoors.": "Güncel ve doğru konum bulunamadı. Pencere yanında veya dışarıda dene."
+    "No recent precise GPS fix. Try near a window or outdoors.": "Güncel ve doğru konum bulunamadı. Pencere yanında veya dışarıda dene.",
+    "Shift not recorded": "Vardiya kaydedilmedi",
+    "Dismiss": "Kapat",
+    "Dismiss error": "Hata iletisini kapat",
+    "Restaurant coordinates missing. Ask the manager to update Restaurant Profile.": "Restoran konumu eksik. Yöneticinden restoran profilindeki konumu güncellemesini iste.",
+    "Allow precise location to clock in or out at your restaurant.": "Vardiyaya başlamak veya vardiyayı bitirmek için hassas konum izni ver.",
+    "Precise GPS unavailable. Move near a window and try again.": "Hassas GPS konumu alınamadı. Pencere yakınında yeniden dene.",
+    "Location result is too old. Request a fresh GPS fix.": "Konum bilgisi güncel değil. Yeni bir GPS konumu al.",
+    "You are outside the restaurant check-in area. Move closer and retry.": "Restoranın giriş alanı dışındasın. Restorana yaklaşarak yeniden dene.",
+    "Your PMD login is not connected to an active Team profile.": "Hesabın etkin bir ekip profiline bağlı değil. Restoran yöneticinle görüş.",
+    "Time clock is not available for this restaurant yet.": "Bu restoranda mesai kaydı henüz kullanılamıyor.",
+    "Apply attendance storage updates before GPS clocking.": "Mesai kayıt sistemi önce yönetim tarafından hazırlanmalı.",
+    "Shift could not be started. Please try again.": "Vardiya başlatılamadı. Lütfen yeniden dene.",
+    "Your shift is already running.": "Vardiyan zaten devam ediyor.",
+    "Shift could not be ended. Please try again.": "Vardiya bitirilemedi. Lütfen yeniden dene.",
+    "This open shift belongs to another workplace. Ask your manager to correct it.": "Bu açık vardiya başka bir iş yerine ait. Yöneticinden düzeltmesini iste.",
+    "There is no running shift to end.": "Bitirilecek aktif vardiya yok."
   }
 };
   var root = document.querySelector('[data-pmd-staff-portal]');
