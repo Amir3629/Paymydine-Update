@@ -97,7 +97,6 @@
             @endif
 
             {{-- PMD_STAFF_MARKET_LOCALE_V2_20261022: top right language replaces duplicate profile shortcut. --}}
-            @if(count($pmdStaffAllowedLocales) > 1)
                 <div class="pmd-staff-language-picker" data-pmd-staff-language-picker>
                     <button class="pmd-staff-language-trigger" type="button" data-pmd-staff-language-toggle
                         aria-label="Choose language" aria-expanded="false" aria-haspopup="true">
@@ -113,7 +112,16 @@
                         @endforeach
                     </div>
                 </div>
-            @endif
+                <button type="button" class="pmd-staff-top-profile" data-pmd-profile-open
+                        aria-label="Open profile" title="Profile">
+                    <span class="pmd-staff-top-profile__avatar">
+                        @if(!empty($person->avatar_url))
+                            <img src="{{ $person->avatar_url }}" alt="">
+                        @else
+                            {{ $personInitial }}
+                        @endif
+                    </span>
+                </button>
 
             <form method="post" action="{{ admin_url('mywork/stafflogout') }}">
                 @csrf
@@ -142,7 +150,7 @@
         <button type="button" data-pmd-mobile-target="schedule" class="is-active"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>My shifts</span></button>
         <button type="button" data-pmd-mobile-target="chat"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-15a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg><span>Chat</span></button>
         <button type="button" data-pmd-mobile-target="requests"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"></path></svg><span>Requests</span>@if($pending)<b>{{ $pending }}</b>@endif</button>
-        <button type="button" data-pmd-profile-open><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span>Profile</span></button>
+        <button type="button" data-pmd-mobile-target="clock" data-pmd-time-tab><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>Time</span></button>
         @if($canManage)
             <button type="button" data-pmd-mobile-target="manage"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg><span>Manage</span>@if($managementRequests->count())<b>{{ $managementRequests->count() }}</b>@endif</button>
         @endif
@@ -296,6 +304,16 @@
         </main>
 
         <aside class="pmd-staff-tools">
+            {{-- PMD_STAFF_TIME_TAB_V1_20261022: dedicated, focused clock/break tab. --}}
+            <section id="clock" class="pmd-staff-tool-card pmd-staff-clock-screen" data-pmd-mobile-screen="clock">
+                <header class="pmd-staff-panel-head">
+                    <div class="pmd-staff-section-title">
+                        <span class="pmd-staff-section-icon is-green"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg></span>
+                        <div><small>Attendance</small><h2>Time clock</h2></div>
+                    </div>
+                </header>
+                <div class="pmd-staff-clock-screen__content" data-pmd-staff-clock-target></div>
+            </section>
             <section id="schedule" class="pmd-staff-tool-card" data-pmd-mobile-screen="schedule">
                 <header class="pmd-staff-panel-head">
                     <div class="pmd-staff-section-title">
@@ -564,6 +582,7 @@
 
     function setMobileScreen(name) {
         if (!name) name = 'schedule';
+        if (root.getAttribute('data-pmd-mobile-active') === name) return;
         root.setAttribute('data-pmd-mobile-active', name);
         root.querySelectorAll('[data-pmd-mobile-target]').forEach(function (button) {
             button.classList.toggle('is-active', button.getAttribute('data-pmd-mobile-target') === name);
@@ -576,6 +595,7 @@
         if (hash === '#requests') return 'requests';
         if (hash === '#management') return 'manage';
         if (hash === '#chat') return 'chat';
+        if (hash === '#clock') return 'clock';
         return 'schedule';
     }
 
@@ -589,9 +609,7 @@
             if (window.history && window.history.replaceState) {
                 window.history.replaceState(null, '', '#' + targetId);
             }
-            if (section && window.innerWidth < 761) {
-                window.scrollTo({top: 0, behavior: 'auto'});
-            }
+            // Avoid forced window scroll on every tab switch (caused visible jumps).
         });
     });
 
