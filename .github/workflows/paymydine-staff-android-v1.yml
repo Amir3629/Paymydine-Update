@@ -2,7 +2,7 @@ name: PayMyDine Staff Android (separate APK)
 
 on:
   push:
-    branches: [main, 'feat/staff-app-v020-ux-privacy-20261022', 'feat/staff-v021-timeclock-gps-20261022']
+    branches: [main, 'feat/staff-app-v020-ux-privacy-20261022', 'feat/staff-v021-timeclock-gps-20261022', 'fix/staff-v022-fused-gps-diagnostics-20261022']
     paths:
       - 'mobile/android/staff/**'
       - 'mobile/android/settings.gradle.kts'
@@ -141,7 +141,7 @@ jobs:
       - name: Verify release version and write APK checksum
         run: |
           test -s mobile/android/staff/build/outputs/apk/debug/staff-debug.apk
-          grep -Fq 'versionName = "0.2.1"' mobile/android/staff/build.gradle.kts
+          grep -Fq 'versionName = "0.2.2"' mobile/android/staff/build.gradle.kts
           sha256sum mobile/android/staff/build/outputs/apk/debug/staff-debug.apk             | sed 's#mobile/android/staff/build/outputs/apk/debug/staff-debug.apk#staff-debug.apk#'             > mobile/android/staff/build/outputs/apk/debug/staff-debug.apk.sha256
       - name: Publish separate installable APK
         uses: actions/upload-artifact@v4
