@@ -1235,7 +1235,7 @@ document.documentElement.classList.add(
                 // The VPS installer writes to the project-root public/downloads directory.
                 // On TastyIgniter deployments public_path() can resolve to a different webroot.
                 // Prefer the exact installation destination; keep public_path() as a fallback.
-                $pmdStaffApkFilename = 'PayMyDine-Staff-App-0.2.2-debug.apk';
+                $pmdStaffApkFilename = 'PayMyDine-Staff-App-0.2.3-debug.apk';
                 $pmdStaffApkRelativePath = 'downloads/paymydine/'.$pmdStaffApkFilename;
                 $pmdStaffApkPaths = [
                     base_path('public/'.$pmdStaffApkRelativePath),
@@ -1270,7 +1270,7 @@ document.documentElement.classList.add(
                     </span>
                     <span class="pmd-cashier-launcher-v107__copy">
                         <strong>PayMyDine Staff App · Android</strong>
-                        <small>Separate app · Clock in/out with GPS · My Shifts · Requests · Team chat · v0.2.2 preview</small>
+                        <small>Separate app · Clock in/out with GPS · My Shifts · Requests · Team chat · v0.2.3 preview</small>
                     </span>
                 </a>
             @else
