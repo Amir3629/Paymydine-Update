@@ -23,3 +23,17 @@
 .pmd-staff-time-clock__geo-feedback{display:block;max-width:100%;font-size:11px;font-weight:650;line-height:1.45;color:#627d74;white-space:normal;overflow-wrap:anywhere;text-align:right}
 .pmd-staff-time-clock__geo-feedback[data-pmd-gps-error]{color:#9a362f}
 @media(max-width:760px){.pmd-staff-time-clock form[data-pmd-clock-geo-form]{max-width:100%;align-items:stretch}.pmd-staff-time-clock__geo-feedback{text-align:left}}
+
+/* PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022: errors remain visible until retry/dismiss. */
+.pmd-staff-time-clock{grid-template-columns:44px minmax(0,1fr);gap:10px}
+.pmd-staff-time-clock form[data-pmd-clock-geo-form]{grid-column:1/-1;display:flex;align-items:stretch;gap:7px;width:100%;max-width:100%;margin:0}
+.pmd-staff-time-clock__button{min-height:45px;width:100%;font-size:13px}
+.pmd-staff-time-clock__geo-feedback{max-width:none!important;width:100%;text-align:left!important;white-space:normal;line-height:1.5}
+.pmd-staff-time-clock__geo-feedback[data-pmd-gps-error]{display:block;padding:10px 12px;border:1px solid #e7c5bb;border-radius:10px;background:#fff7f3;color:#8b3429!important;overflow-wrap:anywhere}
+.pmd-staff-time-clock__server-error{grid-column:1/-1;display:grid;gap:7px;padding:12px 13px;border:1px solid #e7bdb7;border-left:4px solid #bc5649;border-radius:10px;background:#fff7f5;color:#883b32;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.pmd-staff-time-clock__server-error strong{font-size:13px;font-weight:900}
+.pmd-staff-time-clock__server-error button{justify-self:start;min-height:36px;padding:0 12px;border:1px solid #e4bcb6;border-radius:9px;background:#fff;color:#8c3e34;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+@media(max-width:760px){
+.pmd-staff-time-clock{grid-template-columns:38px minmax(0,1fr)}
+.pmd-staff-time-clock form[data-pmd-clock-geo-form]{max-width:100%;align-items:stretch}
+}
