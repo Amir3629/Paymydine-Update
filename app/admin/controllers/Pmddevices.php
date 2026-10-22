@@ -54,7 +54,11 @@ class Pmddevices extends AdminController
 
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-device-inline-v6.js');
-        $this->addJs('js/pmd-device-platform-v1.js');
+        // PMD_DEVICE_COMMAND_SCRIPT_FRESHNESS_V144:
+        // Deploys must not reuse the old cached command-click handler.
+        $pmdDeviceCommandJs = 'app/admin/assets/js/pmd-device-platform-v1.js';
+        $this->addJs(asset($pmdDeviceCommandJs).'?v='.
+            (string)(@filemtime(base_path($pmdDeviceCommandJs)) ?: '20261022-v144'));
 
                 // PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: route-scoped accessible steppers & true tenant currency.
         foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
