@@ -31,7 +31,7 @@ if ($host !== 'tomo.paymydine.com') {
 // verified PayMyDine application root, never an arbitrary directory.
 $root = '/var/www/paymydine';
 if (realpath((string)getcwd()) !== realpath($root)) {
-    fwrite(STDERR, "STOP: run this audit from /var/www/paymydine.\\n");
+    fwrite(STDERR, "STOP: run this audit from /var/www/paymydine.\n");
     exit(2);
 }
 require $root.'/vendor/autoload.php';
@@ -82,9 +82,14 @@ try {
     $db->beginTransaction();
     $schema = Schema::connection('tenant');
 
-    $table = static function (string $name) use ($db, $schema): array {
+    $table = static function (string $name, array $fields) use ($db, $schema): array {
         if (!$schema->hasTable($name)) return [];
-        return $db->table($name)->get()->all();
+        $available = $schema->getColumnListing($name);
+        $safeFields = array_values(array_intersect($fields, $available));
+        if (!$safeFields) return [];
+        // SELECT only approved metadata fields. Never SELECT * from a secret
+        // bearing table such as trusted devices or provider configuration.
+        return $db->table($name)->get($safeFields)->all();
     };
     $exists = static fn (string $name): bool => $schema->hasTable($name);
     $recent = static function ($value): bool {
@@ -97,7 +102,10 @@ try {
     };
     $cut = static fn ($value): string => mb_substr(trim((string)($value ?? '')), 0, 55);
 
-    $trusted = $table('pmd_site_access_devices');
+    $trusted = $table('pmd_site_access_devices', [
+        'id', 'location_id', 'device_kind', 'capabilities', 'last_seen_at',
+        'platform_info', 'revoked_at',
+    ]);
     $activeIds = array_values(array_map(
         static fn ($row): int => (int)($row->id ?? 0),
         array_filter($trusted, static fn ($row): bool =>
@@ -105,19 +113,28 @@ try {
     ));
     $runtime = $exists('pmd_device_runtime') && $activeIds
         ? $db->table('pmd_device_runtime')->whereIn('device_id', $activeIds)
-            ->get()->keyBy('device_id')
+            ->get(['device_id', 'last_seen_at', 'app_version', 'device_mode',
+                'screen_state', 'brightness'])->keyBy('device_id')
         : collect();
     // Bounded reads: do NOT load unbounded operational event/command history.
     $commands = $exists('pmd_device_commands') && $activeIds
         ? $db->table('pmd_device_commands')->whereIn('device_id', $activeIds)
-            ->orderByDesc('id')->limit(500)->get()
+            ->orderByDesc('id')->limit(500)->get([
+                'id', 'device_id', 'command', 'status', 'requested_at',
+                'delivered_at', 'acknowledged_at', 'completed_at', 'expires_at'
+            ])
         : collect();
     $logs = $exists('pmd_device_logs') && $activeIds
         ? $db->table('pmd_device_logs')->whereIn('device_id', $activeIds)
-            ->orderByDesc('id')->limit(200)->get()
+            ->orderByDesc('id')->limit(200)->get(['id', 'device_id', 'event', 'occurred_at'])
         : collect();
-    $terminals = $table('terminal_devices');
-    $providerConfigs = $table('terminal_provider_configs');
+    $terminals = $table('terminal_devices', [
+        'terminal_device_id', 'location_id', 'provider_code', 'environment',
+        'is_active', 'reader_id', 'terminal_status', 'pairing_state',
+    ]);
+    $providerConfigs = $table('terminal_provider_configs', [
+        'provider_code', 'environment', 'connection_status',
+    ]);
 
     $deviceSummary = [];
     foreach ($trusted as $device) {
