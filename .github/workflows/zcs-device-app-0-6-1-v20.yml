@@ -1,0 +1,343 @@
+name: ZCS Device App 0.6.1 V20
+
+on:
+  push:
+    branches:
+      - fix/zcs-v124-settings-tables-reader
+      - main
+    paths:
+      - 'app/admin/assets/js/pmd-quick-pos-v1.js'
+      - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
+      - 'app/admin/assets/css/pmd-quick-pos-v1.css'
+      - 'app/admin/assets/css/pmd-qpos-web-parity-v112.css'
+      - '.github/workflows/zcs-device-app-0-6-1-v20.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pmd-zcs-device-app-0-6-1-v20-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  patch-zcs-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/admin/assets/js/pmd-quick-pos-v1.js
+            app/admin/assets/js/pmd-qpos-web-parity-v112.js
+            app/admin/assets/css/pmd-quick-pos-v1.css
+            app/admin/assets/css/pmd-qpos-web-parity-v112.css
+            .github/workflows/zcs-device-app-0-6-1-v20.yml
+          sparse-checkout-cone-mode: false
+
+      - name: Restore stable Device App signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: paymydine-device-app-preview-keystore-v1
+
+      - name: Install Android build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$HOME/.android/debug.keystore"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platform-tools' 'build-tools;35.0.0'
+
+      - name: Download exact stable-signed 0.6.0 ZCS base
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 \
+            'https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.0.apk' \
+            -o base-0.6.0.apk
+          echo '14a73d97ec5596019dfb5fbe4dcd20252fad8ae77adeae04f7df4c5b6513cff0  base-0.6.0.apk' | sha256sum -c -
+
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$APKSIGNER" verify --print-certs base-0.6.0.apk > base-cert.txt
+          keytool -list -v \
+            -keystore "$HOME/.android/debug.keystore" \
+            -storepass android \
+            -alias androiddebugkey > key-cert.txt
+          BASE_CERT="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' base-cert.txt | sed -n '1p' | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
+          KEY_CERT="$(sed -n 's/^[[:space:]]*SHA256: //p' key-cert.txt | sed -n '1p' | tr '[:upper:]' '[:lower:]' | tr -d ': ')"
+          echo "Base cert: $BASE_CERT"
+          echo "Key cert : $KEY_CERT"
+          test "$BASE_CERT" = "$KEY_CERT"
+
+      - name: Validate V124 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app/admin/assets/js/pmd-quick-pos-v1.js
+          node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'PMD_ZCS_AUTOMATIC_SETTINGS_V124' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'PMD_ANDROID_NATIVE_BRIDGE_TABLE_GUARD_V124' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'PMD_ANDROID_NATIVE_VISUAL_CACHE_GUARD_V124' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'Test NFC / card reader' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          if grep -Fq 'data-pmd-customer-display-enabled' app/admin/assets/js/pmd-qpos-web-parity-v112.js; then
+            echo 'ERROR: Enabled toggle still exists.'
+            exit 1
+          fi
+          if grep -Fq 'data-pmd-customer-display-images' app/admin/assets/js/pmd-qpos-web-parity-v112.js; then
+            echo 'ERROR: image toggle still exists.'
+            exit 1
+          fi
+
+      - name: Install apktool
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 \
+            'https://github.com/iBotPeaches/Apktool/releases/download/v2.12.0/apktool_2.12.0.jar' \
+            -o apktool.jar
+
+      - name: Decode and patch V124 into working ZCS APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -jar apktool.jar d -f base-0.6.0.apk -o decoded
+
+          cp app/admin/assets/js/pmd-quick-pos-v1.js \
+            decoded/assets/pmd-canonical/js/pmd-quick-pos-v1.js
+          cp app/admin/assets/js/pmd-qpos-web-parity-v112.js \
+            decoded/assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js
+          cp app/admin/assets/css/pmd-quick-pos-v1.css \
+            decoded/assets/pmd-canonical/css/pmd-quick-pos-v1.css
+          cp app/admin/assets/css/pmd-qpos-web-parity-v112.css \
+            decoded/assets/pmd-canonical/css/pmd-qpos-web-parity-v112.css
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          yml = Path('decoded/apktool.yml')
+          s = yml.read_text()
+          s, n1 = re.subn(r"versionCode:\s*'?73'?", "versionCode: '74'", s, count=1)
+          s, n2 = re.subn(
+              r"versionName:\s*'?0\.6\.0-device-app-v19-debug'?",
+              "versionName: 0.6.1-device-app-v20-debug",
+              s,
+              count=1,
+          )
+          if n1 != 1 or n2 != 1:
+              raise SystemExit(f"version patch failed: code={n1} name={n2}")
+          yml.write_text(s)
+
+          matches = list(Path('decoded').glob(
+              'smali*/com/paymydine/mobile/hardware/customerdisplay/PosCustomerDisplayJavascriptBridge.smali'
+          ))
+          if len(matches) != 1:
+              raise SystemExit(f"bridge smali count={len(matches)}")
+          p = matches[0]
+          text = p.read_text()
+
+          enabled = r'''.method public final setCustomerDisplayEnabled(Z)V
+              .locals 1
+              .param p1, "enabled"    # Z
+              .annotation runtime Landroid/webkit/JavascriptInterface;
+              .end annotation
+
+              const/4 p1, 0x1
+              iget-object v0, p0, Lcom/paymydine/mobile/hardware/customerdisplay/PosCustomerDisplayJavascriptBridge;->display:Lcom/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager;
+              invoke-virtual {v0, p1}, Lcom/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager;->setEnabled(Z)V
+              return-void
+          .end method'''
+
+          images = r'''.method public final setCustomerDisplayImages(Z)V
+              .locals 1
+              .param p1, "enabled"    # Z
+              .annotation runtime Landroid/webkit/JavascriptInterface;
+              .end annotation
+
+              const/4 p1, 0x1
+              iget-object v0, p0, Lcom/paymydine/mobile/hardware/customerdisplay/PosCustomerDisplayJavascriptBridge;->display:Lcom/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager;
+              invoke-virtual {v0, p1}, Lcom/paymydine/mobile/hardware/customerdisplay/CustomerDisplayManager;->setShowImages(Z)V
+              return-void
+          .end method'''
+
+          text, a = re.subn(
+              r'\.method public final setCustomerDisplayEnabled\(Z\)V.*?\.end method',
+              enabled,
+              text,
+              count=1,
+              flags=re.S,
+          )
+          text, b = re.subn(
+              r'\.method public final setCustomerDisplayImages\(Z\)V.*?\.end method',
+              images,
+              text,
+              count=1,
+              flags=re.S,
+          )
+          if a != 1 or b != 1:
+              raise SystemExit(f"always-on smali patch failed enabled={a} images={b}")
+
+          hardware = r'''
+          .method public final deviceHardwareCapabilities()Ljava/lang/String;
+              .locals 7
+              .annotation runtime Landroid/webkit/JavascriptInterface;
+              .end annotation
+
+              const/4 v0, 0x0
+
+              :try_start_0
+              const-string v1, "com.zcs.sdk.DriverManager"
+              invoke-static {v1}, Ljava/lang/Class;->forName(Ljava/lang/String;)Ljava/lang/Class;
+              move-result-object v1
+
+              const-string v2, "getInstance"
+              const/4 v3, 0x0
+              new-array v4, v3, [Ljava/lang/Class;
+              invoke-virtual {v1, v2, v4}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+              move-result-object v2
+
+              const/4 v4, 0x0
+              new-array v5, v3, [Ljava/lang/Object;
+              invoke-virtual {v2, v4, v5}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+              move-result-object v2
+
+              const-string v5, "getCardReadManager"
+              new-array v6, v3, [Ljava/lang/Class;
+              invoke-virtual {v1, v5, v6}, Ljava/lang/Class;->getMethod(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;
+              move-result-object v1
+
+              new-array v5, v3, [Ljava/lang/Object;
+              invoke-virtual {v1, v2, v5}, Ljava/lang/reflect/Method;->invoke(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;
+              move-result-object v1
+
+              if-eqz v1, :try_end_0
+              const/4 v0, 0x1
+              :try_end_0
+              .catch Ljava/lang/Throwable; {:try_start_0 .. :try_end_0} :catch_0
+              goto :done
+
+              :catch_0
+              move-exception v1
+
+              :done
+              if-eqz v0, :not_ready
+              const-string v0, "{\"contactless_reader\":true,\"zcs_contactless_reader\":true,\"payment_provider_required\":true,\"raw_card_data_exposed\":false}"
+              return-object v0
+
+              :not_ready
+              const-string v0, "{\"contactless_reader\":false,\"zcs_contactless_reader\":false,\"payment_provider_required\":true,\"raw_card_data_exposed\":false}"
+              return-object v0
+          .end method
+
+          '''
+
+          anchor = '.method public final pushCustomerDisplay(Ljava/lang/String;)V'
+          if anchor not in text:
+              raise SystemExit('bridge insertion anchor missing')
+          text = text.replace(anchor, hardware + anchor, 1)
+          p.write_text(text)
+          print('PATCHED_BRIDGE=' + str(p))
+          PY
+
+          grep -R -F 'deviceHardwareCapabilities()Ljava/lang/String;' decoded/smali* >/dev/null
+          grep -Fq 'PMD_ANDROID_NATIVE_BRIDGE_TABLE_GUARD_V124' \
+            decoded/assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js
+
+      - name: Rebuild and sign 0.6.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -jar apktool.jar b decoded -o unsigned.apk
+
+          ZIPALIGN="$ANDROID_HOME/build-tools/35.0.0/zipalign"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+
+          "$ZIPALIGN" -f -p 4 unsigned.apk aligned.apk
+          "$APKSIGNER" sign \
+            --ks "$HOME/.android/debug.keystore" \
+            --ks-pass pass:android \
+            --ks-key-alias androiddebugkey \
+            --key-pass pass:android \
+            --out PayMyDine-Device-App-0.6.1.apk \
+            aligned.apk
+
+          "$ZIPALIGN" -c -p 4 PayMyDine-Device-App-0.6.1.apk
+          "$APKSIGNER" verify --verbose --print-certs PayMyDine-Device-App-0.6.1.apk
+
+      - name: Verify final ZCS 0.6.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='PayMyDine-Device-App-0.6.1.apk'
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          "$AAPT" dump badging "$APK" > badging.txt
+          BADGING="$(sed -n '1p' badging.txt)"
+          echo "$BADGING"
+          grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
+          grep -Fq "versionCode='74'" <<<"$BADGING"
+          grep -Fq "versionName='0.6.1-device-app-v20-debug'" <<<"$BADGING"
+
+          zipinfo -1 "$APK" > entries.txt
+          unzip -p "$APK" assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js > parity.js
+          grep -Fq 'PMD_ZCS_AUTOMATIC_SETTINGS_V124' parity.js
+          grep -Fq 'PMD_ANDROID_NATIVE_BRIDGE_TABLE_GUARD_V124' parity.js
+          grep -Fq 'PMD_ANDROID_NATIVE_VISUAL_CACHE_GUARD_V124' parity.js
+          grep -Fq 'Test NFC / card reader' parity.js
+
+          FOUND_DRIVER=0
+          FOUND_DISPLAY=0
+          FOUND_CARD_READER=0
+          FOUND_DIAGNOSTIC=0
+          grep -E '^classes[0-9]*[.]dex$' entries.txt > dex-list.txt
+          while IFS= read -r DEX; do
+            unzip -p "$APK" "$DEX" > one.dex
+            strings one.dex > dex-strings.txt
+            grep -Eq 'com[./]zcs/sdk/DriverManager' dex-strings.txt && FOUND_DRIVER=1 || true
+            grep -Fq 'showBitmapOnSecondaryScreen' dex-strings.txt && FOUND_DISPLAY=1 || true
+            grep -Fq 'getCardReadManager' dex-strings.txt && FOUND_CARD_READER=1 || true
+            grep -Fq 'deviceHardwareCapabilities' dex-strings.txt && FOUND_DIAGNOSTIC=1 || true
+          done < dex-list.txt
+
+          test "$FOUND_DRIVER" -eq 1
+          test "$FOUND_DISPLAY" -eq 1
+          test "$FOUND_CARD_READER" -eq 1
+          test "$FOUND_DIAGNOSTIC" -eq 1
+          grep -Fq 'lib/arm64-v8a/libSmartPosJni.so' entries.txt
+          grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so' entries.txt
+
+          echo 'PMD_UPDATE_FROM_0_6_0_SIGNER=PASS'
+          echo 'PMD_ZCS_SECOND_SCREEN_PRESERVED=PASS'
+          echo 'PMD_ZCS_CONTACTLESS_READER_PRESERVED=PASS'
+          echo 'PMD_CONTACTLESS_DIAGNOSTIC_BRIDGE=PASS'
+          echo 'PMD_V124_TABLE_GUARD_BUNDLED=PASS'
+          echo 'PMD_V124_AUTOMATIC_SETTINGS_BUNDLED=PASS'
+
+          sha256sum "$APK" > "$APK.sha256"
+          cat "$APK.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PayMyDine-Device-App-0.6.1-ZCS-V20
+          path: |
+            PayMyDine-Device-App-0.6.1.apk
+            PayMyDine-Device-App-0.6.1.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish 0.6.1 preview
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pmd-device-app-preview
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            PayMyDine-Device-App-0.6.1.apk \
+            PayMyDine-Device-App-0.6.1.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
