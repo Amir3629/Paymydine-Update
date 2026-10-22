@@ -57,3 +57,8 @@
  .pmd-staff-time-clock form[data-pmd-clock-geo-form]{width:100%}
  .pmd-staff-break-question{padding:22px 21px}
 }
+
+/* PMD_STAFF_FUSED_GPS_HELP_V3_20261022 — foreground-only permission recovery. */
+.pmd-staff-time-clock__location-help{grid-column:1/-1;display:block;min-height:42px;width:100%;border:1px solid #a7c8b6;border-radius:10px;background:#edf8f1;color:#086349;font:inherit;font-size:12px;font-weight:850;cursor:pointer;padding:7px 10px}
+.pmd-staff-time-clock__location-help[hidden]{display:none!important}
+.pmd-staff-time-clock__location-help:focus-visible{outline:3px solid #91c7a8;outline-offset:2px}
