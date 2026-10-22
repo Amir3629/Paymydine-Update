@@ -10,6 +10,8 @@ on:
       - 'app/admin/assets/css/pmd-quick-pos-v1.css'
       - 'app/admin/assets/css/pmd-qpos-web-parity-v112.css'
       - 'app/admin/views/pmd_quick_pos_v1.blade.php'
+      - 'app/admin/views/pmdsettings/index.blade.php'
+      - 'app/admin/assets/js/pmd-table-display-waiter-payment-v1.js'
       - 'tests/qpos-v125-table-floor-guard.test.cjs'
       - '.github/workflows/zcs-device-app-0-6-2-v21.yml'
   workflow_dispatch:
@@ -34,6 +36,8 @@ jobs:
             app/admin/assets/css/pmd-quick-pos-v1.css
             app/admin/assets/css/pmd-qpos-web-parity-v112.css
             app/admin/views/pmd_quick_pos_v1.blade.php
+            app/admin/views/pmdsettings/index.blade.php
+            app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
             tests/qpos-v125-table-floor-guard.test.cjs
             .github/workflows/zcs-device-app-0-6-2-v21.yml
           sparse-checkout-cone-mode: false
@@ -49,6 +53,9 @@ jobs:
           set -euo pipefail
           node --check app/admin/assets/js/pmd-quick-pos-v1.js
           node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          node --check app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+          grep -Fq 'PMD_TABLE_DEVICE_PROVIDER_SETTLEMENT_GUARD_V137' app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+          grep -Fq 'PayMyDine-Device-App-0.6.2.apk' app/admin/views/pmdsettings/index.blade.php
           node tests/qpos-v125-table-floor-guard.test.cjs
           for file in app/admin/assets/js/pmd-quick-pos-v1.js app/admin/assets/js/pmd-qpos-web-parity-v112.js; do
             grep -Fq 'PMD_QPOS_TABLE_FLOOR_FALLBACK_V125' "$file"
