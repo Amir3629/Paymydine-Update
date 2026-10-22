@@ -1,0 +1,218 @@
+name: ZCS Device App 0.6.0 V19
+
+on:
+  push:
+    branches:
+      - release/zcs-device-app-0-6-0-v19
+    paths:
+      - 'app/admin/assets/js/pmd-quick-pos-v1.js'
+      - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
+      - 'app/admin/assets/css/pmd-quick-pos-v1.css'
+      - 'app/admin/assets/css/pmd-qpos-web-parity-v112.css'
+      - '.github/workflows/zcs-device-app-0-6-0-v19.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/admin/assets/js/pmd-quick-pos-v1.js
+            app/admin/assets/js/pmd-qpos-web-parity-v112.js
+            app/admin/assets/css/pmd-quick-pos-v1.css
+            app/admin/assets/css/pmd-qpos-web-parity-v112.css
+            .github/workflows/zcs-device-app-0-6-0-v19.yml
+          sparse-checkout-cone-mode: false
+
+      - name: Restore stable Device App signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: paymydine-device-app-preview-keystore-v1
+
+      - name: Require stable signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$HOME/.android/debug.keystore"
+
+      - name: Install Android build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" 'platform-tools' 'build-tools;35.0.0'
+
+      - name: Download exact working ZCS 0.5.9 base
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED='3384a692be5cbd9bee69461b8b3222458b3dcfc60cacad7b5b463fcbb73f8a9c'
+          curl -fL --retry 3 --connect-timeout 10 --max-time 180 \
+            'https://tomo.paymydine.com/public/downloads/paymydine/PayMyDine-Device-App-0.5.9.apk' \
+            -o base-zcs-0.5.9.apk
+          echo "$EXPECTED  base-zcs-0.5.9.apk" | sha256sum -c -
+
+      - name: Validate V123/V122 Quick POS assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app/admin/assets/js/pmd-quick-pos-v1.js
+          node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_VISIBLE_SETTINGS_GEAR_V123' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'PMD_ANDROID_LOCAL_BOOTSTRAP_NON_DESTRUCTIVE_V122' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'PMD_ANDROID_LOCAL_IMAGE_NON_DESTRUCTIVE_V122' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          grep -Fq 'pushCustomerDisplayTestOrder' app/admin/assets/js/pmd-qpos-web-parity-v112.js
+
+      - name: Install apktool
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 \
+            'https://github.com/iBotPeaches/Apktool/releases/download/v2.12.0/apktool_2.12.0.jar' \
+            -o apktool.jar
+          test -s apktool.jar
+
+      - name: Decode working ZCS APK and bundle current Quick POS
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -jar apktool.jar d -f base-zcs-0.5.9.apk -o decoded
+
+          mkdir -p decoded/assets/pmd-canonical/js
+          mkdir -p decoded/assets/pmd-canonical/css
+
+          cp app/admin/assets/js/pmd-quick-pos-v1.js \
+            decoded/assets/pmd-canonical/js/pmd-quick-pos-v1.js
+          cp app/admin/assets/js/pmd-qpos-web-parity-v112.js \
+            decoded/assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js
+          cp app/admin/assets/css/pmd-quick-pos-v1.css \
+            decoded/assets/pmd-canonical/css/pmd-quick-pos-v1.css
+          cp app/admin/assets/css/pmd-qpos-web-parity-v112.css \
+            decoded/assets/pmd-canonical/css/pmd-qpos-web-parity-v112.css
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('decoded/apktool.yml')
+          s = p.read_text()
+          s, n1 = re.subn(r"versionCode:\s*'?72'?", "versionCode: '73'", s, count=1)
+          s, n2 = re.subn(
+              r"versionName:\s*'?0\.5\.9-device-app-v18-debug'?",
+              "versionName: 0.6.0-device-app-v19-debug",
+              s,
+              count=1,
+          )
+          if n1 != 1 or n2 != 1:
+              raise SystemExit(f"version patch failed code={n1} name={n2}")
+          p.write_text(s)
+          PY
+
+          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_VISIBLE_SETTINGS_GEAR_V123' \
+            decoded/assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js
+
+      - name: Rebuild, align, and sign
+        shell: bash
+        run: |
+          set -euo pipefail
+          java -jar apktool.jar b decoded -o unsigned.apk
+
+          ZIPALIGN="$ANDROID_HOME/build-tools/35.0.0/zipalign"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+
+          "$ZIPALIGN" -f -p 4 unsigned.apk aligned.apk
+          "$APKSIGNER" sign \
+            --ks "$HOME/.android/debug.keystore" \
+            --ks-pass pass:android \
+            --ks-key-alias androiddebugkey \
+            --key-pass pass:android \
+            --out PayMyDine-Device-App-0.6.0.apk \
+            aligned.apk
+
+          "$ZIPALIGN" -c -p 4 PayMyDine-Device-App-0.6.0.apk
+          "$APKSIGNER" verify --verbose --print-certs PayMyDine-Device-App-0.6.0.apk
+
+      - name: Verify version, bundled UI, and ZCS hardware
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='PayMyDine-Device-App-0.6.0.apk'
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+
+          BADGING="$("$AAPT" dump badging "$APK" | sed -n '1p')"
+          echo "$BADGING"
+          grep -Fq "package: name='com.paymydine.mobile.pospreview'" <<<"$BADGING"
+          grep -Fq "versionCode='73'" <<<"$BADGING"
+          grep -Fq "versionName='0.6.0-device-app-v19-debug'" <<<"$BADGING"
+
+          zipinfo -1 "$APK" > entries.txt
+          grep -Fq 'assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js' entries.txt
+          grep -Fq 'assets/pmd-canonical/js/pmd-quick-pos-v1.js' entries.txt
+          grep -Fq 'assets/pmd-canonical/css/pmd-qpos-web-parity-v112.css' entries.txt
+          grep -Fq 'assets/pmd-canonical/css/pmd-quick-pos-v1.css' entries.txt
+
+          unzip -p "$APK" assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js > parity.js
+          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_VISIBLE_SETTINGS_GEAR_V123' parity.js
+          grep -Fq 'PMD_ANDROID_LOCAL_BOOTSTRAP_NON_DESTRUCTIVE_V122' parity.js
+          grep -Fq 'PMD_ANDROID_LOCAL_IMAGE_NON_DESTRUCTIVE_V122' parity.js
+          grep -Fq 'PMD_ZCS_CUSTOMER_DISPLAY_CACHED_IMAGE_V121' parity.js
+
+          FOUND_DRIVER=0
+          FOUND_DISPLAY_API=0
+          grep -E '^classes[0-9]*[.]dex$' entries.txt > dex-list.txt
+          while IFS= read -r DEX; do
+            unzip -p "$APK" "$DEX" > one.dex
+            strings one.dex > dex-strings.txt
+            if grep -Eq 'com[./]zcs/sdk/DriverManager' dex-strings.txt; then
+              FOUND_DRIVER=1
+            fi
+            if grep -Fq 'showBitmapOnSecondaryScreen' dex-strings.txt; then
+              FOUND_DISPLAY_API=1
+            fi
+          done < dex-list.txt
+
+          test "$FOUND_DRIVER" -eq 1
+          test "$FOUND_DISPLAY_API" -eq 1
+          grep -Fq 'lib/arm64-v8a/libSmartPosJni.so' entries.txt
+          grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so' entries.txt
+
+          echo 'PMD_ZCS_DRIVER=PASS'
+          echo 'PMD_ZCS_SECOND_SCREEN_API=PASS'
+          echo 'PMD_V123_SETTINGS_GEAR_BUNDLED=PASS'
+          echo 'PMD_V122_LOCAL_FIRST_GUARDS_BUNDLED=PASS'
+
+          sha256sum "$APK" > "$APK.sha256"
+          cat "$APK.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PayMyDine-Device-App-0.6.0-ZCS-V19
+          path: |
+            PayMyDine-Device-App-0.6.0.apk
+            PayMyDine-Device-App-0.6.0.apk.sha256
+          if-no-files-found: error
+
+      - name: Publish 0.6.0 preview release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: pmd-device-app-preview
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            PayMyDine-Device-App-0.6.0.apk \
+            PayMyDine-Device-App-0.6.0.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

@@ -1191,9 +1191,9 @@ document.documentElement.classList.add(
                 class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
                 {{-- PMD_SETTINGS_DEVICE_APP_DIRECT_DOWNLOAD_V21 --}}
-                {{-- PMD_DEVICE_APP_0_5_9_ZCS_Z100_V18 --}}
+                {{-- PMD_DEVICE_APP_0_6_0_ZCS_Z100_V19 --}}
                 data-pmd-device-app-download-v21
-                href="/public/downloads/paymydine/PayMyDine-Device-App-0.5.9.apk"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.0.apk"
                 target="_self"
                 rel="noopener noreferrer"
             >
