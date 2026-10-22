@@ -155,4 +155,11 @@
   'Admin\\Models\\Pos_devices_model' => 'app/admin/models/Pos_devices_model.php',
   'Admin\\Models\\FingerDevices_model' => 'app/admin/models/FingerDevices_model.php',
   'Admin\\Models\\Pos_configs_model' => 'app/admin/models/Pos_configs_model.php',
+  'Admin\\Controllers\\pmdreports' => 'app/admin/controllers/Pmdreports.php',
+  'Admin\\Controllers\\pmdmenus' => 'app/admin/controllers/Pmdmenus.php',
+  'Admin\\Models\\Menu_combos_model' => 'app/admin/models/Menu_combos_model.php',
+  'Admin\\Controllers\\pmdsmartcategories' => 'app/admin/controllers/Pmdsmartcategories.php',
+  'Admin\\Controllers\\pmdinventory' => 'app/admin/controllers/Pmdinventory.php',
+  'Admin\\Controllers\\kitchensettings' => 'app/admin/controllers/Kitchensettings.php',
+  'Admin\\Controllers\\shifts' => 'app/admin/controllers/Shifts.php',
 );

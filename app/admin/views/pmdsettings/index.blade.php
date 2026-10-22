@@ -1121,6 +1121,21 @@ document.documentElement.classList.add(
             background:#eefbf4;
         }
 
+        /* PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022: scoped entry beside Device App. */
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--staff {
+            color:#087257;
+            background:#eaf6f0;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__download--pending {
+            opacity:.67;
+            cursor:not-allowed;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__download--pending:hover {
+            background:transparent;
+        }
+
         #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--windows {
             color:#0078d4;
             background:#eef7ff;
@@ -1191,9 +1206,9 @@ document.documentElement.classList.add(
                 class="pmd-cashier-launcher-v107__download"
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
                 {{-- PMD_SETTINGS_DEVICE_APP_DIRECT_DOWNLOAD_V21 --}}
-                {{-- PMD_DEVICE_APP_0_6_1_ZCS_Z100_V20 --}}
+                {{-- PMD_DEVICE_APP_0_5_9_ZCS_Z100_V18 --}}
                 data-pmd-device-app-download-v21
-                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.1.apk"
+                href="/public/downloads/paymydine/PayMyDine-Device-App-0.5.9.apk"
                 target="_self"
                 rel="noopener noreferrer"
             >
@@ -1208,9 +1223,75 @@ document.documentElement.classList.add(
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
                     <strong>PayMyDine Device App · Android</strong>
-                    <small>Android 8+ · Staff · Kiosk · Table Display · ZCS Customer Display · Terminal + Printer Setup · Device Control</small>
+                    <small>Android 8+ · POS · Kiosk · Table Display · ZCS Customer Display · Terminal + Printer Setup · Device Control</small>
                 </span>
             </a>
+
+            {{-- PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022:
+                 A separate Staff Android APK; never point this at the POS/Device APK.
+                 The link is activated only after the verified APK has been published to this VPS. --}}
+            @php
+                // PMD_STAFF_APP_DOWNLOAD_PATH_V2_20261022:
+                // The VPS installer writes to the project-root public/downloads directory.
+                // On TastyIgniter deployments public_path() can resolve to a different webroot.
+                // Prefer the exact installation destination; keep public_path() as a fallback.
+                $pmdStaffApkFilename = 'PayMyDine-Staff-App-0.1.1-debug.apk';
+                $pmdStaffApkRelativePath = 'downloads/paymydine/'.$pmdStaffApkFilename;
+                $pmdStaffApkPaths = [
+                    base_path('public/'.$pmdStaffApkRelativePath),
+                    public_path($pmdStaffApkRelativePath),
+                ];
+                $pmdStaffApkReady = false;
+                foreach (array_unique($pmdStaffApkPaths) as $pmdStaffApkPath) {
+                    clearstatcache(true, $pmdStaffApkPath);
+                    if (is_file($pmdStaffApkPath)
+                        && is_readable($pmdStaffApkPath)
+                        && filesize($pmdStaffApkPath) > 100000) {
+                        $pmdStaffApkReady = true;
+                        break;
+                    }
+                }
+            @endphp
+            @if($pmdStaffApkReady)
+                <a
+                    class="pmd-cashier-launcher-v107__download"
+                    data-pmd-staff-app-download-v1
+                    href="/public/downloads/paymydine/{{ $pmdStaffApkFilename }}"
+                    target="_self"
+                    rel="noopener noreferrer"
+                    download
+                >
+                    <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--staff" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="2.5" width="14" height="19" rx="2.5"/>
+                            <circle cx="12" cy="10" r="3.2"/>
+                            <path d="M7.8 17.1c1-2.2 7.4-2.2 8.4 0M10 19h4"/>
+                        </svg>
+                    </span>
+                    <span class="pmd-cashier-launcher-v107__copy">
+                        <strong>PayMyDine Staff App · Android</strong>
+                        <small>Separate app · Clock in/out with GPS · My Shifts · Requests · Team chat · v0.1.1 preview</small>
+                    </span>
+                </a>
+            @else
+                <div
+                    class="pmd-cashier-launcher-v107__download pmd-cashier-launcher-v107__download--pending"
+                    data-pmd-staff-app-download-pending-v1
+                    aria-disabled="true"
+                >
+                    <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--staff" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="2.5" width="14" height="19" rx="2.5"/>
+                            <circle cx="12" cy="10" r="3.2"/>
+                            <path d="M7.8 17.1c1-2.2 7.4-2.2 8.4 0M10 19h4"/>
+                        </svg>
+                    </span>
+                    <span class="pmd-cashier-launcher-v107__copy">
+                        <strong>PayMyDine Staff App · Android</strong>
+                        <small>Download available after the Staff APK is published to this server.</small>
+                    </span>
+                </div>
+            @endif
 
             <a
                 class="pmd-cashier-launcher-v107__download"
