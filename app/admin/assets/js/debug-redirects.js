@@ -88,8 +88,11 @@ if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
             console.error('❌ CAUSE: Session expired (401 Unauthorized)');
             redirectCauses.push('Session expired');
         } else if (jqXHR.status === 403) {
-            console.error('❌ CAUSE: CSRF token expired (403 Forbidden)');
-            redirectCauses.push('CSRF token expired');
+            // PMD_DEVICE_DEBUG_AUTH_STATUS_V144
+            // 403 is NOT proof of an expired CSRF token; it can mean access
+            // denied or an unauthenticated admin user in the tenant session.
+            console.error('Admin request forbidden (403): inspect login/session and permissions; CSRF is not proven.');
+            redirectCauses.push('Admin request forbidden');
         } else if (jqXHR.status === 419) {
             console.error('❌ CAUSE: CSRF token mismatch (419)');
             redirectCauses.push('CSRF token mismatch');
@@ -139,22 +142,24 @@ if (/^\/admin\/kds_stations(?:\/|$)/.test(window.location.pathname)) {
         }
     }, 1000);
     
-    // Monitor session status
-    setInterval(function() {
-        // Check if we're still authenticated
-        $.ajax({
-            url: '/admin/dashboard',
-            type: 'HEAD',
-            success: function() {
-                console.log('✅ Session still valid');
-            },
-            error: function(xhr) {
-                if (xhr.status === 401) {
-                    console.error('❌ SESSION EXPIRED - This will cause redirect!');
+    // PMD_ADMIN_DEBUG_NO_BACKGROUND_AUTH_PROBE_V144
+    // This diagnostic HEAD /admin/dashboard poll was triggering its own 403s
+    // and misdiagnosing role/tenant denials as CSRF. Disabled by default for
+    // all admin workspaces, including Devices. Opt-in for live debugging only.
+    if (window.PMD_ENABLE_ADMIN_SESSION_POLL === true) {
+        setInterval(function() {
+            $.ajax({
+                url: '/admin/dashboard',
+                type: 'HEAD',
+                success: function() {
+                    console.info('[PayMyDine diagnostics] Admin HEAD probe succeeded.');
+                },
+                error: function(xhr) {
+                    console.warn('[PayMyDine diagnostics] Admin HEAD probe failed:', Number(xhr.status || 0));
                 }
-            }
-        });
-    }, 30000); // Check every 30 seconds
+            });
+        }, 30000);
+    }
     
     // Track form submissions that might cause redirects
     $('form').on('submit', function(e) {

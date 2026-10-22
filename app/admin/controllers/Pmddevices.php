@@ -54,7 +54,11 @@ class Pmddevices extends AdminController
 
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-device-inline-v6.js');
-        $this->addJs('js/pmd-device-platform-v1.js');
+        // PMD_DEVICE_COMMAND_SCRIPT_FRESHNESS_V144:
+        // Deploys must not reuse the old cached command-click handler.
+        $pmdDeviceCommandJs = 'app/admin/assets/js/pmd-device-platform-v1.js';
+        $this->addJs(asset($pmdDeviceCommandJs).'?v='.
+            (string)(@filemtime(base_path($pmdDeviceCommandJs)) ?: '20261022-v144'));
 
                 // PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: route-scoped accessible steppers & true tenant currency.
         foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
@@ -223,7 +227,25 @@ class Pmddevices extends AdminController
 
         $locationId = $this->devicePlatformLocationId();
         $service = app(PmdDevicePlatformService::class);
-        $action = strtoupper(trim((string)post('action', '')));
+        // PMD_DEVICE_COMMAND_SERIALIZED_SUBMITTER_V144
+        // TastyIgniter's AJAX request.js uses jQuery form.serialize(), which
+        // excludes the clicked submit button's name/value. The hidden
+        // pmd_device_command field carries the explicit user-selected action.
+        // Classic non-AJAX submissions still work through the action fallback.
+        $fieldAction = strtoupper(trim((string)post('pmd_device_command', '')));
+        $buttonAction = strtoupper(trim((string)post('action', '')));
+        if ($fieldAction !== '' && $buttonAction !== ''
+            && $fieldAction !== $buttonAction) {
+            abort(422, 'Device command selection does not match its form.');
+        }
+        $action = $fieldAction !== '' ? $fieldAction : $buttonAction;
+        $supported = array_merge(
+            PmdDevicePlatformService::COMMANDS,
+            ['OPEN_RESTAURANT', 'CLOSE_RESTAURANT', 'USE_SCHEDULE']
+        );
+        if (!in_array($action, $supported, true)) {
+            abort(422, 'Choose a valid PayMyDine device command.');
+        }
         $deviceId = (int)post('device_id', 0);
         $targetKind = trim((string)post('target_kind', ''));
         $payload = [];
@@ -294,9 +316,20 @@ class Pmddevices extends AdminController
             $this->devicePlatformStaffId()
         );
 
-        flash()->success(
-            $action.' sent to '.(int)$result['count'].' PayMyDine device(s).'
-        );
+        // PMD_DEVICE_COMMAND_QUEUED_NOT_EXECUTED_V144
+        // Queueing is not equivalent to device acknowledgement/completion.
+        $queued = (int)($result['count'] ?? 0);
+        if ($queued < 1) {
+            flash()->warning(
+                'No eligible PayMyDine device is registered for this command. '.
+                'Nothing was sent. Check pairing and device capabilities.'
+            );
+        } else {
+            flash()->success(
+                $action.' queued for '.$queued.
+                ' device(s). Execution requires device acknowledgement.'
+            );
+        }
     }
 
     /** PMD_DEVICE_PLATFORM_V1 */

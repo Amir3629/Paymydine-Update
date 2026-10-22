@@ -1,0 +1,76 @@
+name: Devices V144 AJAX Command QA
+on:
+  push:
+    branches:
+      - fix/devices-commands-and-payment-readiness-v144-20261022
+  pull_request:
+    paths:
+      - 'app/admin/controllers/Pmddevices.php'
+      - 'app/admin/views/pmddevices/index.blade.php'
+      - 'app/admin/assets/js/pmd-device-platform-v1.js'
+      - 'app/admin/assets/js/debug-redirects.js'
+      - 'tests/pmd-devices-v144-command-auth.test.cjs'
+      - 'scripts/pmd-devices-v144-safe-deploy.sh'
+      - '.github/workflows/pmd-devices-v144-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            app/admin/controllers/Pmddevices.php
+            app/admin/views/pmddevices/index.blade.php
+            app/admin/assets/js/pmd-device-platform-v1.js
+            app/admin/assets/js/debug-redirects.js
+            app/admin/assets/src/js/request.js
+            tests/pmd-devices-v144-command-auth.test.cjs
+            scripts/pmd-devices-v144-safe-deploy.sh
+          sparse-checkout-cone-mode: false
+      - name: Syntax and simulated user interaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/admin/controllers/Pmddevices.php
+          node --check app/admin/assets/js/pmd-device-platform-v1.js
+          node --check app/admin/assets/js/debug-redirects.js
+          node --test tests/pmd-devices-v144-command-auth.test.cjs
+          bash -n scripts/pmd-devices-v144-safe-deploy.sh
+
+      - name: Compare pinned staged file patch with V144 production tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=e2cba7d0713a7e3f11d7da0c2706f3c8cdd2a926
+          FIX=a8aa32951fb18421be56ca503caa07cb01acb6db
+          FILES=(
+            app/admin/controllers/Pmddevices.php
+            app/admin/views/pmddevices/index.blade.php
+            app/admin/assets/js/pmd-device-platform-v1.js
+            app/admin/assets/js/debug-redirects.js
+          )
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          git diff --binary "$BASE" "$FIX" -- "${FILES[@]}" > "$TMP/p.patch"
+          test -s "$TMP/p.patch"
+          mkdir -p "$TMP/orig" "$TMP/staged"
+          for f in "${FILES[@]}"; do
+            mkdir -p "$TMP/orig/$(dirname "$f")" "$TMP/staged/$(dirname "$f")"
+            git show "$BASE:$f" > "$TMP/orig/$f"
+            cp "$TMP/orig/$f" "$TMP/staged/$f"
+          done
+          ( cd "$TMP/staged" && git apply --check "$TMP/p.patch" && git apply "$TMP/p.patch" )
+          for f in "${FILES[@]}"; do
+            expected="$(git rev-parse "$FIX:$f")"
+            actual="$(git hash-object "$TMP/staged/$f")"
+            test "$expected" = "$actual"
+          done
+          ( cd "$TMP/staged" && git apply -R --check "$TMP/p.patch" && git apply -R "$TMP/p.patch" )
+          for f in "${FILES[@]}"; do cmp "$TMP/orig/$f" "$TMP/staged/$f"; done
+          echo 'V144 APPROVED FOUR-FILE DIFF AND REVERSE CHECK: PASS'

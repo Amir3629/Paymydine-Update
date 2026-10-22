@@ -130,9 +130,11 @@
                 <form
                     class="pmd-device-platform-actions"
                     data-request="onPmdDevicePlatformCommand"
+                    data-pmd-device-command-form-v144
                     data-request-flash
                     data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
                 >
+                    <input type="hidden" name="pmd_device_command" value="">
                     <button class="pmd-owner-action pmd-device-platform-primary" type="submit" name="action" value="OPEN_RESTAURANT">
                         {{ $pmdSettingsText('Open restaurant') }}
                     </button>
@@ -444,10 +446,12 @@
                                 <form
                                     class="pmd-device-platform-row-actions"
                                     data-request="onPmdDevicePlatformCommand"
+                                    data-pmd-device-command-form-v144
                                     data-request-flash
                                     data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
                                 >
                                     <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                    <input type="hidden" name="pmd_device_command" value="">
                                     <button type="submit" name="action" value="WAKE">{{ $pmdSettingsText('Wake') }}</button>
                                     <button type="submit" name="action" value="SLEEP">{{ $pmdSettingsText('Sleep') }}</button>
                                     <label class="pmd-device-platform-brightness">
