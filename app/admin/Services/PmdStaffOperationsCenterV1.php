@@ -34,11 +34,15 @@ final class PmdStaffOperationsCenterV1
                 ->where('a.location_id', $locationId)
                 ->select(['a.attendance_id','a.staff_id','a.check_in_time','a.check_out_time',
                     's.staff_name']);
+            // PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022: expose only
+            // schedule_status from existing metadata for review; no raw GPS.
+            if (Schema::hasColumn('staff_attendance', 'metadata')) {
+                $query->addSelect('a.metadata');
+            }
             $data['active'] = (clone $query)->whereNull('a.check_out_time')
                 ->orderByDesc('a.attendance_id')->limit(75)->get();
-            $recent = (clone $query);
-            if (Schema::hasColumn('staff_attendance', 'metadata')) $recent->addSelect('a.metadata');
-            $data['recent'] = $recent->orderByDesc('a.attendance_id')->limit(25)->get();
+            $data['recent'] = (clone $query)
+                ->orderByDesc('a.attendance_id')->limit(25)->get();
         }
 
         if (Schema::hasTable('pmd_staff_requests') && Schema::hasTable('pmd_operational_people')) {
