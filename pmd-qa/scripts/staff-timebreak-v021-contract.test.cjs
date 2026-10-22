@@ -68,12 +68,19 @@ assert.match(clockStyle,/pmd-staff-break-question\[hidden\]/);
 
 assert.match(native,/PMD_STAFF_FAST_PRECISE_GPS_V2_20261022/);
 assert.match(native,/getLastKnownLocation/);
+assert.match(native,/getFusedLocationProviderClient/);
+assert.match(native,/CurrentLocationRequest\.Builder/);
+assert.match(native,/getCurrentLocation/);
+assert.match(native,/PMD_STAFF_FUSED_LOCATION_V3_20261022/);
+assert.match(clock,/PMD_STAFF_FUSED_LOCATION_V3_20261022/);
+assert.match(clock,/pmdstaff:\/\/locationsettings/);
+assert.doesNotMatch(native,/ACCESS_BACKGROUND_LOCATION/);
 assert.match(native,/goodFreshFix/);
-assert.match(native,/postDelayed\(timeout, 15_000L\)/);
+assert.match(native,/postDelayed\(timeout, 28_000L\)/);
 assert.match(native,/reportNativeGpsAccuracy/);
 assert.match(native,/location\.accuracy <= 90f/);
 assert.match(native,/isTrustedClockDocument\(browser\.url\)/);
-assert.match(gradle,/versionName = "0\.2\.1"/);
+assert.match(gradle,/versionName = "0\.2\.2"/);
 
 new vm.Script(clock,{filename:'pmd-staff-time-clock-v1.js'});
 new vm.Script(locale,{filename:'pmd-staff-portal-locale-v2.js'});
@@ -81,4 +88,4 @@ const bodyScript=view.lastIndexOf('<script>');
 const end=view.indexOf('</script>',bodyScript);
 assert.ok(bodyScript>0&&end>bodyScript);
 new vm.Script(view.slice(bodyScript+8,end),{filename:'Staff Portal inline JS'});
-console.log('Staff Time/Break 0.2.1 contracts: precise native GPS, country ISO-2, stable nav, secure break endpoints, net hours PASSED');
+console.log('Staff Time/Break 0.2.2 contracts: precise native GPS, country ISO-2, stable nav, secure break endpoints, net hours PASSED');
