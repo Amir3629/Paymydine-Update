@@ -74,6 +74,7 @@
     <title>{{ $pmdStaffCopy['title'] }}</title>
     <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-staff-v3">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v1.css?v=3">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=1">
 </head>
 <body class="pmd-staff-login-page">
 <main class="pmd-staff-login-shell">
