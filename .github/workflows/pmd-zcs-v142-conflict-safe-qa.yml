@@ -1,0 +1,81 @@
+name: ZCS V142 Conflict-Safe VPS Overlay QA
+on:
+  push:
+    branches:
+      - fix/android-pos-v140-stability-payment-20261022
+    paths:
+      - 'scripts/pmd-zcs-v142-settings-surgical.py'
+      - 'scripts/pmd-zcs-v142-conflict-safe-overlay.sh'
+      - 'tests/test_pmd_zcs_v142_settings_surgical.py'
+      - '.github/workflows/pmd-zcs-v142-conflict-safe-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conflict-safe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            scripts/pmd-zcs-v142-settings-surgical.py
+            scripts/pmd-zcs-v142-conflict-safe-overlay.sh
+            tests/test_pmd_zcs_v142_settings_surgical.py
+            app/admin/views/pmdsettings/index.blade.php
+            app/admin/views/pmd_quick_pos_v1.blade.php
+            app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+            app/Http/Controllers/PmdTableDisplayPaymentController.php
+            routes/admin-quick-mode.php
+          sparse-checkout-cone-mode: false
+
+      - name: Validate syntax and dirty Settings regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/pmd-zcs-v142-conflict-safe-overlay.sh
+          python3 -m py_compile scripts/pmd-zcs-v142-settings-surgical.py
+          python3 -m unittest discover -s tests -p 'test_pmd_zcs_v142_settings_surgical.py' -v
+
+      - name: Simulate four-file patch and independently audit Settings-only edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=6772783b9c0fd1ec3fd3c2672036120e03b746a7
+          FIX=08842c850d27df1c027b8990dcbc115881ad467a
+          git cat-file -e "$BASE^{commit}"
+          git cat-file -e "$FIX^{commit}"
+          PATCH_FILES=(
+            app/Http/Controllers/PmdTableDisplayPaymentController.php
+            routes/admin-quick-mode.php
+            app/admin/assets/js/pmd-table-display-waiter-payment-v1.js
+            app/admin/views/pmd_quick_pos_v1.blade.php
+          )
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          mkdir -p "$TMP/stage" "$TMP/expected"
+          git diff --binary "$BASE" "$FIX" -- "${PATCH_FILES[@]}" > "$TMP/only-four.patch"
+          test -s "$TMP/only-four.patch"
+          ! grep -Fq 'pmdsettings/index.blade.php' "$TMP/only-four.patch"
+          for f in "${PATCH_FILES[@]}"; do
+            mkdir -p "$TMP/stage/$(dirname "$f")" "$TMP/expected/$(dirname "$f")"
+            git show "$BASE:$f" > "$TMP/stage/$f"
+            git show "$FIX:$f" > "$TMP/expected/$f"
+          done
+          (
+            cd "$TMP/stage"
+            git apply --check "$TMP/only-four.patch"
+            git apply "$TMP/only-four.patch"
+          )
+          for f in "${PATCH_FILES[@]}"; do
+            cmp "$TMP/stage/$f" "$TMP/expected/$f"
+          done
+          git show "$BASE:app/admin/views/pmdsettings/index.blade.php" > "$TMP/old-settings.blade.php"
+          git show "$FIX:app/admin/views/pmdsettings/index.blade.php" > "$TMP/expected-settings.blade.php"
+          python3 scripts/pmd-zcs-v142-settings-surgical.py \
+            "$TMP/old-settings.blade.php" "$TMP/new-settings.blade.php"
+          cmp "$TMP/new-settings.blade.php" "$TMP/expected-settings.blade.php"
+          echo 'V142 FOUR-FILE PATCH + BYTE-PRESERVING DIRTY SETTINGS = PASS'
