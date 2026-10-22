@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- PMD_STAFF_PRIVACY_COPY_TR_V2_20261022 -->
+    <string name="app_name">PayMyDine Staff</string>
+    <string name="staff_setup_title">Vardiyan burada başlıyor.</string>
+    <string name="staff_setup_subtitle">Giriş yapmak için restoran kodunu gir.</string>
+    <string name="staff_restaurant_code">Restoran kodu</string>
+    <string name="staff_restaurant_example">tomo</string>
+    <string name="staff_restaurant_hint">Restoran kodunu yöneticinden alabilirsin.</string>
+    <string name="staff_location_summary">Konumun yalnızca vardiyaya başlarken veya vardiyayı bitirirken yoklama doğrulaması için kontrol edilir.</string>
+    <string name="staff_privacy_view">Gizlilik ve konum bilgileri</string>
+    <string name="staff_privacy_title">PayMyDine Staff uygulamasındaki verilerin</string>
+    <string name="staff_privacy_details">Giriş bilgilerin, vardiyaların, taleplerin ve ekip mesajların restoran çalışma alanında işlenir. Uygulama, yalnızca vardiyaya başladığında veya vardiyayı bitirdiğinde iş yerinde olduğunu doğrulamak için hassas konum erişimi ister. Konum kontrolü ve sunucuda kaydedilen çalışma saatleri saklanabilir ve yetkili restoran yöneticileri tarafından görülebilir. Arka planda konum takibi yapılmaz. Çalışanlara yönelik tam gizlilik bildirimi, saklama süreleri ve veri koruma iletişim bilgileri için işverenine başvur.</string>
+    <string name="staff_privacy_close">Kapat</string>
+    <string name="staff_notice_ack">Gizlilik ve konum bilgilerini okudum.</string>
+    <string name="staff_notice_required">Devam etmek için gizlilik bilgilerini okuyup onayla.</string>
+    <string name="staff_continue">Girişe devam et</string>
+    <string name="staff_invalid_code">Restoran kodunu gir (ör. tomo).</string>
+</resources>
