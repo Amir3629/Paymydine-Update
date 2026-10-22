@@ -230,6 +230,7 @@
                             type="button"
                             class="pmd-qpos-table{{ $pmdHasAttention ? ' has-attention' : '' }}{{ $pmdDisabledR39 ? ' is-disabled-table-r39' : '' }}"
                             data-qpos-table="{{ $table['id'] ?? 0 }}"
+                            data-qpos-table-floor="{{ $table['floor_id'] ?? $pmdInitialFloorId }}"
                             data-status="{{ $pmdStatus }}"
                             data-payment-state="{{ $pmdPaymentState }}"
                             @if($pmdFloorNoteR39 !== '') title="{{ 'Internal note: '.$pmdFloorNoteR39 }}" @endif
