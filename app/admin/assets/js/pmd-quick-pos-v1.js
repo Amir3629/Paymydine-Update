@@ -1953,6 +1953,41 @@
     return rows;
   }
 
+  /* PMD_ANDROID_FOOD_IMAGE_CLOUD_FALLBACK_V140
+   * Existing Android 0.6.2 masks menu image URLs when its private cache is
+   * incomplete. While Cloud is verified reachable, recover same-tenant image
+   * references from the native SQLite snapshot. Never make an offline
+   * network request, trust an arbitrary domain, or drop a known-good photo.
+   */
+  var nativeTrustedImageSourcesV140 = null;
+  function trustedNativeImageSourcesV140() {
+    if (!nativeLocalTransportAvailable()) return null;
+    var native = window.PayMyDineOffline;
+    if (!native || typeof native.snapshot !== 'function' ||
+        typeof native.syncStatus !== 'function') return null;
+    try {
+      var status = JSON.parse(String(native.syncStatus() || '{}'));
+      if (!status || status.cloud_available !== true) return null;
+      if (nativeTrustedImageSourcesV140) return nativeTrustedImageSourcesV140;
+      var data = JSON.parse(String(native.snapshot('') || '{}'));
+      if (!data || data.ok !== true || !Array.isArray(data.menu)) return null;
+      var out = Object.create(null);
+      data.menu.forEach(function (entry) {
+        var raw = entry && entry.payload && String(entry.payload.image || '');
+        if (!raw || !entry.id) return;
+        try {
+          var url = new URL(raw, window.location.origin);
+          if (url.protocol !== 'https:' ||
+              url.host !== window.location.host ||
+              url.username || url.password) return;
+          out[String(Number(entry.id))] = url.href;
+        } catch (ignored) {}
+      });
+      nativeTrustedImageSourcesV140 = out;
+      return out;
+    } catch (ignored) { return null; }
+  }
+
   function nativeBootstrapCollectionsV122(json, previousLocationId) {
     var incomingFloors = Array.isArray(json.floors) ? json.floors : [];
     var incomingTables = Array.isArray(json.tables) ? json.tables : [];
@@ -2042,6 +2077,18 @@
          * Clearing Android's cache can temporarily make the native bootstrap
          * return image:"" while the background prefetch is rebuilding. Keep the
          * already-rendered Cloud/cached-shell image until native bytes return. */
+        if (!nextImage && !previousImage) {
+          var trustedImagesV140 = trustedNativeImageSourcesV140();
+          var trustedSourceV140 = trustedImagesV140 && trustedImagesV140[id];
+          if (trustedSourceV140) {
+            next = Object.assign({}, next, {
+              image: trustedSourceV140,
+              images: [trustedSourceV140]
+            });
+            nextImage = trustedSourceV140;
+          }
+        }
+
         if (!nextImage && previousImage) {
           next = Object.assign({}, next, {image: previousImage});
           if (
