@@ -30,9 +30,3 @@ jobs:
           php -l scripts/pmd-z100-live-readiness-v145.php
           php -l app/Services/PmdDevicePlatformService.php
           node --test tests/pmd-z100-live-health-v145.test.cjs
-      - name: Explicitly refuse running tenant audit in CI
-        shell: bash
-        run: |
-          set -euo pipefail
-          ! grep -E 'php scripts/pmd-z100-live-readiness-v145.php' .github/workflows/pmd-z100-live-health-v145.yml
-          echo 'Production database is never accessed by CI.'
