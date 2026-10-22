@@ -9051,8 +9051,35 @@
 
       var status = String(result.status || '').toLowerCase();
 
-      if (status === 'paid') {
+      /* PMD_QPOS_TERMINAL_CANONICAL_SETTLEMENT_GUARD_V141
+       * Provider approved is NOT synonymous with ledger recorded. Never
+       * mark Cashier Paid or show ZCS success before canonical confirmation.
+       * Do not retry a possibly charged card: reconcile with provider. */
+      if (status === 'paid' &&
+          (result.payment_recorded !== true || result.simulated === true)) {
+        showPaymentError(
+          'Provider reports paid, but PayMyDine has not confirmed settlement. ' +
+          'Do not charge the card again. Check the provider and reconcile.'
+        );
+        return;
+      }
+
+      if (status === 'paid' &&
+          result.payment_recorded === true &&
+          result.simulated !== true) {
         await loadPaymentSummary(true);
+        var confirmedSettlementV141 =
+          state.payment.summary &&
+          state.payment.summary.settlement &&
+          String(state.payment.summary.settlement.status || '').toLowerCase() === 'paid' &&
+          num(state.payment.summary.settlement.remaining_amount, 1) <= 0.005;
+        if (!confirmedSettlementV141) {
+          showPaymentError(
+            'Terminal reports paid, but order settlement is still unconfirmed. ' +
+            'Do not charge the card again. Reconcile this payment.'
+          );
+          return;
+        }
         pushCustomerDisplaySuccess(
           num(
             state.payment.summary &&
