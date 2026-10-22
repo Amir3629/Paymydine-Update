@@ -1121,6 +1121,21 @@ document.documentElement.classList.add(
             background:#eefbf4;
         }
 
+        /* PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022: scoped entry beside Device App. */
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--staff {
+            color:#087257;
+            background:#eaf6f0;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__download--pending {
+            opacity:.67;
+            cursor:not-allowed;
+        }
+
+        #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__download--pending:hover {
+            background:transparent;
+        }
+
         #pmd-cashier-settings-launcher-v107 .pmd-cashier-launcher-v107__platform--windows {
             color:#0078d4;
             background:#eef7ff;
@@ -1208,9 +1223,58 @@ document.documentElement.classList.add(
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
                     <strong>PayMyDine Device App · Android</strong>
-                    <small>Android 8+ · Staff · Kiosk · Table Display · ZCS Customer Display · Terminal + Printer Setup · Device Control</small>
+                    <small>Android 8+ · POS · Kiosk · Table Display · ZCS Customer Display · Terminal + Printer Setup · Device Control</small>
                 </span>
             </a>
+
+            {{-- PMD_STAFF_APP_SETTINGS_DOWNLOAD_V1_20261022:
+                 A separate Staff Android APK; never point this at the POS/Device APK.
+                 The link is activated only after the verified APK has been published to this VPS. --}}
+            @php
+                $pmdStaffApkFilename = 'PayMyDine-Staff-App-0.1.1-debug.apk';
+                $pmdStaffApkReady = is_file(public_path('downloads/paymydine/'.$pmdStaffApkFilename))
+                    && filesize(public_path('downloads/paymydine/'.$pmdStaffApkFilename)) > 100000;
+            @endphp
+            @if($pmdStaffApkReady)
+                <a
+                    class="pmd-cashier-launcher-v107__download"
+                    data-pmd-staff-app-download-v1
+                    href="/public/downloads/paymydine/{{ $pmdStaffApkFilename }}"
+                    target="_self"
+                    rel="noopener noreferrer"
+                    download
+                >
+                    <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--staff" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="2.5" width="14" height="19" rx="2.5"/>
+                            <circle cx="12" cy="10" r="3.2"/>
+                            <path d="M7.8 17.1c1-2.2 7.4-2.2 8.4 0M10 19h4"/>
+                        </svg>
+                    </span>
+                    <span class="pmd-cashier-launcher-v107__copy">
+                        <strong>PayMyDine Staff App · Android</strong>
+                        <small>Separate app · Clock in/out with GPS · My Shifts · Requests · Team chat · v0.1.1 preview</small>
+                    </span>
+                </a>
+            @else
+                <div
+                    class="pmd-cashier-launcher-v107__download pmd-cashier-launcher-v107__download--pending"
+                    data-pmd-staff-app-download-pending-v1
+                    aria-disabled="true"
+                >
+                    <span class="pmd-cashier-launcher-v107__platform pmd-cashier-launcher-v107__platform--staff" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="2.5" width="14" height="19" rx="2.5"/>
+                            <circle cx="12" cy="10" r="3.2"/>
+                            <path d="M7.8 17.1c1-2.2 7.4-2.2 8.4 0M10 19h4"/>
+                        </svg>
+                    </span>
+                    <span class="pmd-cashier-launcher-v107__copy">
+                        <strong>PayMyDine Staff App · Android</strong>
+                        <small>Download available after the Staff APK is published to this server.</small>
+                    </span>
+                </div>
+            @endif
 
             <a
                 class="pmd-cashier-launcher-v107__download"
