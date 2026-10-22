@@ -1,4 +1,6 @@
 /* PMD_SHIFTS_STAFF_CENTER_UI_V1_20261021 */
+/* PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022 */
+.pmd-staff-ops__entry small.pmd-staff-ops__unscheduled{display:inline-block;max-width:100%;color:#946018;font-weight:800;white-space:normal;overflow-wrap:anywhere}
 .pmd-shifts__header-actions .pmd-staff-ops__open{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;margin-right:12px;padding:0 15px;border:1px solid #a8cdbd;border-radius:14px;background:#edf8f3;color:#075745;font-size:12px;font-weight:800;line-height:1.2;white-space:nowrap;cursor:pointer}
 .pmd-shifts__header-actions .pmd-staff-ops__open svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .pmd-shifts__header-actions .pmd-staff-ops__open:hover{background:#ddf1e7;border-color:#6aab95}
