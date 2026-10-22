@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # PMD_STAFF_NATIVE_CLOCK_GPS_DEPLOY_V1_20261022
-# Installs only Staff Time Clock web JS and its PHP asset-version loader.
+# Installs Staff Clock + Owner Staff Activity unscheduled-attendance UI.
+# PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022
+# No schema changes, shift plans, identities, POS or device APK are modified.
 # The Android native fix still requires a NEW Staff APK on the phone.
 set -Eeuo pipefail
 
@@ -18,7 +20,11 @@ TEMP=""
 INSTALLING=0
 FILES=(
   "app/admin/assets/js/pmd-staff-time-clock-v1.js"
+  "app/admin/assets/css/pmd-staff-time-clock-v1.css"
   "app/Http/Controllers/PmdStaffPortalV6Controller.php"
+  "app/admin/Services/PmdStaffOperationsCenterV1.php"
+  "app/admin/views/pmdshifts/_staff_operations_center_v1.blade.php"
+  "app/admin/assets/css/pmd-shifts-staff-center-v1.css"
 )
 
 cleanup() {
@@ -44,6 +50,7 @@ for f in "${FILES[@]}"; do
   curl -fLsS --retry 3 --connect-timeout 15 "$BASE/$f" -o "$STAGE/$f"
   test -s "$STAGE/$f"
   case "$f" in
+    *.blade.php) : ;;
     *.js)
       if command -v node >/dev/null 2>&1; then node --check "$STAGE/$f"; fi
       ;;
@@ -65,14 +72,24 @@ grep -Fq "PMDStaffNativeGPS" \
   }
 grep -Fq "pmdstaffgeo://clock?request=" \
   "$STAGE/app/admin/assets/js/pmd-staff-time-clock-v1.js"
-grep -Fq "'?v=4'" \
+grep -Fq "'?v=5'" \
   "$STAGE/app/Http/Controllers/PmdStaffPortalV6Controller.php"
+grep -Fq "PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022" \
+  "$STAGE/app/Http/Controllers/PmdStaffPortalV6Controller.php"
+grep -Fq "PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022" \
+  "$STAGE/app/admin/Services/PmdStaffOperationsCenterV1.php"
+grep -Fq "pmd-staff-ops__unscheduled" \
+  "$STAGE/app/admin/views/pmdshifts/_staff_operations_center_v1.blade.php"
+grep -Fq "PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022" \
+  "$STAGE/app/admin/assets/css/pmd-staff-time-clock-v1.css"
+grep -Fq "PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022" \
+  "$STAGE/app/admin/assets/css/pmd-shifts-staff-center-v1.css"
 
 echo "=== Backup originals ==="
 for f in "${FILES[@]}"; do cp -a "$f" "$BACKUP/$f"; done
 echo "Backup: $BACKUP"
 
-echo "=== Install only 2 server files ==="
+echo "=== Install 6 Staff Time Clock and Staff Activity files ==="
 INSTALLING=1
 for f in "${FILES[@]}"; do
   TEMP="$(mktemp "$(dirname "$f")/.pmd-staff-gps.XXXXXXXX")"
@@ -87,7 +104,7 @@ done
 php artisan view:clear
 INSTALLING=0
 echo "======================================="
-echo "STAFF NATIVE GPS SERVER V1 INSTALLED"
+echo "STAFF NATIVE GPS + UNSCHEDULED ATTENDANCE V2 INSTALLED"
 echo "Commit: $REV"
 echo "Backup: $BACKUP"
 echo "======================================="
