@@ -21,6 +21,9 @@ use App\Services\PmdStaffClockGeofenceV1;
  *
  * Planning and attendance intentionally remain separate: clock-in/out does not
  * rewrite pmd_operational_shift_people.attendance_status or the rota itself.
+ * PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022: a staff member can clock in
+ * without a rota assignment; the actual work session is marked unscheduled
+ * in staff_attendance.metadata for manager review, not written as a planned shift.
  */
 class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 {
@@ -102,6 +105,24 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                     ->first();
                 if ($open) return ['ok' => false, 'reason' => 'already_open', 'row' => $open];
 
+                // A manager might not yet have assigned today's rota. Actual onsite
+                // attendance is always permitted for an authenticated active member.
+                // Record the exception instead of silently editing the published rota.
+                $hasPlannedShift = false;
+                if (Schema::hasTable('pmd_operational_shifts')
+                    && Schema::hasTable('pmd_operational_shift_people')
+                    && Schema::hasTable('pmd_operational_people')) {
+                    $hasPlannedShift = DB::table('pmd_operational_shift_people as assignment')
+                        ->join('pmd_operational_shifts as shift', 'shift.id', '=', 'assignment.shift_id')
+                        ->join('pmd_operational_people as person', 'person.id', '=', 'assignment.person_id')
+                        ->where('person.staff_id', $staffId)
+                        ->where('person.location_id', $locationId)
+                        ->where('shift.location_id', $locationId)
+                        ->whereDate('shift.shift_date', $now->toDateString())
+                        ->whereNotIn('shift.status', ['cancelled', 'canceled'])
+                        ->exists();
+                }
+
                 $values = [
                     'staff_id' => $staffId,
                     'check_in_time' => $now,
@@ -118,12 +139,17 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                     $values['metadata'] = json_encode([
                         'source' => 'staff_portal_geofence_v1',
                         'person_id' => (int)$identity['person_id'],
+                        'schedule_status' => $hasPlannedShift ? 'scheduled' : 'unscheduled',
                         'clock_in_geo' => $geo['evidence'],
                     ], JSON_UNESCAPED_SLASHES);
                 }
 
                 $id = (int)DB::table('staff_attendance')->insertGetId($values, 'attendance_id');
-                return ['ok' => true, 'attendance_id' => $id];
+                return [
+                    'ok' => true,
+                    'attendance_id' => $id,
+                    'unscheduled' => !$hasPlannedShift,
+                ];
             });
         } catch (\Throwable $error) {
             logger()->error('PMD Staff Portal clock-in failed', [
@@ -138,7 +164,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
             return redirect('/staff#schedule')->with('error', 'Your shift is already running.');
         }
 
-        return redirect('/staff#schedule')->with('success', 'Shift started at '.$now->format('H:i').'.');
+        $message = !empty($result['unscheduled'])
+            ? 'Unscheduled shift started at '.$now->format('H:i').'. Your actual work time is recorded for your manager.'
+            : 'Shift started at '.$now->format('H:i').'.';
+        return redirect('/staff#schedule')->with('success', $message);
     }
 
     public function clockOut(Request $request): RedirectResponse
@@ -234,6 +263,7 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         $base = [
             'ready' => false,
             'active' => false,
+            'unscheduled' => false,
             'attendance_id' => null,
             'check_in_iso' => null,
             'check_in_label' => null,
@@ -267,6 +297,9 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
             try {
                 $checkIn = Carbon::parse($open->check_in_time);
                 $base['active'] = true;
+                $openMeta = json_decode((string)($open->metadata ?? ''), true);
+                $base['unscheduled'] = is_array($openMeta)
+                    && ($openMeta['schedule_status'] ?? '') === 'unscheduled';
                 $base['attendance_id'] = (int)$open->attendance_id;
                 $base['check_in_iso'] = $checkIn->toIso8601String();
                 $base['check_in_label'] = $checkIn->format('H:i');
