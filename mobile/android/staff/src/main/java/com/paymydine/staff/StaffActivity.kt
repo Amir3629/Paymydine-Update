@@ -67,6 +67,9 @@ class StaffActivity : Activity() {
     private var nativeRequestId: String? = null
     private var nativeLocationListener: LocationListener? = null
     private var nativeTimeout: Runnable? = null
+    // PMD_STAFF_FAST_PRECISE_GPS_V2_20261022: quick fresh fix, 15-second bound,
+    // and non-sensitive accuracy progress (never location coordinates in logs).
+    private var nativeBestAccuracy: Float? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -369,21 +372,55 @@ class StaffActivity : Activity() {
             return
         }
 
+        nativeBestAccuracy = null
+
+        fun goodFreshFix(location: Location): Boolean {
+            val ageMs = System.currentTimeMillis() - location.time
+            return ageMs in -5_000L..20_000L &&
+                location.hasAccuracy() && location.accuracy > 0f &&
+                location.accuracy <= 90f &&
+                location.latitude.isFinite() && location.longitude.isFinite()
+        }
+        // LocationManager may already hold a fix acquired seconds ago.
+        // Reuse only a truly fresh, precise one; older/city-level fixes still fail closed.
+        for (provider in providers) {
+            try {
+                val fix = manager.getLastKnownLocation(provider)
+                if (fix != null && goodFreshFix(fix)) {
+                    finishNativeClockGps(fix, null)
+                    return
+                }
+            } catch (_: SecurityException) {
+                finishNativeClockGps(null, "precise_denied")
+                return
+            } catch (_: Exception) {}
+        }
+
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                // Never submit a cached or low-precision fix. Server validation remains authoritative.
                 val ageMs = System.currentTimeMillis() - location.time
                 if (ageMs < -5_000L || ageMs > 20_000L ||
                     !location.hasAccuracy() || location.accuracy <= 0f ||
-                    location.accuracy > 90f ||
                     !location.latitude.isFinite() || !location.longitude.isFinite()) return
+                if (location.accuracy > 90f) {
+                    if (nativeBestAccuracy == null || location.accuracy < nativeBestAccuracy!!) {
+                        nativeBestAccuracy = location.accuracy
+                        reportNativeGpsAccuracy(location.accuracy)
+                    }
+                    return
+                }
                 finishNativeClockGps(location, null)
             }
         }
         nativeLocationListener = listener
-        val timeout = Runnable { finishNativeClockGps(null, "timeout") }
+        val timeout = Runnable {
+            val accuracy = nativeBestAccuracy
+            finishNativeClockGps(null,
+                if (accuracy != null) "inaccurate:" + accuracy.toInt().coerceIn(91, 9999)
+                else "no_fix")
+        }
         nativeTimeout = timeout
-        nativeLocationHandler.postDelayed(timeout, 20_000L)
+        nativeLocationHandler.postDelayed(timeout, 15_000L)
 
         var registered = 0
         for (provider in providers) {
@@ -397,6 +434,18 @@ class StaffActivity : Activity() {
             }
         }
         if (registered == 0) finishNativeClockGps(null, "provider_unavailable")
+    }
+
+    private fun reportNativeGpsAccuracy(accuracy: Float) {
+        val request = nativeRequestId ?: return
+        if (!isTrustedClockDocument(browser.url)) return
+        val payload = JSONObject().put("request", request)
+            .put("accuracy_m", accuracy.toDouble())
+        // Only accuracy, no raw coordinates; the trusted page may display GPS progress.
+        browser.evaluateJavascript(
+            "window.PMD_STAFF_NATIVE_GPS_PROGRESS && window.PMD_STAFF_NATIVE_GPS_PROGRESS($payload);",
+            null
+        )
     }
 
     private fun finishNativeClockGps(
@@ -414,6 +463,7 @@ class StaffActivity : Activity() {
             } catch (_: Exception) {}
         }
         nativeLocationListener = null
+        nativeBestAccuracy = null
 
         if (!notify || request == null || !isTrustedClockDocument(browser.url)) return
         val payload = JSONObject()
