@@ -28,6 +28,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            mobile/android
+            app/admin/assets/css
+            app/admin/assets/js
+            app/admin/assets/images
+            .github/workflows/zcs-z100-universal-v20.yml
+          sparse-checkout-cone-mode: true
 
       - uses: actions/setup-java@v4
         with:
