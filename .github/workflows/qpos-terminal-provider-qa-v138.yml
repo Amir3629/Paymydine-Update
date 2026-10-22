@@ -1,0 +1,43 @@
+name: Quick POS Terminal Inventory QA V138
+
+on:
+  push:
+    branches:
+      - fix/qpos-zcs-table-floor-guard-v125-20261022
+    paths:
+      - 'app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php'
+      - '.github/workflows/qpos-terminal-provider-qa-v138.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terminal-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php
+            app/admin/models/Terminal_devices_model.php
+            app/Services/TerminalPayments/TerminalPaymentService.php
+          sparse-checkout-cone-mode: false
+      - name: Verify PHP syntax and Card provider inventory contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php
+          php -l app/admin/models/Terminal_devices_model.php
+          php -l app/Services/TerminalPayments/TerminalPaymentService.php
+          SUMMARY=app/admin/controllers/concerns/PmdWaiterPosPaymentSummaryConcern.php
+          grep -Fq 'PMD_QPOS_TERMINAL_INVENTORY_V138' "$SUMMARY"
+          grep -Fq "'terminal_device_id' => \$id" "$SUMMARY"
+          grep -Fq 'Terminal_devices_model::listProviderOptions()' "$SUMMARY"
+          grep -Fq "['sumup', 'worldline', 'vr_payment', 'square']" "$SUMMARY"
+          grep -Fq "str_starts_with(\$reader, 'PMD-VR-SIM-')" "$SUMMARY"
+          if grep -Fq "->whereIn('code', ['worldline', 'vr_payment'])" "$SUMMARY"; then
+            echo 'ERROR: gateway methods still being used as terminal inventory'
+            exit 1
+          fi
+          echo 'QPOS_TERMINAL_INVENTORY_V138=PASS'
