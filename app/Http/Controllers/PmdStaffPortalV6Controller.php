@@ -45,12 +45,13 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         $payload = json_encode(array_merge($clock, [
             'clock_in_url' => admin_url('mywork/clockin'),
             'clock_out_url' => admin_url('mywork/clockout'),
+            'clock_break_url' => admin_url('mywork/clockbreak'),
         ]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         if ($payload === false) $payload = '{}';
 
         $html = $view->render();
-        $css = asset('app/admin/assets/css/pmd-staff-time-clock-v1.css').'?v=6';
-        $js = asset('app/admin/assets/js/pmd-staff-time-clock-v1.js').'?v=6';
+        $css = asset('app/admin/assets/css/pmd-staff-time-clock-v1.css').'?v=7';
+        $js = asset('app/admin/assets/js/pmd-staff-time-clock-v1.js').'?v=7';
 
         $html = str_replace(
             '</head>',
