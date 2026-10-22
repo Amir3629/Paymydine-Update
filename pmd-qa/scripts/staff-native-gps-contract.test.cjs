@@ -44,7 +44,10 @@ function setup(userAgent, overrides) {
     console: { warn() {} },
     location: { assign(url) { assigned = url; } },
     setTimeout() { return 123; },
-    clearTimeout() {}
+    clearTimeout() {},
+    // Active unscheduled shifts render an elapsed-time ticker in a real browser.
+    // The fake browser only needs a no-op scheduler; no timer work runs in this test.
+    setInterval() { return 456; }
   };
   windowObject.self = windowObject;
   windowObject.top = windowObject;
