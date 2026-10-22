@@ -8,7 +8,7 @@ const vm = require('node:vm');
 const source = fs.readFileSync(path.resolve(__dirname,
   '../../app/admin/assets/js/pmd-staff-time-clock-v1.js'), 'utf8');
 
-function setup(userAgent) {
+function setup(userAgent, overrides) {
   const submitted = { count: 0 };
   const button = { disabled: false };
   const form = {
@@ -30,10 +30,11 @@ function setup(userAgent) {
     querySelector() { return null; },
     insertBefore() {}
   };
-  const state = {
+  const state = Object.assign({
     ready: true, active: false, geo_required: true, geo_ready: true,
-    clock_in_url: '/admin/mywork/clockin'
-  };
+    clock_in_url: '/admin/mywork/clockin',
+    clock_out_url: '/admin/mywork/clockout'
+  }, overrides || {});
   let assigned = '';
   let webGpsCalls = 0;
   let browserError = null;
@@ -142,4 +143,13 @@ assert.equal(oldApp.button.disabled, false);
 assert.match(oldApp.form.children[0].textContent, /PayMyDine Staff > Permissions/,
   'WebView UA diagnostic must match a real ; wv user agent');
 assert.equal(oldApp.submitted.count, 0);
-console.log('Staff GPS contract: native success, stale callback rejection, precise denial, WebView fallback PASSED');
+const unplanned = setup('Mozilla/5.0 Android PMDStaffNativeGPS/1', {
+  active: true, unscheduled: true
+});
+assert.match(unplanned.card.innerHTML, /Unscheduled work recorded/,
+  'active unscheduled employee must see actual work status');
+unplanned.submit();
+assert.match(unplanned.assigned, /^pmdstaffgeo:\/\/clock\?request=/,
+  'Finish Shift must use native GPS even without any planned rota assignment');
+
+console.log('Staff GPS contract: native success, stale callback rejection, precise denial, WebView fallback, unscheduled punch PASSED');
