@@ -38,6 +38,10 @@
             <span class="pmd-staff-ops__online" aria-label="Working"></span>
             <div><strong>{{ $person->staff_name ?: 'Staff #'.(int)$person->staff_id }}</strong>
                 <small>Started {{ $person->check_in_time ? \Carbon\Carbon::parse($person->check_in_time)->format('H:i') : '—' }}</small>
+                @php $activeMeta = json_decode((string)($person->metadata ?? ''), true); @endphp
+                @if(is_array($activeMeta) && ($activeMeta['schedule_status'] ?? '') === 'unscheduled')
+                    <small class="pmd-staff-ops__unscheduled">Unscheduled work · actual time clocked</small>
+                @endif
             </div>
         </div>
     @empty
@@ -116,6 +120,9 @@
                 <small>In: {{ $row->check_in_time ? \Carbon\Carbon::parse($row->check_in_time)->format('d M H:i') : '—' }}
                     · Out: {{ $row->check_out_time ? \Carbon\Carbon::parse($row->check_out_time)->format('d M H:i') : 'Working' }}</small>
                 @php $geoEvidence = json_decode((string)($row->metadata ?? ''), true); @endphp
+                @if(is_array($geoEvidence) && ($geoEvidence['schedule_status'] ?? '') === 'unscheduled')
+                    <small class="pmd-staff-ops__unscheduled">Unscheduled work · not assigned on the rota</small>
+                @endif
                 @if(is_array($geoEvidence) && !empty($geoEvidence['clock_in_geo']['verified']))
                     <small>GPS check: {{ (int)($geoEvidence['clock_in_geo']['distance_m'] ?? 0) }} m from site</small>
                 @endif
