@@ -1154,9 +1154,9 @@ window.PMDQuickPOSConfig = {
 {{-- PMD_QPOS_WEB_PARITY_RUNTIME_V112
      Exact canonical Web Quick POS JS under a unique path so APK 0.3.28
      cannot substitute an older bundled runtime. --}}
-<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20261022-zcs-v123"></script>
+<script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20261022-qpos-v125"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261022-zcs-v123"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261022-qpos-v125"></script>
 @endif
 {{-- Same canonical window helper as the shared Floor; POST-only /admin/pos/reservation-busy. --}}
 <script src="{{ asset('app/admin/assets/js/pmd-qpos-reservation-rail-r2.js') }}?v=20261018-r2"></script>
