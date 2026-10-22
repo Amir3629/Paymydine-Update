@@ -128,6 +128,16 @@
         <div class="pmd-staff-flash is-error">{{ $errors->first() }}</div>
     @endif
 
+    <nav class="pmd-staff-mobile-nav" aria-label="Staff sections">
+        <button type="button" data-pmd-mobile-target="schedule" class="is-active"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>My shifts</span></button>
+        <button type="button" data-pmd-mobile-target="chat"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-15a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg><span>Chat</span></button>
+        <button type="button" data-pmd-mobile-target="requests"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"></path></svg><span>Requests</span>@if($pending)<b>{{ $pending }}</b>@endif</button>
+        <button type="button" data-pmd-profile-open><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span>Profile</span></button>
+        @if($canManage)
+            <button type="button" data-pmd-mobile-target="manage"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg><span>Manage</span>@if($managementRequests->count())<b>{{ $managementRequests->count() }}</b>@endif</button>
+        @endif
+    </nav>
+
     <div class="pmd-staff-layout">
         <aside class="pmd-staff-sidebar">
             <section class="pmd-staff-next">
@@ -473,15 +483,7 @@
         </aside>
     </div>
 
-    <nav class="pmd-staff-mobile-nav" aria-label="Staff sections">
-        <button type="button" data-pmd-mobile-target="schedule" class="is-active"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>My shifts</span></button>
-        <button type="button" data-pmd-mobile-target="chat"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-15a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg><span>Chat</span></button>
-        <button type="button" data-pmd-mobile-target="requests"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"></path></svg><span>Requests</span>@if($pending)<b>{{ $pending }}</b>@endif</button>
-        <button type="button" data-pmd-profile-open><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg><span>Profile</span></button>
-        @if($canManage)
-            <button type="button" data-pmd-mobile-target="manage"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg><span>Manage</span>@if($managementRequests->count())<b>{{ $managementRequests->count() }}</b>@endif</button>
-        @endif
-    </nav>
+
 
     <div class="pmd-staff-modal" data-pmd-profile-modal hidden>
         <button type="button" class="pmd-staff-modal__backdrop" data-pmd-profile-close aria-label="Close profile"></button>
@@ -586,7 +588,7 @@
     setMobileScreen(screenFromHash());
     window.addEventListener('hashchange', function () { setMobileScreen(screenFromHash()); });
 
-    var nativeOnly = /PMDStaffNativeGPS\\/1/.test(String(navigator.userAgent || ''));
+    var nativeOnly = /PMDStaffNativeGPS\/1/.test(String(navigator.userAgent || ''));
     root.querySelectorAll('[data-pmd-staff-native-only]').forEach(function (element) {
         element.hidden = !nativeOnly;
     });
