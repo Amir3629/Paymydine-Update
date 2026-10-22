@@ -241,7 +241,7 @@
       }
       locationButton.hidden = !reason;
       if (reason) {
-        locationButton.textContent = reason === 'denied' ? 'Open Staff app permission' : 'Open phone location settings';
+        locationButton.textContent = tr(reason === 'denied' ? 'Open Staff app permission' : 'Open phone location settings');
         locationButton.setAttribute('data-pmd-gps-settings', reason === 'denied' ? 'app' : 'phone');
       }
     }
