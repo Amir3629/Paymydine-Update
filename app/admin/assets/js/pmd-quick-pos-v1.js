@@ -957,7 +957,7 @@
             '<button type="button" data-pmd-customer-display-test="payment">Preview payment (demo)</button>' +
             '<button type="button" data-pmd-customer-display-test="success">Test success</button>' +
             '<button type="button" data-pmd-customer-display-test="idle">Show idle</button>' +
-            '<button type="button" data-pmd-device-hardware-test="contactless">NFC hardware status</button>' +
+            '<button type="button" data-pmd-device-hardware-test="contactless">Test NFC / card reader (12s)</button>' +
           '</div>' +
         '</div>' +
       '</section>';
@@ -966,6 +966,7 @@
     var settingsButton = wrap.querySelector('[data-pmd-customer-display-settings]');
     var closeButton = overlay.querySelector('[data-pmd-customer-display-close]');
     var hardwareTest = overlay.querySelector('[data-pmd-device-hardware-test]');
+    var nfcPollTimerV149 = null;
     var status = wrap.querySelector('[data-pmd-customer-display-status]');
     var cardStatus = overlay.querySelector('[data-pmd-customer-display-card-status]');
     var message = overlay.querySelector('[data-pmd-customer-display-message]');
@@ -1011,6 +1012,13 @@
 
     function closeSettings() {
       overlay.hidden = true;
+      if (nfcPollTimerV149 !== null) {
+        window.clearInterval(nfcPollTimerV149);
+        nfcPollTimerV149 = null;
+      }
+      if (typeof bridge.stopNfcPresenceTest === 'function') {
+        try { bridge.stopNfcPresenceTest(); } catch (ignored) {}
+      }
     }
 
     renderCapabilities(readCapabilities());
@@ -1044,32 +1052,76 @@
       }
     }
 
+    // PMD_Z100_ACTUAL_NFC_TAG_PRESENCE_TEST_V149
+    // This tests only Android NFC RF field response. No card data is read,
+    // and ZCS payment/acquiring still requires an approved provider SDK.
     if (hardwareTest) {
       hardwareTest.onclick = function () {
+        if (nfcPollTimerV149 !== null) {
+          window.clearInterval(nfcPollTimerV149);
+          nfcPollTimerV149 = null;
+        }
         var hardware = readDeviceHardware();
-        // PMD_Z100_NFC_DIAGNOSTIC_NOT_BANK_ACQUIRING_V147
-        // Hardware presence cannot authorize EMV cards or settle a payment.
-        // Older 0.6.4 APKs do not expose deviceHardwareCapabilities at all;
-        // never infer "reader ready" from the secondary-screen ZCS SDK.
-        var supported = typeof bridge.deviceHardwareCapabilities === 'function';
-        var present = hardware.android_nfc_present === true;
-        var enabled = hardware.android_nfc_enabled === true;
-        if (message) {
-          message.textContent = !supported
-            ? 'This APK has no NFC hardware diagnostic bridge. NFC bank payments are NOT enabled; a certified payment SDK is required.'
-            : !present
-              ? (hardware.zcs_card_reader_sdk_method_present === true
-                  ? 'ZCS card-reader SDK is present, but Android NFC adapter is unavailable. Bank acquiring is not configured.'
-                  : 'No Android NFC adapter was detected. No bank payment has been started.')
-              : !enabled
-                ? 'Android NFC exists but is disabled. Enable it in Android Settings. Bank payment SDK is still not configured.'
-                : 'Android NFC is enabled (hardware diagnostic only). Tap-to-Pay banking is NOT configured. No card will be charged.';
+        overlay.setAttribute('data-pmd-device-hardware-debug', JSON.stringify(hardware || {}));
+
+        if (typeof bridge.deviceHardwareCapabilities !== 'function') {
+          if (message) message.textContent =
+            'This installed Device APK is too old for NFC diagnostics. Install the new signed Device APK. No payment started.';
+          return;
+        }
+        if (typeof bridge.startNfcPresenceTest !== 'function' ||
+            typeof bridge.nfcPresenceTestStatus !== 'function') {
+          if (message) message.textContent =
+            'Hardware status only on this APK. Install the newer Device APK to test an NFC tap. NFC bank payments are NOT enabled.';
+          return;
         }
 
-        overlay.setAttribute(
-          'data-pmd-device-hardware-debug',
-          JSON.stringify(hardware || {})
-        );
+        try { bridge.startNfcPresenceTest(); } catch (error) {
+          if (message) message.textContent = 'Could not start the Android NFC hardware test.';
+          return;
+        }
+        var started = Date.now();
+        hardwareTest.textContent = 'Checking NFC…';
+        if (message) message.textContent = 'Starting a 12-second Android NFC field test. No card will be charged.';
+        var renderProbe = function () {
+          var result = {};
+          try {
+            result = JSON.parse(String(bridge.nfcPresenceTestStatus() || '{}'));
+          } catch (ignored) {
+            result = {phase: 'error'};
+          }
+          var phase = String(result.phase || 'error');
+          if (phase === 'waiting' || phase === 'starting') {
+            if (message) message.textContent = phase === 'waiting'
+              ? 'NFC test running: hold an NFC test tag near the Android reader (12 seconds). No payment or card data is read.'
+              : 'Starting NFC reader test…';
+          } else {
+            var text = {
+              tag_detected: 'PASS: Android NFC detected a tag. This does NOT confirm bank acquiring or card-reader certification.',
+              timeout: 'No Android NFC tag detected in 12 seconds. The ZCS reader may require its vendor SDK.',
+              android_nfc_unavailable: 'Android NFC adapter unavailable. ZCS vendor-only reader needs its SDK and acquirer approval.',
+              nfc_off: 'NFC is disabled in Android settings. Enable NFC and retry.',
+              not_foreground: 'Cashier must remain on screen during the NFC check.',
+              reader_error: 'Android NFC reader mode could not start on this hardware.',
+              cancelled: 'NFC test stopped.',
+              error: 'NFC test did not return a valid status.'
+            }[phase] || String(result.reason || 'NFC check finished.');
+            if (message) message.textContent = text;
+            hardwareTest.textContent = 'Test NFC / card reader (12s)';
+            if (nfcPollTimerV149 !== null) {
+              window.clearInterval(nfcPollTimerV149);
+              nfcPollTimerV149 = null;
+            }
+          }
+          if (Date.now() - started > 16000 && nfcPollTimerV149 !== null) {
+            window.clearInterval(nfcPollTimerV149);
+            nfcPollTimerV149 = null;
+            hardwareTest.textContent = 'Test NFC / card reader (12s)';
+            if (message) message.textContent = 'NFC test response timed out; check Android device diagnostics.';
+          }
+        };
+        nfcPollTimerV149 = window.setInterval(renderProbe, 400);
+        renderProbe();
       };
     }
 
