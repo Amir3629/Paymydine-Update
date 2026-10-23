@@ -88,7 +88,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v2.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v3.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=25">
-    <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=3"></script>
+    <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=26"></script>
     @if($canManage)
         <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-manager-v2.css?v=26">
         <script defer src="/app/admin/assets/js/pmd-staff-manager-v2.js?v=26"></script>
