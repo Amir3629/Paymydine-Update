@@ -75,8 +75,15 @@ if (isset($opts['apply']) &&
     reject('Writes require --confirm=VERIFIED-TOMO-ENTRANCE after visual map verification.');
 }
 
-require dirname(__DIR__).'/bootstrap/autoload.php';
-$app = require dirname(__DIR__).'/bootstrap/app.php';
+// Support running a SHA-pinned temporary copy from /tmp. Always require an
+// explicit PayMyDine app working directory; never look up another repository.
+$root = (string)getcwd();
+if (!is_file($root.'/bootstrap/autoload.php') ||
+    !is_file($root.'/bootstrap/app.php')) {
+    reject('Run this helper from /var/www/paymydine; application bootstrap not found.');
+}
+require $root.'/bootstrap/autoload.php';
+$app = require $root.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 
 $tenant = DB::connection('mysql')->table('tenants')
