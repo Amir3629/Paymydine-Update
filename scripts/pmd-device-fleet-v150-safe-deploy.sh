@@ -7,7 +7,7 @@ umask 077
 ROOT=/var/www/paymydine
 BASE=985d51bb41aa3a93e0da1385a697990678deb32d
 FIX=aa2642eae0d68582214ef90322ccdd83ba4ede95
-SURGICAL=27f5dd289e934470b271a9e44160b75f37c2f057
+SURGICAL=bfe47296470d21ddea828a88b329d5222cf3c3
 BRANCH=fix/device-fleet-settings-download-v150-20261023
 MODE="${1:---check}"
 FILES=(
