@@ -14,6 +14,7 @@ import org.json.JSONObject
 class PosCustomerDisplayJavascriptBridge(
     private val display: CustomerDisplayManager,
     private val context: Context,
+    private val nfcPresenceProbe: PosNfcPresenceProbe,
 ) {
     @JavascriptInterface
     fun pushCustomerDisplay(payloadJson: String) {
@@ -53,6 +54,16 @@ class PosCustomerDisplayJavascriptBridge(
             .put("diagnostic_only", true)
             .toString()
     }
+
+    /** Safe, read-only presence check: no NFC payload, card number, APDU or charge. */
+    @JavascriptInterface
+    fun startNfcPresenceTest(): String = nfcPresenceProbe.start()
+
+    @JavascriptInterface
+    fun nfcPresenceTestStatus(): String = nfcPresenceProbe.snapshot()
+
+    @JavascriptInterface
+    fun stopNfcPresenceTest() = nfcPresenceProbe.stop()
 
     @JavascriptInterface
     fun setCustomerDisplayEnabled(enabled: Boolean) {

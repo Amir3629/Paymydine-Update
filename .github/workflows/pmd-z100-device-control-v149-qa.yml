@@ -1,0 +1,36 @@
+name: PayMyDine V149 Remote Screen Control and NFC QA
+on:
+  push:
+    branches:
+      - fix/z100-nfc-device-control-v149-20261023
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/Services/PmdDevicePlatformService.php
+            app/admin/controllers/Pmddevices.php
+            app/admin/views/pmddevices/index.blade.php
+            app/admin/assets/js/pmd-quick-pos-v1.js
+            app/admin/assets/js/pmd-qpos-web-parity-v112.js
+            mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/PosCustomerDisplayJavascriptBridge.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/PosNfcPresenceProbe.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/PosActivity.kt
+            tests/pmd-z100-device-control-v149.test.cjs
+            scripts/pmd-device-control-v149-safe-deploy.sh
+          sparse-checkout-cone-mode: false
+      - name: Lint and security contracts
+        run: |
+          set -euo pipefail
+          php -l app/Services/PmdDevicePlatformService.php
+          php -l app/admin/controllers/Pmddevices.php
+          bash -n scripts/pmd-device-control-v149-safe-deploy.sh
+          node --check app/admin/assets/js/pmd-quick-pos-v1.js
+          node --check app/admin/assets/js/pmd-qpos-web-parity-v112.js
+          node --test tests/pmd-z100-device-control-v149.test.cjs

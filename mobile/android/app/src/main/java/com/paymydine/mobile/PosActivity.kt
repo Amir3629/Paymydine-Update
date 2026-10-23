@@ -56,6 +56,10 @@ import java.net.URLEncoder
  * creating WebView, and keeps all renderer recovery inside Android views.
  */
 class PosActivity : ComponentActivity() {
+    // PMD_Z100_FOREGROUND_NFC_PRESENCE_V149: no persistence of payment data.
+    private val nfcPresenceProbe =
+        com.paymydine.mobile.hardware.customerdisplay.PosNfcPresenceProbe(this)
+
     private enum class TransportMode {
         CLOUD,
         LOCAL,
@@ -281,12 +285,15 @@ class PosActivity : ComponentActivity() {
     }
 
     override fun onPause() {
+        // Stop foreground NFC reader before Android pauses this Activity.
+        nfcPresenceProbe.stop()
         app.deviceShell.detach(this)
         webView?.onPause()
         super.onPause()
     }
 
     override fun onDestroy() {
+        nfcPresenceProbe.stop()
         destroyWebView()
         if (::customerDisplay.isInitialized) {
             customerDisplay.close()
@@ -383,7 +390,7 @@ class PosActivity : ComponentActivity() {
             // PMD_ZCS_CUSTOMER_DISPLAY_JS_BRIDGE_V5
             // Display-only bridge. No raw card/payment data is exposed here.
             addJavascriptInterface(
-                PosCustomerDisplayJavascriptBridge(customerDisplay, this@PosActivity),
+                PosCustomerDisplayJavascriptBridge(customerDisplay, this@PosActivity, nfcPresenceProbe),
                 "PayMyDineHardware",
             )
             addJavascriptInterface(
@@ -1057,7 +1064,7 @@ class PosActivity : ComponentActivity() {
 
             addJavascriptInterface(bridge, "PayMyDineOffline")
             addJavascriptInterface(
-                PosCustomerDisplayJavascriptBridge(customerDisplay, this@PosActivity),
+                PosCustomerDisplayJavascriptBridge(customerDisplay, this@PosActivity, nfcPresenceProbe),
                 "PayMyDineHardware",
             )
 
