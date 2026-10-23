@@ -63,6 +63,9 @@ class PosCustomerDisplayJavascriptBridge(
     fun nfcPresenceTestStatus(): String = nfcPresenceProbe.snapshot()
 
     @JavascriptInterface
+    fun stopNfcPresenceTest() = nfcPresenceProbe.stop()
+
+    @JavascriptInterface
     fun setCustomerDisplayEnabled(enabled: Boolean) {
         display.setEnabled(enabled)
     }
