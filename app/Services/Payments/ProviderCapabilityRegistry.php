@@ -216,6 +216,39 @@ final class ProviderCapabilityRegistry
         ];
     }
 
+    /**
+     * PMD_PAYMENT_ACCEPTANCE_CHANNELS_V147
+     *
+     * Do NOT conflate online payment gateways, physical terminals, and
+     * certified Android SoftPOS card acceptance. Each provider requires its
+     * own approved card-present integration and merchant entitlement.
+     * A true catalogue/implemented flag below is NOT runtime readiness:
+     * order, tenant connection and exact physical reader still need checking.
+     */
+    public function acceptanceChannels(string $providerCode): array
+    {
+        $definition = $this->provider($providerCode);
+        $implemented = (array)($definition['implemented_capabilities'] ?? []);
+        $supportsOnline = in_array(
+            self::CAPABILITY_ONLINE_PAYMENTS, $implemented, true
+        );
+        $supportsTerminal = in_array(
+            self::CAPABILITY_TERMINAL_PAYMENTS, $implemented, true
+        );
+        return [
+            'provider_code' => strtolower(trim($providerCode)),
+            'qr_customer_checkout_implemented' => $supportsOnline,
+            'external_reader_api_implemented' => $supportsTerminal,
+            'z80_qr_display_bank_processing' => false,
+            'waiter_mobile_external_reader_possible' => $supportsTerminal,
+            // NEVER infer SoftPOS from an Android NFC antenna or gateway.
+            'z100_internal_nfc_acquiring_implemented' => false,
+            'android_softpos_sdk_approved_for_z100' => false,
+            'requires_tenant_connection_and_active_reader_check' => true,
+            'requires_provider_card_present_certification' => true,
+        ];
+    }
+
     public function provider(string $providerCode): array
     {
         $providerCode = strtolower(trim($providerCode));
