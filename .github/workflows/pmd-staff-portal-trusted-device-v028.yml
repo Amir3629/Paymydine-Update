@@ -1,0 +1,41 @@
+name: Staff Portal Trusted Device v028
+on:
+  push:
+    branches:
+      - fix/staff-portal-trusted-device-mfa-v028-20261023
+    paths:
+      - 'app/Services/PmdPortalTrustedDeviceService.php'
+      - 'app/Services/PmdPortalTotpService.php'
+      - 'app/admin/traits/HandlesPortalMfa.php'
+      - 'app/admin/controllers/Login.php'
+      - 'app/Http/Controllers/PmdMobileWorkspaceSessionController.php'
+      - 'app/admin/views/auth/login_portal_mfa_v1.blade.php'
+      - 'app/admin/controllers/Mywork.php'
+      - 'app/admin/views/pmd-staff-portal/trusted_devices_v1.blade.php'
+      - 'app/admin/views/pmd-staff-portal/index_v5.blade.php'
+      - 'app/admin/views/pmd-staff-portal/management_v1.blade.php'
+      - 'scripts/pmd-staff-portal-trusted-device-v028-deploy.sh'
+      - 'pmd-qa/scripts/portal-trusted-device-v028-contract.test.cjs'
+      - '.github/workflows/pmd-staff-portal-trusted-device-v028.yml'
+  workflow_dispatch:
+jobs:
+  portal-only-security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check PHP syntax
+        run: |
+          php -l app/Services/PmdPortalTrustedDeviceService.php
+          php -l app/Services/PmdPortalTotpService.php
+          php -l app/admin/traits/HandlesPortalMfa.php
+          php -l app/admin/controllers/Login.php
+          php -l app/Http/Controllers/PmdMobileWorkspaceSessionController.php
+          php -l app/admin/controllers/Mywork.php
+          php -l app/admin/views/auth/login_portal_mfa_v1.blade.php
+          php -l app/admin/views/pmd-staff-portal/trusted_devices_v1.blade.php
+      - name: Portal trust isolation and revocation contracts
+        run: node pmd-qa/scripts/portal-trusted-device-v028-contract.test.cjs
+      - name: Installer safety
+        run: |
+          bash -n scripts/pmd-staff-portal-trusted-device-v028-deploy.sh
+          grep -Fq 'PMD_STAFF_PORTAL_TRUSTED_DEVICE_DEPLOY_V028_20261023' scripts/pmd-staff-portal-trusted-device-v028-deploy.sh
