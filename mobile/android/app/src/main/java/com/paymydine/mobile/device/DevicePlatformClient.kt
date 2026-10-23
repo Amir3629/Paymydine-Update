@@ -26,6 +26,9 @@ data class DeviceHeartbeatResult(
     val pollAfterSeconds: Long,
 )
 
+internal class DevicePlatformHttpException(val httpStatus: Int) :
+    IllegalStateException("Secure device control returned HTTP $httpStatus")
+
 class DevicePlatformClient {
     suspend fun heartbeat(
         tenantHost: String,
@@ -192,12 +195,7 @@ class DevicePlatformClient {
             }
 
             if (status !in 200..299 || !json.optBoolean("ok", false)) {
-                throw IllegalStateException(
-                    json.optString(
-                        "message",
-                        "Device Platform request failed (" + status + ").",
-                    ),
-                )
+                throw DevicePlatformHttpException(status)
             }
 
             return json

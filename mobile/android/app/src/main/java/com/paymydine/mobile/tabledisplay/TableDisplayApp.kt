@@ -2,6 +2,7 @@ package com.paymydine.mobile.tabledisplay
 
 import com.paymydine.mobile.R
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -212,12 +214,28 @@ fun TableDisplayApp(
             if (!store.isPaired()) return@LaunchedEffect
 
             var nextPollSeconds = 2L
+            var consecutiveFailures = 0
             while (true) {
-                nextPollSeconds =
-                    runCatching {
-                        deviceShell.heartbeatOnce()
-                    }.getOrDefault(10L)
-
+                nextPollSeconds = try {
+                    val next = deviceShell.heartbeatOnce()
+                    if (consecutiveFailures > 0) {
+                        Log.i("PMDTableControl", "Secure table-display heartbeat recovered.")
+                    }
+                    consecutiveFailures = 0
+                    next
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    consecutiveFailures = (consecutiveFailures + 1).coerceAtMost(10_000)
+                    // PMD_Z80_HEARTBEAT_SAFE_DIAGNOSTIC_V148: never print
+                    // token, table QR, hostname, response body or device identity.
+                    if (consecutiveFailures == 1 || consecutiveFailures % 12 == 0) {
+                        val code = (error as? DevicePlatformHttpException)
+                            ?.httpStatus?.toString() ?: "network_or_runtime"
+                        Log.w("PMDTableControl", "Device heartbeat unavailable; status=$code; failures=$consecutiveFailures")
+                    }
+                    10L
+                }
                 delay(nextPollSeconds.coerceIn(5L, 60L) * 1_000L)
             }
         }

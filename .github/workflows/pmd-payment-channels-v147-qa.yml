@@ -33,6 +33,12 @@ jobs:
             mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/TableDisplayApp.kt
             mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/PosCustomerDisplayJavascriptBridge.kt
             tests/pmd-payment-channels-v147.test.cjs
+            tests/pmd-device-control-runtime-v148.test.cjs
+            mobile/android/app/src/main/java/com/paymydine/mobile/device/DeviceControlService.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/device/DeviceShellManager.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/device/DevicePlatformClient.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/DevicePlatformClient.kt
+            app/Services/Payments/ProviderCapabilityRegistry.php
           sparse-checkout-cone-mode: false
       - name: PHP and JavaScript source syntax
         shell: bash
@@ -48,7 +54,7 @@ jobs:
             app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js \
             app/admin/assets/js/pmd-quick-pos-v1.js \
             app/admin/assets/js/pmd-qpos-web-parity-v112.js; do node --check "$f"; done
-          node --test tests/pmd-payment-channels-v147.test.cjs
+          node --test tests/pmd-payment-channels-v147.test.cjs tests/pmd-device-control-runtime-v148.test.cjs
       - name: Pure provider acceptance channel matrix contracts
         shell: bash
         run: |
