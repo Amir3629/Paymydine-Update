@@ -7,6 +7,9 @@ const service = read('app/Services/PmdTableDisplayService.php');
 const control = read('app/Http/Controllers/PmdTableDisplayPaymentController.php');
 const routes = read('routes/admin-quick-mode.php');
 const waiter = read('app/admin/assets/js/pmd-waiter-pos-payment-v3.js');
+const waiterPolicy = read('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js');
+const waiterStandalone = read('app/admin/views/waiter_pos.blade.php');
+const waiterDashboard = read('app/admin/views/waiter_dashboard_new.blade.php');
 const display = read('app/admin/assets/js/pmd-table-display-v1.js');
 const matrix = read('app/Services/Payments/ProviderCapabilityRegistry.php');
 const has = (txt, piece) => assert.ok(txt.includes(piece), 'Missing ' + piece);
@@ -15,6 +18,8 @@ test('Waiter QR request is authenticated, location bound, throttled and cannot a
   has(control, 'PMD_Z80_WAITER_GUEST_QR_ENDPOINT_V147');
   has(control, '$this->authorizedOperator()');
   has(control, '->requestQrPayment(');
+  has(service, 'PMD_Z80_SAME_TABLE_LOCATION_GUARD_V147');
+  has(service, '$this->locationId($tableId) !== $locationId');
   has(routes, '/admin/pos/table-display-qr/{order}');
   has(routes, "->middleware('throttle:15,1')");
   const start=service.indexOf('public function requestQrPayment(');
@@ -55,4 +60,28 @@ test('provider matrix NEVER advertises unapproved Z100 SoftPOS/acquirer', () => 
   has(matrix,"'android_softpos_sdk_approved_for_z100' => false");
   has(matrix,"'z80_qr_display_bank_processing' => false");
   has(matrix,"'external_reader_api_implemented' => $supportsTerminal");
+});
+
+test('Standalone waiter and both dashboards actually load V147, never hidden by cashier policy', () => {
+  has(waiterStandalone, 'PMD_WAITER_STANDALONE_V147');
+  has(waiterStandalone, 'pmd-waiter-pos-payment-v3.js');
+  assert.ok(!waiterStandalone.includes('pmd-waiter-pos-payment-v2.js'));
+  const matches = waiterDashboard.match(/pmd-waiter-pos-payment-v3.js/g) || [];
+  assert.equal(matches.length, 2, 'Both dashboard variants must use V3');
+  assert.equal((waiterDashboard.match(/v=20261023-147/g) || []).length >= 4,true);
+  has(waiterPolicy, 'PMD_WAITER_QR_VISIBLE_V147');
+  has(waiterPolicy, "(!cashierMode && key === 'guest_qr')");
+  has(waiterPolicy, "state.payment.method !== 'guest_qr'");
+  has(waiterPolicy, 'cashierMode || state.payment.method');
+  has(waiter, "key: 'guest_qr'");
+});
+
+test('Restaurant shift Wake/Sleep is independent of checkout actions', () => {
+  const ops = read('app/admin/controllers/Pmddevices.php');
+  const device = read('app/Services/PmdDevicePlatformService.php');
+  has(ops, "if ($action === 'OPEN_RESTAURANT')");
+  has(ops, "if ($action === 'CLOSE_RESTAURANT')");
+  has(ops, "'WAKE'");
+  has(ops, "'SLEEP'");
+  has(device, "'device_platform_v1'");
 });
