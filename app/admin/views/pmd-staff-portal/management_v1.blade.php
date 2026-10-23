@@ -122,6 +122,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v3.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=25">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-manager-v2.css?v=26">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-owner-bottom-nav-v027.css?v=27">
     <script defer src="/app/admin/assets/js/pmd-staff-manager-v2.js?v=26"></script>
 </head>
 <body class="pmd-staff-portal-page pmd-owner-fallback">
