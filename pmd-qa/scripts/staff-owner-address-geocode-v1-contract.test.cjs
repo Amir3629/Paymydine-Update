@@ -74,5 +74,5 @@ assert.match(fence,/RADIUS_METERS = 150/);
 assert.match(fence,/MAX_ACCURACY_METERS = 90/);
 assert.match(fence,/MAX_AGE_SECONDS = 90/);
 assert.match(fence,/distance > self::RADIUS_METERS \+ 25/);
-assert.match(fence,/staff GPS/i);
+assert.match(fence,/demo GPS pin/i);
 console.log('Owner address geocoding contracts: existing provider, consented preview, fail-closed demo pin, no clock bypass PASSED');
