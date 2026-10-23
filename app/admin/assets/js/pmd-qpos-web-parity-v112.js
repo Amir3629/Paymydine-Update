@@ -1052,6 +1052,7 @@
       }
     }
 
+    // PMD_Z100_NFC_DIAGNOSTIC_NOT_BANK_ACQUIRING_V147
     // PMD_Z100_ACTUAL_NFC_TAG_PRESENCE_TEST_V149
     // This tests only Android NFC RF field response. No card data is read,
     // and ZCS payment/acquiring still requires an approved provider SDK.
@@ -1099,7 +1100,9 @@
             var text = {
               tag_detected: 'PASS: Android NFC detected a tag. This does NOT confirm bank acquiring or card-reader certification.',
               timeout: 'No Android NFC tag detected in 12 seconds. The ZCS reader may require its vendor SDK.',
-              android_nfc_unavailable: 'Android NFC adapter unavailable. ZCS vendor-only reader needs its SDK and acquirer approval.',
+              android_nfc_unavailable: hardware.zcs_card_reader_sdk_method_present === true
+                ? 'Android NFC is unavailable, but the ZCS card-reader SDK method exists. Contactless test requires ZCS vendor integration; bank acquiring is not enabled.'
+                : 'Android NFC adapter unavailable. A ZCS vendor-only reader needs its approved SDK and acquirer.',
               nfc_off: 'NFC is disabled in Android settings. Enable NFC and retry.',
               not_foreground: 'Cashier must remain on screen during the NFC check.',
               reader_error: 'Android NFC reader mode could not start on this hardware.',
