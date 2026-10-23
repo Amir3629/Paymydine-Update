@@ -23,6 +23,8 @@ jobs:
             tests/pmd-device-fleet-v150.test.cjs
             tests/pmd-device-fleet-v150-runtime.test.cjs
             scripts/pmd-device-fleet-v150-safe-deploy.sh
+            scripts/pmd-settings-app-link-v151.py
+            tests/pmd-settings-app-link-v151.test.cjs
           sparse-checkout-cone-mode: false
       - name: PHP syntax / fleet UI JavaScript / exact contracts
         run: |
@@ -30,7 +32,7 @@ jobs:
           php -l app/Services/PmdDevicePlatformService.php
           php -l app/admin/controllers/Pmddevices.php
           node --check app/admin/assets/js/pmd-device-fleet-v150.js
-          node --test tests/pmd-device-fleet-v150.test.cjs tests/pmd-device-fleet-v150-runtime.test.cjs
+          node --test tests/pmd-device-fleet-v150.test.cjs tests/pmd-device-fleet-v150-runtime.test.cjs tests/pmd-settings-app-link-v151.test.cjs
           if test -f scripts/pmd-device-fleet-v150-safe-deploy.sh; then
             bash -n scripts/pmd-device-fleet-v150-safe-deploy.sh
           fi
