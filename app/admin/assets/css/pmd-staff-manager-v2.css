@@ -1,0 +1,109 @@
+/* PMD_OWNER_SHARED_STAFF_SHELL_V026_20261023
+   Same PayMyDine Staff v1-v4 shell, color, logo, touch targets, header and
+   bottom navigation. Owner receives actions, not an alternate application.
+   Works in Android Staff WebView, mobile browser and narrow desktop windows.
+*/
+.pmd-staff-tool-card.is-management .pmd-owner-team,.pmd-owner-fallback .pmd-owner-team{margin:0}
+.pmd-owner-team{display:grid;gap:0;color:#153e33}
+.pmd-owner-team__strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid #e3eee8;background:#f8fbf9}
+.pmd-owner-team__strip>div{display:flex;min-width:0;flex-direction:column;align-items:flex-start;gap:3px;padding:15px 13px}
+.pmd-owner-team__strip>div+div{border-left:1px solid #dfebe4}
+.pmd-owner-team__strip strong{font-size:23px;font-weight:900;line-height:1.15;font-variant-numeric:tabular-nums;color:#08634b}
+.pmd-owner-team__strip span{font-size:11px;line-height:1.35;color:#527669;font-weight:700}
+.pmd-owner-team__group{padding:17px 16px 6px}
+.pmd-owner-team__group+.pmd-owner-team__group{border-top:1px solid #e4eee8}
+.pmd-owner-team__group h3{font-size:15px;color:#143d31;font-weight:850;margin:0 0 10px;line-height:1.3}
+.pmd-owner-team__explain{font-size:11px;line-height:1.5;color:#668075;margin:-4px 0 10px}
+.pmd-owner-team__list{display:grid;gap:0}
+.pmd-owner-team__person{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid #eaf0ed}
+.pmd-owner-team__person:last-child{border-bottom:0}
+.pmd-owner-team__avatar{width:38px;height:38px;display:grid;place-items:center;flex:none;border-radius:50%;background:#e8f4ee;color:#12634c;font-size:14px;font-weight:800}
+.pmd-owner-team__person>div{display:grid;gap:3px;min-width:0;flex:1}
+.pmd-owner-team__person strong,.pmd-owner-team__extra-data strong{color:#1d4035;font-size:13px;line-height:1.35}
+.pmd-owner-team__person small,.pmd-owner-team__extra-data small{color:#70877c;font-size:11px;line-height:1.4}
+.pmd-owner-team__state{color:#0a6950;background:#eaf7ee;font-size:10px;font-weight:800;line-height:1.3;border-radius:6px;padding:6px 8px;white-space:nowrap}
+.pmd-owner-team__state.is-break{color:#926015;background:#fff1d6}
+.pmd-owner-team__extra{display:flex;align-items:center;gap:11px;min-height:66px;border-bottom:1px solid #f0e8db}
+.pmd-owner-team__extra:last-child{border-bottom:0}
+.pmd-owner-team__stripe{align-self:stretch;width:4px;flex:0 0 4px;min-height:56px;background:#dea43c;border-radius:4px}
+.pmd-owner-team__extra.is-reviewed .pmd-owner-team__stripe{background:#a2b8ae}
+.pmd-owner-team__extra-data{display:grid;gap:3px;min-width:0;flex:1;padding:11px 0}
+.pmd-owner-team__extra-data span{font-size:10px;font-weight:750;color:#8c5d1f}
+.pmd-owner-team__extra-action{flex:none;max-width:135px}
+.pmd-owner-team__extra-action form{margin:0}
+.pmd-owner-team__extra-action button{border:1px solid #d6b878;border-radius:8px;background:#fff9ee;color:#80551c;padding:9px 10px;font:inherit;font-size:11px;font-weight:850;line-height:1.25;cursor:pointer}
+.pmd-owner-team__extra-action button:disabled{opacity:.5;cursor:wait}
+.pmd-owner-team__extra.is-reviewed .pmd-owner-team__state{color:#5c7569;background:#f0f5f2}
+.pmd-owner-team__empty{margin:0;padding:18px 0;color:#73897e;font-size:12px;line-height:1.5}
+.pmd-staff-tool-card.is-management .pmd-staff-management-links{padding-top:13px}
+.pmd-staff-tool-card.is-management .pmd-owner-team+.pmd-staff-management-links{border-top:1px solid #e2ece6}
+.pmd-owner-fallback .pmd-staff-app{min-height:100dvh}
+.pmd-owner-fallback .pmd-staff-brand img{object-fit:contain}
+.pmd-owner-fallback .pmd-staff-top-profile{flex-shrink:0}
+.pmd-owner-fallback .pmd-staff-layout{display:block;max-width:960px;width:calc(100% - 28px);margin:14px auto 30px;height:auto;min-height:0}
+.pmd-owner-fallback .pmd-staff-tools{display:block!important;overflow:visible;padding:0}
+.pmd-owner-fallback .pmd-staff-tools>.pmd-staff-tool-card{display:none!important}
+.pmd-owner-fallback .pmd-staff-app[data-pmd-mobile-active="team"] .pmd-staff-tools>[data-pmd-mobile-screen="team"],
+.pmd-owner-fallback .pmd-staff-app[data-pmd-mobile-active="schedule"] .pmd-staff-tools>[data-pmd-mobile-screen="schedule"],
+.pmd-owner-fallback .pmd-staff-app[data-pmd-mobile-active="requests"] .pmd-staff-tools>[data-pmd-mobile-screen="requests"],
+.pmd-owner-fallback .pmd-staff-app[data-pmd-mobile-active="chat"] .pmd-staff-tools>[data-pmd-mobile-screen="chat"],
+.pmd-owner-fallback .pmd-staff-app[data-pmd-mobile-active="activity"] .pmd-staff-tools>[data-pmd-mobile-screen="activity"]{display:block!important}
+.pmd-owner-fallback .pmd-staff-tool-card{max-width:960px;margin:0 auto}
+.pmd-owner-fallback .pmd-owner-team__strip{border-top:0}
+.pmd-owner-fallback .pmd-staff-panel-head>strong{font-size:12px;color:#2c765a}
+.pmd-owner-action-links{display:flex;gap:8px;flex-wrap:wrap;padding:15px 16px;border-top:1px solid #e4ede8}
+.pmd-owner-action-links a{display:inline-flex;align-items:center;justify-content:center;min-height:40px;flex:1;padding:0 13px;border-radius:10px;border:1px solid #b7d4c5;background:#f4faf7;color:#11634c;text-decoration:none;font-size:12px;font-weight:800}
+.pmd-owner-fallback .pmd-owner-rows{padding:4px 16px 15px}
+.pmd-owner-rows article{display:grid;gap:5px;padding:14px 0;border-bottom:1px solid #e5eee9}
+.pmd-owner-rows article:last-child{border-bottom:0}
+.pmd-owner-rows strong{color:#1b4035;font-size:13px}
+.pmd-owner-rows small{color:#6d857b;font-size:11px}
+.pmd-owner-rows p{color:#415a50;font-size:12px;line-height:1.55;margin:3px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.pmd-owner-rows__reply{display:flex;flex-wrap:wrap;gap:9px;margin-top:5px}
+.pmd-owner-rows__reply form{display:inline-flex;margin:0;gap:6px}
+.pmd-owner-rows__reply button,.pmd-owner-chat-form button{min-height:39px;padding:0 13px;background:#08634f;color:#fff;border:0;border-radius:9px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.pmd-owner-rows__reply button.is-decline{background:#fff5f3;color:#ab4237;border:1px solid #efd2cd}
+.pmd-owner-chat-form{display:grid;gap:9px;padding:15px 16px 18px;border-top:1px solid #e4eee9}
+.pmd-owner-chat-form textarea{width:100%;min-height:90px;border:1px solid #d6e3df;border-radius:10px;padding:11px 12px;color:#243f35;font:inherit;font-size:14px;resize:vertical;background:#fff}
+.pmd-owner-chat-form button{justify-self:end}
+.pmd-owner-alert{padding:13px 14px;margin:9px 12px 3px;border-radius:10px;background:#fff2ec;border:1px solid #f1d4c7;color:#8c4030;font-size:12px;line-height:1.5}
+.pmd-owner-alert.is-success{background:#edf8f2;color:#135d43;border-color:#cce8d8}
+.pmd-owner-fallback [data-pmd-owner-profile-dialog][hidden]{display:none!important}
+.pmd-owner-profile-dialog{position:fixed;inset:0;display:grid;place-items:center;z-index:200;padding:17px;background:rgba(11,36,29,.45)}
+.pmd-owner-profile-dialog__body{width:min(420px,100%);padding:20px;background:#fff;border:1px solid #dce8e2;border-radius:18px;box-shadow:0 16px 44px rgba(8,37,27,.17)}
+.pmd-owner-profile-dialog__head{display:flex;justify-content:space-between;gap:15px;align-items:center}
+.pmd-owner-profile-dialog__head h2{margin:0;font-size:18px}
+.pmd-owner-profile-dialog__head button{border:0;background:#f2f7f5;border-radius:9px;width:38px;height:38px;color:#275a46;font-size:22px;cursor:pointer}
+.pmd-owner-profile-dialog__body>p{font-size:12px;color:#647d70;line-height:1.5}
+.pmd-owner-profile-dialog__body .pmd-owner-action-links{padding:12px 0;border:0}
+.pmd-owner-profile-dialog__body .pmd-owner-signout{display:block;width:100%;border:1px solid #dfebe4;background:#fff;border-radius:9px;min-height:44px;color:#87433d;font-size:12px;font-weight:800;cursor:pointer}
+.pmd-owner-fallback .pmd-staff-language-picker{z-index:100}
+.pmd-owner-fallback .pmd-staff-mobile-nav button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pmd-owner-fallback .pmd-staff-mobile-nav button.is-active{color:#076049;background:#e8f6ee}
+.pmd-owner-fallback .pmd-staff-mobile-nav button b{position:absolute;top:1px;right:9px;min-width:17px;min-height:17px;padding:2px 3px;font-size:9px;line-height:1.3;border-radius:9px;background:#e4f1eb;color:#075e49}
+.pmd-owner-fallback a:focus-visible,.pmd-owner-fallback button:focus-visible,.pmd-owner-fallback textarea:focus-visible{outline:3px solid #298c73;outline-offset:2px}
+@media(min-width:761px){
+ .pmd-owner-fallback .pmd-staff-mobile-nav{position:sticky;top:65px;display:flex!important}
+ .pmd-owner-fallback .pmd-staff-layout{width:min(960px,calc(100% - 34px))}
+}
+@media(max-width:760px){
+ .pmd-owner-team__strip>div{padding:13px 10px}
+ .pmd-owner-team__strip strong{font-size:21px}
+ .pmd-owner-team__strip span{font-size:10px}
+ .pmd-owner-team__group{padding:15px 12px 7px}
+ .pmd-owner-team__person{gap:8px}
+ .pmd-owner-team__extra-action{max-width:108px}
+ .pmd-owner-team__extra-action button{font-size:10px;padding:8px 7px}
+ .pmd-owner-fallback .pmd-staff-layout{width:100%;padding:9px 11px 6px;margin:0 0 30px}
+ .pmd-owner-fallback .pmd-staff-mobile-nav{position:fixed!important;top:auto!important;bottom:0;left:0;right:0;display:flex!important}
+ .pmd-owner-fallback .pmd-staff-tools>.pmd-staff-tool-card{min-height:calc(100dvh - 167px)}
+ .pmd-owner-fallback .pmd-staff-topbar__actions{gap:7px}
+ .pmd-owner-fallback .pmd-staff-brand img{width:115px;height:35px}
+ .pmd-owner-fallback .pmd-staff-mobile-nav button{flex:1;min-width:0;padding:5px 3px}
+ .pmd-owner-fallback .pmd-staff-mobile-nav button span{font-size:10px}
+ .pmd-owner-fallback .pmd-owner-rows{padding:3px 12px 12px}
+ .pmd-owner-chat-form{padding:12px}
+}
+@media(prefers-reduced-motion:reduce){
+ .pmd-owner-fallback *, .pmd-owner-team *{animation:none!important;transition:none!important}
+}
