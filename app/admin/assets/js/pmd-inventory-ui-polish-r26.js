@@ -149,6 +149,14 @@
 
     function decorateShopping() {
       if (!shoppingList) return;
+      // Hide the long forecasting formula while retaining it on hover.
+      // The underlying quantities and calculated totals remain unchanged.
+      var summary = shoppingPane.querySelector('[data-r19-shopping-summary] span');
+      if (summary && summary.textContent.indexOf(' · ') !== -1) {
+        var fullSummary = summary.textContent;
+        summary.title = fullSummary;
+        summary.textContent = fullSummary.split(' · ')[0];
+      }
       var rows = shoppingList.querySelectorAll('[data-r19-shopping-row]');
       if (!rows.length) return;
       if (!shoppingList.querySelector('.pmd-inv-r26-shopping-columns')) {
