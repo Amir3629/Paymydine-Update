@@ -90,6 +90,8 @@ final class PmdTableDisplayService
             'theme' => $this->customerMenuTheme(),
             'order' => $order,
             'waiter_call' => $waiterCall,
+            // Checkout QR is exposed only for an active unpaid order and a
+            // recent explicit waiter QR request, never for a stale paid visit.
             'event' => $this->resolveEvent($enabled, $order, $waiterCall, $displayEvent),
         ];
     }
@@ -342,6 +344,133 @@ final class PmdTableDisplayService
         ];
     }
 
+    /**
+     * PMD_Z80_GUEST_QR_HANDOFF_V147
+     * Show a real online customer-checkout entry URL on a paired Z80 display.
+     * Does NOT create a bank checkout, start NFC, or mark a payment recorded.
+     * Every actual charge remains owned by guest checkout and its provider.
+     */
+    public function requestQrPayment(
+        int $orderId,
+        ?int $userId = null,
+        ?int $staffId = null,
+        ?int $expectedLocationId = null
+    ): array {
+        if (!Schema::hasTable('orders')
+            || !Schema::hasTable('pmd_sync_events')
+            || !Schema::hasTable('pmd_sync_aggregate_versions')) {
+            abort(503, 'Order or device synchronization storage unavailable.');
+        }
+        $order = DB::table('orders')->where('order_id', $orderId)->first();
+        if (!$order) abort(404, 'Order not found.');
+        $tableId = $this->orderTableId($order);
+        $table = $this->tableRow($tableId);
+        if ($tableId < 1 || !$table) abort(422, 'A restaurant table is required.');
+        $locationId = (int)($order->location_id ?? $this->locationId($tableId));
+        if ($locationId < 1 || $expectedLocationId !== $locationId) {
+            abort(403, 'Payment QR must stay at the active restaurant location.');
+        }
+        if (Schema::hasColumn('tables', 'table_status')
+            && !(bool)($table->table_status ?? false)) {
+            abort(409, 'This table is unavailable.');
+        }
+        // The QR is a temporary prompt on a currently paired live display.
+        // Unlike an external card reader, no terminal_device is required.
+        $this->assertLiveBoundTableDisplay($locationId, $tableId);
+
+        $total = (float)($order->order_total ?? 0);
+        $settled = max(0.0, (float)($order->settled_amount ?? 0));
+        $remaining = round(max(0.0, $total - $settled), 2);
+        if ($remaining < 0.01) abort(409, 'Nothing remains to pay.');
+
+        if (!Schema::hasTable('payments')
+            || !DB::table('payments')->where('status', 1)
+                ->whereIn('code', [
+                    'sumup', 'stripe', 'square', 'worldline', 'vr_payment',
+                    'paypal'
+                ])->exists()) {
+            abort(409, 'No online payment method is enabled for this restaurant.');
+        }
+
+        $number = $this->tableNumber($table);
+        $tableQr = trim((string)($table->qr_code ?? ''));
+        // The same EXISTING table-checkout route used by Waiter POS;
+        // DO NOT expose an arbitrary provider return_url or a payment secret.
+        $checkoutUrl = url('/table/'.rawurlencode($number).'/menu').'?'
+            .http_build_query([
+                'source' => 'table_display_payment',
+                'order_id' => $orderId,
+                'table' => $number,
+                'table_id' => $tableId,
+                'table_no' => $number,
+                'location' => $locationId,
+                'qr' => $tableQr ?: null,
+            ]);
+
+        $eventId = (string)\Illuminate\Support\Str::uuid();
+        $expires = now()->addMinutes(3);
+        $currency = $this->currencyCode();
+
+        DB::transaction(function () use (
+            $locationId, $tableId, $orderId, $userId, $staffId,
+            $eventId, $expires, $remaining, $currency
+        ) {
+            $id = (string)$tableId;
+            DB::table('pmd_sync_aggregate_versions')->insertOrIgnore([
+                'location_id' => $locationId,
+                'aggregate' => self::AGGREGATE,
+                'aggregate_id' => $id,
+                'version' => 0,
+                'updated_at' => now(),
+            ]);
+            $row = DB::table('pmd_sync_aggregate_versions')
+                ->where('location_id', $locationId)
+                ->where('aggregate', self::AGGREGATE)
+                ->where('aggregate_id', $id)
+                ->lockForUpdate()->first();
+            if (!$row) throw new \RuntimeException('Device event lock unavailable.');
+            $version = (int)$row->version + 1;
+            DB::table('pmd_sync_aggregate_versions')->where('id', (int)$row->id)
+                ->update(['version' => $version, 'updated_at' => now()]);
+            DB::table('pmd_sync_events')->insert([
+                'event_id' => $eventId,
+                'location_id' => $locationId,
+                'device_id' => null,
+                'user_id' => $userId ?: null,
+                'staff_id' => $staffId ?: null,
+                'aggregate' => self::AGGREGATE,
+                'aggregate_id' => $id,
+                'aggregate_version' => $version,
+                'event_type' => 'table_display.qr_payment_requested',
+                'payload' => json_encode([
+                    'table_id' => $tableId,
+                    'order_id' => $orderId,
+                    'amount' => $remaining,
+                    'currency' => $currency,
+                    'headline' => 'Scan to pay on your phone',
+                    'message' => 'Choose a secure online payment method.',
+                    'expires_at' => $expires->toIso8601String(),
+                ], JSON_UNESCAPED_SLASHES),
+                'occurred_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+
+        return [
+            'ok' => true,
+            'kind' => 'guest_checkout_qr_only',
+            'order_id' => $orderId,
+            'table_id' => $tableId,
+            'amount_due' => $remaining,
+            'currency' => $currency,
+            'checkout_url' => $checkoutUrl,
+            'expires_at' => $expires->toIso8601String(),
+            'payment_recorded' => false,
+            'message' => 'Checkout QR shown on the table device. Waiting for customer payment.',
+        ];
+    }
+
     private function resolveEvent(bool $enabled, ?array $order, ?array $waiterCall, ?array $displayEvent): array
     {
         if (!$enabled) return $this->event('table_unavailable', 'Table unavailable', 'Please ask a team member for assistance.', now()->toIso8601String());
@@ -506,13 +635,32 @@ final class PmdTableDisplayService
         if (!Schema::hasTable('pmd_sync_events')) return null;
         $row = DB::table('pmd_sync_events')->where('location_id', $locationId)
             ->where('aggregate', self::AGGREGATE)->where('aggregate_id', (string)$tableId)
-            ->where('event_type', self::PAYMENT_REQUEST)->orderByDesc('sequence')->first();
+            ->whereIn('event_type', [self::PAYMENT_REQUEST, 'table_display.qr_payment_requested'])
+            ->orderByDesc('sequence')->first();
         if (!$row) return null;
 
         $payload = json_decode((string)($row->payload ?? '{}'), true) ?: [];
         try {
             if (!empty($payload['expires_at']) && now()->greaterThanOrEqualTo(Carbon::parse($payload['expires_at']))) return null;
         } catch (\Throwable $ignored) { return null; }
+
+        // Reject a QR request for a different or already-paid table visit.
+        if (($row->event_type ?? '') === 'table_display.qr_payment_requested') {
+            $liveOrder = $this->latestOrder($tableId);
+            if (!$liveOrder || (int)($liveOrder['id'] ?? 0) !== (int)($payload['order_id'] ?? 0)
+                || (float)($liveOrder['remaining_amount'] ?? 0) < 0.01) return null;
+            return $this->event(
+                'qr_payment_requested',
+                'Scan to pay on your phone',
+                'Choose an online payment method on your phone.',
+                $this->iso($row->occurred_at ?? $row->created_at ?? null),
+                [
+                    'order_id' => (int)$payload['order_id'],
+                    'amount' => round((float)($liveOrder['remaining_amount'] ?? 0), 2),
+                    'currency' => $this->currencyCode(),
+                ]
+            );
+        }
 
         return $this->event('payment_requested', (string)($payload['headline'] ?? 'Ready for card payment'), (string)($payload['message'] ?? 'Tap or insert your card to complete payment.'), $this->iso($row->occurred_at ?? $row->created_at ?? null), [
             'order_id' => (int)($payload['order_id'] ?? 0),
