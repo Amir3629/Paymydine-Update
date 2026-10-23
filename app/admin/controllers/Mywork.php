@@ -75,10 +75,46 @@ class Mywork extends AdminController
                 ->where('staff_id', $staffId)->where('location_id', $locationId)
                 ->where('is_active', 1)->exists();
         }
+        // Unlinked Owner still uses the identical Staff shell, but cannot
+        // clock or impersonate a Team person without an active Team link.
+        $managerUser = AdminAuth::getUser();
+        $managerName = trim((string)(optional($managerUser ? $managerUser->staff : null)->staff_name
+            ?: ($managerUser->username ?? 'Manager')));
+        $managerInitial = mb_strtoupper(mb_substr($managerName, 0, 1));
+        $roleCode = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($managerUser);
+        $pmdManagerLocale = strtolower(trim((string)session('pmd_staff_ui_locale_'.$locationId, '')));
+        if (!in_array($pmdManagerLocale, ['en','de','tr'], true)) {
+            $pmdManagerLocale = in_array(strtolower(app()->getLocale()), ['en','de','tr'], true)
+                ? strtolower(app()->getLocale()) : 'en';
+        }
         return response()->view('pmd-staff-portal.management_v1', compact(
-            'center','extras','unreviewedExtras','locationId','hasPersonalPortal'
+            'center','extras','unreviewedExtras','locationId','hasPersonalPortal',
+            'managerName','managerInitial','roleCode','pmdManagerLocale'
         ))->header('Cache-Control', 'no-store, private')
           ->header('X-Content-Type-Options', 'nosniff');
+    }
+
+    /**
+     * PMD_OWNER_STAFF_SHELL_LOCALE_V026_20261023
+     * CSRF-protected, tenant-scoped language preference for Owner accounts
+     * not linked to a personal Team record. No global Admin locale changed.
+     */
+    public function managerlocale()
+    {
+        if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
+        if (!$this->isWorkforceManager()) abort(403);
+        if (!request()->isMethod('post')) abort(405);
+        $clean = \Illuminate\Support\Facades\Validator::make(request()->all(), [
+            'locale' => ['required','in:en,de,tr'],
+            'return_screen' => ['nullable','in:team,schedule,requests,chat,activity'],
+        ])->validate();
+        try {
+            $loc = max(1, (int)AdminLocation::getId());
+        } catch (\Throwable $error) {
+            $loc = 1;
+        }
+        session()->put('pmd_staff_ui_locale_'.$loc, $clean['locale']);
+        return redirect(admin_url('mywork/manage').'#'.($clean['return_screen'] ?? 'team'));
     }
 
     public function personal()
