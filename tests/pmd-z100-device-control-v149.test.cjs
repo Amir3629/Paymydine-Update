@@ -20,6 +20,8 @@ test('global manual close reaches POS even when POS automatic schedule is disabl
   assert.ok(b.includes("'pos'"));assert.ok(b.includes("'manual_'.$manual"));assert.ok(b.includes('$physicalScreen && $manual'));
   assert.ok(b.includes("'table_display'"));
   assert.ok(!b.slice(manual,disabled).includes("'site_hub'"));
+  assert.ok(php.includes('PMD_GLOBAL_POWER_SKIP_PERSONAL_V149'));
+  assert.ok(php.includes('->pluck(\'device_mode\', \'device_id\')'));
 });
 test('successful authenticated heartbeat upgrades legacy Device Platform capability',()=>{
  const b=php.slice(php.indexOf('public function heartbeat('),php.indexOf('public function recordLog('));
