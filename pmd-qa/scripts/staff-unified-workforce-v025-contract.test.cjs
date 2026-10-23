@@ -21,6 +21,7 @@ const mgrJs=read('app/admin/assets/js/pmd-staff-manager-v1.js');
 const mgrCss=read('app/admin/assets/css/pmd-staff-manager-v1.css');
 const staffCss=read('app/admin/assets/css/pmd-staff-portal-v4.css');
 const shiftCss=read('app/admin/assets/css/pmd-shifts-staff-center-v1.css');
+const dayRota=read('app/admin/views/pmdshifts/_server_rota_v13.blade.php');
 const shiftJs=read('app/admin/assets/js/pmd-shifts-staff-center-v1.js');
 
 assert.match(profile,/PMD_RESTAURANT_ADDRESS_AUTO_GEOFENCE_V2_20261023/);
@@ -79,6 +80,8 @@ assert.match(board,/pmd-workforce-desk__actual/);
 assert.match(board,/shifts\/reviewactual/);
 assert.match(board,/data-pmd-staff-ops-shortcut="requests"/);
 assert.match(shiftCss,/PMD_SHIFTS_WORKFORCE_DESK_V1_20261023/);
+assert.match(dayRota,/PMD_SHIFTS_EXTRA_ACTUAL_DAY_V1_20261023/);
+assert.match(dayRota,/pmd-shifts-actual-day/);
 assert.match(shiftJs,/data-pmd-staff-ops-shortcut/);
 
 assert.match(mywork,/PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023/);
