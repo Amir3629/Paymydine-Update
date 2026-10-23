@@ -7,7 +7,7 @@ const path = require('node:path');
 const cp = require('node:child_process');
 
 const updater = path.resolve('scripts/pmd-settings-app-link-v151.py');
-const template = fs.readFileSync('app/admin/views/pmdsettings/index.blade.php', 'utf8');
+const template = fs.readFileSync(process.env.PMD_SETTINGS_TEST_FIXTURE || 'app/admin/views/pmdsettings/index.blade.php', 'utf8');
 const oldLink = 'https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.4.apk';
 const newLink = 'https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.6.apk';
 function run(input) {
