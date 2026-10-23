@@ -86,8 +86,8 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v1.css?v=5">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v2.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v3.css?v=1">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=2">
-    <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=2"></script>
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=3">
+    <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=3"></script>
 </head>
 <body class="pmd-staff-portal-page">
 <div class="pmd-staff-app" data-pmd-staff-portal data-pmd-mobile-active="schedule" data-pmd-staff-locale="{{ $pmdStaffLocale }}">
