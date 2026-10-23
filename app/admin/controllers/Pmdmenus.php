@@ -122,6 +122,8 @@ class Pmdmenus extends AdminController
             'app/admin/assets/css/pmd-inventory-workspace-r19.css',
             'app/admin/assets/css/pmd-inventory-operations-r24.css',
             'app/admin/assets/css/pmd-menu-inventory-unified-r20.css',
+            // PMD_INVENTORY_UI_POLISH_R26: scoped presentation refinement.
+            'app/admin/assets/css/pmd-inventory-ui-polish-r26.css',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addCss(
@@ -134,6 +136,8 @@ class Pmdmenus extends AdminController
             'app/admin/assets/js/pmd-inventory-workspace-r19.js',
             'app/admin/assets/js/pmd-inventory-operations-r24.js',
             'app/admin/assets/js/pmd-menu-inventory-unified-r20.js',
+            // PMD_INVENTORY_UI_POLISH_R26: keeps original inventory actions.
+            'app/admin/assets/js/pmd-inventory-ui-polish-r26.js',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addJs(
