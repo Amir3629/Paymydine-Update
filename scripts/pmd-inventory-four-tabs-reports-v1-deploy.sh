@@ -54,11 +54,10 @@ backup="$HOME/pmd-backups/inventory-four-tabs-$(date +%Y%m%d-%H%M%S)"
 stage="$backup/staged"
 mkdir -p "$stage" "$backup/original"
 
-# The stage generator computes the exact scoped changes between main at PR
-# creation and this PR, applying only unique matching hunks to each VPS file.
-# Any incompatible local change stops BEFORE touching the live application.
+# The stage generator merges three versions (GitHub base / current VPS /
+# requested PR) and stops on an overlapping change BEFORE live writes.
 PMD_BASE="$base" PMD_REV="$rev" PMD_STAGE="$stage" PMD_BACKUP="$backup" python3 - <<'PY'
-import difflib
+import sys
 import os
 from pathlib import Path
 import subprocess
@@ -88,31 +87,37 @@ def source(revision, name):
     return proc.stdout.decode('utf-8')
 
 def merge_text(name, live, old, new):
-    a, b = old.splitlines(keepends=True), new.splitlines(keepends=True)
-    text = live
-    changed = 0
-    for operation, a0, a1, b0, b1 in difflib.SequenceMatcher(
-        None, a, b, autojunk=False
-    ).get_opcodes():
-        if operation == 'equal':
-            continue
-        before, after = ''.join(a[a0:a1]), ''.join(b[b0:b1])
-        if before:
-            if text.count(before) != 1:
-                raise RuntimeError('STOP: VPS changes conflict with ' + name)
-            text = text.replace(before, after, 1)
-        else:
-            # Anchor inserted code between surrounding unchanged lines.
-            left = ''.join(a[max(0, a0 - 2):a0])
-            right = ''.join(a[a0:min(len(a), a0 + 2)])
-            anchor = left + right
-            if not anchor or text.count(anchor) != 1:
-                raise RuntimeError('STOP: Cannot uniquely anchor insertion in ' + name)
-            text = text.replace(anchor, left + after + right, 1)
-        changed += 1
-    if changed == 0 or text == live:
-        raise RuntimeError('STOP: No new changes found for ' + name)
-    return text
+    # Use Git's three-way text merge instead of fragile exact-string anchors.
+    # The operation takes place ONLY under the backup staging directory.
+    work = stage / '_merge' / name
+    work.mkdir(parents=True, exist_ok=True)
+    current_file = work / 'current'
+    ancestor_file = work / 'ancestor'
+    incoming_file = work / 'incoming'
+    current_file.write_text(live, encoding='utf-8')
+    ancestor_file.write_text(old, encoding='utf-8')
+    incoming_file.write_text(new, encoding='utf-8')
+    result = subprocess.run(
+        [
+            'git', 'merge-file', '-p',
+            '-L', 'VPS-local', '-L', 'GitHub-base', '-L', 'PR-544',
+            str(current_file), str(ancestor_file), str(incoming_file),
+        ],
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        diagnostic = work / 'merge-preview.txt'
+        diagnostic.write_bytes(result.stdout)
+        print(
+            'STOP: Overlapping or incompatible changes in ' + name +
+            '. No live application file has been changed. Merge preview: ' +
+            str(diagnostic),
+            file=sys.stderr,
+        )
+        if result.stderr:
+            print(result.stderr.decode('utf-8', errors='replace'), file=sys.stderr)
+        raise SystemExit(1)
+    return result.stdout.decode('utf-8')
 
 for name in modified:
     live_file = Path(name)
@@ -138,6 +143,10 @@ done
 for file in app/admin/assets/js/pmd-inventory-workspace-r19.js app/admin/assets/js/pmd-inventory-retained-controls-v1.js app/admin/assets/js/pmd-reports-inventory-v1.js scripts/test-pmd-inventory-four-tabs-v1.js; do
   node --check "$stage/$file"
 done
+
+# Run the structural regression suite against staged files before touching VPS.
+node "$stage/scripts/test-pmd-inventory-four-tabs-v1.js"
+echo "PREFLIGHT PASS: all six file merges and ten staged files verified."
 
 installed=0
 rollback() {
