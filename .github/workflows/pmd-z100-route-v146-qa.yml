@@ -20,6 +20,9 @@ jobs:
             app/Services/PmdDevicePlatformAuthService.php
             app/Services/PmdDevicePlatformService.php
             tests/pmd-device-platform-route-v146.test.cjs
+            tests/pmd-z100-v146-safe-live.test.cjs
+            scripts/pmd-z100-v146-safe-deploy.sh
+            app/admin/views/pmddevices/index.blade.php
           sparse-checkout-cone-mode: false
       - name: Verify secure device route activation
         shell: bash
@@ -30,3 +33,6 @@ jobs:
           php -l app/Http/Controllers/PmdDevicePlatformController.php
           php -l app/Services/PmdDevicePlatformAuthService.php
           node --test tests/pmd-device-platform-route-v146.test.cjs
+          node --test tests/pmd-z100-v146-safe-live.test.cjs
+          bash -n scripts/pmd-z100-v146-safe-deploy.sh
+          php -l app/Services/PmdDevicePlatformService.php
