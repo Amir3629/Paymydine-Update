@@ -134,6 +134,8 @@ class Pmdmenus extends AdminController
             'app/admin/assets/js/pmd-inventory-workspace-r19.js',
             'app/admin/assets/js/pmd-inventory-operations-r24.js',
             'app/admin/assets/js/pmd-menu-inventory-unified-r20.js',
+            // PMD_INVENTORY_FOUR_TABS_V1: keep advanced settings/reversals accessible.
+            'app/admin/assets/js/pmd-inventory-retained-controls-v1.js',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addJs(
