@@ -94,3 +94,12 @@
 .pmd-workforce-desk__empty{margin:0;padding:24px 20px;font-size:12px;color:#698177}
 .pmd-workforce-desk button:focus-visible{outline:3px solid #3c9a7f;outline-offset:2px}
 @media(max-width:780px){.pmd-workforce-desk__heading{align-items:flex-start;flex-direction:column;padding:15px}.pmd-workforce-desk__actions{justify-content:flex-start}.pmd-workforce-desk__summary>div{padding:11px 8px;flex-direction:column;align-items:flex-start;gap:5px}.pmd-workforce-desk__summary strong{font-size:19px}.pmd-workforce-desk__summary span{font-size:10px}.pmd-workforce-desk__actual{gap:8px;padding-right:10px}.pmd-workforce-desk__actual-state>span{font-size:10px}}
+
+/* PMD_SHIFTS_EXTRA_ACTUAL_DAY_V1_20261023 */
+.pmd-shifts-actual-day{margin:8px 0 14px;padding:13px 16px;border:1px solid #eed3a2;border-left:4px solid #d89721;border-radius:8px;background:#fffaf0;color:#604319}
+.pmd-shifts-actual-day>strong{display:block;margin:0 0 9px;font-size:12px;font-weight:850}
+.pmd-shifts-actual-day>div{display:flex;flex-wrap:wrap;gap:8px}
+.pmd-shifts-actual-day__item{display:flex;align-items:center;gap:7px;min-height:34px;padding:7px 10px;border:1px solid #efdcb9;border-radius:6px;background:#fff;font-size:11px}
+.pmd-shifts-actual-day__item b{font-weight:800}
+.pmd-shifts-actual-day__item small{font-size:11px;color:#755d3c}
+.pmd-shifts-actual-day__item em{font-size:10px;font-style:normal;background:#f9e2b8;border-radius:4px;padding:3px 5px;font-weight:750;color:#83520e}
