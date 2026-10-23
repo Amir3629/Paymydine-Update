@@ -10,6 +10,7 @@ on:
       - 'app/admin/views/pmd-staff-portal/**'
       - 'app/admin/views/pmdsettings/restaurant.blade.php'
       - 'app/admin/views/pmdshifts/index.blade.php'
+      - 'app/admin/views/pmdshifts/_server_rota_v13.blade.php'
       - 'app/admin/assets/css/pmd-shifts-staff-center-v1.css'
       - 'app/admin/assets/js/pmd-shifts-staff-center-v1.js'
       - 'app/admin/assets/css/pmd-staff-manager-v1.css'
