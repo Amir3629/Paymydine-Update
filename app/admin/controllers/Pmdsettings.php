@@ -834,6 +834,80 @@ class Pmdsettings extends AdminController
         return $current;
     }
 
+    /**
+     * PMD_STAFF_ADDRESS_GEO_PREVIEW_V1_20261023
+     * Resolve the address typed by the owner using PayMyDine's EXISTING
+     * tenant geocoder. This AJAX call does not write any coordinates.
+     * The owner must inspect the returned map pin and click "Use for staff".
+     */
+    public function onPreviewStaffClockAddress()
+    {
+        $locationId = $this->currentLocationId();
+        if ($locationId < 1 || !DB::table('locations')->where('location_id', $locationId)->exists()) {
+            throw ValidationException::withMessages([
+                'profile.address_1' => ['Select a restaurant location first.'],
+            ]);
+        }
+        $input = (array)post('profile', []);
+        $validator = Validator::make($input, [
+            'address_1' => ['required', 'string', 'min:3', 'max:191'],
+            'address_2' => ['nullable', 'string', 'max:191'],
+            'city' => ['required', 'string', 'min:2', 'max:120'],
+            'state' => ['nullable', 'string', 'max:120'],
+            'postcode' => ['required', 'string', 'min:3', 'max:32'],
+        ]);
+        if ($validator->fails()) throw new ValidationException($validator);
+        $parts = $validator->validated();
+        $loc = DB::table('locations')->where('location_id', $locationId)
+            ->first(['location_country_id']);
+        $countryName = '';
+        if ($loc && !empty($loc->location_country_id) && Schema::hasTable('countries')) {
+            $countryName = (string)(DB::table('countries')
+                ->where('country_id', (int)$loc->location_country_id)
+                ->value('country_name') ?? '');
+        }
+        $address = implode(', ', array_filter([
+            trim((string)$parts['address_1']),
+            trim((string)($parts['address_2'] ?? '')),
+            trim((string)$parts['postcode']).' '.trim((string)$parts['city']),
+            trim((string)($parts['state'] ?? '')),
+            trim($countryName),
+        ], static fn ($part) => $part !== ''));
+        try {
+            // Uses configured chain/google/nominatim through the existing
+            // PayMyDine Geocoder facade. No client API keys are exposed.
+            $match = \Igniter\Flame\Geolite\Facades\Geocoder::geocode($address)->first();
+            if (!$match || !$match->hasCoordinates()) {
+                throw new \RuntimeException('No address coordinates returned.');
+            }
+            $latitude = (float)$match->getCoordinates()->getLatitude();
+            $longitude = (float)$match->getCoordinates()->getLongitude();
+        } catch (\Throwable $error) {
+            logger()->notice('PMD staff address geocoding unavailable', [
+                'location_id' => $locationId,
+                'reason_type' => get_class($error),
+            ]);
+            throw ValidationException::withMessages([
+                'profile.address_1' => [
+                    'Could not locate this address. Check the street, postcode and city, or configure a geocoding provider under Advanced Settings.',
+                ],
+            ]);
+        }
+        if (!is_finite($latitude) || !is_finite($longitude)
+            || abs($latitude) > 90 || abs($longitude) > 180
+            || ($latitude == 0.0 && $longitude == 0.0)) {
+            throw ValidationException::withMessages([
+                'profile.address_1' => ['The map service returned an invalid position.'],
+            ]);
+        }
+        return ['pmd_staff_address_lookup' => [
+            'latitude' => round($latitude, 6),
+            'longitude' => round($longitude, 6),
+            'address' => $address,
+            'location_id' => $locationId,
+        ]];
+    }
+
     public function onSaveRestaurantProfile()
     {
         $locationId = $this->currentLocationId();
@@ -1360,7 +1434,17 @@ class Pmdsettings extends AdminController
         };
         $identity = $this->resolvedRestaurantIdentityR25(true);
 
+        // PMD_STAFF_SEED_PIN_WARNING_V1_20261023: demo coordinates from
+        // app/system/database/records/location.json must never look like a
+        // verified restaurant entrance after the owner changes the address.
+        $demoPin = $location && is_numeric($location->location_lat ?? null)
+            && is_numeric($location->location_lng ?? null)
+            && abs((float)$location->location_lat - 52.415884) < 0.00005
+            && abs((float)$location->location_lng + 1.603648) < 0.00005
+            && !str_contains(strtolower((string)($location->location_city ?? '')), 'coventry');
+
         return [
+            'staff_clock_demo_pin' => (bool)$demoPin,
             'location_id' => $locationId,
             'name' => (string)$identity['name'],
             'email' => (string)(($location->location_email ?? '') ?: $value('site_email')),
