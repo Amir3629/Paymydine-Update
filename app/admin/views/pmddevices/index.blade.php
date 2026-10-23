@@ -380,6 +380,8 @@
                                         · {{ e((string)($pmdLastCommandV145['status'] ?? 'unknown')) }}
                                         @if(in_array((string)($pmdLastCommandV145['status'] ?? ''), ['pending', 'delivered'], true))
                                             · {{ $pmdSettingsText('waiting for device acknowledgement; not confirmed executed') }}
+                                        @elseif(($pmdLastCommandV145['status'] ?? '') === 'acknowledged')
+                                            · {{ $pmdSettingsText('device accepted the command; screen application not yet confirmed') }}
                                         @elseif(($pmdLastCommandV145['status'] ?? '') === 'completed')
                                             · {{ $pmdSettingsText('device reported completion') }}
                                         @elseif(($pmdLastCommandV145['status'] ?? '') === 'failed')
