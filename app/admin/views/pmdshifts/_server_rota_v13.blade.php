@@ -152,6 +152,27 @@
 
 
 
+{{-- PMD_SHIFTS_EXTRA_ACTUAL_DAY_V1_20261023: exact selected day, actual
+     attendance, NOT an editable/published planned shift bar. --}}
+@php
+    $pmdSelectedExtras = collect(($pmdShifts ?? [])['actual_extra_shifts'] ?? [])
+        ->filter(fn($extra) => $extra->date_key === $selectedDay->toDateString())->values();
+@endphp
+@if($pmdSelectedExtras->isNotEmpty())
+<aside class="pmd-shifts-actual-day" aria-label="Unplanned actual work on selected day">
+    <strong>Extra shifts · actual work</strong>
+    <div>
+        @foreach($pmdSelectedExtras as $extra)
+            <span class="pmd-shifts-actual-day__item">
+                <b>{{ $extra->person_name }}</b>
+                <small>{{ $extra->start_label }} – {{ $extra->end_label ?: 'Now' }}</small>
+                <em>{{ $extra->reviewed ? 'Reviewed' : 'Extra' }}</em>
+            </span>
+        @endforeach
+    </div>
+</aside>
+@endif
+
 <style id="pmd-shifts-date-visible-lock-v9">
   /* PMD_SHIFTS_DATE_VISIBLE_LOCK_SERVER_V9 */
   /* PMD_SHIFTS_DATE_VISIBLE_DEDUP_V10 */
