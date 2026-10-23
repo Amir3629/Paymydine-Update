@@ -18,6 +18,7 @@ FILES=(
   "app/Services/PmdActualWorkShiftV1.php"
   "app/admin/controllers/Shifts.php"
   "app/admin/views/pmdshifts/index.blade.php"
+  "app/admin/views/pmdshifts/_server_rota_v13.blade.php"
   "app/admin/assets/css/pmd-shifts-staff-center-v1.css"
   "app/admin/assets/js/pmd-shifts-staff-center-v1.js"
   "app/admin/controllers/Mywork.php"
@@ -61,7 +62,7 @@ grep -Fq 'PMD_STAFF_ACTUAL_OUTSIDE_ROTA_V1_20261023' app/Http/Controllers/PmdSta
 } || true
 grep -Fq 'PMD_STAFF_ADDRESS_GEO_PREVIEW_V1_20261023' app/admin/controllers/Pmdsettings.php
 
-echo "=== 2. Download and validate exactly 15 files ==="
+echo "=== 2. Download and validate exactly 16 files ==="
 for f in "${FILES[@]}"; do
   mkdir -p "$STAGE/$(dirname "$f")"
   curl -fLsS --retry 3 --connect-timeout 15 "$BASE/$f" -o "$STAGE/$f"
@@ -80,6 +81,7 @@ grep -Fq 'PMD_STAFF_MY_ACTUAL_EXTRAS_V1_20261023' "$STAGE/app/Http/Controllers/P
 grep -Fq 'PMD_ACTUAL_EXTRA_SHIFTS_V1_20261023' "$STAGE/app/Services/PmdActualWorkShiftV1.php"
 grep -Fq 'PMD_ACTUAL_EXTRA_SHIFT_REVIEW_V1_20261023' "$STAGE/app/admin/controllers/Shifts.php"
 grep -Fq 'PMD_SHIFTS_WORKFORCE_DESK_V1_20261023' "$STAGE/app/admin/views/pmdshifts/index.blade.php"
+grep -Fq 'PMD_SHIFTS_EXTRA_ACTUAL_DAY_V1_20261023' "$STAGE/app/admin/views/pmdshifts/_server_rota_v13.blade.php"
 grep -Fq 'PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023' "$STAGE/app/admin/controllers/Mywork.php"
 grep -Fq 'PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023' "$STAGE/app/admin/views/pmd-staff-portal/management_v1.blade.php"
 
