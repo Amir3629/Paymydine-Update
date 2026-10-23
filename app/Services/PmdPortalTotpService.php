@@ -403,6 +403,61 @@ class PmdPortalTotpService
             && (int)($proof['verified_at'] ?? 0) > (time() - max(30, $maxAgeSeconds));
     }
 
+    /**
+     * PMD_PORTAL_TRUSTED_RESUME_V028_20261023
+     * Password-authenticated Portal session may reuse its own MFA trust
+     * token. The token does not work for Admin/Owner Workspace sign-in.
+     * Any new device, deleted cookie, disabled factor or replacement
+     * Authenticator requires a fresh personal TOTP.
+     */
+    public function resumeFromTrustedDevice(array $identity, \Illuminate\Http\Request $request): bool
+    {
+        if (!$this->ready() || !\Admin\Facades\AdminAuth::isLogged()) return false;
+        if ((string)session()->get(PmdSiteAccessService::SESSION_DESTINATION, '') !== 'staff') return false;
+
+        $userId = (int)($identity['user_id'] ?? 0);
+        $locationId = (int)($identity['location_id'] ?? 0);
+        $staffId = (int)($identity['staff_id'] ?? 0);
+        if ($userId < 1 || $locationId < 1 || $staffId < 1) return false;
+        if ((int)optional(\Admin\Facades\AdminAuth::getUser())->getKey() !== $userId) return false;
+
+        try {
+            $actual = app(PmdSiteAccessService::class)->identity();
+            if ($userId !== (int)($actual['user_id'] ?? 0)
+                || $locationId !== (int)($actual['location_id'] ?? 0)
+                || $staffId !== (int)($actual['staff_id'] ?? 0)) return false;
+            if (!$this->enabled($userId, $locationId)
+                || $this->needsRecoveryAcknowledgement($userId)) return false;
+
+            $trusted = app(PmdPortalTrustedDeviceService::class)->current($request, $actual);
+            if (!$trusted) return false;
+            $this->markSessionVerified($userId, $locationId, 'portal_trusted_device');
+            DB::table('pmd_site_access_devices')
+                ->where('id', (int)$trusted->id)
+                ->where('user_id', $userId)
+                ->where('location_id', $locationId)
+                ->where('device_kind', PmdPortalTrustedDeviceService::KIND)
+                ->whereNull('revoked_at')
+                ->update(['last_seen_at' => now(), 'updated_at' => now()]);
+
+            try {
+                app(PmdSiteAccessService::class)->audit(
+                    'portal_trusted_device_resumed', true,
+                    $actual, (int)$trusted->id, null, $request,
+                    ['scope' => 'staff_portal_only']
+                );
+            } catch (\Throwable $ignored) {}
+            return true;
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Portal trusted-device check failed', [
+                'user_id' => $userId,
+                'location_id' => $locationId,
+                'type' => get_class($error),
+            ]);
+            return false;
+        }
+    }
+
     public function clearSessionVerification(): void
     {
         session()->forget(self::SESSION_VERIFIED);
