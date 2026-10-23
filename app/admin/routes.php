@@ -247,6 +247,11 @@ require_once base_path('routes/pmd-groups.php');
 
 require_once base_path('routes/admin-app-before.php');
 require_once base_path('routes/pmd-staff-portal-v1.php');
+// PMD_DEVICE_PLATFORM_DIRECT_ADMIN_LOADER_V146
+// The root routes.php loader is not sufficient on the tenant Admin bootstrap.
+// Register device bearer API before greedy Admin routes; keep the canonical
+// device-platform module and its existing CSRF/auth/rate-limit protections.
+require_once base_path('routes/pmd-device-platform-v1.php');
 require_once base_path('routes/pmd-mobile-sync-v1.php');
 require_once base_path('routes/pmd-table-display-v1.php');
 require_once base_path('routes/pmd-kiosk-v1.php');

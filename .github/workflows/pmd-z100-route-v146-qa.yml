@@ -1,0 +1,67 @@
+name: Z100 V146 Device Platform Route QA
+on:
+  push:
+    branches: [fix/z100-device-platform-route-v146-20261023]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  route-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            app/admin/routes.php
+            routes.php
+            routes/pmd-mobile-sync-v1.php
+            routes/pmd-device-platform-v1.php
+            app/Http/Controllers/PmdDevicePlatformController.php
+            app/Services/PmdDevicePlatformAuthService.php
+            app/Services/PmdDevicePlatformService.php
+            tests/pmd-device-platform-route-v146.test.cjs
+            tests/pmd-z100-v146-safe-live.test.cjs
+            scripts/pmd-z100-v146-safe-deploy.sh
+            app/admin/views/pmddevices/index.blade.php
+          sparse-checkout-cone-mode: false
+      - name: Verify secure device route activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/admin/routes.php
+          php -l routes/pmd-device-platform-v1.php
+          php -l app/Http/Controllers/PmdDevicePlatformController.php
+          php -l app/Services/PmdDevicePlatformAuthService.php
+          node --test tests/pmd-device-platform-route-v146.test.cjs
+          node --test tests/pmd-z100-v146-safe-live.test.cjs
+          bash -n scripts/pmd-z100-v146-safe-deploy.sh
+          php -l app/Services/PmdDevicePlatformService.php
+
+      - name: Verify immutable three-file production overlay and byte-perfect rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=448640da83cf8fe77899dbfa698c9caec028a8d7
+          FIX=174fd63ea4b30eba254fd1f646b05e869cf36016
+          FILES=(
+            app/admin/routes.php
+            app/Services/PmdDevicePlatformService.php
+            app/admin/views/pmddevices/index.blade.php
+          )
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          mkdir -p "$TMP/staged" "$TMP/expected" "$TMP/orig"
+          git diff --binary "$BASE" "$FIX" -- "${FILES[@]}" > "$TMP/approved.patch"
+          test -s "$TMP/approved.patch"
+          for f in "${FILES[@]}"; do
+            mkdir -p "$TMP/staged/$(dirname "$f")" "$TMP/orig/$(dirname "$f")" "$TMP/expected/$(dirname "$f")"
+            git show "$BASE:$f" > "$TMP/orig/$f"
+            git show "$FIX:$f" > "$TMP/expected/$f"
+            cp "$TMP/orig/$f" "$TMP/staged/$f"
+          done
+          ( cd "$TMP/staged"; git apply --check "$TMP/approved.patch"; git apply "$TMP/approved.patch"; )
+          for f in "${FILES[@]}"; do cmp "$TMP/expected/$f" "$TMP/staged/$f"; done
+          ( cd "$TMP/staged"; git apply -R --check "$TMP/approved.patch"; git apply -R "$TMP/approved.patch"; )
+          for f in "${FILES[@]}"; do cmp "$TMP/orig/$f" "$TMP/staged/$f"; done
+          echo 'PINNED V146 3-FILE PATCH AND ROLLBACK: PASS'
