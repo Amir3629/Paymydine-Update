@@ -265,7 +265,7 @@ class Pmddevices extends AdminController
                 $this->devicePlatformStaffId()
             );
             flash()->success(
-                'Open Restaurant sent to '.(int)$result['count'].' PayMyDine device(s).'
+                'Restaurant screen policy Open. WAKE queued for '.(int)$result['count'].' device(s); execution needs device heartbeat.'
             );
             return;
         }
@@ -285,7 +285,7 @@ class Pmddevices extends AdminController
                 $this->devicePlatformStaffId()
             );
             flash()->success(
-                'Close Restaurant sent to '.(int)$result['count'].' PayMyDine device(s).'
+                'Restaurant screen policy Closed. SLEEP queued for '.(int)$result['count'].' device(s); execution needs device heartbeat.'
             );
             return;
         }
