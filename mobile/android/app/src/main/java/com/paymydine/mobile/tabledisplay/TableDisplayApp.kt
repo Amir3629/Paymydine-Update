@@ -145,7 +145,8 @@ fun TableDisplayApp(
                     if (
                         currentEvent.type == "idle" ||
                         currentEvent.type == "table_unavailable" ||
-                        currentEvent.type == "payment_requested"
+                        currentEvent.type == "payment_requested" ||
+                        currentEvent.type == "qr_payment_requested"
                     ) {
                         next
                     } else if (currentEvent.key != lastPresentedReactionKey) {
@@ -771,8 +772,15 @@ private fun TableSurface(
     state: DisplayState,
     connected: Boolean,
 ) {
-    val qr = remember(state.table.menuUrl) {
-        generateQrCode(state.table.menuUrl)
+    // PMD_Z80_DYNAMIC_CHECKOUT_QR_V147: only show a checkout QR when a
+    // trusted online state explicitly requests it for an unpaid table order.
+    // Offline always falls back to the non-payment menu QR; no fake Paid state.
+    val qrUrl = if (connected &&
+        state.event.type == "qr_payment_requested" &&
+        state.table.checkoutUrl.isNotBlank()
+    ) state.table.checkoutUrl else state.table.menuUrl
+    val qr = remember(qrUrl) {
+        generateQrCode(qrUrl)
     }
     val palette = displayPalette(state.theme)
 
@@ -889,6 +897,7 @@ private fun GuestMessageLine(
     val icon =
         when (type) {
             "payment_requested" -> "CARD"
+            "qr_payment_requested" -> "QR"
             "order_received",
             "waiter_call",
             "payment_success",
@@ -901,6 +910,7 @@ private fun GuestMessageLine(
             "order_received" -> "Order received"
             "waiter_call" -> "A team member is on the way"
             "payment_requested" -> "Ready for card payment"
+            "qr_payment_requested" -> "Scan to pay on your phone"
             "payment_success" -> "Payment approved"
             else -> "Scan to order"
         }
@@ -910,6 +920,7 @@ private fun GuestMessageLine(
             "order_received" -> "Sent to the kitchen."
             "waiter_call" -> "We have notified the restaurant team."
             "payment_requested" -> "Tap or insert your card to complete payment."
+            "qr_payment_requested" -> "Choose a secure online payment method."
             "payment_success" -> "Thank you for visiting us."
             else -> ""
         }
