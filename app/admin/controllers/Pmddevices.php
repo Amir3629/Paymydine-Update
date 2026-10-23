@@ -332,6 +332,20 @@ class Pmddevices extends AdminController
         }
     }
 
+    /** PMD_DEVICE_FLEET_RENAME_V150: change a trusted device's label only. */
+    public function onRenamePmdDevicePlatform()
+    {
+        $this->assertDevicePlatformManager();
+        $deviceId = (int)post('device_id', 0);
+        $name = trim((string)post('device_name', ''));
+        app(PmdDevicePlatformService::class)->renameDevice(
+            $this->devicePlatformLocationId(),
+            $deviceId,
+            $name
+        );
+        flash()->success('Device name saved.');
+    }
+
     /** PMD_DEVICE_PLATFORM_V1 */
     public function onStartPmdTableDeployment()
     {
