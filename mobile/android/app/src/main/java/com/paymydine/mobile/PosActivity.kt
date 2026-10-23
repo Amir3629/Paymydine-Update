@@ -383,7 +383,7 @@ class PosActivity : ComponentActivity() {
             // PMD_ZCS_CUSTOMER_DISPLAY_JS_BRIDGE_V5
             // Display-only bridge. No raw card/payment data is exposed here.
             addJavascriptInterface(
-                PosCustomerDisplayJavascriptBridge(customerDisplay),
+                PosCustomerDisplayJavascriptBridge(customerDisplay, this@PosActivity),
                 "PayMyDineHardware",
             )
             addJavascriptInterface(
@@ -1057,7 +1057,7 @@ class PosActivity : ComponentActivity() {
 
             addJavascriptInterface(bridge, "PayMyDineOffline")
             addJavascriptInterface(
-                PosCustomerDisplayJavascriptBridge(customerDisplay),
+                PosCustomerDisplayJavascriptBridge(customerDisplay, this@PosActivity),
                 "PayMyDineHardware",
             )
 

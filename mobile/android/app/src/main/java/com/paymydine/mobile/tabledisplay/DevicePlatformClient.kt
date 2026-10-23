@@ -7,6 +7,9 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
+internal class DevicePlatformHttpException(val httpStatus: Int) :
+    IllegalStateException("Secure table display control returned HTTP $httpStatus")
+
 class DevicePlatformClient {
     suspend fun heartbeat(
         host: String,
@@ -165,12 +168,7 @@ class DevicePlatformClient {
             }
 
             if (status !in 200..299 || !json.optBoolean("ok", false)) {
-                throw IllegalStateException(
-                    json.optString(
-                        "message",
-                        "PayMyDine Device Platform request failed (" + status + ").",
-                    ),
-                )
+                throw DevicePlatformHttpException(status)
             }
 
             return json

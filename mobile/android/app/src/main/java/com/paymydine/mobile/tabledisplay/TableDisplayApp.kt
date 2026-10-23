@@ -2,6 +2,7 @@ package com.paymydine.mobile.tabledisplay
 
 import com.paymydine.mobile.R
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -145,7 +147,8 @@ fun TableDisplayApp(
                     if (
                         currentEvent.type == "idle" ||
                         currentEvent.type == "table_unavailable" ||
-                        currentEvent.type == "payment_requested"
+                        currentEvent.type == "payment_requested" ||
+                        currentEvent.type == "qr_payment_requested"
                     ) {
                         next
                     } else if (currentEvent.key != lastPresentedReactionKey) {
@@ -211,12 +214,28 @@ fun TableDisplayApp(
             if (!store.isPaired()) return@LaunchedEffect
 
             var nextPollSeconds = 2L
+            var consecutiveFailures = 0
             while (true) {
-                nextPollSeconds =
-                    runCatching {
-                        deviceShell.heartbeatOnce()
-                    }.getOrDefault(10L)
-
+                nextPollSeconds = try {
+                    val next = deviceShell.heartbeatOnce()
+                    if (consecutiveFailures > 0) {
+                        Log.i("PMDTableControl", "Secure table-display heartbeat recovered.")
+                    }
+                    consecutiveFailures = 0
+                    next
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    consecutiveFailures = (consecutiveFailures + 1).coerceAtMost(10_000)
+                    // PMD_Z80_HEARTBEAT_SAFE_DIAGNOSTIC_V148: never print
+                    // token, table QR, hostname, response body or device identity.
+                    if (consecutiveFailures == 1 || consecutiveFailures % 12 == 0) {
+                        val code = (error as? DevicePlatformHttpException)
+                            ?.httpStatus?.toString() ?: "network_or_runtime"
+                        Log.w("PMDTableControl", "Device heartbeat unavailable; status=$code; failures=$consecutiveFailures")
+                    }
+                    10L
+                }
                 delay(nextPollSeconds.coerceIn(5L, 60L) * 1_000L)
             }
         }
@@ -771,8 +790,15 @@ private fun TableSurface(
     state: DisplayState,
     connected: Boolean,
 ) {
-    val qr = remember(state.table.menuUrl) {
-        generateQrCode(state.table.menuUrl)
+    // PMD_Z80_DYNAMIC_CHECKOUT_QR_V147: only show a checkout QR when a
+    // trusted online state explicitly requests it for an unpaid table order.
+    // Offline always falls back to the non-payment menu QR; no fake Paid state.
+    val qrUrl = if (connected &&
+        state.event.type == "qr_payment_requested" &&
+        state.table.checkoutUrl.isNotBlank()
+    ) state.table.checkoutUrl else state.table.menuUrl
+    val qr = remember(qrUrl) {
+        generateQrCode(qrUrl)
     }
     val palette = displayPalette(state.theme)
 
@@ -889,6 +915,7 @@ private fun GuestMessageLine(
     val icon =
         when (type) {
             "payment_requested" -> "CARD"
+            "qr_payment_requested" -> "QR"
             "order_received",
             "waiter_call",
             "payment_success",
@@ -901,6 +928,7 @@ private fun GuestMessageLine(
             "order_received" -> "Order received"
             "waiter_call" -> "A team member is on the way"
             "payment_requested" -> "Ready for card payment"
+            "qr_payment_requested" -> "Scan to pay on your phone"
             "payment_success" -> "Payment approved"
             else -> "Scan to order"
         }
@@ -910,6 +938,7 @@ private fun GuestMessageLine(
             "order_received" -> "Sent to the kitchen."
             "waiter_call" -> "We have notified the restaurant team."
             "payment_requested" -> "Tap or insert your card to complete payment."
+            "qr_payment_requested" -> "Choose a secure online payment method."
             "payment_success" -> "Thank you for visiting us."
             else -> ""
         }

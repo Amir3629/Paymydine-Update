@@ -1,0 +1,129 @@
+name: V147 Z100 NFC / Z80 QR / Waiter Payment Channels QA
+on:
+  push:
+    branches:
+      - feat/payment-channels-z100-z80-waiter-v147-20261023
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backend-frontend-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/Services/PmdTableDisplayService.php
+            app/Http/Controllers/PmdTableDisplayPaymentController.php
+            app/Services/Payments/ProviderCapabilityRegistry.php
+            routes/admin-quick-mode.php
+            app/admin/assets/js/pmd-table-display-v1.js
+            app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+            app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
+            app/admin/views/waiter_pos.blade.php
+            app/admin/views/waiter_dashboard_new.blade.php
+            frontend/features/customer-menu/hooks/useMenuLoader.ts
+            frontend/features/customer-menu/CustomerMenuPage.tsx
+            app/admin/assets/js/pmd-quick-pos-v1.js
+            app/admin/assets/js/pmd-qpos-web-parity-v112.js
+            app/admin/controllers/Pmddevices.php
+            mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/Models.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/ApiClient.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/TableDisplayApp.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/hardware/customerdisplay/PosCustomerDisplayJavascriptBridge.kt
+            tests/pmd-payment-channels-v147.test.cjs
+            tests/pmd-device-control-runtime-v148.test.cjs
+            mobile/android/app/src/main/java/com/paymydine/mobile/device/DeviceControlService.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/device/DeviceShellManager.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/device/DevicePlatformClient.kt
+            mobile/android/app/src/main/java/com/paymydine/mobile/tabledisplay/DevicePlatformClient.kt
+            app/Services/Payments/ProviderCapabilityRegistry.php
+          sparse-checkout-cone-mode: false
+      - name: PHP and JavaScript source syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/Services/PmdTableDisplayService.php
+          php -l app/Http/Controllers/PmdTableDisplayPaymentController.php
+          php -l app/Services/Payments/ProviderCapabilityRegistry.php
+          php -l routes/admin-quick-mode.php
+          for f in \
+            app/admin/assets/js/pmd-table-display-v1.js \
+            app/admin/assets/js/pmd-waiter-pos-payment-v3.js \
+            app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js \
+            app/admin/assets/js/pmd-quick-pos-v1.js \
+            app/admin/assets/js/pmd-qpos-web-parity-v112.js; do node --check "$f"; done
+          node --test tests/pmd-payment-channels-v147.test.cjs tests/pmd-device-control-runtime-v148.test.cjs
+      - name: Pure provider acceptance channel matrix contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -r '
+            require "app/Services/Payments/ProviderCapabilityRegistry.php";
+            $registry = new \App\Services\Payments\ProviderCapabilityRegistry;
+            foreach (["sumup", "stripe", "square", "worldline", "vr_payment", "paypal", "unknown"] as $provider) {
+              $channels = $registry->acceptanceChannels($provider);
+              if ($channels["z100_internal_nfc_acquiring_implemented"] !== false ||
+                  $channels["android_softpos_sdk_approved_for_z100"] !== false ||
+                  $channels["z80_qr_display_bank_processing"] !== false) exit(1);
+              if ($provider === "unknown" && $channels["external_reader_api_implemented"]) exit(2);
+            }
+            echo "PROVIDER_CHANNEL_SEPARATION=PASS\n";
+          '
+  frontend-typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Typecheck actual Z80 guest-checkout page (not just QR source)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm ci --no-audit --no-fund
+          npx tsc --noEmit --pretty false
+
+  android-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            mobile/android
+            app/admin/assets/js
+            app/admin/assets/css
+            app/admin/assets/images
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      # GitHub ubuntu-latest already has Android cmdline-tools. Avoid the
+      # deprecated setup-android installer ('sdkmanager tools' no longer exists).
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Install Android SDK 36 and compile NFC/QR Native source (DO NOT publish APK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "${ANDROID_HOME}/cmdline-tools"
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -x "$SDKMANAGER"
+          (yes | "$SDKMANAGER" --licenses >/dev/null 2>&1) || true
+          "$SDKMANAGER" 'platforms;android-36' 'build-tools;36.0.0'
+          gradle -p mobile/android :app:compileDebugKotlin --no-daemon --stacktrace
+          echo 'ANDROID_SOURCE_COMPILE_ONLY=PASS'
+          echo 'NO_VENDOR_ACQUIRING_SDK=NO_PRODUCTION_APK'

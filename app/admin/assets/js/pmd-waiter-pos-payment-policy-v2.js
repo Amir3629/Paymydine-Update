@@ -118,7 +118,10 @@
       var visible = 0;
       grid.querySelectorAll('[data-payment-method]').forEach(function (button) {
         var key = String(button.getAttribute('data-payment-method') || '');
-        var allowed = key === 'cash' || key === 'direct_terminal';
+        // PMD_WAITER_QR_VISIBLE_V147: Waiter can share guest QR;
+        // Cashier retains its existing Cash / Terminal layout.
+        var allowed = key === 'cash' || key === 'direct_terminal' ||
+          (!cashierMode && key === 'guest_qr');
         forceHidden(button, !allowed);
         if (!allowed) return;
 
@@ -129,6 +132,9 @@
         if (key === 'cash') {
           if (title) title.textContent = pmdT('payment.cash', 'Cash');
           if (note) note.textContent = pmdT('payment.cash_payment', 'Cash payment');
+        } else if (key === 'guest_qr') {
+          if (title) title.textContent = 'Pay by QR';
+          if (note) note.textContent = 'Show QR on Z80 or share checkout link';
         } else {
           if (title) title.textContent = pmdT('payment.terminal', 'Terminal');
           if (note) note.textContent = pmdT('payment.pay_connected_terminal', 'Pay on a connected terminal');
@@ -345,8 +351,8 @@
     }
 
     function applySimpleStaffUI() {
-      // Staff checkout is intentionally simple: full remaining balance,
-      // Cash or Terminal only. Guest checkout keeps its own online methods.
+      // Keep Waiter Cash, Terminal, and QR clear and distinct; preserve
+      // Cashier's existing Cash/Terminal presentation.
       setBlockHidden('[data-pos-split-tabs]', !cashierMode);
       setBlockHidden(
         '[data-pos-tip-buttons]',
@@ -367,7 +373,10 @@
       forceHidden(cashField, state.payment.method !== 'cash');
 
       forceHidden(root.querySelector('[data-pos-online-box]'), true);
-      forceHidden(root.querySelector('[data-pos-copy-link]'), true);
+      // No Z80 available? The waiter can share the existing secure
+      // customer checkout URL without marking the order paid.
+      forceHidden(root.querySelector('[data-pos-copy-link]'),
+        cashierMode || state.payment.method !== 'guest_qr');
       forceHidden(root.querySelector('.pmd-pos-payment-safety'), true);
 
       // PMD_CASHIER_ADJUSTMENTS_VISIBLE_R56B

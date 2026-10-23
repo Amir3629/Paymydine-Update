@@ -47,6 +47,29 @@ final class PmdTableDisplayPaymentController
     }
 
     /**
+     * PMD_Z80_WAITER_GUEST_QR_ENDPOINT_V147
+     * Protected waiter/owner action. Publishes only a QR display event and
+     * NEVER calls a provider, charges a card, or settles the order.
+     */
+    public function requestQr(Request $request, $order): JsonResponse
+    {
+        $user = $this->authorizedOperator();
+        $orderId = (int)$order;
+        if ($orderId < 1) abort(422, 'Choose a saved order first.');
+        $locationId = (int)AdminLocation::getId();
+        if ($locationId < 1) abort(403, 'Choose a restaurant location.');
+
+        $result = app(PmdTableDisplayService::class)->requestQrPayment(
+            $orderId,
+            (int)$user->getKey(),
+            (int)($user->staff_id ?? 0) ?: null,
+            $locationId
+        );
+
+        return response()->json($result)->header('Cache-Control', 'no-store');
+    }
+
+    /**
      * PMD_QPOS_TABLE_DEVICE_READINESS_V140
      * Read-only authoritative capability. Never initiates a bank transaction.
      * A table screen alone is NOT a card terminal: require live pairing with an

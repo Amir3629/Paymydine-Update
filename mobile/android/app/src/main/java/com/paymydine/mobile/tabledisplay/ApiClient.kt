@@ -115,6 +115,21 @@ class ApiClient {
                     number = table.optString("number"),
                     name = table.optString("name", "Table"),
                     menuUrl = table.optString("menu_url"),
+                    // PMD_Z80_TRUSTED_CHECKOUT_URL_V147
+                    // A QR payment request is a menu/checkout ENTRY point only.
+                    // It never contains a card approval or a charge instruction.
+                    checkoutUrl = table.optString("checkout_url").let { raw ->
+                        runCatching {
+                            val url = URL(raw)
+                            val expected = URL(SecureStore.normalizeHost(host))
+                            if (url.protocol == "https" &&
+                                url.host.equals(expected.host, ignoreCase = true) &&
+                                url.port == expected.port &&
+                                url.userInfo == null &&
+                                url.path.startsWith("/table/") &&
+                                url.query?.contains("order_id=") == true) raw else ""
+                        }.getOrDefault("")
+                    },
                     enabled = table.optBoolean("enabled", true),
                 ),
                 event = DisplayEvent(

@@ -1,0 +1,78 @@
+name: V147 Z80 Waiter VPS Safe Deploy QA
+on:
+  push:
+    branches:
+      - feat/payment-channels-z100-z80-waiter-v147-20261023
+    paths:
+      - 'scripts/pmd-payment-channels-v147-safe-deploy.sh'
+      - 'tests/pmd-payment-channels-v147-server.test.cjs'
+      - '.github/workflows/pmd-payment-channels-v147-deploy-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            scripts/pmd-payment-channels-v147-safe-deploy.sh
+            tests/pmd-payment-channels-v147-server.test.cjs
+            app/Services/PmdTableDisplayService.php
+            app/Http/Controllers/PmdTableDisplayPaymentController.php
+            routes/admin-quick-mode.php
+            app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+            app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
+            app/admin/views/waiter_pos.blade.php
+            app/admin/views/waiter_dashboard_new.blade.php
+            app/admin/controllers/Pmddevices.php
+            app/Services/PmdDevicePlatformService.php
+            app/admin/assets/js/pmd-table-display-v1.js
+            app/Services/Payments/ProviderCapabilityRegistry.php
+          sparse-checkout-cone-mode: false
+      - name: Script, PHP, JS and signed-off QR contracts
+        run: |
+          set -euo pipefail
+          bash -n scripts/pmd-payment-channels-v147-safe-deploy.sh
+          for f in app/Services/PmdTableDisplayService.php app/Http/Controllers/PmdTableDisplayPaymentController.php routes/admin-quick-mode.php app/Services/Payments/ProviderCapabilityRegistry.php; do php -l "$f"; done
+          node --check app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+          node --check app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
+          node --check app/admin/assets/js/pmd-table-display-v1.js
+          node --test tests/pmd-payment-channels-v147-server.test.cjs
+      - name: Pinned nine-file patch applies exactly then reverses byte-for-byte
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=34a3f7958f061153af0bef610b82381acd080ead
+          FIX=5b5b55f2a2e10744ba373e0ce64df8b82b111e95
+          FILES=(
+            app/Services/PmdTableDisplayService.php
+            app/Http/Controllers/PmdTableDisplayPaymentController.php
+            routes/admin-quick-mode.php
+            app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+            app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
+            app/admin/views/waiter_pos.blade.php
+            app/admin/views/waiter_dashboard_new.blade.php
+            app/admin/controllers/Pmddevices.php
+            app/Services/PmdDevicePlatformService.php
+            app/admin/assets/js/pmd-table-display-v1.js
+            app/Services/Payments/ProviderCapabilityRegistry.php
+          )
+          TMP="$(mktemp -d)"
+          trap 'rm -rf "$TMP"' EXIT
+          mkdir -p "$TMP/stage" "$TMP/orig" "$TMP/expected"
+          git diff --binary "$BASE" "$FIX" -- "${FILES[@]}" > "$TMP/reviewed.patch"
+          test -s "$TMP/reviewed.patch"
+          for f in "${FILES[@]}"; do
+            mkdir -p "$TMP/stage/$(dirname "$f")" "$TMP/orig/$(dirname "$f")" "$TMP/expected/$(dirname "$f")"
+            git show "$BASE:$f" > "$TMP/orig/$f"
+            git show "$FIX:$f" > "$TMP/expected/$f"
+            cp "$TMP/orig/$f" "$TMP/stage/$f"
+          done
+          ( cd "$TMP/stage"; git apply --check "$TMP/reviewed.patch"; git apply "$TMP/reviewed.patch"; )
+          for f in "${FILES[@]}"; do cmp "$TMP/stage/$f" "$TMP/expected/$f"; done
+          ( cd "$TMP/stage"; git apply -R --check "$TMP/reviewed.patch"; git apply -R "$TMP/reviewed.patch"; )
+          for f in "${FILES[@]}"; do cmp "$TMP/stage/$f" "$TMP/orig/$f"; done
+          echo 'V147 NINE-FILE SAFE DEPLOY AND REVERSE=PASS'

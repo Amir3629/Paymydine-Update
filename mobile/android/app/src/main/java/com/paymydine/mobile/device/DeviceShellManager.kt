@@ -26,6 +26,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.paymydine.mobile.BuildConfig
 import com.paymydine.mobile.MainActivity
 import com.paymydine.mobile.security.DeviceCredentialStore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.time.Instant
@@ -144,14 +146,15 @@ class DeviceShellManager(
                     reason = "remote_wake",
                     kiosk = true,
                 )
-                persistAndApply(state)
+                val appliedToVisibleScreen = persistAndApply(state)
                 client.acknowledge(
                     host,
                     token,
                     command.commandId,
-                    "completed",
+                    if (appliedToVisibleScreen) "completed" else "acknowledged",
                     mapOf(
                         "screen_state" to "awake",
+                        "applied_to_foreground" to appliedToVisibleScreen,
                         "brightness" to state.brightness,
                     ),
                 )
@@ -167,14 +170,15 @@ class DeviceShellManager(
                     reason = "remote_sleep",
                     kiosk = true,
                 )
-                persistAndApply(state)
+                val appliedToVisibleScreen = persistAndApply(state)
                 client.acknowledge(
                     host,
                     token,
                     command.commandId,
-                    "completed",
+                    if (appliedToVisibleScreen) "completed" else "acknowledged",
                     mapOf(
                         "screen_state" to "closed",
+                        "applied_to_foreground" to appliedToVisibleScreen,
                         "brightness" to state.brightness,
                     ),
                 )
@@ -190,21 +194,29 @@ class DeviceShellManager(
                     reason = "remote_brightness",
                 )
                 lastDesired = state
-                persistAndApply(state)
+                val appliedToVisibleScreen = persistAndApply(state)
                 client.acknowledge(
                     host,
                     token,
                     command.commandId,
-                    "completed",
-                    mapOf("brightness" to level),
+                    if (appliedToVisibleScreen) "completed" else "acknowledged",
+                    mapOf(
+                        "brightness" to level,
+                        "applied_to_foreground" to appliedToVisibleScreen,
+                    ),
                 )
             }
 
             "IDENTIFY" -> {
                 identifyActive = true
-                mainHandler.post {
-                    activityRef?.get()?.let {
-                        applyIdentifyOverlay(it)
+                val appliedToVisibleScreen = withContext(Dispatchers.Main.immediate) {
+                    val activity = activityRef?.get()
+                        ?.takeUnless { it.isFinishing || it.isDestroyed }
+                    if (activity != null) {
+                        applyIdentifyOverlay(activity)
+                        true
+                    } else {
+                        false
                     }
                 }
 
@@ -212,8 +224,11 @@ class DeviceShellManager(
                     host,
                     token,
                     command.commandId,
-                    "completed",
-                    mapOf("identify_seconds" to 10),
+                    if (appliedToVisibleScreen) "completed" else "acknowledged",
+                    mapOf(
+                        "identify_seconds" to 10,
+                        "applied_to_foreground" to appliedToVisibleScreen,
+                    ),
                 )
 
                 mainHandler.removeCallbacksAndMessages(IDENTIFY_TOKEN)
@@ -234,7 +249,7 @@ class DeviceShellManager(
                     host,
                     token,
                     command.commandId,
-                    "completed",
+                    "acknowledged",
                     mapOf("action" to "reload_app"),
                 )
 
@@ -312,20 +327,26 @@ class DeviceShellManager(
         }
     }
 
-    private fun persistAndApply(desired: DeviceDesiredState) {
-        lastDesired = desired
-        credentials.setDeviceShellState(
-            screenState = normalizedScreenState(desired.screenState),
-            brightness = desired.brightness,
-            managed = desired.kiosk,
-        )
-
-        mainHandler.post {
-            activityRef?.get()?.let {
-                applyCurrentState(it)
+    // PMD_DEVICE_CONTROL_FOREGROUND_ACK_V148
+    // Persist desired state even in the background, but only report
+    // completed when the visible Android window was actually updated.
+    private suspend fun persistAndApply(desired: DeviceDesiredState): Boolean =
+        withContext(Dispatchers.Main.immediate) {
+            lastDesired = desired
+            credentials.setDeviceShellState(
+                screenState = normalizedScreenState(desired.screenState),
+                brightness = desired.brightness,
+                managed = desired.kiosk,
+            )
+            val activity = activityRef?.get()
+                ?.takeUnless { it.isFinishing || it.isDestroyed }
+            if (activity != null) {
+                applyCurrentState(activity)
+                true
+            } else {
+                false
             }
         }
-    }
 
     private fun applyCurrentState(activity: ComponentActivity) {
         if (identifyActive) {

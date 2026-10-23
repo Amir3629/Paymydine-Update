@@ -9,6 +9,7 @@ import {
 } from "@/lib/data"
 import { apiClient } from "@/lib/api-client"
 import { useCartStore } from "@/store/cart-store"
+import type { CheckoutStep } from "@/features/checkout/types"
 
 type SearchParamsLike = {
   get(name: string): string | null
@@ -43,6 +44,7 @@ export function useMenuLoader({
   setTableInfo,
   clearCart,
   setPaymentModalOpen,
+  setPaymentModalInitialStep,
   setExistingOrderId,
   setPendingSettlementSummary,
   setLocalOpenOrder,
@@ -64,6 +66,7 @@ export function useMenuLoader({
   setTableInfo: (value: any) => void
   clearCart: () => void
   setPaymentModalOpen: (value: boolean) => void
+  setPaymentModalInitialStep: (value: CheckoutStep) => void
   setExistingOrderId: (value: number | null) => void
   setPendingSettlementSummary: (value: PendingSettlementSummary) => void
   setLocalOpenOrder: (value: any | null | ((previous: any | null) => any | null)) => void
@@ -191,6 +194,21 @@ export function useMenuLoader({
 
                 if (hydratedPendingOrderRef.current !== pendingId) {
                   hydratedPendingOrderRef.current = pendingId
+
+                  // PMD_Z80_QR_TO_REAL_CHECKOUT_V147
+                  // Z80 QR opens checkout for a server-confirmed unpaid table
+                  // order, not simply for an order_id supplied by the URL.
+                  const requestedPaymentId = Number(searchParams.get("order_id") || 0)
+                  const payableFromServer = Number((pendingQr.data as any).remaining_amount || 0)
+                  if (searchParams.get("source") === "table_display_payment" &&
+                      Number.isSafeInteger(requestedPaymentId) &&
+                      requestedPaymentId > 0 &&
+                      requestedPaymentId === pendingId &&
+                      Number.isFinite(payableFromServer) &&
+                      payableFromServer >= 0.01) {
+                    setPaymentModalInitialStep("payment")
+                    setPaymentModalOpen(true)
+                  }
                   try {
                     const state = useCartStore.getState() as any
                     if (state?.isCartOpen === true) useCartStore.setState({ isCartOpen: false })
