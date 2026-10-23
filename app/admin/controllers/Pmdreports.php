@@ -10,7 +10,10 @@ require_once __DIR__.'/concerns/PmdreportsOperationsConcern.php';
 require_once __DIR__.'/concerns/PmdreportsAttendanceConcern.php';
 
 use Admin\Facades\AdminMenu;
+use Admin\Facades\AdminAuth;
 use Admin\Facades\Template;
+use Admin\Services\PmdDefaultStaffRoleService;
+use App\Services\Inventory\PmdInventoryControlService;
 use Admin\Classes\PmdPlatformI18n;
 use Admin\Controllers\Concerns\PmdreportsCommerceConcern;
 use Admin\Controllers\Concerns\PmdreportsOperationsConcern;
@@ -43,6 +46,9 @@ class Pmdreports extends Dashboard2
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-reports-v1.js');
         $this->addJs('js/pmd-reports-excel-v1.js');
+        // PMD_INVENTORY_REPORTS_V1
+        $invReportJs = 'app/admin/assets/js/pmd-reports-inventory-v1.js';
+        $this->addJs(asset($invReportJs).'?v='.(string)(@filemtime(base_path($invReportJs)) ?: '20261023'));
         AdminMenu::setContext('dashboard');
     }
 
@@ -67,6 +73,18 @@ class Pmdreports extends Dashboard2
     public function reviews() { return $this->show('reviews'); }
     public function reservations() { return $this->show('reservations'); }
     public function attendance() { return $this->show('attendance'); }
+
+    public function inventory()
+    {
+        // Match the existing Owner/Manager access boundary of Menu inventory.
+        $role = '';
+        try {
+            $role = (string)app(PmdDefaultStaffRoleService::class)->roleCodeForUser(AdminAuth::getUser());
+        } catch (\Throwable $error) {}
+        if (!in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER, 'owner', 'manager'], true)) abort(403);
+        if ((int)$this->locationId() < 1) abort(403);
+        return $this->show('inventory');
+    }
 
     protected function show(string $type)
     {
@@ -111,6 +129,12 @@ class Pmdreports extends Dashboard2
             'route_url' => $this->reportUrl($type),
             'back_url' => admin_url('dashboard2'),
         ], $payload);
+
+        if ($type === 'inventory') {
+            // Each inventory metric has its own fixed rolling window.
+            $this->vars['pmdReport']['period_label'] = 'Live inventory and rolling operational windows';
+            $this->vars['pmdReport']['back_url'] = admin_url('reports');
+        }
 
         /*
          * PMD_OWNER_REPORT_ASYNC_RESPONSE_V1
@@ -295,6 +319,11 @@ class Pmdreports extends Dashboard2
                 'subtitle' => 'Reservations inside the selected report window with guests, status and real table assignments.',
                 'accent' => 'blue',
             ],
+            'inventory' => [
+                'title' => 'Inventory report',
+                'subtitle' => 'Stock value, purchasing, waste, expiry risk, supplier trends and movements.',
+                'accent' => 'green',
+            ],
             'attendance' => [
                 'title' => 'Staff attendance & presence',
                 'subtitle' => 'Real signed-in admin sessions, time-clock attendance and biometric verification for this location.',
@@ -309,6 +338,7 @@ class Pmdreports extends Dashboard2
 
     protected function period(string $type): string
     {
+        if ($type === 'inventory') return 'last30';
         $allowed = ['today', 'week', 'month', 'last30', 'all', 'custom'];
         $queryPeriod = request()->query('period', null);
 
@@ -337,6 +367,7 @@ class Pmdreports extends Dashboard2
 
     protected function periodOptions(string $type): array
     {
+        if ($type === 'inventory') return ['last30' => 'Live inventory'];
         return [
             'today' => 'Today',
             'week' => 'Week',
@@ -450,6 +481,7 @@ class Pmdreports extends Dashboard2
             'reviews' => $this->reviewsPayload($start, $end),
             'reservations' => $this->reservationsPayload($start, $end, $period),
             'attendance' => $this->attendancePayload($start, $end, $period),
+            'inventory' => $this->inventoryPayload(),
             default => ['stats' => [], 'chart' => null, 'columns' => [], 'rows' => [], 'empty' => true],
         };
     }
