@@ -47,6 +47,12 @@ test('VPS-style staged folder executes all 11 contracts without ENOENT', (t) => 
   }
   const canonical = path.join(tmp, 'tests/pmd-settings-v150-fixture.blade.php');
   fs.copyFileSync('app/admin/views/pmdsettings/index.blade.php', canonical);
+  // Nested Node test runners inherit NODE_TEST_CONTEXT from the outer runner.
+  // Remove it so this subprocess runs a complete standalone TAP suite rather
+  // than attempting to forward its output over an absent test IPC channel.
+  const nestedEnv = {...process.env,
+    PMD_SETTINGS_TEST_FIXTURE: 'tests/pmd-settings-v150-fixture.blade.php'};
+  delete nestedEnv.NODE_TEST_CONTEXT;
   const result = child.spawnSync(process.execPath, [
     '--test',
     'tests/pmd-device-fleet-v150.test.cjs',
@@ -55,7 +61,7 @@ test('VPS-style staged folder executes all 11 contracts without ENOENT', (t) => 
   ], {
     cwd: tmp,
     encoding: 'utf8',
-    env: {...process.env, PMD_SETTINGS_TEST_FIXTURE: 'tests/pmd-settings-v150-fixture.blade.php'},
+    env: nestedEnv,
     timeout: 60000
   });
   assert.equal(result.error, undefined, String(result.error));
