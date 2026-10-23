@@ -90,6 +90,11 @@
       dialogs[key].overlay.hidden = key !== activeKey;
     });
     mountDelivery(activeKey);
+    // A second receiving dialog can open from Barcode. Do not leave its camera running behind it.
+    if (activeKey !== 'barcode' && dialogs.barcode && stack.indexOf('barcode') !== -1) {
+      var cameraStop = dialogs.barcode.host.querySelector('[data-r24-camera-stop]');
+      if (cameraStop && !cameraStop.hidden) cameraStop.click();
+    }
     document.body.classList.toggle('pmd-inv-r25-dialog-active', Boolean(activeKey));
     if (!activeKey && lastFocused && document.contains(lastFocused)) {
       var target = lastFocused;
@@ -147,6 +152,10 @@
 
   function requestClose(dialog) {
     if (dialog.definition.locked || isSubmissionPending(dialog)) return;
+    if (dialog.definition.key === 'barcode') {
+      var stop = dialog.host.querySelector('[data-r24-camera-stop]');
+      if (stop && !stop.hidden) stop.click();
+    }
     var original = dialog.host.querySelector(dialog.definition.close);
     if (original) original.click(); // Existing handler cleans selections and barcode state.
   }
