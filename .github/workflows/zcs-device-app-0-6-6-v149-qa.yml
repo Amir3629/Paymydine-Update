@@ -2,9 +2,9 @@ name: ZCS Device App 0.6.6 V149 - QA Native Hardware Preservation
 on:
   push:
     branches:
-      - feat/payment-channels-z100-z80-waiter-v149-20261023
+      - fix/z100-nfc-device-control-v149-20261023
     paths:
-      - '.github/workflows/zcs-device-app-0-6-5-v149-qa.yml'
+      - '.github/workflows/zcs-device-app-0-6-6-v149-qa.yml'
       - 'mobile/android/**'
       - 'app/admin/assets/js/pmd-quick-pos-v1.js'
       - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
