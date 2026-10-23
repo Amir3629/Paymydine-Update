@@ -980,6 +980,26 @@ final class PmdDevicePlatformService
 
             return in_array('device_platform_v1', $capabilities, true);
         })->values();
+        // PMD_GLOBAL_POWER_SKIP_PERSONAL_V149
+        // Bulk Open/Close targets restaurant screen workspaces, not a personal
+        // phone on its generic staff login or a headless site hub.
+        if (!$deviceId && !$targetKind && in_array($command, ['WAKE', 'SLEEP'], true)
+            && $devices->isNotEmpty()) {
+            $candidateIds = $devices->pluck('id')->map(static fn ($id) => (int)$id)->all();
+            $runtimeModes = DB::table('pmd_device_runtime')
+                ->where('location_id', $locationId)
+                ->whereIn('device_id', $candidateIds)
+                ->pluck('device_mode', 'device_id');
+            $devices = $devices->filter(static function ($device) use ($runtimeModes) {
+                $kind = strtolower(trim((string)$device->device_kind));
+                $mode = strtolower(trim((string)($runtimeModes[(int)$device->id] ?? '')));
+                return in_array($kind, [
+                    'table_display', 'kds', 'cashier', 'customer_display', 'kiosk',
+                ], true) || in_array($mode, [
+                    'table_display', 'kds', 'pos', 'cashier', 'customer_display', 'kiosk',
+                ], true);
+            })->values();
+        }
         $ids = [];
 
         if ($deviceId && $devices->isNotEmpty()) {
