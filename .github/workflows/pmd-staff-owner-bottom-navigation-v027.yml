@@ -1,0 +1,28 @@
+name: Staff Owner Bottom Navigation v027
+on:
+  push:
+    branches:
+      - fix/staff-owner-bottom-navigation-v027-20261023
+    paths:
+      - 'app/admin/assets/css/pmd-staff-owner-bottom-nav-v027.css'
+      - 'app/admin/views/pmd-staff-portal/index_v5.blade.php'
+      - 'app/admin/views/pmd-staff-portal/management_v1.blade.php'
+      - 'scripts/pmd-staff-owner-bottom-nav-v027-deploy.sh'
+      - 'pmd-qa/scripts/staff-owner-bottom-nav-v027.test.cjs'
+      - '.github/workflows/pmd-staff-owner-bottom-navigation-v027.yml'
+  workflow_dispatch:
+jobs:
+  owner-bottom-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check both Blade templates
+        run: |
+          php -l app/admin/views/pmd-staff-portal/index_v5.blade.php
+          php -l app/admin/views/pmd-staff-portal/management_v1.blade.php
+      - name: Verify bottom navigation in both Owner modes
+        run: node pmd-qa/scripts/staff-owner-bottom-nav-v027.test.cjs
+      - name: Check rollback installer
+        run: |
+          bash -n scripts/pmd-staff-owner-bottom-nav-v027-deploy.sh
+          grep -Fq 'PMD_OWNER_BOTTOM_NAV_DEPLOY_V027_20261023' scripts/pmd-staff-owner-bottom-nav-v027-deploy.sh
