@@ -46,7 +46,12 @@ class Mywork extends AdminController
     {
         if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
         if (!$this->isWorkforceManager()) abort(403);
-        $locationId = max(1, (int)AdminLocation::getId());
+        try {
+            $locationId = max(1, (int)AdminLocation::getId());
+        } catch (\Throwable $error) {
+            // Preserve the same tenant-local fallback used by Shifts.
+            $locationId = 1;
+        }
         $center = app(PmdStaffOperationsCenterV1::class)->payload($locationId);
         $extras = app(PmdActualWorkShiftV1::class)
             ->get($locationId, now()->startOfMonth(), now()->endOfMonth(), null, 350);
