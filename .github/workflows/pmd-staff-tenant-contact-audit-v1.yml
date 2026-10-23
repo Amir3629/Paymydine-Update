@@ -1,0 +1,28 @@
+name: Staff Tenant Contact Audit V1
+on:
+  push:
+    branches:
+      - fix/staff-tenant-address-authority-20261023
+    paths:
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'scripts/pmd-staff-tenant-location-audit-v1.php'
+      - 'scripts/pmd-staff-tenant-contact-v1-deploy.sh'
+      - 'pmd-qa/scripts/pmd-staff-tenant-contact-authority-v1.test.cjs'
+      - '.github/workflows/pmd-staff-tenant-contact-audit-v1.yml'
+  workflow_dispatch:
+
+jobs:
+  nonmutating-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax and shell installer syntax
+        run: |
+          php -l app/admin/controllers/Pmdsettings.php
+          php -l scripts/pmd-staff-tenant-location-audit-v1.php
+          bash -n scripts/pmd-staff-tenant-contact-v1-deploy.sh
+      - name: Exact tenant and DB contact static contract
+        run: |
+          node pmd-qa/scripts/pmd-staff-tenant-contact-authority-v1.test.cjs
+          grep -Fq 'PMD_STAFF_TENANT_CONTACT_DEPLOY_V1_20261023' scripts/pmd-staff-tenant-contact-v1-deploy.sh
