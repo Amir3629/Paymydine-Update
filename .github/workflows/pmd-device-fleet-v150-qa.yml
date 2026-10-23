@@ -1,0 +1,39 @@
+name: V150 Fleet Settings and Signed APK Link QA
+on:
+  push:
+    branches:
+      - fix/device-fleet-settings-download-v150-20261023
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/Services/PmdDevicePlatformService.php
+            app/admin/controllers/Pmddevices.php
+            app/admin/views/pmddevices/index.blade.php
+            app/admin/views/pmdsettings/index.blade.php
+            app/admin/assets/js/pmd-device-fleet-v150.js
+            app/admin/assets/css/pmd-device-fleet-v150.css
+            tests/pmd-device-fleet-v150.test.cjs
+            tests/pmd-device-fleet-v150-runtime.test.cjs
+            scripts/pmd-device-fleet-v150-safe-deploy.sh
+            scripts/pmd-settings-app-link-v151.py
+            tests/pmd-settings-app-link-v151.test.cjs
+            tests/pmd-v153-staged-deploy.test.cjs
+          sparse-checkout-cone-mode: false
+      - name: PHP syntax / fleet UI JavaScript / exact contracts
+        run: |
+          set -euo pipefail
+          php -l app/Services/PmdDevicePlatformService.php
+          php -l app/admin/controllers/Pmddevices.php
+          node --check app/admin/assets/js/pmd-device-fleet-v150.js
+          node --test tests/pmd-device-fleet-v150.test.cjs tests/pmd-device-fleet-v150-runtime.test.cjs tests/pmd-settings-app-link-v151.test.cjs tests/pmd-v153-staged-deploy.test.cjs
+          if test -f scripts/pmd-device-fleet-v150-safe-deploy.sh; then
+            bash -n scripts/pmd-device-fleet-v150-safe-deploy.sh
+          fi

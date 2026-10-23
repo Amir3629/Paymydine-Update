@@ -639,9 +639,28 @@ final class PmdDevicePlatformService
                 $assignment = (string)$platform['station_name'];
             }
 
+            // PMD_DEVICE_FLEET_CLASSIFICATION_V150
+            // Trusted records are not proof of a controllable Android screen.
+            // Waiter apps on a real POS workspace can be controlled. Generic
+            // personal Staff/Attendance phones cannot be remotely OS-locked.
+            $screenSupported = $kind !== 'site_hub' && (
+                in_array($kind, ['table_display', 'cashier', 'kds',
+                    'customer_display', 'kiosk'], true)
+                || in_array($mode, ['table_display', 'pos', 'cashier',
+                    'kds', 'customer_display', 'kiosk'], true)
+            );
+            $fleetGroup = $kind === 'staff_personal' ? 'staff'
+                : ($kind === 'table_display' ? 'table' : 'workstation');
+
             return [
                 'id' => (int)$device->id,
                 'name' => trim((string)($device->device_name ?? '')) ?: 'PayMyDine device',
+                'fleet_group' => $fleetGroup,
+                'screen_remote_supported' => $screenSupported,
+                'has_device_heartbeat' => (bool)$seen,
+                'trusted_seen_at' => !empty($device->last_seen_at)
+                    ? Carbon::parse($device->last_seen_at)->toIso8601String()
+                    : null,
                 'kind' => $kind,
                 'kind_label' => $this->kindLabel($kind, $mode),
                 'mode' => $mode ?: $kind,
@@ -682,6 +701,32 @@ final class PmdDevicePlatformService
                 ),
             ];
         })->values()->all();
+    }
+
+    /**
+     * PMD_DEVICE_FLEET_RENAME_V150
+     * Rename trusted local device only; no tokens or staff data are touched.
+     * Access is checked in the owning admin controller.
+     */
+    public function renameDevice(int $locationId, int $deviceId, string $name): void
+    {
+        $this->ensureStorage();
+        $name = trim(preg_replace('/[\\x00-\\x1F\\x7F]/u', ' ', $name) ?? '');
+        if ($deviceId < 1 || mb_strlen($name) < 2 || mb_strlen($name) > 64) {
+            abort(422, 'Enter a device name between 2 and 64 characters.');
+        }
+        $updated = DB::table('pmd_site_access_devices')
+            ->where('location_id', $locationId)
+            ->where('id', $deviceId)
+            ->whereNull('revoked_at')
+            ->whereIn('device_kind', [
+                'table_display', 'staff_personal', 'site_hub', 'kds',
+                'cashier', 'customer_display', 'kiosk',
+            ])
+            ->update(['device_name' => $name, 'updated_at' => now()]);
+        if (!$updated) {
+            abort(404, 'This device is not registered for your restaurant.');
+        }
     }
 
     public function heartbeat($device, array $input): array

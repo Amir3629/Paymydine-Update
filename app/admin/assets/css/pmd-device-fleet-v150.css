@@ -1,0 +1,46 @@
+/* PMD_DEVICE_FLEET_SIMPLE_UI_V150
+ * A compact restaurant-focused view over the existing secure device actions.
+ * Preserve the v144 action serializer and server-side owner/manager checks.
+ */
+.pmd-device-fleet-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:12px 0}
+.pmd-device-fleet-tabs{display:flex;align-items:center;gap:6px;flex:1 1 540px;flex-wrap:wrap}
+.pmd-device-fleet-tabs button{border:1px solid #d3e2da;border-radius:8px;background:#fff;color:#34594c;min-height:34px;padding:6px 11px;font-size:12px;font-weight:750;cursor:pointer}
+.pmd-device-fleet-tabs button[aria-pressed="true"]{background:#0d6b4f;color:#fff;border-color:#0d6b4f}
+.pmd-device-fleet-tabs button:focus-visible,.pmd-device-fleet-more:focus-visible{outline:2px solid #2d8266;outline-offset:2px}
+.pmd-device-fleet-tabs button span{font-size:11px;opacity:.75}
+.pmd-device-fleet-toolbar input[type="search"]{min-height:36px;flex:0 1 235px;min-width:130px;border:1px solid #d3e2da;border-radius:8px;background:#fff;color:#143d31;padding:7px 10px;font-size:12px}
+.pmd-device-fleet-count{white-space:nowrap;color:#5a756b;font-size:11px}
+.pmd-device-fleet-empty{padding:24px 16px;border:1px dashed #b9cfc5;border-radius:12px;color:#5b746b;text-align:center}
+.pmd-device-fleet-empty[hidden]{display:none!important}
+.pmd-device-platform-list .pmd-device-platform-row[hidden]{display:none!important}
+.pmd-device-platform-list .pmd-device-platform-row{grid-template-columns:minmax(180px,1.25fr) minmax(140px,.85fr) minmax(154px,auto)!important;gap:10px;align-items:center;padding:12px 14px!important;min-height:78px}
+.pmd-device-platform-device strong{max-width:300px;font-size:13px;line-height:1.3}
+.pmd-device-platform-device small{display:block;max-width:340px;margin-top:3px;font-size:11px;line-height:1.4;color:#677c73}
+.pmd-device-platform-health{gap:3px;font-weight:500}
+.pmd-device-platform-health small{font-size:11px;line-height:1.35;color:#6f8279}
+.pmd-device-fleet-status{color:#977146;font-size:12px;font-weight:800}
+.pmd-device-fleet-status.is-connected{color:#0b7b56}
+.pmd-device-fleet-more{align-self:start;border:0;background:transparent;color:#0d6b4f;text-align:left;text-decoration:underline;text-underline-offset:3px;padding:4px 0;cursor:pointer;font-size:11px;font-weight:800}
+.pmd-device-fleet-tech{display:none;max-width:480px;gap:3px}
+.pmd-device-platform-list .pmd-device-platform-row[data-pmd-device-expanded="1"] .pmd-device-fleet-tech{display:grid}
+.pmd-device-platform-list .pmd-device-platform-row .pmd-device-platform-assign,
+.pmd-device-platform-list .pmd-device-platform-row .pmd-device-fleet-rename,
+.pmd-device-platform-list .pmd-device-platform-row .pmd-device-platform-brightness,
+.pmd-device-platform-list .pmd-device-platform-row .pmd-device-platform-row-actions button[name="action"]:not([value="WAKE"]):not([value="SLEEP"]){display:none!important}
+.pmd-device-platform-list .pmd-device-platform-row[data-pmd-device-expanded="1"] .pmd-device-platform-assign,
+.pmd-device-platform-list .pmd-device-platform-row[data-pmd-device-expanded="1"] .pmd-device-fleet-rename,
+.pmd-device-platform-list .pmd-device-platform-row[data-pmd-device-expanded="1"] .pmd-device-platform-brightness{display:flex!important}
+.pmd-device-platform-list .pmd-device-platform-row[data-pmd-device-expanded="1"] .pmd-device-platform-row-actions button[name="action"]:not([value="WAKE"]):not([value="SLEEP"]){display:inline-flex!important}
+.pmd-device-platform-list .pmd-device-platform-row .pmd-device-platform-controlstack{align-items:flex-end;gap:7px}
+.pmd-device-platform-list .pmd-device-platform-row[data-pmd-device-expanded="1"]{align-items:start;border-color:#b9d9c9!important;background:#fcfefd}
+.pmd-device-platform-list .pmd-device-platform-row[data-pmd-device-expanded="1"] .pmd-device-platform-controlstack{min-width:290px;gap:9px}
+.pmd-device-platform-list .pmd-device-platform-row-actions{gap:6px;justify-content:flex-end}
+.pmd-device-platform-list .pmd-device-platform-row-actions button{font-size:12px;padding:8px 12px;min-height:36px;border-radius:9px}
+.pmd-device-platform-list .pmd-device-platform-row-actions button[value="SLEEP"]{border-color:#d9cabb;color:#6b5136}
+.pmd-device-platform-list .pmd-device-platform-row-actions button:disabled{opacity:.35;cursor:not-allowed}
+.pmd-device-fleet-rename{gap:8px;align-items:flex-end;justify-content:flex-end}
+.pmd-device-fleet-rename label{display:flex;flex-direction:column;gap:4px;color:#536f63;font-size:11px}
+.pmd-device-fleet-rename input{max-width:190px;min-height:32px;padding:5px 9px;border:1px solid #cbdcd3;border-radius:8px;color:#183b30;background:#fff}
+.pmd-device-fleet-rename button{min-height:32px;border:1px solid #0d6b4f;background:#0d6b4f;color:#fff;border-radius:8px;padding:5px 11px;font-weight:700;cursor:pointer}
+@media(max-width:1100px){.pmd-device-platform-list .pmd-device-platform-row{grid-template-columns:minmax(155px,1fr) minmax(130px,.8fr)!important}.pmd-device-platform-list .pmd-device-platform-row .pmd-device-platform-controlstack{grid-column:1/-1;align-items:flex-start}.pmd-device-platform-list .pmd-device-platform-row-actions{justify-content:flex-start}}
+@media(max-width:690px){.pmd-device-platform-list .pmd-device-platform-row{display:grid!important;grid-template-columns:minmax(0,1fr)!important}.pmd-device-fleet-toolbar input[type="search"]{flex:1 1 100%;max-width:none}.pmd-device-platform-list .pmd-device-platform-row .pmd-device-platform-controlstack{grid-column:auto}.pmd-device-platform-list .pmd-device-platform-row[data-pmd-device-expanded="1"] .pmd-device-platform-controlstack{min-width:0;width:100%;align-items:flex-start}.pmd-device-fleet-rename{flex-wrap:wrap;justify-content:flex-start}}

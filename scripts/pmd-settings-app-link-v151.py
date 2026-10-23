@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+"""Apply ONLY the approved ZCS Device APK 0.6.6 link inside the Settings launcher.
+
+V151 conflicted-file recovery: the Tomo VPS Settings Blade file has concurrent
+Staff/Owner edits. A broad Git patch is intentionally forbidden here. We update
+the singular Device App anchor, leaving all surrounding text byte-identical.
+No device, Staff APK or payment-provider configuration can be changed.
+"""
+import pathlib
+import re
+import sys
+
+MARKER = "data-pmd-device-app-download-v21"
+RELEASE = "https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/"
+TARGET = RELEASE + "PayMyDine-Device-App-0.6.6.apk"
+# The owner's live Settings may use a local path, CDN or older release.
+# The identity of the button is the uniquely named Device App attribute,
+# NOT the source of an existing href. We never modify any other anchor.
+HREF = re.compile(r"""\bhref\s*=\s*(?P<quote>["'])(?P<value>.*?)(?P=quote)""", re.I | re.S)
+LABEL = re.compile(r'(<strong>)PayMyDine Device App · Android(?: \d+\.\d+\.\d+)?(</strong>)')
+COMMENT = re.compile(r'PMD_DEVICE_APP_0_6_\d+_ZCS_Z100_V\d+')
+
+
+def update_settings(original: str) -> str:
+    if original.count(MARKER) != 1:
+        raise ValueError("Device App Settings anchor is not unique")
+    pos = original.index(MARKER)
+    start = original.rfind("<a", 0, pos)
+    end = original.find("</a>", pos)
+    if start < 0 or end < pos or pos - start > 3500 or end - pos > 6500:
+        raise ValueError("Cannot isolate the exact Device App download link")
+    end += len("</a>")
+    block = original[start:end]
+    if "data-pmd-staff-app-download" in block:
+        raise ValueError("Device App block overlaps Staff download; refusing to edit")
+    # PMD_V152_DEVICE_APK_ALLOW_CUSTOM_LIVE_HREF
+    # The unique Settings Device App marker identifies the exact link, even
+    # when Tomo has a locally customized previous href. No source URL gets
+    # executed, fetched, trusted, printed, or reused.
+    open_tag_end = block.find(">")
+    if open_tag_end < 0 or block.find(MARKER) > open_tag_end:
+        raise ValueError("Device App marker must be in the opening link")
+    if len(re.findall(r"<a\b", block, flags=re.I)) != 1:
+        raise ValueError("Device App link has nested or ambiguous anchors")
+    hrefs = list(HREF.finditer(block[:open_tag_end + 1]))
+    if len(hrefs) != 1:
+        raise ValueError("Device App anchor must have exactly one quoted href")
+    link = hrefs[0]
+    old_value = link.group("value")
+    if not old_value or "\x00" in old_value or "<" in old_value or ">" in old_value:
+        raise ValueError("Malformed Device App source link")
+    block = block[:link.start("value")] + TARGET + block[link.end("value"):]
+    block, labels = LABEL.subn(
+        lambda m: m.group(1) + "PayMyDine Device App · Android 0.6.6" + m.group(2),
+        block,
+        count=1,
+    )
+    # A custom VPS label is acceptable: never rewrite unrelated owner copy.
+    block, comments = COMMENT.subn("PMD_DEVICE_APP_0_6_6_ZCS_Z100_V150", block, count=1)
+    if comments == 0:
+        block = block.replace(
+            MARKER,
+            "{{-- PMD_DEVICE_APP_0_6_6_ZCS_Z100_V150 --}}\n"
+            "                " + MARKER,
+            1,
+        )
+    result = original[:start] + block + original[end:]
+    if not result.startswith(original[:start]) or not result.endswith(original[end:]):
+        raise ValueError("Out-of-bound Settings edit detected")
+    if result.count(MARKER) != 1 or result.count(TARGET) != 1:
+        raise ValueError("Settings link rewrite did not converge")
+    # Idempotence matters if an installation was interrupted.
+    return result
+
+
+def main() -> int:
+    if len(sys.argv) != 3:
+        print("STOP: usage pmd-settings-app-link-v151.py INPUT OUTPUT", file=sys.stderr)
+        return 2
+    source, destination = (pathlib.Path(x) for x in sys.argv[1:])
+    if not source.is_file() or source.is_symlink() or destination.is_symlink():
+        print("STOP: unsafe Settings file", file=sys.stderr)
+        return 2
+    try:
+        old = source.read_bytes()
+        original = old.decode("utf-8")
+        fixed = update_settings(original)
+        output = fixed.encode("utf-8")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(output)
+        if update_settings(fixed) != fixed:
+            raise ValueError("non-idempotent Settings transformation")
+    except (OSError, UnicodeDecodeError, ValueError) as error:
+        print("STOP: Settings Device APK anchor cannot be patched safely: " + str(error), file=sys.stderr)
+        return 2
+    print("DEVICE_APP_DOWNLOAD_0_6_6_PATCH=PASS (Settings Staff and local edits untouched)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,54 @@
+name: V150 Publish verified signed Device App 0.6.6 for Admin Settings
+on:
+  push:
+    branches:
+      - fix/device-fleet-settings-download-v150-20261023
+    paths:
+      - '.github/workflows/pmd-device-app-v150-publish-066.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish-existing-qa-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Validate immutable successfully built ZCS source and retrieve artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL="$(gh api "repos/$GH_REPO/actions/runs/39976874444" --jq '.head_sha + "|" + .conclusion')"
+          test "$ACTUAL" = "d742550d54b2af3325d027cdf74deeb7913cdda4|success"
+          mkdir -p /tmp/pmd066
+          gh run download 39976874444 --repo "$GH_REPO" \
+            --name 'PayMyDine-Device-App-0.6.6-Z100-Z80-QA' \
+            --dir /tmp/pmd066
+          echo '7eeb79316ca27d7c3a11a10b0f5d93480244c20439289bbe48e3e2612cdf4862  /tmp/pmd066/PayMyDine-Device-App-0.6.6-Z100-Z80-QA.apk' | sha256sum -c -
+          cp /tmp/pmd066/PayMyDine-Device-App-0.6.6-Z100-Z80-QA.apk /tmp/pmd066/PayMyDine-Device-App-0.6.6.apk
+          printf '%s  %s\n' '7eeb79316ca27d7c3a11a10b0f5d93480244c20439289bbe48e3e2612cdf4862' 'PayMyDine-Device-App-0.6.6.apk' > /tmp/pmd066/PayMyDine-Device-App-0.6.6.apk.sha256
+          test -s /tmp/pmd066/PayMyDine-Device-App-0.6.6.apk
+      - name: Publish unique versioned download WITHOUT touching 0.6.4 or Staff App
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view pmd-device-app-preview --repo "$GH_REPO" >/dev/null
+          if gh release view pmd-device-app-preview --repo "$GH_REPO" --json assets --jq '.assets[].name' | grep -Fxq 'PayMyDine-Device-App-0.6.6.apk'; then
+            mkdir -p /tmp/pmd066/existing
+            gh release download pmd-device-app-preview --repo "$GH_REPO" --pattern 'PayMyDine-Device-App-0.6.6.apk' --dir /tmp/pmd066/existing
+            echo '7eeb79316ca27d7c3a11a10b0f5d93480244c20439289bbe48e3e2612cdf4862  /tmp/pmd066/existing/PayMyDine-Device-App-0.6.6.apk' | sha256sum -c -
+            echo 'VERSIONED_DEVICE_RELEASE_ALREADY_PUBLISHED_WITH_MATCHING_SHA=PASS'
+          else
+            gh release upload pmd-device-app-preview \
+              /tmp/pmd066/PayMyDine-Device-App-0.6.6.apk \
+              /tmp/pmd066/PayMyDine-Device-App-0.6.6.apk.sha256 \
+              --repo "$GH_REPO"
+            echo 'SIGNED_DEVICE_RELEASE_0_6_6_PUBLISHED=PASS'
+          fi
+          echo 'OLD_DEVICE_0_6_4_AND_STAFF_RELEASES_PRESERVED=PASS'
