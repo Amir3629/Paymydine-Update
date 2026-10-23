@@ -152,7 +152,7 @@
                 <div class="pmd-device-platform-grid">
                     <div class="pmd-device-platform-pane">
                         <h3>{{ $pmdSettingsText('Device schedule') }}</h3>
-                        <p>{{ $pmdSettingsText('PayMyDine uses the restaurant Opening Hours as the authority. Devices wake before opening and enter closed mode after closing.') }}</p>
+                        <p>{{ $pmdSettingsText('Automatic opening hours apply to selected device types. Open/Close Restaurant overrides this schedule for restaurant screens including POS. Offline devices cannot physically respond until reconnected.') }}</p>
 
                         <form
                             data-request="onSavePmdDevicePlatformPolicy"
@@ -346,8 +346,10 @@
                             <div class="pmd-device-platform-health">
                                 @php
                                     // PMD_DEVICE_HEARTBEAT_STATUS_V145
-                                    $pmdDeviceControlReadyV145 = !empty($device['device_command_capable'])
-                                        && !empty($device['online']);
+                                    // PMD_DEVICE_QUEUE_OFFLINE_EXPLAIN_V149
+                                    // A trusted, capable offline device can queue a
+                                    // command; execution still needs real heartbeat.
+                                    $pmdDeviceControlReadyV145 = !empty($device['device_command_capable']);
                                     $pmdLastCommandV145 = (array)($device['last_device_command'] ?? []);
                                 @endphp
                                 <span>{{ !empty($device['online']) ? $pmdSettingsText('Device Control connected') : $pmdSettingsText('Device Control offline') }}</span>
@@ -369,7 +371,7 @@
                                 @if(empty($device['device_command_capable']))
                                     <small class="pmd-device-platform-diagnostic-v145">{{ $pmdSettingsText('Remote control unavailable: device is not registered with Device Platform.') }}</small>
                                 @elseif(empty($device['online']))
-                                    <small class="pmd-device-platform-diagnostic-v145">{{ $pmdSettingsText('No Device Platform heartbeat within 90 seconds. App login does not prove remote commands work.') }}</small>
+                                    <small class="pmd-device-platform-diagnostic-v145">{{ $pmdSettingsText('No Device Platform heartbeat in 90 seconds. Queued commands expire after 10 minutes if the app does not reconnect. Update/open the Android Device app; login is not heartbeat.') }}</small>
                                 @endif
                                 @if(!empty($pmdLastCommandV145))
                                     <small class="pmd-device-platform-diagnostic-v145">
@@ -480,16 +482,16 @@
                                 >
                                     <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
                                     <input type="hidden" name="pmd_device_command" value="">
-                                    <button type="submit" name="action" value="WAKE" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Wake') }}</button>
-                                    <button type="submit" name="action" value="SLEEP" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Sleep') }}</button>
+                                    <button type="submit" name="action" value="WAKE" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Wake') }}</button>
+                                    <button type="submit" name="action" value="SLEEP" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Sleep') }}</button>
                                     <label class="pmd-device-platform-brightness">
                                         <span>{{ $pmdSettingsText('Brightness') }}</span>
                                         <input type="number" min="0" max="100" name="brightness" value="{{ (int)($device['brightness'] ?? 80) }}">
-                                        <button type="submit" name="action" value="SET_BRIGHTNESS" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Set') }}</button>
+                                        <button type="submit" name="action" value="SET_BRIGHTNESS" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Set') }}</button>
                                     </label>
-                                    <button type="submit" name="action" value="IDENTIFY" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Identify') }}</button>
-                                    <button type="submit" name="action" value="RELOAD_APP" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Reload') }}</button>
-                                    <button type="submit" name="action" value="REBOOT" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
+                                    <button type="submit" name="action" value="IDENTIFY" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Identify') }}</button>
+                                    <button type="submit" name="action" value="RELOAD_APP" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Reload') }}</button>
+                                    <button type="submit" name="action" value="REBOOT" @if(!$pmdDeviceControlReadyV145 || empty($device['online'])) disabled title="Reboot requires a connected Android Device Owner" @endif data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
                                 </form>
                             </div>
                         </div>
