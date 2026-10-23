@@ -388,7 +388,11 @@ final class PmdTableDisplayService
         $table = $this->tableRow($tableId);
         if ($tableId < 1 || !$table) abort(422, 'A restaurant table is required.');
         $locationId = (int)($order->location_id ?? $this->locationId($tableId));
-        if ($locationId < 1 || $expectedLocationId !== $locationId) {
+        // PMD_Z80_SAME_TABLE_LOCATION_GUARD_V147
+        // Require both order and bound table to belong to the operator's
+        // location; a forged/cross-tenant table_id must never emit a QR.
+        if ($locationId < 1 || $expectedLocationId !== $locationId
+            || $this->locationId($tableId) !== $locationId) {
             abort(403, 'Payment QR must stay at the active restaurant location.');
         }
         if (Schema::hasColumn('tables', 'table_status')
