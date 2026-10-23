@@ -1,6 +1,7 @@
 @php
     $shifts = collect($shifts ?? []);
     $openShifts = collect($openShifts ?? []);
+    $actualExtraShifts = collect($actualExtraShifts ?? []);
     $requests = collect($requests ?? []);
     $managementRequests = collect($managementRequests ?? []);
     $groups = collect($groups ?? []);
@@ -334,14 +335,14 @@
                         <span class="pmd-staff-section-icon is-blue"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg></span>
                         <div><small>Your working time</small><h2>My shifts</h2></div>
                     </div>
-                    <b class="pmd-staff-count">{{ $shifts->count() }}</b>
+                    <b class="pmd-staff-count">{{ $shifts->count() + $actualExtraShifts->count() }}</b>
                 </header>
 
                 <div class="pmd-staff-month-nav">
                     <a href="{{ admin_url('mywork') }}?month={{ $previousMonthKey }}#schedule" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></a>
                     <div class="pmd-staff-month-title">
                         <strong>{{ $selectedMonth->format('F Y') }}</strong>
-                        <small>Only your assigned shifts</small>
+                        <small>Planned shifts and real extra work</small>
                     </div>
                     <a href="{{ admin_url('mywork') }}?month={{ $nextMonthKey }}#schedule" aria-label="Next month"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
                 </div>
@@ -387,8 +388,24 @@
                             @endif
                         </article>
                     @empty
-                        <div class="pmd-staff-empty is-month"><strong>No shifts assigned for {{ $selectedMonth->format('F Y') }}</strong><span>Use the arrows to check previous or future months.</span></div>
+                        @if($actualExtraShifts->isEmpty())
+                            <div class="pmd-staff-empty is-month"><strong>No shifts this month</strong><span>Use the arrows to check another month.</span></div>
+                        @endif
                     @endforelse
+                    {{-- PMD_STAFF_MY_ACTUAL_EXTRAS_V1_20261023: separate
+                         actual attendance session, not a published rota edit. --}}
+                    @foreach($actualExtraShifts->sortBy('check_in_time') as $extra)
+                        @php $actualDate = \Carbon\Carbon::parse($extra->check_in_time); @endphp
+                        <article class="pmd-staff-actual-extra">
+                            <time><strong>{{ $actualDate->format('d') }}</strong><small>{{ $actualDate->format('D') }}</small></time>
+                            <div>
+                                <strong>Extra shift · actual work</strong>
+                                <span>{{ $extra->start_label }} – {{ $extra->end_label ?: 'Working now' }}</span>
+                                <small class="pmd-staff-actual-extra__status">{{ $extra->reviewed ? 'Reviewed by manager' : ($extra->is_open ? 'Time clock running' : 'Awaiting manager review') }}</small>
+                            </div>
+                            <span class="pmd-staff-actual-extra__mark" aria-label="Unplanned shift">Extra</span>
+                        </article>
+                    @endforeach
                 </div>
             </section>
 
