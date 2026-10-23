@@ -76,6 +76,20 @@
         amount:''
       };
     }
+    // PMD_Z80_QR_PREVIEW_CLARITY_V147
+    // Admin browser preview keeps the existing TABLE MENU QR. The native
+    // Z80 app alone switches its locally rendered QR to the exact checkout
+    // URL returned in the bearer-authenticated live device state.
+    if (type === 'qr_payment_requested') {
+      return {
+        icon: 'QR',
+        title: 'Open checkout on your phone',
+        subtitle: 'Scan the table QR, then pay using an online method.',
+        amount: Number(event.amount || 0) > 0
+          ? money(event.amount, event.currency) : ''
+      };
+    }
+
     if (type === 'payment_requested') {
       return {
         icon:'▣',
@@ -160,7 +174,8 @@
     if (
       type === 'idle' ||
       type === 'table_unavailable' ||
-      type === 'payment_requested'
+      type === 'payment_requested' ||
+      type === 'qr_payment_requested'
     ) return event;
 
     var key = String(event.key || (type + '-unknown'));
