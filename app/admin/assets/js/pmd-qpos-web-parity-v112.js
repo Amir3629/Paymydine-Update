@@ -1058,7 +1058,9 @@
           message.textContent = !supported
             ? 'This APK has no NFC hardware diagnostic bridge. NFC bank payments are NOT enabled; a certified payment SDK is required.'
             : !present
-              ? 'Android NFC is not detected. No bank payment has been started.'
+              ? (hardware.zcs_card_reader_sdk_method_present === true
+                  ? 'ZCS card-reader SDK is present, but Android NFC adapter is unavailable. Bank acquiring is not configured.'
+                  : 'No Android NFC adapter was detected. No bank payment has been started.')
               : !enabled
                 ? 'Android NFC exists but is disabled. Enable it in Android Settings. Bank payment SDK is still not configured.'
                 : 'Android NFC is enabled (hardware diagnostic only). Tap-to-Pay banking is NOT configured. No card will be charged.';
