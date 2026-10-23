@@ -16,6 +16,7 @@ trait HandlesPortalMfa
 {
     private const PMD_PORTAL_SECURITY_SESSION = 'pmd_login_portal_security_v1';
     private const PMD_PORTAL_ATTEMPTS_SESSION = 'pmd_login_portal_mfa_attempts_v1';
+    private const PMD_PORTAL_TRUST_CONSENT = 'pmd_portal_trust_consent_v028';
 
     private function pmdPortalMfaIndexResponse()
     {
@@ -66,6 +67,7 @@ trait HandlesPortalMfa
         $portal->resetEnrollment();
         $portal->clearRecoveryDisplay();
         session()->forget(self::PMD_PORTAL_ATTEMPTS_SESSION);
+        session()->forget(self::PMD_PORTAL_TRUST_CONSENT);
 
         $mode = $portal->enabled($userId, $locationId) ? 'verify' : 'setup';
         session()->put(self::PMD_PORTAL_SECURITY_SESSION, [
@@ -101,6 +103,12 @@ trait HandlesPortalMfa
             ]);
         }
 
+        // Trust is opted into during THIS successful MFA step, never via an
+        // unverified password POST or from a query parameter.
+        session()->put(
+            self::PMD_PORTAL_TRUST_CONSENT,
+            (string)array_get($data, 'trust_device', '') === '1'
+        );
         $state['mode'] = 'recovery_codes';
         $state['created_at'] = time();
         session()->put(self::PMD_PORTAL_SECURITY_SESSION, $state);
@@ -135,6 +143,10 @@ trait HandlesPortalMfa
             ]);
         }
 
+        session()->put(
+            self::PMD_PORTAL_TRUST_CONSENT,
+            (string)array_get($data, 'trust_device', '') === '1'
+        );
         $this->pmdPortalMfaAudit('portal_totp_verified', $identity);
 
         // Existing V1/V2 enrollments and interrupted first-time setups must not
@@ -371,7 +383,28 @@ trait HandlesPortalMfa
             'session_reason' => $policy['reason'],
         ]);
 
-        return redirect(admin_url('mywork'))->with('success', 'Portal security verified.');
+        // PMD_PORTAL_TRUST_ON_VERIFIED_MFA_V028_20261023
+        // The Authenticator has already verified THIS Portal session and
+        // recovery codes were acknowledged. Optional recognition is scoped to
+        // Staff Portal, not a trusted Admin Workspace login.
+        $trustRequested = (bool)session()->pull(self::PMD_PORTAL_TRUST_CONSENT, false);
+        $response = redirect(admin_url('mywork'))
+            ->with('success', 'Portal security verified.');
+        if ($trustRequested) {
+            try {
+                $cookie = app(\App\Services\PmdPortalTrustedDeviceService::class)
+                    ->issueAfterVerifiedTotp(request(), $identity);
+                if ($cookie) $response->withCookie($cookie);
+            } catch (\Throwable $error) {
+                logger()->warning('PMD Portal verified-device registration failed', [
+                    'user_id' => $userId,
+                    'location_id' => $locationId,
+                    'type' => get_class($error),
+                ]);
+                // Login succeeds normally; a future attempt still requires MFA.
+            }
+        }
+        return $response;
     }
 
     private function pmdPortalMfaAbortToLogin(?string $message = null)
@@ -392,6 +425,7 @@ trait HandlesPortalMfa
         session()->forget([
             self::PMD_PORTAL_SECURITY_SESSION,
             self::PMD_PORTAL_ATTEMPTS_SESSION,
+            self::PMD_PORTAL_TRUST_CONSENT,
             PmdSiteAccessService::SESSION_DESTINATION,
         ]);
 
