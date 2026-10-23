@@ -20,6 +20,11 @@ jobs:
             routes/admin-quick-mode.php
             app/admin/assets/js/pmd-table-display-v1.js
             app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+            app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
+            app/admin/views/waiter_pos.blade.php
+            app/admin/views/waiter_dashboard_new.blade.php
+            frontend/features/customer-menu/hooks/useMenuLoader.ts
+            frontend/features/customer-menu/CustomerMenuPage.tsx
             app/admin/assets/js/pmd-quick-pos-v1.js
             app/admin/assets/js/pmd-qpos-web-parity-v112.js
             app/admin/controllers/Pmddevices.php
@@ -40,6 +45,7 @@ jobs:
           for f in \
             app/admin/assets/js/pmd-table-display-v1.js \
             app/admin/assets/js/pmd-waiter-pos-payment-v3.js \
+            app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js \
             app/admin/assets/js/pmd-quick-pos-v1.js \
             app/admin/assets/js/pmd-qpos-web-parity-v112.js; do node --check "$f"; done
           node --test tests/pmd-payment-channels-v147.test.cjs
@@ -59,6 +65,27 @@ jobs:
             }
             echo "PROVIDER_CHANNEL_SEPARATION=PASS\n";
           '
+  frontend-typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Typecheck actual Z80 guest-checkout page (not just QR source)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm ci --no-audit --no-fund
+          npx tsc --noEmit --pretty false
+
   android-source:
     runs-on: ubuntu-latest
     timeout-minutes: 30
