@@ -20,8 +20,6 @@ assert.match(controller,/PMD_STAFF_ADDRESS_GEO_PREVIEW_V1_20261023/);
 assert.match(controller,/public function onPreviewStaffClockAddress\(\)/);
 assert.match(controller,/Validator::make\(\$input/);
 assert.match(controller,/DB::table\('locations'\)->where\('location_id', \$locationId\)/);
-assert.match(controller,/location_country_id/);
-assert.match(controller,/country_name/);
 assert.match(controller,/\\Igniter\\Flame\\Geolite\\Facades\\Geocoder::geocode\(\$address\)->first\(\)/);
 assert.match(controller,/hasCoordinates\(\)/);
 assert.match(controller,/getLatitude\(\)/);
@@ -33,6 +31,8 @@ const geoStart=controller.indexOf('public function onPreviewStaffClockAddress()'
 const geoEnd=controller.indexOf('public function onSaveRestaurantProfile()',geoStart);
 assert.ok(geoStart>0 && geoEnd>geoStart);
 const previewMethod=controller.slice(geoStart,geoEnd);
+assert.match(previewMethod,/Old sample locations may still/);
+assert.doesNotMatch(previewMethod,/->value\('country_name'\)/);
 assert.doesNotMatch(previewMethod,/->update\(|->insert\(|->delete\(|->save\(|DB::transaction\(/);
 assert.match(previewMethod,/location_id/);
 
