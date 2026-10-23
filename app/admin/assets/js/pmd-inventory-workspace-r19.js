@@ -1860,10 +1860,13 @@
   }
 
   function setMode(mode) {
-    mode = ['overview','stock','purchases','waste','shopping'].indexOf(mode) !== -1 ? mode : 'overview';
+    mode = ['stock','purchases','waste','shopping'].indexOf(mode) !== -1 ? mode : 'stock';
     state.mode = mode;
     workspace.querySelectorAll('[data-r19-mode]').forEach(function (button) {
-      button.classList.toggle('is-active', button.getAttribute('data-r19-mode') === mode);
+      var active = button.getAttribute('data-r19-mode') === mode;
+      button.classList.toggle('is-active', active);
+      if (active) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
     });
     workspace.querySelectorAll('[data-r19-pane]').forEach(function (pane) {
       var active = pane.getAttribute('data-r19-pane') === mode;
@@ -2139,7 +2142,8 @@
   renderKpis();
   restoreBarcodeReview();
 
-  var initialMode = 'overview';
+  // PMD_INVENTORY_FOUR_TABS_V1: Stock owns the initial inventory view.
+  var initialMode = 'stock';
   if (!embedded) {
     try {
       var requested = new URL(window.location.href).searchParams.get('mode');
