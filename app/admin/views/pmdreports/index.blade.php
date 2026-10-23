@@ -168,8 +168,22 @@
         'reviews' => ['Latest reviews', admin_url('pmdreports/reviews')],
         'reservations' => ['Upcoming reservations', admin_url('pmdreports/reservations')],
         'attendance' => ['Staff attendance', admin_url('pmdreports/attendance')],
-        'inventory' => ['Inventory', admin_url('reports/inventory')],
     ];
+
+    // Inventory cost data is visible only to the same Owner/Manager roles
+    // permitted to open /admin/menu?workspace=inventory.
+    $pmdInventoryReportRole = '';
+    try {
+        $pmdInventoryReportRole = (string)app(\Admin\Services\PmdDefaultStaffRoleService::class)
+            ->roleCodeForUser(\Admin\Facades\AdminAuth::getUser());
+    } catch (\Throwable $error) {}
+    if (in_array($pmdInventoryReportRole, [
+        \Admin\Services\PmdDefaultStaffRoleService::OWNER,
+        \Admin\Services\PmdDefaultStaffRoleService::MANAGER,
+        'owner', 'manager',
+    ], true)) {
+        $reportRoutes['inventory'] = ['Inventory', admin_url('reports/inventory')];
+    }
 
     $spotlightRows = array_slice($rows, 0, 6);
     $primaryColumn = $columns[0] ?? null;
