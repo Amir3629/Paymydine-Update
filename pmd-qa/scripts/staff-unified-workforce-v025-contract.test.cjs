@@ -1,0 +1,106 @@
+'use strict';
+// PMD_STAFF_UNIFIED_WORKFORCE_V025_CONTRACT_20261023
+// Architecture/static test: no tenant data, tokens or network.
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const root=path.resolve(__dirname,'../../');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const profile=read('app/admin/controllers/Pmdsettings.php');
+const settings=read('app/admin/views/pmdsettings/restaurant.blade.php');
+const clock=read('app/Http/Controllers/PmdStaffPortalV6Controller.php');
+const staff=read('app/Http/Controllers/PmdStaffPortalV5Controller.php');
+const actual=read('app/Services/PmdActualWorkShiftV1.php');
+const shifts=read('app/admin/controllers/Shifts.php');
+const board=read('app/admin/views/pmdshifts/index.blade.php');
+const mywork=read('app/admin/controllers/Mywork.php');
+const staffView=read('app/admin/views/pmd-staff-portal/index_v5.blade.php');
+const management=read('app/admin/views/pmd-staff-portal/management_v1.blade.php');
+const mgrJs=read('app/admin/assets/js/pmd-staff-manager-v1.js');
+const mgrCss=read('app/admin/assets/css/pmd-staff-manager-v1.css');
+const staffCss=read('app/admin/assets/css/pmd-staff-portal-v4.css');
+const shiftCss=read('app/admin/assets/css/pmd-shifts-staff-center-v1.css');
+const shiftJs=read('app/admin/assets/js/pmd-shifts-staff-center-v1.js');
+
+assert.match(profile,/PMD_RESTAURANT_ADDRESS_AUTO_GEOFENCE_V2_20261023/);
+assert.match(profile,/onSaveRestaurantProfile/);
+assert.match(profile,/addressChanged \|\| !\$oldPinValid \|\| \$demoPin/);
+assert.match(profile,/\\Igniter\\Flame\\Geolite\\Facades\\Geocoder::geocode\(\$queryAddress\)/);
+assert.match(profile,/Restaurant address could not be located/);
+assert.match(profile,/'location_lat' => round\(\$newLat, 6\)/);
+assert.match(profile,/DB::transaction\(function \(\) use/);
+assert.match(profile,/if \(\$staffClockCoordinates !== null\)/);
+assert.match(settings,/PMD_RESTAURANT_SINGLE_SAVE_GPS_V3_20261023/);
+assert.match(settings,/name="profile\[address_1\]"/);
+assert.match(settings,/name="profile\[postcode\]"/);
+assert.match(settings,/id="pmd-restaurant-profile-form"/);
+assert.doesNotMatch(settings,/data-pmd-staff-address-setup/);
+assert.doesNotMatch(settings,/data-pmd-staff-workplace-gps-v1/);
+assert.doesNotMatch(settings,/name="profile\[staff_clock_lat\]"/);
+assert.doesNotMatch(settings,/pmd-staff-address-geocode-v1\.js/);
+assert.match(settings,/Staff check-in uses this restaurant address/);
+
+assert.match(clock,/PMD_STAFF_ACTUAL_OUTSIDE_ROTA_V1_20261023/);
+assert.match(clock,/plannedShiftAtClockTime\(\$staffId, \$locationId, \$now\)/);
+assert.match(clock,/whereIn\('shift.shift_date', \$dates\)/);
+assert.match(clock,/subMinutes\(15\)/);
+assert.match(clock,/end->addDay\(\)/);
+assert.match(clock,/'schedule_status' => \$hasPlannedShift \? 'scheduled' : 'unscheduled'/);
+assert.match(clock,/'planned_shift_id' => \$plannedShiftId/);
+assert.match(clock,/validatePunch\(\(int\)\$identity\['location_id'\], \$request\)/);
+assert.match(clock,/DB::table\('staff_attendance'\)->insertGetId/);
+assert.match(actual,/PMD_ACTUAL_EXTRA_SHIFTS_V1_20261023/);
+assert.match(actual,/where\('a.location_id', \$locationId\)/);
+assert.match(actual,/where\('a.staff_id', \$staffId\)/);
+assert.match(actual,/schedule_status.*unscheduled/);
+assert.match(actual,/actual_review_status/);
+assert.match(actual,/unset\(\$row->metadata\)/);
+assert.doesNotMatch(actual,/->update\(|->insert\(/);
+assert.match(staff,/PMD_STAFF_MY_ACTUAL_EXTRAS_V1_20261023/);
+assert.match(staff,/PmdActualWorkShiftV1::class/);
+assert.match(staff,/get\(\$locationId, \$monthStart, \$monthEnd, \$staffId/);
+assert.match(staffView,/PMD_STAFF_MY_ACTUAL_EXTRAS_V1_20261023/);
+assert.match(staffView,/pmd-staff-actual-extra/);
+assert.match(staffView,/Awaiting manager review/);
+assert.match(staffCss,/PMD_STAFF_MY_ACTUAL_EXTRAS_V1_20261023/);
+
+assert.match(shifts,/PMD_ACTUAL_EXTRA_SHIFT_REVIEW_V1_20261023/);
+assert.match(shifts,/public function reviewactual\(\)/);
+assert.match(shifts,/assertOwnerOrManager\(\)/);
+assert.match(shifts,/where\('attendance_id', \$id\)->where\('location_id', \$locationId\)/);
+assert.match(shifts,/lockForUpdate\(\)/);
+assert.match(shifts,/if \(!\$row->check_out_time\) abort\(409/);
+assert.match(shifts,/actual_review_status/);
+assert.match(shifts,/PMD_SHIFTS_ACTUAL_EXTRA_SURFACE_V1_20261023/);
+assert.match(shifts,/PmdActualWorkShiftV1::class/);
+assert.match(board,/PMD_SHIFTS_WORKFORCE_DESK_V1_20261023/);
+assert.match(board,/pmd-workforce-desk__actual/);
+assert.match(board,/shifts\/reviewactual/);
+assert.match(board,/data-pmd-staff-ops-shortcut="requests"/);
+assert.match(shiftCss,/PMD_SHIFTS_WORKFORCE_DESK_V1_20261023/);
+assert.match(shiftJs,/data-pmd-staff-ops-shortcut/);
+
+assert.match(mywork,/PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023/);
+assert.match(mywork,/public function manage\(\)/);
+assert.match(mywork,/public function personal\(\)/);
+assert.match(mywork,/PmdDefaultStaffRoleService::OWNER/);
+assert.match(mywork,/PmdDefaultStaffRoleService::MANAGER/);
+assert.match(mywork,/if \(!\$this->isWorkforceManager\(\)\) abort\(403\)/);
+assert.match(mywork,/PmdStaffOperationsCenterV1::class/);
+assert.match(mywork,/PmdActualWorkShiftV1::class/);
+assert.match(management,/PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023/);
+assert.match(management,/admin::pmdshifts\._staff_operations_center_v1/);
+assert.match(management,/shifts\/reviewactual/);
+assert.match(management,/mywork\/stafflogout/);
+assert.match(management,/admin_url\('mywork\/personal'\)/);
+assert.match(mgrJs,/PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023/);
+assert.match(mgrJs,/credentials:'same-origin'/);
+assert.match(mgrJs,/\/shifts\\/);
+assert.match(mgrCss,/PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023/);
+assert.match(staffView,/admin_url\('mywork\/manage'\)/);
+for(const name of [
+ 'app/admin/assets/js/pmd-staff-manager-v1.js',
+ 'app/admin/assets/js/pmd-shifts-staff-center-v1.js'
+])new vm.Script(read(name),{filename:name});
+console.log('Staff unified workforce v0.2.5: one-address save, timed extra shift, role-gated same-app manager, review and alerts PASSED');
