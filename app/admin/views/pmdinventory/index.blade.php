@@ -270,20 +270,15 @@
                     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
                 ) !!}</script>
 
+                {{-- PMD_INVENTORY_FOUR_TABS_V1: keep advanced operations data intact, not as primary navigation. --}}
                 <nav class="pmd-inv-r19-modes pmd-inv-r24-modes" aria-label="Inventory workspace">
-                    <button type="button" class="is-active" data-r19-mode="overview">Overview</button>
-                    <button type="button" data-r19-mode="stock">Stock</button>
+                    <button type="button" class="is-active" aria-current="page" data-r19-mode="stock">Stock</button>
                     <button type="button" data-r19-mode="purchases">Purchases</button>
-                    <button type="button" data-r24-mode="orders">Orders</button>
-                    <button type="button" data-r24-mode="suppliers">Suppliers</button>
-                    <button type="button" data-r24-mode="storage">Storage & expiry</button>
-                    <button type="button" data-r24-mode="prep">Prep</button>
                     <button type="button" data-r19-mode="waste">Waste</button>
                     <button type="button" data-r19-mode="shopping">Shopping</button>
-                    <button type="button" data-r24-mode="reports">Reports</button>
                 </nav>
 
-                <section class="pmd-inv-r19-pane is-active" data-r19-pane="overview">
+                <section class="pmd-inv-r19-pane" data-r19-pane="overview" hidden>
                     <div class="pmd-inv-r19-section-head">
                         <div>
                             <span>Restaurant stock</span>
@@ -341,7 +336,7 @@
                     </details>
                 </section>
 
-                <section class="pmd-inv-r19-pane" data-r19-pane="stock" hidden>
+                <section class="pmd-inv-r19-pane is-active" data-r19-pane="stock">
                     <div class="pmd-inv-r19-section-head">
                         <div>
                             <span>Current stock</span>
