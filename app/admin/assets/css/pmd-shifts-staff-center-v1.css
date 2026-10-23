@@ -59,3 +59,38 @@
 .pmd-staff-ops__footer button:first-child{border-color:#0a6953;color:#fff;background:#08624d}
 @media(max-width:700px){.pmd-staff-ops__content{padding:60px 14px 10px}.pmd-staff-ops__intro{flex-wrap:wrap}.pmd-staff-ops__kpis{gap:6px}.pmd-staff-ops__kpis>div{padding:10px}.pmd-staff-ops__kpis strong{font-size:20px}.pmd-staff-ops__tabs button{font-size:11px;padding:6px 3px}.pmd-staff-ops__request{grid-template-columns:1fr}.pmd-staff-ops__request-actions{justify-content:flex-start}.pmd-shifts__header-actions .pmd-staff-ops__open{padding:0 10px;margin-right:6px}.pmd-shifts__header-actions .pmd-staff-ops__open span{display:none}}
 @media(prefers-reduced-motion:reduce){.pmd-staff-ops *, .pmd-staff-ops__open{animation:none!important;transition:none!important}}
+
+/* PMD_SHIFTS_WORKFORCE_DESK_V1_20261023
+   Compact operations ledger. Amber is worked without scheduled coverage;
+   planned timetable remains visually independent, never rewritten. */
+.pmd-workforce-desk{margin:16px 0 21px;background:#f9fcf9;border:1px solid #cee0d8;border-radius:15px;overflow:hidden;color:#183f34;font-family:inherit}
+.pmd-workforce-desk__heading{display:flex;gap:18px;justify-content:space-between;align-items:center;padding:19px 22px;border-bottom:1px solid #d9e8e2}
+.pmd-workforce-desk__heading small{font-size:10px;letter-spacing:.11em;color:#117058;font-weight:850}
+.pmd-workforce-desk__heading h2{margin:4px 0;font-size:21px;line-height:1.2;font-weight:850}
+.pmd-workforce-desk__heading p{margin:0;font-size:12px;color:#648076}
+.pmd-workforce-desk__actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.pmd-workforce-desk__actions button{padding:10px 13px;min-height:39px;background:#fff;border:1px solid #b9d3c8;border-radius:7px;color:#12543f;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.pmd-workforce-desk__actions button:hover{background:#eaf7ef}
+.pmd-workforce-desk__actions button span{display:inline-block;padding:1px 6px;border-radius:5px;background:#fff0d9;color:#8b5216}
+.pmd-workforce-desk__summary{display:flex;align-items:stretch;gap:0;border-bottom:1px solid #dde9e3;background:#f0f7f3}
+.pmd-workforce-desk__summary>div{min-width:0;flex:1;display:flex;gap:9px;align-items:center;padding:12px 18px;border-right:1px solid #dce9e3}
+.pmd-workforce-desk__summary>div:last-child{border-right:0}
+.pmd-workforce-desk__summary strong{font-size:23px;line-height:1;font-variant-numeric:tabular-nums;color:#174a38}
+.pmd-workforce-desk__summary span{font-size:11px;color:#56776b;line-height:1.25}
+.pmd-workforce-desk__ledger{max-height:320px;overflow-y:auto}
+.pmd-workforce-desk__actual{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 20px 10px 0;border-bottom:1px solid #f0e6d6;background:#fffdf8}
+.pmd-workforce-desk__actual:last-child{border-bottom:none}
+.pmd-workforce-desk__actual.is-reviewed{background:#fff}
+.pmd-workforce-desk__actual-bar{height:100%;min-height:34px;background:#e1a22d;border-radius:0 3px 3px 0}
+.pmd-workforce-desk__actual.is-reviewed .pmd-workforce-desk__actual-bar{background:#9cafac}
+.pmd-workforce-desk__actual-person{display:grid;gap:3px;min-width:0}
+.pmd-workforce-desk__actual-person strong{font-size:13px;color:#2d4038}
+.pmd-workforce-desk__actual-person small{font-size:11px;color:#746d5f;white-space:normal}
+.pmd-workforce-desk__actual-state{display:grid;justify-items:end;gap:5px}
+.pmd-workforce-desk__actual-state>span{padding:4px 9px;border:1px solid #e9c584;background:#fff2d9;color:#88510e;border-radius:6px;font-size:11px;font-weight:800}
+.pmd-workforce-desk__actual.is-reviewed .pmd-workforce-desk__actual-state>span{background:#f2f5f5;color:#58736c;border-color:#d8e4e0}
+.pmd-workforce-desk__actual-state button{border:0;background:transparent;padding:4px;color:#146852;font-size:11px;font-weight:750;text-decoration:underline;cursor:pointer}
+.pmd-workforce-desk__actual-state small{font-size:10px;color:#6c8279}
+.pmd-workforce-desk__empty{margin:0;padding:24px 20px;font-size:12px;color:#698177}
+.pmd-workforce-desk button:focus-visible{outline:3px solid #3c9a7f;outline-offset:2px}
+@media(max-width:780px){.pmd-workforce-desk__heading{align-items:flex-start;flex-direction:column;padding:15px}.pmd-workforce-desk__actions{justify-content:flex-start}.pmd-workforce-desk__summary>div{padding:11px 8px;flex-direction:column;align-items:flex-start;gap:5px}.pmd-workforce-desk__summary strong{font-size:19px}.pmd-workforce-desk__summary span{font-size:10px}.pmd-workforce-desk__actual{gap:8px;padding-right:10px}.pmd-workforce-desk__actual-state>span{font-size:10px}}
