@@ -23,3 +23,42 @@
 .pmd-staff-time-clock__geo-feedback{display:block;max-width:100%;font-size:11px;font-weight:650;line-height:1.45;color:#627d74;white-space:normal;overflow-wrap:anywhere;text-align:right}
 .pmd-staff-time-clock__geo-feedback[data-pmd-gps-error]{color:#9a362f}
 @media(max-width:760px){.pmd-staff-time-clock form[data-pmd-clock-geo-form]{max-width:100%;align-items:stretch}.pmd-staff-time-clock__geo-feedback{text-align:left}}
+
+/* PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022: errors remain visible until retry/dismiss. */
+.pmd-staff-time-clock{grid-template-columns:44px minmax(0,1fr);gap:10px}
+.pmd-staff-time-clock form[data-pmd-clock-geo-form]{grid-column:1/-1;display:flex;align-items:stretch;gap:7px;width:100%;max-width:100%;margin:0}
+.pmd-staff-time-clock__button{min-height:45px;width:100%;font-size:13px}
+.pmd-staff-time-clock__geo-feedback{max-width:none!important;width:100%;text-align:left!important;white-space:normal;line-height:1.5}
+.pmd-staff-time-clock__geo-feedback[data-pmd-gps-error]{display:block;padding:10px 12px;border:1px solid #e7c5bb;border-radius:10px;background:#fff7f3;color:#8b3429!important;overflow-wrap:anywhere}
+.pmd-staff-time-clock__server-error{grid-column:1/-1;display:grid;gap:7px;padding:12px 13px;border:1px solid #e7bdb7;border-left:4px solid #bc5649;border-radius:10px;background:#fff7f5;color:#883b32;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.pmd-staff-time-clock__server-error strong{font-size:13px;font-weight:900}
+.pmd-staff-time-clock__server-error button{justify-self:start;min-height:36px;padding:0 12px;border:1px solid #e4bcb6;border-radius:9px;background:#fff;color:#8c3e34;font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+@media(max-width:760px){
+.pmd-staff-time-clock{grid-template-columns:38px minmax(0,1fr)}
+.pmd-staff-time-clock form[data-pmd-clock-geo-form]{max-width:100%;align-items:stretch}
+}
+
+/* PMD_STAFF_BREAK_CLOCK_UI_V1_20261022 */
+.pmd-staff-time-clock{max-width:100%}
+.pmd-staff-time-clock__copy{min-width:0}
+.pmd-staff-break-actions{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+.pmd-staff-break-actions button{width:100%;min-height:46px;padding:8px 14px;border:1px solid #a5cbb9;border-radius:10px;background:#edf7f1;color:#08614a;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.pmd-staff-break-actions button:focus-visible,.pmd-staff-break-question button:focus-visible{outline:3px solid #86bea0;outline-offset:2px}
+.pmd-staff-break-question{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;justify-content:center;align-items:stretch;gap:13px;width:100vw;height:100dvh;padding:20px max(22px,calc((100vw - 420px)/2));background:rgba(9,38,30,.95);color:#fff}
+.pmd-staff-break-question[hidden],.pmd-staff-break-question [hidden]{display:none!important}
+.pmd-staff-break-question strong{font-size:24px;line-height:1.25;letter-spacing:-.02em;font-weight:900}
+.pmd-staff-break-question p{margin:0 0 8px;color:#cee8d8;font-size:14px}
+.pmd-staff-break-choices{display:flex;align-items:center;gap:10px}
+.pmd-staff-break-choices button{flex:1;min-height:49px;padding:9px 12px;border:1px solid rgba(255,255,255,.34);border-radius:11px;background:#fff;color:#07553f;font:inherit;font-size:13px;font-weight:900;cursor:pointer}
+.pmd-staff-break-choices [data-pmd-break-cancel]{background:transparent;color:#fff;border-color:#7d9d90}
+.pmd-staff-break-question [data-pmd-break-minutes]{display:grid;gap:7px;font-size:13px;font-weight:800}
+.pmd-staff-break-question input[type="number"]{width:100%;height:48px;padding:0 15px;border:1px solid #a6c8ba;border-radius:10px;background:#fff;color:#153f2f;font-size:16px}
+@media(max-width:760px){
+ .pmd-staff-time-clock form[data-pmd-clock-geo-form]{width:100%}
+ .pmd-staff-break-question{padding:22px 21px}
+}
+
+/* PMD_STAFF_FUSED_GPS_HELP_V3_20261022 — foreground-only permission recovery. */
+.pmd-staff-time-clock__location-help{grid-column:1/-1;display:block;min-height:42px;width:100%;border:1px solid #a7c8b6;border-radius:10px;background:#edf8f1;color:#086349;font:inherit;font-size:12px;font-weight:850;cursor:pointer;padding:7px 10px}
+.pmd-staff-time-clock__location-help[hidden]{display:none!important}
+.pmd-staff-time-clock__location-help:focus-visible{outline:3px solid #91c7a8;outline-offset:2px}

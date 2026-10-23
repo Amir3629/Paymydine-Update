@@ -22,6 +22,15 @@ trait PmdWaiterPosTerminalProvidersConcern
         if (Schema::hasTable('terminal_devices')) {
             $columns = Schema::getColumnListing('terminal_devices');
 
+            // PMD_QPOS_TERMINAL_INVENTORY_V139_EFFECTIVE_TRAIT
+            // This is the method explicitly selected in PmdWaiterPosV1.
+            // Use only active, market-allowed real devices for this location.
+            $locationId = 0;
+            try {
+                $locationId = (int)\Admin\Facades\AdminLocation::getId();
+            } catch (\Throwable $ignored) {
+            }
+
             // PMD_SQUARE_TERMINAL_CANADA_R10_MARKET_INVENTORY
             $allowedProviderCodes = array_keys(Terminal_devices_model::listProviderOptions());
             foreach ($allowedProviderCodes as $providerCode) {
@@ -33,7 +42,25 @@ trait PmdWaiterPosTerminalProvidersConcern
                         ->where('reader_id', '!=', '')
                         ->orderBy('terminal_device_id');
 
+                    if (in_array('location_id', $columns, true)) {
+                        $query->where(function ($scope) use ($locationId) {
+                            $scope->whereNull('location_id');
+                            if ($locationId > 0) {
+                                $scope->orWhere('location_id', $locationId);
+                            }
+                        });
+                    }
+
                     foreach ($query->get() as $terminal) {
+                        if (
+                            $providerCode === 'vr_payment'
+                            && str_starts_with(
+                                strtoupper(trim((string)($terminal->reader_id ?? ''))),
+                                'PMD-VR-SIM-'
+                            )
+                        ) {
+                            continue;
+                        }
                         $label = trim((string)($terminal->reader_label ?? ''));
                         $status = strtolower(trim((string)($terminal->terminal_status ?? 'unknown')));
                         $pairing = strtolower(trim((string)($terminal->pairing_state ?? 'unknown')));
@@ -61,53 +88,8 @@ trait PmdWaiterPosTerminalProvidersConcern
             }
         }
 
-        // PMD_VR_SIM_VISIBILITY_R2_20260905
-        // Always expose PMD's own TEST-only VR simulator rows to Waiter/Cashier POS,
-        // even if the location market context has not resolved yet. Real provider
-        // terminals are still handled exclusively by the market-gated loop above.
-        try {
-            $existingIds = array_map(
-                static fn ($row): int => (int)($row['terminal_device_id'] ?? 0),
-                $providers
-            );
-
-            $simulatorQuery = DB::table('terminal_devices')
-                ->whereRaw('LOWER(provider_code) = ?', ['vr_payment'])
-                ->where('is_active', 1)
-                ->where('reader_id', 'like', 'PMD-VR-SIM-%')
-                ->whereNotNull('reader_id')
-                ->where('reader_id', '!=', '')
-                ->orderBy('terminal_device_id');
-
-            if (in_array('environment', $columns, true)) {
-                $simulatorQuery->whereRaw("LOWER(COALESCE(environment, 'test')) = ?", ['test']);
-            }
-
-            foreach ($simulatorQuery->get() as $terminal) {
-                $terminalDeviceId = (int)($terminal->terminal_device_id ?? 0);
-                if ($terminalDeviceId <= 0 || in_array($terminalDeviceId, $existingIds, true)) {
-                    continue;
-                }
-
-                $label = trim((string)($terminal->reader_label ?? ''));
-                $status = strtolower(trim((string)($terminal->terminal_status ?? 'online')));
-                $pairing = strtolower(trim((string)($terminal->pairing_state ?? 'paired')));
-
-                $providers[] = [
-                    'provider_code' => 'vr_payment',
-                    'terminal_device_id' => $terminalDeviceId,
-                    'provider_terminal_id' => null,
-                    'reader_id' => (string)$terminal->reader_id,
-                    'name' => $label !== '' ? $label : 'PMD VR Simulator',
-                    'terminal_status' => $status !== '' ? $status : 'online',
-                    'pairing_state' => $pairing !== '' ? $pairing : 'paired',
-                    'environment' => in_array('environment', $columns, true)
-                        ? (string)($terminal->environment ?? 'test')
-                        : 'test',
-                ];
-            }
-        } catch (\Throwable $ignored) {
-        }
+        // PMD_QPOS_REAL_TERMINALS_ONLY_V139
+        // Legacy VR simulator fallback removed from the live Card picker.
 
         // Worldline terminals are sourced from terminal_devices above.
         return $providers;

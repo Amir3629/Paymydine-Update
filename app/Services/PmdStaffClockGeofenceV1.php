@@ -24,13 +24,20 @@ final class PmdStaffClockGeofenceV1
             || !Schema::hasColumn('locations', 'location_lat')
             || !Schema::hasColumn('locations', 'location_lng')) return $missing;
         $site = DB::table('locations')->where('location_id', $locationId)
-            ->select(['location_lat', 'location_lng'])->first();
+            ->select(['location_lat', 'location_lng', 'location_city'])->first();
         if (!$site || !is_numeric($site->location_lat) || !is_numeric($site->location_lng)) return $missing;
         $lat = (float)$site->location_lat;
         $lng = (float)$site->location_lng;
         if (!is_finite($lat) || !is_finite($lng)
             || abs($lat) > 90 || abs($lng) > 180
             || ($lat == 0.0 && $lng == 0.0)) return $missing;
+        // PMD_STAFF_DEMO_GEOFENCE_REJECT_V1_20261023:
+        // Installer fixture coordinates were copied from Coventry. Do not
+        // treat them as a verified entrance after the owner sets another city.
+        if (abs($lat - 52.415884) < 0.00005 && abs($lng + 1.603648) < 0.00005
+            && !str_contains(strtolower((string)($site->location_city ?? '')), 'coventry')) {
+            return ['configured' => false, 'radius_m' => self::RADIUS_METERS, 'demo_pin' => true];
+        }
         return ['configured' => true, 'radius_m' => self::RADIUS_METERS, 'lat' => $lat, 'lng' => $lng];
     }
 
@@ -38,6 +45,9 @@ final class PmdStaffClockGeofenceV1
     {
         $site = $this->site($locationId);
         if (!$site['configured']) {
+            if (!empty($site['demo_pin'])) {
+                return ['ok' => false, 'message' => 'This restaurant still has a demo GPS pin. Ask the owner to find and confirm the check-in location in Restaurant Settings.'];
+            }
             return ['ok' => false, 'message' => 'Restaurant coordinates missing. Ask the manager to update Restaurant Profile.'];
         }
         $inputs = [$request->input('geo_lat'), $request->input('geo_lng'),
@@ -62,6 +72,15 @@ final class PmdStaffClockGeofenceV1
             * sin(deg2rad($lng - $site['lng']) / 2) ** 2;
         $distance = 6371000 * 2 * asin(min(1.0, sqrt(max(0.0, $h))));
         if ($distance > self::RADIUS_METERS + 25) {
+            // PMD_STAFF_GEOFENCE_DISTANCE_AUDIT_V2_20261023:
+            // A distance-only audit for diagnosing bad workplace pins vs emulator
+            // or phone coordinates. NEVER log staff GPS lat/lng or request body.
+            logger()->notice('PMD_STAFF_GEOFENCE_DISTANCE_AUDIT_V2_20261023', [
+                'location_id' => $locationId,
+                'distance_m' => (int)round($distance),
+                'accuracy_m' => (int)round($accuracy),
+                'limit_m' => self::RADIUS_METERS + 25,
+            ]);
             return ['ok' => false, 'message' => 'You are outside the restaurant check-in area. Move closer and retry.'];
         }
         return ['ok' => true, 'evidence' => [

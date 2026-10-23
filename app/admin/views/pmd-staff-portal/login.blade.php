@@ -1,36 +1,70 @@
 @php
-    $pmdStaffLocale = strtolower(trim((string)request()->cookie('pmd_admin_locale', app()->getLocale())));
-    $pmdStaffLocale = in_array($pmdStaffLocale, ['en', 'de'], true) ? $pmdStaffLocale : 'en';
-    $pmdStaffNextLocale = $pmdStaffLocale === 'de' ? 'en' : 'de';
-    $pmdStaffCopy = $pmdStaffLocale === 'de'
-        ? [
-            'title' => 'Staff Portal · PayMyDine',
-            'heading' => 'Staff Portal',
-            'sub' => 'Dienstplan, Team-Chat und Anfragen mit deinem normalen PayMyDine Login.',
-            'workspace' => 'Workspace',
-            'staff' => 'Staff Portal',
-            'username' => 'Benutzername',
-            'password' => 'Passwort',
-            'username_placeholder' => 'Benutzername eingeben',
-            'password_placeholder' => 'Passwort eingeben',
-            'button' => 'Staff Portal öffnen',
-            'account_note' => 'Gleiche Zugangsdaten wie im PayMyDine Workspace.',
-            'switch_title' => 'Auf Englisch wechseln',
-        ]
-        : [
-            'title' => 'Staff Portal · PayMyDine',
-            'heading' => 'Staff Portal',
-            'sub' => 'Shifts, team chat and requests with your normal PayMyDine login.',
-            'workspace' => 'Workspace',
-            'staff' => 'Staff Portal',
+    // PMD_STAFF_MARKET_LOGIN_V2_20261022: resolve language from the tenant's
+    // configured restaurant country, not from the staff device or geolocation.
+    $pmdStaffMarket = '';
+    try {
+        $pmdCountryId = (int)setting('country_id');
+        if ($pmdCountryId > 0) {
+            $pmdStaffMarket = strtoupper((string)\Illuminate\Support\Facades\DB::table('countries')
+                ->where('country_id', $pmdCountryId)->value('iso_code_2'));
+        }
+        if ($pmdStaffMarket === '') {
+            $pmdStaffMarket = strtoupper((string)\Illuminate\Support\Facades\DB::table('locations as loc')
+                ->join('countries as country', 'country.country_id', '=', 'loc.location_country_id')
+                ->orderBy('loc.location_id')->value('country.iso_code_2'));
+        }
+    } catch (\Throwable $ignored) {}
+    // PMD_STAFF_LANGUAGE_COUNTRY_FIX_V3_20261022: countries.iso_code_2.
+    $pmdStaffOtherLocale = $pmdStaffMarket === 'DE' ? 'de' : ($pmdStaffMarket === 'TR' ? 'tr' : 'en');
+    $pmdStaffAllowed = $pmdStaffOtherLocale === 'en' ? ['en'] : ['en', $pmdStaffOtherLocale];
+    $pmdStaffCookie = strtolower(trim((string)request()->cookie('pmd_admin_locale', '')));
+    $pmdStaffLocale = in_array($pmdStaffCookie, $pmdStaffAllowed, true) ? $pmdStaffCookie : $pmdStaffOtherLocale;
+    $pmdStaffNextLocale = $pmdStaffLocale === 'en' ? $pmdStaffOtherLocale : 'en';
+    $pmdStaffCopies = [
+        'en' => [
+            'title' => 'PayMyDine Staff · Sign in',
+            'heading' => 'Welcome back',
+            'sub' => 'Sign in to see your shifts.',
             'username' => 'Username',
             'password' => 'Password',
-            'username_placeholder' => 'Enter your username',
-            'password_placeholder' => 'Enter your password',
-            'button' => 'Open Staff Portal',
-            'account_note' => 'Use the same credentials as your PayMyDine Workspace account.',
-            'switch_title' => 'Switch to German',
-        ];
+            'username_placeholder' => 'Your username',
+            'password_placeholder' => 'Your password',
+            'button' => 'Sign in',
+            'account_note' => 'Use your restaurant PayMyDine account.',
+            'switch_title' => 'Change language',
+            'privacy_title' => 'Privacy & location',
+            'privacy_desc' => 'Staff uses your restaurant account for schedules, requests and team messages. Precise location is requested only when starting or finishing a shift and the result may be recorded for manager review. Location is not tracked in the background. Request the full employee privacy notice from your employer.',
+        ],
+        'de' => [
+            'title' => 'PayMyDine Staff · Anmelden',
+            'heading' => 'Willkommen zurück',
+            'sub' => 'Melde dich an und sieh deine Schichten.',
+            'username' => 'Benutzername',
+            'password' => 'Passwort',
+            'username_placeholder' => 'Dein Benutzername',
+            'password_placeholder' => 'Dein Passwort',
+            'button' => 'Anmelden',
+            'account_note' => 'Nutze dein PayMyDine-Konto vom Restaurant.',
+            'switch_title' => 'Sprache wechseln',
+            'privacy_title' => 'Datenschutz & Standort',
+            'privacy_desc' => 'Staff nutzt dein Restaurantkonto für Schichten, Anfragen und Teamnachrichten. Der genaue Standort wird nur bei Schichtbeginn oder Schichtende abgefragt und kann zur Anwesenheitsprüfung durch die Restaurantleitung gespeichert werden. Keine Standortüberwachung im Hintergrund. Die vollständigen Datenschutzhinweise erhältst du von deinem Arbeitgeber.',
+        ],
+        'tr' => [
+            'title' => 'PayMyDine Staff · Giriş',
+            'heading' => 'Tekrar hoş geldin',
+            'sub' => 'Vardiyalarını görmek için giriş yap.',
+            'username' => 'Kullanıcı adı',
+            'password' => 'Şifre',
+            'username_placeholder' => 'Kullanıcı adın',
+            'password_placeholder' => 'Şifren',
+            'button' => 'Giriş yap',
+            'account_note' => 'Restoran PayMyDine hesabını kullan.',
+            'switch_title' => 'Dili değiştir',
+            'privacy_title' => 'Gizlilik ve konum',
+            'privacy_desc' => 'Staff; vardiyalar, talepler ve ekip mesajları için restoran hesabını kullanır. Hassas konum yalnızca vardiyaya başlarken veya vardiyayı bitirirken istenir; doğrulama sonucu yönetici incelemesi için kaydedilebilir. Arka planda konum takibi yoktur. Çalışan gizlilik bildiriminin tamamını işvereninden iste.',
+        ],
+    ];
+    $pmdStaffCopy = $pmdStaffCopies[$pmdStaffLocale] ?? $pmdStaffCopies['en'];
 @endphp
 <!doctype html>
 <html lang="{{ $pmdStaffLocale }}">
@@ -41,26 +75,20 @@
     <title>{{ $pmdStaffCopy['title'] }}</title>
     <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-staff-v3">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v1.css?v=3">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=1">
 </head>
 <body class="pmd-staff-login-page">
 <main class="pmd-staff-login-shell">
     <section class="pmd-staff-login-card">
+        @if($pmdStaffNextLocale !== $pmdStaffLocale)
         <button type="button" class="pmd-staff-language" data-pmd-staff-language="{{ $pmdStaffNextLocale }}" title="{{ $pmdStaffCopy['switch_title'] }}" aria-label="{{ $pmdStaffCopy['switch_title'] }}">{{ strtoupper($pmdStaffNextLocale) }}</button>
+        @endif
 
         <div class="pmd-staff-login-brand"><img src="/app/admin/assets/images/pmd-login-logo.svg?v=pmd-staff-v3" alt="PayMyDine"></div>
         <h1>{{ $pmdStaffCopy['heading'] }}</h1>
         <p class="pmd-staff-login-sub">{{ $pmdStaffCopy['sub'] }}</p>
 
-        <nav class="pmd-staff-login-mode" aria-label="Login destination">
-            <a href="{{ admin_url('login') }}">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h5"></path></svg>
-                {{ $pmdStaffCopy['workspace'] }}
-            </a>
-            <span aria-current="page">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg>
-                {{ $pmdStaffCopy['staff'] }}
-            </span>
-        </nav>
+
 
         @if(session('success'))<div class="pmd-staff-flash is-success">{{ session('success') }}</div>@endif
         @if(session('error'))<div class="pmd-staff-flash is-error">{{ session('error') }}</div>@endif
@@ -75,12 +103,16 @@
         </form>
 
         <small class="pmd-staff-login-note">{{ $pmdStaffCopy['account_note'] }}</small>
+        <details class="pmd-staff-login-privacy">
+            <summary>{{ $pmdStaffCopy['privacy_title'] }}</summary>
+            <p>{{ $pmdStaffCopy['privacy_desc'] }}</p>
+        </details>
     </section>
 </main>
 <script>
 (function(){
     var lang=document.querySelector('[data-pmd-staff-language]');
-    if(lang)lang.addEventListener('click',function(){var code=String(lang.dataset.pmdStaffLanguage||'').toLowerCase();if(code!=='en'&&code!=='de')return;var cookie='pmd_admin_locale='+encodeURIComponent(code)+'; Path=/; Max-Age=31536000; SameSite=Lax';if(location.protocol==='https:')cookie+='; Secure';document.cookie=cookie;location.reload();});
+    if(lang)lang.addEventListener('click',function(){var code=String(lang.dataset.pmdStaffLanguage||'').toLowerCase();if(code!=='en'&&code!=='de'&&code!=='tr')return;var cookie='pmd_admin_locale='+encodeURIComponent(code)+'; Path=/; Max-Age=31536000; SameSite=Lax';if(location.protocol==='https:')cookie+='; Secure';document.cookie=cookie;location.reload();});
     var input=document.querySelector('[data-pmd-staff-password]'),toggle=document.querySelector('[data-pmd-staff-password-toggle]');
     if(input&&toggle)toggle.addEventListener('click',function(){var show=input.type==='password';input.type=show?'text':'password';toggle.setAttribute('aria-label',show?'Hide password':'Show password');});
 })();

@@ -3,6 +3,11 @@
 /* PMD_STAFF_CLOCK_GPS_PERMISSION_GUIDANCE_V2_20261021 */
 /* PMD_STAFF_NATIVE_CLOCK_GPS_V1_20261022 */
 /* PMD_STAFF_UNSCHEDULED_ATTENDANCE_V1_20261022 */
+/* PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022 */
+/* PMD_STAFF_TIME_AND_BREAK_V1_20261022 */
+/* PMD_STAFF_FAST_PRECISE_GPS_V2_20261022 */
+/* PMD_STAFF_FUSED_LOCATION_V3_20261022 */
+/* PMD_STAFF_LOCATION_SETTINGS_PREFLIGHT_V4_20261022 */
 (function () {
   'use strict';
 
@@ -10,6 +15,7 @@
   if (!state) return;
 
   var schedule = document.getElementById('schedule');
+  var clockTarget = document.querySelector('[data-pmd-staff-clock-target]');
   if (!schedule || schedule.querySelector('[data-pmd-staff-time-clock]')) return;
 
   function escapeHtml(value) {
@@ -37,7 +43,8 @@
   var meta = '';
   if (active) {
     meta = 'Started ' + escapeHtml(state.check_in_label || '') + ' · <b data-pmd-clock-elapsed>' + duration(state.elapsed_seconds) + '</b>' +
-      (state.unscheduled ? ' · Unscheduled work recorded' : '');
+      (state.unscheduled ? ' · Unscheduled work recorded' : '') +
+      (state.break_active ? ' · Break in progress' : '');
   } else if (ready && state.scheduled_label) {
     meta = escapeHtml(state.scheduled_label);
   } else if (ready && state.last_check_out_label) {
@@ -48,6 +55,10 @@
     meta = state.geo_required && !state.geo_ready ? 'The restaurant location is missing. Ask the owner to set it in Restaurant Profile.' : 'Attendance storage is not ready for this restaurant.';
   }
 
+  var clockError = String(state.flash_error || '');
+  function tr(value) {
+    return window.PMD_STAFF_TRANSLATE ? window.PMD_STAFF_TRANSLATE(value) : value;
+  }
   var action = active ? state.clock_out_url : state.clock_in_url;
   var button = active ? 'Check out' : 'Start shift';
   var form = ready && action ? '' +
@@ -56,6 +67,27 @@
       '<button type="submit" class="pmd-staff-time-clock__button">' + button + '</button>' +
     '</form>' : '';
 
+  var breaksActive = !!state.break_active;
+  var hasTrackedBreaks = Number(state.break_count || 0) > 0;
+  var breakForm = active && state.clock_break_url ? '' +
+    '<form method="post" class="pmd-staff-break-actions" action="' +
+      escapeHtml(state.clock_break_url) + '" data-pmd-clock-break-form>' +
+    '<input type="hidden" name="_token" value="' + escapeHtml(csrf()) + '">' +
+    '<input type="hidden" name="break_action" value="' + (breaksActive ? 'end' : 'start') + '">' +
+    '<button type="submit">' + (breaksActive ? 'End break' : 'Start break') + '</button></form>' : '';
+  var breakQuestion = active && !hasTrackedBreaks ? '' +
+    '<div class="pmd-staff-break-question" role="dialog" aria-modal="true" aria-label="Break time" data-pmd-break-question hidden>' +
+      '<strong>Before you finish</strong><p>Did you take a break?</p>' +
+      '<div class="pmd-staff-break-choices">' +
+        '<button type="button" data-pmd-break-no>No break</button>' +
+        '<button type="button" data-pmd-break-yes>Yes, enter minutes</button>' +
+      '</div>' +
+      '<label data-pmd-break-minutes hidden>Break minutes <input type="number" min="1" max="240" step="1" value="30" inputmode="numeric"></label>' +
+      '<div class="pmd-staff-break-choices">' +
+        '<button type="button" data-pmd-break-cancel>Cancel</button>' +
+        '<button type="button" data-pmd-break-confirm hidden>Continue to finish</button>' +
+      '</div>' +
+    '</div>' : '';
   var card = document.createElement('section');
   card.className = 'pmd-staff-time-clock' + (active ? ' is-active' : '');
   card.setAttribute('data-pmd-staff-time-clock', '');
@@ -68,11 +100,92 @@
       '<strong>' + title + '</strong>' +
       '<span>' + meta + '</span>' +
     '</span>' +
-    form;
+    form + breakForm + breakQuestion +
+    (clockError ? '<div class="pmd-staff-time-clock__server-error" role="alert" data-pmd-clock-server-error>' +
+        '<strong>Shift not recorded</strong><span>' + escapeHtml(clockError) + '</span>' +
+        '<button type="button" data-pmd-clock-dismiss aria-label="Dismiss error">Dismiss</button>' +
+      '</div>' : '');
 
-  var monthNav = schedule.querySelector('.pmd-staff-month-nav');
-  if (monthNav) schedule.insertBefore(card, monthNav);
-  else schedule.insertBefore(card, schedule.firstChild);
+  var dismissError = card.querySelector('[data-pmd-clock-dismiss]');
+  if (dismissError) {
+    dismissError.addEventListener('click', function () {
+      var notice = card.querySelector('[data-pmd-clock-server-error]');
+      if (notice) notice.hidden = true;
+    });
+  }
+
+  if (clockTarget) {
+    clockTarget.appendChild(card);
+  } else {
+    // Old Portal/Web clients still render this card inside My Shifts.
+    var monthNav = schedule.querySelector('.pmd-staff-month-nav');
+    if (monthNav) schedule.insertBefore(card, monthNav);
+    else schedule.insertBefore(card, schedule.firstChild);
+  }
+  if (active) {
+    var timeNav = document.querySelector('[data-pmd-time-tab]');
+    if (timeNav) timeNav.setAttribute('data-pmd-clock-working', 'true');
+  }
+
+  // Breaks are captured by the authenticated server, with no location request.
+  // The actual gross/net hours are calculated server-side at clock-out.
+  var breakQuestionNode = card.querySelector('[data-pmd-break-question]');
+  var breakConfirmed = false;
+  function setBreakValue(form, name, value) {
+    var existing = form.querySelector('input[name="' + name + '"]');
+    if (!existing) {
+      existing = document.createElement('input');
+      existing.type = 'hidden';
+      existing.name = name;
+      form.appendChild(existing);
+    }
+    existing.value = String(value);
+  }
+  if (breakQuestionNode) {
+    var no = breakQuestionNode.querySelector('[data-pmd-break-no]');
+    var yes = breakQuestionNode.querySelector('[data-pmd-break-yes]');
+    var cancel = breakQuestionNode.querySelector('[data-pmd-break-cancel]');
+    var confirm = breakQuestionNode.querySelector('[data-pmd-break-confirm]');
+    var minutesLabel = breakQuestionNode.querySelector('[data-pmd-break-minutes]');
+    var minutesInput = minutesLabel && minutesLabel.querySelector('input');
+    var finishForm = card.querySelector('[data-pmd-clock-geo-form]');
+    function resumeClockOut(choice, minutes) {
+      if (!finishForm) return;
+      setBreakValue(finishForm, 'break_report', choice);
+      setBreakValue(finishForm, 'break_minutes', minutes);
+      breakConfirmed = true;
+      breakQuestionNode.hidden = true;
+      if (typeof finishForm.requestSubmit === 'function') {
+        finishForm.requestSubmit();
+      } else {
+        finishForm.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      }
+    }
+    no.addEventListener('click', function () { resumeClockOut('none', 0); });
+    yes.addEventListener('click', function () {
+      minutesLabel.hidden = false;
+      confirm.hidden = false;
+      no.hidden = true;
+      yes.hidden = true;
+      if (minutesInput) minutesInput.focus();
+    });
+    cancel.addEventListener('click', function () {
+      breakQuestionNode.hidden = true;
+      if (finishForm) {
+        var button = finishForm.querySelector('button[type="submit"]');
+        if (button) button.focus();
+      }
+    });
+    confirm.addEventListener('click', function () {
+      var minutes = Number(minutesInput ? minutesInput.value : '');
+      if (!Number.isInteger(minutes) || minutes < 1 || minutes > 240) {
+        if (minutesInput) { minutesInput.setCustomValidity('Enter 1–240 minutes.'); minutesInput.reportValidity(); }
+        return;
+      }
+      if (minutesInput) minutesInput.setCustomValidity('');
+      resumeClockOut('manual', minutes);
+    });
+  }
 
 
   // Geolocation consent happens ONLY after tapping the shift button.
@@ -111,6 +224,27 @@
     // This avoids a second WebView site-permission layer, never bypasses Android
     // runtime permission, and still submits to the original server geofence.
     var nativeStaffClock = /PMDStaffNativeGPS\/1(?:\b|$)/.test(String(navigator.userAgent || ''));
+    var nativeHelp = /PMDStaffGPSHelp\/1(?:\b|$)/.test(String(navigator.userAgent || ''));
+    var locationButton = null;
+    function locationRecoveryButton(reason) {
+      if (!nativeHelp) return;
+      if (!locationButton) {
+        locationButton = document.createElement('button');
+        locationButton.type = 'button';
+        locationButton.className = 'pmd-staff-time-clock__location-help';
+        locationButton.addEventListener('click', function () {
+          var destination = locationButton.getAttribute('data-pmd-gps-settings');
+          window.location.assign(destination === 'app' ?
+            'pmdstaff://apppermissions' : 'pmdstaff://locationsettings');
+        });
+        punchForm.appendChild(locationButton);
+      }
+      locationButton.hidden = !reason;
+      if (reason) {
+        locationButton.textContent = tr(reason === 'denied' ? 'Open Staff app permission' : 'Open phone location settings');
+        locationButton.setAttribute('data-pmd-gps-settings', reason === 'denied' ? 'app' : 'phone');
+      }
+    }
     var nativeCounter = 0;
     var nativeTimeout = null;
 
@@ -118,8 +252,12 @@
       checking = false;
       var submit = punchForm.querySelector('button[type="submit"]');
       if (submit) submit.disabled = false;
-      if (reason) status.setAttribute('data-pmd-gps-error', reason);
-      status.textContent = message;
+      if (reason) {
+        status.setAttribute('data-pmd-gps-error', reason);
+        status.setAttribute('role', 'alert');
+      }
+      status.textContent = tr(message);
+      locationRecoveryButton(reason);
     }
 
     function savePosition(position) {
@@ -144,11 +282,31 @@
         hidden.value = String(fields[key]);
         punchForm.appendChild(hidden);
       });
-      status.textContent = 'GPS checked. Saving the shift…';
+      status.textContent = tr('GPS checked. Saving the shift…');
       HTMLFormElement.prototype.submit.call(punchForm);
     }
 
     function nativeGpsError(reason) {
+      if (/^inaccurate:[0-9]{1,4}$/.test(reason || '')) {
+        var accuracy = Number(reason.split(':')[1]);
+        return 'Current GPS accuracy is about ' + accuracy +
+          ' m. Clock-in requires 90 m or better. Try outdoors or enable Precise location, then retry.';
+      }
+      if (reason === 'location_accuracy_off') {
+        return 'Location Accuracy is off. Accept the Android location prompt, or open Settings > Location > Location services > Location Accuracy and enable Improve Location Accuracy.';
+      }
+      if (reason === 'no_fix' || reason === 'no_fix_fused') {
+        return 'Phone GPS and Google location services returned no position. Open Google Maps and check the blue location dot; enable Location Accuracy and Wi-Fi scanning, then retry.';
+      }
+      if (reason === 'no_fix_no_google') {
+        return 'Google location services are unavailable on this device; Android GPS also returned no position. Turn on precise Location and try outdoors.';
+      }
+      if (reason === 'no_fix_gps_only') {
+        return 'Only satellite GPS is available and no fresh fix was received. Enable network location or Wi-Fi scanning, or try outdoors.';
+      }
+      if (reason === 'no_fix_network_off') {
+        return 'Network location is disabled and GPS could not find a position. Enable Location Accuracy or network location and retry.';
+      }
       if (reason === 'precise_denied') {
         return 'Android did not grant precise GPS to PayMyDine Staff. Check Staff app permission (Precise), not the browser.';
       }
@@ -167,6 +325,11 @@
     punchForm.addEventListener('submit', function (event) {
       event.preventDefault();
       if (checking) return;
+      if (active && breakQuestionNode && !breakConfirmed) {
+        breakQuestionNode.hidden = false;
+        if (no) no.focus();
+        return;
+      }
       if (!window.isSecureContext || (!nativeStaffClock && !navigator.geolocation)) {
         status.textContent = 'Location requires HTTPS and an available GPS provider.';
         return;
@@ -175,19 +338,32 @@
       var submit = punchForm.querySelector('button[type="submit"]');
       if (submit) submit.disabled = true;
       status.removeAttribute('data-pmd-gps-error');
-      status.textContent = 'Checking your location near the restaurant…';
+      status.setAttribute('role', 'status');
+      status.textContent = tr('Checking your location near the restaurant…');
+      locationRecoveryButton(null);
 
       if (nativeStaffClock) {
         var request = String(Date.now()) + '_' + String(++nativeCounter) + '_' +
           Math.random().toString(36).slice(2, 14);
+        status.textContent = tr('Requesting a fresh location from Android and Google location services…');
+        window.PMD_STAFF_NATIVE_GPS_PROGRESS = function (data) {
+          if (!data || data.request !== request) return;
+          var estimate = Number(data.accuracy_m);
+          if (Number.isFinite(estimate) && estimate > 90 && estimate < 9999) {
+            status.textContent = tr('GPS is locating you: approximately ' +
+              Math.round(estimate) + ' m accuracy. Need 90 m or better.');
+          }
+        };
         window.PMD_STAFF_NATIVE_GPS_RESULT = function (data) {
           if (!data || data.request !== request) return;
           if (nativeTimeout !== null) window.clearTimeout(nativeTimeout);
           nativeTimeout = null;
           window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+          window.PMD_STAFF_NATIVE_GPS_PROGRESS = null;
 
           if (!data.ok) {
-            resetClockButton(nativeGpsError(data.error), 'native');
+            resetClockButton(nativeGpsError(data.error),
+              data.error === 'precise_denied' ? 'denied' : 'native');
             return;
           }
 
@@ -204,15 +380,17 @@
         // Do not put coordinates, tokens, or login details in the bridge URL.
         nativeTimeout = window.setTimeout(function () {
           window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+          window.PMD_STAFF_NATIVE_GPS_PROGRESS = null;
           nativeTimeout = null;
-          resetClockButton('No response from the Staff app GPS bridge. Update the Staff APK and retry.', 'native');
-        }, 25000);
+          resetClockButton('No reply from Android location service. Reopen the Staff app and retry.', 'native');
+        }, 35000);
         try {
           window.location.assign('pmdstaffgeo://clock?request=' + encodeURIComponent(request));
         } catch (error) {
           window.clearTimeout(nativeTimeout);
           nativeTimeout = null;
           window.PMD_STAFF_NATIVE_GPS_RESULT = null;
+          window.PMD_STAFF_NATIVE_GPS_PROGRESS = null;
           resetClockButton('Could not start Android GPS. Reopen the Staff app and retry.', 'native');
         }
         return;

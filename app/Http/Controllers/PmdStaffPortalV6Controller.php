@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\View\View;
 use App\Services\PmdStaffClockGeofenceV1;
 
@@ -40,15 +41,18 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         $clock['geo_required'] = true;
         $clock['geo_ready'] = (bool)$site['configured'];
         $clock['geo_radius_m'] = (int)$site['radius_m'];
+        // PMD_STAFF_CLOCK_STICKY_ERRORS_V2_20261022: do not lose clock errors in toast.
+        $clock['flash_error'] = (string)session('pmd_staff_clock_error', '');
         $payload = json_encode(array_merge($clock, [
             'clock_in_url' => admin_url('mywork/clockin'),
             'clock_out_url' => admin_url('mywork/clockout'),
+            'clock_break_url' => admin_url('mywork/clockbreak'),
         ]), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         if ($payload === false) $payload = '{}';
 
         $html = $view->render();
-        $css = asset('app/admin/assets/css/pmd-staff-time-clock-v1.css').'?v=5';
-        $js = asset('app/admin/assets/js/pmd-staff-time-clock-v1.js').'?v=5';
+        $css = asset('app/admin/assets/css/pmd-staff-time-clock-v1.css').'?v=9';
+        $js = asset('app/admin/assets/js/pmd-staff-time-clock-v1.js').'?v=9';
 
         $html = str_replace(
             '</head>',
@@ -66,16 +70,57 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
     }
 
+    /**
+     * PMD_STAFF_LOCALE_PERSIST_V4_20261023
+     * Choose language in authenticated Staff Portal only. Do not mutate the
+     * global Admin locale or trust a browser-created Laravel cookie.
+     */
+    public function setStaffLocale(Request $request): RedirectResponse
+    {
+        if (!AdminAuth::isLogged()) return redirect('/staff/login');
+        $identity = $this->clockIdentity();
+        if (!$identity) return redirect('/staff#schedule')
+            ->with('error', 'Active staff profile required to change language.');
+        $locationId = (int)$identity['location_id'];
+        $country = '';
+        try {
+            $country = strtoupper((string)DB::table('locations as loc')
+                ->join('countries as c', 'c.country_id', '=', 'loc.location_country_id')
+                ->where('loc.location_id', $locationId)->value('c.iso_code_2'));
+        } catch (\Throwable $ignored) {}
+        if ($country === '') {
+            try {
+                $country = strtoupper((string)DB::table('countries')
+                    ->where('country_id', (int)setting('country_id'))->value('iso_code_2'));
+            } catch (\Throwable $ignored) {}
+        }
+        $allowed = $country === 'DE' ? ['de', 'en']
+            : ($country === 'TR' ? ['tr', 'en'] : ['en']);
+        $code = strtolower(trim((string)$request->input('locale', '')));
+        if (!in_array($code, $allowed, true)) {
+            return redirect('/staff#schedule')->with('error', 'This language is not available for your workplace.');
+        }
+        $request->session()->put('pmd_staff_ui_locale_'.$locationId, $code);
+        Cookie::queue(cookie('pmd_staff_locale_'.$locationId, $code, 60 * 24 * 365,
+            '/', null, $request->isSecure(), true, false, 'Lax'));
+
+        $screen = (string)$request->input('return_screen', 'schedule');
+        if (!in_array($screen, ['schedule', 'chat', 'requests', 'clock', 'manage'], true)) {
+            $screen = 'schedule';
+        }
+        return redirect('/staff#'.$screen);
+    }
+
     public function clockIn(Request $request): RedirectResponse
     {
         if (!AdminAuth::isLogged()) return redirect('/staff/login');
 
         $identity = $this->clockIdentity();
         if (!$identity) {
-            return redirect('/staff#schedule')->with('error', 'Your PMD login is not connected to an active Team profile.');
+            return $this->clockError('Your PMD login is not connected to an active Team profile.');
         }
         if (!$this->attendanceReady()) {
-            return redirect('/staff#schedule')->with('error', 'Time clock is not available for this restaurant yet.');
+            return $this->clockError('Time clock is not available for this restaurant yet.');
         }
 
         // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: no unverified writes. Existing browser and Android
@@ -83,10 +128,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: location_id is required to bind punch to a single workplace.
         if (!Schema::hasColumn('staff_attendance', 'metadata')
             || !Schema::hasColumn('staff_attendance', 'location_id')) {
-            return redirect('/staff#schedule')->with('error', 'Apply attendance storage updates before GPS clocking.');
+            return $this->clockError('Apply attendance storage updates before GPS clocking.');
         }
         $geo = app(PmdStaffClockGeofenceV1::class)->validatePunch((int)$identity['location_id'], $request);
-        if (!$geo['ok']) return redirect('/staff#schedule')->with('error', (string)$geo['message']);
+        if (!$geo['ok']) return $this->clockError((string)$geo['message']);
 
         $now = now();
         $staffId = (int)$identity['staff_id'];
@@ -141,6 +186,7 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                         'person_id' => (int)$identity['person_id'],
                         'schedule_status' => $hasPlannedShift ? 'scheduled' : 'unscheduled',
                         'clock_in_geo' => $geo['evidence'],
+                        'staff_portal_breaks' => [],
                     ], JSON_UNESCAPED_SLASHES);
                 }
 
@@ -157,17 +203,97 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 'location_id' => $locationId,
                 'message' => $error->getMessage(),
             ]);
-            return redirect('/staff#schedule')->with('error', 'Shift could not be started. Please try again.');
+            return $this->clockError('Shift could not be started. Please try again.');
         }
 
         if (empty($result['ok'])) {
-            return redirect('/staff#schedule')->with('error', 'Your shift is already running.');
+            return $this->clockError('Your shift is already running.');
         }
 
         $message = !empty($result['unscheduled'])
             ? 'Unscheduled shift started at '.$now->format('H:i').'. Your actual work time is recorded for your manager.'
             : 'Shift started at '.$now->format('H:i').'.';
-        return redirect('/staff#schedule')->with('success', $message);
+        return redirect('/staff#clock')->with('success', $message);
+    }
+
+
+    /**
+     * PMD_STAFF_BREAK_EVENTS_V1_20261022
+     * Break state belongs only to the current authenticated employee and active
+     * restaurant; no GPS needed because only clock IN / OUT checks proximity.
+     */
+    public function clockBreak(Request $request): RedirectResponse
+    {
+        if (!AdminAuth::isLogged()) return redirect('/staff/login');
+        $identity = $this->clockIdentity();
+        if (!$identity || !$this->attendanceReady()
+            || !Schema::hasColumn('staff_attendance', 'metadata')
+            || !Schema::hasColumn('staff_attendance', 'location_id')) {
+            return $this->clockError('Your time clock is not available. Ask your manager.');
+        }
+        $action = (string)$request->input('break_action', '');
+        if (!in_array($action, ['start', 'end'], true)) {
+            return $this->clockError('Choose Start break or End break.');
+        }
+
+        $staffId = (int)$identity['staff_id'];
+        $locationId = (int)$identity['location_id'];
+        $now = now();
+
+        try {
+            $result = DB::transaction(function () use ($staffId, $locationId, $action, $now) {
+                DB::table('staffs')->where('staff_id', $staffId)->lockForUpdate()->first();
+                $open = DB::table('staff_attendance')
+                    ->where('staff_id', $staffId)->whereNull('check_out_time')
+                    ->orderByDesc('attendance_id')->lockForUpdate()->first();
+                if (!$open || (int)$open->location_id !== $locationId) return 'not_open';
+
+                $metadata = json_decode((string)($open->metadata ?? ''), true);
+                if (!is_array($metadata)) $metadata = [];
+                $events = $metadata['staff_portal_breaks'] ?? [];
+                if (!is_array($events)) $events = [];
+                $events = array_values($events);
+                $activeIndex = null;
+                foreach ($events as $index => $event) {
+                    if (is_array($event) && !empty($event['start_at']) && empty($event['end_at'])) {
+                        $activeIndex = $index;
+                    }
+                }
+
+                if ($action === 'start') {
+                    if ($activeIndex !== null) return 'already_on_break';
+                    if (count($events) >= 24) return 'too_many_breaks';
+                    $events[] = ['start_at' => $now->toIso8601String(), 'end_at' => null];
+                } else {
+                    if ($activeIndex === null) return 'not_on_break';
+                    $events[$activeIndex]['end_at'] = $now->toIso8601String();
+                }
+                $metadata['staff_portal_breaks'] = $events;
+                $updates = ['metadata' => json_encode($metadata, JSON_UNESCAPED_SLASHES)];
+                if (Schema::hasColumn('staff_attendance', 'updated_at')) $updates['updated_at'] = $now;
+                DB::table('staff_attendance')->where('attendance_id', (int)$open->attendance_id)
+                    ->where('staff_id', $staffId)->where('location_id', $locationId)->update($updates);
+                return 'ok';
+            });
+        } catch (\Throwable $error) {
+            logger()->error('PMD Staff Portal break event failed', [
+                'staff_id' => $staffId, 'location_id' => $locationId,
+                'message' => $error->getMessage(),
+            ]);
+            return $this->clockError('Break could not be saved. Please retry.');
+        }
+
+        if ($result !== 'ok') {
+            $message = [
+                'not_open' => 'There is no active shift for this workplace.',
+                'already_on_break' => 'Your break is already running.',
+                'not_on_break' => 'No break is running.',
+                'too_many_breaks' => 'Ask your manager to review the break record.',
+            ];
+            return $this->clockError($message[$result] ?? 'Break could not be saved.');
+        }
+        return redirect('/staff#clock')->with('success',
+            $action === 'start' ? 'Break started.' : 'Break ended.');
     }
 
     public function clockOut(Request $request): RedirectResponse
@@ -176,10 +302,10 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
 
         $identity = $this->clockIdentity();
         if (!$identity) {
-            return redirect('/staff#schedule')->with('error', 'Your PMD login is not connected to an active Team profile.');
+            return $this->clockError('Your PMD login is not connected to an active Team profile.');
         }
         if (!$this->attendanceReady()) {
-            return redirect('/staff#schedule')->with('error', 'Time clock is not available for this restaurant yet.');
+            return $this->clockError('Time clock is not available for this restaurant yet.');
         }
 
         // PMD_STAFF_GEOFENCE_SERVER_V1_20261021: no unverified writes. Existing browser and Android
@@ -187,17 +313,17 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         // PMD_STAFF_CLOCK_LOCATION_MATCH_V2_20261021: location_id is required to bind punch to a single workplace.
         if (!Schema::hasColumn('staff_attendance', 'metadata')
             || !Schema::hasColumn('staff_attendance', 'location_id')) {
-            return redirect('/staff#schedule')->with('error', 'Apply attendance storage updates before GPS clocking.');
+            return $this->clockError('Apply attendance storage updates before GPS clocking.');
         }
         $geo = app(PmdStaffClockGeofenceV1::class)->validatePunch((int)$identity['location_id'], $request);
-        if (!$geo['ok']) return redirect('/staff#schedule')->with('error', (string)$geo['message']);
+        if (!$geo['ok']) return $this->clockError((string)$geo['message']);
 
         $now = now();
         $staffId = (int)$identity['staff_id'];
         $locationId = (int)$identity['location_id'];
 
         try {
-            $result = DB::transaction(function () use ($staffId, $locationId, $now, $geo) {
+            $result = DB::transaction(function () use ($staffId, $locationId, $now, $geo, $request) {
                 DB::table('staffs')->where('staff_id', $staffId)->lockForUpdate()->first();
 
                 $open = DB::table('staff_attendance')
@@ -219,12 +345,65 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 }
 
                 $seconds = $checkIn->lt($now) ? $checkIn->diffInSeconds($now) : 0;
-                $hours = round($seconds / 3600, 2);
+                $metadata = json_decode((string)($open->metadata ?? ''), true);
+                if (!is_array($metadata)) $metadata = [];
+                $events = $metadata['staff_portal_breaks'] ?? [];
+                if (!is_array($events)) $events = [];
+                $breakSeconds = 0;
+                $recordedBreaks = 0;
+                // Active breaks end at clock-out. Count only server-created intervals
+                // within this shift, never client-supplied start/end timestamps.
+                foreach ($events as $index => $event) {
+                    if (!is_array($event) || empty($event['start_at'])) continue;
+                    try {
+                        $start = Carbon::parse($event['start_at']);
+                        $end = empty($event['end_at']) ? $now : Carbon::parse($event['end_at']);
+                        if ($start->lt($checkIn) || $start->gt($now)
+                            || $end->lt($start) || $end->gt($now)) {
+                            return ['ok' => false, 'reason' => 'invalid_break_record'];
+                        }
+                        if (empty($event['end_at'])) $events[$index]['end_at'] = $now->toIso8601String();
+                        $breakSeconds += $start->diffInSeconds($end);
+                        $recordedBreaks++;
+                    } catch (\Throwable $error) {
+                        return ['ok' => false, 'reason' => 'invalid_break_record'];
+                    }
+                }
+
+                $choice = (string)$request->input('break_report', '');
+                if ($recordedBreaks > 0) {
+                    $metadata['staff_portal_breaks'] = $events;
+                    $metadata['staff_portal_break_report'] = 'tracked';
+                } elseif ($choice === 'none') {
+                    $metadata['staff_portal_break_report'] = 'reported_none';
+                } elseif ($choice === 'manual') {
+                    $minuteRaw = (string)$request->input('break_minutes', '');
+                    if (!preg_match('/^[0-9]{1,3}$/D', $minuteRaw)) {
+                        return ['ok' => false, 'reason' => 'invalid_break_minutes'];
+                    }
+                    $minutes = (int)$minuteRaw;
+                    if ($minutes < 1 || $minutes > 240 || $minutes * 60 > $seconds) {
+                        return ['ok' => false, 'reason' => 'invalid_break_minutes'];
+                    }
+                    $breakSeconds = $minutes * 60;
+                    $metadata['staff_portal_break_report'] = 'employee_reported';
+                } elseif ($choice !== '') {
+                    return ['ok' => false, 'reason' => 'invalid_break_minutes'];
+                } else {
+                    // Legacy clients do not answer the break prompt. Never
+                    // falsely declare "no break" for an unreported shift.
+                    $metadata['staff_portal_break_report'] = 'not_reported';
+                }
+                if ($breakSeconds > $seconds) {
+                    return ['ok' => false, 'reason' => 'invalid_break_record'];
+                }
+
+                $hours = round(($seconds - $breakSeconds) / 3600, 2);
+                $metadata['staff_portal_break_minutes'] = round($breakSeconds / 60, 2);
+                $metadata['staff_portal_break_recorded_at'] = $now->toIso8601String();
                 $values = ['check_out_time' => $now];
                 if (Schema::hasColumn('staff_attendance', 'status')) $values['status'] = 'checked_out';
                 // Keep location evidence without retaining the staff GPS fix.
-                $metadata = json_decode((string)($open->metadata ?? ''), true);
-                if (!is_array($metadata)) $metadata = [];
                 $metadata['clock_out_geo'] = $geo['evidence'];
                 $values['metadata'] = json_encode($metadata, JSON_UNESCAPED_SLASHES);
                 if (Schema::hasColumn('staff_attendance', 'hours_worked')) $values['hours_worked'] = $hours;
@@ -234,7 +413,7 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                     ->where('attendance_id', (int)$open->attendance_id)
                     ->update($values);
 
-                return ['ok' => true, 'hours' => $hours];
+                return ['ok' => true, 'hours' => $hours, 'break_minutes' => round($breakSeconds / 60, 2)];
             });
         } catch (\Throwable $error) {
             logger()->error('PMD Staff Portal clock-out failed', [
@@ -242,20 +421,30 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 'location_id' => $locationId,
                 'message' => $error->getMessage(),
             ]);
-            return redirect('/staff#schedule')->with('error', 'Shift could not be ended. Please try again.');
+            return $this->clockError('Shift could not be ended. Please try again.');
         }
 
         if (empty($result['ok'])) {
             if (($result['reason'] ?? '') === 'wrong_location') {
-                return redirect('/staff#schedule')->with('error', 'This open shift belongs to another workplace. Ask your manager to correct it.');
+                return $this->clockError('This open shift belongs to another workplace. Ask your manager to correct it.');
             }
-            return redirect('/staff#schedule')->with('error', 'There is no running shift to end.');
+            if (in_array(($result['reason'] ?? ''), ['invalid_break_minutes', 'invalid_break_record'], true)) {
+                return $this->clockError('Break entry is invalid. Check the minutes or ask your manager.');
+            }
+            return $this->clockError('There is no running shift to end.');
         }
 
-        return redirect('/staff#schedule')->with(
+        return redirect('/staff#clock')->with(
             'success',
-            'Shift ended at '.$now->format('H:i').' · '.number_format((float)$result['hours'], 2).'h recorded.'
+            'Shift ended at '.$now->format('H:i').' · '.number_format((float)$result['hours'], 2).'h worked after '.number_format((float)$result['break_minutes'], 0).' min break.'
         );
+    }
+
+    private function clockError(string $message): RedirectResponse
+    {
+        return redirect('/staff#clock')
+            ->with('error', $message)
+            ->with('pmd_staff_clock_error', $message);
     }
 
     private function clockState(): array
@@ -268,6 +457,9 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
             'check_in_iso' => null,
             'check_in_label' => null,
             'elapsed_seconds' => 0,
+            'break_active' => false,
+            'break_count' => 0,
+            'break_minutes' => 0,
             'last_check_out_label' => null,
             'last_hours' => null,
             'scheduled_label' => null,
@@ -300,6 +492,15 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 $openMeta = json_decode((string)($open->metadata ?? ''), true);
                 $base['unscheduled'] = is_array($openMeta)
                     && ($openMeta['schedule_status'] ?? '') === 'unscheduled';
+                $breaks = is_array($openMeta) ? ($openMeta['staff_portal_breaks'] ?? []) : [];
+                if (is_array($breaks)) {
+                    $base['break_count'] = count($breaks);
+                    foreach ($breaks as $event) {
+                        if (is_array($event) && !empty($event['start_at']) && empty($event['end_at'])) {
+                            $base['break_active'] = true;
+                        }
+                    }
+                }
                 $base['attendance_id'] = (int)$open->attendance_id;
                 $base['check_in_iso'] = $checkIn->toIso8601String();
                 $base['check_in_label'] = $checkIn->format('H:i');

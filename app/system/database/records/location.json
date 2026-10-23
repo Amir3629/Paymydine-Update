@@ -4,7 +4,7 @@
   "location_city": "Coventry",
   "location_telephone": "8765456789",
   "location_country_id": 222,
-  "location_lat": 52.415884,
-  "location_lng": -1.603648,
+  "location_lat": 0,
+  "location_lng": 0,
   "location_status": 1
 }

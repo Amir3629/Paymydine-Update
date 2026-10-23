@@ -218,9 +218,11 @@ final class PmdTableDisplayService
             trim((string)($terminalResult['status'] ?? 'pending'))
         );
 
+        // PMD_TABLE_DEVICE_IMMEDIATE_SETTLEMENT_GUARD_V139
         if (
             $terminalStatus === 'paid'
-            || !empty($terminalResult['payment_recorded'])
+            && !empty($terminalResult['payment_recorded'])
+            && empty($terminalResult['simulated'])
         ) {
             return [
                 'ok' => true,
@@ -235,6 +237,26 @@ final class PmdTableDisplayService
                 'terminal_status' => 'paid',
                 'expires_at' => null,
                 'message' => 'Contactless payment was approved by the linked terminal.',
+            ];
+        }
+
+        // Provider-approved without recorded settlement must not trigger
+        // a second charge or a misleading paid message.
+        if ($terminalStatus === 'paid') {
+            return [
+                'ok' => true,
+                'event_id' => null,
+                'table_id' => $tableId,
+                'order_id' => $orderId,
+                'amount' => $remaining,
+                'currency' => $currency,
+                'attempt_id' => $attemptId ?: null,
+                'provider_code' => $providerCode,
+                'terminal_device_id' => $terminalDeviceId,
+                'terminal_status' => 'paid',
+                'payment_recorded' => false,
+                'expires_at' => null,
+                'message' => 'Bank reports paid but PayMyDine settlement is unconfirmed. Do not charge again; reconcile the attempt.',
             ];
         }
 

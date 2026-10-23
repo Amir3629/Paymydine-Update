@@ -104,8 +104,25 @@ class Pmdsettings extends AdminController
         // selector may be on a different location in multi-location accounts.
         $this->vars['pmdPublicBookingLocationMismatch'] = false;
         $this->vars['pmdPublicBookingLocationName'] = '';
+        $this->vars['pmdPublicBookingLocationId'] = null;
+        $this->vars['pmdPublicBookingAddress'] = '';
         try {
             $publicLocation = \Admin\Models\Locations_model::getDefault();
+            if ($publicLocation) {
+                // PMD_PROFILE_PUBLIC_BOOKING_AUDIT_V1_20261023: reveal the exact
+                // default location /book reads, without changing booking routing.
+                $this->vars['pmdPublicBookingLocationId'] = (int)$publicLocation->location_id;
+                $cityLine = trim(implode(' ', array_filter([
+                    trim((string)$publicLocation->location_postcode),
+                    trim((string)$publicLocation->location_city),
+                ], static fn ($part) => $part !== '')));
+                $this->vars['pmdPublicBookingAddress'] = implode(', ', array_filter([
+                    trim((string)$publicLocation->location_address_1),
+                    trim((string)$publicLocation->location_address_2),
+                    $cityLine,
+                    trim((string)$publicLocation->location_state),
+                ], static fn ($part) => $part !== ''));
+            }
             if ($publicLocation && (int)$publicLocation->location_id !== $locationId) {
                 $this->vars['pmdPublicBookingLocationMismatch'] = true;
                 $this->vars['pmdPublicBookingLocationName'] = (string)$publicLocation->location_name;
@@ -817,6 +834,76 @@ class Pmdsettings extends AdminController
         return $current;
     }
 
+    /**
+     * PMD_STAFF_ADDRESS_GEO_PREVIEW_V1_20261023
+     * Resolve the address typed by the owner using PayMyDine's EXISTING
+     * tenant geocoder. This AJAX call does not write any coordinates.
+     * The owner must inspect the returned map pin and click "Use for staff".
+     */
+    public function onPreviewStaffClockAddress()
+    {
+        $locationId = $this->currentLocationId();
+        if ($locationId < 1 || !DB::table('locations')->where('location_id', $locationId)->exists()) {
+            throw ValidationException::withMessages([
+                'profile.address_1' => ['Select a restaurant location first.'],
+            ]);
+        }
+        $input = (array)post('profile', []);
+        $validator = Validator::make($input, [
+            'address_1' => ['required', 'string', 'min:3', 'max:191'],
+            'address_2' => ['nullable', 'string', 'max:191'],
+            'city' => ['required', 'string', 'min:2', 'max:120'],
+            'state' => ['nullable', 'string', 'max:120'],
+            'postcode' => ['required', 'string', 'min:3', 'max:32'],
+        ]);
+        if ($validator->fails()) throw new ValidationException($validator);
+        $parts = $validator->validated();
+        // Resolve what the owner ACTUALLY entered, not the location_country_id
+        // from an inherited template tenant. Old sample locations may still
+        // carry the United Kingdom country ID even after moving to Frankfurt.
+        // Street + postcode + city + state are mandatory/validated; the owner
+        // must check the map result before choosing it for attendance.
+        $address = implode(', ', array_filter([
+            trim((string)$parts['address_1']),
+            trim((string)($parts['address_2'] ?? '')),
+            trim((string)$parts['postcode']).' '.trim((string)$parts['city']),
+            trim((string)($parts['state'] ?? '')),
+        ], static fn ($part) => $part !== ''));
+        try {
+            // Uses configured chain/google/nominatim through the existing
+            // PayMyDine Geocoder facade. No client API keys are exposed.
+            $match = \Igniter\Flame\Geolite\Facades\Geocoder::geocode($address)->first();
+            if (!$match || !$match->hasCoordinates()) {
+                throw new \RuntimeException('No address coordinates returned.');
+            }
+            $latitude = (float)$match->getCoordinates()->getLatitude();
+            $longitude = (float)$match->getCoordinates()->getLongitude();
+        } catch (\Throwable $error) {
+            logger()->notice('PMD staff address geocoding unavailable', [
+                'location_id' => $locationId,
+                'reason_type' => get_class($error),
+            ]);
+            throw ValidationException::withMessages([
+                'profile.address_1' => [
+                    'Could not locate this address. Check the street, postcode and city, or configure a geocoding provider under Advanced Settings.',
+                ],
+            ]);
+        }
+        if (!is_finite($latitude) || !is_finite($longitude)
+            || abs($latitude) > 90 || abs($longitude) > 180
+            || ($latitude == 0.0 && $longitude == 0.0)) {
+            throw ValidationException::withMessages([
+                'profile.address_1' => ['The map service returned an invalid position.'],
+            ]);
+        }
+        return ['pmd_staff_address_lookup' => [
+            'latitude' => round($latitude, 6),
+            'longitude' => round($longitude, 6),
+            'address' => $address,
+            'location_id' => $locationId,
+        ]];
+    }
+
     public function onSaveRestaurantProfile()
     {
         $locationId = $this->currentLocationId();
@@ -1085,18 +1172,34 @@ class Pmdsettings extends AdminController
             $settings['pmd_restaurant_identity_logo'] = $resolvedLogo;
             $this->persistSettingsDirectR25($settings);
 
+            // PMD_RESTAURANT_CONTACT_READBACK_V1_20261023:
+            // The AJAX success banner must mean the selected TENANT location
+            // row actually holds the booking contact data. Never imply that
+            // saving the address also geocoded the staff GPS pin.
+            $expectedContact = [
+                'location_name' => trim((string)$clean['name']),
+                'location_email' => trim((string)($clean['email'] ?? '')),
+                'location_telephone' => trim((string)($clean['telephone'] ?? '')),
+                'location_address_1' => trim((string)($clean['address_1'] ?? '')),
+                'location_address_2' => trim((string)($clean['address_2'] ?? '')),
+                'location_city' => trim((string)($clean['city'] ?? '')),
+                'location_state' => trim((string)($clean['state'] ?? '')),
+                'location_postcode' => trim((string)($clean['postcode'] ?? '')),
+            ];
             DB::table('locations')
                 ->where('location_id', $locationId)
-                ->update([
-                    'location_name' => trim((string)$clean['name']),
-                    'location_email' => trim((string)($clean['email'] ?? '')),
-                    'location_telephone' => trim((string)($clean['telephone'] ?? '')),
-                    'location_address_1' => trim((string)($clean['address_1'] ?? '')),
-                    'location_address_2' => trim((string)($clean['address_2'] ?? '')),
-                    'location_city' => trim((string)($clean['city'] ?? '')),
-                    'location_state' => trim((string)($clean['state'] ?? '')),
-                    'location_postcode' => trim((string)($clean['postcode'] ?? '')),
-                ]);
+                ->update($expectedContact);
+            $savedContact = DB::table('locations')
+                ->where('location_id', $locationId)
+                ->first(array_keys($expectedContact));
+            if (!$savedContact) {
+                throw new \RuntimeException('Restaurant contact save was not persisted for the selected location.');
+            }
+            foreach ($expectedContact as $column => $expectedValue) {
+                if (trim((string)($savedContact->$column ?? '')) !== $expectedValue) {
+                    throw new \RuntimeException('Restaurant contact save verification failed. No success should be shown.');
+                }
+            }
             if ($staffClockCoordinates !== null) {
                 // Apply the owner's GPS pin transactionally to the same tenant row.
                 DB::table('locations')->where('location_id', $locationId)
@@ -1327,7 +1430,18 @@ class Pmdsettings extends AdminController
         };
         $identity = $this->resolvedRestaurantIdentityR25(true);
 
+        // PMD_STAFF_SEED_PIN_WARNING_V1_20261023: demo coordinates from
+        // app/system/database/records/location.json must never look like a
+        // verified restaurant entrance after the owner changes the address.
+        $demoPin = $location && is_numeric($location->location_lat ?? null)
+            && is_numeric($location->location_lng ?? null)
+            && abs((float)$location->location_lat - 52.415884) < 0.00005
+            && abs((float)$location->location_lng + 1.603648) < 0.00005
+            && !str_contains(strtolower((string)($location->location_city ?? '')), 'coventry');
+
         return [
+            'staff_clock_demo_pin' => (bool)$demoPin,
+            'location_id' => $locationId,
             'name' => (string)$identity['name'],
             'email' => (string)(($location->location_email ?? '') ?: $value('site_email')),
             'telephone' => (string)($location->location_telephone ?? ''),
