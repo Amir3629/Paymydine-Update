@@ -7,7 +7,7 @@ umask 077
 ROOT=/var/www/paymydine
 BASE=985d51bb41aa3a93e0da1385a697990678deb32d
 FIX=aa2642eae0d68582214ef90322ccdd83ba4ede95
-SURGICAL=5fa1a7224dc88535ab62f8bb31e51c79b572b015
+SURGICAL=3de4a9c8ebe516d4fd31c0c222ddbc27da5ad33d
 BRANCH=fix/device-fleet-settings-download-v150-20261023
 MODE="${1:---check}"
 FILES=(
@@ -107,16 +107,27 @@ for f in "${ASSETS[@]}"; do
   git show "$FIX:$f" > "$STAGED/$f"
   [[ -s "$STAGED/$f" ]] || { echo "STOP: Missing reviewed asset $f" >&2; exit 1; }
 done
-mkdir -p "$STAGED/tests"
+# PMD_V153_DEPLOY_TEST_STAGE_HELPER: reproduce the exact CI test directory
+# structure. Previously the production --check omitted scripts/, so 4 tests
+# failed with ENOENT even though the surgical Settings patch had PASSED.
+mkdir -p "$STAGED/tests" "$STAGED/scripts"
+cp -- "$HELPER" "$STAGED/scripts/pmd-settings-app-link-v151.py"
+cmp -s -- "$HELPER" "$STAGED/scripts/pmd-settings-app-link-v151.py" || {
+  echo 'STOP: staged helper differs from reviewed Settings patch.' >&2; exit 1;
+}
 git show "$FIX:tests/pmd-device-fleet-v150.test.cjs" > "$STAGED/tests/pmd-device-fleet-v150.test.cjs"
 git show "$FIX:tests/pmd-device-fleet-v150-runtime.test.cjs" > "$STAGED/tests/pmd-device-fleet-v150-runtime.test.cjs"
 git show "$SURGICAL:tests/pmd-settings-app-link-v151.test.cjs" > "$STAGED/tests/pmd-settings-app-link-v151.test.cjs"
+# Unit-test fixture is deliberately from pinned GitHub code. Do not base
+# fixture assertions on the tenant's different Staff/Owner Settings markup.
+git show "$FIX:app/admin/views/pmdsettings/index.blade.php" > "$STAGED/tests/pmd-settings-v150-fixture.blade.php"
 
 echo '=== V151 CONFLICT-SAFE SETTINGS + V150 FLEET STAGED QA ==='
 php -l "$STAGED/app/Services/PmdDevicePlatformService.php"
 php -l "$STAGED/app/admin/controllers/Pmddevices.php"
 node --check "$STAGED/app/admin/assets/js/pmd-device-fleet-v150.js"
-( cd "$STAGED" && node --test tests/pmd-device-fleet-v150.test.cjs tests/pmd-device-fleet-v150-runtime.test.cjs tests/pmd-settings-app-link-v151.test.cjs )
+( cd "$STAGED" && PMD_SETTINGS_TEST_FIXTURE=tests/pmd-settings-v150-fixture.blade.php \
+  node --test tests/pmd-device-fleet-v150.test.cjs tests/pmd-device-fleet-v150-runtime.test.cjs tests/pmd-settings-app-link-v151.test.cjs )
 if [[ "$MODE" == --check ]]; then
   echo 'V151 SETTINGS + FLEET DRY RUN: PASS'
   echo 'No live server files changed. Staff App and all local edits preserved.'
