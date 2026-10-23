@@ -814,7 +814,14 @@
           }
           var method = onlineMethodCode();
           if (method) url.searchParams.set('payment_method', method);
-          url.searchParams.set('source', 'waiter_pos');
+          // PMD_WAITER_GUEST_QR_DIRECT_CHECKOUT_V147
+          // A shared QR/link opens the same verified unpaid order checkout
+          // as the physical Z80 QR, without implying a successful charge.
+          url.searchParams.set(
+            'source', state.payment.method === 'guest_qr'
+              ? 'table_display_payment'
+              : 'waiter_pos'
+          );
           return url.toString();
         } catch (ignored) { return null; }
       }
