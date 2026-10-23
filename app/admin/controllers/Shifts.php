@@ -150,6 +150,43 @@ class Shifts extends AdminController
             ->header('Cache-Control', 'no-store, private');
     }
 
+    /**
+     * PMD_ACTUAL_EXTRA_SHIFT_REVIEW_V1_20261023
+     * Owner/Manager acknowledgement of an attendance-only extra shift.
+     * NEVER writes the published rota, position, break minutes or pay amounts.
+     */
+    public function reviewactual()
+    {
+        $this->assertOwnerOrManager();
+        $validator = Validator::make(request()->all(), [
+            'attendance_id' => ['required', 'integer', 'min:1'],
+        ]);
+        if ($validator->fails()) throw new ValidationException($validator);
+        $id = (int)$validator->validated()['attendance_id'];
+        $locationId = $this->locationId();
+        if (!Schema::hasTable('staff_attendance')
+            || !Schema::hasColumn('staff_attendance', 'metadata')
+            || !Schema::hasColumn('staff_attendance', 'location_id')) abort(503);
+        DB::transaction(function () use ($id, $locationId) {
+            $row = DB::table('staff_attendance')
+                ->where('attendance_id', $id)->where('location_id', $locationId)
+                ->lockForUpdate()->first();
+            if (!$row) abort(404);
+            $meta = json_decode((string)($row->metadata ?? ''), true);
+            if (!is_array($meta) || ($meta['schedule_status'] ?? '') !== 'unscheduled') abort(404);
+            if (!$row->check_out_time) abort(409, 'Review after the employee finishes this shift.');
+            if (($meta['actual_review_status'] ?? '') === 'reviewed') return;
+            $reviewer = (int)optional(AdminAuth::getUser()->staff)->staff_id;
+            $meta['actual_review_status'] = 'reviewed';
+            $meta['actual_reviewed_at'] = now()->toIso8601String();
+            $meta['actual_reviewed_by_staff_id'] = $reviewer ?: null;
+            DB::table('staff_attendance')
+                ->where('attendance_id', $id)->where('location_id', $locationId)
+                ->update(['metadata' => json_encode($meta, JSON_UNESCAPED_SLASHES)]);
+        });
+        return redirect(admin_url('shifts'))->with('success', 'Actual extra shift reviewed.');
+    }
+
     public function sendteammessage()
     {
         $this->assertOwnerOrManager();
@@ -427,8 +464,18 @@ class Shifts extends AdminController
                 ->get();
         }
 
+        // PMD_SHIFTS_ACTUAL_EXTRA_SURFACE_V1_20261023:
+        // separate real clocked work from published planned rota.
+        $actualExtra = app(\App\Services\PmdActualWorkShiftV1::class)
+            ->get($locationId, $calendarStart, $calendarEnd, null, 450);
+        $todayExtras = $actualExtra->filter(fn($row) => $row->date_key === now()->toDateString())->values();
+        $unreviewedExtras = $actualExtra->filter(fn($row) => !$row->reviewed)->values();
+
         $this->vars['pmdShifts'] = [
             'ready' => $ready,
+            'actual_extra_shifts' => $actualExtra,
+            'today_extra_shifts' => $todayExtras,
+            'unreviewed_extra_shifts' => $unreviewedExtras,
             'location_id' => $locationId,
             'people' => $people,
             'shifts' => $shifts,

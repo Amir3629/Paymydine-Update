@@ -164,8 +164,8 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4z"></path><path d="m4 7 8 6 8-6"></path><path d="M18 17.5c0 1.9-3 4.5-3 4.5s-3-2.6-3-4.5a3 3 0 1 1 6 0Z"></path></svg>
                     </div>
                     <div class="pmd-profile-card__header-copy">
-                        <h2>{{ $pmdSettingsText('Public booking contact') }}</h2>
-                        <p>{{ $pmdSettingsText('Address, email and phone shown to guests on the booking page.') }}</p>
+                        <h2>{{ $pmdSettingsText('Restaurant contact & address') }}</h2>
+                        <p>{{ $pmdSettingsText('Used for bookings and your staff check-in location.') }}</p>
                     </div>
                     <a
                         class="pmd-profile-booking-preview"
@@ -179,37 +179,12 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                 </div>
 
                 <div class="pmd-profile-card__body">
+                    {{-- PMD_RESTAURANT_SINGLE_SAVE_GPS_V3_20261023: no independent staff GPS form. --}}
                     @if(!empty($pmdPublicBookingLocationMismatch))
-                        <div class="pmd-profile-booking-note" role="alert" style="border-color:#d99d4c;background:#fff9ed;color:#68430b">
-                            <strong>{{ $pmdSettingsText('Different location selected') }}</strong>
-                            <span>{{ $pmdSettingsText('The public /book page uses the default restaurant location:') }} <b>{{ $pmdPublicBookingLocationName ?? '' }}</b>. {{ $pmdSettingsText('Select that location in the admin location switcher to change booking contact details.') }}</span>
-                        </div>
-                    @else
-                        <div class="pmd-profile-booking-note" data-pmd-public-booking-contact="r25">
-                            <strong>{{ $pmdSettingsText('Used on /book') }}</strong>
-                            <span>{{ $pmdSettingsText('These details power the address, call and email links guests see while reserving.') }}</span>
-                        </div>
+                        <p class="pmd-profile-booking-note" role="status">
+                            {{ $pmdSettingsText('Booking uses another restaurant location. Switch to that location to update its address.') }}
+                        </p>
                     @endif
-
-                    {{-- PMD_PROFILE_PUBLIC_BOOKING_AUDIT_V1_20261023 --}}
-                    <div class="pmd-profile-booking-note" data-pmd-public-booking-location-audit>
-                        <strong>Public /book uses
-                            @if(!empty($pmdPublicBookingLocationId)) Location #{{ (int)$pmdPublicBookingLocationId }}@else no default location @endif
-                        </strong>
-                        <span>{{ ($pmdPublicBookingAddress ?? '') !== ''
-                            ? $pmdPublicBookingAddress
-                            : 'No complete address saved for the default location.' }}</span>
-                        <small>The public booking page reads the default enabled location, which can differ from the current admin location.
-                            If this address is wrong, select that default location in the admin switcher and update its contact details.</small>
-                    </div>
-
-        {{-- PMD_PROFILE_ADDRESS_SAVE_AUTHORITY_V1_20261023: booking address
-             and Staff GPS remain separate to prevent unsafe implicit geocoding. --}}
-        <div class="pmd-profile-booking-note" data-pmd-tenant-contact-authority>
-            <strong>Restaurant booking address</strong>
-            <span>This address is saved to the selected restaurant's location record and shown on /book. It does not automatically replace the separate Staff attendance GPS pin.</span>
-            <small>Use Save changes, then reload this page to confirm the address shown under "Public /book uses Location #".</small>
-        </div>
                     <div class="pmd-profile-grid pmd-profile-grid--2">
                         <label class="pmd-profile-field">
                             <span>{{ $pmdSettingsText('Restaurant email') }}</span>
@@ -248,131 +223,26 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             <input type="text" name="profile[postcode]" value="{{ $pmdProfile['postcode'] ?? '' }}" maxlength="32">
                         </label>
                     </div>
-                    {{-- PMD_STAFF_ADDRESS_GEO_PREVIEW_V1_20261023:
-                         The owner enters the street ONCE. Preview is an address
-                         match from the tenant geocoder, never a device GPS fix. --}}
-                    <div class="pmd-staff-address-setup" data-pmd-staff-address-setup
-                         data-pmd-location-id="{{ (int)($pmdProfile['location_id'] ?? 0) }}">
-                        <div class="pmd-staff-address-setup__intro">
-                            <strong>{{ $pmdSettingsText('Staff check-in location') }}</strong>
-                            @if(!empty($pmdProfile['staff_clock_demo_pin']))
-                                <span class="pmd-staff-address-setup__warning" role="status">
-                                    {{ $pmdSettingsText('The current check-in pin is an old demo location, not this restaurant. Set it from the address below.') }}
-                                </span>
-                            @else
-                                <span>{{ $pmdSettingsText('Find your restaurant on the map, confirm its entrance, then save. Staff do not enter the address on their phones.') }}</span>
+
+                    <div class="pmd-restaurant-location-status" data-pmd-restaurant-location-status>
+                        <span class="pmd-restaurant-location-status__dot" aria-hidden="true"></span>
+                        <div>
+                            <strong>{{ !empty($pmdProfile['staff_clock_demo_pin'])
+                                ? $pmdSettingsText('Staff location will be updated when you save')
+                                : $pmdSettingsText('Staff check-in uses this restaurant address') }}</strong>
+                            <small>{{ $pmdSettingsText('PayMyDine locates the restaurant when you save. Staff only need to be nearby to start or finish work.') }}</small>
+                            @if(empty($pmdProfile['staff_clock_demo_pin']) && !empty($pmdProfile['staff_clock_configured']))
+                                <a href="https://www.google.com/maps/search/?api=1&amp;query={{ rawurlencode($pmdProfile['staff_clock_lat'].','.$pmdProfile['staff_clock_lng']) }}"
+                                  target="_blank" rel="noopener noreferrer">{{ $pmdSettingsText('View saved check-in location') }} ↗</a>
                             @endif
                         </div>
-                        <button class="pmd-staff-address-setup__find" type="button" data-pmd-staff-find-address>
-                            {{ $pmdSettingsText('Find location from address') }}
-                        </button>
-                        <div class="pmd-staff-address-setup__preview" data-pmd-staff-address-preview hidden>
-                            <strong>{{ $pmdSettingsText('Suggested location') }}</strong>
-                            <span data-pmd-staff-found-address></span>
-                            <a href="#" target="_blank" rel="noopener noreferrer" data-pmd-staff-found-map>
-                                {{ $pmdSettingsText('Check pin on Google Maps') }} ↗
-                            </a>
-                            <label class="pmd-staff-address-setup__confirm">
-                                <input type="checkbox" data-pmd-staff-confirm-entrance>
-                                <span>{{ $pmdSettingsText('This pin matches the restaurant entrance.') }}</span>
-                            </label>
-                            <button type="button" data-pmd-staff-use-address disabled>
-                                {{ $pmdSettingsText('Use for staff check-in') }}
-                            </button>
-                        </div>
-                        <output role="status" aria-live="polite" data-pmd-staff-address-status></output>
                     </div>
                 </div>
             </div>
         </section>
 
 
-        {{-- PMD_STAFF_GPS_NO_STEPPER_V1_20261021: latitude/longitude are precise coordinates; never attach
-             generic + / - numeric steppers that jump by whole degrees. --}}
-        {{-- PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021 — Owner-scoped onsite attendance site.
-             Uses the existing Restaurant Profile Save Changes and tenant location row. --}}
-        <section class="pmd-profile-section pmd-profile-section--booking" data-pmd-staff-workplace-gps-v1>
-            <div class="pmd-profile-card">
-                {{-- PMD_PROFILE_COMPACT_ATTENDANCE_CONFIG_V1_20261023:
-                     GPS pin is a separate safety setting, not the public booking address.
-                     The inputs remain in the same form and keep existing Save Changes. --}}
-                <details class="pmd-profile-staff-gps-fold" id="pmd-staff-attendance-config">
-                    <summary>
-                        <span><strong>Staff check-in GPS</strong>
-                            <small>Separate from the booking street address · Location #{{ (int)($pmdProfile['location_id'] ?? 0) }}</small>
-                        </span>
-                        <span class="pmd-profile-staff-gps-fold__status">
-                            {{ !empty($pmdProfile['staff_clock_demo_pin']) ? 'Demo pin · action needed'
-                                : (!empty($pmdProfile['staff_clock_configured']) ? 'GPS pin saved' : 'GPS not configured') }}
-                        </span>
-                    </summary>
-                <div class="pmd-profile-card__header">
-                    <div class="pmd-profile-section-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path>
-                            <circle cx="12" cy="10" r="2.7"></circle>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2>{{ $pmdSettingsText('Staff attendance location') }}</h2>
-                        <p>{{ $pmdSettingsText('This pin is checked against the device GPS. It does not come from the public booking address automatically.') }}</p>
-                    </div>
-                </div>
-                <div class="pmd-profile-card__body">
-                    <div class="pmd-profile-booking-note">
-                        <strong>{{ !empty($pmdProfile['staff_clock_demo_pin'])
-                            ? $pmdSettingsText('Demo GPS pin · update from restaurant address')
-                            : (!empty($pmdProfile['staff_clock_configured']) ? $pmdSettingsText('GPS pin configured') : $pmdSettingsText('Setup needed')) }}</strong>
-                        <span>{{ $pmdSettingsText('Employees need a fresh, accurate GPS reading near this location. The app does not track staff in the background. GPS is not proof of physical presence.') }}</span>
-                    </div>
-                    <div class="pmd-profile-grid pmd-profile-grid--2">
-                        <label class="pmd-profile-field">
-                            <span>{{ $pmdSettingsText('Restaurant latitude') }}</span>
-                            <input type="number" id="pmd-staff-clock-lat-v1" data-pmd-no-stepper="true" name="profile[staff_clock_lat]"
-                                min="-90" max="90" step="any" inputmode="decimal"
-                                value="{{ $pmdProfile['staff_clock_lat'] ?? '' }}"
-                                placeholder="e.g. 50.110924" aria-describedby="pmd-staff-clock-pin-help">
-                        </label>
-                        <label class="pmd-profile-field">
-                            <span>{{ $pmdSettingsText('Restaurant longitude') }}</span>
-                            <input type="number" id="pmd-staff-clock-lng-v1" data-pmd-no-stepper="true" name="profile[staff_clock_lng]"
-                                min="-180" max="180" step="any" inputmode="decimal"
-                                value="{{ $pmdProfile['staff_clock_lng'] ?? '' }}"
-                                placeholder="e.g. 8.682127" aria-describedby="pmd-staff-clock-pin-help">
-                        </label>
-                    </div>
-                    <p id="pmd-staff-clock-pin-help" class="pmd-profile-booking-note">
-                        {{ $pmdSettingsText('Use coordinates from a reliable map for the physical restaurant entrance. Save Changes above. Leaving both fields blank preserves the current pin; an incomplete pair is rejected. Employees can clock only when the GPS check succeeds.') }}
-                    </p>
-                    {{-- PMD_STAFF_PIN_OWNER_DIAGNOSTICS_V1_20261023: never geocode or update the pin without an explicit owner action. --}}
-                    <div class="pmd-staff-pin-audit" data-pmd-staff-pin-audit
-                        data-pmd-pin-location-id="{{ (int)($pmdProfile['location_id'] ?? 0) }}">
-                        <strong>Staff clock pin · Location #{{ (int)($pmdProfile['location_id'] ?? 0) }}</strong>
-                        @if(!empty($pmdProfile['staff_clock_configured']))
-                            <span>Saved entrance: {{ $pmdProfile['staff_clock_lat'] }}, {{ $pmdProfile['staff_clock_lng'] }}</span>
-                            <a href="https://www.google.com/maps/search/?api=1&amp;query={{ rawurlencode($pmdProfile['staff_clock_lat'].','.$pmdProfile['staff_clock_lng']) }}"
-                                target="_blank" rel="noopener noreferrer">View saved entrance pin on Google Maps</a>
-                        @else
-                            <span>No entrance GPS pin is saved for this location.</span>
-                        @endif
-                        <button type="button" data-pmd-pin-compare>Check distance from this device</button>
-                        <button type="button" data-pmd-pin-use-device hidden>Use this location as entrance (not saved)</button>
-                        <output aria-live="polite" data-pmd-pin-result>
-                            Google provides the device position. PayMyDine measures it against this saved pin (175 m limit); the street address is not used for this check.
-                        </output>
-                    </div>
-                    <label class="pmd-profile-field">
-                        <span>
-                            <input type="checkbox" name="profile[staff_clock_clear]" value="1">
-                            {{ $pmdSettingsText('Remove attendance GPS pin and disable mobile shift clocking') }}
-                        </span>
-                    </label>
-                </div>
-                </details>
-            </div>
-        </section>
-
-        {{-- PMD_FLOOR_RESERVATION_NOTICE_PROFILE_R1 --}}
+{{-- PMD_FLOOR_RESERVATION_NOTICE_PROFILE_R1 --}}
         <section class="pmd-profile-section pmd-profile-section--booking" data-pmd-floor-reservation-settings="r1">
             <div class="pmd-profile-card">
                 <div class="pmd-profile-card__header">
@@ -1356,45 +1226,13 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 })();
 </script>
 
-<style>
-/* PMD_STAFF_PIN_OWNER_DIAGNOSTICS_V1_20261023 */
-.pmd-staff-pin-audit{display:grid;gap:10px;padding:16px;margin:13px 0 16px;border:1px solid #c9e1d6;border-radius:13px;background:#f3faf6;color:#174b3c;font-size:13px;line-height:1.55}
-.pmd-staff-pin-audit strong{font-size:14px}
-.pmd-staff-pin-audit a{color:#075f4f;text-decoration:underline;text-underline-offset:3px}
-.pmd-staff-pin-audit button{justify-self:start;border:1px solid #abcfc0;border-radius:9px;background:#fff;color:#085f4b;padding:10px 13px;font:inherit;font-weight:750;cursor:pointer}
-.pmd-staff-pin-audit button[hidden]{display:none}
-.pmd-staff-pin-audit output{display:block;white-space:normal;overflow-wrap:anywhere}
-</style>
-<script defer src="/app/admin/assets/js/pmd-staff-pin-audit-v1.js?v=1"></script>
 
 <style>
-/* PMD_PROFILE_COMPACT_ATTENDANCE_CONFIG_V1_20261023 */
-.pmd-profile-staff-gps-fold{display:block}
-.pmd-profile-staff-gps-fold>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:19px 22px;color:#174638}
-.pmd-profile-staff-gps-fold>summary::-webkit-details-marker{display:none}
-.pmd-profile-staff-gps-fold>summary strong{font-size:16px;display:block}
-.pmd-profile-staff-gps-fold>summary small{display:block;font-size:12px;line-height:1.6;color:#527168}
-.pmd-profile-staff-gps-fold>summary:focus-visible{outline:3px solid #77bda2;outline-offset:-4px;border-radius:10px}
-.pmd-profile-staff-gps-fold__status{display:inline-flex;align-items:center;padding:7px 11px;background:#edf8f1;border:1px solid #c9e8d6;border-radius:22px;font-size:12px;font-weight:750;color:#145e48}
-.pmd-profile-staff-gps-fold[open]>summary{border-bottom:1px solid #dce9e2}
-.pmd-profile-staff-gps-fold>.pmd-profile-card__header{display:none}
-@media(max-width:640px){.pmd-profile-staff-gps-fold>summary{padding:15px}.pmd-profile-staff-gps-fold__status{font-size:11px}}
+/* PMD_RESTAURANT_SINGLE_SAVE_GPS_V3_20261023 */
+.pmd-restaurant-location-status{display:flex;align-items:flex-start;gap:11px;margin-top:16px;padding:13px 15px;border-top:1px solid #dcebe4;color:#185442;font-size:12px;line-height:1.5}
+.pmd-restaurant-location-status__dot{width:9px;height:9px;margin-top:5px;flex:none;border-radius:50%;background:#11a579}
+.pmd-restaurant-location-status>div{display:grid;gap:3px}
+.pmd-restaurant-location-status strong{font-size:13px}
+.pmd-restaurant-location-status small{color:#60796d;font-size:11px}
+.pmd-restaurant-location-status a{color:#09634f;text-underline-offset:3px;font-weight:700}
 </style>
-
-<style>
-/* PMD_STAFF_ADDRESS_GEO_PREVIEW_V1_20261023 */
-.pmd-staff-address-setup{display:grid;gap:11px;margin-top:19px;padding:17px 18px;border:1px solid #b9d7ca;border-radius:14px;background:#f4faf6;color:#143e34;font-size:13px;line-height:1.55}
-.pmd-staff-address-setup__intro{display:grid;gap:5px}
-.pmd-staff-address-setup__intro strong{font-size:16px}
-.pmd-staff-address-setup__warning{color:#8c401d;font-weight:700}
-.pmd-staff-address-setup__find,.pmd-staff-address-setup__preview button{justify-self:start;padding:10px 15px;min-height:43px;border:1px solid #126a53;border-radius:10px;background:#07634d;color:#fff;font:inherit;font-weight:800;cursor:pointer}
-.pmd-staff-address-setup button:disabled{opacity:.45;cursor:not-allowed}
-.pmd-staff-address-setup__preview{display:grid;gap:10px;padding:13px;border:1px solid #cee2d8;border-radius:10px;background:#fff}
-.pmd-staff-address-setup__preview[hidden]{display:none!important}
-.pmd-staff-address-setup__preview a{color:#075a46;text-decoration:underline}
-.pmd-staff-address-setup__confirm{display:flex;gap:9px;align-items:center;cursor:pointer;font-size:13px}
-.pmd-staff-address-setup__confirm input{width:19px;height:19px;flex-shrink:0;accent-color:#05664f}
-.pmd-staff-address-setup output{display:block;min-height:18px}
-.pmd-staff-address-setup button:focus-visible,.pmd-staff-address-setup a:focus-visible{outline:3px solid #74bba0;outline-offset:2px}
-</style>
-<script defer src="/app/admin/assets/js/pmd-staff-address-geocode-v1.js?v=1"></script>

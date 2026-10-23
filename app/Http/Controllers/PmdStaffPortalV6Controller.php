@@ -153,20 +153,12 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 // A manager might not yet have assigned today's rota. Actual onsite
                 // attendance is always permitted for an authenticated active member.
                 // Record the exception instead of silently editing the published rota.
-                $hasPlannedShift = false;
-                if (Schema::hasTable('pmd_operational_shifts')
-                    && Schema::hasTable('pmd_operational_shift_people')
-                    && Schema::hasTable('pmd_operational_people')) {
-                    $hasPlannedShift = DB::table('pmd_operational_shift_people as assignment')
-                        ->join('pmd_operational_shifts as shift', 'shift.id', '=', 'assignment.shift_id')
-                        ->join('pmd_operational_people as person', 'person.id', '=', 'assignment.person_id')
-                        ->where('person.staff_id', $staffId)
-                        ->where('person.location_id', $locationId)
-                        ->where('shift.location_id', $locationId)
-                        ->whereDate('shift.shift_date', $now->toDateString())
-                        ->whereNotIn('shift.status', ['cancelled', 'canceled'])
-                        ->exists();
-                }
+                // PMD_STAFF_ACTUAL_OUTSIDE_ROTA_V1_20261023
+                // A planned shift must cover THIS TIME, not merely exist on today's date.
+                // Up to 15 minutes early is accepted as planned. Real attendance
+                // outside the rota is still captured; it is a separate actual shift.
+                $plannedShiftId = $this->plannedShiftAtClockTime($staffId, $locationId, $now);
+                $hasPlannedShift = $plannedShiftId !== null;
 
                 $values = [
                     'staff_id' => $staffId,
@@ -185,6 +177,7 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                         'source' => 'staff_portal_geofence_v1',
                         'person_id' => (int)$identity['person_id'],
                         'schedule_status' => $hasPlannedShift ? 'scheduled' : 'unscheduled',
+                        'planned_shift_id' => $plannedShiftId,
                         'clock_in_geo' => $geo['evidence'],
                         'staff_portal_breaks' => [],
                     ], JSON_UNESCAPED_SLASHES);
@@ -554,6 +547,49 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         }
 
         return $base;
+    }
+
+    /**
+     * PMD_STAFF_ACTUAL_OUTSIDE_ROTA_V1_20261023
+     * Checks time coverage, including overnight plans. Does not modify the
+     * published rota and does not trust any client-provided shift identifier.
+     */
+    private function plannedShiftAtClockTime(int $staffId, int $locationId, Carbon $at): ?int
+    {
+        if (!Schema::hasTable('pmd_operational_shifts')
+            || !Schema::hasTable('pmd_operational_shift_people')
+            || !Schema::hasTable('pmd_operational_people')) return null;
+        $dates = [$at->copy()->subDay()->toDateString(), $at->toDateString()];
+        $matches = DB::table('pmd_operational_shift_people as assignment')
+            ->join('pmd_operational_shifts as shift', 'shift.id', '=', 'assignment.shift_id')
+            ->join('pmd_operational_people as person', 'person.id', '=', 'assignment.person_id')
+            ->where('person.staff_id', $staffId)
+            ->where('person.location_id', $locationId)
+            ->where('person.is_active', 1)
+            ->where('shift.location_id', $locationId)
+            ->whereIn('shift.shift_date', $dates)
+            ->whereNotIn('shift.status', ['cancelled', 'canceled'])
+            ->select(['shift.id','shift.shift_date','shift.starts_at','shift.ends_at'])
+            ->orderBy('shift.shift_date')->orderBy('shift.id')->get();
+        foreach ($matches as $shift) {
+            try {
+                $startText = trim((string)($shift->starts_at ?? ''));
+                $endText = trim((string)($shift->ends_at ?? ''));
+                if ($startText === '' || $endText === '') {
+                    if ((string)$shift->shift_date === $at->toDateString()) return (int)$shift->id;
+                    continue;
+                }
+                $date = (string)$shift->shift_date;
+                $start = Carbon::parse($date.' '.$startText);
+                $end = Carbon::parse($date.' '.$endText);
+                if ($end->lessThanOrEqualTo($start)) $end->addDay();
+                // No late-start grace after a shift has already ended.
+                if ($at->gte($start->copy()->subMinutes(15)) && $at->lte($end)) {
+                    return (int)$shift->id;
+                }
+            } catch (\Throwable $ignored) {}
+        }
+        return null;
     }
 
     private function clockIdentity(): ?array

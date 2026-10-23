@@ -5,6 +5,13 @@ namespace Admin\Controllers;
 use Admin\Classes\AdminController;
 use Admin\Facades\AdminMenu;
 use App\Http\Controllers\PmdStaffPortalV6Controller;
+use Admin\Facades\AdminAuth;
+use Admin\Facades\AdminLocation;
+use Admin\Services\PmdDefaultStaffRoleService;
+use Admin\Services\PmdStaffOperationsCenterV1;
+use App\Services\PmdActualWorkShiftV1;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\RedirectResponse;
 
 /** PMD_MY_WORK_STAFF_PORTAL_V6 */
@@ -22,9 +29,68 @@ class Mywork extends AdminController
         AdminMenu::setContext('dashboard');
     }
 
+    /**
+     * PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023
+     * Existing Android Staff WebView uses /admin/login?destination=staff.
+     * The same PMD credentials reveal the mobile manager desk ONLY to roles
+     * authenticated as Owner/Manager; regular employees remain in My Work.
+     */
     public function index()
     {
+        if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
+        if ($this->isWorkforceManager()) return redirect(admin_url('mywork/manage'));
         return $this->portalResponse('index');
+    }
+
+    public function manage()
+    {
+        if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
+        if (!$this->isWorkforceManager()) abort(403);
+        try {
+            $locationId = max(1, (int)AdminLocation::getId());
+        } catch (\Throwable $error) {
+            // Preserve the same tenant-local fallback used by Shifts.
+            $locationId = 1;
+        }
+        $center = app(PmdStaffOperationsCenterV1::class)->payload($locationId);
+        $extras = app(PmdActualWorkShiftV1::class)
+            ->get($locationId, now()->startOfMonth(), now()->endOfMonth(), null, 350);
+        $unreviewedExtras = $extras->filter(fn($extra) => !$extra->reviewed)->values();
+        $hasPersonalPortal = false;
+        if (Schema::hasTable('pmd_operational_people')) {
+            $staffId = (int)optional(optional(AdminAuth::getUser())->staff)->staff_id;
+            $hasPersonalPortal = $staffId > 0 && DB::table('pmd_operational_people')
+                ->where('staff_id', $staffId)->where('location_id', $locationId)
+                ->where('is_active', 1)->exists();
+        }
+        return response()->view('pmd-staff-portal.management_v1', compact(
+            'center','extras','unreviewedExtras','locationId','hasPersonalPortal'
+        ))->header('Cache-Control', 'no-store, private')
+          ->header('X-Content-Type-Options', 'nosniff');
+    }
+
+    public function personal()
+    {
+        if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
+        if (!$this->isWorkforceManager()) abort(403);
+        $staffId = (int)optional(optional(AdminAuth::getUser())->staff)->staff_id;
+        if (!$staffId || !Schema::hasTable('pmd_operational_people')
+            || !DB::table('pmd_operational_people')->where('staff_id', $staffId)
+                ->where('is_active', 1)->exists()) {
+            return redirect(admin_url('mywork/manage'))
+                ->with('error', 'No personal Team profile is linked to this login.');
+        }
+        return $this->portalResponse('index');
+    }
+
+    private function isWorkforceManager(): bool
+    {
+        $role = app(PmdDefaultStaffRoleService::class)
+            ->roleCodeForUser(AdminAuth::getUser());
+        return in_array($role, [
+            PmdDefaultStaffRoleService::OWNER,
+            PmdDefaultStaffRoleService::MANAGER,
+        ], true);
     }
 
     public function saverequest()

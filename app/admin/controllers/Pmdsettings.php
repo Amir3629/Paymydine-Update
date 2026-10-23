@@ -1067,6 +1067,88 @@ class Pmdsettings extends AdminController
         }
 
         $clean = $validator->validated();
+        // PMD_RESTAURANT_ADDRESS_AUTO_GEOFENCE_V2_20261023
+        // A single Restaurant Profile Save now resolves the typed address to
+        // the Staff attendance location in the SAME tenant transaction.
+        // Never use device GPS or copied example pins as workplace authority.
+        $storedLocation = DB::table('locations')->where('location_id', $locationId)
+            ->first(['location_address_1', 'location_address_2', 'location_city',
+                'location_state', 'location_postcode','location_lat','location_lng']);
+        if (!$storedLocation) {
+            throw ValidationException::withMessages([
+                'profile.address_1' => ['Restaurant location is missing.'],
+            ]);
+        }
+        $addressColumns = [
+            'address_1' => 'location_address_1', 'address_2' => 'location_address_2',
+            'city' => 'location_city', 'state' => 'location_state',
+            'postcode' => 'location_postcode',
+        ];
+        $addressChanged = false;
+        foreach ($addressColumns as $inputName => $columnName) {
+            if (trim((string)($clean[$inputName] ?? '')) !== trim((string)($storedLocation->$columnName ?? ''))) {
+                $addressChanged = true;
+                break;
+            }
+        }
+        $oldLat = $storedLocation->location_lat;
+        $oldLng = $storedLocation->location_lng;
+        $oldPinValid = is_numeric($oldLat) && is_numeric($oldLng)
+            && abs((float)$oldLat) <= 90 && abs((float)$oldLng) <= 180
+            && !((float)$oldLat == 0.0 && (float)$oldLng == 0.0);
+        $demoPin = $oldPinValid && abs((float)$oldLat - 52.415884) < 0.00005
+            && abs((float)$oldLng + 1.603648) < 0.00005
+            && !str_contains(strtolower((string)($clean['city'] ?? '')), 'coventry');
+        $autoPinNeeded = $addressChanged || !$oldPinValid || $demoPin;
+        if ($autoPinNeeded) {
+            $street = trim((string)($clean['address_1'] ?? ''));
+            $city = trim((string)($clean['city'] ?? ''));
+            $postcode = trim((string)($clean['postcode'] ?? ''));
+            if ($street === '' || $city === '' || $postcode === '') {
+                throw ValidationException::withMessages([
+                    'profile.address_1' => [
+                        'Enter street, city and postcode so PayMyDine can locate your restaurant.',
+                    ],
+                ]);
+            }
+            $queryAddress = implode(', ', array_filter([
+                $street,
+                trim((string)($clean['address_2'] ?? '')),
+                $postcode.' '.$city,
+                trim((string)($clean['state'] ?? '')),
+            ], static fn ($part) => $part !== ''));
+            try {
+                // Existing configured PayMyDine geocoder (Google/OSM/chain).
+                // No maps API key in browser and no client location permission.
+                $match = \Igniter\Flame\Geolite\Facades\Geocoder::geocode($queryAddress)->first();
+                if (!$match || !$match->hasCoordinates()) {
+                    throw new \RuntimeException('Empty geocoder result.');
+                }
+                $newLat = (float)$match->getCoordinates()->getLatitude();
+                $newLng = (float)$match->getCoordinates()->getLongitude();
+            } catch (\Throwable $geoFailure) {
+                logger()->notice('PMD restaurant address lookup failed', [
+                    'location_id' => $locationId,
+                    'reason_type' => get_class($geoFailure),
+                ]);
+                throw ValidationException::withMessages([
+                    'profile.address_1' => [
+                        'Restaurant address could not be located. Check the postcode and city, then save again.',
+                    ],
+                ]);
+            }
+            if (!is_finite($newLat) || !is_finite($newLng) ||
+                abs($newLat) > 90 || abs($newLng) > 180 ||
+                ($newLat == 0.0 && $newLng == 0.0)) {
+                throw ValidationException::withMessages([
+                    'profile.address_1' => ['The map service returned an invalid restaurant position.'],
+                ]);
+            }
+            $staffClockCoordinates = [
+                'location_lat' => round($newLat, 6),
+                'location_lng' => round($newLng, 6),
+            ];
+        }
         $uploadedLogo = $this->storeRestaurantLogoR19();
         $removeLogo = !empty($profile['remove_logo']);
         $resolvedLogo = $this->resolvedRestaurantLogoR21($uploadedLogo, $removeLogo);

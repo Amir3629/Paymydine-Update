@@ -17,6 +17,9 @@
     $liveAttendanceRows = is_array($liveAttendance['rows'] ?? null)
         ? $liveAttendance['rows']
         : [];
+    $actualExtraShifts = collect($data['actual_extra_shifts'] ?? []);
+    $todayExtraShifts = collect($data['today_extra_shifts'] ?? []);
+    $unreviewedExtraShifts = collect($data['unreviewed_extra_shifts'] ?? []);
     $stats = $data['stats'] ?? [];
     $kpiMonthName = trim((string)($stats['month_name'] ?? now()->format('F'))) ?: now()->format('F');
     $departments = $data['departments'] ?? [];
@@ -344,6 +347,57 @@
                     </div>
                 </article>
             @endforeach
+        </section>
+
+        {{-- PMD_SHIFTS_WORKFORCE_DESK_V1_20261023
+             Actual clock-in sessions are separate from the published rota.
+             Amber = unscheduled actual work, not an automatically assigned plan. --}}
+        <section class="pmd-workforce-desk" id="pmd-workforce-desk" aria-labelledby="pmd-workforce-desk-title">
+            <header class="pmd-workforce-desk__heading">
+                <div>
+                    <small>WORKFORCE · OPERATIONS</small>
+                    <h2 id="pmd-workforce-desk-title">Team control</h2>
+                    <p>Review time-clock activity and requests without changing the published rota.</p>
+                </div>
+                <div class="pmd-workforce-desk__actions">
+                    <button type="button" data-pmd-staff-ops-shortcut="presence">Working now</button>
+                    <button type="button" data-pmd-staff-ops-shortcut="requests">Requests <span>{{ $teamRequests->count() }}</span></button>
+                    <button type="button" data-pmd-staff-ops-shortcut="chat">Team chat</button>
+                    <button type="button" data-pmd-staff-ops-shortcut="activity">Activity</button>
+                </div>
+            </header>
+            <div class="pmd-workforce-desk__summary" aria-label="Additional time-clock shifts">
+                <div><strong>{{ $todayExtraShifts->count() }}</strong><span>Extra shifts today</span></div>
+                <div><strong>{{ $unreviewedExtraShifts->count() }}</strong><span>Awaiting manager review</span></div>
+                <div><strong>{{ $actualExtraShifts->count() }}</strong><span>Extra sessions in this calendar</span></div>
+            </div>
+            <div class="pmd-workforce-desk__ledger" role="region" aria-label="Actual shifts outside the plan">
+                @forelse($actualExtraShifts->take(40) as $extra)
+                    <article class="pmd-workforce-desk__actual{{ $extra->reviewed ? ' is-reviewed' : '' }}">
+                        <span class="pmd-workforce-desk__actual-bar" aria-hidden="true"></span>
+                        <div class="pmd-workforce-desk__actual-person">
+                            <strong>{{ $extra->person_name }}</strong>
+                            <small>{{ \Carbon\Carbon::parse($extra->check_in_time)->format('D, d M Y') }}
+                                · {{ $extra->start_label }} – {{ $extra->end_label ?: 'Working now' }}
+                            </small>
+                        </div>
+                        <div class="pmd-workforce-desk__actual-state">
+                            <span>{{ $extra->reviewed ? 'Reviewed' : 'Extra · not planned' }}</span>
+                            @if($extra->is_open)
+                                <small>On shift</small>
+                            @elseif(!$extra->reviewed)
+                                <form method="post" action="{{ admin_url('shifts/reviewactual') }}">
+                                    @csrf
+                                    <input type="hidden" name="attendance_id" value="{{ (int)$extra->actual_shift_id }}">
+                                    <button type="submit">Mark reviewed</button>
+                                </form>
+                            @endif
+                        </div>
+                    </article>
+                @empty
+                    <p class="pmd-workforce-desk__empty">No extra time-clock shifts this month. Planned shifts remain below.</p>
+                @endforelse
+            </div>
         </section>
 
         {{-- PMD_SHIFTS_DAY_ONLY_WORKSPACE_V15 --}}

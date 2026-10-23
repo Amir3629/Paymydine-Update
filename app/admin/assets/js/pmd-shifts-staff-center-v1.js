@@ -78,6 +78,17 @@
     load();
   }
   openButton.addEventListener('click', function () { if (overlay.hidden) show(); else close(); });
+  // PMD_SHIFTS_WORKFORCE_DESK_V1_20261023: in-page shortcuts share
+  // the existing fully authorized operations drawer and handlers.
+  root.querySelectorAll('[data-pmd-staff-ops-shortcut]').forEach(function (shortcut) {
+    shortcut.addEventListener('click', function () {
+      var tab = shortcut.getAttribute('data-pmd-staff-ops-shortcut');
+      if (['presence','requests','chat','activity'].indexOf(tab) === -1) return;
+      currentTab = tab;
+      if (overlay.hidden) show();
+      else { setTab(tab);load(); }
+    });
+  });
   overlay.addEventListener('click', function (event) {
     if (event.target.closest('[data-pmd-staff-ops-close]')) { close(); return; }
     var tab = event.target.closest('[data-pmd-staff-ops-tab]');

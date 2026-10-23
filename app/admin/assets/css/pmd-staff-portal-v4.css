@@ -194,3 +194,13 @@ body.pmd-staff-login-page{background:#f4f8f5}
     visibility:hidden!important;pointer-events:none!important
   }
 }
+
+/* PMD_STAFF_MY_ACTUAL_EXTRAS_V1_20261023
+ * Amber attendance sessions differ clearly from blue/green planned shifts. */
+.pmd-staff-month-shifts article.pmd-staff-actual-extra{position:relative;border-left:4px solid #dda340;background:#fff8eb}
+.pmd-staff-month-shifts article.pmd-staff-actual-extra time{background:#ffedcc;color:#935e16}
+.pmd-staff-month-shifts article.pmd-staff-actual-extra>div>strong{color:#4d391f}
+.pmd-staff-month-shifts .pmd-staff-actual-extra__status{display:block;color:#986217;font-weight:750}
+.pmd-staff-actual-extra__mark{align-self:start;background:#ffedc7;color:#965c13;border-radius:5px;font-size:10px;line-height:1.2;padding:5px 7px;font-weight:850;letter-spacing:.02em}
+.pmd-staff-manager-entry{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 11px;border:1px solid #95cbb5;border-radius:8px;color:#075b43;background:#e9f6ef;font-size:12px;font-weight:800;text-decoration:none}
+@media(max-width:760px){.pmd-staff-month-shifts article.pmd-staff-actual-extra{gap:9px}.pmd-staff-actual-extra__mark{font-size:9px}.pmd-staff-manager-entry{min-height:37px}}
