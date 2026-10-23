@@ -20,6 +20,7 @@ final class PmdStaffOperationsCenterV1
             'location_id' => $locationId,
             'site' => app(PmdStaffClockGeofenceV1::class)->site($locationId),
             'active' => collect(), 'recent' => collect(),
+            'upcoming' => collect(),
             'requests' => collect(), 'messages' => collect(),
             'events' => collect(), 'team_group' => null,
             'can_send' => false,
@@ -43,6 +44,21 @@ final class PmdStaffOperationsCenterV1
                 ->orderByDesc('a.attendance_id')->limit(75)->get();
             $data['recent'] = (clone $query)
                 ->orderByDesc('a.attendance_id')->limit(25)->get();
+        }
+
+        // PMD_OWNER_SHARED_STAFF_SHELL_V026_20261023:
+        // Read-only upcoming planned rota for the Owner Staff app.
+        // Same tenant location; no other restaurant or private staff records.
+        if (Schema::hasTable('pmd_operational_shifts')) {
+            $data['upcoming'] = DB::table('pmd_operational_shifts')
+                ->where('location_id', $locationId)
+                ->whereBetween('shift_date', [
+                    now()->toDateString(), now()->copy()->addDays(13)->toDateString(),
+                ])
+                ->whereNotIn('status', ['cancelled', 'canceled'])
+                ->select(['id','shift_date','label','starts_at','ends_at','status'])
+                ->orderBy('shift_date')->orderBy('starts_at')->orderBy('id')
+                ->limit(40)->get();
         }
 
         if (Schema::hasTable('pmd_staff_requests') && Schema::hasTable('pmd_operational_people')) {

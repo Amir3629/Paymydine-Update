@@ -7,6 +7,7 @@
   'use strict';
   var dictionaries = {
   "de": {
+    "Team": "Team",
     "My shifts": "Meine Schichten",
     "Chat": "Team-Chat",
     "Requests": "Anfragen",
@@ -124,6 +125,7 @@
     "Location Accuracy is off. Accept the Android location prompt, or open Settings > Location > Location services > Location Accuracy and enable Improve Location Accuracy.": "Standortgenauigkeit ist ausgeschaltet. Bestätige die Android-Anfrage oder öffne Einstellungen > Standort > Standortdienste > Standortgenauigkeit und aktiviere die Verbesserung."
   },
   "tr": {
+    "Team": "Ekip",
     "My shifts": "Vardiyalarım",
     "Chat": "Ekip sohbeti",
     "Requests": "Talepler",

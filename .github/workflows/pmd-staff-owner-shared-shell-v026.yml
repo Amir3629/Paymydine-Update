@@ -1,0 +1,42 @@
+name: Staff Owner Shared Shell v026
+on:
+  push:
+    branches:
+      - fix/staff-owner-shared-app-shell-v026-20261023
+    paths:
+      - 'app/admin/controllers/Mywork.php'
+      - 'app/admin/Services/PmdStaffOperationsCenterV1.php'
+      - 'app/Http/Controllers/PmdStaffPortalV5Controller.php'
+      - 'app/admin/views/pmd-staff-portal/index_v5.blade.php'
+      - 'app/admin/views/pmd-staff-portal/management_v1.blade.php'
+      - 'app/admin/views/pmd-staff-portal/_manager_workforce_v026.blade.php'
+      - 'app/admin/assets/css/pmd-staff-manager-v2.css'
+      - 'app/admin/assets/js/pmd-staff-manager-v2.js'
+      - 'app/admin/assets/js/pmd-staff-portal-locale-v2.js'
+      - 'scripts/pmd-staff-owner-shared-shell-v026-deploy.sh'
+      - 'pmd-qa/scripts/staff-owner-shared-shell-v026.test.cjs'
+      - '.github/workflows/pmd-staff-owner-shared-shell-v026.yml'
+  workflow_dispatch:
+jobs:
+  shared-shell-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP source syntax
+        run: |
+          php -l app/admin/controllers/Mywork.php
+          php -l app/admin/Services/PmdStaffOperationsCenterV1.php
+          php -l app/Http/Controllers/PmdStaffPortalV5Controller.php
+      - name: JavaScript syntax
+        run: |
+          node --check app/admin/assets/js/pmd-staff-manager-v2.js
+          node --check app/admin/assets/js/pmd-staff-portal-locale-v2.js
+      - name: One-shell server security contracts
+        run: |
+          node pmd-qa/scripts/staff-owner-shared-shell-v026.test.cjs
+      - name: Installer syntax and release marker
+        run: |
+          if test -f scripts/pmd-staff-owner-shared-shell-v026-deploy.sh; then
+            bash -n scripts/pmd-staff-owner-shared-shell-v026-deploy.sh
+            grep -Fq 'PMD_OWNER_SHARED_STAFF_SHELL_DEPLOY_V026_20261023' scripts/pmd-staff-owner-shared-shell-v026-deploy.sh
+          fi

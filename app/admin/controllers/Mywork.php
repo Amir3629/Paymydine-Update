@@ -38,7 +38,14 @@ class Mywork extends AdminController
     public function index()
     {
         if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
-        if ($this->isWorkforceManager()) return redirect(admin_url('mywork/manage'));
+        // PMD_OWNER_SHARED_STAFF_SHELL_V026_20261023:
+        // One visual application for Staff and Owner/Manager when the manager
+        // has a linked Team person. The manager tab is enabled by role.
+        if ($this->isWorkforceManager()) {
+            if (!$this->hasPersonalTeamProfile()) {
+                return redirect(admin_url('mywork/manage'));
+            }
+        }
         return $this->portalResponse('index');
     }
 
@@ -52,6 +59,11 @@ class Mywork extends AdminController
             // Preserve the same tenant-local fallback used by Shifts.
             $locationId = 1;
         }
+        // Reuse the Staff app itself for linked managers, including its
+        // working Time/Chat/My Shifts/Profile screens; do not open a second UI.
+        if ($this->hasPersonalTeamProfile($locationId)) {
+            return redirect(admin_url('mywork').'#management');
+        }
         $center = app(PmdStaffOperationsCenterV1::class)->payload($locationId);
         $extras = app(PmdActualWorkShiftV1::class)
             ->get($locationId, now()->startOfMonth(), now()->endOfMonth(), null, 350);
@@ -63,24 +75,71 @@ class Mywork extends AdminController
                 ->where('staff_id', $staffId)->where('location_id', $locationId)
                 ->where('is_active', 1)->exists();
         }
+        // Unlinked Owner still uses the identical Staff shell, but cannot
+        // clock or impersonate a Team person without an active Team link.
+        $managerUser = AdminAuth::getUser();
+        $managerName = trim((string)(optional($managerUser ? $managerUser->staff : null)->staff_name
+            ?: ($managerUser->username ?? 'Manager')));
+        $managerInitial = mb_strtoupper(mb_substr($managerName, 0, 1));
+        $roleCode = app(PmdDefaultStaffRoleService::class)->roleCodeForUser($managerUser);
+        $pmdManagerLocale = strtolower(trim((string)session('pmd_staff_ui_locale_'.$locationId, '')));
+        if (!in_array($pmdManagerLocale, ['en','de','tr'], true)) {
+            $pmdManagerLocale = in_array(strtolower(app()->getLocale()), ['en','de','tr'], true)
+                ? strtolower(app()->getLocale()) : 'en';
+        }
         return response()->view('pmd-staff-portal.management_v1', compact(
-            'center','extras','unreviewedExtras','locationId','hasPersonalPortal'
+            'center','extras','unreviewedExtras','locationId','hasPersonalPortal',
+            'managerName','managerInitial','roleCode','pmdManagerLocale'
         ))->header('Cache-Control', 'no-store, private')
           ->header('X-Content-Type-Options', 'nosniff');
+    }
+
+    /**
+     * PMD_OWNER_STAFF_SHELL_LOCALE_V026_20261023
+     * CSRF-protected, tenant-scoped language preference for Owner accounts
+     * not linked to a personal Team record. No global Admin locale changed.
+     */
+    public function managerlocale()
+    {
+        if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
+        if (!$this->isWorkforceManager()) abort(403);
+        if (!request()->isMethod('post')) abort(405);
+        $clean = \Illuminate\Support\Facades\Validator::make(request()->all(), [
+            'locale' => ['required','in:en,de,tr'],
+            'return_screen' => ['nullable','in:team,schedule,requests,chat,activity'],
+        ])->validate();
+        try {
+            $loc = max(1, (int)AdminLocation::getId());
+        } catch (\Throwable $error) {
+            $loc = 1;
+        }
+        session()->put('pmd_staff_ui_locale_'.$loc, $clean['locale']);
+        return redirect(admin_url('mywork/manage').'#'.($clean['return_screen'] ?? 'team'));
     }
 
     public function personal()
     {
         if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
         if (!$this->isWorkforceManager()) abort(403);
-        $staffId = (int)optional(optional(AdminAuth::getUser())->staff)->staff_id;
-        if (!$staffId || !Schema::hasTable('pmd_operational_people')
-            || !DB::table('pmd_operational_people')->where('staff_id', $staffId)
-                ->where('is_active', 1)->exists()) {
+        if (!$this->hasPersonalTeamProfile()) {
             return redirect(admin_url('mywork/manage'))
                 ->with('error', 'No personal Team profile is linked to this login.');
         }
         return $this->portalResponse('index');
+    }
+
+    /** A linked personal Team profile is required ONLY for personal clock/actions.
+     * Manager read/write endpoints retain their own role + tenant checks.
+     */
+    private function hasPersonalTeamProfile(?int $locationId = null): bool
+    {
+        if (!AdminAuth::isLogged() || !Schema::hasTable('pmd_operational_people')) return false;
+        $staffId = (int)optional(optional(AdminAuth::getUser())->staff)->staff_id;
+        if ($staffId < 1) return false;
+        $query = DB::table('pmd_operational_people')
+            ->where('staff_id', $staffId)->where('is_active', 1);
+        if ($locationId !== null) $query->where('location_id', $locationId);
+        return $query->exists();
     }
 
     private function isWorkforceManager(): bool
