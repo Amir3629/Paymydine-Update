@@ -5,7 +5,7 @@ set -Eeuo pipefail
 umask 077
 ROOT=/var/www/paymydine
 BASE=5297cc0fec5c13383d8a9f7861e8a97b2ca77982
-FIX=d742550d54b2af3325d027cdf74deeb7913cdda4
+FIX=a6818712a80a11f24d4ff82566fe507552f1180f
 BRANCH=fix/z100-nfc-device-control-v149-20261023
 MODE="${1:---check}"
 FILES=(
