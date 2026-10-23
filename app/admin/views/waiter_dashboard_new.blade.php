@@ -163,8 +163,8 @@ document.documentElement.classList.add('pmd-v283-booting');
 
     <div class="pmd-v2-toast" data-v2-toast role="status" aria-live="polite"></div>
 </div>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v3.js') }}?v=new2"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=staff-v3-r47-20260824"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v3.js') }}?v=20261023-147"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=20261023-147"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=quick-r49-20260824"></script>
 <script src="/app/admin/assets/js/pmd-waiter-pos-v286-dashboard-rebuild.js?v=288"></script>
 <script src="/app/admin/assets/js/pmd-waiter-pos-v290-final-layout.js?v=291"></script>
@@ -413,8 +413,8 @@ document.documentElement.classList.add('pmd-v283-booting');
 </div>
 
 {{-- Only the isolated stable POS engine and versioned waiter layers are loaded. --}}
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v3.js') }}?v=2"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=staff-v3-r47-20260824"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v3.js') }}?v=20261023-147"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=20261023-147"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=quick-r49-20260824"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-dashboard-new-v1.js') }}?v=295-20260717"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-standard-v21.js') }}?v=21"></script>
