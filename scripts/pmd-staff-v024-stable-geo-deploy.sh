@@ -14,7 +14,7 @@ fi
 cd /var/www/paymydine
 BASE="https://raw.githubusercontent.com/Amir3629/Paymydine-Update/$REV"
 APK_NAME="PayMyDine-Staff-App-0.2.4-debug.apk"
-APK_SHA="PENDING_VERIFIED_APK_SHA256_DO_NOT_RUN"
+APK_SHA="81ec7faa639cabcde632b35a2b36d4a3053044166807500f1cf2c480fd383ce6"
 APK_PATH="public/downloads/paymydine/$APK_NAME"
 RUN_ID="39909515442"
 BACKUP="$HOME/pmd-backups/staff-v024-stable-geo-$(date -u +%Y%m%d-%H%M%S)"
