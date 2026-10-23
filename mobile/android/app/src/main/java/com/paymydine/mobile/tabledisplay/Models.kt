@@ -20,7 +20,8 @@ data class DisplayTable(
     val number: String,
     val name: String,
     val menuUrl: String,
-    val checkoutUrl: String,
+    // Offline/restarted Z80 must NEVER replay a checkout QR as an active charge.
+    val checkoutUrl: String = "",
     val enabled: Boolean,
 )
 
