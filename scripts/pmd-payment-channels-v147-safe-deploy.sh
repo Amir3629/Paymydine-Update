@@ -5,7 +5,7 @@ set -Eeuo pipefail
 umask 077
 ROOT=/var/www/paymydine
 BASE=34a3f7958f061153af0bef610b82381acd080ead
-FIX=ef052833e0a486814a990d323e1be9c1b62b4d56
+FIX=5b5b55f2a2e10744ba373e0ce64df8b82b111e95
 BRANCH=feat/payment-channels-z100-z80-waiter-v147-20261023
 MODE="${1:---check}"
 FILES=(
