@@ -1,0 +1,31 @@
+name: Staff Owner Address Geocode V1
+on:
+  push:
+    branches:
+      - fix/staff-owner-address-geocode-v1-20261023
+    paths:
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'app/admin/assets/js/pmd-staff-address-geocode-v1.js'
+      - 'app/Services/PmdStaffClockGeofenceV1.php'
+      - 'app/system/database/records/location.json'
+      - 'scripts/pmd-staff-owner-address-geocode-v1-deploy.sh'
+      - 'pmd-qa/scripts/staff-owner-address-geocode-v1-contract.test.cjs'
+      - '.github/workflows/pmd-staff-owner-address-geocode-v1.yml'
+  workflow_dispatch:
+jobs:
+  static-safety-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint PHP JS and installer
+        run: |
+          php -l app/admin/controllers/Pmdsettings.php
+          php -l app/Services/PmdStaffClockGeofenceV1.php
+          node --check app/admin/assets/js/pmd-staff-address-geocode-v1.js
+          bash -n scripts/pmd-staff-owner-address-geocode-v1-deploy.sh
+          php -r 'json_decode(file_get_contents("app/system/database/records/location.json"),true,512,JSON_THROW_ON_ERROR);'
+      - name: Verify address preview only and on-site clock restrictions
+        run: |
+          node pmd-qa/scripts/staff-owner-address-geocode-v1-contract.test.cjs
+          grep -Fq 'PMD_STAFF_OWNER_ADDRESS_GEOCODE_DEPLOY_V1_20261023' scripts/pmd-staff-owner-address-geocode-v1-deploy.sh
