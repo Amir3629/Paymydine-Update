@@ -187,3 +187,10 @@ body.pmd-staff-login-page{background:#f4f8f5}
   .pmd-staff-clock-screen{min-height:0!important;height:100%!important}
   .pmd-staff-portal-page .pmd-staff-flash{flex-shrink:0}
 }
+
+/* Keep the inactive absolute tool surface from intercepting Team Chat taps. */
+@media(max-width:760px){
+  .pmd-staff-app[data-pmd-mobile-active="chat"] .pmd-staff-tools{
+    visibility:hidden!important;pointer-events:none!important
+  }
+}
