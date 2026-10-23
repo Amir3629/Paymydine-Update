@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # PayMyDine V147: Z80 checkout QR + waiter external reader; no payment capture or NFC charging.
-# Preserves local edits; six vetted server files. Existing Cashier and staff APK untouched.
+# Preserves local edits; nine vetted server files. Existing Cashier and staff APK untouched.
 set -Eeuo pipefail
 umask 077
 ROOT=/var/www/paymydine
 BASE=34a3f7958f061153af0bef610b82381acd080ead
-FIX=b358dfd673715c56cefd44e835146083b27954cf
+FIX=ef052833e0a486814a990d323e1be9c1b62b4d56
 BRANCH=feat/payment-channels-z100-z80-waiter-v147-20261023
 MODE="${1:---check}"
 FILES=(
@@ -13,6 +13,9 @@ FILES=(
   app/Http/Controllers/PmdTableDisplayPaymentController.php
   routes/admin-quick-mode.php
   app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+  app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
+  app/admin/views/waiter_pos.blade.php
+  app/admin/views/waiter_dashboard_new.blade.php
   app/admin/assets/js/pmd-table-display-v1.js
   app/Services/Payments/ProviderCapabilityRegistry.php
 )
@@ -65,6 +68,12 @@ done
 mkdir -p "$STAGED/tests"
 git show "$FIX:tests/pmd-payment-channels-v147-server.test.cjs" \
   > "$STAGED/tests/pmd-payment-channels-v147-server.test.cjs"
+# Read-only dependencies for acceptance tests: these are NOT deployment files.
+for f in app/admin/controllers/Pmddevices.php app/Services/PmdDevicePlatformService.php; do
+  [[ -f "$f" && ! -L "$f" ]] || { echo "STOP: V146 device controls not found: $f" >&2; exit 1; }
+  mkdir -p "$STAGED/$(dirname "$f")"
+  cp -- "$f" "$STAGED/$f"
+done
 
 # Apply on copies only. If any context changed, HARD STOP without force.
 (
@@ -90,6 +99,7 @@ php -l "$STAGED/app/Http/Controllers/PmdTableDisplayPaymentController.php"
 php -l "$STAGED/routes/admin-quick-mode.php"
 php -l "$STAGED/app/Services/Payments/ProviderCapabilityRegistry.php"
 node --check "$STAGED/app/admin/assets/js/pmd-waiter-pos-payment-v3.js"
+node --check "$STAGED/app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js"
 node --check "$STAGED/app/admin/assets/js/pmd-table-display-v1.js"
 ( cd "$STAGED" && node --test tests/pmd-payment-channels-v147-server.test.cjs )
 if [[ "$MODE" == --check ]]; then
@@ -115,7 +125,7 @@ rollback() {
   result=$?
   trap - EXIT
   if [[ "$STARTED" == 1 && "$SUCCESS" != 1 ]]; then
-    echo 'STOP: restoring the 6 original source files.' >&2
+    echo 'STOP: restoring the 9 original source files.' >&2
     sudo tar -xzpf "$DIR/before.tgz" -C "$ROOT" || true
     (sudo -u www-data php artisan view:clear || php artisan view:clear) || true
     (sudo -u www-data php artisan route:clear || php artisan route:clear) || true
@@ -144,6 +154,7 @@ php -l app/Http/Controllers/PmdTableDisplayPaymentController.php
 php -l routes/admin-quick-mode.php
 php -l app/Services/Payments/ProviderCapabilityRegistry.php
 node --check app/admin/assets/js/pmd-waiter-pos-payment-v3.js
+node --check app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js
 node --check app/admin/assets/js/pmd-table-display-v1.js
 sudo -u www-data php artisan view:clear || php artisan view:clear
 sudo -u www-data php artisan route:clear || php artisan route:clear
