@@ -858,20 +858,16 @@ class Pmdsettings extends AdminController
         ]);
         if ($validator->fails()) throw new ValidationException($validator);
         $parts = $validator->validated();
-        $loc = DB::table('locations')->where('location_id', $locationId)
-            ->first(['location_country_id']);
-        $countryName = '';
-        if ($loc && !empty($loc->location_country_id) && Schema::hasTable('countries')) {
-            $countryName = (string)(DB::table('countries')
-                ->where('country_id', (int)$loc->location_country_id)
-                ->value('country_name') ?? '');
-        }
+        // Resolve what the owner ACTUALLY entered, not the location_country_id
+        // from an inherited template tenant. Old sample locations may still
+        // carry the United Kingdom country ID even after moving to Frankfurt.
+        // Street + postcode + city + state are mandatory/validated; the owner
+        // must check the map result before choosing it for attendance.
         $address = implode(', ', array_filter([
             trim((string)$parts['address_1']),
             trim((string)($parts['address_2'] ?? '')),
             trim((string)$parts['postcode']).' '.trim((string)$parts['city']),
             trim((string)($parts['state'] ?? '')),
-            trim($countryName),
         ], static fn ($part) => $part !== ''));
         try {
             // Uses configured chain/google/nominatim through the existing
