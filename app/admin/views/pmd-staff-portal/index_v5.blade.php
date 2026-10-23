@@ -91,10 +91,11 @@
     <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=26"></script>
     @if($canManage)
         <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-manager-v2.css?v=26">
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-owner-bottom-nav-v027.css?v=27">
         <script defer src="/app/admin/assets/js/pmd-staff-manager-v2.js?v=26"></script>
     @endif>
 </head>
-<body class="pmd-staff-portal-page">
+<body class="pmd-staff-portal-page{{ $canManage ? ' pmd-owner-linked' : '' }}">
 <div class="pmd-staff-app" data-pmd-staff-portal data-pmd-mobile-active="{{ $canManage ? 'manage' : 'schedule' }}" data-pmd-default-screen="{{ $canManage ? 'manage' : 'schedule' }}" data-pmd-staff-locale="{{ $pmdStaffLocale }}">
     <header class="pmd-staff-topbar">
         <a href="{{ admin_url('mywork') }}" class="pmd-staff-brand" aria-label="PayMyDine Staff Portal">

@@ -1,0 +1,183 @@
+/* PMD_OWNER_BOTTOM_NAV_V027_20261023
+ *
+ * Staff & Owner have one navigation pattern: primary app tabs anchored at
+ * the BOTTOM on every viewport, including Android WebView landscape, tablets,
+ * desktop browser and browser zoom. The header keeps ONLY logo, language
+ * and account. Regular Staff CSS and attendance flows are untouched.
+ *
+ * This stylesheet MUST load after Staff CSS v1-v4 and manager v2.
+ * No decorative duplicate navigation row at the top.
+ */
+body.pmd-owner-linked,
+body.pmd-owner-fallback {
+  --pmd-owner-nav-height: 69px;
+  --pmd-owner-nav-safe: env(safe-area-inset-bottom, 0px);
+}
+body.pmd-owner-linked .pmd-staff-mobile-nav,
+body.pmd-owner-fallback .pmd-staff-mobile-nav {
+  position: fixed !important;
+  top: auto !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  inset-block-start: auto !important;
+  inset-block-end: 0 !important;
+  z-index: 120 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  justify-content: center !important;
+  gap: 1px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: calc(var(--pmd-owner-nav-height) + var(--pmd-owner-nav-safe)) !important;
+  margin: 0 !important;
+  padding: 7px max(8px, calc((100vw - 940px) / 2))
+           calc(7px + var(--pmd-owner-nav-safe)) !important;
+  border: 0 !important;
+  border-top: 1px solid #dbe8e2 !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 -6px 23px rgba(16, 59, 43, .065) !important;
+  overflow: visible !important;
+  transform: none !important;
+}
+body.pmd-owner-linked .pmd-staff-mobile-nav > button,
+body.pmd-owner-fallback .pmd-staff-mobile-nav > button {
+  display: flex !important;
+  position: relative !important;
+  flex: 1 1 0 !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  max-width: 188px !important;
+  min-height: 54px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 7px 2px !important;
+  box-sizing: border-box !important;
+  border: 0 !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  color: #698278 !important;
+  font-family: inherit !important;
+  font-size: 10px !important;
+  font-weight: 750 !important;
+  line-height: 1.18 !important;
+  letter-spacing: 0 !important;
+  text-decoration: none !important;
+  cursor: pointer;
+  white-space: normal !important;
+  -webkit-tap-highlight-color: transparent;
+}
+body.pmd-owner-linked .pmd-staff-mobile-nav > button > svg,
+body.pmd-owner-fallback .pmd-staff-mobile-nav > button > svg {
+  display: block !important;
+  flex: 0 0 auto !important;
+  width: 22px !important;
+  height: 22px !important;
+  margin: 0 !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.85 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+body.pmd-owner-linked .pmd-staff-mobile-nav > button > span,
+body.pmd-owner-fallback .pmd-staff-mobile-nav > button > span {
+  display: block !important;
+  font-size: inherit !important;
+  color: inherit !important;
+  font-weight: inherit !important;
+  line-height: 1.2 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  text-overflow: ellipsis;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-align: center !important;
+}
+body.pmd-owner-linked .pmd-staff-mobile-nav > button.is-active,
+body.pmd-owner-fallback .pmd-staff-mobile-nav > button.is-active {
+  color: #075f4a !important;
+  background: #e6f6ee !important;
+  font-weight: 850 !important;
+}
+body.pmd-owner-linked .pmd-staff-mobile-nav > button:focus-visible,
+body.pmd-owner-fallback .pmd-staff-mobile-nav > button:focus-visible {
+  outline: 3px solid #75b99d !important;
+  outline-offset: -3px !important;
+}
+body.pmd-owner-linked .pmd-staff-mobile-nav > button > b,
+body.pmd-owner-fallback .pmd-staff-mobile-nav > button > b {
+  position: absolute !important;
+  top: 1px !important;
+  right: max(2px, calc(50% - 27px)) !important;
+  display: grid !important;
+  place-items: center !important;
+  min-width: 17px !important;
+  min-height: 17px !important;
+  margin: 0 !important;
+  padding: 1px 4px !important;
+  border-radius: 999px !important;
+  background: #ccede0 !important;
+  color: #095944 !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+}
+/* A fixed bottom control needs a real safe area behind all page content.
+ * Prevent the Team list, personal Time clock and chat send box from hiding
+ * behind the navigation; do NOT hide the navigation on larger screens. */
+body.pmd-owner-linked .pmd-staff-app,
+body.pmd-owner-fallback .pmd-staff-app {
+  padding-bottom: calc(85px + var(--pmd-owner-nav-safe)) !important;
+  min-height: 100dvh;
+}
+body.pmd-owner-linked .pmd-staff-layout,
+body.pmd-owner-fallback .pmd-staff-layout {
+  margin-bottom: 0 !important;
+  height: auto !important;
+  min-height: calc(100dvh - 180px) !important;
+  padding-bottom: 18px !important;
+}
+body.pmd-owner-linked .pmd-staff-chat,
+body.pmd-owner-fallback .pmd-staff-tools > .pmd-staff-tool-card {
+  scroll-margin-bottom: calc(94px + var(--pmd-owner-nav-safe));
+}
+@media(max-width: 760px) {
+  body.pmd-owner-linked .pmd-staff-mobile-nav,
+  body.pmd-owner-fallback .pmd-staff-mobile-nav {
+    padding-right: max(7px, env(safe-area-inset-right, 0px)) !important;
+    padding-left: max(7px, env(safe-area-inset-left, 0px)) !important;
+  }
+  body.pmd-owner-linked .pmd-staff-mobile-nav > button,
+  body.pmd-owner-fallback .pmd-staff-mobile-nav > button {
+    min-height: 53px !important;
+  }
+}
+@media(max-width: 360px) {
+  body.pmd-owner-linked .pmd-staff-mobile-nav > button,
+  body.pmd-owner-fallback .pmd-staff-mobile-nav > button {
+    gap: 3px !important;
+    font-size: 9px !important;
+    padding: 7px 1px !important;
+  }
+  body.pmd-owner-linked .pmd-staff-mobile-nav > button > svg,
+  body.pmd-owner-fallback .pmd-staff-mobile-nav > button > svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+@media(prefers-reduced-motion: reduce) {
+  body.pmd-owner-linked .pmd-staff-mobile-nav *,
+  body.pmd-owner-fallback .pmd-staff-mobile-nav * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
