@@ -165,6 +165,7 @@ for file in "${added[@]}"; do
 done
 
 node scripts/test-pmd-inventory-four-tabs-v1.js
+php artisan route:clear
 php artisan view:clear
 installed=0
 
