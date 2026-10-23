@@ -38,6 +38,7 @@ assert.match(js, /content\.appendChild\(host\)/, 'R19 delegated click/input hand
 assert.match(js, /workspace\.appendChild\(overlay\)/, 'Dialogs remain inside event delegation root');
 assert.match(js, /original\.click\(\)/, 'Existing cleanup handlers invoked on close');
 assert.match(js, /locked:true/, 'Physical count cannot be backdrop-dismissed');
+assert.match(js, /data-r24-camera-stop/, 'Closing scanner also stops live camera safely');
 assert.match(js, /new MutationObserver/, 'Visibility follows original form changes');
 assert.match(js, /mountDelivery\(activeKey\)/, 'Supplier and invoice details follow active receiving flow');
 assert.match(js, /data-r19-purchase-search/, 'Catalogue search remains functional');
