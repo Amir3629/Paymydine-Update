@@ -203,6 +203,13 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                             If this address is wrong, select that default location in the admin switcher and update its contact details.</small>
                     </div>
 
+        {{-- PMD_PROFILE_ADDRESS_SAVE_AUTHORITY_V1_20261023: booking address
+             and Staff GPS remain separate to prevent unsafe implicit geocoding. --}}
+        <div class="pmd-profile-booking-note" data-pmd-tenant-contact-authority>
+            <strong>Restaurant booking address</strong>
+            <span>This address is saved to the selected restaurant's location record and shown on /book. It does not automatically replace the separate Staff attendance GPS pin.</span>
+            <small>Use Save changes, then reload this page to confirm the address shown under "Public /book uses Location #".</small>
+        </div>
                     <div class="pmd-profile-grid pmd-profile-grid--2">
                         <label class="pmd-profile-field">
                             <span>{{ $pmdSettingsText('Restaurant email') }}</span>
@@ -252,6 +259,18 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
              Uses the existing Restaurant Profile Save Changes and tenant location row. --}}
         <section class="pmd-profile-section pmd-profile-section--booking" data-pmd-staff-workplace-gps-v1>
             <div class="pmd-profile-card">
+                {{-- PMD_PROFILE_COMPACT_ATTENDANCE_CONFIG_V1_20261023:
+                     GPS pin is a separate safety setting, not the public booking address.
+                     The inputs remain in the same form and keep existing Save Changes. --}}
+                <details class="pmd-profile-staff-gps-fold" id="pmd-staff-attendance-config">
+                    <summary>
+                        <span><strong>Staff check-in GPS</strong>
+                            <small>Separate from the booking street address · Location #{{ (int)($pmdProfile['location_id'] ?? 0) }}</small>
+                        </span>
+                        <span class="pmd-profile-staff-gps-fold__status">
+                            {{ !empty($pmdProfile['staff_clock_configured']) ? 'GPS pin saved · verify on map' : 'GPS not configured' }}
+                        </span>
+                    </summary>
                 <div class="pmd-profile-card__header">
                     <div class="pmd-profile-section-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -261,7 +280,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                     </div>
                     <div>
                         <h2>{{ $pmdSettingsText('Staff attendance location') }}</h2>
-                        <p>{{ $pmdSettingsText('Set the restaurant entrance location used when employees start or finish their shifts.') }}</p>
+                        <p>{{ $pmdSettingsText('This pin is checked against the device GPS. It does not come from the public booking address automatically.') }}</p>
                     </div>
                 </div>
                 <div class="pmd-profile-card__body">
@@ -312,6 +331,7 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         </span>
                     </label>
                 </div>
+                </details>
             </div>
         </section>
 
@@ -1309,3 +1329,17 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
 .pmd-staff-pin-audit output{display:block;white-space:normal;overflow-wrap:anywhere}
 </style>
 <script defer src="/app/admin/assets/js/pmd-staff-pin-audit-v1.js?v=1"></script>
+
+<style>
+/* PMD_PROFILE_COMPACT_ATTENDANCE_CONFIG_V1_20261023 */
+.pmd-profile-staff-gps-fold{display:block}
+.pmd-profile-staff-gps-fold>summary{list-style:none;cursor:pointer;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:19px 22px;color:#174638}
+.pmd-profile-staff-gps-fold>summary::-webkit-details-marker{display:none}
+.pmd-profile-staff-gps-fold>summary strong{font-size:16px;display:block}
+.pmd-profile-staff-gps-fold>summary small{display:block;font-size:12px;line-height:1.6;color:#527168}
+.pmd-profile-staff-gps-fold>summary:focus-visible{outline:3px solid #77bda2;outline-offset:-4px;border-radius:10px}
+.pmd-profile-staff-gps-fold__status{display:inline-flex;align-items:center;padding:7px 11px;background:#edf8f1;border:1px solid #c9e8d6;border-radius:22px;font-size:12px;font-weight:750;color:#145e48}
+.pmd-profile-staff-gps-fold[open]>summary{border-bottom:1px solid #dce9e2}
+.pmd-profile-staff-gps-fold>.pmd-profile-card__header{display:none}
+@media(max-width:640px){.pmd-profile-staff-gps-fold>summary{padding:15px}.pmd-profile-staff-gps-fold__status{font-size:11px}}
+</style>
