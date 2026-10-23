@@ -86,6 +86,12 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
             if ($nextShift) $nextShift->planned_hours = round($this->plannedMinutesForShift($nextShift) / 60, 2);
         }
 
+        // PMD_STAFF_MY_ACTUAL_EXTRAS_V1_20261023:
+        // Real unplanned clock sessions are displayed as separate worked
+        // shifts, including an active in-progress punch, not published rota.
+        $actualExtraShifts = app(\App\Services\PmdActualWorkShiftV1::class)
+            ->get($locationId, $monthStart, $monthEnd, $staffId, 180);
+
         $workRuleWarnings = app(PmdGermanWorkRulesService::class)->analyze($shifts);
         [$attendanceReady, $monthlyReport] = $this->monthlyAttendanceReport(
             $staffId,
@@ -238,6 +244,7 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
             'workspaceRoute',
             'canManage',
             'workRuleWarnings',
+            'actualExtraShifts',
             'staffId'
         ));
     }
