@@ -1,0 +1,179 @@
+name: ZCS Device App 0.6.6 V149 - QA Native Hardware Preservation
+on:
+  push:
+    branches:
+      - feat/payment-channels-z100-z80-waiter-v149-20261023
+    paths:
+      - '.github/workflows/zcs-device-app-0-6-5-v149-qa.yml'
+      - 'mobile/android/**'
+      - 'app/admin/assets/js/pmd-quick-pos-v1.js'
+      - 'app/admin/assets/js/pmd-qpos-web-parity-v112.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: zcs-device-066-qa-native
+  cancel-in-progress: true
+
+jobs:
+  zcs-v149-native-repackage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            mobile/android
+            app/admin/assets/js
+            app/admin/assets/css
+            app/admin/assets/images
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Recover EXACT existing update-signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: paymydine-device-app-preview-keystore-v1
+      - name: Compile native V149 Z100/Z80 0.6.6 Android application
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$HOME/.android/debug.keystore" || { echo 'STOP: original signer missing'; exit 1; }
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('mobile/android/app/build.gradle.kts')
+          s=p.read_text()
+          s,c=re.subn(r'versionCode = 71\b', 'versionCode = 79', s, count=1)
+          s,d=re.subn(r'versionName = "0\.5\.8-device-app-v17"', 'versionName = "0.6.6-device-app-v25"', s, count=1)
+          if c!=1 or d!=1: raise SystemExit(f'Unexpected Gradle version template: {c} {d}')
+          p.write_text(s)
+          PY
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -x "$SDKMANAGER"
+          (yes | "$SDKMANAGER" --licenses >/dev/null 2>&1) || true
+          "$SDKMANAGER" 'platforms;android-36' 'build-tools;36.0.0'
+          gradle -p mobile/android :app:assembleDebug --no-daemon
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk app-new.apk
+          test -s app-new.apk
+
+      - name: Verify immutable ZCS 0.6.4 update signer and base
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --connect-timeout 20 --max-time 180 \
+            'https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.4.apk' -o zcs-0.6.4.apk
+          echo 'ff2b705a36bdf8bf6ce0e98c0c6f2d59ab0eee9e291af790b0015905017d4af1  zcs-0.6.4.apk' | sha256sum -c -
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs zcs-0.6.4.apk > old-cert.txt
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs app-new.apk > new-cert.txt
+          OLD="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' old-cert.txt | head -n 1 | tr -d ': ' | tr '[:upper:]' '[:lower:]')"
+          NEW="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' new-cert.txt | head -n 1 | tr -d ': ' | tr '[:upper:]' '[:lower:]')"
+          test -n "$OLD" && test "$OLD" = "$NEW"
+          echo 'SIGNATURE_IDENTICAL_PREVIOUS_DEVICE_APP=PASS'
+
+      - name: Merge original licensed ZCS vendor classes and JNI WITHOUT replacing V149 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --connect-timeout 20 --max-time 180 \
+            'https://github.com/iBotPeaches/Apktool/releases/download/v2.12.0/apktool_2.12.0.jar' -o apktool.jar
+          java -jar apktool.jar d -f zcs-0.6.4.apk -o previous
+          java -jar apktool.jar d -f app-new.apk -o candidate
+          python3 - <<'PY'
+          from pathlib import Path
+          import shutil, re
+          source=Path('previous'); target=Path('candidate')
+          # preserve all Java SDK classes under com.zcs from the APPROVED
+          # previously installed APK only; do not fetch third-party binaries.
+          source_roots=sorted(p for p in source.glob('smali*') if p.is_dir())
+          target_roots=[p for p in target.glob('smali*') if p.is_dir()]
+          def dexindex(p):
+              return 1 if p.name=='smali' else int(p.name.removeprefix('smali_classes'))
+          next_index=max([dexindex(p) for p in target_roots] + [1]) + 1
+          count=0
+          for root in source_roots:
+              vendor=root/'com'/'zcs'
+              if not vendor.is_dir(): continue
+              destination=target/f'smali_classes{next_index}'/'com'/'zcs'
+              destination.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copytree(vendor,destination)
+              count+=len(list(destination.rglob('*.smali')))
+              next_index+=1
+          if count == 0: raise SystemExit('STOP: previous APK lacks ZCS Java classes')
+          manager=list(target.glob('smali*/com/zcs/sdk/DriverManager.smali'))
+          if not manager: raise SystemExit('STOP: ZCS DriverManager not recovered')
+          copied_so=[]
+          for lib in sorted((source/'lib').rglob('*.so')):
+              dst=target/'lib'/lib.relative_to(source/'lib')
+              if not dst.exists():
+                  dst.parent.mkdir(parents=True,exist_ok=True)
+                  shutil.copy2(lib,dst)
+                  copied_so.append(str(dst))
+          for required in ['arm64-v8a/libSmartPosJni.so','armeabi-v7a/libSmartPosJni.so']:
+              if not (target/'lib'/required).is_file():
+                  raise SystemExit('STOP: missing ZCS JNI '+required)
+          print('ZCS_VENDOR_CLASS_COUNT='+str(count))
+          print('ZCS_VENDOR_SO_LIBS_COPIED='+str(len(copied_so)))
+          PY
+          java -jar apktool.jar b candidate -o unsigned-0.6.6.apk
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -f -p 4 unsigned-0.6.6.apk aligned-0.6.6.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" sign \
+            --ks "$HOME/.android/debug.keystore" --ks-pass pass:android \
+            --ks-key-alias androiddebugkey --key-pass pass:android \
+            --out PayMyDine-Device-App-0.6.6-Z100-Z80-QA.apk aligned-0.6.6.apk
+
+      - name: Verify signed UPDATE compatibility, JNI, NFC diagnostics and Z80 QR
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='PayMyDine-Device-App-0.6.6-Z100-Z80-QA.apk'
+          "$ANDROID_HOME/build-tools/36.0.0/zipalign" -c -p 4 "$APK"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "$APK" > verified-cert.txt
+          OLD="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' old-cert.txt | head -n 1 | tr -d ': ' | tr '[:upper:]' '[:lower:]')"
+          NEW="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' verified-cert.txt | head -n 1 | tr -d ': ' | tr '[:upper:]' '[:lower:]')"
+          test -n "$OLD" && test "$OLD" = "$NEW"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" > apk-meta.txt
+          grep -Fq "package: name='com.paymydine.mobile.pospreview'" apk-meta.txt
+          grep -Fq "versionCode='79'" apk-meta.txt
+          grep -Fq "versionName='0.6.6-device-app-v25-debug'" apk-meta.txt
+          zipinfo -1 "$APK" > contents.txt
+          grep -Fq 'lib/arm64-v8a/libSmartPosJni.so' contents.txt
+          grep -Fq 'lib/armeabi-v7a/libSmartPosJni.so' contents.txt
+          unzip -p "$APK" assets/pmd-canonical/js/pmd-qpos-web-parity-v112.js > bundled.js
+          grep -Fq 'PMD_Z100_NFC_DIAGNOSTIC_NOT_BANK_ACQUIRING_V147' bundled.js
+          grep -Fq 'PMD_Z100_ACTUAL_NFC_TAG_PRESENCE_TEST_V149' bundled.js
+          grep -Fq 'PMD_QPOS_TERMINAL_CANONICAL_SETTLEMENT_GUARD_V141' bundled.js
+          grep -Fq 'PMD_ANDROID_POS_STABLE_TABLE_DOM_V140' bundled.js
+          test "$(grep -Ec '^classes[0-9]*[.]dex$' contents.txt)" -ge 2
+          i=0; driver=0; nfc_method=0; nfc_probe=0; qr_event=0
+          while IFS= read -r dex; do
+            unzip -p "$APK" "$dex" > "check-${i}.dex"
+            strings "check-${i}.dex" | grep -Fq 'com/zcs/sdk/DriverManager' && driver=1 || true
+            strings "check-${i}.dex" | grep -Fq 'deviceHardwareCapabilities' && nfc_method=1 || true
+            strings "check-${i}.dex" | grep -Fq 'startNfcPresenceTest' && nfc_probe=1 || true
+            strings "check-${i}.dex" | grep -Fq 'qr_payment_requested' && qr_event=1 || true
+            i=$((i+1))
+          done < <(grep -E '^classes[0-9]*[.]dex$' contents.txt)
+          test "$driver" -eq 1 && test "$nfc_method" -eq 1 && test "$nfc_probe" -eq 1 && test "$qr_event" -eq 1
+          sha256sum "$APK" > "$APK.sha256"
+          echo 'ZCS_AND_NATIVE_Z80_QR_AND_NFC_DIAGNOSTICS=PASS'
+          echo 'BANK_CARD_ACQUIRING_NOT_IMPLEMENTED=true'
+          cat "$APK.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PayMyDine-Device-App-0.6.6-Z100-Z80-QA
+          path: |
+            PayMyDine-Device-App-0.6.6-Z100-Z80-QA.apk
+            PayMyDine-Device-App-0.6.6-Z100-Z80-QA.apk.sha256
+          if-no-files-found: error
