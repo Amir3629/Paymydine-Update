@@ -1,0 +1,32 @@
+name: Z100 V146 Device Platform Route QA
+on:
+  push:
+    branches: [fix/z100-device-platform-route-v146-20261023]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  route-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/admin/routes.php
+            routes.php
+            routes/pmd-mobile-sync-v1.php
+            routes/pmd-device-platform-v1.php
+            app/Http/Controllers/PmdDevicePlatformController.php
+            app/Services/PmdDevicePlatformAuthService.php
+            app/Services/PmdDevicePlatformService.php
+            tests/pmd-device-platform-route-v146.test.cjs
+          sparse-checkout-cone-mode: false
+      - name: Verify secure device route activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -l app/admin/routes.php
+          php -l routes/pmd-device-platform-v1.php
+          php -l app/Http/Controllers/PmdDevicePlatformController.php
+          php -l app/Services/PmdDevicePlatformAuthService.php
+          node --test tests/pmd-device-platform-route-v146.test.cjs
