@@ -584,7 +584,7 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
                 $end = Carbon::parse($date.' '.$endText);
                 if ($end->lessThanOrEqualTo($start)) $end->addDay();
                 // No late-start grace after a shift has already ended.
-                if ($at->betweenIncluded($start->copy()->subMinutes(15), $end)) {
+                if ($at->gte($start->copy()->subMinutes(15)) && $at->lte($end)) {
                     return (int)$shift->id;
                 }
             } catch (\Throwable $ignored) {}
