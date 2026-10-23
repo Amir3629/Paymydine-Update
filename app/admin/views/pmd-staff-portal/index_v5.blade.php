@@ -87,7 +87,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v1.css?v=5">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v2.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v3.css?v=1">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=3">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=25">
     <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=3"></script>
 </head>
 <body class="pmd-staff-portal-page">
@@ -99,6 +99,10 @@
         </a>
 
         <div class="pmd-staff-topbar__actions">
+            {{-- PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023: server-side role checked again. --}}
+            @if(!empty($canManage))
+                <a class="pmd-staff-manager-entry" href="{{ admin_url('mywork/manage') }}">Team control</a>
+            @endif
             @if(!empty($workspaceRoute) && $roleCode !== \Admin\Services\PmdDefaultStaffRoleService::TEAM_MEMBER)
                 <a class="pmd-staff-workspace-link" href="{{ admin_url($workspaceRoute) }}" aria-label="Open workspace">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h5"></path></svg>
