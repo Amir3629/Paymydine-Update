@@ -6,7 +6,7 @@ set -Eeuo pipefail
 umask 077
 ROOT=/var/www/paymydine
 BASE=985d51bb41aa3a93e0da1385a697990678deb32d
-FIX=6e1017b0f3600535aa272c6db415f3820dd331fd
+FIX=aa2642eae0d68582214ef90322ccdd83ba4ede95
 BRANCH=fix/device-fleet-settings-download-v150-20261023
 MODE="${1:---check}"
 FILES=(
@@ -91,12 +91,13 @@ for f in "${ASSETS[@]}"; do
 done
 mkdir -p "$STAGED/tests"
 git show "$FIX:tests/pmd-device-fleet-v150.test.cjs" > "$STAGED/tests/pmd-device-fleet-v150.test.cjs"
+git show "$FIX:tests/pmd-device-fleet-v150-runtime.test.cjs" > "$STAGED/tests/pmd-device-fleet-v150-runtime.test.cjs"
 
 echo '=== V150 VERIFIED OVERLAY QA ==='
 php -l "$STAGED/app/Services/PmdDevicePlatformService.php"
 php -l "$STAGED/app/admin/controllers/Pmddevices.php"
 node --check "$STAGED/app/admin/assets/js/pmd-device-fleet-v150.js"
-( cd "$STAGED" && node --test tests/pmd-device-fleet-v150.test.cjs )
+( cd "$STAGED" && node --test tests/pmd-device-fleet-v150.test.cjs tests/pmd-device-fleet-v150-runtime.test.cjs )
 if [[ "$MODE" == --check ]]; then
   echo 'V150 FLEET SETTINGS DRY RUN: PASS'
   echo 'No live server files changed. Staff App and all local edits preserved.'
