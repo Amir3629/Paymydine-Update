@@ -44,18 +44,48 @@ test('V151 preserves owner/Staff changes even when Settings Git patch context ch
   assert.equal(b.process.status,0,b.process.stderr);
   assert.equal(b.output,a.output,'link fix is idempotent');
 });
-test('V151 refuses an unknown domain, unexpected signer/source or duplicate button',()=>{
-  let input=fixtureWithLocalEdits().replace(oldLink,'https://other.example/changed.apk');
-  let r=run(input);
-  assert.notEqual(r.process.status,0);
-  assert.equal(r.output,null);
-  assert.ok(r.process.stderr.includes('STOP'));
-  input=fixtureWithLocalEdits().replace(
-     'data-pmd-device-app-download-v21',
-     'data-pmd-device-app-download-v21 data-pmd-device-app-download-v21');
-  r=run(input);
-  assert.notEqual(r.process.status,0);
-  assert.equal(r.output,null);
+test('V152 fixes CUSTOM previous URLs only inside the uniquely identified Device App button',()=>{
+  const candidates = [
+    'https://tomo.paymydine.com/public/downloads/paymydine/PayMyDine-Device-App-0.6.5.apk',
+    '/public/downloads/paymydine/PayMyDine-Device-App-0.5.9-debug.apk',
+    'https://other.example/custom-app-download',
+    "javascript:alert('test')",
+    "{{ url('/public/downloads/paymydine/device-app.apk') }}"
+  ];
+  for (const oldHref of candidates) {
+    const input=fixtureWithLocalEdits().replace(oldLink,oldHref);
+    const r=run(input);
+    assert.equal(r.process.status,0,oldHref+' :: '+r.process.stderr);
+    assert.ok(r.output.includes(newLink));
+    assert.ok(!r.output.includes('href="'+oldHref+'"'));
+    assert.ok(r.output.includes('PayMyDine Staff App · Android - owner local copy'));
+    assert.ok(r.output.includes('data-owner-settings-workspace-v150="preserve-me"'));
+    const second=run(r.output);
+    assert.equal(second.process.status,0,second.process.stderr);
+    assert.equal(second.output,r.output);
+  }
+});
+test('V152 rejects missing, duplicated or ambiguous anchors without touching Settings',()=>{
+  const variants=[
+    fixtureWithLocalEdits().replace(
+      'data-pmd-device-app-download-v21',
+      'data-pmd-device-app-download-v21 data-pmd-device-app-download-v21'),
+    fixtureWithLocalEdits().replace(
+      'data-pmd-device-app-download-v21','data-pmd-device-app-download-v22'),
+    fixtureWithLocalEdits().replace(
+      'data-pmd-device-app-download-v21',
+      'data-pmd-device-app-download-v21 href="https://evil.example/second.apk"'),
+    fixtureWithLocalEdits().replace(oldLink,''),
+    fixtureWithLocalEdits().replace(
+      'data-pmd-device-app-download-v21',
+      'data-pmd-device-app-download-v21 data-pmd-staff-app-download-v1')
+  ];
+  for(const input of variants){
+    const r=run(input);
+    assert.notEqual(r.process.status,0);
+    assert.equal(r.output,null);
+    assert.ok(r.process.stderr.includes('STOP'));
+  }
 });
 test('V151 keeps a custom owner label, changing only verified Device APK URL',()=>{
   let input=fixtureWithLocalEdits().replace(
