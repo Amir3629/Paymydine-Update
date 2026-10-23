@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# V150: surgical settings APK 0.6.6 link + compact fleet UI.
+# V151: conflict-safe Device APK 0.6.6 link + V150 compact fleet UI.
 # Patches existing files over local edits; adds 2 new UI assets.
 # Preserves Staff APK/link, payment, tenant databases, paired devices.
 set -Eeuo pipefail
@@ -7,6 +7,7 @@ umask 077
 ROOT=/var/www/paymydine
 BASE=985d51bb41aa3a93e0da1385a697990678deb32d
 FIX=aa2642eae0d68582214ef90322ccdd83ba4ede95
+SURGICAL=27f5dd289e934470b271a9e44160b75f37c2f057
 BRANCH=fix/device-fleet-settings-download-v150-20261023
 MODE="${1:---check}"
 FILES=(
@@ -15,6 +16,13 @@ FILES=(
   app/admin/views/pmddevices/index.blade.php
   app/admin/views/pmdsettings/index.blade.php
 )
+# The live Settings file has Owner/Staff local modifications: NEVER git-patch it.
+PATCH_FILES=(
+  app/Services/PmdDevicePlatformService.php
+  app/admin/controllers/Pmddevices.php
+  app/admin/views/pmddevices/index.blade.php
+)
+SETTINGS=app/admin/views/pmdsettings/index.blade.php
 ASSETS=(
   app/admin/assets/js/pmd-device-fleet-v150.js
   app/admin/assets/css/pmd-device-fleet-v150.css
@@ -27,7 +35,7 @@ cd "$ROOT" || exit 1
 [[ "$(git rev-parse --show-toplevel)" == "$ROOT" ]] || {
   echo 'STOP: Unexpected application root.' >&2; exit 1;
 }
-for tool in git php node tar cmp stat sudo install mv mkdir cp rm; do
+for tool in git php node python3 tar cmp stat sudo install mv mkdir cp rm; do
   command -v "$tool" >/dev/null || { echo "STOP: Missing $tool" >&2; exit 1; }
 done
 for f in "${FILES[@]}"; do
@@ -40,12 +48,14 @@ for f in "${ASSETS[@]}"; do
   [[ -d "$(dirname "$f")" ]] || { echo "STOP: Missing asset directory $f" >&2; exit 1; }
 done
 
-GIT_OPTIONAL_LOCKS=0 git -c gc.auto=0 fetch --no-auto-gc origin "$BRANCH"
+GIT_OPTIONAL_LOCKS=0 git -c gc.auto=0 -c maintenance.auto=false fetch --no-auto-gc origin "$BRANCH"
 REMOTE="$(git rev-parse FETCH_HEAD)"
 git cat-file -e "${BASE}^{commit}"
 git cat-file -e "${FIX}^{commit}"
-git merge-base --is-ancestor "$FIX" "$REMOTE" || {
-  echo 'STOP: Reviewed release not in branch.' >&2; exit 1;
+git cat-file -e "${SURGICAL}^{commit}"
+git merge-base --is-ancestor "$FIX" "$REMOTE" &&
+git merge-base --is-ancestor "$SURGICAL" "$REMOTE" || {
+  echo 'STOP: Reviewed release/Settings helper not in branch.' >&2; exit 1;
 }
 git diff --quiet "$FIX" "$REMOTE" -- "${FILES[@]}" "${ASSETS[@]}" || {
   echo 'STOP: Server sources changed since review.' >&2; exit 1;
@@ -59,7 +69,7 @@ STAGED="$DIR/staged"
 REVERSED="$DIR/reversed"
 mkdir -p "$ORIGINAL" "$STAGED" "$REVERSED"
 PATCH="$DIR/approved.patch"
-git diff --binary "$BASE" "$FIX" -- "${FILES[@]}" > "$PATCH"
+git diff --binary "$BASE" "$FIX" -- "${PATCH_FILES[@]}" > "$PATCH"
 [[ -s "$PATCH" ]] || { echo 'STOP: Empty reviewed patch.' >&2; exit 1; }
 echo '=== VPS MODIFICATIONS (PRESERVED) ==='
 git status --short -- "${FILES[@]}" "${ASSETS[@]}" || true
@@ -68,12 +78,20 @@ for f in "${FILES[@]}"; do
   cp -- "$f" "$ORIGINAL/$f"
   cp -- "$f" "$STAGED/$f"
 done
+# PMD_V151_SETTINGS_CONFLICT_SURGICAL_LINK_ONLY
+# Deploy the reviewed 3-file Device Fleet patch on copies first.
+# Settings is independently rewritten only within the one Device APK <a>.
 (
   cd "$STAGED"
   git apply --check "$PATCH"
   git apply "$PATCH"
 )
-for f in "${FILES[@]}"; do cp -- "$STAGED/$f" "$REVERSED/$f"; done
+HELPER="$DIR/settings-app-link-v151.py"
+git show "$SURGICAL:scripts/pmd-settings-app-link-v151.py" > "$HELPER"
+python3 "$HELPER" "$ORIGINAL/$SETTINGS" "$STAGED/$SETTINGS"
+# The Git patch can be reversed byte-for-byte on all other 3 files.
+for f in "${PATCH_FILES[@]}"; do cp -- "$STAGED/$f" "$REVERSED/$f"; done
+cp -- "$ORIGINAL/$SETTINGS" "$REVERSED/$SETTINGS"
 (
   cd "$REVERSED"
   git apply -R --check "$PATCH"
@@ -92,14 +110,15 @@ done
 mkdir -p "$STAGED/tests"
 git show "$FIX:tests/pmd-device-fleet-v150.test.cjs" > "$STAGED/tests/pmd-device-fleet-v150.test.cjs"
 git show "$FIX:tests/pmd-device-fleet-v150-runtime.test.cjs" > "$STAGED/tests/pmd-device-fleet-v150-runtime.test.cjs"
+git show "$SURGICAL:tests/pmd-settings-app-link-v151.test.cjs" > "$STAGED/tests/pmd-settings-app-link-v151.test.cjs"
 
-echo '=== V150 VERIFIED OVERLAY QA ==='
+echo '=== V151 CONFLICT-SAFE SETTINGS + V150 FLEET STAGED QA ==='
 php -l "$STAGED/app/Services/PmdDevicePlatformService.php"
 php -l "$STAGED/app/admin/controllers/Pmddevices.php"
 node --check "$STAGED/app/admin/assets/js/pmd-device-fleet-v150.js"
-( cd "$STAGED" && node --test tests/pmd-device-fleet-v150.test.cjs tests/pmd-device-fleet-v150-runtime.test.cjs )
+( cd "$STAGED" && node --test tests/pmd-device-fleet-v150.test.cjs tests/pmd-device-fleet-v150-runtime.test.cjs tests/pmd-settings-app-link-v151.test.cjs )
 if [[ "$MODE" == --check ]]; then
-  echo 'V150 FLEET SETTINGS DRY RUN: PASS'
+  echo 'V151 SETTINGS + FLEET DRY RUN: PASS'
   echo 'No live server files changed. Staff App and all local edits preserved.'
   echo "Staging: $DIR"
   exit 0
@@ -161,7 +180,7 @@ sudo -u www-data php artisan view:clear || php artisan view:clear
 SUCCESS=1
 trap - EXIT INT TERM
 echo '========================================'
-echo 'PAYMYDINE V150 FLEET SETTINGS INSTALLED'
+echo 'PAYMYDINE V151 SETTINGS + V150 FLEET INSTALLED'
 echo 'Settings: signed Device App 0.6.6 direct-download link'
 echo 'Devices: Connected/Staff/Table/Offline/All + search + rename'
 echo 'Actual Staff phones without supported app heartbeat remain unmanageable.'
