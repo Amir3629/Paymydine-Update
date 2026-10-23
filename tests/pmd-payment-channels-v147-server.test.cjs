@@ -50,7 +50,9 @@ test('Waiter cash, QR and live external reader remain separate', () => {
     'PMD_WAITER_MOBILE_REAL_READER_ONLY_V147',
     'terminalIsPmdVrSimulator(row)', "url.origin !== location.origin",
     '/admin/pos/table-display-qr/', "result.payment_recorded !== false",
-    'Await customer payment confirmation', 'copyPaymentLink'
+    'Await customer payment confirmation', 'copyPaymentLink',
+    'PMD_WAITER_GUEST_QR_DIRECT_CHECKOUT_V147',
+    "'table_display_payment'"
   ]) has(waiter,key);
 });
 
