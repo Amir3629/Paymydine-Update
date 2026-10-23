@@ -207,6 +207,28 @@ final class PmdMobileWorkspaceSessionController extends Controller
             $portal->resetEnrollment();
             $portal->clearRecoveryDisplay();
 
+            // PMD_MOBILE_STAFF_PORTAL_TRUSTED_RESUME_V028_20261023
+            // The authenticated/paired Android account still requires its
+            // personal Portal TOTP on a NEW device, but a previously verified
+            // browser/device cookie can resume this session safely.
+            if ($portal->resumeFromTrustedDevice($identity, $request)) {
+                $site->markWorkspaceVerified($locationId, 'portal_totp', 0);
+                app(PmdSiteAccessSessionBindingService::class)->bindCurrentUser();
+                $policy = app(PmdWorkSessionPolicyService::class)->apply($identity);
+                try {
+                    $site->audit(
+                        'mobile_staff_portal_trusted_resume',
+                        true, $identity, $deviceId, null, $request,
+                        [
+                            'route' => 'mywork',
+                            'session_until' => $policy['expires_at']->toIso8601String(),
+                        ]
+                    );
+                } catch (\Throwable $ignored) {}
+                return redirect(admin_url('mywork'))
+                    ->header('Cache-Control', 'no-store, private');
+            }
+
             session()->put('pmd_login_portal_security_v1', [
                 'mode' => $portal->enabled(
                     (int)$identity['user_id'],

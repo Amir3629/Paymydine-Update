@@ -454,11 +454,17 @@ class Login extends \Admin\Classes\AdminController
             ]);
         }
 
-        // PMD_PORTAL_PERSONAL_MFA_DESTINATION_V1
-        // username + "portal" always uses the person's own Authenticator.
-        // Never create or wait for a Workplace/Admin approval challenge here.
+        // PMD_PORTAL_TRUSTED_LOGIN_V028_20261023
+        // Password FIRST; only the exact same account, restaurant and a
+        // current, non-revoked 90-day Portal cookie skip repeated TOTP.
+        // This never replaces Admin Workspace second-factor verification.
         if ($destination === 'staff') {
             try {
+                $portal = app(\App\Services\PmdPortalTotpService::class);
+                $identity = app(PmdSiteAccessService::class)->identity();
+                if ($portal->resumeFromTrustedDevice($identity, request())) {
+                    return $this->pmdFinishPortalMfa($identity);
+                }
                 $this->pmdBeginPortalMfa();
                 return redirect(admin_url('login'));
             } catch (ValidationException $error) {

@@ -43,6 +43,8 @@
             'failed_text' => 'Prüfe den Code und versuche es erneut.',
             'note' => 'Keine Freigabe durch Restaurant-Admin erforderlich.',
             'one_account' => 'Ein persönlicher Authenticator gilt für dieses Portal-Konto auch über mehrere Restaurant-Standorte hinweg.',
+            'trust_device' => 'Dieses Gerät 90 Tage lang merken',
+            'trust_hint' => 'Beim nächsten Login reicht dein Passwort. Auf gemeinsam genutzten Geräten bitte abwählen.',
         ]
         : [
             'back' => 'Back',
@@ -73,6 +75,8 @@
             'failed_text' => 'Check the code and try again.',
             'note' => 'No restaurant Admin approval is required.',
             'one_account' => 'One personal Authenticator follows this Portal account across restaurant locations.',
+            'trust_device' => 'Remember this device for 90 days',
+            'trust_hint' => 'Next time, use your password without another code. Uncheck on shared devices.',
         ];
 @endphp
 <!doctype html>
@@ -105,6 +109,13 @@
         .codes{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:10px;border:1px solid #d3e6e0;border-radius:14px;background:#f5fbf9}.codes code{display:grid;place-items:center;min-height:38px;border:1px solid #dfe9e6;border-radius:9px;background:#fff;color:#173b34;font:800 12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}.account-note{margin-top:8px;text-align:center;color:#81918d;font-size:9.5px;line-height:1.35}.portal-note{margin-top:8px;text-align:center;color:#71807c;font-size:10px;font-weight:750}.notice{margin-bottom:9px;padding:9px 10px;border:1px solid #f0c6c1;border-radius:11px;background:#fff3f2;color:#8b2c25;font-size:11.5px;line-height:1.4}.notice strong{display:block;margin-bottom:2px}.error{color:var(--danger);font-size:10.5px;font-weight:750}
         @media(max-height:650px) and (min-width:541px){body{padding:7px}.card{max-height:calc(100dvh - 14px);padding:12px 25px 14px}.brand{height:64px;margin-bottom:1px}.brand img{height:62px;width:145px}.head{margin-bottom:7px}.head h1{font-size:18px}.head p{font-size:10.5px}.qrbox{min-height:140px}.qrbox svg{width:136px!important;height:136px!important}.form{gap:6px}.portal-note,.account-note{margin-top:5px}}
         @media(max-width:540px){html{min-height:100%;background:#011714}body{display:block;min-height:100dvh;padding:8px;overflow:auto;background-attachment:scroll}.card{width:100%;max-height:none;min-height:calc(100dvh - 16px);margin:0 auto;padding:16px 17px 22px;border-radius:19px}.brand{height:79px;margin:0 42px 5px}.brand img{height:76px}.qrbox{min-height:165px}.qrbox svg{width:160px!important;height:160px!important}.codes{grid-template-columns:1fr}}
+        /* PMD_PORTAL_DEVICE_TRUST_OPTIN_V028_20261023 */
+        .pmd-portal-trust-device{display:flex;align-items:flex-start;gap:11px;margin:7px 0 15px;padding:11px 12px;text-align:left;border:1px solid #cbe1d8;border-radius:11px;background:#f4faf6;cursor:pointer;color:#144b39}
+        .pmd-portal-trust-device input{width:19px;height:19px;flex:0 0 19px;accent-color:#0c7558;margin:1px 0 0}
+        .pmd-portal-trust-device span{display:grid;gap:3px}
+        .pmd-portal-trust-device strong{font-size:13px;font-weight:800;line-height:1.4}
+        .pmd-portal-trust-device small{font-size:11px;line-height:1.55;color:#526b60}
+        .pmd-portal-trust-device:focus-within{outline:2px solid #0f7e61;outline-offset:2px}
     </style>
 </head>
 <body>
@@ -129,12 +140,18 @@
         <div class="form">
             <div class="qrbox" aria-label="Portal Authenticator QR">@if(!empty($security['qr_svg'])){!! $security['qr_svg'] !!}@else<div class="qr-fallback">QR unavailable — use the manual key below.</div>@endif</div>
             <details class="secret"><summary>{{ $copy['manual'] }}</summary><div class="secret-row"><input id="pmd-portal-secret" type="password" readonly autocomplete="off" autocapitalize="off" spellcheck="false" value="{{ $security['manual_secret'] ?? '' }}" onclick="this.select()"><button class="mini" type="button" data-reveal-secret data-reveal-label="{{ $copy['reveal'] }}" data-hide-label="{{ $copy['hide'] }}">{{ $copy['reveal'] }}</button><button class="mini" type="button" data-copy-secret data-copy-label="{{ $copy['copy'] }}" data-copied-label="{{ $copy['copied'] }}">{{ $copy['copy'] }}</button></div></details>
-            {!! form_open(['id'=>'pmd-portal-mfa-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onPortalMfaConfirm']) !!}<label class="field"><span>{{ $copy['code'] }}</span><input class="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autofocus>{!! form_error('code', '<small class="error">', '</small>') !!}</label><button type="submit" class="submit" data-attach-loading>{{ $copy['connect'] }}</button>{!! form_close() !!}
+            {!! form_open(['id'=>'pmd-portal-mfa-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onPortalMfaConfirm']) !!}<label class="field"><span>{{ $copy['code'] }}</span><input class="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autofocus>{!! form_error('code', '<small class="error">', '</small>') !!}</label><label class="pmd-portal-trust-device">
+                    <input type="checkbox" name="trust_device" value="1" checked>
+                    <span><strong>{{ $copy['trust_device'] }}</strong><small>{{ $copy['trust_hint'] }}</small></span>
+                </label><button type="submit" class="submit" data-attach-loading>{{ $copy['connect'] }}</button>{!! form_close() !!}
             <div class="account-note">{{ $copy['one_account'] }}</div>
         </div>
     @elseif($verify)
         <div class="form">
-            {!! form_open(['id'=>'pmd-portal-mfa-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onPortalMfaVerify']) !!}<label class="field"><span>{{ $copy['code'] }}</span><input class="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autofocus>{!! form_error('code', '<small class="error">', '</small>') !!}</label><button type="submit" class="submit" data-attach-loading>{{ $copy['verify'] }}</button>{!! form_close() !!}
+            {!! form_open(['id'=>'pmd-portal-mfa-form','class'=>'form','role'=>'form','method'=>'POST','data-request'=>'onPortalMfaVerify']) !!}<label class="field"><span>{{ $copy['code'] }}</span><input class="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autofocus>{!! form_error('code', '<small class="error">', '</small>') !!}</label><label class="pmd-portal-trust-device">
+                    <input type="checkbox" name="trust_device" value="1" checked>
+                    <span><strong>{{ $copy['trust_device'] }}</strong><small>{{ $copy['trust_hint'] }}</small></span>
+                </label><button type="submit" class="submit" data-attach-loading>{{ $copy['verify'] }}</button>{!! form_close() !!}
             <p class="recovery-help">{{ $copy['lost_phone'] }}</p><form data-request="onPortalMfaBeginRecovery" method="post">@csrf<button type="submit" class="secondary">{{ $copy['use_recovery'] }}</button></form>
         </div>
     @elseif($recover)

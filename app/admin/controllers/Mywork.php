@@ -206,6 +206,60 @@ class Mywork extends AdminController
         return $this->portalResponse('setStaffLocale');
     }
 
+    /** PMD_PORTAL_TRUST_DEVICES_ACCOUNT_V028_20261023
+     * Only the presently 2FA-authenticated Portal account can see/revoke
+     * remembered devices. Per-user and per-tenant database scoping.
+     */
+    public function trusteddevices()
+    {
+        $identity = $this->portalTrustedDeviceIdentity();
+        $devices = app(\App\Services\PmdPortalTrustedDeviceService::class)
+            ->listForUser($identity);
+        return response()
+            ->view('pmd-staff-portal.trusted_devices_v1', [
+                'devices' => $devices,
+                'identity' => $identity,
+            ])
+            ->header('Cache-Control', 'no-store, private')
+            ->header('X-Frame-Options', 'DENY');
+    }
+
+    public function revoketrusted()
+    {
+        if (!request()->isMethod('post')) abort(405);
+        $identity = $this->portalTrustedDeviceIdentity();
+        $validated = \Illuminate\Support\Facades\Validator::make(request()->all(), [
+            'device_id' => ['required', 'integer', 'min:1'],
+        ])->validate();
+        $trusted = app(\App\Services\PmdPortalTrustedDeviceService::class);
+        $current = $trusted->current(request(), $identity);
+        $revokeId = (int)$validated['device_id'];
+        $ok = $trusted->revoke($identity, $revokeId);
+        if (!$ok) abort(404);
+        $response = redirect(admin_url('mywork/trusteddevices'))
+            ->with('success', 'Device removed. Its next sign-in will require Authenticator.');
+        if ($current && (int)$current->id === $revokeId) {
+            $response->withCookie(cookie()->forget(\App\Services\PmdPortalTrustedDeviceService::COOKIE));
+        }
+        return $response;
+    }
+
+    private function portalTrustedDeviceIdentity(): array
+    {
+        if (!AdminAuth::isLogged()
+            || (string)session()->get(\App\Services\PmdSiteAccessService::SESSION_DESTINATION, '') !== 'staff') abort(403);
+
+        $site = app(\App\Services\PmdSiteAccessService::class);
+        $identity = $site->identity();
+        $uid = (int)($identity['user_id'] ?? 0);
+        $loc = (int)($identity['location_id'] ?? 0);
+        if ($uid < 1 || $loc < 1
+            || !$site->isWorkspaceVerified($loc)
+            || !app(\App\Services\PmdSiteAccessSessionBindingService::class)->isBoundToCurrentUser()
+            || !app(\App\Services\PmdPortalTotpService::class)->sessionVerified($uid, $loc, 86400)) abort(403);
+        return $identity;
+    }
+
     public function stafflogout()
     {
         return $this->portalResponse('logout', false);

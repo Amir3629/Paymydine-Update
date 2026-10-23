@@ -341,6 +341,8 @@
             <div class="pmd-owner-action-links">
                 <a href="{{ admin_url('shifts') }}">{{ $pmdManagerCopy['full_shifts'] }}</a>
                 <a href="{{ admin_url('settings/restaurant') }}">{{ $pmdManagerCopy['settings'] }}</a>
+                {{-- PMD_PORTAL_TRUST_DEVICES_LINK_V028_20261023 --}}
+                <a href="{{ admin_url('mywork/trusteddevices') }}">Trusted devices</a>
                 @if($hasPersonalPortal)<a href="{{ admin_url('mywork/personal') }}#schedule">{{ $pmdManagerCopy['mywork'] }}</a>@endif
             </div>
             <form method="post" action="{{ admin_url('mywork/stafflogout') }}">
