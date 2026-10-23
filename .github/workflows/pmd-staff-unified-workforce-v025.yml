@@ -1,0 +1,50 @@
+name: Staff Unified Workforce v025
+on:
+  push:
+    branches:
+      - fix/staff-unified-owner-workforce-v025-20261023
+    paths:
+      - 'app/admin/controllers/Mywork.php'
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/admin/controllers/Shifts.php'
+      - 'app/admin/views/pmd-staff-portal/**'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'app/admin/views/pmdshifts/index.blade.php'
+      - 'app/admin/assets/css/pmd-shifts-staff-center-v1.css'
+      - 'app/admin/assets/js/pmd-shifts-staff-center-v1.js'
+      - 'app/admin/assets/css/pmd-staff-manager-v1.css'
+      - 'app/admin/assets/js/pmd-staff-manager-v1.js'
+      - 'app/admin/assets/css/pmd-staff-portal-v4.css'
+      - 'app/Http/Controllers/PmdStaffPortalV5Controller.php'
+      - 'app/Http/Controllers/PmdStaffPortalV6Controller.php'
+      - 'app/Services/PmdActualWorkShiftV1.php'
+      - 'scripts/pmd-staff-unified-v025-deploy.sh'
+      - 'pmd-qa/scripts/staff-unified-workforce-v025-contract.test.cjs'
+      - '.github/workflows/pmd-staff-unified-workforce-v025.yml'
+  workflow_dispatch:
+jobs:
+  scope-and-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check PHP syntax
+        run: |
+          php -l app/admin/controllers/Mywork.php
+          php -l app/admin/controllers/Pmdsettings.php
+          php -l app/admin/controllers/Shifts.php
+          php -l app/Http/Controllers/PmdStaffPortalV5Controller.php
+          php -l app/Http/Controllers/PmdStaffPortalV6Controller.php
+          php -l app/Services/PmdActualWorkShiftV1.php
+      - name: Check JavaScript
+        run: |
+          node --check app/admin/assets/js/pmd-staff-manager-v1.js
+          node --check app/admin/assets/js/pmd-shifts-staff-center-v1.js
+          node --check pmd-qa/scripts/staff-unified-workforce-v025-contract.test.cjs
+      - name: Cross-file contracts
+        run: node pmd-qa/scripts/staff-unified-workforce-v025-contract.test.cjs
+      - name: Installer shell safety
+        run: |
+          if test -f scripts/pmd-staff-unified-v025-deploy.sh; then
+            bash -n scripts/pmd-staff-unified-v025-deploy.sh
+            grep -Fq 'PMD_STAFF_UNIFIED_V025_DEPLOY_20261023' scripts/pmd-staff-unified-v025-deploy.sh
+          fi
