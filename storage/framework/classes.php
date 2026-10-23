@@ -179,4 +179,5 @@
   'Admin\\Services\\PmdCleanWorkspaceFinanceV1' => 'app/admin/services/PmdCleanWorkspaceFinanceV1.php',
   'Admin\\Services\\ReservationComposerService' => 'app/admin/services/ReservationComposerService.php',
   'System\\Libraries\\Country' => 'app/system/libraries/Country.php',
+  'Admin\\Controllers\\SuperAdminR2Controller' => 'app/admin/controllers/SuperAdminR2Controller.php',
 );
