@@ -1371,7 +1371,7 @@ App::before(function () {
             }
         )->where(
             'pmdReportTypeR81E',
-            'sales|hourly|categories|payments|transactions|alerts|liveorders|topitems|reviews|reservations|attendance'
+            'sales|hourly|categories|payments|transactions|alerts|liveorders|topitems|reviews|reservations|attendance|inventory'
         );
 
         // Other pages

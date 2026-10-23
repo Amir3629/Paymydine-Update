@@ -10,7 +10,10 @@ require_once __DIR__.'/concerns/PmdreportsOperationsConcern.php';
 require_once __DIR__.'/concerns/PmdreportsAttendanceConcern.php';
 
 use Admin\Facades\AdminMenu;
+use Admin\Facades\AdminAuth;
 use Admin\Facades\Template;
+use Admin\Services\PmdDefaultStaffRoleService;
+use App\Services\Inventory\PmdInventoryControlService;
 use Admin\Classes\PmdPlatformI18n;
 use Admin\Controllers\Concerns\PmdreportsCommerceConcern;
 use Admin\Controllers\Concerns\PmdreportsOperationsConcern;
@@ -43,6 +46,9 @@ class Pmdreports extends Dashboard2
         $this->addJs('js/pmd-owner-settings-v1.js');
         $this->addJs('js/pmd-reports-v1.js');
         $this->addJs('js/pmd-reports-excel-v1.js');
+        // PMD_INVENTORY_REPORTS_V1
+        $invReportJs = 'app/admin/assets/js/pmd-reports-inventory-v1.js';
+        $this->addJs(asset($invReportJs).'?v='.(string)(@filemtime(base_path($invReportJs)) ?: '20261023'));
         AdminMenu::setContext('dashboard');
     }
 
@@ -67,6 +73,18 @@ class Pmdreports extends Dashboard2
     public function reviews() { return $this->show('reviews'); }
     public function reservations() { return $this->show('reservations'); }
     public function attendance() { return $this->show('attendance'); }
+
+    public function inventory()
+    {
+        // Match the existing Owner/Manager access boundary of Menu inventory.
+        $role = '';
+        try {
+            $role = (string)app(PmdDefaultStaffRoleService::class)->roleCodeForUser(AdminAuth::getUser());
+        } catch (\Throwable $error) {}
+        if (!in_array($role, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER, 'owner', 'manager'], true)) abort(403);
+        if ((int)$this->locationId() < 1) abort(403);
+        return $this->show('inventory');
+    }
 
     protected function show(string $type)
     {
@@ -111,6 +129,12 @@ class Pmdreports extends Dashboard2
             'route_url' => $this->reportUrl($type),
             'back_url' => admin_url('dashboard2'),
         ], $payload);
+
+        if ($type === 'inventory') {
+            // Each inventory metric has its own fixed rolling window.
+            $this->vars['pmdReport']['period_label'] = 'Live inventory and rolling operational windows';
+            $this->vars['pmdReport']['back_url'] = admin_url('reports');
+        }
 
         /*
          * PMD_OWNER_REPORT_ASYNC_RESPONSE_V1
@@ -295,6 +319,11 @@ class Pmdreports extends Dashboard2
                 'subtitle' => 'Reservations inside the selected report window with guests, status and real table assignments.',
                 'accent' => 'blue',
             ],
+            'inventory' => [
+                'title' => 'Inventory report',
+                'subtitle' => 'Stock value, purchasing, waste, expiry risk, supplier trends and movements.',
+                'accent' => 'green',
+            ],
             'attendance' => [
                 'title' => 'Staff attendance & presence',
                 'subtitle' => 'Real signed-in admin sessions, time-clock attendance and biometric verification for this location.',
@@ -309,6 +338,7 @@ class Pmdreports extends Dashboard2
 
     protected function period(string $type): string
     {
+        if ($type === 'inventory') return 'last30';
         $allowed = ['today', 'week', 'month', 'last30', 'all', 'custom'];
         $queryPeriod = request()->query('period', null);
 
@@ -337,6 +367,7 @@ class Pmdreports extends Dashboard2
 
     protected function periodOptions(string $type): array
     {
+        if ($type === 'inventory') return ['last30' => 'Live inventory'];
         return [
             'today' => 'Today',
             'week' => 'Week',
@@ -450,8 +481,85 @@ class Pmdreports extends Dashboard2
             'reviews' => $this->reviewsPayload($start, $end),
             'reservations' => $this->reservationsPayload($start, $end, $period),
             'attendance' => $this->attendancePayload($start, $end, $period),
+            'inventory' => $this->inventoryPayload(),
             default => ['stats' => [], 'chart' => null, 'columns' => [], 'rows' => [], 'empty' => true],
         };
+    }
+
+    /**
+     * PMD_INVENTORY_REPORTS_V1: tenant/location-scoped read-only reuse of the
+     * canonical stock snapshot. Reporting does not mutate inventory.
+     */
+    protected function inventoryPayload(): array
+    {
+        $locationId = (int)$this->locationId();
+        if ($locationId < 1) abort(403);
+        $service = app(PmdInventoryControlService::class);
+        if (!$service->ready()) {
+            return array_merge($this->emptySource('Inventory storage not ready'), [
+                'error' => 'Inventory needs its database update before reporting.',
+            ]);
+        }
+
+        $snapshot = $service->snapshot($locationId);
+        $summary = (array)($snapshot['summary'] ?? []);
+        $operations = (array)($snapshot['operations'] ?? []);
+        $analytics = (array)($operations['analytics'] ?? []);
+        $stock = array_values(array_filter((array)($snapshot['items'] ?? []), 'is_array'));
+        $ledger = array_slice((array)($operations['ledger'] ?? []), 0, 200);
+        $rows = [];
+        foreach ($ledger as $movement) {
+            if (!is_array($movement)) continue;
+            $rows[] = [
+                'time' => $this->dateTime((string)($movement['occurred_at'] ?? '')),
+                'item' => (string)($movement['item_name'] ?? ''),
+                'movement' => ucwords(str_replace('_', ' ', (string)($movement['movement_type'] ?? ''))),
+                'quantity' => number_format((float)($movement['qty_delta'] ?? 0), 3).' '.(string)($movement['base_unit'] ?? ''),
+                'value' => $this->money((float)($movement['value'] ?? 0)),
+                'storage' => (string)($movement['storage_name'] ?? '—'),
+                'staff' => (string)($movement['staff_name'] ?? '—'),
+            ];
+        }
+
+        return [
+            'stats' => [
+                $this->stat('Stock value', $this->money((float)($summary['estimated_stock_value'] ?? 0)), 'Current stock'),
+                $this->stat('Purchases · 30d', $this->money((float)($analytics['purchases_30d'] ?? $summary['purchases_cost_30d'] ?? 0))),
+                $this->stat('Waste · 30d', $this->money((float)($analytics['waste_30d'] ?? $summary['waste_cost_30d'] ?? 0))),
+                $this->stat('Count variance · 30d', $this->money((float)($analytics['variance_value_30d'] ?? 0))),
+                $this->stat('Theoretical usage · 14d', $this->money((float)($summary['theoretical_usage_cost_14d'] ?? 0))),
+                $this->stat('Forecast usage · next 7d', $this->money((float)($summary['forecast_usage_cost_7d'] ?? 0))),
+                $this->stat('Expiring stock value', $this->money((float)($analytics['expiring_value'] ?? 0)), 'Expiry does not equal recorded waste'),
+                $this->stat('Open purchase orders', number_format((int)($analytics['open_purchase_orders'] ?? 0))),
+            ],
+            'chart' => null,
+            'columns' => [
+                ['key' => 'time', 'label' => 'Time'],
+                ['key' => 'item', 'label' => 'Item'],
+                ['key' => 'movement', 'label' => 'Movement'],
+                ['key' => 'quantity', 'label' => 'Quantity'],
+                ['key' => 'value', 'label' => 'Value'],
+                ['key' => 'storage', 'label' => 'Storage'],
+                ['key' => 'staff', 'label' => 'Staff'],
+            ],
+            'rows' => $rows,
+            'empty' => !$rows,
+            'source' => 'Current restaurant inventory snapshot; labeled rolling windows remain independent.',
+            'inventory_details' => [
+                'stock_csv' => array_map(static fn (array $item) => [
+                    'name' => (string)($item['name'] ?? ''),
+                    'category' => (string)($item['category'] ?? ''),
+                    'on_hand' => (float)($item['estimated_on_hand'] ?? 0),
+                    'unit' => (string)($item['unit'] ?? ''),
+                    'stock_value' => (float)($item['stock_value'] ?? 0),
+                    'status' => (string)($item['status'] ?? ''),
+                ], $stock),
+                'price_changes' => (array)($analytics['price_changes'] ?? []),
+                'supplier_performance' => (array)($analytics['supplier_performance'] ?? []),
+                'waste_by_reason' => (array)($analytics['waste_by_reason'] ?? []),
+                'menu_risk' => (array)($snapshot['menu_availability_alerts'] ?? []),
+            ],
+        ];
     }
 
     protected function stat(string $label,string $value,string $meta=''): array { return compact('label','value','meta'); }
