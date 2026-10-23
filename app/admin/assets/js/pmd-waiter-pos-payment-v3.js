@@ -358,17 +358,19 @@
       }
 
       // PMD_SQUARE_TERMINAL_CANADA_R10_READINESS
+      // PMD_WAITER_MOBILE_REAL_READER_ONLY_V147
+      // A connected gateway, 'configured' reader or simulator is NOT a real
+      // ready card-present reader. Never treat demo status as bank approved.
       function terminalIsOnline(row) {
-        if (!row) return false;
+        if (!row || Number(row.terminal_device_id || 0) < 1 ||
+            !String(row.reader_id || '').trim() ||
+            terminalIsPmdVrSimulator(row)) return false;
         var provider = String(row.provider_code || '').toLowerCase();
         var status = String(row.terminal_status || '').toLowerCase();
         var pairing = String(row.pairing_state || '').toLowerCase();
-        if (provider === 'square') {
-          return ['online', 'ready', 'configured', 'sandbox_simulator_ready'].indexOf(status) !== -1
-            && pairing !== 'unpaired'
-            && pairing !== 'needs_attention';
-        }
-        return status === 'online';
+        return ['sumup', 'worldline', 'square', 'vr_payment'].indexOf(provider) !== -1 &&
+          ['online', 'ready', 'connected'].indexOf(status) !== -1 &&
+          ['unpaired', 'needs_attention'].indexOf(pairing) === -1;
       }
 
       function mergeTestedTerminal(result) {
@@ -527,6 +529,18 @@
         if (terminalProviders().some(terminalIsOnline)) {
           methods.push({key: 'direct_terminal', name: pmdT('payment.terminal', 'Terminal'), note: pmdT('payment.pay_connected_terminal', 'Pay on a connected terminal')});
         }
+        // PMD_WAITER_QR_HANDOFF_V147: no NFC, no reader needed.
+        // Guests pay via the existing, tenant-scoped online menu/checkout.
+        if (guestCheckoutUrl() && summary.permissions &&
+            summary.permissions.can_open_guest_checkout === true &&
+            Array.isArray(summary.methods) &&
+            summary.methods.some(function (m) { return m && m.kind === 'online'; })) {
+          methods.push({
+            key: 'guest_qr',
+            name: 'Pay by QR',
+            note: 'Show QR on Z80 or share customer checkout'
+          });
+        }
 
         container.innerHTML = methods.map(function (method) {
           return '<button type="button" class="pmd-pos-method ' + (state.payment.method === method.key ? 'is-active' : '') + '" data-payment-method="' + esc(method.key) + '"><b>' + esc(method.name) + '</b><small>' + esc(method.note) + '</small></button>';
@@ -539,6 +553,13 @@
             state.payment.terminalDeviceId = null;
             state.payment.terminalAttemptId = null;
             state.payment.idempotencyKey = uid('pay');
+            if (state.payment.method === 'guest_qr') {
+              state.payment.splitMode = 'full';
+              state.payment.tipPercent = 0;
+              state.payment.customTip = '';
+              state.payment.coupon = null;
+              state.payment.couponCode = '';
+            }
             if (state.payment.method === 'direct_terminal') {
               state.payment.splitMode = 'full';
 
@@ -661,12 +682,14 @@
           changeBox.hidden = state.payment.method !== 'cash' || cashReceived < payable;
           if (!changeBox.hidden) changeBox.textContent = pmdT('payment.change', 'Change: :amount', {amount: money(change)});
         }
-        if (copy) copy.hidden = true;
+        if (copy) copy.hidden = state.payment.method !== 'guest_qr';
         if (refresh) refresh.hidden = !state.payment.terminalAttemptId;
 
         if (payButton) {
           var chosen = selectedTerminal();
-          if (cashierMode) {
+          if (state.payment.method === 'guest_qr') {
+            payButton.textContent = 'Show payment QR on Z80';
+          } else if (cashierMode) {
             payButton.textContent = pmdT('payment.pay', 'Pay');
           } else if (direct) {
             if (state.payment.terminalStatusRefreshing) payButton.textContent = pmdT('payment.checking_terminal', 'Checking terminal…');
@@ -678,7 +701,8 @@
 
           var canCollect = state.payment.summary && state.payment.summary.permissions && state.payment.summary.permissions.can_collect_payment;
           var valid = base > 0 && payable > 0 && !state.payment.submitting;
-          if (!direct && !canCollect) valid = false;
+          if (!direct && state.payment.method !== 'guest_qr' && !canCollect) valid = false;
+          if (state.payment.method === 'guest_qr' && !guestCheckoutUrl()) valid = false;
           if (state.payment.method === 'cash' && cashReceived + 0.001 < payable) valid = false;
           if (direct && (!state.payment.providerCode || !state.payment.terminalDeviceId || !terminalIsOnline(chosen) || state.payment.terminalStatusRefreshing)) valid = false;
           payButton.disabled = !valid;
@@ -777,12 +801,22 @@
 
       function guestCheckoutUrl() {
         var summary = state.payment.summary;
-        if (!summary || !summary.guest_checkout_url) return null;
-        var url = new URL(summary.guest_checkout_url, location.origin);
-        var method = onlineMethodCode();
-        if (method) url.searchParams.set('payment_method', method);
-        url.searchParams.set('source', 'waiter_pos');
-        return url.toString();
+        if (!summary || !summary.guest_checkout_url || !summary.table ||
+            !summary.order || Number(summary.order.order_id || 0) < 1) return null;
+        try {
+          var url = new URL(summary.guest_checkout_url, location.origin);
+          // PMD_WAITER_QR_SECURE_ORIGIN_V147: never display arbitrary
+          // third-party URL or leak table identity to QR hosts.
+          if (url.protocol !== 'https:' || url.origin !== location.origin ||
+              url.username || url.password || !/^\/table\//.test(url.pathname) ||
+              Number(url.searchParams.get('order_id')) !== Number(summary.order.order_id)) {
+            return null;
+          }
+          var method = onlineMethodCode();
+          if (method) url.searchParams.set('payment_method', method);
+          url.searchParams.set('source', 'waiter_pos');
+          return url.toString();
+        } catch (ignored) { return null; }
       }
 
       async function copyPaymentLink() {
@@ -798,6 +832,33 @@
 
       async function executePayment() {
         if (!state.payment.summary || state.payment.submitting) return;
+        if (state.payment.method === 'guest_qr') {
+          var guestUrl = guestCheckoutUrl();
+          if (!guestUrl) return toast('Online checkout is unavailable for this saved table order.', true);
+          state.payment.submitting = true;
+          renderPaymentTotals();
+          try {
+            var orderId = Number(state.payment.summary.order.order_id || 0);
+            var result = await fetchJson(
+              '/admin/pos/table-display-qr/' + encodeURIComponent(String(orderId)),
+              {method: 'POST', credentials: 'same-origin', headers: jsonHeaders(), body: '{}'}
+            );
+            if (!result || result.ok !== true || result.kind !== 'guest_checkout_qr_only' ||
+                result.payment_recorded !== false ||
+                Number(result.order_id || 0) !== orderId) {
+              throw new Error('Unexpected QR handoff response.');
+            }
+            toast('Z80 checkout QR requested. Await customer payment confirmation.');
+          } catch (error) {
+            // A Z80 is optional. On errors the existing customer checkout link
+            // remains available for manual sharing; never announce Paid.
+            toast('Z80 QR unavailable. Copy the customer checkout link instead.', true);
+          } finally {
+            state.payment.submitting = false;
+            renderPaymentTotals();
+          }
+          return;
+        }
         if (state.payment.method.indexOf('online:') === 0) {
           var checkout = guestCheckoutUrl();
           if (!checkout) return toast('Customer checkout is unavailable.', true);
