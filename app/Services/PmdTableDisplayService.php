@@ -71,6 +71,26 @@ final class PmdTableDisplayService
         $order = $this->latestOrder($tableId);
         $waiterCall = $this->latestWaiterCall($tableId);
         $displayEvent = $this->latestPaymentRequest($locationId, $tableId);
+        $visibleEvent = $this->resolveEvent($enabled, $order, $waiterCall, $displayEvent);
+        $checkoutUrl = '';
+        // PMD_Z80_CHECKOUT_URL_ONLY_ACTIVE_QR_V147
+        // Device bearer state may advertise a checkout ENTRY link only while
+        // an explicit, still-unpaid QR request is active. The checkout itself
+        // must confirm canonical order/table and provider payment.
+        if ($enabled && $visibleEvent['type'] === 'qr_payment_requested'
+            && $order && (int)($order['id'] ?? 0) > 0
+            && (float)($order['remaining_amount'] ?? 0) >= 0.01) {
+            $checkoutUrl = url('/table/'.rawurlencode($number).'/menu').'?'
+                .http_build_query([
+                    'source' => 'table_display_payment',
+                    'order_id' => (int)$order['id'],
+                    'table' => $number,
+                    'table_id' => $tableId,
+                    'table_no' => $number,
+                    'location' => $locationId,
+                    'qr' => trim((string)($table->qr_code ?? '')) ?: null,
+                ]);
+        }
 
         return [
             'ok' => true,
@@ -84,6 +104,7 @@ final class PmdTableDisplayService
                 'enabled' => $enabled,
                 'location_id' => $locationId,
                 'menu_url' => $menuUrl,
+                'checkout_url' => $checkoutUrl,
                 'qr_image_url' => $menuUrl === '' ? '' : 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=18&ecc=H&format=png&data='.urlencode($menuUrl),
             ],
             'restaurant' => $this->restaurantIdentity($locationId),
@@ -92,7 +113,7 @@ final class PmdTableDisplayService
             'waiter_call' => $waiterCall,
             // Checkout QR is exposed only for an active unpaid order and a
             // recent explicit waiter QR request, never for a stale paid visit.
-            'event' => $this->resolveEvent($enabled, $order, $waiterCall, $displayEvent),
+            'event' => $visibleEvent,
         ];
     }
 
