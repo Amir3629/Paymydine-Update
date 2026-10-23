@@ -1,0 +1,19 @@
+name: Tomo Staff Entrance Pin Safe Repair
+on:
+  push:
+    branches:
+      - fix/tomo-staff-pin-coventry-seed-20261023
+    paths:
+      - 'scripts/pmd-tomo-staff-entrance-pin-fix-v1.php'
+      - 'pmd-qa/scripts/pmd-tomo-staff-pin-safe-v1.test.cjs'
+      - '.github/workflows/pmd-tomo-staff-pin-safe-v1.yml'
+  workflow_dispatch:
+jobs:
+  static-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: php -l scripts/pmd-tomo-staff-entrance-pin-fix-v1.php
+      - name: Tenant GPS dry-run transaction guard
+        run: node pmd-qa/scripts/pmd-tomo-staff-pin-safe-v1.test.cjs
