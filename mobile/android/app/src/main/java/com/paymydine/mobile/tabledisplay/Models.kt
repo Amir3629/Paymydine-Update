@@ -20,6 +20,7 @@ data class DisplayTable(
     val number: String,
     val name: String,
     val menuUrl: String,
+    val checkoutUrl: String,
     val enabled: Boolean,
 )
 
