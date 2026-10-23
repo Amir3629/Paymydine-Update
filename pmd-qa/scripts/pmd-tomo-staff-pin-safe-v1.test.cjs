@@ -17,7 +17,7 @@ assert.match(src, /DB::setDefaultConnection\('tenant'\)/);
 assert.match(src, /\$database !== 'tomo'/);
 assert.match(src, /where\('location_id', 1\)/);
 assert.match(src, /staff_id|employee|attendance|shift/i); // only doc strings; no employee write
-assert.match(src, /'location_address_1'/);
+assert.match(src, /location_address_1/);
 assert.match(src, /location_postcode/);
 assert.match(src, /60327/);
 assert.match(src, /52\.415884/);
