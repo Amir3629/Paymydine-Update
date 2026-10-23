@@ -89,9 +89,13 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v3.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=25">
     <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=3"></script>
+    @if($canManage)
+        <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-manager-v2.css?v=26">
+        <script defer src="/app/admin/assets/js/pmd-staff-manager-v2.js?v=26"></script>
+    @endif>
 </head>
 <body class="pmd-staff-portal-page">
-<div class="pmd-staff-app" data-pmd-staff-portal data-pmd-mobile-active="schedule" data-pmd-staff-locale="{{ $pmdStaffLocale }}">
+<div class="pmd-staff-app" data-pmd-staff-portal data-pmd-mobile-active="{{ $canManage ? 'manage' : 'schedule' }}" data-pmd-default-screen="{{ $canManage ? 'manage' : 'schedule' }}" data-pmd-staff-locale="{{ $pmdStaffLocale }}">
     <header class="pmd-staff-topbar">
         <a href="{{ admin_url('mywork') }}" class="pmd-staff-brand" aria-label="PayMyDine Staff Portal">
             <img src="https://mimoza.paymydine.com/brand/paymydine-logo.svg" alt="PayMyDine">
@@ -99,11 +103,9 @@
         </a>
 
         <div class="pmd-staff-topbar__actions">
-            {{-- PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023: server-side role checked again. --}}
-            @if(!empty($canManage))
-                <a class="pmd-staff-manager-entry" href="{{ admin_url('mywork/manage') }}">Team control</a>
-            @endif
-            @if(!empty($workspaceRoute) && $roleCode !== \Admin\Services\PmdDefaultStaffRoleService::TEAM_MEMBER)
+            {{-- PMD_OWNER_SHARED_STAFF_SHELL_V026_20261023:
+                 Owner actions now use the same Staff bottom tabs, not a second app. --}}
+            @if(!empty($workspaceRoute) && !$canManage && $roleCode !== \Admin\Services\PmdDefaultStaffRoleService::TEAM_MEMBER)
                 <a class="pmd-staff-workspace-link" href="{{ admin_url($workspaceRoute) }}" aria-label="Open workspace">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 9h8M8 13h5"></path></svg>
                     <span>Workspace</span>
@@ -166,13 +168,13 @@
     @endif
 
     <nav class="pmd-staff-mobile-nav" aria-label="Staff sections">
-        <button type="button" data-pmd-mobile-target="schedule" class="is-active"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>My shifts</span></button>
+        @if($canManage)
+            <button type="button" data-pmd-mobile-target="manage" class="is-active"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg><span>Team</span>@if($managementRequests->count())<b>{{ $managementRequests->count() }}</b>@endif</button>
+        @endif
+        <button type="button" data-pmd-mobile-target="schedule" class="{{ $canManage ? '' : 'is-active' }}"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>My shifts</span></button>
         <button type="button" data-pmd-mobile-target="chat"><svg viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3v-15a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path></svg><span>Chat</span></button>
         <button type="button" data-pmd-mobile-target="requests"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"></path></svg><span>Requests</span>@if($pending)<b>{{ $pending }}</b>@endif</button>
         <button type="button" data-pmd-mobile-target="clock" data-pmd-time-tab><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M9 2h6M12 2v3"></path></svg><span>Time</span></button>
-        @if($canManage)
-            <button type="button" data-pmd-mobile-target="manage"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg><span>Manage</span>@if($managementRequests->count())<b>{{ $managementRequests->count() }}</b>@endif</button>
-        @endif
     </nav>
 
     <div class="pmd-staff-layout">
@@ -513,13 +515,23 @@
                     <header class="pmd-staff-panel-head">
                         <div class="pmd-staff-section-title">
                             <span class="pmd-staff-section-icon is-green"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg></span>
-                            <div><small>Management</small><h2>Team actions</h2></div>
+                            <div><small>Management</small><h2>Team</h2></div>
                         </div>
                         @if($managementRequests->count())<b class="pmd-staff-count">{{ $managementRequests->count() }}</b>@endif
                     </header>
+                    {{-- PMD_OWNER_SHARED_STAFF_SHELL_V026_20261023:
+                         Same interface shell as the Staff app, manager data gated in V5. --}}
+                    @include('pmd-staff-portal._manager_workforce_v026', [
+                        'managerCenter' => $managerCenter ?? [],
+                        'managerExtras' => $managerExtras ?? collect(),
+                        'pmdStaffLocale' => $pmdStaffLocale
+                    ])
                     <div class="pmd-staff-management-links">
                         <a href="{{ admin_url('shifts') }}"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16"></path></svg><span>Open Shifts</span></a>
                         <a href="{{ admin_url('settings/team') }}"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5"></path></svg><span>Manage Team</span></a>
+                        @if(!empty($workspaceRoute))
+                            <a href="{{ admin_url($workspaceRoute) }}"><svg viewBox="0 0 24 24"><path d="M4 5h16v15H4zM8 9h8M8 13h5"></path></svg><span>Full dashboard</span></a>
+                        @endif
                     </div>
                     <div class="pmd-staff-management-list">
                         @forelse($managementRequests as $item)
@@ -631,7 +643,7 @@
         if (hash === '#management') return 'manage';
         if (hash === '#chat') return 'chat';
         if (hash === '#clock') return 'clock';
-        return 'schedule';
+        return root.getAttribute('data-pmd-default-screen') || 'schedule';
     }
 
     root.querySelectorAll('[data-pmd-mobile-target]').forEach(function (button) {
