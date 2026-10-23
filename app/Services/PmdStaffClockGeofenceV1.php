@@ -62,6 +62,15 @@ final class PmdStaffClockGeofenceV1
             * sin(deg2rad($lng - $site['lng']) / 2) ** 2;
         $distance = 6371000 * 2 * asin(min(1.0, sqrt(max(0.0, $h))));
         if ($distance > self::RADIUS_METERS + 25) {
+            // PMD_STAFF_GEOFENCE_DISTANCE_AUDIT_V2_20261023:
+            // A distance-only audit for diagnosing bad workplace pins vs emulator
+            // or phone coordinates. NEVER log staff GPS lat/lng or request body.
+            logger()->notice('PMD_STAFF_GEOFENCE_DISTANCE_AUDIT_V2_20261023', [
+                'location_id' => $locationId,
+                'distance_m' => (int)round($distance),
+                'accuracy_m' => (int)round($accuracy),
+                'limit_m' => self::RADIUS_METERS + 25,
+            ]);
             return ['ok' => false, 'message' => 'You are outside the restaurant check-in area. Move closer and retry.'];
         }
         return ['ok' => true, 'evidence' => [

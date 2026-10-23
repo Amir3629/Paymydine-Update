@@ -61,9 +61,18 @@
         : ($pmdStaffMarket === 'TR' ? ['tr', 'en'] : ['en']);
     $pmdStaffDefaultLocale = $pmdStaffMarket === 'DE' ? 'de'
         : ($pmdStaffMarket === 'TR' ? 'tr' : 'en');
+    // PMD_STAFF_LOCALE_PERSIST_V4_20261023: use a server-set encrypted cookie
+    // and tenant/location-scoped session, not JS-written pmd_admin_locale.
+    $pmdStaffLocationId = (int)$person->location_id;
+    $pmdStaffSavedSession = strtolower(trim((string)session('pmd_staff_ui_locale_'.$pmdStaffLocationId, '')));
+    $pmdStaffSavedCookie = strtolower(trim((string)request()->cookie('pmd_staff_locale_'.$pmdStaffLocationId, '')));
     $pmdStaffSelectedCookie = strtolower(trim((string)request()->cookie('pmd_admin_locale', '')));
-    $pmdStaffLocale = in_array($pmdStaffSelectedCookie, $pmdStaffAllowedLocales, true)
-        ? $pmdStaffSelectedCookie : $pmdStaffDefaultLocale;
+    $pmdStaffLocale = in_array($pmdStaffSavedSession, $pmdStaffAllowedLocales, true)
+        ? $pmdStaffSavedSession
+        : (in_array($pmdStaffSavedCookie, $pmdStaffAllowedLocales, true)
+            ? $pmdStaffSavedCookie
+            : (in_array($pmdStaffSelectedCookie, $pmdStaffAllowedLocales, true)
+                ? $pmdStaffSelectedCookie : $pmdStaffDefaultLocale));
 @endphp
 <!doctype html>
 <html lang="{{ $pmdStaffLocale }}">
@@ -77,8 +86,8 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v1.css?v=5">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v2.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v3.css?v=1">
-    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=2">
-    <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=2"></script>
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=3">
+    <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=3"></script>
 </head>
 <body class="pmd-staff-portal-page">
 <div class="pmd-staff-app" data-pmd-staff-portal data-pmd-mobile-active="schedule" data-pmd-staff-locale="{{ $pmdStaffLocale }}">
@@ -105,10 +114,15 @@
                     </button>
                     <div class="pmd-staff-language-menu" data-pmd-staff-language-menu hidden>
                         @foreach($pmdStaffAllowedLocales as $pmdStaffAllowedLocale)
-                            <button type="button" data-pmd-staff-set-language="{{ $pmdStaffAllowedLocale }}"
-                                @if($pmdStaffLocale === $pmdStaffAllowedLocale) aria-current="true" @endif>
-                                {{ ['de' => 'Deutsch', 'tr' => 'Türkçe', 'en' => 'English'][$pmdStaffAllowedLocale] }}
-                            </button>
+                            <form method="post" action="{{ admin_url('mywork/stafflocale') }}" data-pmd-staff-language-form>
+                                @csrf
+                                <input type="hidden" name="locale" value="{{ $pmdStaffAllowedLocale }}">
+                                <input type="hidden" name="return_screen" value="schedule" data-pmd-staff-return-screen>
+                                <button type="submit" data-pmd-staff-set-language="{{ $pmdStaffAllowedLocale }}"
+                                    @if($pmdStaffLocale === $pmdStaffAllowedLocale) aria-current="true" @endif>
+                                    {{ ['de' => 'Deutsch', 'tr' => 'Türkçe', 'en' => 'English'][$pmdStaffAllowedLocale] }}
+                                </button>
+                            </form>
                         @endforeach
                     </div>
                 </div>
@@ -631,15 +645,10 @@
                 toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
             }
             toggle.addEventListener('click', function () { setLanguageOpen(menu.hidden); });
-            picker.querySelectorAll('[data-pmd-staff-set-language]').forEach(function (option) {
-                option.addEventListener('click', function () {
-                    var code = option.getAttribute('data-pmd-staff-set-language');
-                    if (!/^(en|de|tr)$/.test(code)) return;
-                    var cookie = 'pmd_admin_locale=' + encodeURIComponent(code) +
-                        '; Path=/; Max-Age=31536000; SameSite=Lax';
-                    if (window.location.protocol === 'https:') cookie += '; Secure';
-                    document.cookie = cookie;
-                    window.location.reload();
+            picker.querySelectorAll('[data-pmd-staff-language-form]').forEach(function (form) {
+                form.addEventListener('submit', function () {
+                    var hidden = form.querySelector('[data-pmd-staff-return-screen]');
+                    if (hidden) hidden.value = root.getAttribute('data-pmd-mobile-active') || 'schedule';
                 });
             });
             document.addEventListener('click', function (event) {

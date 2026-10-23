@@ -191,6 +191,18 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                         </div>
                     @endif
 
+                    {{-- PMD_PROFILE_PUBLIC_BOOKING_AUDIT_V1_20261023 --}}
+                    <div class="pmd-profile-booking-note" data-pmd-public-booking-location-audit>
+                        <strong>Public /book uses
+                            @if(!empty($pmdPublicBookingLocationId)) Location #{{ (int)$pmdPublicBookingLocationId }}@else no default location @endif
+                        </strong>
+                        <span>{{ ($pmdPublicBookingAddress ?? '') !== ''
+                            ? $pmdPublicBookingAddress
+                            : 'No complete address saved for the default location.' }}</span>
+                        <small>The public booking page reads the default enabled location, which can differ from the current admin location.
+                            If this address is wrong, select that default location in the admin switcher and update its contact details.</small>
+                    </div>
+
                     <div class="pmd-profile-grid pmd-profile-grid--2">
                         <label class="pmd-profile-field">
                             <span>{{ $pmdSettingsText('Restaurant email') }}</span>
@@ -276,6 +288,23 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
                     <p id="pmd-staff-clock-pin-help" class="pmd-profile-booking-note">
                         {{ $pmdSettingsText('Use coordinates from a reliable map for the physical restaurant entrance. Save Changes above. Leaving both fields blank preserves the current pin; an incomplete pair is rejected. Employees can clock only when the GPS check succeeds.') }}
                     </p>
+                    {{-- PMD_STAFF_PIN_OWNER_DIAGNOSTICS_V1_20261023: never geocode or update the pin without an explicit owner action. --}}
+                    <div class="pmd-staff-pin-audit" data-pmd-staff-pin-audit
+                        data-pmd-pin-location-id="{{ (int)($pmdProfile['location_id'] ?? 0) }}">
+                        <strong>Staff clock pin · Location #{{ (int)($pmdProfile['location_id'] ?? 0) }}</strong>
+                        @if(!empty($pmdProfile['staff_clock_configured']))
+                            <span>Saved entrance: {{ $pmdProfile['staff_clock_lat'] }}, {{ $pmdProfile['staff_clock_lng'] }}</span>
+                            <a href="https://www.google.com/maps/search/?api=1&amp;query={{ rawurlencode($pmdProfile['staff_clock_lat'].','.$pmdProfile['staff_clock_lng']) }}"
+                                target="_blank" rel="noopener noreferrer">View saved entrance pin on Google Maps</a>
+                        @else
+                            <span>No entrance GPS pin is saved for this location.</span>
+                        @endif
+                        <button type="button" data-pmd-pin-compare>Check distance from this device</button>
+                        <button type="button" data-pmd-pin-use-device hidden>Use this location as entrance (not saved)</button>
+                        <output aria-live="polite" data-pmd-pin-result>
+                            Google provides the device position. PayMyDine measures it against this saved pin (175 m limit); the street address is not used for this check.
+                        </output>
+                    </div>
                     <label class="pmd-profile-field">
                         <span>
                             <input type="checkbox" name="profile[staff_clock_clear]" value="1">
@@ -1269,3 +1298,14 @@ document.documentElement.classList.add('pmd-restaurant-profile-booting');
     enforceCanonical();
 })();
 </script>
+
+<style>
+/* PMD_STAFF_PIN_OWNER_DIAGNOSTICS_V1_20261023 */
+.pmd-staff-pin-audit{display:grid;gap:10px;padding:16px;margin:13px 0 16px;border:1px solid #c9e1d6;border-radius:13px;background:#f3faf6;color:#174b3c;font-size:13px;line-height:1.55}
+.pmd-staff-pin-audit strong{font-size:14px}
+.pmd-staff-pin-audit a{color:#075f4f;text-decoration:underline;text-underline-offset:3px}
+.pmd-staff-pin-audit button{justify-self:start;border:1px solid #abcfc0;border-radius:9px;background:#fff;color:#085f4b;padding:10px 13px;font:inherit;font-weight:750;cursor:pointer}
+.pmd-staff-pin-audit button[hidden]{display:none}
+.pmd-staff-pin-audit output{display:block;white-space:normal;overflow-wrap:anywhere}
+</style>
+<script defer src="/app/admin/assets/js/pmd-staff-pin-audit-v1.js?v=1"></script>

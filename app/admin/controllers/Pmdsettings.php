@@ -104,8 +104,25 @@ class Pmdsettings extends AdminController
         // selector may be on a different location in multi-location accounts.
         $this->vars['pmdPublicBookingLocationMismatch'] = false;
         $this->vars['pmdPublicBookingLocationName'] = '';
+        $this->vars['pmdPublicBookingLocationId'] = null;
+        $this->vars['pmdPublicBookingAddress'] = '';
         try {
             $publicLocation = \Admin\Models\Locations_model::getDefault();
+            if ($publicLocation) {
+                // PMD_PROFILE_PUBLIC_BOOKING_AUDIT_V1_20261023: reveal the exact
+                // default location /book reads, without changing booking routing.
+                $this->vars['pmdPublicBookingLocationId'] = (int)$publicLocation->location_id;
+                $cityLine = trim(implode(' ', array_filter([
+                    trim((string)$publicLocation->location_postcode),
+                    trim((string)$publicLocation->location_city),
+                ], static fn ($part) => $part !== '')));
+                $this->vars['pmdPublicBookingAddress'] = implode(', ', array_filter([
+                    trim((string)$publicLocation->location_address_1),
+                    trim((string)$publicLocation->location_address_2),
+                    $cityLine,
+                    trim((string)$publicLocation->location_state),
+                ], static fn ($part) => $part !== ''));
+            }
             if ($publicLocation && (int)$publicLocation->location_id !== $locationId) {
                 $this->vars['pmdPublicBookingLocationMismatch'] = true;
                 $this->vars['pmdPublicBookingLocationName'] = (string)$publicLocation->location_name;
@@ -1328,6 +1345,7 @@ class Pmdsettings extends AdminController
         $identity = $this->resolvedRestaurantIdentityR25(true);
 
         return [
+            'location_id' => $locationId,
             'name' => (string)$identity['name'],
             'email' => (string)(($location->location_email ?? '') ?: $value('site_email')),
             'telephone' => (string)($location->location_telephone ?? ''),

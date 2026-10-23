@@ -75,6 +75,12 @@ class Mywork extends AdminController
         return $this->portalResponse('avatar');
     }
 
+    /** PMD_STAFF_LOCALE_PERSIST_V4_20261023: validated tenant Staff preference. */
+    public function stafflocale()
+    {
+        return $this->portalResponse('setStaffLocale');
+    }
+
     public function stafflogout()
     {
         return $this->portalResponse('logout', false);

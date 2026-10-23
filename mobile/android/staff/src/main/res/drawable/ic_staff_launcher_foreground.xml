@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- PMD_STAFF_ADAPTIVE_ICON_V4_20261023: use same official logo paths in 72dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:scaleX="0.019" android:scaleY="0.019"
+        android:translateX="24" android:translateY="22">
+        <path android:fillColor="#0EA85C" android:pathData="M1472.31 0l-1472.31 0c66.58,254.78 281.82,449.43 547.46,485.68 29.43,4.04 59.46,6.14 90.02,6.14l834.83 0c348.55,0 631.19,282.57 631.19,631.19 0,348.63 -282.64,631.19 -631.19,631.19l-505.75 0c-123.27,0 -223.18,99.91 -223.18,223.18l0 -0 0 268.64 718.14 0c621.76,0 1133.5,-500.73 1133.8,-1122.56 0.22,-620.48 -502.68,-1123.46 -1123.01,-1123.46z"/>
+        <path android:fillColor="#81CC35" android:pathData="M1301.71 1556.42l0 -191.2 -687.14 0c-45.69,0 -82.75,37.07 -82.75,82.75l0 664.45c0,30.56 -2.1,60.59 -6.14,90.02 -36.25,265.64 -230.89,480.88 -485.68,547.46l0 -1472.31c0,-9.74 0,-19.32 0.07,-28.76 12.96,-192.55 163.27,-347.43 353.79,-367.5l83.43 0 824.42 -0.52 0 -191.2 438.5 433.4 -438.5 433.4z"/>
+    </group>
+    <path android:fillColor="#075443" android:strokeColor="#FFFFFF"
+        android:strokeWidth="3" android:pathData="M74,59a14,14 0,1 0,0 28a14,14 0,1 0,0 -28z"/>
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF"
+        android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M74,65v9l6,3"/>
+</vector>

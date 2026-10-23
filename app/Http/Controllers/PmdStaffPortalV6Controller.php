@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\View\View;
 use App\Services\PmdStaffClockGeofenceV1;
 
@@ -67,6 +68,47 @@ class PmdStaffPortalV6Controller extends PmdStaffPortalV5Controller
         );
 
         return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
+    }
+
+    /**
+     * PMD_STAFF_LOCALE_PERSIST_V4_20261023
+     * Choose language in authenticated Staff Portal only. Do not mutate the
+     * global Admin locale or trust a browser-created Laravel cookie.
+     */
+    public function setStaffLocale(Request $request): RedirectResponse
+    {
+        if (!AdminAuth::isLogged()) return redirect('/staff/login');
+        $identity = $this->clockIdentity();
+        if (!$identity) return redirect('/staff#schedule')
+            ->with('error', 'Active staff profile required to change language.');
+        $locationId = (int)$identity['location_id'];
+        $country = '';
+        try {
+            $country = strtoupper((string)DB::table('locations as loc')
+                ->join('countries as c', 'c.country_id', '=', 'loc.location_country_id')
+                ->where('loc.location_id', $locationId)->value('c.iso_code_2'));
+        } catch (\Throwable $ignored) {}
+        if ($country === '') {
+            try {
+                $country = strtoupper((string)DB::table('countries')
+                    ->where('country_id', (int)setting('country_id'))->value('iso_code_2'));
+            } catch (\Throwable $ignored) {}
+        }
+        $allowed = $country === 'DE' ? ['de', 'en']
+            : ($country === 'TR' ? ['tr', 'en'] : ['en']);
+        $code = strtolower(trim((string)$request->input('locale', '')));
+        if (!in_array($code, $allowed, true)) {
+            return redirect('/staff#schedule')->with('error', 'This language is not available for your workplace.');
+        }
+        $request->session()->put('pmd_staff_ui_locale_'.$locationId, $code);
+        Cookie::queue(cookie('pmd_staff_locale_'.$locationId, $code, 60 * 24 * 365,
+            '/', null, $request->isSecure(), true, false, 'Lax'));
+
+        $screen = (string)$request->input('return_screen', 'schedule');
+        if (!in_array($screen, ['schedule', 'chat', 'requests', 'clock', 'manage'], true)) {
+            $screen = 'schedule';
+        }
+        return redirect('/staff#'.$screen);
     }
 
     public function clockIn(Request $request): RedirectResponse

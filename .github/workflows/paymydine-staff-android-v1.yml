@@ -2,7 +2,7 @@ name: PayMyDine Staff Android (separate APK)
 
 on:
   push:
-    branches: [main, 'feat/staff-app-v020-ux-privacy-20261022', 'feat/staff-v021-timeclock-gps-20261022', 'fix/staff-v022-fused-gps-diagnostics-20261022', 'fix/staff-v023-location-settings-profile-20261022']
+    branches: [main, 'feat/staff-app-v020-ux-privacy-20261022', 'feat/staff-v021-timeclock-gps-20261022', 'fix/staff-v022-fused-gps-diagnostics-20261022', 'fix/staff-v023-location-settings-profile-20261022', 'fix/staff-v024-location-locale-stability-20261023']
     paths:
       - 'mobile/android/staff/**'
       - 'mobile/android/settings.gradle.kts'
@@ -29,6 +29,13 @@ on:
       - 'scripts/pmd-staff-v022-fused-gps-deploy.sh'
       - 'pmd-qa/scripts/staff-profile-gps-settings-v023-contract.test.cjs'
       - 'scripts/pmd-staff-v023-profile-gps-deploy.sh'
+      - 'app/admin/assets/js/pmd-staff-pin-audit-v1.js'
+      - 'app/Services/PmdStaffClockGeofenceV1.php'
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/admin/controllers/Mywork.php'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'pmd-qa/scripts/staff-v024-locale-pin-icon-contract.test.cjs'
+      - 'scripts/pmd-staff-v024-stable-geo-deploy.sh'
       - 'scripts/pmd-staff-v020-ux-deploy.sh'
       - 'app/admin/assets/css/pmd-staff-time-clock-v1.css'
       - 'scripts/pmd-install-staff-platform-v1.sh'
@@ -54,6 +61,13 @@ on:
       - 'scripts/pmd-staff-v022-fused-gps-deploy.sh'
       - 'pmd-qa/scripts/staff-profile-gps-settings-v023-contract.test.cjs'
       - 'scripts/pmd-staff-v023-profile-gps-deploy.sh'
+      - 'app/admin/assets/js/pmd-staff-pin-audit-v1.js'
+      - 'app/Services/PmdStaffClockGeofenceV1.php'
+      - 'app/admin/controllers/Pmdsettings.php'
+      - 'app/admin/controllers/Mywork.php'
+      - 'app/admin/views/pmdsettings/restaurant.blade.php'
+      - 'pmd-qa/scripts/staff-v024-locale-pin-icon-contract.test.cjs'
+      - 'scripts/pmd-staff-v024-stable-geo-deploy.sh'
       - 'scripts/pmd-staff-v020-ux-deploy.sh'
   workflow_dispatch:
 
@@ -83,6 +97,7 @@ jobs:
           bash -n scripts/pmd-staff-v021-clock-deploy.sh
           bash -n scripts/pmd-staff-v022-fused-gps-deploy.sh
           bash -n scripts/pmd-staff-v023-profile-gps-deploy.sh
+          bash -n scripts/pmd-staff-v024-stable-geo-deploy.sh
       - name: Browser script syntax
         run: |
           node --check app/admin/assets/js/pmd-staff-time-clock-v1.js
@@ -93,6 +108,8 @@ jobs:
           node pmd-qa/scripts/staff-ux-v2-contract.test.cjs
           node pmd-qa/scripts/staff-timebreak-v021-contract.test.cjs
           node pmd-qa/scripts/staff-profile-gps-settings-v023-contract.test.cjs
+          node --check app/admin/assets/js/pmd-staff-pin-audit-v1.js
+          node pmd-qa/scripts/staff-v024-locale-pin-icon-contract.test.cjs
       - name: Separation, auth and privacy contracts
         run: |
           set -eu
@@ -122,6 +139,7 @@ jobs:
           grep -Fq 'PMD_STAFF_V020_UX_DEPLOY_20261022' scripts/pmd-staff-v020-ux-deploy.sh
           grep -Fq 'PMD_STAFF_V022_FUSED_GPS_DEPLOY_20261022' scripts/pmd-staff-v022-fused-gps-deploy.sh
           grep -Fq 'PMD_STAFF_V023_PROFILE_GPS_DEPLOY_20261022' scripts/pmd-staff-v023-profile-gps-deploy.sh
+          grep -Fq 'PMD_STAFF_V024_STABLE_GEO_DEPLOY_20261023' scripts/pmd-staff-v024-stable-geo-deploy.sh
           grep -Fq 'PMD_MY_WORK_STAFF_PORTAL_V6' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'pmd-staff-time-clock-v1.css' scripts/pmd-install-staff-platform-v1.sh
           grep -Fq 'PMD_STAFF_RESTAURANT_GPS_PIN_V1_20261021' app/admin/controllers/Pmdsettings.php
@@ -152,7 +170,7 @@ jobs:
       - name: Verify release version and write APK checksum
         run: |
           test -s mobile/android/staff/build/outputs/apk/debug/staff-debug.apk
-          grep -Fq 'versionName = "0.2.3"' mobile/android/staff/build.gradle.kts
+          grep -Fq 'versionName = "0.2.4"' mobile/android/staff/build.gradle.kts
           sha256sum mobile/android/staff/build/outputs/apk/debug/staff-debug.apk             | sed 's#mobile/android/staff/build/outputs/apk/debug/staff-debug.apk#staff-debug.apk#'             > mobile/android/staff/build/outputs/apk/debug/staff-debug.apk.sha256
       - name: Publish separate installable APK
         uses: actions/upload-artifact@v4

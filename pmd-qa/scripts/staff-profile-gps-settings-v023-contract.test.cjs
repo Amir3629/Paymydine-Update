@@ -34,9 +34,9 @@ assert.doesNotMatch(read('mobile/android/staff/src/main/AndroidManifest.xml'), /
 assert.match(js, /location_accuracy_off/);
 assert.match(js, /PMD_STAFF_LOCATION_SETTINGS_PREFLIGHT_V4_20261022/);
 assert.match(js, /pmdstaff:\/\/locationsettings/);
-assert.match(gradle, /versionCode = 6/);
-assert.match(gradle, /versionName = "0\.2\.3"/);
-assert.match(settings, /PayMyDine-Staff-App-0\.2\.3-debug\.apk/);
+assert.match(gradle, /versionCode = 7/);
+assert.match(gradle, /versionName = "0\.2\.4"/);
+assert.match(settings, /PayMyDine-Staff-App-0\.2\.4-debug\.apk/);
 assert.match(ctl, /\?v=9/);
 const scriptAt = view.lastIndexOf('<script>');
 assert.ok(scriptAt > 0);
