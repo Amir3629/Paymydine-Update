@@ -38,7 +38,14 @@ class Mywork extends AdminController
     public function index()
     {
         if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
-        if ($this->isWorkforceManager()) return redirect(admin_url('mywork/manage'));
+        // PMD_OWNER_SHARED_STAFF_SHELL_V026_20261023:
+        // One visual application for Staff and Owner/Manager when the manager
+        // has a linked Team person. The manager tab is enabled by role.
+        if ($this->isWorkforceManager()) {
+            if (!$this->hasPersonalTeamProfile()) {
+                return redirect(admin_url('mywork/manage'));
+            }
+        }
         return $this->portalResponse('index');
     }
 
@@ -51,6 +58,11 @@ class Mywork extends AdminController
         } catch (\Throwable $error) {
             // Preserve the same tenant-local fallback used by Shifts.
             $locationId = 1;
+        }
+        // Reuse the Staff app itself for linked managers, including its
+        // working Time/Chat/My Shifts/Profile screens; do not open a second UI.
+        if ($this->hasPersonalTeamProfile($locationId)) {
+            return redirect(admin_url('mywork').'#management');
         }
         $center = app(PmdStaffOperationsCenterV1::class)->payload($locationId);
         $extras = app(PmdActualWorkShiftV1::class)
@@ -73,14 +85,25 @@ class Mywork extends AdminController
     {
         if (!AdminAuth::isLogged()) return redirect(admin_url('login').'?destination=staff');
         if (!$this->isWorkforceManager()) abort(403);
-        $staffId = (int)optional(optional(AdminAuth::getUser())->staff)->staff_id;
-        if (!$staffId || !Schema::hasTable('pmd_operational_people')
-            || !DB::table('pmd_operational_people')->where('staff_id', $staffId)
-                ->where('is_active', 1)->exists()) {
+        if (!$this->hasPersonalTeamProfile()) {
             return redirect(admin_url('mywork/manage'))
                 ->with('error', 'No personal Team profile is linked to this login.');
         }
         return $this->portalResponse('index');
+    }
+
+    /** A linked personal Team profile is required ONLY for personal clock/actions.
+     * Manager read/write endpoints retain their own role + tenant checks.
+     */
+    private function hasPersonalTeamProfile(?int $locationId = null): bool
+    {
+        if (!AdminAuth::isLogged() || !Schema::hasTable('pmd_operational_people')) return false;
+        $staffId = (int)optional(optional(AdminAuth::getUser())->staff)->staff_id;
+        if ($staffId < 1) return false;
+        $query = DB::table('pmd_operational_people')
+            ->where('staff_id', $staffId)->where('is_active', 1);
+        if ($locationId !== null) $query->where('location_id', $locationId);
+        return $query->exists();
     }
 
     private function isWorkforceManager(): bool
