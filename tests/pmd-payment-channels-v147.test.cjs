@@ -121,3 +121,30 @@ test('restaurant end-of-day wake/sleep is separate from payment channels', () =>
     "'WAKE'", "'SLEEP'", 'PMD_DEVICE_COMMAND_SERIALIZED_SUBMITTER_V144'
   ]) has(code,key);
 });
+
+test('Waiter mobile POS actually loads V147 and allows QR checkout fallback', () => {
+  const standalone = read('app/admin/views/waiter_pos.blade.php');
+  const policy = read('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js');
+  const dashboard = read('app/admin/views/waiter_dashboard_new.blade.php');
+  has(standalone, 'pmd-waiter-pos-payment-v3.js');
+  excludes(standalone, 'pmd-waiter-pos-payment-v2.js');
+  has(policy, 'PMD_WAITER_QR_VISIBLE_V147');
+  has(policy, "(!cashierMode && key === 'guest_qr')");
+  has(policy, "state.payment.method !== 'guest_qr'");
+  assert.equal((dashboard.match(/pmd-waiter-pos-payment-v3.js/g) || []).length, 2);
+  has(waiter, 'PMD_WAITER_GUEST_QR_DIRECT_CHECKOUT_V147');
+});
+
+test('A Z80 QR scan opens a verified existing-order checkout, never a URL-only charge', () => {
+  const hook = read('frontend/features/customer-menu/hooks/useMenuLoader.ts');
+  const page = read('frontend/features/customer-menu/CustomerMenuPage.tsx');
+  has(hook, 'PMD_Z80_QR_TO_REAL_CHECKOUT_V147');
+  has(hook, 'searchParams.get("source") === "table_display_payment"');
+  has(hook, 'requestedPaymentId === pendingId');
+  has(hook, 'Number.isSafeInteger(requestedPaymentId)');
+  has(hook, 'payableFromServer >= 0.01');
+  has(hook, 'setPaymentModalInitialStep("payment")');
+  has(hook, 'setPaymentModalOpen(true)');
+  has(page, 'setPaymentModalInitialStep,');
+  has(service, 'PMD_Z80_SAME_TABLE_LOCATION_GUARD_V147');
+});
