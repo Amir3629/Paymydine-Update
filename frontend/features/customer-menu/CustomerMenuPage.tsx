@@ -174,6 +174,7 @@ function MenuContent() {
     setTableInfo,
     clearCart,
     setPaymentModalOpen,
+    setPaymentModalInitialStep,
     setExistingOrderId,
     setPendingSettlementSummary,
     setLocalOpenOrder,
