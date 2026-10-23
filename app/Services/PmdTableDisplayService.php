@@ -407,8 +407,8 @@ final class PmdTableDisplayService
         if (!Schema::hasTable('payments')
             || !DB::table('payments')->where('status', 1)
                 ->whereIn('code', [
-                    'sumup', 'stripe', 'square', 'worldline', 'vr_payment',
-                    'paypal'
+                    'card', 'apple_pay', 'google_pay', 'wero', 'paypal',
+                    'sumup', 'stripe', 'square', 'worldline', 'vr_payment'
                 ])->exists()) {
             abort(409, 'No online payment method is enabled for this restaurant.');
         }
