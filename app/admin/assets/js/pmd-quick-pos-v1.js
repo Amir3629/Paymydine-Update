@@ -954,10 +954,10 @@
           '<p class="pmd-cd-v119__section-label">Test display</p>' +
           '<div class="pmd-cd-v119__tests">' +
             '<button type="button" data-pmd-customer-display-test="order">Test order</button>' +
-            '<button type="button" data-pmd-customer-display-test="payment">Test payment</button>' +
+            '<button type="button" data-pmd-customer-display-test="payment">Preview payment (demo)</button>' +
             '<button type="button" data-pmd-customer-display-test="success">Test success</button>' +
             '<button type="button" data-pmd-customer-display-test="idle">Show idle</button>' +
-            '<button type="button" data-pmd-device-hardware-test="contactless">Test NFC / card reader</button>' +
+            '<button type="button" data-pmd-device-hardware-test="contactless">NFC hardware status</button>' +
           '</div>' +
         '</div>' +
       '</section>';
@@ -1047,18 +1047,21 @@
     if (hardwareTest) {
       hardwareTest.onclick = function () {
         var hardware = readDeviceHardware();
-        var readerReady =
-          hardware.zcs_contactless_reader === true ||
-          hardware.android_nfc_enabled === true;
-
+        // PMD_Z100_NFC_DIAGNOSTIC_NOT_BANK_ACQUIRING_V147
+        // Hardware presence cannot authorize EMV cards or settle a payment.
+        // Older 0.6.4 APKs do not expose deviceHardwareCapabilities at all;
+        // never infer "reader ready" from the secondary-screen ZCS SDK.
+        var supported = typeof bridge.deviceHardwareCapabilities === 'function';
+        var present = hardware.android_nfc_present === true;
+        var enabled = hardware.android_nfc_enabled === true;
         if (message) {
-          message.textContent = readerReady
-            ? 'Contactless reader ready. Card payments still use the configured secure payment provider.'
-            : (
-                hardware.android_nfc_present === true
-                  ? 'NFC exists but is off. Enable NFC in Android settings, then test again.'
-                  : 'No contactless reader is available to PayMyDine on this device.'
-              );
+          message.textContent = !supported
+            ? 'This APK has no NFC hardware diagnostic bridge. NFC bank payments are NOT enabled; a certified payment SDK is required.'
+            : !present
+              ? 'Android NFC is not detected. No bank payment has been started.'
+              : !enabled
+                ? 'Android NFC exists but is disabled. Enable it in Android Settings. Bank payment SDK is still not configured.'
+                : 'Android NFC is enabled (hardware diagnostic only). Tap-to-Pay banking is NOT configured. No card will be charged.';
         }
 
         overlay.setAttribute(
@@ -1085,8 +1088,8 @@
           pushCustomerDisplay(
             'payment',
             {
-              headline: 'Please pay',
-              message: 'Tap, insert, or follow the cashier',
+              headline: 'Payment preview only',
+              message: 'Demo — no card charge or bank transaction',
               amount_due: cartTotal() || existingTotal() || 18
             },
             true
