@@ -59,7 +59,7 @@ test('V151 refuses an unknown domain, unexpected signer/source or duplicate butt
 });
 test('V151 keeps a custom owner label, changing only verified Device APK URL',()=>{
   let input=fixtureWithLocalEdits().replace(
-     'PayMyDine Device App · Android','Device Terminal - owner's personal label');
+     'PayMyDine Device App · Android',"Device Terminal - owner's personal label");
   const r=run(input);
   assert.equal(r.process.status,0,r.process.stderr);
   assert.ok(r.output.includes("Device Terminal - owner's personal label"));
