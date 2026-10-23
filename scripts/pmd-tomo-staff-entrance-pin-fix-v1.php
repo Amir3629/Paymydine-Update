@@ -33,23 +33,23 @@ function mapUrl(float $lat, float $lng): string {
 }
 function validateCurrent(object $location, string $tenantDatabase): void {
     if ($tenantDatabase !== 'tomo') {
-        reject('Expected exactly the Tomo tenant database. No changes made.');
+        throw new RuntimeException('Expected exactly the Tomo tenant database. No changes made.');
     }
     $address = strtolower(trim((string)($location->location_address_1 ?? '')));
     $city = strtolower(trim((string)($location->location_city ?? '')));
     $post = trim((string)($location->location_postcode ?? ''));
     if (!str_contains($address, 'europa') || !preg_match('/\b2\b/', $address)
         || !str_contains($city, 'frankfurt') || $post !== '60327') {
-        reject('The Tomo location address is not Europa-Allee 2, 60327 Frankfurt. No changes made.');
+        throw new RuntimeException('The Tomo location address is not Europa-Allee 2, 60327 Frankfurt. No changes made.');
     }
     $oldLat = $location->location_lat ?? null;
     $oldLng = $location->location_lng ?? null;
     if (!is_numeric($oldLat) || !is_numeric($oldLng)) {
-        reject('The current Staff pin is unset or not numeric; use Restaurant Settings instead.');
+        throw new RuntimeException('The current Staff pin is unset or not numeric; use Restaurant Settings instead.');
     }
     if (abs((float)$oldLat - 52.415884) > 0.00005 ||
         abs((float)$oldLng - (-1.603648)) > 0.00005) {
-        reject('The old Coventry sample pin has already changed. Refusing to overwrite it.');
+        throw new RuntimeException('The old Coventry sample pin has already changed. Refusing to overwrite it.');
     }
 }
 
@@ -124,7 +124,7 @@ $backupFile = $backupDir.'/tomo-staff-pin-'.gmdate('Ymd-His').'-'.getmypid().'.j
 $tenantConnection->transaction(function () use ($tenantConnection, $database, $lat, $lng, $backupFile): void {
     $location = $tenantConnection->table('locations')
         ->where('location_id', 1)->lockForUpdate()->first();
-    if (!$location) reject('Location #1 disappeared');
+    if (!$location) throw new RuntimeException('Location #1 disappeared');
     validateCurrent($location, $database);
     $backup = [
         'domain' => 'tomo.paymydine.com',
