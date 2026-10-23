@@ -74,6 +74,9 @@
     if (search) {
       search.addEventListener('input', function () {
         text = String(search.value || '').trim().toLocaleLowerCase();
+        // Searching must find any registered device, even if it is offline
+        // and the default Connected tab was selected.
+        if (text) activeFilter = 'all';
         apply();
       });
     }
