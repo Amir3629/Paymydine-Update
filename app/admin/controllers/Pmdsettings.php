@@ -1102,18 +1102,34 @@ class Pmdsettings extends AdminController
             $settings['pmd_restaurant_identity_logo'] = $resolvedLogo;
             $this->persistSettingsDirectR25($settings);
 
+            // PMD_RESTAURANT_CONTACT_READBACK_V1_20261023:
+            // The AJAX success banner must mean the selected TENANT location
+            // row actually holds the booking contact data. Never imply that
+            // saving the address also geocoded the staff GPS pin.
+            $expectedContact = [
+                'location_name' => trim((string)$clean['name']),
+                'location_email' => trim((string)($clean['email'] ?? '')),
+                'location_telephone' => trim((string)($clean['telephone'] ?? '')),
+                'location_address_1' => trim((string)($clean['address_1'] ?? '')),
+                'location_address_2' => trim((string)($clean['address_2'] ?? '')),
+                'location_city' => trim((string)($clean['city'] ?? '')),
+                'location_state' => trim((string)($clean['state'] ?? '')),
+                'location_postcode' => trim((string)($clean['postcode'] ?? '')),
+            ];
             DB::table('locations')
                 ->where('location_id', $locationId)
-                ->update([
-                    'location_name' => trim((string)$clean['name']),
-                    'location_email' => trim((string)($clean['email'] ?? '')),
-                    'location_telephone' => trim((string)($clean['telephone'] ?? '')),
-                    'location_address_1' => trim((string)($clean['address_1'] ?? '')),
-                    'location_address_2' => trim((string)($clean['address_2'] ?? '')),
-                    'location_city' => trim((string)($clean['city'] ?? '')),
-                    'location_state' => trim((string)($clean['state'] ?? '')),
-                    'location_postcode' => trim((string)($clean['postcode'] ?? '')),
-                ]);
+                ->update($expectedContact);
+            $savedContact = DB::table('locations')
+                ->where('location_id', $locationId)
+                ->first(array_keys($expectedContact));
+            if (!$savedContact) {
+                throw new \RuntimeException('Restaurant contact save was not persisted for the selected location.');
+            }
+            foreach ($expectedContact as $column => $expectedValue) {
+                if (trim((string)($savedContact->$column ?? '')) !== $expectedValue) {
+                    throw new \RuntimeException('Restaurant contact save verification failed. No success should be shown.');
+                }
+            }
             if ($staffClockCoordinates !== null) {
                 // Apply the owner's GPS pin transactionally to the same tenant row.
                 DB::table('locations')->where('location_id', $locationId)
