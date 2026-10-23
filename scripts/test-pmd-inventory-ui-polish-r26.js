@@ -24,7 +24,7 @@ assert.match(js, /head\.classList\.add\('pmd-inv-r26-toolbar'\)/, 'Retains tools
 assert.match(js, /delivery\.hidden = true/, 'Visible Delivery/Supplier section removed');
 assert.match(js, /delivery\.inert = true/, 'Hidden metadata is not focusable');
 assert.match(js, /aria-hidden/, 'Delivery metadata hidden from accessibility tree');
-assert.match(js, /data-r19-start-count|pmd-inv-r19-head-actions/, 'Count and toolbar preserved');
+assert.match(js, /introduction && introduction\.tagName === 'DIV'/, 'Only introductory text nodes are removed');
 const dialogs=['stock','purchase','waste','review','count','barcode'];
 dialogs.forEach(key => assert.ok(js.includes("key:'"+key+"'"), key+' dialog refined'));
 assert.match(js, /original\.click\(\)/, 'Calls original R19 cancel handler');
