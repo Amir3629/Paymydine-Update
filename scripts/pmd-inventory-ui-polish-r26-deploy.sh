@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PMD_INVENTORY_UI_POLISH_R26_SAFE_DEPLOY
-# Scoped presentation only: no git checkout/merge/reset, no DB, no stock writes.
+# Scoped presentation only: never change the Git branch or inventory database.
 set -Eeuo pipefail
 
 if [ "$#" -ne 1 ] || [ "$1" != "--apply" ]; then
