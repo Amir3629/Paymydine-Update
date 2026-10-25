@@ -39,7 +39,7 @@ assert.ok(!/\.click\(\)|preventDefault\(\)|submit\(\)/.test(js),'Never dispatch 
 assert.ok(js.includes('MutationObserver'),'Dynamic admin controls get consistent skins');
 assert.ok(js.includes('#pmd-inventory-v1'),'R28 Inventory buttons left intact');
 assert.ok(js.includes('[data-pmd-pos-root]'),'POS operational targets excluded');
-assert.ok(js.includes('[data-pmd-kds-display]'),'KDS workflow excluded');
+assert.ok(js.includes('#orders-grid'),'KDS order workflow excluded, header actions permitted');
 assert.ok(js.includes('#pmd-side-menu2'),'Sidebar functional navigation excluded');
 assert.ok(js.includes('[data-pmd-floor-table-manager-portal]'),'Create Table kept authoritative');
 
@@ -53,6 +53,7 @@ assert.ok(read(layouts[0]).includes('@styles'),'Default Admin asset authority pr
 assert.ok(read(layouts[1]).includes("@stack('page-head')"),'Superadmin asset authority preserved');
 assert.ok(read(layouts[2]).includes('PMDWaiterPOSApp.mount'),'POS runtime kept');
 assert.ok(read(layouts[3]).includes('data-pmd-kds-display="v1"'),'KDS runtime kept');
+assert.ok(js.includes('a.kds-settings-btn'),'KDS header link shares icon control treatment');
 
 function element(tag, klass, label, initial, parent) {
   const attrs = Object.assign({},initial||{});
@@ -89,7 +90,7 @@ const samples=[
   element('select','form-select','',{'multiple':''}),
   element('button','btn','Edit',{}, {excluded:'#pmd-side-menu2'}),
   element('button','btn','Edit',{}, {excluded:'[data-pmd-pos-root]'}),
-  element('button','btn','Edit',{}, {excluded:'[data-pmd-kds-display]'}),
+  element('button','btn','Edit',{}, {excluded:'#orders-grid'}),
   element('button','btn','Edit',{}, {excluded:'[data-pmd-floor-table-manager-portal]'}),
   element('button','btn','Edit',{}, {excluded:'#pmd-inventory-v1'}),
   element('button','btn','Edit')
