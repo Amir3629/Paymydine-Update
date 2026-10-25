@@ -159,12 +159,12 @@ class PmdOwnerEmergencyAccessController
         [$state, $identity] = $this->requireState('verify');
         $code = $this->normalizeRecoveryCode((string)$request->input('recovery_code', ''));
         if ($code === null) {
-            return $this->loginError('Enter a valid emergency recovery code.');
+            return $this->loginRecoveryError('Enter a valid emergency recovery code.');
         }
 
         $site = app(PmdSiteAccessService::class);
         if (!$site->useRecoveryCode($code, $request)) {
-            return $this->loginError('That emergency code is invalid or was already used.');
+            return $this->loginRecoveryError('That emergency code is invalid or was already used.');
         }
 
         $target = (string)session()->get(self::AFTER_SESSION, '');
@@ -368,5 +368,16 @@ class PmdOwnerEmergencyAccessController
     private function loginError(string $message)
     {
         return redirect(admin_url('login'))->with('error', $message);
+    }
+
+    /**
+     * Return to the *emergency code* card (not the 6-digit TOTP card)
+     * after a failed attempt. Session-bound Owner MFA is still required.
+     */
+    private function loginRecoveryError(string $message)
+    {
+        return redirect(admin_url('login'))
+            ->with('error', $message)
+            ->with('pmd_owner_recovery_retry', true);
     }
 }
