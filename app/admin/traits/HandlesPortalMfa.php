@@ -403,6 +403,21 @@ trait HandlesPortalMfa
                 ]);
                 // Login succeeds normally; a future attempt still requires MFA.
             }
+        } else {
+            // PMD_PORTAL_TRUST_OPTOUT_V028: user explicitly declined trust.
+            // Revoke an existing cookie token and expire its browser cookie.
+            try {
+                $trust = app(\App\Services\PmdPortalTrustedDeviceService::class);
+                $trust->revokeCurrent(request(), $identity);
+                $response->withCookie($trust->forgetCookie());
+            } catch (\Throwable $error) {
+                logger()->warning('PMD Portal device opt-out failed', [
+                    'user_id' => $userId,
+                    'location_id' => $locationId,
+                    'type' => get_class($error),
+                ]);
+                // Fail closed on the next sign-in if trust revocation fails.
+            }
         }
         return $response;
     }
