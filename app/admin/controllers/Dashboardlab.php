@@ -454,6 +454,62 @@ class Dashboardlab extends AdminController
             $this->vars['pmdReservationsSchedule'] = [];
         }
 
+        /*
+         * PMD_OWNER_CALENDAR_STAFF_SUMMARY_R1
+         * Read existing Shifts/Staff Requests authorities for the SAME location.
+         * Never expose names, medical text or request messages in calendar JSON.
+         * Only Owner sees this private operational overview.
+         */
+        try {
+            $ownerRoleCode = app(\Admin\Services\PmdDefaultStaffRoleService::class)
+                ->roleCodeForUser(\Admin\Facades\AdminAuth::getUser());
+            $calendarLocation = (int)($this->vars['pmdReservationsSchedule']['location_id'] ?? 0);
+            if ($ownerRoleCode === \Admin\Services\PmdDefaultStaffRoleService::OWNER
+                && $calendarLocation > 0
+                && \Illuminate\Support\Facades\Schema::hasTable('pmd_operational_shifts')
+                && \Illuminate\Support\Facades\Schema::hasTable('pmd_operational_shift_people')) {
+                $from = \Carbon\Carbon::now('Europe/Berlin')->startOfYear()->toDateString();
+                $to = \Carbon\Carbon::now('Europe/Berlin')->addYear()->endOfYear()->toDateString();
+                $daily = \Illuminate\Support\Facades\DB::table('pmd_operational_shifts as shifts')
+                    ->leftJoin('pmd_operational_shift_people as assigned', 'assigned.shift_id', '=', 'shifts.id')
+                    ->where('shifts.location_id', $calendarLocation)
+                    ->whereBetween('shifts.shift_date', [$from, $to])
+                    ->whereNotIn('shifts.status', ['cancelled', 'canceled'])
+                    ->selectRaw('shifts.shift_date as date, COUNT(DISTINCT assigned.person_id) as staff_count')
+                    ->groupBy('shifts.shift_date')
+                    ->get();
+                $this->vars['pmdReservationsSchedule']['owner_staffing'] =
+                    $daily->mapWithKeys(static function ($row) {
+                        return [substr((string)$row->date, 0, 10) => (int)$row->staff_count];
+                    })->all();
+            }
+            if ($ownerRoleCode === \Admin\Services\PmdDefaultStaffRoleService::OWNER
+                && $calendarLocation > 0
+                && \Illuminate\Support\Facades\Schema::hasTable('pmd_staff_requests')) {
+                $requests = \Illuminate\Support\Facades\DB::table('pmd_staff_requests')
+                    ->where('location_id', $calendarLocation)
+                    ->where('status', 'pending')
+                    ->whereIn('request_type', ['shift_change', 'time_off', 'sick', 'cover_shift', 'message'])
+                    ->select(['id', 'request_type', 'date_from', 'date_to', 'created_at'])
+                    ->orderByDesc('created_at')
+                    ->limit(200)
+                    ->get();
+                $counts = [];
+                foreach ($requests as $requestRow) {
+                    // In particular, sick leave never discloses personal
+                    // medical information in dashboard calendar bootstrap.
+                    $date = substr((string)($requestRow->date_from ?: $requestRow->created_at), 0, 10);
+                    if (!preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date)) continue;
+                    $counts[$date] = ($counts[$date] ?? 0) + 1;
+                }
+                $this->vars['pmdReservationsSchedule']['owner_pending_requests'] = $counts;
+            }
+        } catch (\Throwable $ownerCalendarError) {
+            logger()->warning('Owner calendar private summary unavailable', [
+                'type' => get_class($ownerCalendarError),
+            ]);
+        }
+
         /* PMD_DASHBOARD_LAB_ANALYTICS_SCROLL_FIRSTPAINT_V2 */
         // Resolve the two initial Analytics periods before Blade is returned.
         // The browser therefore does not wait for an initial Analytics fetch.
