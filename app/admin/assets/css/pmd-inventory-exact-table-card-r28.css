@@ -305,7 +305,18 @@ html body.pmd-menu-manager-page
 .pmd-inv-r27-native
 .pmd-inv-r25-overlay.pmd-inv-r26-refined
 .pmd-inv-r25-sheet input[type="date"] {
+  padding:0 13px!important;
+  line-height:48px!important;
   -webkit-text-fill-color:#102a43!important;
+}
+/* Keep the WebKit/Safari date string vertically centered as in Table forms. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet input[type="date"]::-webkit-date-and-time-value {
+  min-height:46px!important;
+  line-height:46px!important;
 }
 
 /* Exact Table R36 numeric geometry: 42/104/42, not the R27 stretched
