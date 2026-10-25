@@ -889,7 +889,7 @@
             href="{{ asset('app/admin/assets/css/pmd-reservations-schedule-v1.css') }}?v={{ $pmdDashboardScheduleCssVersion }}"
         >
 
-        <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-workspace-r1.css') }}?v=20261025-r1">
+        <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-workspace-r1.css') }}?v=20261025-r2">
 
         @include(
             'admin::_partials.pmd_reservations_schedule_v1'
@@ -915,7 +915,7 @@
             // to invalidate browser caches and avoids three SHA-256 file reads.
             $pmdDashboardComposerCssVersion = 'r35-20260927';
             $pmdDashboardComposerJsVersion = 'r8-20260918';
-            $pmdDashboardScheduleJsVersion = 'r8-20260918';
+            $pmdDashboardScheduleJsVersion = 'r551-shifts-r2-20261025';
         @endphp
 
         <link
