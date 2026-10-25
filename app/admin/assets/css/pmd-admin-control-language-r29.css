@@ -171,6 +171,17 @@ html body.pmd-admin-controls-r29-ready
   box-shadow:var(--pmd-control-r29-primary-shadow)!important;
 }
 
+/* Legacy buttons can gain .is-active after an AJAX/class toggle without
+ * being recreated. The selected state should still match Table features. */
+html body.pmd-admin-controls-r29-ready
+[data-pmd-admin-action-r29="secondary"]:is(.is-active,.active,[aria-pressed="true"],[aria-selected="true"]) {
+  border-color:var(--pmd-control-r29-green-dark)!important;
+  background:var(--pmd-control-r29-primary)!important;
+  background-image:var(--pmd-control-r29-primary)!important;
+  color:#fff!important;
+  box-shadow:var(--pmd-control-r29-primary-shadow)!important;
+}
+
 /* Toolbar icon-only buttons: same soft square visual shell without changing
  * their functional hit area, width or DOM positioning.
  */
