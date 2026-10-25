@@ -37,6 +37,8 @@
   }
 
   var routeAliases = {
+    '/admin/ownerdashboard': '/admin/dashboardlab',
+    '/admin/managerdashboard': '/admin/managerlab',
     '/admin/reservationslab': '/admin/reservations',
     '/admin/reservations2': '/admin/reservations',
     '/admin/reservations3': '/admin/reservations',
