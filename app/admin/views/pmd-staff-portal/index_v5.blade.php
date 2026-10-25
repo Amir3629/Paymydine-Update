@@ -601,6 +601,8 @@
                 <footer><button type="button" class="pmd-staff-secondary" data-pmd-profile-close>Cancel</button><button type="submit" class="pmd-staff-primary">Save profile</button></footer>
             </form>
             <div class="pmd-staff-profile-extra">
+                {{-- PMD_PORTAL_TRUST_DEVICES_LINK_V028_20261023 --}}
+                <a href="{{ admin_url('mywork/trusteddevices') }}" class="pmd-staff-secondary">Trusted devices</a>
                 <button type="button" data-pmd-staff-privacy>Privacy &amp; location</button>
                 <a href="pmdstaff://workplace" data-pmd-staff-native-only hidden>Change restaurant</a>
                 <form method="post" action="{{ admin_url('mywork/stafflogout') }}">
