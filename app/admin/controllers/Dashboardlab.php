@@ -1819,15 +1819,20 @@ class Dashboardlab extends AdminController
                 ?? ''
             ));
 
+            // PMD_FLOOR_FIRSTPAINT_CLIENT_STATUS_PARITY_R3:
+            // Exactly match the shared Floor JS: disabled > cleaning >
+            // occupied > reserved > attention > available. A note/call is
+            // still rendered as a badge when its table is occupied.
             $status = !$tableEnabled
                 ? 'disabled'
-                : (($waiterCall || $note !== '' || $linkedOrderHasNote)
-                    ? 'attention'
-                    : ($cleaning
-                        ? 'cleaning'
+                : ($cleaning
+                    ? 'cleaning'
+                    : ($occupied
+                        ? 'occupied'
                         : ($reserved
                             ? 'reserved'
-                            : ($occupied ? 'occupied' : 'available'))));
+                            : (($waiterCall || $note !== '' || $linkedOrderHasNote)
+                                ? 'attention' : 'available'))));
 
             /*
              * Match Floor V1 normalize() exactly for first paint.
@@ -1947,8 +1952,8 @@ class Dashboardlab extends AdminController
 
             $priority = [
                 'available' => 1,
-                'occupied' => 2,
-                'reserved' => 3,
+                'occupied' => 3,
+                'reserved' => 2,
                 'cleaning' => 4,
                 'attention' => 5,
                 'waiter-call' => 5,
