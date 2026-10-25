@@ -36,7 +36,8 @@ final class PmdPortalTrustedDeviceService
             if (!Schema::hasTable('pmd_site_access_devices')) return false;
             foreach (['id','user_id','location_id','device_kind','staff_id',
                 'token_hash','platform_info','device_name','capabilities',
-                'paired_at','last_seen_at','revoked_at','created_at','updated_at'
+                'paired_at','last_seen_at','revoked_at','created_at','updated_at',
+                'pos_device_id','paired_by_staff_id'
             ] as $column) {
                 if (!Schema::hasColumn('pmd_site_access_devices', $column)) return false;
             }
@@ -69,7 +70,8 @@ final class PmdPortalTrustedDeviceService
             ->whereNull('revoked_at')
             ->where('paired_at', '>', now()->subDays(self::TTL_DAYS))
             ->first();
-        if (!$row || ($row->staff_id !== null && (int)$row->staff_id !== $staffId)) return null;
+        // Staff identity changes must invalidate the previously verified device.
+        if (!$row || (int)($row->staff_id ?? 0) !== $staffId) return null;
         $info = json_decode((string)($row->platform_info ?? ''), true);
         if (!is_array($info)
             || (int)($info['portal_factor_id'] ?? 0) !== (int)$factor->id
@@ -96,6 +98,10 @@ final class PmdPortalTrustedDeviceService
 
         $factor = $this->activeFactor($userId);
         if (!$factor) return null;
+
+        // Rotate this browser's existing trust after a fresh real TOTP.
+        // Do not leave a second still-valid token behind for the same cookie.
+        $this->revokeCurrent($request, $identity);
         $raw = bin2hex(random_bytes(32));
         $agent = substr((string)$request->userAgent(), 0, 300);
         $kind = $this->deviceName($agent);
@@ -166,6 +172,25 @@ final class PmdPortalTrustedDeviceService
             ->where('device_kind', self::KIND)
             ->whereNull('revoked_at')
             ->update(['revoked_at' => now(), 'updated_at' => now()]) === 1;
+    }
+
+    /**
+     * PMD_PORTAL_TRUST_OPTOUT_V028
+     * A real TOTP with "Remember this device" unchecked revokes any prior
+     * token for this same browser, not just the newly proposed token.
+     */
+    public function revokeCurrent(Request $request, array $identity): bool
+    {
+        $current = $this->current($request, $identity);
+        return $current
+            ? $this->revoke($identity, (int)$current->id)
+            : false;
+    }
+
+    public function forgetCookie()
+    {
+        // Match the issued cookie's path and host-only domain.
+        return cookie(self::COOKIE, '', -60, '/', null, true, true, false, 'Lax');
     }
 
     private function activeFactor(int $userId)
