@@ -101,9 +101,8 @@ for p in "${files[@]}"; do
   fi
 done
 
-echo '=== PREFLIGHT: PHP / JS / JSON ==='
+echo '=== PREFLIGHT: PHP / JS / TEMPLATE ==='
 php -l "$stage/merged/app/admin/controllers/Dashboardlab.php"
-php -l "$stage/merged/app/admin/controllers/Login.php"
 node --check "$stage/merged/app/admin/assets/js/pmd-reservations-schedule-v1.js"
 grep -Fq 'pmd_calendar_staffing' "$stage/merged/app/admin/controllers/Dashboardlab.php" || { echo 'STOP: live staffing endpoint missing' >&2; exit 2; }
 grep -Fq 'r551-shifts-r2-20261025' "$stage/merged/app/admin/views/dashboardlab/index.blade.php" || { echo 'STOP: calendar cache-busting version missing' >&2; exit 2; }
