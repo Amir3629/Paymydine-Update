@@ -110,22 +110,25 @@
     var raw = String(button.textContent || '').trim();
     var count = (raw.match(/·\s*([\d.,]+)\s*$/) || [,''])[1];
     var display = {
-      Food: {text:'Food',icon:'utensils'},
-      Drinks: {text:'Drinks',icon:'drinks'},
-      Alcohol: {text:'Alcohol',icon:'receipt'},
-      Supplies: {text:'Supplies',icon:'package'}
+      Food: 'utensils',
+      Drinks: 'drinks',
+      Alcohol: 'receipt',
+      Supplies: 'package'
     }[key];
     if (!display) return;
+    // Preserve the R19-rendered label, including translated labels. Its
+    // source string is "icon + space + label + middle-dot + count".
+    var categoryLabel = raw.replace(/\s*·\s*[\d.,]+\s*$/, '').replace(/^\S+\s+/, '').trim() || key;
     // This is a FILTER, not a Save action: same table-feature visual family
     // and selected jade fill, but no Save icon/handler/class.
     button.textContent = '';
     var symbol = document.createElement('span');
     symbol.className = 'pmd-inv-r28-category-icon';
     symbol.setAttribute('aria-hidden','true');
-    symbol.innerHTML = icon(display.icon);
+    symbol.innerHTML = icon(display);
     var name = document.createElement('span');
     name.className = 'pmd-inv-r28-category-name';
-    name.textContent = display.text;
+    name.textContent = categoryLabel;
     var number = document.createElement('small');
     number.className = 'pmd-inv-r28-category-count';
     number.textContent = count;
