@@ -72,6 +72,7 @@
         /^(delete|remove|archive|discard|void|löschen|entfernen|archivieren|حذف)(\s|$)/i.test(label)) return 'danger';
 
     if ((node.localName === 'label' && node.querySelector('input[type="radio"],input[type="checkbox"]')) ||
+        (node.classList && (node.classList.contains('is-active') || node.classList.contains('active'))) ||
         role === 'tab' || node.hasAttribute('aria-pressed') ||
         node.hasAttribute('aria-selected') ||
         /(?:^|[\s_-])(tab|filter|chip|choice|option|segment|category|preset|pill)(?:[\s_-]|$)/.test(klass) ||
