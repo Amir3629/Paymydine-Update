@@ -634,8 +634,8 @@ html body
 }
 html body
 #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"])
-.pmd-r2-floor-toolbar-v316:has(.pmd-shared-floor-switcher:not(:has(> button.pmd-shared-floor-switcher__floor)):not(:has(> button.pmd-shared-floor-switcher__manage:not([hidden]))))
-> [data-pmd-floor-switcher-divider] {
+.pmd-shared-floor-switcher:not(:has(> button.pmd-shared-floor-switcher__floor)):not(:has(> button.pmd-shared-floor-switcher__manage:not([hidden])))
++ [data-pmd-floor-switcher-divider] {
   display:none!important;
 }
 
