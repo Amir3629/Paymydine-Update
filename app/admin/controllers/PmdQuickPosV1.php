@@ -4016,11 +4016,16 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ?? ''
             ));
 
-            $tableEnabled =
-                ($raw['table_status'] ?? true) !== false
-                && ($raw['enabled'] ?? true) !== false
-                && $rawStatus !== 'disabled'
-                && $rawStatus !== 'inactive';
+            // Match Floor JS yes() semantics: 0 / "0" is disabled,
+            // not only PHP's literal boolean false.
+            $tableEnabled = array_key_exists('table_status', $raw)
+                ? $this->quickPosFloorBool($raw['table_status'])
+                : (array_key_exists('enabled', $raw)
+                    ? $this->quickPosFloorBool($raw['enabled'])
+                    : true);
+            if (in_array($rawStatus, ['disabled', 'inactive'], true)) {
+                $tableEnabled = false;
+            }
 
             // PMD_FLOOR_FIRSTPAINT_CLIENT_STATUS_PARITY_R3
             // Keep server first paint in sync with actual shared Floor JS.
