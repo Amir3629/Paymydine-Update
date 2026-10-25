@@ -1,0 +1,36 @@
+/* PMD_OWNER_CALENDAR_WORKSPACE_R1
+ * Owner dashboard only: preserve global sidebar/header and canonical
+ * Reservations Calendar while collapsing dashboard-only furniture.
+ * Reservation Composer remains mounted for normal create/edit actions.
+ */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode > #pmd-r2-reservation-kpis-v307,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode > .pmd-dashboard-lab__kpis {
+  display: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode > .pmd-dashboard-lab__stage {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: calc(100dvh - 120px);
+  padding-top: 6px !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode .pmd-dashboard-lab__stage > .pmd-dashboard-lab-analytics,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode .pmd-dashboard-lab__stage > .pmd-manager-online-staff,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode .pmd-dashboard-lab__stage > [data-pmd-lab-analytics],
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode .pmd-dashboard-lab__stage > [data-pmd-owner-dashboard-only] {
+  display: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode #pmd-r2-shared-floor-canvas-v310 {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160 {
+  min-height: calc(100dvh - 132px);
+  width: 100% !important;
+  max-width: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160 .pmd-r2-yc-calendar-frame {
+  width: 100% !important;
+  max-width: none !important;
+}
