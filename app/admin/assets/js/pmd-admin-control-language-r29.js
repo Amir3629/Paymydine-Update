@@ -19,7 +19,7 @@
     '.pmd-glass-stepper','.pmd-inv-r27-stepper',
     '.pmd-admin-kpi','.pmd-r2-kpi-v2401-card',
     '.pmd-inv-r19-owned-card','.pmd-inv-r19-product-card',
-    '.pmd-inv-r19-custom-card','.pmd-menu-card',
+    '.pmd-inv-r19-custom-card',
     '.pmd-dashboard-lab-floor','.pmd-dashboard-lab-floorplan',
     '[data-pmd-floor-canvas]','[data-pmd-shared-floor-canvas]',
     '.pmd-reservation-calendar','.pmd-shifts-big-calendar',
@@ -70,7 +70,8 @@
         /\b(data-[\w-]*(?:delete|remove|archive|void|discard)[\w-]*)\b/.test(data) ||
         /^(delete|remove|archive|discard|void|löschen|entfernen|archivieren|حذف)(\s|$)/i.test(label)) return 'danger';
 
-    if (role === 'tab' || node.hasAttribute('aria-pressed') ||
+    if ((node.localName === 'label' && node.querySelector('input[type="radio"],input[type="checkbox"]')) ||
+        role === 'tab' || node.hasAttribute('aria-pressed') ||
         node.hasAttribute('aria-selected') ||
         /(?:^|[\s_-])(tab|filter|chip|choice|option|segment|category|preset|pill)(?:[\s_-]|$)/.test(klass) ||
         /data-[\w-]*(?:filter|category|tab|preset|main-key|sub-key|days)\b/.test(data)) return 'choice';
@@ -80,7 +81,8 @@
         type === 'submit' ||
         /^(save|add|create|confirm|complete|apply|publish|send|record|generate|start|pay|speichern|hinzufügen|bestätigen|ذخیره|ثبت|تایید|تأیید)(\s|$)/i.test(label)) return 'primary';
 
-    if ((!label || /^[+\-−×✕⋮⋯⌄‹›]+$/.test(label)) &&
+    var visibleText = String(node.value || node.textContent || '').replace(/\s+/g,' ').trim();
+    if ((!visibleText || /^[+\-−×✕⋮⋯⌄‹›]+$/.test(visibleText)) &&
         (node.querySelector('svg,i,[class*="icon"]') ||
          node.getAttribute('aria-label') ||
          /(?:^|[\s_-])(icon|close|menu|bell|collapse|expand)(?:[\s_-]|$)/.test(klass))) {
