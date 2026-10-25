@@ -112,9 +112,9 @@
             'camera_unavailable' => 'Der QR-Scanner ist in diesem Browser nicht verfügbar. Nutze den 6-stelligen Code.',
             'waiting' => 'Oder auf Freigabe warten.',
             'expired' => 'Diese Anfrage ist abgelaufen. Bitte erneut anmelden.',
-            'recovery_use' => 'Notfallcode verwenden',
+            'recovery_use' => 'Kein Zugriff auf Authenticator? Notfallcode verwenden',
             'recovery_title' => 'Notfallzugang',
-            'recovery_text' => 'Gespeicherten Einmalcode eingeben.',
+            'recovery_text' => 'Gib einen gespeicherten Einmalcode ein. Dein Handy wird dafür nicht benötigt.',
             'recovery_code' => 'Notfallcode',
             'recovery_back' => 'Authenticator verwenden',
             'recovery_save_title' => 'Notfallcodes speichern',
@@ -169,9 +169,9 @@
             'camera_unavailable' => 'QR scanning is not available in this browser. Use the 6-digit code instead.',
             'waiting' => 'Or wait for approval.',
             'expired' => 'This request expired. Sign in again.',
-            'recovery_use' => 'Use emergency code',
+            'recovery_use' => "Can't access Authenticator? Use an emergency code",
             'recovery_title' => 'Emergency access',
-            'recovery_text' => 'Enter one saved one-time code.',
+            'recovery_text' => 'Enter one of your saved single-use emergency codes. No phone is needed.',
             'recovery_code' => 'Emergency code',
             'recovery_back' => 'Use Authenticator',
             'recovery_save_title' => 'Save emergency codes',
@@ -213,6 +213,11 @@
         .forgot{color:var(--jade);font-size:12.5px;font-weight:800;text-decoration:none}.error{color:var(--danger);font-size:11.5px;font-weight:750}.success,.notice{width:min(var(--content),100%);margin:0 auto 14px;padding:11px 12px;border-radius:12px;font-size:12.5px;line-height:1.45}.success{border:1px solid #bfe4d4;background:#f1faf6;color:#146948}.notice{border:1px solid #f0c6c1;background:#fff3f2;color:#8b2c25}.notice strong{display:block;margin-bottom:2px}
         .security-head{text-align:center;margin-top:0;margin-bottom:22px}.security-head h1{margin:0 0 8px;color:#0c2c28;font-size:23px;letter-spacing:-.035em}.security-head p{margin:0 auto;max-width:320px;color:var(--muted);font-size:13px;line-height:1.5}.qrbox{display:grid;place-items:center;min-height:218px;padding:10px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9}.qrbox svg{display:block;width:205px!important;height:205px!important;max-width:100%}.qr-fallback{padding:24px;text-align:center;color:var(--muted);font-size:12px}.code-input{text-align:center;font-size:25px!important;font-weight:900;letter-spacing:.3em;font-variant-numeric:tabular-nums;padding-left:calc(13px + .3em)!important}.secret{border:1px solid var(--line);border-radius:12px;background:#f8fbfa;padding:10px 12px}.secret summary{cursor:pointer;color:#536461;font-size:12px;font-weight:850}.secret-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:9px}.secret-row input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.copy{height:46px;padding:0 12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--jade);font:inherit;font-size:11px;font-weight:900;cursor:pointer}
         .security-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wait{min-height:20px;text-align:center;color:#71807c;font-size:12px;font-weight:750}.text-action{width:100%;margin-top:14px;padding:6px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.text-action:hover{color:var(--jade);text-decoration:underline}.recovery-panel[hidden]{display:none}.recovery-input{text-align:center;text-transform:uppercase;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:20px!important;font-weight:850;letter-spacing:.12em}.recovery-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.recovery-item{padding:10px 9px;border:1px solid #dce7e4;border-radius:11px;background:#f8fbfa;text-align:center;color:#183a33;font:800 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}.recovery-actions{display:grid;gap:9px}.copy-recovery{height:44px;border:1px solid var(--line);border-radius:12px;background:#f8fbfa;color:var(--jade);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
+        /* PMD_OWNER_EMERGENCY_CODE_ENTRY_R3: visible and keyboard accessible. */
+        .recovery-trigger{min-height:46px;padding:11px 12px;margin-top:16px;border:1px solid #c9dfd5;border-radius:12px;background:#f3faf6;color:var(--jade);font-size:12.5px;font-weight:850;line-height:1.4}
+        .recovery-trigger:hover{background:#e7f4ed;text-decoration:none;border-color:#9bc9b6}
+        .recovery-trigger:focus-visible,.recovery-panel .text-action:focus-visible{outline:2px solid var(--jade);outline-offset:3px}
+        .recovery-panel .field input{font-variant-numeric:tabular-nums}
         .scanner{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(0,22,19,.82);backdrop-filter:blur(7px)}.scanner[hidden]{display:none}.scanner-card{width:min(430px,100%);padding:15px;border-radius:18px;background:#fff}.scanner video{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:13px;background:#071d1a}.scanner-foot{display:grid;gap:9px;margin-top:11px}.scanner-message{color:var(--muted);font-size:12px;text-align:center}
         .card.is-pin{padding-bottom:24px}.card.is-pin .brand{height:112px;margin:-4px 42px 10px}.card.is-pin .brand img{height:108px}.pin-panel,.password-panel{width:min(var(--content),100%);margin:0 auto}.pin-head{text-align:center;margin:0 0 14px}.pin-head h1{margin:0 0 5px;color:#0c2c28;font-size:21px;letter-spacing:-.03em}.pin-head p{margin:0;color:var(--muted);font-size:12.5px}.pin-form{display:grid;gap:12px}.pin-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;opacity:0}.pin-dots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:min(284px,100%);margin:0 auto 2px}.pin-dot{height:44px;display:grid;place-items:center;border:1px solid #dbe5e2;border-radius:12px;background:#f8fbfa;color:var(--jade);font-size:24px;font-weight:900}.pin-dot.is-filled{border-color:#cbb27c;background:#fffaf0}.pin-dot.is-filled::after{content:'•';line-height:1}.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:min(284px,100%);margin:0 auto}.pin-key{height:54px;border:1px solid #dce7e4;border-radius:14px;background:#fff;color:#16332e;font:inherit;font-size:21px;font-weight:850;cursor:pointer;box-shadow:0 2px 0 rgba(6,63,54,.04)}.pin-key:hover{background:#f3f8f6}.pin-key:active{transform:translateY(1px)}.pin-key.is-action{font-size:14px;color:#60706d;background:#f7faf9}.pin-form .submit:disabled{opacity:.45;cursor:not-allowed}.mode-switch{width:100%;margin:12px 0 0;padding:7px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.mode-switch:hover{color:var(--jade);text-decoration:underline}
         /* PMD_LOGIN_PIN_MODE_SWITCH_V13 */
@@ -389,7 +394,7 @@
         </div>
 
     @elseif($securityMode === 'verify')
-        <div data-owner-totp-panel>
+        <div data-owner-totp-panel @if(session("pmd_owner_recovery_retry")) hidden @endif>
             <section class="security-head"><h1>{{ $copy['verify_title'] }}</h1><p>{{ $copy['verify_text'] }}</p></section>
             <form id="pmd-security-form" class="form" method="post" action="{{ admin_url('siteaccess/owner-security/verify') }}">
                 @csrf
@@ -399,16 +404,16 @@
                 </label>
                 <button type="submit" class="submit">{{ $copy['verify'] }}</button>
             </form>
-            <button type="button" class="text-action" data-owner-recovery-open>{{ $copy['recovery_use'] }}</button>
+            <button type="button" class="text-action recovery-trigger" data-owner-recovery-open aria-controls="pmd-owner-recovery-panel" aria-expanded="{{ session('pmd_owner_recovery_retry') ? 'true' : 'false' }}">{{ $copy['recovery_use'] }}</button>
         </div>
 
-        <div class="recovery-panel" data-owner-recovery-panel hidden>
+        <div id="pmd-owner-recovery-panel" class="recovery-panel" data-owner-recovery-panel @unless(session('pmd_owner_recovery_retry')) hidden @endunless>
             <section class="security-head"><h1>{{ $copy['recovery_title'] }}</h1><p>{{ $copy['recovery_text'] }}</p></section>
             <form class="form" method="post" action="{{ admin_url('siteaccess/owner-security/recover') }}">
                 @csrf
                 <label class="field">
                     <span>{{ $copy['recovery_code'] }}</span>
-                    <input class="recovery-input" data-owner-recovery-input name="recovery_code" type="text" autocomplete="one-time-code" maxlength="9" placeholder="XXXX-XXXX" required>
+                    <input class="recovery-input" data-owner-recovery-input name="recovery_code" type="text" inputmode="text" autocapitalize="characters" spellcheck="false" autocomplete="off" pattern="[0-9A-Fa-f]{4}-?[0-9A-Fa-f]{4}" maxlength="9" placeholder="XXXX-XXXX" required @if(session('pmd_owner_recovery_retry')) autofocus @endif>
                 </label>
                 <button type="submit" class="submit">{{ $copy['continue'] }}</button>
             </form>
@@ -668,10 +673,12 @@
     if (recoveryOpen && ownerTotpPanel && ownerRecoveryPanel) recoveryOpen.addEventListener('click', function () {
         ownerTotpPanel.hidden = true;
         ownerRecoveryPanel.hidden = false;
+        recoveryOpen.setAttribute('aria-expanded','true');
         if (recoveryInput) recoveryInput.focus();
     });
     if (recoveryBack && ownerTotpPanel && ownerRecoveryPanel) recoveryBack.addEventListener('click', function () {
         ownerRecoveryPanel.hidden = true;
+        if (recoveryOpen) recoveryOpen.setAttribute('aria-expanded','false');
         ownerTotpPanel.hidden = false;
         var input = ownerTotpPanel.querySelector('[data-security-code]');
         if (input) input.focus();
