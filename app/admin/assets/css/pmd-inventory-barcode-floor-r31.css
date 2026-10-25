@@ -220,6 +220,13 @@ html body.pmd-menu-manager-page
   scrollbar-color:#a0c0b5 transparent!important;
   -webkit-overflow-scrolling:touch;
 }
+/* Keep hidden category sections hidden when R19 changes mode. The older
+ * [hidden] guard had lower specificity than R31's layout rule. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub][hidden] {
+  display:none!important;
+}
 html body.pmd-menu-manager-page
 #pmd-inventory-v1.pmd-inv-r28-ready
 .pmd-inv-r19-subcategories[data-r19-purchase-sub]::-webkit-scrollbar {
