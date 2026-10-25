@@ -28,7 +28,15 @@
     portal.className = 'pmd-inv-r27-native';
     portal.setAttribute('data-pmd-inv-r27-native', '1');
     workspace.appendChild(portal);
-    overlays.forEach(function (overlay) { portal.appendChild(overlay); });
+    overlays.forEach(function (overlay) {
+      portal.appendChild(overlay);
+      // The native <dialog> is now the sole semantic modal owner.
+      var sheet = overlay.querySelector('.pmd-inv-r25-sheet');
+      if (sheet) {
+        sheet.removeAttribute('role');
+        sheet.removeAttribute('aria-modal');
+      }
+    });
 
     function currentOverlay() {
       var opened = overlays.filter(function (overlay) { return !overlay.hidden; });
