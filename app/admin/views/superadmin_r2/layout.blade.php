@@ -113,6 +113,14 @@
 
 {{-- Page-specific paint authority must come after every global stylesheet. --}}
 @stack('page-head')
+<!-- PMD_ADMIN_CONTROL_LANGUAGE_R29: shared visual roles; business buttons remain untouched. -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-admin-control-language-r29.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-admin-control-language-r29.css')) ?: 20261025) }}"
+      data-pmd-admin-control-language-r29="css">
+<script defer
+        src="{{ asset('app/admin/assets/js/pmd-admin-control-language-r29.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-admin-control-language-r29.js')) ?: 20261025) }}"
+        data-pmd-admin-control-language-r29="js"></script>
+<!-- /PMD_ADMIN_CONTROL_LANGUAGE_R29 -->
 </head>
 <body>
 @include('admin::superadmin_r2.side_menu')
