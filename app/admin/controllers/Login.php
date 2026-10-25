@@ -967,6 +967,11 @@ class Login extends \Admin\Classes\AdminController
         }
 
         flash()->success(lang('admin::lang.login.alert_email_sent'));
+        // The initial email request stays on Login; the emailed token still
+        // opens the canonical secure reset-password form.
+        if ((string)post('pmd_inline_reset') === '1') {
+            return response()->json(['ok' => true, 'message' => 'Reset request accepted.']);
+        }
         return $this->redirect('login/reset?sent=1');
     }
 
