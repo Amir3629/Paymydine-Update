@@ -564,7 +564,14 @@
   }
 
   function dataState(key, reservationMap, noteMap, eventMap) {
-    return {reservations:reservationMap[key] || [], note:noteMap[key] || '', events:eventMap[key] || []};
+    var ownerOnly = route === '/admin/dashboardlab';
+    return {
+      reservations: reservationMap[key] || [],
+      note: noteMap[key] || '',
+      events: eventMap[key] || [],
+      staff: ownerOnly ? Math.max(0, Number((boot.owner_staffing || {})[key] || 0)) : 0,
+      requests: ownerOnly ? Math.max(0, Number((boot.owner_pending_requests || {})[key] || 0)) : 0
+    };
   }
   function monthRows(state) {
     var rows = [];
@@ -575,6 +582,10 @@
     if ((filter === 'all' || filter === 'events') && state.events.length) {
       state.events.forEach(function (event) { rows.push('<span class="pmd-r2-yc-entry is-event">' + esc(event.title) + '</span>'); });
     }
+    if (filter === 'all' && route === '/admin/dashboardlab') {
+      if (state.staff) rows.push('<span class="pmd-r2-yc-entry is-staff-count">' + state.staff + ' ' + esc(locale === 'de' ? 'im Dienst' : 'staff scheduled') + '</span>');
+      if (state.requests) rows.push('<span class="pmd-r2-yc-entry is-staff-request">' + state.requests + ' ' + esc(locale === 'de' ? 'offene Anfragen' : 'pending requests') + '</span>');
+    }
     return rows.join('');
   }
   function yearDots(state) {
@@ -582,6 +593,10 @@
     if ((filter === 'all' || filter === 'reservations') && state.reservations.length) dots.push('<i class="pmd-r2-yc-dot is-reservation"></i>');
     if (filter === 'all' && state.note) dots.push('<i class="pmd-r2-yc-dot is-note"></i>');
     if ((filter === 'all' || filter === 'events') && state.events.length) dots.push('<i class="pmd-r2-yc-dot is-event"></i>');
+    if (filter === 'all' && route === '/admin/dashboardlab') {
+      if (state.staff) dots.push('<i class="pmd-r2-yc-dot is-staff-count"></i>');
+      if (state.requests) dots.push('<i class="pmd-r2-yc-dot is-staff-request"></i>');
+    }
     return dots.join('');
   }
   function monthMarkup(monthIndex, large) {
