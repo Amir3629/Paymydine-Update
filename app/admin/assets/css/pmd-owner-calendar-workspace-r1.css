@@ -44,3 +44,22 @@ html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-yc-entry.
 }
 html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot.is-staff-count { background: #259c75; }
 html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot.is-staff-request { background: #d39427; }
+
+/* Owner Shifts read status: visible only if the source is empty/unavailable. */
+html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-owner-staff-status {
+  margin: 8px 4px 4px;
+  padding: 9px 13px;
+  border: 1px solid #dce8df;
+  border-radius: 9px;
+  background: #f3faf6;
+  color: #326657;
+  font: 600 12px/1.4 inherit;
+}
+html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-owner-staff-status[hidden] {
+  display: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-owner-staff-status.is-error {
+  background: #fff6eb;
+  border-color: #f1d9b2;
+  color: #815321;
+}
