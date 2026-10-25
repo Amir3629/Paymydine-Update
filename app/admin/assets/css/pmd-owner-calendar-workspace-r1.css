@@ -53,7 +53,10 @@ html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-owner-sta
   border-radius: 9px;
   background: #f3faf6;
   color: #326657;
-  font: 600 12px/1.4 inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
 }
 html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-owner-staff-status[hidden] {
   display: none !important;
