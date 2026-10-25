@@ -104,7 +104,7 @@ function element(tag) {
     addEventListener(type,fn){handlers[type]=fn},
     fire(type,event){if(handlers[type])handlers[type](event)},
     getClientRects(){return this.hidden?[]:[{}]},
-    getBoundingClientRect(){return {left:0,right:this.clientWidth,width:this.clientWidth}},
+    getBoundingClientRect(){const width=Number.parseFloat(this.style.width)||this.clientWidth;return {left:0,right:width,width}},
     hasPointerCapture(){return false},
     setPointerCapture(){},
     releasePointerCapture(){},
