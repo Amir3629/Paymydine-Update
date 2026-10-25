@@ -4022,15 +4022,18 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 && $rawStatus !== 'disabled'
                 && $rawStatus !== 'inactive';
 
+            // PMD_FLOOR_FIRSTPAINT_CLIENT_STATUS_PARITY_R3
+            // Keep server first paint in sync with actual shared Floor JS.
             $status = !$tableEnabled
                 ? 'disabled'
-                : (($waiterCall || $note !== '' || $linkedOrderHasNote)
-                    ? 'attention'
-                    : ($cleaning
-                        ? 'cleaning'
+                : ($cleaning
+                    ? 'cleaning'
+                    : ($occupied
+                        ? 'occupied'
                         : ($reserved
                             ? 'reserved'
-                            : ($occupied ? 'occupied' : 'available'))));
+                            : (($waiterCall || $note !== '' || $linkedOrderHasNote)
+                                ? 'attention' : 'available'))));
 
             /*
              * Match Floor V1 normalize() exactly for first paint.
@@ -4149,8 +4152,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $priority = [
                 'disabled' => 6,
                 'available' => 1,
-                'occupied' => 2,
-                'reserved' => 3,
+                'occupied' => 3,
+                'reserved' => 2,
                 'cleaning' => 4,
                 'attention' => 5,
                 'waiter-call' => 5,
