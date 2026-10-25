@@ -387,7 +387,11 @@ trait HandlesPortalMfa
         // The Authenticator has already verified THIS Portal session and
         // recovery codes were acknowledged. Optional recognition is scoped to
         // Staff Portal, not a trusted Admin Workspace login.
-        $trustRequested = (bool)session()->pull(self::PMD_PORTAL_TRUST_CONSENT, false);
+        $proof = (array)session()->get(PmdPortalTotpService::SESSION_VERIFIED, []);
+        // Trusted cookie resumption is NOT a new OTP verification/opt-out.
+        $freshOtp = in_array((string)($proof['method'] ?? ''), ['verify', 'enrollment'], true);
+        $trustRequested = $freshOtp
+            && (bool)session()->pull(self::PMD_PORTAL_TRUST_CONSENT, false);
         $response = redirect(admin_url('mywork'))
             ->with('success', 'Portal security verified.');
         if ($trustRequested) {
@@ -403,7 +407,7 @@ trait HandlesPortalMfa
                 ]);
                 // Login succeeds normally; a future attempt still requires MFA.
             }
-        } else {
+        } elseif ($freshOtp) {
             // PMD_PORTAL_TRUST_OPTOUT_V028: user explicitly declined trust.
             // Revoke an existing cookie token and expire its browser cookie.
             try {
