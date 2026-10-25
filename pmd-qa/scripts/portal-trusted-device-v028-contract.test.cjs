@@ -44,6 +44,9 @@ assert.match(trust,/public function forgetCookie\(/);
 assert.match(trust,/\$this->revokeCurrent\(\$request, \$identity\)/);
 assert.match(trust,/\(int\)\(\$row->staff_id \?\? 0\) !== \$staffId/);
 assert.match(trait,/PMD_PORTAL_TRUST_OPTOUT_V028/);
+assert.match(trait,/\$freshOtp = in_array\(/);
+assert.match(trait,/\} elseif \(\$freshOtp\) \{/);
+
 assert.match(trait,/->revokeCurrent\(request\(\), \$identity\)/);
 assert.match(trait,/->forgetCookie\(\)/);
 assert.match(trust,/public function revoke\(/);
