@@ -126,6 +126,8 @@ class Pmdmenus extends AdminController
             'app/admin/assets/css/pmd-inventory-focus-dialogs-v1.css',
             // PMD_INVENTORY_TABLE_CARD_PARITY_R27: viewport-native Inventory card authority.
             'app/admin/assets/css/pmd-inventory-table-card-parity-r27.css',
+            // PMD_INVENTORY_EXACT_TABLE_CARD_R28: after R26/R27; same canonical Floor R36 shell.
+            'app/admin/assets/css/pmd-inventory-exact-table-card-r28.css',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addCss(
@@ -144,6 +146,8 @@ class Pmdmenus extends AdminController
             'app/admin/assets/js/pmd-inventory-retained-controls-v1.js',
             // PMD_INVENTORY_TABLE_CARD_PARITY_R27: run after existing R25/R26 editors.
             'app/admin/assets/js/pmd-inventory-table-card-parity-r27.js',
+            // PMD_INVENTORY_EXACT_TABLE_CARD_R28: modifies visuals only, after R19/R25/R26/R27.
+            'app/admin/assets/js/pmd-inventory-exact-table-card-r28.js',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addJs(
