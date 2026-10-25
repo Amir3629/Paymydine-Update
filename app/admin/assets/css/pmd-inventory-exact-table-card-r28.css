@@ -271,7 +271,10 @@ html body.pmd-menu-manager-page
   background-image:none!important;
   color:#102a43!important;
   color-scheme:light!important;
-  font:700 14px/1.2 inherit!important;
+  font-family:inherit!important;
+  font-size:14px!important;
+  font-weight:700!important;
+  line-height:1.2!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.96)!important;
   outline:0!important;
   outline-offset:0!important;
