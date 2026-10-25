@@ -124,6 +124,8 @@ class Pmdmenus extends AdminController
             'app/admin/assets/css/pmd-menu-inventory-unified-r20.css',
             // PMD_INVENTORY_FOCUS_FORMS_V1: simple catalogue and focused forms.
             'app/admin/assets/css/pmd-inventory-focus-dialogs-v1.css',
+            // PMD_INVENTORY_TABLE_CARD_PARITY_R27: viewport-native Inventory card authority.
+            'app/admin/assets/css/pmd-inventory-table-card-parity-r27.css',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addCss(
@@ -140,6 +142,8 @@ class Pmdmenus extends AdminController
             'app/admin/assets/js/pmd-inventory-focus-dialogs-v1.js',
             // PMD_INVENTORY_FOUR_TABS_V1: keep advanced settings/reversals accessible.
             'app/admin/assets/js/pmd-inventory-retained-controls-v1.js',
+            // PMD_INVENTORY_TABLE_CARD_PARITY_R27: run after existing R25/R26 editors.
+            'app/admin/assets/js/pmd-inventory-table-card-parity-r27.js',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addJs(
