@@ -1,0 +1,716 @@
+/* PMD_INVENTORY_EXACT_TABLE_CARD_R28
+ * The actual Create Table R32-R40 card is the visual specification.
+ *
+ * IMPORTANT: R26 has stronger !important selectors than R27. Every R28 modal
+ * rule intentionally names BOTH .pmd-inv-r26-ready and .pmd-inv-r26-refined.
+ * Without that, the old white header, flat green buttons and full-width
+ * steppers silently win. R28 changes presentation only, never form writers.
+ */
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready {
+  --pmd-inv-r28-radius:16px;
+  --pmd-inv-r28-jade:#075c47;
+  --pmd-inv-r28-jade-dark:#064b3c;
+  --pmd-inv-r28-line:#c9dce8;
+  --pmd-inv-r28-soft-line:rgba(202,222,232,.88);
+  --pmd-inv-r28-ink:#17372f;
+  --pmd-inv-r28-soft-bg:
+    radial-gradient(circle at 10% 7%,rgba(230,248,237,.70) 0,rgba(230,248,237,0) 31%),
+    radial-gradient(circle at 62% 9%,rgba(229,244,252,.62) 0,rgba(229,244,252,0) 31%),
+    radial-gradient(circle at 35% 50%,rgba(255,232,232,.55) 0,rgba(255,232,232,0) 31%),
+    rgba(252,254,253,.985);
+  --pmd-inv-r28-primary:
+    linear-gradient(180deg,#0b765e 0%,#075c47 100%);
+}
+
+/* The R27 native top layer and its 8px full-screen blur stay untouched. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet {
+  position:relative!important;
+  display:flex!important;
+  flex-direction:column!important;
+  box-sizing:border-box!important;
+  width:min(650px,calc(100vw - 32px))!important;
+  max-width:650px!important;
+  max-height:calc(100dvh - 32px)!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  padding:0!important;
+  border:1px solid var(--pmd-inv-r28-soft-line)!important;
+  border-radius:var(--pmd-inv-r28-radius)!important;
+  background:var(--pmd-inv-r28-soft-bg)!important;
+  color:var(--pmd-inv-r28-ink)!important;
+  box-shadow:0 26px 62px rgba(21,49,44,.14),inset 0 1px 0 rgba(255,255,255,.98)!important;
+  overflow:hidden!important;
+  filter:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  transform:none!important;
+  animation:none!important;
+  transition:none!important;
+}
+/* The original Floor R36 is 650px; bulk receipt/count requires a readable
+ * larger document, exactly as the R27 wide variant did. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined:is([data-pmd-inv-r25-dialog="count"],[data-pmd-inv-r25-dialog="review"],[data-pmd-inv-r25-dialog="barcode"])
+.pmd-inv-r25-sheet {
+  width:min(880px,calc(100vw - 32px))!important;
+  max-width:880px!important;
+}
+
+/* Create Table: the title IS the entire header; no tinted band, icon tile
+ * in title, separate eyebrow or distracting divider. Keep the existing
+ * hidden control in DOM for R25 Escape/click close/busy semantics. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet__header {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  flex:0 0 auto!important;
+  gap:0!important;
+  min-height:58px!important;
+  padding:16px 24px 8px!important;
+  border:0!important;
+  border-bottom:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r26-dialog-icon,
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet__eyebrow {
+  display:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet__title {
+  margin:0!important;
+  padding:0!important;
+  color:#113d34!important;
+  font-size:22px!important;
+  font-weight:850!important;
+  line-height:1.12!important;
+  letter-spacing:-.025em!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined:is([data-pmd-inv-r25-dialog="stock"],[data-pmd-inv-r25-dialog="purchase"],[data-pmd-inv-r25-dialog="waste"])
+.pmd-inv-r25-sheet__description,
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined:is([data-pmd-inv-r25-dialog="stock"],[data-pmd-inv-r25-dialog="purchase"],[data-pmd-inv-r25-dialog="waste"])
+.pmd-inv-r25-sheet__close {
+  display:none!important;
+}
+/* Review/Barcode still need their close control, especially when no
+ * receipt lines are available and therefore no Cancel footer exists. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet__close:not([hidden]) {
+  box-sizing:border-box!important;
+  flex:0 0 40px!important;
+  width:40px!important;
+  height:40px!important;
+  min-width:40px!important;
+  min-height:40px!important;
+  border:1px solid var(--pmd-inv-r28-line)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.94)!important;
+  color:#28463f!important;
+  box-shadow:none!important;
+}
+
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet__content {
+  display:block!important;
+  box-sizing:border-box!important;
+  flex:1 1 auto!important;
+  min-height:0!important;
+  width:100%!important;
+  padding:8px 24px 0!important;
+  overflow-y:auto!important;
+  background:transparent!important;
+  background-image:none!important;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r19-editor-fields {
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:start!important;
+  gap:14px 16px!important;
+  margin:0!important;
+  padding:0!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r19-editor-fields .is-wide {
+  grid-column:1/-1!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r19-editor-fields label:not(.pmd-inv-r24-check),
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r19-receipt-line label {
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  align-items:start!important;
+  justify-items:stretch!important;
+  gap:7px!important;
+  box-sizing:border-box!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  color:#28463f!important;
+  font-size:13px!important;
+  font-weight:680!important;
+  line-height:1.2!important;
+}
+
+/* Table Manager R36: icon-labelled title with pale mint tile, not small
+ * dark-green labels. Explicit DOM wrapper is inserted by R28 JS. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r28-field-title {
+  display:flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  min-height:34px!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  color:#28463f!important;
+  font-size:13px!important;
+  line-height:1.2!important;
+  font-weight:680!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r28-field-title > b {
+  color:inherit!important;
+  font:inherit!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r28-field-title > svg {
+  display:block!important;
+  box-sizing:border-box!important;
+  flex:0 0 34px!important;
+  width:34px!important;
+  height:34px!important;
+  padding:7px!important;
+  border:1px solid rgba(83,166,111,.095)!important;
+  border-radius:16px!important;
+  background:linear-gradient(145deg,rgba(253,255,254,.995),rgba(248,253,249,.995) 58%,rgba(242,250,245,.99))!important;
+  color:#2f866f!important;
+  box-shadow:0 4px 12px rgba(52,105,76,.035),inset 0 1px 0 #fff!important;
+  stroke:currentColor!important;
+  fill:none!important;
+}
+
+/* Inputs use the Table R32 surface and focused/untouched state. The R26
+ * selectors below had overwritten the R27 fields; this wins explicitly.
+ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),select,textarea) {
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  height:48px!important;
+  min-height:48px!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:8px 13px!important;
+  border:1px solid var(--pmd-inv-r28-line)!important;
+  border-radius:16px!important;
+  background:rgba(255,255,255,.93)!important;
+  background-image:none!important;
+  color:#102a43!important;
+  color-scheme:light!important;
+  font:700 14px/1.2 inherit!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.96)!important;
+  outline:0!important;
+  outline-offset:0!important;
+  transition:none!important;
+  animation:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet textarea {
+  min-height:72px!important;
+  height:auto!important;
+  padding:9px 11px!important;
+  resize:vertical!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet :is(input,select,textarea):focus-visible {
+  border-color:rgba(52,139,111,.48)!important;
+  box-shadow:0 0 0 3px rgba(47,134,111,.08)!important;
+  outline:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r25-sheet input[type="date"] {
+  -webkit-text-fill-color:#102a43!important;
+}
+
+/* Exact Table R36 numeric geometry: 42/104/42, not the R27 stretched
+ * 40/fluid/40. The R19 original number input stays in the central slot.
+ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r27-stepper {
+  display:grid!important;
+  grid-template-columns:42px 104px 42px!important;
+  align-items:center!important;
+  gap:8px!important;
+  box-sizing:border-box!important;
+  width:204px!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:42px!important;
+  min-height:42px!important;
+  padding:0!important;
+  margin:0!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r27-stepper__field {
+  width:104px!important;
+  min-width:0!important;
+  height:42px!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r27-stepper__field > input[type="number"] {
+  width:104px!important;
+  min-width:0!important;
+  height:42px!important;
+  min-height:42px!important;
+  max-height:42px!important;
+  padding:0 8px!important;
+  font-size:15px!important;
+  font-weight:750!important;
+  line-height:42px!important;
+  text-align:center!important;
+  appearance:textfield!important;
+  -moz-appearance:textfield!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+button.pmd-inv-r27-stepper__control {
+  display:grid!important;
+  place-items:center!important;
+  box-sizing:border-box!important;
+  width:42px!important;
+  min-width:42px!important;
+  max-width:42px!important;
+  height:42px!important;
+  min-height:42px!important;
+  max-height:42px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid var(--pmd-inv-r28-line)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.93)!important;
+  background-image:none!important;
+  color:#075c47!important;
+  font:850 21px/1 system-ui,sans-serif!important;
+  box-shadow:none!important;
+  cursor:pointer!important;
+  transition:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+button.pmd-inv-r27-stepper__control:disabled {
+  background:rgba(244,250,247,.70)!important;
+  color:#9fc6b8!important;
+  opacity:.60!important;
+  cursor:not-allowed!important;
+}
+
+/* Create Table R36 footer: pale strip, 40px buttons, 104px Cancel and
+ * 150px primary Save with identical 16px diskette SVG.
+ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r19-editor-actions {
+  position:sticky!important;
+  bottom:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  flex-wrap:wrap!important;
+  gap:8px!important;
+  box-sizing:border-box!important;
+  width:calc(100% + 48px)!important;
+  min-height:62px!important;
+  margin:16px -24px 0!important;
+  padding:9px 20px 11px!important;
+  border:0!important;
+  border-top:1px solid rgba(205,222,229,.75)!important;
+  background:rgba(255,255,255,.82)!important;
+  box-shadow:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r19-editor-actions > button {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  box-sizing:border-box!important;
+  width:auto!important;
+  min-width:104px!important;
+  height:40px!important;
+  min-height:40px!important;
+  max-height:40px!important;
+  margin:0!important;
+  padding:0 16px!important;
+  border:1px solid var(--pmd-inv-r28-line)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.95)!important;
+  background-image:none!important;
+  color:#243f38!important;
+  font-family:inherit!important;
+  font-size:12px!important;
+  font-weight:820!important;
+  line-height:1!important;
+  box-shadow:0 2px 7px rgba(32,64,54,.035)!important;
+  white-space:nowrap!important;
+  transform:none!important;
+  transition:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r19-editor-actions > button.pmd-inv-r19-primary[data-pmd-inv-r28-save="1"] {
+  min-width:150px!important;
+  border:1px solid #064b3c!important;
+  background:var(--pmd-inv-r28-primary)!important;
+  background-image:var(--pmd-inv-r28-primary)!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.15),inset 0 1px 0 rgba(255,255,255,.16)!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r19-editor-actions > button[data-r19-archive-item] {
+  width:auto!important;
+  min-width:104px!important;
+  margin-right:auto!important;
+  border:1px solid #e3a0a9!important;
+  background:#fff7f8!important;
+  color:#a22b39!important;
+  box-shadow:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined
+.pmd-inv-r28-save-icon,
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-shopping-actions .pmd-inv-r28-save-icon {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 16px!important;
+  width:16px!important;
+  height:16px!important;
+  margin:0!important;
+  padding:0!important;
+  color:inherit!important;
+}
+#pmd-inventory-v1.pmd-inv-r28-ready .pmd-inv-r28-save-icon > svg {
+  display:block!important;
+  flex:0 0 16px!important;
+  width:16px!important;
+  height:16px!important;
+  fill:none!important;
+  stroke:currentColor!important;
+}
+
+/* The user-provided Supplies button is a category filter, not a Save
+ * action. Match the Table Features selected/unselected controls exactly:
+ * 42px, #c9dce8 border, 14px corners, same selected Save jade gradient.
+ * R19 continues to handle every data-r19-purchase-main-key click.
+ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-main-categories {
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  gap:10px!important;
+  width:100%!important;
+  padding:2px 0 12px!important;
+  overflow:visible!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-main-categories > button {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:9px!important;
+  box-sizing:border-box!important;
+  min-width:140px!important;
+  height:42px!important;
+  min-height:42px!important;
+  max-height:42px!important;
+  margin:0!important;
+  padding:6px 12px!important;
+  border:1px solid var(--pmd-inv-r28-line)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.92)!important;
+  background-image:none!important;
+  color:#14384a!important;
+  box-shadow:none!important;
+  font-family:inherit!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  cursor:pointer!important;
+  transition:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-main-categories > button.is-active {
+  border-color:#064b3c!important;
+  background:var(--pmd-inv-r28-primary)!important;
+  background-image:var(--pmd-inv-r28-primary)!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.15),inset 0 1px 0 rgba(255,255,255,.16)!important;
+}
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-main-categories .pmd-inv-r28-category-icon {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 17px!important;
+  width:17px!important;
+  height:17px!important;
+  color:inherit!important;
+}
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-main-categories .pmd-inv-r28-category-icon svg {
+  width:17px!important;
+  height:17px!important;
+  color:inherit!important;
+  stroke:currentColor!important;
+  fill:none!important;
+}
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-main-categories .pmd-inv-r28-category-count {
+  display:inline!important;
+  font-size:11px!important;
+  font-weight:750!important;
+  line-height:1!important;
+  color:inherit!important;
+  opacity:.85!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories button.is-active,
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-shopping-controls button.is-active {
+  border-color:#064b3c!important;
+  border-radius:14px!important;
+  background:var(--pmd-inv-r28-primary)!important;
+  background-image:var(--pmd-inv-r28-primary)!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.15)!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-shopping-controls button:not(.is-active) {
+  min-height:40px!important;
+  border:1px solid var(--pmd-inv-r28-line)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.94)!important;
+  color:#14384a!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+:is(.pmd-inv-r19-head-actions,.pmd-inv-r19-shopping-actions) > button.pmd-inv-r19-primary,
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-section-head button.pmd-inv-r19-primary {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  box-sizing:border-box!important;
+  min-height:40px!important;
+  height:40px!important;
+  min-width:150px!important;
+  padding:0 16px!important;
+  border:1px solid #064b3c!important;
+  border-radius:14px!important;
+  background:var(--pmd-inv-r28-primary)!important;
+  background-image:var(--pmd-inv-r28-primary)!important;
+  color:#fff!important;
+  font-family:inherit!important;
+  font-size:12px!important;
+  font-weight:820!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.15),inset 0 1px 0 rgba(255,255,255,.16)!important;
+  transition:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+:is(.pmd-inv-r19-head-actions,.pmd-inv-r19-shopping-actions) > button.pmd-inv-r19-secondary,
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r19-load-more {
+  min-height:40px!important;
+  height:40px!important;
+  border:1px solid var(--pmd-inv-r28-line)!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.95)!important;
+  background-image:none!important;
+  color:#243f38!important;
+  font-size:12px!important;
+  font-weight:820!important;
+  box-shadow:0 2px 7px rgba(32,64,54,.035)!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+:is(button,select,input,textarea):focus-visible {
+  outline:2px solid rgba(47,134,111,.45)!important;
+  outline-offset:2px!important;
+}
+
+/* Ordinary inventory cards keep their original content and status
+ * semantics. No global button/card selectors beyond Inventory.
+ */
+@media(max-width:700px) {
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r27-native
+  .pmd-inv-r25-overlay.pmd-inv-r26-refined
+  .pmd-inv-r25-sheet {
+    max-width:calc(100vw - 16px)!important;
+    max-height:calc(100dvh - 16px)!important;
+    width:calc(100vw - 16px)!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r27-native
+  .pmd-inv-r25-overlay.pmd-inv-r26-refined
+  .pmd-inv-r25-sheet__header {
+    padding:16px 16px 8px!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r27-native
+  .pmd-inv-r25-overlay.pmd-inv-r26-refined
+  .pmd-inv-r25-sheet__content {
+    padding:8px 16px 0!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r27-native
+  .pmd-inv-r25-overlay.pmd-inv-r26-refined
+  .pmd-inv-r19-editor-fields {
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r27-native
+  .pmd-inv-r25-overlay.pmd-inv-r26-refined
+  .pmd-inv-r19-editor-actions {
+    width:calc(100% + 32px)!important;
+    margin:16px -16px 0!important;
+    padding:9px 16px 11px!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r19-main-categories > button {
+    min-width:0!important;
+    flex:1 1 auto!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r27-native
+  .pmd-inv-r25-overlay.pmd-inv-r26-refined
+  .pmd-inv-r27-stepper {
+    max-width:100%!important;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  #pmd-inventory-v1.pmd-inv-r28-ready .pmd-inv-r27-native,
+  #pmd-inventory-v1.pmd-inv-r28-ready .pmd-inv-r27-native *,
+  #pmd-inventory-v1.pmd-inv-r28-ready .pmd-inv-r19-main-categories button {
+    animation:none!important;
+    transition:none!important;
+  }
+}
