@@ -58,6 +58,29 @@ grep -Fq 'PMD_PORTAL_PERSONAL_MFA_LOGIN_V2' app/admin/traits/HandlesPortalMfa.ph
 grep -Fq 'PMD_PORTAL_MFA_NO_TRUSTED_RESUME_V1' app/Services/PmdTrustedLoginDeviceService.php
 grep -Fq 'PMD_OWNER_BOTTOM_NAV_V027_20261023' app/admin/assets/css/pmd-staff-owner-bottom-nav-v027.css
 
+# PMD_V028_DEPLOY_BASELINE_GUARD: never overwrite unmerged server hotfixes.
+# PR #548 is based on installed Staff Owner v027. Compare every existing
+# destination file against that exact reviewed parent before replacing it.
+BASELINE_REV="697cee3582ebffc44c3925630c9531a110c9a4f1"
+echo "=== Preflight: verify server files match reviewed v027 baseline ==="
+for f in "${FILES[@]}"; do
+  if [[ "$f" == "app/Services/PmdPortalTrustedDeviceService.php" || "$f" == "app/admin/views/pmd-staff-portal/trusted_devices_v1.blade.php" ]]; then
+    if [[ -e "$f" ]]; then
+      echo "REFUSING TO OVERWRITE: new v028 path already exists: $f" >&2
+      exit 3
+    fi
+    continue
+  fi
+  baseline="$STAGE/.baseline-$(printf '%s' "$f" | sha256sum | cut -d' ' -f1)"
+  curl -fLsS --retry 3 --connect-timeout 15 "https://raw.githubusercontent.com/Amir3629/Paymydine-Update/$BASELINE_REV/$f" -o "$baseline"
+  if ! cmp -s "$baseline" "$f"; then
+    echo "REFUSING TO OVERWRITE: $f differs from reviewed v027 baseline." >&2
+    echo "Preserve the server's local changes. Reconcile this file before installing v028." >&2
+    exit 3
+  fi
+done
+echo "Baseline verified; no unexpected local drift in target files."
+
 echo "=== 2. Stage and PHP lint exactly 10 scoped files ==="
 for f in "${FILES[@]}"; do
   mkdir -p "$STAGE/$(dirname "$f")"
