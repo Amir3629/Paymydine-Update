@@ -9215,6 +9215,18 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_HEAD -->
 
+<!-- PMD_ADMIN_CONTROL_LANGUAGE_R30_REAL_LAYOUT: actual AdminController _layouts/default.blade.php.
+     R29's layouts/default.blade.php is not the live Admin shell. -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-admin-control-language-r29.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-admin-control-language-r29.css')) ?: 20261025) }}"
+      data-pmd-admin-control-language-r29="css"
+      data-pmd-admin-control-layout-r30="real">
+<script defer
+        src="{{ asset('app/admin/assets/js/pmd-admin-control-language-r29.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-admin-control-language-r29.js')) ?: 20261025) }}"
+        data-pmd-admin-control-language-r29="js"
+        data-pmd-admin-control-layout-r30="real"></script>
+<!-- /PMD_ADMIN_CONTROL_LANGUAGE_R30_REAL_LAYOUT -->
+
 </head>
 @php
     /* PMD_PERF_R13_LAYOUT_STAGE_PROFILER */
