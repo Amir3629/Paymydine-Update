@@ -9,7 +9,7 @@
   'use strict';
   if (window.PMDAdminControlLanguageR29) return;
 
-  var selector = 'button,input[type="button"],input[type="submit"],a.btn,a[role="button"],label.btn,select';
+  var selector = 'button,input[type="button"],input[type="submit"],a.btn,a[role="button"],a.kds-settings-btn,label.btn,select';
   var excluded = [
     '#pmd-side-menu2','#pmd-side-menu2-backdrop',
     '.pmd-side-menu2','.pmd-floor-table-manager',
@@ -25,7 +25,8 @@
     '.pmd-reservation-calendar','.pmd-shifts-big-calendar',
     '.pmd-shifts-calendar-grid','.pmd-shifts-week-grid',
     '.pmd-pos-grid','.pmd-pos-keypad',
-    '[data-pmd-pos-root]','[data-pmd-kds-display]',
+    '[data-pmd-pos-root]','#orders-grid','.order-card','.order-status-buttons',
+    '#kds-zoom-in','#kds-zoom-out','.kds-undo-action',
     '.modal-backdrop','.offcanvas-backdrop',
     '.pmd-inv-r25-overlay__backdrop',
     '[data-pmd-admin-control-ignore]'
