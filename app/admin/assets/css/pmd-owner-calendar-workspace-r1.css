@@ -34,3 +34,13 @@ html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode #pmd-r2-cal
   width: 100% !important;
   max-width: none !important;
 }
+
+/* Owner-only, aggregate information; keep reservations' existing visual rhythm. */
+html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-yc-entry.is-staff-count {
+  color: #175b49; background: #e4f4ed; border-left: 3px solid #259c75;
+}
+html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-yc-entry.is-staff-request {
+  color: #85510a; background: #fff1da; border-left: 3px solid #d39427;
+}
+html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot.is-staff-count { background: #259c75; }
+html body.pmd-dashboard-lab-page #pmd-r2-calendar-surface-v160 .pmd-r2-yc-dot.is-staff-request { background: #d39427; }
