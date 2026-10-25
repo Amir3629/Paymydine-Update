@@ -1,0 +1,689 @@
+/* PMD_INVENTORY_BARCODE_FLOOR_R31
+ * Precedence: loaded from the actual AdminController _layouts/default AFTER
+ * R30 and after get_style_tags() (R19/R25/R26/R27/R28 local styles).
+ * Canonical controls: Floor Create Table R36 / Inventory R28.
+ * Purely visual. Never remove scanner input, camera controls, floor state
+ * attributes or the R19/24 delegated purchasing/stock event handlers.
+ */
+
+/* ================================================================
+   1. Inventory's FOUR workspace tabs: compact Table-like buttons.
+   ================================================================ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+nav.pmd-inv-r19-modes.pmd-inv-r24-modes {
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:8px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-height:54px!important;
+  margin:0!important;
+  padding:4px 0 10px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+nav.pmd-inv-r19-modes.pmd-inv-r24-modes::-webkit-scrollbar {
+  display:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+nav.pmd-inv-r19-modes.pmd-inv-r24-modes > button[data-r19-mode] {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:auto!important;
+  min-width:108px!important;
+  max-width:none!important;
+  height:42px!important;
+  min-height:42px!important;
+  margin:0!important;
+  padding:0 16px!important;
+  border:1px solid #c9dce8!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.96)!important;
+  background-image:none!important;
+  color:#173b37!important;
+  font-family:inherit!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+  box-shadow:0 2px 7px rgba(32,64,54,.035)!important;
+  cursor:pointer!important;
+  transition:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+nav.pmd-inv-r19-modes.pmd-inv-r24-modes > button[data-r19-mode]:is(.is-active,[aria-current="page"]) {
+  border-color:#064b3c!important;
+  background:linear-gradient(180deg,#0b765e 0%,#075c47 100%)!important;
+  background-image:linear-gradient(180deg,#0b765e 0%,#075c47 100%)!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.15),inset 0 1px 0 rgba(255,255,255,.16)!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+nav.pmd-inv-r19-modes.pmd-inv-r24-modes > button[data-r19-mode]:not(.is-active):not([aria-current="page"]):hover {
+  border-color:#9dc7b7!important;
+  background:#f3faf7!important;
+}
+
+/* ================================================================
+   2. Search + supplier invoice AI + barcode/QR action in Purchases.
+   The upload is a LABEL with a hidden file input; do not replace it.
+   ================================================================ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+.pmd-inv-r19-head-actions {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  flex-wrap:wrap!important;
+  gap:10px!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+.pmd-inv-r19-head-actions > label.pmd-inv-r25-search {
+  box-sizing:border-box!important;
+  min-width:200px!important;
+  flex:1 1 220px!important;
+  max-width:360px!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+.pmd-inv-r19-head-actions > label.pmd-inv-r25-search input[data-r19-purchase-search] {
+  height:42px!important;
+  min-height:42px!important;
+  padding:0 14px!important;
+  border:1px solid #c9dce8!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.96)!important;
+  color:#173b37!important;
+  font-size:13px!important;
+  box-shadow:0 2px 7px rgba(32,64,54,.03)!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+.pmd-inv-r19-head-actions > label.pmd-inv-r19-scan {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  min-width:205px!important;
+  min-height:42px!important;
+  height:42px!important;
+  margin:0!important;
+  padding:0 16px!important;
+  border:1px solid #064b3c!important;
+  border-radius:14px!important;
+  background:linear-gradient(180deg,#0b765e,#075c47)!important;
+  background-image:linear-gradient(180deg,#0b765e,#075c47)!important;
+  color:#fff!important;
+  font-size:12px!important;
+  font-weight:820!important;
+  line-height:1.2!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+  text-align:center!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.15),inset 0 1px 0 rgba(255,255,255,.16)!important;
+  cursor:pointer!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+.pmd-inv-r19-head-actions > label.pmd-inv-r19-scan:focus-within {
+  outline:2px solid rgba(47,134,111,.5)!important;
+  outline-offset:2px!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+.pmd-inv-r19-head-actions > button.pmd-inv-r23-barcode-button[data-r19-barcode-open] {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  gap:8px!important;
+  min-width:164px!important;
+  height:42px!important;
+  min-height:42px!important;
+  margin:0!important;
+  padding:0 14px!important;
+  border:1px solid #c9dce8!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.96)!important;
+  background-image:none!important;
+  color:#14384a!important;
+  font-family:inherit!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+  white-space:nowrap!important;
+  box-shadow:0 2px 7px rgba(32,64,54,.035)!important;
+  cursor:pointer!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+.pmd-inv-r19-head-actions > button[data-r19-barcode-open]:hover {
+  background:#f5fbf8!important;
+  border-color:#9fc7ba!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+.pmd-inv-r19-head-actions > button[data-r19-barcode-open] svg {
+  display:block!important;
+  flex:0 0 16px!important;
+  width:16px!important;
+  height:16px!important;
+  stroke:currentColor!important;
+  fill:none!important;
+}
+
+/* ================================================================
+   3. Purchase subcategories: one line, readable controls, very thin
+   native scrollbar AND persistent 3px minimap for macOS overlay bars.
+   The R19 filter button event handlers remain unchanged.
+   ================================================================ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub] {
+  display:flex!important;
+  align-items:center!important;
+  flex-wrap:nowrap!important;
+  gap:6px!important;
+  min-height:44px!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:6px 8px 8px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  border:1px solid #e0eae7!important;
+  border-radius:13px!important;
+  background:#f7faf9!important;
+  scrollbar-width:thin!important; /* Firefox */
+  scrollbar-color:#a0c0b5 transparent!important;
+  -webkit-overflow-scrolling:touch;
+}
+/* Keep hidden category sections hidden when R19 changes mode. The older
+ * [hidden] guard had lower specificity than R31's layout rule. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub][hidden] {
+  display:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub]::-webkit-scrollbar {
+  width:3px!important;
+  height:3px!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub]::-webkit-scrollbar-thumb {
+  border:0!important;
+  border-radius:99px!important;
+  background:#a0c0b5!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub]::-webkit-scrollbar-track {
+  background:transparent!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub] > button[data-r19-purchase-sub-key] {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  min-height:31px!important;
+  height:31px!important;
+  margin:0!important;
+  padding:0 12px!important;
+  border:1px solid transparent!important;
+  border-radius:11px!important;
+  background:transparent!important;
+  background-image:none!important;
+  color:#58756e!important;
+  font-size:11px!important;
+  line-height:1!important;
+  font-weight:800!important;
+  white-space:nowrap!important;
+  box-shadow:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub] > button[data-r19-purchase-sub-key]:is(.is-active,[aria-pressed="true"]) {
+  border-color:#064b3c!important;
+  background:linear-gradient(180deg,#0b765e,#075c47)!important;
+  background-image:linear-gradient(180deg,#0b765e,#075c47)!important;
+  color:#fff!important;
+  box-shadow:0 5px 12px rgba(7,92,71,.13)!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready
+.pmd-inv-r19-subcategories[data-r19-purchase-sub] > button:not(.is-active):hover {
+  border-color:#d1e3dd!important;
+  background:#fff!important;
+}
+
+/* A permanently visible, 3px visual scrubber; its drag area is 12px.
+ * The entire original button strip remains scrollable by wheel, touch,
+ * trackpad and keyboard independently of this additional affordance. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready .pmd-inv-r31-scrollbar {
+  display:block!important;
+  position:relative!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:12px!important;
+  min-height:12px!important;
+  margin:0 0 10px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  cursor:ew-resize!important;
+  touch-action:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready .pmd-inv-r31-scrollbar[hidden] {
+  display:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready .pmd-inv-r31-scrollbar::before {
+  content:"";
+  display:block;
+  position:absolute;
+  top:5px;
+  right:0;
+  left:0;
+  height:3px;
+  border-radius:99px;
+  background:rgba(155,192,179,.20);
+  pointer-events:none;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r28-ready .pmd-inv-r31-scrollbar__thumb {
+  position:absolute!important;
+  display:block!important;
+  top:5px!important;
+  left:0;
+  min-width:25px!important;
+  max-width:100%!important;
+  height:3px!important;
+  border:0!important;
+  border-radius:99px!important;
+  background:#7aa99b!important;
+  box-shadow:none!important;
+  pointer-events:none!important;
+  transform:translateX(0);
+  will-change:transform;
+}
+
+/* ================================================================
+   4. Barcode modal: one Table-style card, ONE copy of the heading,
+   and a single shell for the scanner input.
+   R25 creates one header. R19's nested heading is redundant.
+   ================================================================ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r25-sheet.is-wide {
+  width:min(720px,calc(100vw - 32px))!important;
+  max-width:720px!important;
+  min-height:0!important;
+  max-height:calc(100dvh - 32px)!important;
+  border-radius:16px!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r25-sheet__header {
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  padding:20px 24px 10px!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r25-sheet__description {
+  display:block!important;
+  margin:7px 0 0!important;
+  max-width:550px!important;
+  font-size:12px!important;
+  line-height:1.4!important;
+  color:#617a73!important;
+}
+/* The R19 head contains the same heading, description, an extra eyebrow
+ * and its own hidden Close. No duplicate text, but preserve markup and
+ * programmatic .click() for R25 cleanup and camera shutoff. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r23-barcode__head {
+  display:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r25-sheet__content {
+  padding:10px 24px 18px!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r23-barcode {
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+/* Scanner frame owns border and ring. Inner field has NO second border,
+ * ring, shadow or radius; inputmode and original R19 scan handlers untouched. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+label.pmd-inv-r23-barcode__input {
+  display:flex!important;
+  align-items:center!important;
+  gap:11px!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:52px!important;
+  min-height:52px!important;
+  margin:0!important;
+  padding:0 14px!important;
+  border:1px solid #c9dce8!important;
+  border-radius:16px!important;
+  background:rgba(255,255,255,.98)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.96)!important;
+  outline:0!important;
+  overflow:hidden!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+label.pmd-inv-r23-barcode__input:focus-within {
+  border-color:#68ae99!important;
+  box-shadow:0 0 0 3px rgba(47,134,111,.11)!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+label.pmd-inv-r23-barcode__input > svg {
+  flex:0 0 20px!important;
+  display:block!important;
+  width:20px!important;
+  height:20px!important;
+  stroke:#08745d!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r25-sheet
+label.pmd-inv-r23-barcode__input > input[data-r19-barcode-input] {
+  display:block!important;
+  flex:1 1 auto!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  height:50px!important;
+  min-height:50px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-color:transparent!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  outline:0!important;
+  color:#153c35!important;
+  font-family:inherit!important;
+  font-size:14px!important;
+  font-weight:700!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r25-sheet
+label.pmd-inv-r23-barcode__input > input[data-r19-barcode-input]:focus-visible {
+  outline:0!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r23-barcode__input > input::placeholder {
+  opacity:1!important;
+  color:#8ca09a!important;
+  font-weight:600!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r24-barcode-tools {
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin:12px 0 0!important;
+  padding:0!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r23-barcode__hint {
+  flex:1 1 320px!important;
+  min-width:0!important;
+  margin:0!important;
+  color:#657974!important;
+  font-size:11px!important;
+  line-height:1.45!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r24-barcode-tools > button.pmd-inv-r19-secondary {
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  min-width:116px!important;
+  height:40px!important;
+  min-height:40px!important;
+  margin:0!important;
+  padding:0 16px!important;
+  border:1px solid #c9dce8!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.97)!important;
+  background-image:none!important;
+  color:#153c35!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  line-height:1.1!important;
+  white-space:nowrap!important;
+  box-shadow:0 2px 7px rgba(32,64,54,.035)!important;
+  cursor:pointer!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r24-barcode-tools > button[hidden] {
+  display:none!important;
+}
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r23-barcode__status {
+  margin:10px 0 0!important;
+  font-size:11px!important;
+  font-weight:750!important;
+}
+
+/* ================================================================
+   5. Owner & Manager floor selector. This role attribute is rendered
+   server-side and authorized by existing Table Manager permissions.
+   Never style/hide floor management on other dashboards/roles.
+   ================================================================ */
+html body
+#pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"])
+.pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 auto!important;
+  min-height:40px!important;
+  height:40px!important;
+  padding:0 15px!important;
+  border:1px solid #c9dce8!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.95)!important;
+  background-image:none!important;
+  color:#173b37!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  box-shadow:0 2px 7px rgba(32,64,54,.03)!important;
+}
+html body
+#pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"])
+.pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor:is(.is-active,[aria-selected="true"]),
+html body
+#pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"])
+.pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor:is(.is-active,[aria-selected="true"]):hover {
+  border-color:#064b3c!important;
+  border-radius:14px!important;
+  background:linear-gradient(180deg,#0b765e 0%,#075c47 100%)!important;
+  background-image:linear-gradient(180deg,#0b765e 0%,#075c47 100%)!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.15),inset 0 1px 0 rgba(255,255,255,.16)!important;
+}
+/* Remove ONLY the owner/manager left-rail Add floor button. Keep Add Table,
+ * Edit floor and native management actions (and JS/API capability) intact.
+ * The JS floor registry may re-render the switcher; CSS remains authoritative.
+ */
+html body
+#pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"])
+.pmd-shared-floor-switcher > button[data-pmd-floor-add] {
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+html body
+#pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"])
+.pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage:not([hidden]) {
+  border:1px solid #c9dce8!important;
+  border-radius:14px!important;
+  background:rgba(255,255,255,.96)!important;
+  background-image:none!important;
+  color:#153c35!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  box-shadow:0 2px 7px rgba(32,64,54,.035)!important;
+}
+
+/* The default floor-only case has no visible tabs/manager after Add floor
+ * is hidden. Avoid an empty switcher/vertical divider taking space. */
+html body
+#pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"])
+.pmd-shared-floor-switcher:not(:has(> button.pmd-shared-floor-switcher__floor)):not(:has(> button.pmd-shared-floor-switcher__manage:not([hidden]))) {
+  display:none!important;
+}
+html body
+#pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"])
+.pmd-shared-floor-switcher:not(:has(> button.pmd-shared-floor-switcher__floor)):not(:has(> button.pmd-shared-floor-switcher__manage:not([hidden])))
++ [data-pmd-floor-switcher-divider] {
+  display:none!important;
+}
+
+@media(max-width:700px) {
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r28-ready
+  nav.pmd-inv-r19-modes.pmd-inv-r24-modes > button[data-r19-mode] {
+    min-width:92px!important;
+    height:40px!important;
+    min-height:40px!important;
+    padding:0 12px!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+  .pmd-inv-r19-head-actions > label.pmd-inv-r25-search {
+    min-width:100%!important;
+    max-width:100%!important;
+    flex:1 1 100%!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r28-ready
+  .pmd-inv-r19-head-actions > :is(label.pmd-inv-r19-scan,button[data-r19-barcode-open]) {
+    min-width:0!important;
+    flex:1 1 155px!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r27-native
+  .pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+  .pmd-inv-r25-sheet.is-wide {
+    width:calc(100vw - 16px)!important;
+    max-width:calc(100vw - 16px)!important;
+  }
+  html body.pmd-menu-manager-page
+  #pmd-inventory-v1.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+  .pmd-inv-r27-native
+  .pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+  .pmd-inv-r25-sheet__content {
+    padding:10px 16px 18px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  html body.pmd-menu-manager-page #pmd-inventory-v1.pmd-inv-r28-ready
+  .pmd-inv-r19-modes button[data-r19-mode],
+  html body.pmd-menu-manager-page #pmd-inventory-v1.pmd-inv-r28-ready
+  .pmd-inv-r19-subcategories > button,
+  html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button {
+    transition:none!important;
+    animation:none!important;
+  }
+}
