@@ -122,6 +122,8 @@ class Pmdmenus extends AdminController
             'app/admin/assets/css/pmd-inventory-workspace-r19.css',
             'app/admin/assets/css/pmd-inventory-operations-r24.css',
             'app/admin/assets/css/pmd-menu-inventory-unified-r20.css',
+            // PMD_INVENTORY_FOCUS_FORMS_V1: simple catalogue and focused forms.
+            'app/admin/assets/css/pmd-inventory-focus-dialogs-v1.css',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addCss(
@@ -134,6 +136,10 @@ class Pmdmenus extends AdminController
             'app/admin/assets/js/pmd-inventory-workspace-r19.js',
             'app/admin/assets/js/pmd-inventory-operations-r24.js',
             'app/admin/assets/js/pmd-menu-inventory-unified-r20.js',
+            // PMD_INVENTORY_FOCUS_FORMS_V1: original R19 actions stay authoritative.
+            'app/admin/assets/js/pmd-inventory-focus-dialogs-v1.js',
+            // PMD_INVENTORY_FOUR_TABS_V1: keep advanced settings/reversals accessible.
+            'app/admin/assets/js/pmd-inventory-retained-controls-v1.js',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addJs(

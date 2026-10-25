@@ -180,4 +180,7 @@
   'Admin\\Services\\ReservationComposerService' => 'app/admin/services/ReservationComposerService.php',
   'System\\Libraries\\Country' => 'app/system/libraries/Country.php',
   'Admin\\Controllers\\SuperAdminR2Controller' => 'app/admin/controllers/SuperAdminR2Controller.php',
+  'Admin\\Controllers\\pmdallfoods' => 'app/admin/controllers/Pmdallfoods.php',
+  'Admin\\Controllers\\PmdWaiterTableStateV154' => 'app/admin/controllers/PmdWaiterTableStateV154.php',
+  'System\\Controllers\\settings' => 'app/system/controllers/Settings.php',
 );

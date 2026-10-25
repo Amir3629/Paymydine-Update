@@ -131,6 +131,15 @@
             'table_title' => 'Reservation detail',
             'table_copy' => 'Reservation date, time, guests, assigned tables and current status.',
         ],
+        'inventory' => [
+            'eyebrow' => 'Stock intelligence',
+            'primary_title' => 'Inventory movements',
+            'primary_copy' => 'Current physical stock and its restaurant-scoped ledger.',
+            'spotlight_title' => 'Recent inventory changes',
+            'spotlight_copy' => 'The most recent recorded stock movements.',
+            'table_title' => 'Inventory movement ledger',
+            'table_copy' => 'Movements, amounts, storage and staff recorded by the stock authority.',
+        ],
         'attendance' => [
             'eyebrow' => 'Workforce operations',
             'primary_title' => 'Staff attendance & presence',
@@ -160,6 +169,21 @@
         'reservations' => ['Upcoming reservations', admin_url('pmdreports/reservations')],
         'attendance' => ['Staff attendance', admin_url('pmdreports/attendance')],
     ];
+
+    // Inventory cost data is visible only to the same Owner/Manager roles
+    // permitted to open /admin/menu?workspace=inventory.
+    $pmdInventoryReportRole = '';
+    try {
+        $pmdInventoryReportRole = (string)app(\Admin\Services\PmdDefaultStaffRoleService::class)
+            ->roleCodeForUser(\Admin\Facades\AdminAuth::getUser());
+    } catch (\Throwable $error) {}
+    if (in_array($pmdInventoryReportRole, [
+        \Admin\Services\PmdDefaultStaffRoleService::OWNER,
+        \Admin\Services\PmdDefaultStaffRoleService::MANAGER,
+        'owner', 'manager',
+    ], true)) {
+        $reportRoutes['inventory'] = ['Inventory', admin_url('reports/inventory')];
+    }
 
     $spotlightRows = array_slice($rows, 0, 6);
     $primaryColumn = $columns[0] ?? null;
@@ -505,6 +529,10 @@
                     @endif
                 </div>
             </section>
+        @endif
+
+        @if($type === 'inventory' && !empty($report['inventory_details']))
+            @include('admin::pmdreports._inventory_details_v1')
         @endif
 
     </main>

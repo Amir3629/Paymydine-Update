@@ -1207,8 +1207,9 @@ document.documentElement.classList.add(
                 {{-- PMD_ANDROID_POS_PREVIEW_V18_CANONICAL_OFFLINE_POS --}}
                 {{-- PMD_SETTINGS_DEVICE_APP_DIRECT_DOWNLOAD_V21 --}}
                 {{-- PMD_DEVICE_APP_0_5_9_ZCS_Z100_V18 --}}
+                {{-- PMD_DEVICE_APP_0_6_6_ZCS_Z100_V150 --}}
                 data-pmd-device-app-download-v21
-                href="/public/downloads/paymydine/PayMyDine-Device-App-0.5.9.apk"
+                href="https://github.com/Amir3629/Paymydine-Update/releases/download/pmd-device-app-preview/PayMyDine-Device-App-0.6.6.apk"
                 target="_self"
                 rel="noopener noreferrer"
             >
@@ -1222,7 +1223,7 @@ document.documentElement.classList.add(
                     </svg>
                 </span>
                 <span class="pmd-cashier-launcher-v107__copy">
-                    <strong>PayMyDine Device App · Android</strong>
+                    <strong>PayMyDine Device App · Android 0.6.6</strong>
                     <small>Android 8+ · POS · Kiosk · Table Display · ZCS Customer Display · Terminal + Printer Setup · Device Control</small>
                 </span>
             </a>

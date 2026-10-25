@@ -93,7 +93,7 @@
                 </div>
                 <div class="pmd-owner-card__title">
                     <h2>{{ $pmdSettingsText('PayMyDine Device Control') }}</h2>
-                    <p>{{ $pmdSettingsText('One control plane for Table Display, Android POS, KDS, customer displays and self-service kiosks.') }}</p>
+                    <p>{{ $pmdSettingsText('Open or close restaurant screens. Find every registered device below.') }}</p>
                 </div>
                 <div class="pmd-owner-card__actions">
                     <span class="pmd-owner-status {{ (($devicePlatformStats['offline'] ?? 0) < 1) ? 'is-active' : '' }}">
@@ -152,7 +152,7 @@
                 <div class="pmd-device-platform-grid">
                     <div class="pmd-device-platform-pane">
                         <h3>{{ $pmdSettingsText('Device schedule') }}</h3>
-                        <p>{{ $pmdSettingsText('PayMyDine uses the restaurant Opening Hours as the authority. Devices wake before opening and enter closed mode after closing.') }}</p>
+                        <p>{{ $pmdSettingsText('Automatic opening hours apply to selected device types. Open/Close Restaurant overrides this schedule for restaurant screens including POS. Offline devices cannot physically respond until reconnected.') }}</p>
 
                         <form
                             data-request="onSavePmdDevicePlatformPolicy"
@@ -318,26 +318,43 @@
                 <div class="pmd-device-platform-list-head">
                     <div>
                         <h3>{{ $pmdSettingsText('Managed devices') }}</h3>
-                        <p>{{ $pmdSettingsText('Live heartbeat, app version, assignment and remote controls.') }}</p>
+                        <p>{{ $pmdSettingsText('See active screens, staff phones and saved devices. Rename devices to recognize them.') }}</p>
                     </div>
                 </div>
 
-                <div class="pmd-owner-list pmd-device-platform-list">
+                {{-- PMD_DEVICE_FLEET_UI_V150: live workspaces first; staff phones remain discoverable. --}}
+                <div class="pmd-device-fleet-toolbar" data-pmd-device-fleet-toolbar>
+                    <div class="pmd-device-fleet-tabs" role="group" aria-label="Show devices">
+                        <button type="button" data-pmd-device-filter="online" aria-pressed="true">{{ $pmdSettingsText('Connected') }} <span data-pmd-fleet-tab-count="online"></span></button>
+                        <button type="button" data-pmd-device-filter="staff" aria-pressed="false">{{ $pmdSettingsText('Staff / Waiters') }} <span data-pmd-fleet-tab-count="staff"></span></button>
+                        <button type="button" data-pmd-device-filter="table" aria-pressed="false">{{ $pmdSettingsText('Table screens') }} <span data-pmd-fleet-tab-count="table"></span></button>
+                        <button type="button" data-pmd-device-filter="offline" aria-pressed="false">{{ $pmdSettingsText('Offline') }} <span data-pmd-fleet-tab-count="offline"></span></button>
+                        <button type="button" data-pmd-device-filter="all" aria-pressed="false">{{ $pmdSettingsText('All saved') }} <span data-pmd-fleet-tab-count="all"></span></button>
+                    </div>
+                    <input type="search" data-pmd-device-search aria-label="Find a device" placeholder="{{ $pmdSettingsText('Search name, table or ID…') }}" autocomplete="off">
+                    <span class="pmd-device-fleet-count" data-pmd-device-count aria-live="polite"></span>
+                </div>
+                <div class="pmd-device-fleet-empty" data-pmd-device-empty hidden>{{ $pmdSettingsText('No matching devices. Try All saved or another search.') }}</div>
+                <div class="pmd-owner-list pmd-device-platform-list" data-pmd-device-list>
                     @forelse($devicePlatformDevices as $device)
-                        <div class="pmd-owner-list-row pmd-device-platform-row">
+                        <div
+                            class="pmd-owner-list-row pmd-device-platform-row"
+                            data-pmd-device-row
+                            data-pmd-device-group="{{ e($device['fleet_group'] ?? 'workstation') }}"
+                            data-pmd-device-online="{{ !empty($device['online']) ? '1' : '0' }}"
+                            data-pmd-device-capable="{{ !empty($device['device_command_capable']) && !empty($device['screen_remote_supported']) ? '1' : '0' }}"
+                            data-pmd-device-id="{{ (int)($device['id'] ?? 0) }}"
+                            data-pmd-device-expanded="0"
+                        >
                             <div class="pmd-device-platform-device">
                                 <span class="pmd-device-platform-dot {{ !empty($device['online']) ? 'is-online' : '' }}"></span>
                                 <div>
                                     <strong>{{ e($device['name'] ?? 'PayMyDine device') }}</strong>
                                     <small>
                                         {{ e($device['kind_label'] ?? 'Device') }}
+                                        · #{{ (int)($device['id'] ?? 0) }}
                                         @if(!empty($device['assignment']))
                                             · {{ e($device['assignment']) }}
-                                        @elseif(($device['kind'] ?? '') === 'table_display')
-                                            · {{ $pmdSettingsText('Unassigned') }}
-                                        @endif
-                                        @if(!empty($device['model']))
-                                            · {{ e($device['model']) }}
                                         @endif
                                     </small>
                                 </div>
@@ -345,51 +362,65 @@
 
                             <div class="pmd-device-platform-health">
                                 @php
-                                    // PMD_DEVICE_HEARTBEAT_STATUS_V145
-                                    $pmdDeviceControlReadyV145 = !empty($device['device_command_capable'])
-                                        && !empty($device['online']);
+                                    $pmdFleetConnectedV150 = !empty($device['online']);
+                                    $pmdFleetCapableV150 = !empty($device['device_command_capable'])
+                                        && !empty($device['screen_remote_supported']);
+                                    $pmdDeviceControlReadyV145 = $pmdFleetCapableV150;
                                     $pmdLastCommandV145 = (array)($device['last_device_command'] ?? []);
                                 @endphp
-                                <span>{{ !empty($device['online']) ? $pmdSettingsText('Device Control connected') : $pmdSettingsText('Device Control offline') }}</span>
-                                <small>
-                                    {{ e($device['screen_state'] ?? 'unknown') }}
-                                    @if(!empty($device['network_type']))
-                                        · {{ e(strtoupper((string)$device['network_type'])) }}
-                                    @endif
-                                    @if(!empty($device['app_version']))
-                                        · {{ e($device['app_version']) }}
-                                    @endif
-                                    @if(isset($device['battery_level']) && $device['battery_level'] !== null)
-                                        · {{ (int)$device['battery_level'] }}%
-                                    @endif
-                                    @if(!empty($device['last_seen_at']))
-                                        · {{ $pmdSettingsText('last Device Platform heartbeat') }} {{ e(\Carbon\Carbon::parse($device['last_seen_at'])->diffForHumans()) }}
-                                    @endif
-                                </small>
-                                @if(empty($device['device_command_capable']))
-                                    <small class="pmd-device-platform-diagnostic-v145">{{ $pmdSettingsText('Remote control unavailable: device is not registered with Device Platform.') }}</small>
-                                @elseif(empty($device['online']))
-                                    <small class="pmd-device-platform-diagnostic-v145">{{ $pmdSettingsText('No Device Platform heartbeat within 90 seconds. App login does not prove remote commands work.') }}</small>
+                                <span class="pmd-device-fleet-status {{ $pmdFleetConnectedV150 ? 'is-connected' : '' }}">
+                                    {{ $pmdSettingsText($pmdFleetConnectedV150 ? 'Connected'
+                                        : (empty($device['has_device_heartbeat']) ? 'Not connected yet' : 'Offline')) }}
+                                </span>
+                                @if(!empty($device['last_seen_at']))
+                                    <small>{{ $pmdSettingsText('Last connected') }} {{ e(\Carbon\Carbon::parse($device['last_seen_at'])->diffForHumans()) }}</small>
+                                @elseif(($device['kind'] ?? '') === 'staff_personal')
+                                    <small>{{ $pmdSettingsText('Staff phone registered; app control not connected') }}</small>
+                                @else
+                                    <small>{{ $pmdSettingsText('Open the Device App to connect') }}</small>
                                 @endif
                                 @if(!empty($pmdLastCommandV145))
-                                    <small class="pmd-device-platform-diagnostic-v145">
-                                        {{ $pmdSettingsText('Last command') }}:
+                                    <small>
+                                        {{ $pmdSettingsText('Last') }}:
                                         {{ e((string)($pmdLastCommandV145['action'] ?? '')) }}
-                                        · {{ e((string)($pmdLastCommandV145['status'] ?? 'unknown')) }}
-                                        @if(in_array((string)($pmdLastCommandV145['status'] ?? ''), ['pending', 'delivered'], true))
-                                            · {{ $pmdSettingsText('waiting for device acknowledgement; not confirmed executed') }}
-                                        @elseif(($pmdLastCommandV145['status'] ?? '') === 'completed')
-                                            · {{ $pmdSettingsText('device reported completion') }}
-                                        @elseif(($pmdLastCommandV145['status'] ?? '') === 'failed')
-                                            · {{ $pmdSettingsText('device reported failure; inspect logs') }}
-                                        @elseif(($pmdLastCommandV145['status'] ?? '') === 'expired')
-                                            · {{ $pmdSettingsText('command expired before confirmation') }}
-                                        @endif
+                                        · {{ e((string)($pmdLastCommandV145['status'] ?? 'pending')) }}
                                     </small>
                                 @endif
+                                <button type="button" class="pmd-device-fleet-more" data-pmd-device-more aria-expanded="false">
+                                    {{ $pmdSettingsText('Details') }}
+                                </button>
+                                <div class="pmd-device-fleet-tech" data-pmd-device-tech>
+                                    <small>{{ $pmdSettingsText('App') }}: {{ e($device['app_version'] ?? 'Unknown') }}
+                                        @if(!empty($device['model'])) · {{ e($device['model']) }} @endif
+                                        @if(!empty($device['network_type'])) · {{ e(strtoupper((string)$device['network_type'])) }} @endif
+                                        @if(isset($device['battery_level']) && $device['battery_level'] !== null)
+                                            · {{ (int)$device['battery_level'] }}%
+                                        @endif
+                                    </small>
+                                    @if(!$pmdFleetCapableV150)
+                                        <small>{{ $pmdSettingsText(($device['kind'] ?? '') === 'staff_personal'
+                                            ? 'Staff attendance phones cannot be remotely put to sleep. Waiter POS screens require a paired Device App.'
+                                            : 'Install and pair a compatible Device App to enable screen controls.') }}</small>
+                                    @elseif(!$pmdFleetConnectedV150)
+                                        <small>{{ $pmdSettingsText('Offline commands expire if this app does not reconnect in 10 minutes.') }}</small>
+                                    @endif
+                                </div>
                             </div>
 
                             <div class="pmd-device-platform-controlstack">
+                                <form
+                                    class="pmd-device-fleet-rename"
+                                    data-request="onRenamePmdDevicePlatform"
+                                    data-request-flash
+                                    data-request-redirect="{{ admin_url('pmddevices').'#device-platform' }}"
+                                >
+                                    <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
+                                    <label>
+                                        <span>{{ $pmdSettingsText('Device name') }}</span>
+                                        <input type="text" name="device_name" required minlength="2" maxlength="64" value="{{ e($device['name'] ?? '') }}">
+                                    </label>
+                                    <button type="submit">{{ $pmdSettingsText('Save name') }}</button>
+                                </form>
                                 @if(($device['kind'] ?? '') === 'table_display')
                                     <form
                                         class="pmd-device-platform-assign"
@@ -480,22 +511,22 @@
                                 >
                                     <input type="hidden" name="device_id" value="{{ (int)($device['id'] ?? 0) }}">
                                     <input type="hidden" name="pmd_device_command" value="">
-                                    <button type="submit" name="action" value="WAKE" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Wake') }}</button>
-                                    <button type="submit" name="action" value="SLEEP" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Sleep') }}</button>
+                                    <button type="submit" name="action" value="WAKE" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Wake') }}</button>
+                                    <button type="submit" name="action" value="SLEEP" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Sleep') }}</button>
                                     <label class="pmd-device-platform-brightness">
                                         <span>{{ $pmdSettingsText('Brightness') }}</span>
                                         <input type="number" min="0" max="100" name="brightness" value="{{ (int)($device['brightness'] ?? 80) }}">
-                                        <button type="submit" name="action" value="SET_BRIGHTNESS" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Set') }}</button>
+                                        <button type="submit" name="action" value="SET_BRIGHTNESS" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Set') }}</button>
                                     </label>
-                                    <button type="submit" name="action" value="IDENTIFY" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Identify') }}</button>
-                                    <button type="submit" name="action" value="RELOAD_APP" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif>{{ $pmdSettingsText('Reload') }}</button>
-                                    <button type="submit" name="action" value="REBOOT" @if(!$pmdDeviceControlReadyV145) disabled title="Device Platform heartbeat required" @endif data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
+                                    <button type="submit" name="action" value="IDENTIFY" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Identify') }}</button>
+                                    <button type="submit" name="action" value="RELOAD_APP" @if(!$pmdDeviceControlReadyV145) disabled title="Pair or update this device for command control" @endif>{{ $pmdSettingsText('Reload') }}</button>
+                                    <button type="submit" name="action" value="REBOOT" @if(!$pmdDeviceControlReadyV145 || empty($device['online'])) disabled title="Reboot requires an online device-owner managed Android device" @endif data-pmd-device-confirm="reboot">{{ $pmdSettingsText('Reboot') }}</button>
                                 </form>
                             </div>
                         </div>
                     @empty
                         <div class="pmd-owner-empty">
-                            {{ $pmdSettingsText('No trusted PayMyDine device has reported to Device Control yet. Pair a Table Companion or Android Restaurant App first.') }}
+                            {{ $pmdSettingsText('No registered devices yet. Pair a Device App to get started.') }}
                         </div>
                     @endforelse
                 </div>

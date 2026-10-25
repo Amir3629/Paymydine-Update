@@ -129,6 +129,12 @@ Route::middleware(['web'])->group(function () {
         [\App\Http\Controllers\PmdTableDisplayPaymentController::class, 'availability']
     )->where('order', '[0-9]+');
 
+    // PMD_Z80_WAITER_GUEST_QR_ENDPOINT_V147
+    Route::post(
+        '/admin/pos/table-display-qr/{order}',
+        [\App\Http\Controllers\PmdTableDisplayPaymentController::class, 'requestQr']
+    )->where('order', '[0-9]+')->middleware('throttle:15,1');
+
     Route::post(
         '/admin/pos/table-display-payment/{order}',
         \App\Http\Controllers\PmdTableDisplayPaymentController::class

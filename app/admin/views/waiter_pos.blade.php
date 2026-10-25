@@ -25,8 +25,9 @@
 <body class="pmd-waiter-pos-page">
 {!! $shell !!}
 <script>window.PMD_WAITER_POS_BOOTSTRAP = @json($bootstrap);</script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v2.js') }}?v=27"></script>
-<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=27"></script>
+{{-- PMD_WAITER_STANDALONE_V147: use same payment runtime as main waiter dashboard. --}}
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-v3.js') }}?v=20261023-147"></script>
+<script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-payment-policy-v2.js') }}?v=20261023-147"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-v1.js') }}?v=27"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-product-details-v3.js') }}?v=27"></script>
 <script src="{{ asset('app/admin/assets/js/pmd-waiter-pos-simple-v27.js') }}?v=27"></script>

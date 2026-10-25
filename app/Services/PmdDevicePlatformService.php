@@ -639,9 +639,28 @@ final class PmdDevicePlatformService
                 $assignment = (string)$platform['station_name'];
             }
 
+            // PMD_DEVICE_FLEET_CLASSIFICATION_V150
+            // Trusted records are not proof of a controllable Android screen.
+            // Waiter apps on a real POS workspace can be controlled. Generic
+            // personal Staff/Attendance phones cannot be remotely OS-locked.
+            $screenSupported = $kind !== 'site_hub' && (
+                in_array($kind, ['table_display', 'cashier', 'kds',
+                    'customer_display', 'kiosk'], true)
+                || in_array($mode, ['table_display', 'pos', 'cashier',
+                    'kds', 'customer_display', 'kiosk'], true)
+            );
+            $fleetGroup = $kind === 'staff_personal' ? 'staff'
+                : ($kind === 'table_display' ? 'table' : 'workstation');
+
             return [
                 'id' => (int)$device->id,
                 'name' => trim((string)($device->device_name ?? '')) ?: 'PayMyDine device',
+                'fleet_group' => $fleetGroup,
+                'screen_remote_supported' => $screenSupported,
+                'has_device_heartbeat' => (bool)$seen,
+                'trusted_seen_at' => !empty($device->last_seen_at)
+                    ? Carbon::parse($device->last_seen_at)->toIso8601String()
+                    : null,
                 'kind' => $kind,
                 'kind_label' => $this->kindLabel($kind, $mode),
                 'mode' => $mode ?: $kind,
@@ -682,6 +701,32 @@ final class PmdDevicePlatformService
                 ),
             ];
         })->values()->all();
+    }
+
+    /**
+     * PMD_DEVICE_FLEET_RENAME_V150
+     * Rename trusted local device only; no tokens or staff data are touched.
+     * Access is checked in the owning admin controller.
+     */
+    public function renameDevice(int $locationId, int $deviceId, string $name): void
+    {
+        $this->ensureStorage();
+        $name = trim(preg_replace('/[\\x00-\\x1F\\x7F]/u', ' ', $name) ?? '');
+        if ($deviceId < 1 || mb_strlen($name) < 2 || mb_strlen($name) > 64) {
+            abort(422, 'Enter a device name between 2 and 64 characters.');
+        }
+        $updated = DB::table('pmd_site_access_devices')
+            ->where('location_id', $locationId)
+            ->where('id', $deviceId)
+            ->whereNull('revoked_at')
+            ->whereIn('device_kind', [
+                'table_display', 'staff_personal', 'site_hub', 'kds',
+                'cashier', 'customer_display', 'kiosk',
+            ])
+            ->update(['device_name' => $name, 'updated_at' => now()]);
+        if (!$updated) {
+            abort(404, 'This device is not registered for your restaurant.');
+        }
     }
 
     public function heartbeat($device, array $input): array
@@ -735,12 +780,22 @@ final class PmdDevicePlatformService
             ]
         );
 
+        // PMD_DEVICE_HEARTBEAT_SELF_REGISTER_CAPABILITY_V149
+        // A valid bearer heartbeat proves protocol support even if an older
+        // trusted pairing did not originally carry the capability flag.
+        $trustedUpdate = ['last_seen_at' => now(), 'updated_at' => now()];
+        $caps = $this->decodeList((string)($device->capabilities ?? ''));
+        if (!in_array('device_platform_v1', $caps, true)) {
+            $caps[] = 'device_platform_v1';
+            $trustedUpdate['capabilities'] = json_encode(
+                array_values(array_unique($caps)), JSON_UNESCAPED_SLASHES
+            );
+        }
         DB::table('pmd_site_access_devices')
             ->where('id', $deviceId)
-            ->update([
-                'last_seen_at' => now(),
-                'updated_at' => now(),
-            ]);
+            ->where('location_id', $locationId)
+            ->whereNull('revoked_at')
+            ->update($trustedUpdate);
 
         $policy = $this->policy($locationId);
         $desired = $this->desiredState($locationId, $policy, $kind, $mode);
@@ -970,6 +1025,26 @@ final class PmdDevicePlatformService
 
             return in_array('device_platform_v1', $capabilities, true);
         })->values();
+        // PMD_GLOBAL_POWER_SKIP_PERSONAL_V149
+        // Bulk Open/Close targets restaurant screen workspaces, not a personal
+        // phone on its generic staff login or a headless site hub.
+        if (!$deviceId && !$targetKind && in_array($command, ['WAKE', 'SLEEP'], true)
+            && $devices->isNotEmpty()) {
+            $candidateIds = $devices->pluck('id')->map(static fn ($id) => (int)$id)->all();
+            $runtimeModes = DB::table('pmd_device_runtime')
+                ->where('location_id', $locationId)
+                ->whereIn('device_id', $candidateIds)
+                ->pluck('device_mode', 'device_id');
+            $devices = $devices->filter(static function ($device) use ($runtimeModes) {
+                $kind = strtolower(trim((string)$device->device_kind));
+                $mode = strtolower(trim((string)($runtimeModes[(int)$device->id] ?? '')));
+                return in_array($kind, [
+                    'table_display', 'kds', 'cashier', 'customer_display', 'kiosk',
+                ], true) || in_array($mode, [
+                    'table_display', 'kds', 'pos', 'cashier', 'customer_display', 'kiosk',
+                ], true);
+            })->values();
+        }
         $ids = [];
 
         if ($deviceId && $devices->isNotEmpty()) {
@@ -1200,23 +1275,20 @@ final class PmdDevicePlatformService
     ): array {
         $policy = $policy ?: $this->policy($locationId);
         $managed = $this->modeManagedBySchedule($kind, $mode, $policy);
-
-        if (!$managed) {
-            return [
-                'screen_state' => 'awake',
-                'brightness' => (int)$policy['open_brightness'],
-                'reason' => 'device_mode_not_scheduled',
-                'managed' => false,
-                'kiosk' => true,
-            ];
-        }
-
+        // PMD_RESTAURANT_GLOBAL_MANUAL_POWER_V149
+        // Open/Close restaurant overrides schedule opt-ins, notably POS=false.
+        // A general personal login or site-hub agent is not a screen to blank.
+        $physicalScreen = in_array(strtolower($kind), [
+            'table_display', 'kds', 'cashier', 'customer_display', 'kiosk',
+        ], true) || in_array(strtolower($mode), [
+            'table_display', 'kds', 'pos', 'cashier', 'customer_display', 'kiosk',
+        ], true);
         $manual = strtolower((string)($policy['manual_mode'] ?? 'auto'));
         $manualUntil = !empty($policy['manual_until'])
             ? Carbon::parse((string)$policy['manual_until'])
             : null;
-
-        if ($manual !== 'auto' && (!$manualUntil || $manualUntil->isFuture())) {
+        if ($physicalScreen && $manual !== 'auto'
+            && (!$manualUntil || $manualUntil->isFuture())) {
             $awake = $manual === 'open';
             return [
                 'screen_state' => $awake ? 'awake' : 'closed',
@@ -1227,6 +1299,16 @@ final class PmdDevicePlatformService
                 'managed' => true,
                 'kiosk' => true,
                 'manual_until' => $manualUntil ? $manualUntil->toIso8601String() : null,
+            ];
+        }
+        // Automatic hours remain opt-in for each individual device type.
+        if (!$managed) {
+            return [
+                'screen_state' => 'awake',
+                'brightness' => (int)$policy['open_brightness'],
+                'reason' => 'device_mode_not_scheduled',
+                'managed' => false,
+                'kiosk' => true,
             ];
         }
 

@@ -1,0 +1,71 @@
+/* PMD_STAFF_SAME_APP_MANAGEMENT_V1_20261023
+ * A working manager's shift ledger, not a mini admin desktop in a WebView.
+ * Calm PMD forest-green authority; amber exclusively marks actual extra work.
+ */
+*{box-sizing:border-box}
+html,body.pmd-staff-mobile-manager{margin:0;min-height:100%;background:#f3f8f5;color:#153c30;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,a,textarea{font:inherit}
+.pmd-staff-manager{min-height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+.pmd-staff-manager__header{display:flex;align-items:center;gap:13px;justify-content:space-between;min-height:67px;padding:11px max(16px,env(safe-area-inset-left));background:#fff;border-bottom:1px solid #d7e6df}
+.pmd-staff-manager__brand{display:flex;align-items:center;max-width:122px}
+.pmd-staff-manager__brand img{display:block;width:116px;max-width:100%;height:auto;max-height:38px;object-fit:contain}
+.pmd-staff-manager__role{padding:5px 9px;background:#e8f5ee;border:1px solid #cbe3d5;border-radius:6px;font-size:10px;color:#23624d;font-weight:800}
+.pmd-staff-manager__links{display:flex;align-items:center;gap:12px}
+.pmd-staff-manager__links a{font-size:12px;color:#0c6750;font-weight:750;text-decoration:none}
+.pmd-staff-manager__main{max-width:1050px;margin:0 auto;padding:20px 18px 35px}
+.pmd-staff-manager__heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:4px 0 20px}
+.pmd-staff-manager__heading small,.pmd-staff-manager__urgent-header small{font-size:10px;font-weight:900;letter-spacing:.12em;color:#307f63}
+.pmd-staff-manager__heading h1{font-size:29px;line-height:1.1;letter-spacing:-.035em;margin:4px 0 7px}
+.pmd-staff-manager__heading p{font-size:12px;line-height:1.5;color:#6a8077;margin:0}
+.pmd-staff-manager__heading button{flex:none;min-height:40px;background:#fff;border:1px solid #b8d5c6;color:#155f4c;border-radius:8px;padding:0 14px;font-size:12px;font-weight:800;cursor:pointer}
+.pmd-staff-manager__message{max-width:1050px;margin:12px auto;padding:12px 18px;border-left:3px solid #17976c;background:#eaf9f1;font-size:12px}
+.pmd-staff-manager__message.is-error{border-color:#c14c40;background:#fff1ee}
+.pmd-staff-manager__urgent{background:#fff;border:1px solid #d6e5dd;border-radius:13px;overflow:hidden;margin-bottom:20px}
+.pmd-staff-manager__urgent-header{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:15px 17px;background:#fff7e9;border-bottom:1px solid #f0dcc0}
+.pmd-staff-manager__urgent-header small{color:#9a6016}
+.pmd-staff-manager__urgent-header h2{font-size:17px;margin:3px 0 0}
+.pmd-staff-manager__urgent-header>strong{font-size:12px;color:#86571d}
+.pmd-staff-manager__extras{max-height:300px;overflow:auto}
+.pmd-staff-manager__extra{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:13px 17px;border-bottom:1px solid #f1e5d3;border-left:4px solid #df9d37}
+.pmd-staff-manager__extra:last-child{border-bottom:0}
+.pmd-staff-manager__extra.is-reviewed{border-left-color:#a2b4aa;background:#fcfcfb}
+.pmd-staff-manager__extra>div:first-child{display:grid;gap:4px;min-width:0}
+.pmd-staff-manager__extra strong{font-size:13px;color:#283f33}
+.pmd-staff-manager__extra small{font-size:11px;color:#767269}
+.pmd-staff-manager__extra-end{display:grid;justify-items:end;gap:5px}
+.pmd-staff-manager__extra-end>span{background:#fff0d4;color:#8a540f;border-radius:5px;padding:3px 7px;font-size:11px;font-weight:800}
+.pmd-staff-manager__extra.is-reviewed .pmd-staff-manager__extra-end>span{background:#edf5f1;color:#456f5d}
+.pmd-staff-manager__extra-end form{margin:0}
+.pmd-staff-manager__extra-end button{border:0;background:none;padding:4px 0;color:#0f6b51;text-decoration:underline;font-size:11px;font-weight:800;cursor:pointer}
+.pmd-staff-manager__empty{padding:20px;color:#718579;font-size:12px}
+.pmd-staff-manager__operations{background:#fff;border:1px solid #d6e5dd;border-radius:13px;padding:12px 20px 22px;overflow:hidden}
+.pmd-staff-manager__operations .pmd-staff-ops__intro{padding-top:12px}
+.pmd-staff-manager__operations .pmd-staff-ops__section{min-height:150px}
+.pmd-staff-manager__operations .pmd-staff-ops__kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pmd-staff-manager__operations .pmd-staff-ops__tabs{position:sticky;top:0;z-index:3}
+.pmd-staff-manager__operations .pmd-staff-ops__composer textarea{width:100%}
+.pmd-staff-manager__operations .pmd-staff-ops__entry strong{white-space:normal}
+.pmd-staff-manager__footer{display:none}
+button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #219f7b;outline-offset:2px}
+@media(max-width:660px){
+  body.pmd-staff-mobile-manager{overflow-x:hidden}
+  .pmd-staff-manager__header{padding:10px 13px;gap:7px;flex-wrap:wrap}
+  .pmd-staff-manager__brand img{width:95px}
+  .pmd-staff-manager__role{font-size:9px}
+  .pmd-staff-manager__links{gap:8px}
+  .pmd-staff-manager__links a{font-size:11px}
+  .pmd-staff-manager__main{padding:16px 11px calc(74px + env(safe-area-inset-bottom))}
+  .pmd-staff-manager__heading h1{font-size:24px}
+  .pmd-staff-manager__operations{padding:10px}
+  .pmd-staff-manager__operations .pmd-staff-ops__kpis{gap:5px}
+  .pmd-staff-manager__operations .pmd-staff-ops__kpis>div{padding:10px 7px;border-radius:7px}
+  .pmd-staff-manager__operations .pmd-staff-ops__kpis strong{font-size:18px}
+  .pmd-staff-manager__operations .pmd-staff-ops__kpis span{font-size:9px}
+  .pmd-staff-manager__operations .pmd-staff-ops__tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .pmd-staff-manager__operations .pmd-staff-ops__tabs button{white-space:normal;font-size:11px;padding:5px 4px}
+  .pmd-staff-manager__operations .pmd-staff-ops__request{grid-template-columns:1fr;gap:7px}
+  .pmd-staff-manager__footer{position:fixed;display:flex;justify-content:space-around;align-items:center;bottom:0;left:0;right:0;z-index:10;min-height:60px;padding:5px 8px calc(5px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #dbe8df}
+  .pmd-staff-manager__footer a{padding:12px 13px;color:#4f7667;text-decoration:none;font-size:12px;font-weight:800}
+  .pmd-staff-manager__footer a[aria-current]{color:#075c45;background:#e8f5ed;border-radius:9px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}

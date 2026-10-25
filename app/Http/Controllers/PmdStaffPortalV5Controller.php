@@ -54,6 +54,16 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
         $roleService = app(PmdDefaultStaffRoleService::class);
         $roleCode = $roleService->roleCodeForUser($user);
         $canManage = in_array($roleCode, [PmdDefaultStaffRoleService::OWNER, PmdDefaultStaffRoleService::MANAGER], true);
+        // PMD_OWNER_SHARED_STAFF_SHELL_V026_20261023:
+        // The same Staff Portal gets a manager tab from server-scoped
+        // workforce data; regular Staff accounts never receive this payload.
+        $managerCenter = $canManage
+            ? app(\Admin\Services\PmdStaffOperationsCenterV1::class)->payload($locationId)
+            : null;
+        $managerExtras = $canManage
+            ? app(\App\Services\PmdActualWorkShiftV1::class)
+                ->get($locationId, $monthStart, $monthEnd, null, 120)
+            : collect();
         $workspaceRoute = $roleService->routeForRoleCode($roleCode);
 
         $shifts = collect();
@@ -85,6 +95,12 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
                 ->first();
             if ($nextShift) $nextShift->planned_hours = round($this->plannedMinutesForShift($nextShift) / 60, 2);
         }
+
+        // PMD_STAFF_MY_ACTUAL_EXTRAS_V1_20261023:
+        // Real unplanned clock sessions are displayed as separate worked
+        // shifts, including an active in-progress punch, not published rota.
+        $actualExtraShifts = app(\App\Services\PmdActualWorkShiftV1::class)
+            ->get($locationId, $monthStart, $monthEnd, $staffId, 180);
 
         $workRuleWarnings = app(PmdGermanWorkRulesService::class)->analyze($shifts);
         [$attendanceReady, $monthlyReport] = $this->monthlyAttendanceReport(
@@ -237,7 +253,10 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
             'roleCode',
             'workspaceRoute',
             'canManage',
+            'managerCenter',
+            'managerExtras',
             'workRuleWarnings',
+            'actualExtraShifts',
             'staffId'
         ));
     }

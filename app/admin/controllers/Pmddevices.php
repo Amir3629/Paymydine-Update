@@ -48,6 +48,10 @@ class Pmddevices extends AdminController
         $this->addCss('css/pmd-settings-suite-first-paint-v1.css');
         $this->addCss('css/pmd-device-inline-v7.css');
         $this->addCss('css/pmd-device-platform-v1.css');
+        // PMD_DEVICE_FLEET_UI_V150: route-scoped compact filters and controls.
+        $pmdFleetCss = 'app/admin/assets/css/pmd-device-fleet-v150.css';
+        $this->addCss(asset($pmdFleetCss).'?v='.
+            (string)(@filemtime(base_path($pmdFleetCss)) ?: '20261023-v150'));
         // PMD_CROSS_SURFACE_GLASS_CARDS_V1_20261018: route-scoped presentation only, cache-busted by filemtime.
         $pmdGlassSuiteCss = 'app/admin/assets/css/pmd-cross-surface-glass-v1.css';
         $this->addCss(asset($pmdGlassSuiteCss).'?v='.(string)(@filemtime(base_path($pmdGlassSuiteCss)) ?: '20261018'));
@@ -59,6 +63,9 @@ class Pmddevices extends AdminController
         $pmdDeviceCommandJs = 'app/admin/assets/js/pmd-device-platform-v1.js';
         $this->addJs(asset($pmdDeviceCommandJs).'?v='.
             (string)(@filemtime(base_path($pmdDeviceCommandJs)) ?: '20261022-v144'));
+        $pmdFleetJs = 'app/admin/assets/js/pmd-device-fleet-v150.js';
+        $this->addJs(asset($pmdFleetJs).'?v='.
+            (string)(@filemtime(base_path($pmdFleetJs)) ?: '20261023-v150'));
 
                 // PMD_GLASS_NUMERIC_CONTROLS_WIRING_V1_20261019: route-scoped accessible steppers & true tenant currency.
         foreach (['app/admin/assets/css/pmd-glass-numeric-controls-v1.css'] as $pmdGlassInputCssV1) {
@@ -265,7 +272,7 @@ class Pmddevices extends AdminController
                 $this->devicePlatformStaffId()
             );
             flash()->success(
-                'Open Restaurant sent to '.(int)$result['count'].' PayMyDine device(s).'
+                'Restaurant screen policy Open. WAKE queued for '.(int)$result['count'].' device(s); execution needs device heartbeat.'
             );
             return;
         }
@@ -285,7 +292,7 @@ class Pmddevices extends AdminController
                 $this->devicePlatformStaffId()
             );
             flash()->success(
-                'Close Restaurant sent to '.(int)$result['count'].' PayMyDine device(s).'
+                'Restaurant screen policy Closed. SLEEP queued for '.(int)$result['count'].' device(s); execution needs device heartbeat.'
             );
             return;
         }
@@ -330,6 +337,20 @@ class Pmddevices extends AdminController
                 ' device(s). Execution requires device acknowledgement.'
             );
         }
+    }
+
+    /** PMD_DEVICE_FLEET_RENAME_V150: change a trusted device's label only. */
+    public function onRenamePmdDevicePlatform()
+    {
+        $this->assertDevicePlatformManager();
+        $deviceId = (int)post('device_id', 0);
+        $name = trim((string)post('device_name', ''));
+        app(PmdDevicePlatformService::class)->renameDevice(
+            $this->devicePlatformLocationId(),
+            $deviceId,
+            $name
+        );
+        flash()->success('Device name saved.');
     }
 
     /** PMD_DEVICE_PLATFORM_V1 */
