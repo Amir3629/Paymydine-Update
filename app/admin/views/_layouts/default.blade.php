@@ -9227,6 +9227,15 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
         data-pmd-admin-control-layout-r30="real"></script>
 <!-- /PMD_ADMIN_CONTROL_LANGUAGE_R30_REAL_LAYOUT -->
 
+<!-- PMD_INVENTORY_BARCODE_FLOOR_R31_ASSETS: after R19-R30, actual Admin layout -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-inventory-barcode-floor-r31.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-inventory-barcode-floor-r31.css')) ?: 20261025) }}"
+      data-pmd-inventory-barcode-floor-r31="css">
+<script defer
+        src="{{ asset('app/admin/assets/js/pmd-inventory-scrollbar-r31.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-inventory-scrollbar-r31.js')) ?: 20261025) }}"
+        data-pmd-inventory-barcode-floor-r31="js"></script>
+<!-- /PMD_INVENTORY_BARCODE_FLOOR_R31_ASSETS -->
+
 </head>
 @php
     /* PMD_PERF_R13_LAYOUT_STAGE_PROFILER */
