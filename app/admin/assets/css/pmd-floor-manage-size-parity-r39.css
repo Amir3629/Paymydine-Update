@@ -9,8 +9,8 @@ html body.pmd-dashboard-lab-page
 :is(
   .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor,
   .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage,
-  > button.pmd-floor-table-manager__toolbar-button.is-add,
-  > button.pmd-floor-table-manager__toolbar-button.is-edit
+  button.pmd-floor-table-manager__toolbar-button.is-add,
+  button.pmd-floor-table-manager__toolbar-button.is-edit
 ) {
   box-sizing:border-box!important;
   display:inline-flex!important;
@@ -42,8 +42,8 @@ html body.pmd-dashboard-lab-page
 #pmd-r2-floor-toolbar-v316
 :is(
   .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage,
-  > button.pmd-floor-table-manager__toolbar-button.is-add,
-  > button.pmd-floor-table-manager__toolbar-button.is-edit
+  button.pmd-floor-table-manager__toolbar-button.is-add,
+  button.pmd-floor-table-manager__toolbar-button.is-edit
 ) > span {
   font:inherit!important;
   letter-spacing:0!important;
@@ -56,8 +56,8 @@ html body.pmd-dashboard-lab-page
 #pmd-r2-floor-toolbar-v316
 :is(
   .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage,
-  > button.pmd-floor-table-manager__toolbar-button.is-add,
-  > button.pmd-floor-table-manager__toolbar-button.is-edit
+  button.pmd-floor-table-manager__toolbar-button.is-add,
+  button.pmd-floor-table-manager__toolbar-button.is-edit
 ) svg {
   display:block!important;
   width:20px!important;
@@ -89,8 +89,8 @@ html body.pmd-dashboard-lab-page
  :is(
    .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor,
    .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage,
-   > button.pmd-floor-table-manager__toolbar-button.is-add,
-   > button.pmd-floor-table-manager__toolbar-button.is-edit
+   button.pmd-floor-table-manager__toolbar-button.is-add,
+   button.pmd-floor-table-manager__toolbar-button.is-edit
  ) {
    width:max-content!important;
    min-width:116px!important;
