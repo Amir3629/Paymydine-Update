@@ -1,0 +1,42 @@
+/* PMD_EDIT_FLOOR_R39_AUDIT: read-only, never reveals an unauthorized action */
+(function(){
+ 'use strict';
+ function audit(){
+   var root=document.getElementById('pmd-r2-shared-floor-canvas-v310');
+   if(!root)return {ready:false,reason:'No shared Floor on this route'};
+   var authorized=root.getAttribute('data-pmd-floor-table-manager')==='true';
+   var switcher=root.querySelector('[data-pmd-floor-switcher]');
+   var edit=root.querySelector('[data-pmd-floor-manage]');
+   var addTable=root.querySelector('[data-pmd-floor-table-add]');
+   var editTable=root.querySelector('[data-pmd-floor-table-edit]');
+   var panels=root.querySelectorAll('[data-pmd-floor-manage-panel]').length;
+   function size(el){
+     if(!el)return null;
+     var r=el.getBoundingClientRect();
+     var st=window.getComputedStyle(el);
+     return {width:Math.round(r.width),height:Math.round(r.height),fontSize:st.fontSize,display:st.display,visibility:st.visibility,disabled:!!el.disabled,hidden:el.hidden};
+   }
+   var registry=null;
+   try{
+     registry=window.PMDSharedFloorMultiFloorV1&&window.PMDSharedFloorMultiFloorV1.audit();
+   }catch(e){registry={error:String(e)};}
+   return {
+     ready:true,
+     authorized:authorized,
+     floorCount:registry&&registry.floorCount,
+     activeId:root.getAttribute('data-pmd-active-floor-id'),
+     activeFloorName:root.getAttribute('data-pmd-active-floor-name'),
+     switcherHidden:!!(switcher&&switcher.hidden),
+     editFloorPresent:!!edit,
+     editFloorVisible:!!(authorized&&edit&&!edit.hidden&&size(edit).display!=='none'),
+     editFloorPanelPresent:panels===1,
+     floorTabs:switcher?Array.prototype.slice.call(switcher.querySelectorAll('[data-pmd-floor-switch]')).map(function(btn){return {name:btn.textContent.trim(),size:size(btn)}}):[],
+     editFloor:size(edit),
+     addTable:size(addTable),
+     editTable:size(editTable),
+     defaultFloorRenameAllowedByRegistry:true,
+     defaultFloorDeleteDisallowedByRegistry:true
+   };
+ }
+ window.PMDEditFloorR39={version:'39.0.0',audit:audit};
+})();
