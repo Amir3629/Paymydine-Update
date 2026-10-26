@@ -16,7 +16,11 @@
   var chosenRoles = ['all'], modal = null, noteList = null, modalRoles = null;
   var modalError = null, roleReady = false, scheduled = false, revision = 0;
   var csrfMeta = document.querySelector('meta[name="csrf-token"]');
-  var csrfToken = csrfMeta ? String(csrfMeta.content || '') : '';
+  // PMD_OWNER_STAFF_NOTES_CSRF_R11_FIX: the canonical Dashboardlab
+  // layout has no CSRF meta tag. Read the token securely from the
+  // authenticated Owner dashboard Blade instead of posting an empty token.
+  var csrfToken = host.getAttribute('data-pmd-owner-hour-notes-csrf')
+    || (csrfMeta ? String(csrfMeta.content || '') : '');
 
   function e(tag, className, parent, value) {
     var element = document.createElement(tag);
