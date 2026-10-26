@@ -1475,9 +1475,6 @@ body.pmd-dashboard-lab-page
                             {{ $pmdFloorManageText['title'] }}
                         </h2>
 
-                        <p>
-                            {{ $pmdFloorManageText['subtitle'] }}
-                        </p>
                     </div>
 
                     <button
@@ -1525,6 +1522,8 @@ body.pmd-dashboard-lab-page
                     >
                         {{ $pmdFloorManageText['locked'] }}
                     </div>
+                    <div class="pmd-r45-floor-safety" role="status"
+                         data-pmd-floor-remove-safety-r45 hidden></div>
 
                     <div
                         class="pmd-floor-registry-manager__error"
@@ -1857,6 +1856,8 @@ body.pmd-dashboard-lab-page
                             <textarea rows="2" maxlength="1000" data-pmd-floor-table-field="floor_notes" placeholder="{{ $pmdFloorTableManagerText['notes_placeholder'] }}"></textarea>
                         </label>
                     </div>
+                    <div class="pmd-r45-table-safety" data-pmd-r45-table-safety
+                         role="status" hidden></div>
 
                     <div class="pmd-floor-table-manager__error" data-pmd-floor-table-manager-error hidden></div>
                 </form>
