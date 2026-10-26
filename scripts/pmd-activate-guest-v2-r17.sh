@@ -55,8 +55,8 @@ git show "${REV}:scripts/test-pmd-r17-v2-guard.cjs" > "$TMP/test-v2.cjs"
 python3 -m py_compile "$TMP/v2-guard.py"
 node --check "$TMP/test-v2.cjs"
 
-echo '== PM2 exact process identity (never select a truncated name) =='
-LIVE="$(pm2 jlist | node -e '
+echo '== PM2 actual guest V2 process identity (never infer from truncated display) =='
+IDENTITY="$(pm2 jlist | node -e '
 let s=""; process.stdin.on("data",x=>s+=x).on("end",()=>{
   let rows=[];try{rows=JSON.parse(s)}catch(e){process.exit(8)}
   for(const p of rows){
@@ -65,14 +65,22 @@ let s=""; process.stdin.on("data",x=>s+=x).on("end",()=>{
         "cwd="+(p.pm2_env?.pm_cwd||"unknown"));
     }
   }
-  const matches=rows.filter(p=>p.name==="paymydine-frontend-v2"&&p.pm2_env?.status==="online");
-  if(matches.length!==1)process.exit(9);
-  process.stdout.write(String(matches[0].pm2_env.pm_cwd||""));
+  const candidates=rows.filter(p=>
+    /^paymydine-frontend[a-z0-9_-]*$/.test(String(p.name||"")) &&
+    p.pm2_env?.status==="online" &&
+    String(p.pm2_env?.pm_cwd||"").startsWith("/var/www/paymydine/frontend-v2/")
+  );
+  if(candidates.length!==1)process.exit(9);
+  const p=candidates[0];
+  process.stdout.write(p.name+"\t"+String(p.pm2_env.pm_cwd));
 });')" || {
-  echo 'STOP: exactly one online paymydine-frontend-v2 process is required.'
+  echo 'STOP: exactly one online guest frontend process with a V2 cwd is required.'
   echo 'No Next build or PM2 process was changed.'
   exit 4
 }
+[[ "$IDENTITY" == *$'\t'* ]] || { echo 'STOP: PM2 identity parse failed'; exit 4; }
+SERVICE="${IDENTITY%%$'\t'*}"
+LIVE="${IDENTITY#*$'\t'}"
 [[ -d "$LIVE" ]] || { echo 'STOP: PM2 working directory missing'; exit 4; }
 LIVE="$(readlink -f "$LIVE")"
 case "$LIVE" in
@@ -177,10 +185,10 @@ NEW_BUILD=1
 pm2 reload "$SERVICE" --update-env
 pm2 jlist | node -e '
 let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
-  const p=JSON.parse(s).filter(p=>p.name==="paymydine-frontend-v2");
+  const p=JSON.parse(s).filter(p=>p.name===process.argv[1]);
   if(p.length!==1 || p[0].pm2_env?.status!=="online")process.exit(1);
-  console.log("PASS: exact V2 PM2 service is online");
-});'
+  console.log("PASS: exact V2 PM2 service is online:",p[0].name);
+});' "$SERVICE"
 AFTER="$(curl -fsS --connect-timeout 3 --max-time 10 http://127.0.0.1:3002/api/health)"
 printf '%s' "$AFTER" | node -e '
 let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
