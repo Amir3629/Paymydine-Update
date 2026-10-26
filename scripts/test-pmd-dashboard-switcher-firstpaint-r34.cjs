@@ -47,8 +47,11 @@ assert.ok(!css.includes('pmd-admin-controls-r29-ready'),
  'R34 must be identical BEFORE/AFTER R29 DOM-content classification');
 assert.ok(!css.includes('data-pmd-admin-action-r29'),
  'Chart CSS must work before R29 adds the data role');
-assert.ok(!css.includes('DOMContentLoaded'));
-assert.ok(!css.includes('setTimeout'));
+// Comments mention DOMContentLoaded as the original root cause; no runtime
+// timing logic may be added by this CSS-only patch.
+const cssRules=css.replace(/\/\*[\s\S]*?\*\//g,'');
+assert.ok(!cssRules.includes('DOMContentLoaded'));
+assert.ok(!cssRules.includes('setTimeout'));
 assert.ok(template.includes('data-pmd-lab-chart-mode="line"'));
 assert.ok(template.includes('data-pmd-lab-chart-mode="bar"'));
 assert.ok(template.includes('data-pmd-lab-period="today"'));
