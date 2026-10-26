@@ -406,15 +406,29 @@ export function normalizeTips(settingsPayload: unknown): TipConfig {
 }
 
 export function normalizeTable(payload: unknown, query: { tableId?: string|null; tableNo?: string|null; qr?: string|null }): TableContext {
+  // PMD_V2_QR_DISABLED_TABLE_FAIL_CLOSED_R17
+  // /api/v1/table-info can return success:false plus data.status:false,
+  // or a legacy success:true with table_status:0. Both mean inactive.
   const root = unwrap(payload)
   const resolvedId = str(first(root, ['table_id','id'])) || null
   const resolvedNumber = str(first(root, ['table_no','table_number','number'])) || null
   const resolvedQr = str(first(root, ['qr_code','qr'])) || null
+  const explicitlyOff = (value: unknown): boolean =>
+    value !== undefined && value !== null && str(value) !== '' && !yes(value, true)
   const disabled =
     root.table_disabled === true ||
+    root.disabled === true ||
     str(root.code).toLowerCase() === 'table_disabled' ||
-    root.disabled === true
-  const valid = !disabled && root.success !== false && Boolean(resolvedId || resolvedNumber || resolvedQr)
+    explicitlyOff(root.table_status) ||
+    explicitlyOff(root.status) ||
+    explicitlyOff(root.enabled)
+  const requestedNumber = str(query.tableNo)
+  const matchesNumber = !requestedNumber || !resolvedNumber ||
+    (/^\\d+$/.test(requestedNumber) && /^\\d+$/.test(resolvedNumber)
+      ? Number(requestedNumber) === Number(resolvedNumber)
+      : requestedNumber === resolvedNumber)
+  const valid = !disabled && root.success !== false && matchesNumber &&
+    Boolean(resolvedId || resolvedNumber || resolvedQr)
   return {
     valid,
     disabled,
