@@ -11,6 +11,39 @@
     const DARK_BLUE_RGB = 'rgb(54, 74, 99)';
     const DARK_BLUE_RGBA = 'rgba(54, 74, 99, 0.1)';
     
+    // PMD_INVENTORY_BARCODE_SINGLE_FOCUS_R32
+    // The scanner's outer label already owns its focus border. This legacy
+    // Admin script used to overwrite the focused INNER input inline with
+    // !important (and again every 100ms), defeating the R31 stylesheet.
+    // Scope this exception solely to the R19 barcode textbox; normal
+    // Admin form field focus styling is unchanged.
+    function isInventoryBarcodeScanner(control) {
+        return Boolean(
+            control && control.matches &&
+            control.matches('input[data-r19-barcode-input]') &&
+            control.closest('.pmd-inv-r23-barcode__input') &&
+            control.closest('.pmd-inv-r23-barcode')
+        );
+    }
+
+    function clearLegacyScannerFocus(control) {
+        if (!isInventoryBarcodeScanner(control)) return false;
+        const border = control.style.getPropertyValue('border-color');
+        const shadow = control.style.getPropertyValue('box-shadow');
+        if (/rgb\(\s*54\s*,\s*74\s*,\s*99\s*\)|#364a63/i.test(border)) {
+            control.style.removeProperty('border-color');
+        }
+        if (/54\s*,\s*74\s*,\s*99|#364a63/i.test(shadow)) {
+            control.style.removeProperty('box-shadow');
+        }
+        if (control.style.getPropertyValue('transition') === 'none' &&
+            control.style.getPropertyPriority('transition') === 'important') {
+            control.style.removeProperty('transition');
+        }
+        return true;
+    }
+    // /PMD_INVENTORY_BARCODE_SINGLE_FOCUS_R32
+
     function fixFormFieldFocusColors() {
         // Find all form controls
         const formControls = document.querySelectorAll(
@@ -18,6 +51,7 @@
         );
         
         formControls.forEach(control => {
+            if (clearLegacyScannerFocus(control)) return;
             const isFocused = document.activeElement === control;
             const computedStyle = window.getComputedStyle(control);
             
@@ -95,6 +129,7 @@
     
     // Fix on focus events - IMMEDIATELY, no delay
     document.addEventListener('focusin', function(e) {
+        if (clearLegacyScannerFocus(e.target)) return;
         if (e.target.matches('.form-control, input, textarea, select, .form-select')) {
             // Remove transition immediately to prevent smooth change
             e.target.style.setProperty('transition', 'none', 'important');
@@ -108,6 +143,7 @@
     
     // Fix on blur events - remove focus styles from unfocused fields
     document.addEventListener('focusout', function(e) {
+        if (clearLegacyScannerFocus(e.target)) return;
         if (e.target.matches('.form-control, input, textarea, select, .form-select')) {
             // Remove focus styles when field loses focus
             e.target.style.removeProperty('border-color');
