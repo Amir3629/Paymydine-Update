@@ -33,6 +33,7 @@
     data-pmd-dashboard-lab-step="4"
     data-pmd-dashboard-lab-kpi-render="server-first-paint"
     data-pmd-owner-hour-notes-api="{{ admin_url('_pmd/owner-hour-notes-r11') }}"
+    data-pmd-owner-hour-notes-csrf="{{ csrf_token() }}"
 >
     @include('admin::_partials.pmd_kitchen_today_team_v1')
     {{-- PMD_DASHBOARD_LAB_HEADER_NOTIFICATION_V5 --}}
