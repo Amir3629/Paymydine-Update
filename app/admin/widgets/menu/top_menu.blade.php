@@ -291,7 +291,7 @@
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#addGeneralStaffNoteModal').modal('hide');">Cancel</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="$('#addGeneralStaffNoteModal').modal('hide');">Cancel</button>
                                 <button 
                                     type="button" 
                                     id="generalStaffNoteSubmitBtn"
