@@ -191,7 +191,9 @@ export function useMenuLoader({
             const requestedNo = table_no ?? legacy_table
             const returnedNo = data.table_no != null ? String(data.table_no) : null
             const identityMatches = !requestedNo || returnedNo === null ||
-              String(Number(requestedNo)) === String(Number(returnedNo))
+              (/^\\d+$/.test(requestedNo) && /^\\d+$/.test(returnedNo)
+                ? Number(requestedNo) === Number(returnedNo)
+                : requestedNo === returnedNo)
 
             if (tableResult.success && data.table_id != null && identityMatches) {
               const normalizedTableInfo = {
