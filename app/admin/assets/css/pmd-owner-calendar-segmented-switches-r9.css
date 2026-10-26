@@ -147,6 +147,25 @@ html body.pmd-dashboard-lab-page
     padding: 0 11px !important;
   }
 }
+/* Very narrow screens: the 3-way segmented filter occupies its own row
+ * and individual choices shrink rather than overflowing into + Note. */
+@media (max-width: 600px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+  .pmd-r2-yc-calendar-frame > .pmd-yc__toolbar .pmd-yc__toolbar-right > .pmd-yc__filters {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+  .pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__filters > button[data-r2-yc-filter] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 0 7px !important;
+    font-size: 11px !important;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   html body.pmd-dashboard-lab-page
   #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
