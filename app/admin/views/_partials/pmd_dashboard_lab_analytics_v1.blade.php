@@ -1362,17 +1362,19 @@
             </header>
             <!-- PMD_DASHBOARD_LAB_CUSTOM_VERTICAL_RANGE_V7_3 -->
             <div
-                class="pmd-dashboard-lab-analytics__range-rail pmd-dashboard-lab-analytics__range-rail--custom"
+                class="pmd-dashboard-lab-analytics__range-rail pmd-dashboard-lab-analytics__range-rail--custom pmd-r41-range-rail"
                 data-pmd-lab-range-control="salesOverTime"
+                data-pmd-lab-range-unit="days"
                 style="--pmd-range-progress: {{ $analyticsSalesWindowMax > $analyticsSalesWindowMin ? ((($analyticsSalesWindowValue - $analyticsSalesWindowMin) / ($analyticsSalesWindowMax - $analyticsSalesWindowMin)) * 100) : 100 }}%;"
             >
-                <span class="pmd-dashboard-lab-analytics__range-label">Range</span>
+                <span class="pmd-dashboard-lab-analytics__range-label pmd-r41-range-label" aria-hidden="true"><b data-pmd-lab-range-value>{{ $analyticsSalesWindowValue }} / {{ $analyticsSalesWindowMax }}</b><small>days</small></span>
                 <div
                     class="pmd-dashboard-lab-analytics__range-track"
                     data-pmd-lab-range-track
                     role="slider"
                     tabindex="0"
-                    aria-label="Visible chart points"
+                    aria-label="Visible days in sales chart"
+                    aria-valuetext="Last {{ $analyticsSalesWindowValue }} of {{ $analyticsSalesWindowMax }} days"
                     aria-valuemin="{{ $analyticsSalesWindowMin }}"
                     aria-valuemax="{{ $analyticsSalesWindowMax }}"
                     aria-valuenow="{{ $analyticsSalesWindowValue }}"
@@ -1418,17 +1420,19 @@
             </header>
             <!-- PMD_DASHBOARD_LAB_CUSTOM_VERTICAL_RANGE_V7_3 -->
             <div
-                class="pmd-dashboard-lab-analytics__range-rail pmd-dashboard-lab-analytics__range-rail--custom"
+                class="pmd-dashboard-lab-analytics__range-rail pmd-dashboard-lab-analytics__range-rail--custom pmd-r41-range-rail"
                 data-pmd-lab-range-control="salesByHour"
+                data-pmd-lab-range-unit="hours"
                 style="--pmd-range-progress: {{ $analyticsHourWindowMax > $analyticsHourWindowMin ? ((($analyticsHourWindowValue - $analyticsHourWindowMin) / ($analyticsHourWindowMax - $analyticsHourWindowMin)) * 100) : 100 }}%;"
             >
-                <span class="pmd-dashboard-lab-analytics__range-label">Range</span>
+                <span class="pmd-dashboard-lab-analytics__range-label pmd-r41-range-label" aria-hidden="true"><b data-pmd-lab-range-value>{{ $analyticsHourWindowValue }} / {{ $analyticsHourWindowMax }}</b><small>hours</small></span>
                 <div
                     class="pmd-dashboard-lab-analytics__range-track"
                     data-pmd-lab-range-track
                     role="slider"
                     tabindex="0"
-                    aria-label="Visible chart points"
+                    aria-label="Visible hours in sales chart"
+                    aria-valuetext="Last {{ $analyticsHourWindowValue }} of {{ $analyticsHourWindowMax }} hours"
                     aria-valuemin="{{ $analyticsHourWindowMin }}"
                     aria-valuemax="{{ $analyticsHourWindowMax }}"
                     aria-valuenow="{{ $analyticsHourWindowValue }}"

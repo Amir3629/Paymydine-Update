@@ -2004,6 +2004,11 @@
         state.transitionReason = null;
         return;
       }
+      if (window.matchMedia &&
+          window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        state.transitionReason = null;
+        return;
+      }
 
       var duration =
         snapshot.reason === 'layout'
@@ -2226,11 +2231,45 @@
       return true;
     }
 
+    /* PMD_USER_FLOOR_FLIP_R41
+     * Only explicit One row / Full Floor changes use a deferred FLIP pass.
+     * The old table rectangles are captured BEFORE .is-strip-mode changes.
+     * render(), calibrateOneRow() and fit() must finish BEFORE the first
+     * animation target is sampled, otherwise the cards jump after 1 frame.
+     * Refresh, AJAX status updates and SSR adoption remain non-animated.
+     */
+    var floorViewSnapshotR41 = null;
+    var floorViewCleanupTimerR41 = 0;
+    function captureFloorViewR41() {
+      if (!state.initialized || !canvas) return;
+      floorViewSnapshotR41 = transitionSnapshot();
+      if (!floorViewSnapshotR41) return;
+      if (floorViewCleanupTimerR41) {
+        window.clearTimeout(floorViewCleanupTimerR41);
+        floorViewCleanupTimerR41 = 0;
+      }
+      root.setAttribute('data-pmd-floor-user-view-transition', 'true');
+      var stageR41 = root.querySelector('[data-floor-stage]');
+      // Activate transition rules against the old painted geometry before
+      // the mode class changes. This one read occurs ONLY on a user toggle.
+      if (stageR41) stageR41.getBoundingClientRect();
+    }
+    function finishFloorViewR41() {
+      var snapshotR41 = floorViewSnapshotR41;
+      floorViewSnapshotR41 = null;
+      if (!snapshotR41) return;
+      animateStructuralRender(snapshotR41);
+      floorViewCleanupTimerR41 = window.setTimeout(function () {
+        root.removeAttribute('data-pmd-floor-user-view-transition');
+        floorViewCleanupTimerR41 = 0;
+      }, 420);
+    }
+
     function render() {
       if (!canvas) return;
 
       var structuralSnapshot =
-        transitionSnapshot();
+        floorViewSnapshotR41 || transitionSnapshot();
 
       var displayTables =
         buildDisplayTables();
@@ -2423,9 +2462,9 @@
         loading.hidden = true;
       }
 
-      animateStructuralRender(
-        structuralSnapshot
-      );
+      if (!floorViewSnapshotR41) {
+        animateStructuralRender(structuralSnapshot);
+      }
 
       updateMotherToolbar();
 
@@ -3297,6 +3336,7 @@ function saveLayout() {
        */
       state.transitionReason =
         'layout';
+      captureFloorViewR41();
 
       var nextStripMode =
         !!value;
@@ -3405,6 +3445,9 @@ function saveLayout() {
       render();
 
       fit();
+      // R41: target positions are now canonical (including the 24px row
+      // centers and Full Floor native layout zoom) before FLIP begins.
+      finishFloorViewR41();
 
       toast(
         state.stripMode

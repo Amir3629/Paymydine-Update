@@ -1097,10 +1097,21 @@
     input.value = String(safe);
     control.style.setProperty('--pmd-range-progress', progress.toFixed(4) + '%');
 
+    // PMD_RANGE_REAL_VALUE_R41: update the visible count and accessibility
+    // whenever a pointer, keyboard or native range input changes the window.
+    var unit = control.getAttribute('data-pmd-lab-range-unit') ||
+      (key === 'salesByHour' ? 'hours' : 'days');
+    var label = control.querySelector('[data-pmd-lab-range-value]');
+    if (label) {
+      var nextText = String(safe) + ' / ' + String(max);
+      if (label.textContent !== nextText) label.textContent = nextText;
+    }
     if (track) {
       track.setAttribute('aria-valuemin', String(min));
       track.setAttribute('aria-valuemax', String(max));
       track.setAttribute('aria-valuenow', String(safe));
+      track.setAttribute('aria-valuetext',
+        'Last ' + String(safe) + ' of ' + String(max) + ' ' + unit);
     }
   }
 

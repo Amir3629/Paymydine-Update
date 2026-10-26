@@ -53,8 +53,8 @@
             historyLink.style.setProperty('line-height', '1', 'important');
             historyLink.style.setProperty('position', 'static', 'important');
             historyLink.style.setProperty('z-index', 'auto', 'important');
-            historyLink.style.setProperty('height', '36px', 'important');
-            historyLink.style.setProperty('padding', '8px 20px', 'important');
+            historyLink.style.setProperty('height', '42px', 'important'); // R41 match Note
+            historyLink.style.setProperty('padding', '0 14px', 'important'); // R41 match Note
             historyLink.style.setProperty('box-sizing', 'border-box', 'important');
             historyLink.style.setProperty('text-indent', '0', 'important');
             historyLink.style.setProperty('letter-spacing', 'normal', 'important');
