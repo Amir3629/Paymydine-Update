@@ -86,7 +86,7 @@ def patch(root, base, ref):
         raise R44PatchError("Expected R43 read-only audit anchor missing")
     a = src_audit.index(marker)
     b = src_audit.rfind(end_tag)
-    injection = src_audit[a:b]
+    injection = "\n" + src_audit[a:b]
     pos_end = audit.rfind(end_tag)
     patched_audit = audit[:pos_end] + injection + audit[pos_end:]
 
