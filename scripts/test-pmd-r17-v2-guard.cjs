@@ -75,7 +75,7 @@ async function verifyDelegatedHome() {
   const gatingPoint = existingGuard
     ? route.indexOf('bootstrap.table.disabled || (hasTableLookup && !bootstrap.table.valid)')
     : route.indexOf('PMD_V2_CUSTOMER_ROUTE_FAIL_CLOSED_R17C');
-  assert(gatingPoint < route.indexOf('return (\\n    <MenuRuntimeProvider'),
+  assert(gatingPoint < route.indexOf('<ThemeRenderer themeId={bootstrap.theme.id} />'),
     'The table guard must run before the customer ThemeRenderer.');
 
   // Execute the REAL staged CustomerMenuRoute TSX server component in a
