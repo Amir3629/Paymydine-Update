@@ -14,6 +14,7 @@ const js = read('app/admin/assets/js/pmd-general-note-notification-r14.js');
 const css = read('app/admin/assets/css/pmd-general-note-notification-r14.css');
 const header = read('app/admin/widgets/menu/top_menu.blade.php');
 const owner = read('app/admin/assets/js/pmd-owner-hour-team-notes-r11.js');
+const equalizer = read('app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js');
 new vm.Script(js,{filename:'pmd-general-note-notification-r14.js'});
 assert(header.includes('id="addGeneralStaffNoteModal"'), 'Keep the original modal.');
 assert(header.includes('id="addGeneralStaffNoteForm"'), 'Do not replace existing form.');
@@ -38,5 +39,8 @@ assert(css.includes('button.btn-secondary > [data-pmd-r15-cancel-label]'), 'No c
 assert(css.includes('button.btn-secondary::after'), 'Legacy button pseudo markers must be suppressed.');
 assert(css.includes('linear-gradient(180deg,#0b765e,#075c47)'), 'Brand jade buttons required.');
 assert(css.includes('width:min(630px,100%)'), 'Use Owner calendar note card width.');
+assert(equalizer.includes("el.id === 'addGeneralStaffNoteModal'"), 'Global equalizer must exclude only the R15 note.');
+assert(equalizer.includes("el.getAttribute('data-pmd-general-note-r15') === '1'"), 'Equalizer opt-out must be R15-scoped.');
+assert(equalizer.includes("{ opacity: 0, transform: 'translateY(6px) scale(.985)' }"), 'Other dialogs still have the global equalizer.');
 assert(owner.includes('pmd-owner-hour-note-card'), 'Owner note authority remains untouched.');
 console.log('PASS R15: original note form/API retained, static open, visible close/Cancel, Owner-calendar card and jade actions.');
