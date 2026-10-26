@@ -1,0 +1,176 @@
+/* PMD_OWNER_CALENDAR_HOUR_HEADER_R10
+ * Owner Calendar ONLY:
+ * - "+ Note" is a day-specific action, displayed exclusively in Hour.
+ * - The date + prev/next navigation are centered on the VIEWPORT, not on
+ *   the horizontally shifted main content region.
+ * - Summary is Reservations + Staff scheduled (Shifts), never Guests.
+ * Shared Reservations/Manager calendar CSS and data remain untouched.
+ */
+
+/* Defensive fallback against stale month-view markup. The Owner month
+ * toolbar is not the place to create a note before selecting a day. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-calendar-frame .pmd-yc__toolbar-right > .pmd-r2-yc-note-btn {
+  display: none !important;
+}
+
+/* The shared day-header grid stays intact; only its date navigation shifts.
+ * Left/right controls keep their own independent layout positions. */
+@media (min-width: 901px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header > .pmd-r2-day-view__date-nav {
+    transform: translateX(var(--pmd-owner-hour-viewport-offset-r10, 0px)) !important;
+    transition: none !important;
+  }
+}
+
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header > .pmd-r2-day-view__summary {
+  display: inline-flex !important;
+  flex-flow: row nowrap !important;
+  justify-self: end !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 9px !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Staff count originates from the authenticated Shifts daily aggregation.
+ * Styled as an operational metric, rather than a guest counter. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__summary > .pmd-owner-hour-staff-summary {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  box-sizing: border-box !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 12px !important;
+  border: 1px solid #c8e0d5 !important;
+  border-radius: 13px !important;
+  background: #f1f8f4 !important;
+  color: #245d4c !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+  font-size: 11px !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__summary > .pmd-owner-hour-staff-summary > strong {
+  color: #075c47 !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+/* The one primary action is consistent with Create Table > Save Table
+ * and the former calendar + Note: white text, gradient jade, soft shadow. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__summary > button.pmd-owner-hour-note-btn {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  inset: auto !important;
+  box-sizing: border-box !important;
+  width: auto !important;
+  min-width: 88px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 16px !important;
+  border: 1px solid #064b3c !important;
+  border-radius: 14px !important;
+  background-color: #075c47 !important;
+  background-image: linear-gradient(180deg, #0b765e 0%, #075c47 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  transform: none !important;
+  cursor: pointer !important;
+  transition: background-color .14s ease, box-shadow .14s ease !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__summary > button.pmd-owner-hour-note-btn:hover {
+  border-color: #04392c !important;
+  background: linear-gradient(180deg, #09664f 0%, #064b3c 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.20) !important;
+  transform: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__summary > button.pmd-owner-hour-note-btn:focus-visible {
+  outline: 2px solid #0b795c !important;
+  outline-offset: 3px !important;
+}
+
+/* At compact widths, the date sits in its own row while Calendar and the
+ * metrics/Note remain on the next row. Never overlap the date controls. */
+@media (max-width: 1150px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    row-gap: 12px !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header > .pmd-r2-day-view__date-nav {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    justify-self: center !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header > .pmd-r2-timeslot-screen__back {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    justify-self: start !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header > .pmd-r2-day-view__summary {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    justify-self: end !important;
+  }
+}
+@media (max-width: 680px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header > .pmd-r2-day-view__date-nav {
+    align-self: center !important;
+    transform: none !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__header > .pmd-r2-day-view__summary {
+    align-self: stretch !important;
+    justify-self: stretch !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    width: auto !important;
+    max-width: 100% !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-day-view__summary > button.pmd-owner-hour-note-btn {
+    transition: none !important;
+  }
+}
