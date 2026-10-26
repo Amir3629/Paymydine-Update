@@ -245,6 +245,8 @@ require_once base_path('routes/helpers.php');
 require_once base_path('routes/pmd-groups.php');
 // PMD_RESTAURANT_GROUPS_PRIORITY_ROUTE_LOADER_R16_END
 
+// PMD_OWNER_STAFF_HOUR_NOTES_ROUTES_R11: must precede greedy Admin catch-all.
+require_once base_path('routes/pmd-owner-staff-notes-r11.php');
 require_once base_path('routes/admin-app-before.php');
 require_once base_path('routes/pmd-staff-portal-v1.php');
 // PMD_DEVICE_PLATFORM_DIRECT_ADMIN_LOADER_V146
