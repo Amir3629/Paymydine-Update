@@ -242,6 +242,7 @@
         .pin-error{margin:0;padding:9px 11px;border:1px solid #ebc6c3;background:#fff5f4;color:#8b2d27;border-radius:11px;font-size:12px;line-height:1.4;font-weight:700}
         @media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:21px 18px 27px;border-radius:20px}.card.is-security{min-height:min(570px,calc(100dvh - 18px));padding-bottom:28px}.brand{height:140px;margin:-3px 38px 20px}.brand img{height:134px}.card.is-security .brand{height:150px;margin:-2px 38px 30px}.card.is-security .brand img{height:143px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}.recovery-list{grid-template-columns:1fr 1fr}.field>span{font-size:12.5px}.security-head p{font-size:12.5px}.card.is-pin .brand{height:96px;margin:0 38px 8px}.card.is-pin .brand img{height:92px}.pin-key{height:50px}.pin-dot{height:40px}}
     </style>
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body>
 <main class="card{{ $securityActive ? ' is-security' : ($pinDefault ? ' is-pin' : '') }}" @if($securityMode === 'workplace' && !empty($security['expires_at'])) data-pmd-workplace-login data-expires-at="{{ $security['expires_at'] }}" @endif>
