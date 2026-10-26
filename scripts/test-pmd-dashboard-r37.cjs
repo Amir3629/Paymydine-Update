@@ -28,7 +28,7 @@ check('R29 explicitly excluded from Floor switcher, while controls remain',()=>{
  assert(floorCss.includes('width:132px!important')&&floorCss.includes('height:52px!important'));
 });
 check('Floor has exactly one icon and no duplicate Add/Create Table callout',()=>{
- const part=floor.slice(floor.indexOf('<!-- PMD_DASHBOARD_FLOOR_EMPTY_R37'),floor.indexOf('pmd-floor-v1__canvas-wrap'));
+ const part=floor.slice(floor.indexOf('PMD_DASHBOARD_FLOOR_EMPTY_R37'),floor.indexOf('pmd-floor-v1__canvas-wrap'));
  assert(part.includes('pmd-r37-empty-icon'));
  assert(!part.includes('pmd-floor-r36-empty__icon')&&!part.includes('data-pmd-floor-empty-add-r36'));
  assert(!part.includes('Create your first table'));
