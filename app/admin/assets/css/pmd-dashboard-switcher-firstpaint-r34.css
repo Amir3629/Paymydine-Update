@@ -150,6 +150,47 @@ html body.pmd-dashboard-lab-page
   z-index:1!important;
 }
 
+/* R33 had to wait for the R29 role tag on Add table. In live Floor
+ * hydration the toolbar can be reconstructed, briefly losing that tag and
+ * going from jade back to white. Resolve this exact primary action
+ * independent of R29, from the first server-rendered paint onwards. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-r2-floor-toolbar-v316
+button.pmd-r2-floor-tool-v316.pmd-floor-table-manager__toolbar-button.is-add[data-pmd-floor-table-add]:not(:disabled) {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  min-height:46px!important;
+  height:46px!important;
+  border:1px solid #064b3c!important;
+  border-radius:14px!important;
+  background:#0b765e!important;
+  background-image:linear-gradient(180deg,#0b765e,#075c47)!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.15)!important;
+  text-shadow:none!important;
+  transform:none!important;
+}
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-r2-floor-toolbar-v316
+button.pmd-r2-floor-tool-v316.pmd-floor-table-manager__toolbar-button.is-add[data-pmd-floor-table-add]:hover:not(:disabled) {
+  background:#086c56!important;
+  background-image:linear-gradient(180deg,#086c56,#064b3c)!important;
+  border-color:#064b3c!important;
+  color:#fff!important;
+}
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-r2-floor-toolbar-v316
+button.pmd-r2-floor-tool-v316.pmd-floor-table-manager__toolbar-button.is-add[data-pmd-floor-table-add]:focus-visible {
+  outline:2px solid #21876b!important;
+  outline-offset:2px!important;
+}
+
 /* Shared Owner/Manager Floor cards are server rendered, while subsequent
  * coordinator hydration used to show different drop-shadow/border frames.
  * Declare their FINISHED visual surface from the first paint; retain real
