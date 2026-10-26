@@ -890,6 +890,9 @@
         >
 
         <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-workspace-r1.css') }}?v=20261025-r2">
+        {{-- PMD_OWNER_CALENDAR_GRID_R6: Owner-only visual grid; load after
+             the shared Reservations CSS. Does not modify Reservation logic. --}}
+        <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-grid-r6.css') }}?v=20261026-r6">
 
         @include(
             'admin::_partials.pmd_reservations_schedule_v1'
@@ -915,7 +918,7 @@
             // to invalidate browser caches and avoids three SHA-256 file reads.
             $pmdDashboardComposerCssVersion = 'r35-20260927';
             $pmdDashboardComposerJsVersion = 'r8-20260918';
-            $pmdDashboardScheduleJsVersion = 'r551-shifts-r2-20261025';
+            $pmdDashboardScheduleJsVersion = 'r551-owner-calendar-grid-r6-20261026';
         @endphp
 
         <link
