@@ -22,6 +22,7 @@ if(base.protocol!=='https:'||!base.pathname.startsWith('/admin'))
   throw new Error('Audit is restricted to an HTTPS /admin path.');
 const MAX_PAGES=Math.min(500,Math.max(1,Number(arg('--max-pages','180'))||180));
 const DEBUG=args.includes('--barcode-debug');
+const MANUAL=args.includes('--manual');
 const PROFILE=path.resolve(arg('--profile',path.join(os.homedir(),'.pmd-button-audit-chromium')));
 const REPORT=path.resolve(arg('--output',path.join(os.homedir(),'pmd-button-audit-reports',
   new Date().toISOString().replace(/[:.]/g,'-'))));
@@ -233,8 +234,25 @@ async function barcodeDiagnostic(page) {
       await ask('\nIn Chromium open "Scan barcode / QR", click INSIDE the scan field, then press ENTER here: ');
       const diagnosis=await barcodeDiagnostic(page);
       save('barcode-diagnostic.json',JSON.stringify(diagnosis,null,2));
+      const barcodeCapture=await capture(page);
+      save('barcode-open-buttons.json',JSON.stringify(barcodeCapture.buttons.filter(x=>x.visible),null,2));
       console.log('Barcode detail saved:',path.join(REPORT,'barcode-diagnostic.json'));
+      console.log('Visible scanner-modal controls saved:',path.join(REPORT,'barcode-open-buttons.json'));
       console.log('Scanner inline focus styles:',diagnosis.field?.inline||'not found');
+    }
+    if(MANUAL) {
+      const manual=[];
+      console.log('\nManual dialog capture: browse to ANY safe Admin page, open cards or tabs WITHOUT saving changes.');
+      for(let i=0;i<25;i++){
+        const reply=(await ask('Open any card in Chromium, press ENTER to capture; type "done" to finish: ')).trim().toLowerCase();
+        if(reply==='done'||reply==='exit')break;
+        const current=canonical(page.url());
+        if(!current){console.warn('Skipping a page outside this tenant /admin');continue;}
+        const snapshot=await capture(page);
+        manual.push({path:safePath(current),title:snapshot.summary.title,buttons:snapshot.buttons});
+        console.log('Captured',manual.length,'manual views; visible buttons',snapshot.summary.visible);
+      }
+      save('manual-dialog-captures.json',JSON.stringify(manual,null,2));
     }
     console.log('\nFiles saved LOCALLY at',REPORT);
     console.log('If sharing, review the local CSV/JSON first for business-sensitive text.');
