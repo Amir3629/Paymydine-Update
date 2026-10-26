@@ -549,7 +549,9 @@
           '<div class="pmd-yc__toolbar-right">' +
             (ownerCalendarEnabled ? '' : viewSwitchMarkup) +
             '<div class="pmd-yc__filters"><button type="button" data-r2-yc-filter="all" class="is-active">' + esc(text('all',locale === 'de' ? 'Alle' : 'All')) + '</button><button type="button" data-r2-yc-filter="reservations">' + esc(text('reservations_title',locale === 'de' ? 'Reservierungen' : 'Reservations')) + '</button><button type="button" data-r2-yc-filter="events">' + esc(text('events',locale === 'de' ? 'Ereignisse' : 'Events')) + '</button></div>' +
-            '<button type="button" class="pmd-r2-yc-note-btn" data-r2-yc-note>＋ ' + esc(text('note',locale === 'de' ? 'Notiz' : 'Note')) + '</button>' +
+            // Owner creates/edits a note for the selected day in HOUR view only.
+            // Keep the original month/year toolbar action for other workspaces.
+            (ownerCalendarEnabled ? '' : '<button type="button" class="pmd-r2-yc-note-btn" data-r2-yc-note>＋ ' + esc(text('note',locale === 'de' ? 'Notiz' : 'Note')) + '</button>') +
           '</div>' +
         '</div>' +
         (ownerCalendarEnabled ? '<p class="pmd-r2-owner-staff-status" data-pmd-owner-staff-status role="status" aria-live="polite" hidden></p>' : '') +
@@ -763,17 +765,30 @@
     var splitIndex = Math.ceil(rows.length / 2);
     var totalGuests = list.reduce(function (total, item) { return total + guestCount(item); }, 0);
     var occupiedSlots = Object.keys(slots).filter(function (key) { return key !== 'unknown' && slots[key] && slots[key].length; }).length;
-    var staffDayCount = (boot.owner_staffing || {})[selectedDate];
-    var hasStaffDay = ownerCalendarEnabled && Object.prototype.hasOwnProperty.call(boot.owner_staffing || {}, selectedDate);
-    var ownerStaffSummary = hasStaffDay
-      ? '<span><strong>' + Math.max(0, Number(staffDayCount) || 0) + '</strong> ' + esc(locale === 'de' ? 'Mitarbeitende geplant' : 'staff scheduled') + '</span>'
-      : '';
+
+    // PMD_OWNER_HOUR_STAFF_SUMMARY_R10
+    // The daily staffing authority is the same location-scoped Shifts map
+    // used for green month chips. If the selected year's data has loaded,
+    // an unlisted day accurately means 0 scheduled people; otherwise use
+    // an em dash rather than falsely claiming zero during a failed refresh.
+    var ownerYearReady = ownerCalendarEnabled
+      && Number(ownerStaffingYear) === Number(String(selectedDate).slice(0, 4));
+    var staffDayCount = Math.max(0, Number((boot.owner_staffing || {})[selectedDate]) || 0);
+    var ownerStaffSummary = '<span class="pmd-owner-hour-staff-summary" data-pmd-owner-hour-staff-summary><strong>'
+      + (ownerYearReady ? staffDayCount : '—') + '</strong> '
+      + esc(locale === 'de' ? 'Mitarbeitende geplant' : 'staff scheduled') + '</span>';
+    var daySummary = ownerCalendarEnabled
+      ? '<span><strong>' + list.length + '</strong> ' + esc(text('reservations', 'Reservations')) + '</span>' + ownerStaffSummary
+      : '<span><strong>' + list.length + '</strong> ' + esc(text('reservations', 'Reservations')) + '</span><span><strong>' + totalGuests + '</strong> ' + esc(text('guests', 'Guests')) + '</span><span><strong>' + occupiedSlots + '</strong> ' + esc(text('time_slots','time slots')) + '</span>';
 
     section.innerHTML = '<div class="pmd-r2-timeslot-screen">' +
       '<header class="pmd-r2-day-view__header" data-pmd-hour-header-v38="true">' +
         '<button type="button" class="pmd-r2-timeslot-screen__back" data-r2-yc-clear-selection>' + esc(text('calendar','Calendar')) + '</button>' +
         '<div class="pmd-r2-day-view__date-nav"><button type="button" class="pmd-r2-day-view__month-button" data-r2-yc-prev-day aria-label="' + esc(text('previous','Previous')) + '">‹</button><div class="pmd-r2-day-view__title"><h2>' + esc(formatDate(selectedDate)) + '</h2></div><button type="button" class="pmd-r2-day-view__month-button" data-r2-yc-next-day aria-label="' + esc(text('next','Next')) + '">›</button></div>' +
-        '<div class="pmd-r2-day-view__summary"><span><strong>' + list.length + '</strong> ' + esc(text('reservations','reservations')) + '</span><span><strong>' + totalGuests + '</strong> ' + esc(text('guests','Guests')) + '</span><span><strong>' + occupiedSlots + '</strong> ' + esc(text('time_slots','time slots')) + '</span>' + ownerStaffSummary + '</div>' +
+        '<div class="pmd-r2-day-view__summary">' + daySummary +
+          (ownerCalendarEnabled
+            ? '<button type="button" class="pmd-r2-yc-note-btn pmd-owner-hour-note-btn" data-r2-yc-note>＋ ' + esc(text('note', locale === 'de' ? 'Notiz' : 'Note')) + '</button>'
+            : '') + '</div>' +
       '</header>' +
       '<div class="pmd-r2-day-board__timeline pmd-r2-day-board__timeline--two-columns" data-pmd-hour-grid-v38="true"><div class="pmd-r2-day-board__column pmd-r2-day-board__column--first">' + rows.slice(0, splitIndex).join('') + '</div><div class="pmd-r2-day-board__column pmd-r2-day-board__column--second">' + rows.slice(splitIndex).join('') + '</div></div>' +
       '</div>';
@@ -782,6 +797,12 @@
     page.classList.add('pmd-r2-hour-layout-v38-active');
     frame.hidden = true;
     section.hidden = false;
+    if (ownerCalendarEnabled) {
+      // The day header is replaced on every date change or Shifts refresh.
+      // Apply the offset after mounting its new date-navigation element.
+      bindOwnerNavAlignment(root);
+      scheduleOwnerNavAlignment(root);
+    }
     interactionRenderWrites += 1;
   }
 
