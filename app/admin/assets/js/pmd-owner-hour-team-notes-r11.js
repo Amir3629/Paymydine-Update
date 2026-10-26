@@ -205,6 +205,20 @@
       }
       if (event.target.closest('[data-pmd-owner-hour-note-send]')) sendNote();
     });
+    // Focus cannot escape into the scrolling/interactive dashboard.
+    modal.addEventListener('keydown', function (event) {
+      if (event.key !== 'Tab' || modal.hidden) return;
+      var focusable = Array.from(modal.querySelectorAll('button,textarea,input,select,a[href]')).filter(function (node) {
+        return !node.disabled && !node.closest('[hidden]') && node.tabIndex !== -1;
+      });
+      if (!focusable.length) return;
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    });
     modal.addEventListener('keydown', function (event) {
       var trigger = event.target.closest('[data-pmd-owner-hour-time-trigger]');
       var option = event.target.closest('[data-pmd-owner-hour-time-option]');
