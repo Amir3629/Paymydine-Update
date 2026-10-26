@@ -1018,7 +1018,15 @@
       if (next) { if (view === 'month') { month += 1; if (month > 11) { month = 0; year += 1; } } else year += 1; render(root); refreshOwnerStaffing(year, false); return; }
       if (viewButton) { view = viewButton.dataset.r2YcView; selectedDate = null; render(root); return; }
       if (filterButton) { filter = filterButton.dataset.r2YcFilter; render(root); return; }
-      if (noteButton) { openNoteModal(selectedDate || dateKey(new Date())); return; }
+      if (noteButton) {
+        // PMD_OWNER_TEAM_NOTE_FAIL_CLOSED_R11: the Owner Note action must
+        // NEVER silently fall back to browser-local storage if the secure
+        // role-targeted server publisher fails to load. The R11 Owner UI
+        // intercepts this button in the capture phase and opens the new
+        // recipient/confirmation form. Non-Owner local notes remain unchanged.
+        if (ownerCalendarEnabled) return;
+        openNoteModal(selectedDate || dateKey(new Date())); return;
+      }
       if (clearSelection) { selectedDate = null; render(root); return; }
       if (previousDay) { shiftSelectedDay(-1); return; }
       if (nextDay) { shiftSelectedDay(1); return; }
