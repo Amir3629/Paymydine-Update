@@ -9254,6 +9254,15 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <script defer src="{{ asset('app/admin/assets/js/pmd-shared-empty-states-r37.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-shared-empty-states-r37.js')) ?: 20261026) }}" data-pmd-shared-empty-states-r37="js"></script>
 @endif
 <!-- /PMD_SHARED_EMPTY_STATES_R37_REAL_ADMIN_HEAD -->
+<!-- PMD_OWNER_FLOOR_STABILITY_R38_REAL_HEAD -->
+@if(request()->is('admin/ownerdashboard*') || request()->is('admin/dashboardlab*')
+    || request()->is('admin/managerdashboard*') || request()->is('admin/managerlab*'))
+<link rel="stylesheet"
+ href="{{ asset('app/admin/assets/css/pmd-owner-floor-stability-r38.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-owner-floor-stability-r38.css')) ?: 20261026) }}"
+ data-pmd-floor-stability-r38="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-stability-audit-r38.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-stability-audit-r38.js')) ?: 20261026) }}" data-pmd-floor-stability-r38="js"></script>
+@endif
+<!-- /PMD_OWNER_FLOOR_STABILITY_R38_REAL_HEAD -->
 
 </head>
 @php
