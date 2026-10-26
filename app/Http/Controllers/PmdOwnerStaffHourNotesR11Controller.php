@@ -55,7 +55,7 @@ final class PmdOwnerStaffHourNotesR11Controller extends Controller
         if (!$notes->ready()) return $this->json([
             'ok' => true, 'setup_required' => true,
             'message' => 'Team notes are not set up for this restaurant yet. Ask an administrator to finish setup.',
-            'notes' => [], 'roles' => [],
+            'notes' => [], 'roles' => [], 'members' => [],
         ]);
         $year = (int)$request->query('year', (int)now('Europe/Berlin')->year);
         if ($year < 2000 || $year > 2100) abort(422, 'Invalid year.');
@@ -64,6 +64,7 @@ final class PmdOwnerStaffHourNotesR11Controller extends Controller
             'year' => $year,
             'notes' => $notes->forOwnerYear($location, $year),
             'roles' => $notes->roleOptions($location),
+            'members' => $notes->memberOptions($location),
             'setup_required' => false,
         ]);
     }

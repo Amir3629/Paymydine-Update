@@ -234,6 +234,10 @@ public function sign(Request $request)
                 DB::connection('mysql')->statement("USE `$databaseName`");
                 DB::connection('mysql')->statement($createTableQuery);
             
+                // Staff Notes are restaurant-private. Never clone template messages or receipts.
+                if (in_array($tableName, ['pmd_owner_staff_hour_notes', 'pmd_owner_staff_hour_note_receipts'], true)) {
+                    continue;
+                }
                 // ✅ Copy data if the table has any rows
                 $rowCount = DB::connection('mysql')->selectOne("SELECT COUNT(*) AS count FROM `$templateDb`.`$tableName`")->count;
                 if ($rowCount > 0) {
