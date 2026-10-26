@@ -9263,6 +9263,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <script defer src="{{ asset('app/admin/assets/js/pmd-floor-stability-audit-r38.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-stability-audit-r38.js')) ?: 20261026) }}" data-pmd-floor-stability-r38="js"></script>
 @endif
 <!-- /PMD_OWNER_FLOOR_STABILITY_R38_REAL_HEAD -->
+<!-- PMD_FLOOR_EDIT_ALWAYS_R39_REAL_HEAD -->
+@if(request()->is('admin/ownerdashboard*') || request()->is('admin/dashboardlab*')
+    || request()->is('admin/managerdashboard*') || request()->is('admin/managerlab*'))
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-manage-size-parity-r39.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-floor-manage-size-parity-r39.css')) ?: 20261026) }}" data-pmd-floor-r39="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-manage-audit-r39.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-manage-audit-r39.js')) ?: 20261026) }}" data-pmd-floor-r39="js"></script>
+@endif
+<!-- /PMD_FLOOR_EDIT_ALWAYS_R39_REAL_HEAD -->
 
 </head>
 @php
