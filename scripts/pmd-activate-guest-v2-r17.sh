@@ -18,13 +18,21 @@ done
 
 git -c gc.auto=0 -c maintenance.auto=false fetch --no-tags origin "refs/heads/${BRANCH}"
 REV="$(git rev-parse FETCH_HEAD)"
-TMP="$(mktemp -d -p "$ROOT" .pmd-r17-v2-stage-XXXXXXXX)"
-BACKUP="$ROOT/.pmd-r17-v2-backup-$(date +%Y%m%d_%H%M%S)-$$"
+# PMD_R17B_HOME_STAGE_PERMISSION_FIX: repository root is not writable by ubuntu.
+# Keep all staging and backup metadata under the invoking user's private home.
+[[ -n "${HOME:-}" && -d "$HOME" && -w "$HOME" ]] || {
+  echo 'STOP: HOME is not a writable directory for a private staging build.'
+  exit 3
+}
+TMP="$(mktemp -d -p "$HOME" pmd-r17-v2-stage-XXXXXXXX)"
+BACKUP="$HOME/pmd-r17-v2-backup-$(date +%Y%m%d_%H%M%S)-$"
 LIVE=""
 MUTATING=0
 MOVED_BUILD=0
 NEW_BUILD=0
 COMPLETED=0
+READY_BUILD=""
+OLD_BUILD=""
 cleanup(){
   local code=$?
   trap - EXIT
