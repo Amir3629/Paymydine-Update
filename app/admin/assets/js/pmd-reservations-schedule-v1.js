@@ -622,7 +622,15 @@
     var noteMap = notes();
     var eventMap = eventMapForYear(year);
     var cells = [];
-    for (var index = 0; index < 42; index += 1) {
+    // PMD_OWNER_CALENDAR_ACTUAL_WEEKS_R6:
+    // For Owner's large MONTH grid, don't render an unnecessary sixth week.
+    // Only change the number of displayed cells, never reservation data,
+    // date keys, opening-hours rules, or the 42-cell year mini-calendars.
+    var daysInMonth = new Date(year, monthIndex + 1, 0, 12, 0, 0, 0).getDate();
+    var cellCount = (large && ownerCalendarEnabled)
+      ? Math.ceil((offset + daysInMonth) / 7) * 7
+      : 42;
+    for (var index = 0; index < cellCount; index += 1) {
       var date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index, 12, 0, 0, 0);
       var key = dateKey(date);
       var state = dataState(key, reservationMap, noteMap, eventMap);
