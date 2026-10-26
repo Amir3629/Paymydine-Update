@@ -119,8 +119,54 @@ let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
 })' || { echo 'STOP: port 3002 is not the canonical V2 frontend'; exit 4; }
 
 python3 "$TMP/v2-guard.py" --check "$LIVE"
+# The repo root need not be writable. However switching the live .next
+# directory requires WRITE permission inside the actual V2 PM2 CWD.
+[[ -w "$LIVE" && ! -L "$LIVE/.next" ]] || {
+  echo "STOP: cannot atomically switch the compiled Next build inside: $LIVE"
+  echo 'No chmod/chown/sudo was attempted. Check the ownership of this exact frontend directory.'
+  exit 4
+}
+
+# Run the real QR normalizer regression in a tiny private, patched source copy
+# during --check. This catches V2 code drift before any full build or install.
+PREFLIGHT="$TMP/preflight"
+mkdir -p "$PREFLIGHT"
+for rel in package.json src/server/normalize.ts src/domain/model.ts \
+  'app/table/[tableId]/page.tsx' app/page.tsx; do
+  mkdir -p "$PREFLIGHT/$(dirname "$rel")"
+  cp -p "$LIVE/$rel" "$PREFLIGHT/$rel"
+done
+if [[ -f "$LIVE/app/CustomerMenuRoute.tsx" ]]; then
+  cp -p "$LIVE/app/CustomerMenuRoute.tsx" "$PREFLIGHT/app/CustomerMenuRoute.tsx"
+fi
+if [[ -f "$LIVE/src/runtime/components/PmdGuestTableInactiveR17.tsx" ]]; then
+  mkdir -p "$PREFLIGHT/src/runtime/components"
+  cp -p "$LIVE/src/runtime/components/PmdGuestTableInactiveR17.tsx" \
+    "$PREFLIGHT/src/runtime/components/PmdGuestTableInactiveR17.tsx"
+fi
+ln -s "$LIVE/node_modules" "$PREFLIGHT/node_modules"
+python3 "$TMP/v2-guard.py" --stage "$PREFLIGHT" "$TMP/preflight-manifest"
+node "$TMP/test-v2.cjs" "$PREFLIGHT"
+
+# Even if the top-level V2 directory is writable, verify every intended
+# source change before attempting the production switch.
+while IFS= read -r rel; do
+  [[ -n "$rel" && "$rel" != /* && "$rel" != *..* ]] || { echo 'STOP: unsafe source path'; exit 4; }
+  [[ ! -L "$LIVE/$rel" ]] || { echo "STOP: symlink target: $rel"; exit 4; }
+  if [[ -e "$LIVE/$rel" ]]; then
+    [[ -f "$LIVE/$rel" && -w "$LIVE/$rel" ]] || {
+      echo "STOP: source is not writable: $LIVE/$rel"; exit 4;
+    }
+  else
+    [[ -d "$LIVE/$(dirname "$rel")" && -w "$LIVE/$(dirname "$rel")" ]] || {
+      echo "STOP: cannot create source file: $LIVE/$rel"; exit 4;
+    }
+  fi
+done < "$TMP/preflight-manifest"
+
 if [[ "$MODE" == "--check" ]]; then
-  echo 'PREFLIGHT PASS R17: real V2 source is compatible; no live source, .next or PM2 changes.'
+  echo 'PREFLIGHT PASS R17B: V2 code, QR test cases and exact live write permissions verified.'
+  echo 'No live source, .next, tenant data or PM2 process was changed.'
   echo 'NEXT: run --apply to build and activate the staged QR safeguards.'
   exit 0
 fi
