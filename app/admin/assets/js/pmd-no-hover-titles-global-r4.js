@@ -43,7 +43,7 @@
 
   function isInteractive(element) {
     return element.matches && element.matches(
-      'button, a[href], input[type="button"], input[type="submit"], input[type="image"], [role="button"], [role="link"], [role="menuitem"], [role="tab"]'
+      'button, a[href], input:not([type="hidden"]), select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="tab"]'
     );
   }
 
@@ -52,7 +52,7 @@
     if (element.hasAttribute('aria-label') || element.hasAttribute('aria-labelledby')) return;
     var visible = (element.textContent || '').replace(/\s+/g, ' ').trim();
     var inputValue = /^(INPUT)$/i.test(element.tagName) ? (element.value || '') : '';
-    if (!visible && !inputValue) {
+    if ((!visible && !inputValue) || visible === hint) {
       element.setAttribute('aria-label', hint);
     }
   }
