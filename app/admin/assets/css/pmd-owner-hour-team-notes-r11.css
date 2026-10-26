@@ -245,3 +245,7 @@ button.pmd-owner-hour-role[aria-pressed="true"]::before {content:"✓";margin-ri
   html body .pmd-owner-hour-note-modal .pmd-owner-hour-note-card
   .pmd-owner-hour-time-list {max-height:min(192px,31dvh)!important}
 }
+
+/* Hidden state must outrank the visible grid rule above, even under R29 CSS. */
+html body .pmd-owner-hour-note-modal .pmd-owner-hour-note-card
+.pmd-owner-hour-time-list[hidden] { display:none!important; }
