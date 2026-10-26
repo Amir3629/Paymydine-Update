@@ -877,8 +877,13 @@
     var summary = header.querySelector('.pmd-r2-day-view__summary');
     var leftBound = rect.left + navRect.width / 2 + 8;
     var rightBound = rect.right - navRect.width / 2 - 8;
-    if (back) leftBound = Math.max(leftBound, back.getBoundingClientRect().right + navRect.width / 2 + 10);
-    if (summary) rightBound = Math.min(rightBound, summary.getBoundingClientRect().left - navRect.width / 2 - 10);
+    // Between 901px and 1150px the responsive CSS moves these actions to
+    // a SECOND row. They cannot overlap the date title above them, so do
+    // not let their horizontal bounds incorrectly push the date off-center.
+    if (viewportWidth > 1150) {
+      if (back) leftBound = Math.max(leftBound, back.getBoundingClientRect().right + navRect.width / 2 + 10);
+      if (summary) rightBound = Math.min(rightBound, summary.getBoundingClientRect().left - navRect.width / 2 - 10);
+    }
     if (rightBound < leftBound) center = unshiftedCenter;
     else center = Math.min(rightBound, Math.max(leftBound, center));
 
