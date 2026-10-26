@@ -68,4 +68,50 @@ check('R37 assets load in actual Admin head on the requested pages',()=>{
  assert(layout.includes('data-pmd-shared-empty-states-r37="css"'));
  assert(layout.includes('data-pmd-shared-empty-states-r37="js"'));
 });
+
+/* Execute the ACTUAL client renderer bodies with fake widget DOM.
+   Verify zero -> first genuine data transition, not just text presence. */
+function liveRenderer(name, endMarker){
+ const begin=client.indexOf('  function '+name+'(');
+ const end=client.indexOf(endMarker,begin);
+ assert(begin>=0&&end>begin,'missing function: '+name);
+ const body={innerHTML:''};
+ const env={
+   bodyFor:()=>body,
+   setBusy:()=>{},
+   empty:source=>'EMPTY:'+String((source&&source.reason)||'No records'),
+   donut:()=> 'CHART',
+   list:(rows,render)=>rows.map(render).join(','),
+   money:v=>'EUR '+Number(v||0),
+   esc:v=>String(v??''),
+   root:{closest:()=>null},
+   document:{documentElement:{lang:'en'},querySelector:()=>null}
+ };
+ const params=Object.keys(env);
+ const fn=new Function(...params,client.slice(begin,end)+'\\nreturn '+name+';')(...params.map(key=>env[key]));
+ return {render:fn,body};
+}
+check('Actual JS renderers switch from icon-notice to real payment/tip/event/alert cards',()=>{
+ const pay=liveRenderer('renderPayments','  /* PMD_DASHBOARD_LAB_BINARY_CHANNELS_V7');
+ pay.render({payment_methods:{available:true,methods:[{method:'Cash On Delivery',total:0}]}});
+ assert(pay.body.innerHTML==='EMPTY:No payments recorded in this period');
+ pay.render({payment_methods:{available:true,methods:[{method:'Cash',total:20}]}});
+ assert(pay.body.innerHTML==='CHART');
+ const tips=liveRenderer('renderTips','  function renderCalendar(');
+ tips.render({tips:{available:true,today:0,month:0,average_tip:0,tipped_orders:0}});
+ assert(tips.body.innerHTML==='EMPTY:No tips recorded in this period');
+ tips.render({tips:{available:true,today:5,month:5,average_tip:5,tipped_orders:1}});
+ assert(tips.body.innerHTML.includes('pmd-dashboard-lab-stats'));
+ const events=liveRenderer('renderCalendar','  function renderBase(');
+ events.render({calendar_events:{available:true,count:0,events:[]}});
+ assert(events.body.innerHTML==='EMPTY:No upcoming events');
+ events.render({calendar_events:{available:true,count:1,events:[{reservation_id:1,guests:2,time:'19:00'}]}});
+ assert(events.body.innerHTML.includes('pmd-dashboard-lab-event-list'));
+ const alerts=liveRenderer('renderAlerts','  function renderReviews(');
+ alerts.render({alerts:{available:true,types:{failed_payments:0,long_open_tables:null}}});
+ assert(alerts.body.innerHTML.includes('some sources are unavailable'));
+ alerts.render({alerts:{available:true,types:{failed_payments:1,long_open_tables:0}}});
+ assert(!alerts.body.innerHTML.startsWith('EMPTY:'));
+});
+
 console.log('R37 staging QA complete:',checks.length,'checks');
