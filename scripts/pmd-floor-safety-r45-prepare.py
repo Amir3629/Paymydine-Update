@@ -64,12 +64,47 @@ def forward_port(current, original, target, name):
         raise RuntimeError("Reference verification failed for " + name)
     return result, len(groups)
 
+def forward_port_layout(current, original, target, name):
+    """R45B: one additive head block, never a whole-context layout patch.
+
+    Prior versions required 12 identical lines near the end of the busy
+    layout. R41/R42 and later VPS changes made that unsafe assumption fail.
+    The unique R42 head-end anchor is a stable semantic insertion point.
+    All unrelated custom layout text is preserved byte-for-byte.
+    """
+    start = "<!-- PMD_FLOOR_OPERATIONAL_SAFETY_R45_REAL_HEAD -->"
+    end = "<!-- /PMD_FLOOR_OPERATIONAL_SAFETY_R45_REAL_HEAD -->"
+    anchor = "<!-- /PMD_FLOOR_NOTE_RANGE_R42_REAL_HEAD -->\n"
+    if original.count(start) or target.count(start) != 1 or target.count(end) != 1:
+        raise RuntimeError("STOP: R45 target head assets are ambiguous.")
+    if current.count(start) or current.count(end) or "pmd-floor-confirm-r45.js" in current:
+        raise RuntimeError("STOP: R45 head assets are already installed/partially installed.")
+    if current.count(anchor) != 1 or current.count("</head>") != 1:
+        raise RuntimeError("STOP: exact installed R42 head anchor missing/ambiguous.")
+    block_begin = target.index(start)
+    block_end = target.index(end, block_begin) + len(end)
+    block = target[block_begin:block_end]
+    # One line is injected directly after the known R42 head block. This
+    # preserves the original R42 CSS order and does not touch local extras.
+    result = current.replace(anchor, anchor + block + "\n", 1)
+    if result.count(start) != 1 or result.count(end) != 1:
+        raise RuntimeError("STOP: R45 head injection failed uniqueness check.")
+    if current == original and result != target:
+        raise RuntimeError("STOP: R44/R45 reference layout does not match injection.")
+    return result, 1
+
+
 def patch(root, base, ref):
     results = {}
     for name in FILES:
-        results[name] = forward_port(
-            source(root, name), source(base, name), source(ref, name), name
-        )
+        if name == "app/admin/views/_layouts/default.blade.php":
+            results[name] = forward_port_layout(
+                source(root, name), source(base, name), source(ref, name), name
+            )
+        else:
+            results[name] = forward_port(
+                source(root, name), source(base, name), source(ref, name), name
+            )
     for name in NEW:
         if pathlib.Path(root, name).exists():
             raise RuntimeError("STOP: R45 new file already exists: " + name)
