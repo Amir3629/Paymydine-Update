@@ -191,31 +191,30 @@ button.pmd-r2-floor-tool-v316.pmd-floor-table-manager__toolbar-button.is-add[dat
   outline-offset:2px!important;
 }
 
-/* Shared Owner/Manager Floor cards are server rendered, while subsequent
- * coordinator hydration used to show different drop-shadow/border frames.
- * Declare their FINISHED visual surface from the first paint; retain real
- * status-specific fill/border colors and do not recolor operational state.
- * Exclude selected and dragging tables, where Floor owns feedback. */
+/* PMD_DASHBOARD_FLOOR_FLAT_TABLES_R35
+ * R34 unintentionally gave Floor cards a 6px colored OUTER ring and thick
+ * shadow, making the tables look double-framed. Restore the previous plain,
+ * flat table appearance: the real operational status color still fills the
+ * table, and its thin border remains. Never create a surrounding glow.
+ * This is the same R34 stylesheet: no new competing CSS layer is added.
+ * Exclude selected/dragging tables so their distinct interaction feedback
+ * and native focus-visible behavior remain available. */
 html body.pmd-dashboard-lab-page
 #pmd-dashboard-lab
 #pmd-r2-shared-floor-canvas-v310
 .pmd-floor-v1__table[data-floor-table]:not(.is-selected):not(.is-dragging) {
   box-sizing:border-box!important;
   border-style:solid!important;
-  border-width:3px!important;
-  box-shadow:0 0 0 6px color-mix(in srgb,var(--state-color,#8698a8) 12%,transparent),
-             0 8px 20px rgba(16,36,58,.12)!important;
+  border-width:1px!important;
+  box-shadow:none!important;
   animation:none!important;
   transition:none!important;
 }
-/* The existing Floor :hover transform can remain functional. Its visual
- * shadow must not flip back to a different legacy theme on hover. */
 html body.pmd-dashboard-lab-page
 #pmd-dashboard-lab
 #pmd-r2-shared-floor-canvas-v310
 .pmd-floor-v1__table[data-floor-table]:not(.is-selected):not(.is-dragging):hover {
-  box-shadow:0 0 0 6px color-mix(in srgb,var(--state-color,#8698a8) 14%,transparent),
-             0 10px 22px rgba(16,36,58,.15)!important;
+  box-shadow:none!important;
 }
 /* No need to apply to POS/KDS touch tables, floor edit modals or Floor
  * management forms. Only the visible Owner/Manager shared Floor canvas. */
