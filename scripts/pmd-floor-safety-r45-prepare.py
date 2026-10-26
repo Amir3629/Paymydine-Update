@@ -37,7 +37,7 @@ def forward_port(current, original, target, name):
     previous_lines = original.splitlines(keepends=True)
     target_lines = target.splitlines(keepends=True)
     groups = list(difflib.SequenceMatcher(
-        None, previous_lines, target_lines, autojunk=False
+        None, previous_lines, target_lines, autojunk=True
     ).get_grouped_opcodes(n=12))
     if not groups:
         raise RuntimeError("No patch hunks: " + name)
