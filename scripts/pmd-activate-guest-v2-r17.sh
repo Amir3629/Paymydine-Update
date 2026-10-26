@@ -194,6 +194,23 @@ node "$TMP/test-v2.cjs" "$WORK"
 }
 node "$TMP/test-v2.cjs" "$WORK"
 
+# Copy the complete new compiled build into a sibling of .next BEFORE the
+# production switch. Renames below stay on the V2 filesystem and are fast.
+# Moving the build from HOME directly to LIVE could instead cross devices
+# and expose a partially copied .next to the running process.
+echo '== STAGE VERIFIED COMPILED OUTPUT NEXT TO THE ACTIVE .next =='
+READY_BUILD="$(mktemp -d -p "$LIVE" .next.pmd-r17-ready-XXXXXXXX)"
+rsync -a "$WORK/.next/" "$READY_BUILD/"
+chmod --reference="$LIVE/.next" "$READY_BUILD"
+[[ -s "$READY_BUILD/BUILD_ID" && -d "$READY_BUILD/static" ]] || {
+  echo 'STOP: local prepared Next build incomplete'; exit 5;
+}
+cmp -s "$WORK/.next/BUILD_ID" "$READY_BUILD/BUILD_ID" || {
+  echo 'STOP: copied compiled build ID differs'; exit 5;
+}
+OLD_BUILD="$LIVE/.next.pmd-r17-old-$(date +%Y%m%d_%H%M%S)-$(id -u)"
+[[ ! -e "$OLD_BUILD" ]] || { echo 'STOP: previous build backup path already exists'; exit 5; }
+
 echo '== BACKUP EXACT CURRENT SOURCES AND OLD COMPILED APP =='
 mkdir -p "$BACKUP/originals"
 : > "$BACKUP/files"
@@ -212,22 +229,34 @@ while IFS= read -r rel; do
 done < "$MANIFEST"
 printf '%s\n' "$LIVE" > "$BACKUP/live-root"
 printf '%s\n' "$SERVICE" > "$BACKUP/pm2-service"
+printf '%s\n' "$OLD_BUILD" > "$BACKUP/old-build-path"
 cat > "$BACKUP/rollback.sh" <<'ROLLBACK'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 B="$(cd "$(dirname "$0")" && pwd -P)"
 LIVE="$(cat "$B/live-root")"
 SERVICE="$(cat "$B/pm2-service")"
-[[ -d "$B/.next" && -d "$LIVE/.next" ]] || { echo 'STOP: previous or current Next build missing'; exit 2; }
-mv "$LIVE/.next" "$B/.next-r17-current"
-mv "$B/.next" "$LIVE/.next"
+OLD_BUILD="$(cat "$B/old-build-path")"
+[[ "$OLD_BUILD" == "$LIVE"/.next.pmd-r17-old-* ]] || { echo 'STOP: unexpected old build path'; exit 2; }
+[[ -d "$OLD_BUILD" && -d "$LIVE/.next" && -w "$LIVE" ]] || {
+  echo 'STOP: previous or current Next build missing/unwritable'; exit 2;
+}
+FAILED="$LIVE/.next.pmd-r17-replaced-$(date +%Y%m%d_%H%M%S)-$(id -u)"
+[[ ! -e "$FAILED" ]] || { echo 'STOP: replacement backup path exists'; exit 2; }
+mv "$LIVE/.next" "$FAILED"
+if ! mv "$OLD_BUILD" "$LIVE/.next"; then
+  mv "$FAILED" "$LIVE/.next" || true
+  echo 'STOP: could not restore previous compiled build'
+  exit 3
+fi
 while IFS="$(printf '\t')" read -r kind rel; do
-  if [[ "$kind" == E ]]; then cp "$B/originals/$rel" "$LIVE/$rel"
+  if [[ "$kind" == E ]]; then cp -p "$B/originals/$rel" "$LIVE/$rel"
   elif [[ "$kind" == N ]]; then rm -f -- "$LIVE/$rel"
   fi
 done < "$B/files"
 pm2 reload "$SERVICE" --update-env
 echo 'Previous V2 frontend source and compiled build restored.'
+echo "Displaced R17 build saved at: $FAILED"
 ROLLBACK
 chmod 700 "$BACKUP/rollback.sh"
 
@@ -238,9 +267,10 @@ while IFS= read -r rel; do
   mkdir -p "$LIVE/$(dirname "$rel")"
   cp "$WORK/$rel" "$LIVE/$rel"
 done < "$MANIFEST"
-mv "$LIVE/.next" "$BACKUP/.next"
+mv "$LIVE/.next" "$OLD_BUILD"
 MOVED_BUILD=1
-mv "$WORK/.next" "$LIVE/.next"
+mv "$READY_BUILD" "$LIVE/.next"
+READY_BUILD=""
 NEW_BUILD=1
 pm2 reload "$SERVICE" --update-env
 pm2 jlist | node -e '
@@ -258,6 +288,7 @@ let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
 })'
 COMPLETED=1
 echo 'SUCCESS R17 V2: disabled/unverified table QR blocked in actual running Frontend V2.'
-echo "BACKUP: $BACKUP"
+echo "SOURCE BACKUP: $BACKUP"
+echo "PREVIOUS NEXT BUILD: $OLD_BUILD"
 echo "ROLLBACK: bash $BACKUP/rollback.sh"
 echo 'FINAL BROWSER QA: test one disabled table QR, one enabled table QR and kiosk.'
