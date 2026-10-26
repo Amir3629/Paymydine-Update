@@ -84,8 +84,8 @@ import pathlib, sys
 src, dest = (pathlib.Path(p) for p in sys.argv[1:])
 text = src.read_text(encoding='utf-8')
 old = (
-    '                                    <small class="form-text text-muted">\\n'
-    '                                        This note will be visible to all staff members and shown as a push notification.\\n'
+    '                                    <small class="form-text text-muted">\n'
+    '                                        This note will be visible to all staff members and shown as a push notification.\n'
     '                                    </small>'
 )
 if 'id="addGeneralStaffNoteForm"' not in text or 'id="generalStaffNoteSubmitBtn"' not in text:
