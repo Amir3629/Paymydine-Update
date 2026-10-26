@@ -1108,17 +1108,19 @@ body.pmd-dashboard-lab-page
                         <span>{{ $pmdFloorRegistryText['add_floor'] }}</span>
                     </button>
 
-                    {{-- PMD_FLOOR_MANAGE_LEFT_SWITCHER_V3 --}}
-                                        <!-- PMD_EDIT_FLOOR_SECOND_FLOOR_VISIBILITY_V4_SERVER -->
-<button
+                    {{-- PMD_FLOOR_EDIT_VISIBLE_R39: authorized Owner/Manager can rename even the one default Floor.
+                         The canonical registry blocks deletion of default Floor; this UI never grants new permissions.
+                         Always paint final visible state on the server to avoid a flash on refresh. --}}
+                    <button
                         type="button"
                         class="pmd-shared-floor-switcher__add pmd-shared-floor-switcher__manage"
                         data-pmd-floor-manage
+                        data-pmd-floor-manage-always-visible-r39="1"
                         aria-label="{{ $pmdFloorManageText['button'] }}"
                         title="{{ $pmdFloorManageText['button'] }}"
-                        data-pmd-floor-manage-custom-visible="{{ $pmdHasCustomFloor ? '1' : '0' }}"
-                        @if(!$pmdHasCustomFloor) hidden @endif
-                        style="display:{{ $pmdHasCustomFloor ? 'inline-flex' : 'none' }}!important;visibility:{{ $pmdHasCustomFloor ? 'visible' : 'hidden' }}!important;pointer-events:{{ $pmdHasCustomFloor ? 'auto' : 'none' }}!important;"
+                        data-pmd-floor-manage-custom-visible="1"
+                        aria-hidden="false"
+                        style="display:inline-flex!important;visibility:visible!important;pointer-events:auto!important;"
                     >
                         <svg
                             viewBox="0 0 24 24"
