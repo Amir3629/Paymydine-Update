@@ -2278,6 +2278,9 @@
         copy.classList.add('pmd-r42-floor-ghost');
         copy.removeAttribute('data-floor-table');
         copy.removeAttribute('data-floor-members');
+        // Styling is copied from the original below. Do not inherit the
+        // legacy disabled-status transform:none/translate !important rules.
+        copy.removeAttribute('data-status');
         copy.removeAttribute('id');
         copy.setAttribute('aria-hidden', 'true');
         copy.setAttribute('tabindex', '-1');
@@ -2354,15 +2357,23 @@
           var destination = target.getBoundingClientRect();
           if (!(destination.width > 0 && destination.height > 0)) return;
           var source = entry.rect;
-          entry.node.animate(
-            [
-              {left:source.left+'px', top:source.top+'px',
-               width:source.width+'px', height:source.height+'px', opacity:1},
-              {left:destination.left+'px', top:destination.top+'px',
-               width:destination.width+'px', height:destination.height+'px', opacity:1}
-            ],
-            {duration:duration,easing:'cubic-bezier(.22,.75,.2,1)',fill:'forwards'}
-          );
+          try {
+            entry.node.animate(
+              [
+                {left:source.left+'px', top:source.top+'px',
+                 width:source.width+'px', height:source.height+'px'},
+                {left:destination.left+'px', top:destination.top+'px',
+                 width:destination.width+'px', height:destination.height+'px'}
+              ],
+              {duration:duration,easing:'cubic-bezier(.22,.75,.2,1)',fill:'forwards'}
+            );
+          } catch (error) {
+            // Safari cannot leave originals concealed if animation fails.
+            entry.node.style.left = destination.left + 'px';
+            entry.node.style.top = destination.top + 'px';
+            entry.node.style.width = destination.width + 'px';
+            entry.node.style.height = destination.height + 'px';
+          }
         });
         // The operative table buttons were already positioned in the same
         // turn; showing them only after the copies arrive prevents any snap.
