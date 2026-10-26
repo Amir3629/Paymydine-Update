@@ -37,23 +37,29 @@ cleanup(){
   local code=$?
   trap - EXIT
   if [[ "$MUTATING" == 1 && "$COMPLETED" == 0 ]]; then
-    echo 'R17 V2 activation failed; restoring exact source and old .next.'
+    echo 'R17B V2 activation failed; restoring old source and original compiled build.'
     if [[ "$NEW_BUILD" == 1 && -d "$LIVE/.next" ]]; then
-      mv "$LIVE/.next" "$BACKUP/.next.failed-r17" || true
+      local failed_build="$LIVE/.next.pmd-r17-failed-$(date +%Y%m%d_%H%M%S)-$$"
+      mv "$LIVE/.next" "$failed_build" || true
     fi
-    if [[ "$MOVED_BUILD" == 1 && -d "$BACKUP/.next" ]]; then
-      mv "$BACKUP/.next" "$LIVE/.next" || true
+    if [[ "$MOVED_BUILD" == 1 && -n "$OLD_BUILD" && -d "$OLD_BUILD" && ! -e "$LIVE/.next" ]]; then
+      mv "$OLD_BUILD" "$LIVE/.next" || true
     fi
     if [[ -f "$BACKUP/files" ]]; then
       while IFS="$(printf '\t')" read -r kind rel; do
-        if [[ "$kind" == E ]]; then cp "$BACKUP/originals/$rel" "$LIVE/$rel" || true
+        if [[ "$kind" == E ]]; then cp -p "$BACKUP/originals/$rel" "$LIVE/$rel" || true
         elif [[ "$kind" == N ]]; then rm -f -- "$LIVE/$rel" || true
         fi
       done < "$BACKUP/files"
     fi
-    pm2 reload "$SERVICE" --update-env || true
+    if [[ "$MOVED_BUILD" == 1 ]]; then
+      pm2 reload "$SERVICE" --update-env || true
+    fi
   fi
-  rm -rf "$TMP"
+  if [[ -n "$READY_BUILD" && "$READY_BUILD" == "$LIVE"/.next.pmd-r17-ready-* && -d "$READY_BUILD" ]]; then
+    rm -rf -- "$READY_BUILD"
+  fi
+  rm -rf -- "$TMP"
   exit "$code"
 }
 trap cleanup EXIT
