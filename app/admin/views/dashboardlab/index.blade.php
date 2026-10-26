@@ -930,7 +930,7 @@
             // to invalidate browser caches and avoids three SHA-256 file reads.
             $pmdDashboardComposerCssVersion = 'r35-20260927';
             $pmdDashboardComposerJsVersion = 'r8-20260918';
-            $pmdDashboardScheduleJsVersion = 'r551-owner-calendar-hour-header-r10-20261026';
+            $pmdDashboardScheduleJsVersion = 'r551-owner-hour-team-notes-r11-20261026';
         @endphp
 
         <link
