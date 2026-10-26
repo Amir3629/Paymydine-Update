@@ -223,7 +223,9 @@ async function barcodeDiagnostic(page) {
     save('pages.json',JSON.stringify(pages,null,2));
     save('buttons.json',JSON.stringify(rows,null,2));
     save('overview.csv',csv(pages,['path','status','title','totalButtons','visible','tagged','untaggedGeneral','smallRadius','primaryNoGradient','r29Ready','r31CSS','error']));
-    save('buttons.csv',csv(rows,['page','index','kind','tag','label','role','visible','selected','height','width','borderRadius','borderColor','background','gradient','color','fontSize','fontWeight','classes','dataNames','anomaly']));
+    const fields=['page','index','kind','tag','label','role','visible','selected','height','width','borderRadius','borderColor','background','gradient','color','fontSize','fontWeight','classes','dataNames','anomaly'];
+    save('buttons.csv',csv(rows,fields));
+    save('possible-inconsistencies.csv',csv(rows.filter(b=>!!b.anomaly),fields));
     const overview={
       pagesAttempted:pages.length,buttonsRecorded:rows.length,
       pagesWithIssues:pages.filter(p=>(p.untaggedGeneral||0)+(p.smallRadius||0)+(p.primaryNoGradient||0)>0).length,
