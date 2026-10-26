@@ -1,0 +1,140 @@
+/* PMD_OWNER_HOUR_TEAM_NOTES_R11
+ * Small operational "+ note" at each visible half-hour, grouped roles,
+ * persisted note previews with per-recipient confirmation counts.
+ */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot__content {position:relative!important}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-note-plus {
+  position:absolute!important;right:10px!important;top:50%!important;
+  transform:translateY(-50%)!important;z-index:2!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  width:31px!important;min-width:31px!important;height:31px!important;min-height:31px!important;
+  margin:0!important;padding:0!important;border:1px solid #bad7c9!important;
+  border-radius:9px!important;background:#edf8f2!important;color:#08694e!important;
+  font-size:20px!important;font-weight:700!important;line-height:1!important;
+  box-shadow:none!important;cursor:pointer!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-note-plus:hover {
+  border-color:#075c47!important;background:#075c47!important;color:#fff!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-note-plus:focus-visible {
+  outline:2px solid #087b5f!important;outline-offset:2px!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot__content {
+  padding-right:52px!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.pmd-owner-hour-has-notes,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.pmd-owner-hour-has-notes .pmd-r2-timeslot__time,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.pmd-owner-hour-has-notes .pmd-r2-timeslot__content {
+  height:auto!important;max-height:none!important;min-height:78px!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.pmd-owner-hour-has-notes .pmd-r2-timeslot__content {
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  justify-content:center!important;gap:6px!important;padding:7px 52px 7px 14px!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-slot-notes {
+  position:relative!important;display:flex!important;flex-direction:column!important;
+  gap:5px!important;margin:3px 0 0 21px!important;max-width:100%!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-note-item {
+  display:flex!important;justify-content:space-between!important;gap:8px!important;
+  padding:8px 10px!important;border:1px solid #c8e1d4!important;
+  border-left:3px solid #0b765e!important;border-radius:7px!important;
+  background:#eef8f2!important;color:#205748!important;min-width:0!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-note-item__main {flex:1;min-width:0}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-note-item__main p {
+  margin:0 0 4px!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important;
+  font-size:11px!important;font-weight:700!important;line-height:1.4!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-note-item__main small {
+  display:block!important;color:#447363!important;font-size:10px!important;line-height:1.25!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-note-item__remove {
+  align-self:flex-start!important;width:24px!important;height:24px!important;
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  padding:0!important;background:#fff!important;border:1px solid #d5e6dc!important;
+  border-radius:7px!important;color:#7d4b48!important;font-size:17px!important;cursor:pointer!important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-day-note-count {
+  background:#e4f4ea!important;color:#166047!important;border-left-color:#0b765e!important;
+}
+/* The owner composer is fixed and separate from the existing Reservation modal. */
+.pmd-owner-hour-note-modal[hidden] {display:none!important}
+.pmd-owner-hour-note-modal {
+  position:fixed!important;inset:0!important;z-index:2147482900!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  padding:16px!important;box-sizing:border-box!important;
+}
+.pmd-owner-hour-note-modal__backdrop {
+  position:fixed!important;inset:0!important;background:rgba(4,26,20,.5)!important;
+  border:0!important;cursor:pointer!important;
+}
+.pmd-owner-hour-note-card {
+  position:relative!important;z-index:1!important;display:flex!important;flex-direction:column!important;
+  gap:17px!important;width:min(490px,100%)!important;max-height:calc(100dvh - 32px)!important;
+  overflow:auto!important;box-sizing:border-box!important;padding:24px!important;
+  border:1px solid #d4e2d9!important;border-radius:18px!important;background:#fff!important;
+  box-shadow:0 20px 65px rgba(2,33,24,.21)!important;color:#173d34!important;
+}
+.pmd-owner-hour-note-card header {display:flex!important;align-items:start!important;justify-content:space-between!important;gap:15px!important}
+.pmd-owner-hour-note-card header small {color:#668174;font-size:11px;font-weight:750}
+.pmd-owner-hour-note-card header h2 {margin:4px 0 0;font-size:21px;font-weight:850}
+.pmd-owner-hour-note-card header button {
+  width:36px;height:36px;border:1px solid #d2dee5;border-radius:10px;background:#fff;
+  font-size:20px;cursor:pointer;color:#315347;
+}
+.pmd-owner-hour-note-card label {display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:800}
+.pmd-owner-hour-note-card textarea,.pmd-owner-hour-note-card select {
+  display:block;box-sizing:border-box;width:100%;border:1px solid #cbdcd3;
+  border-radius:11px;background:#fff;color:#173d34;padding:10px 12px;font:inherit;
+}
+.pmd-owner-hour-note-card textarea {min-height:100px;resize:vertical;line-height:1.5;font-weight:500}
+.pmd-owner-hour-note-audience strong {display:block;font-size:12px;color:#173d34}
+.pmd-owner-hour-note-audience p {margin:4px 0 10px;font-size:11px;color:#638174}
+.pmd-owner-hour-note-roles {display:flex;flex-wrap:wrap;gap:7px}
+.pmd-owner-hour-role {
+  padding:8px 11px!important;border:1px solid #cbdcd3!important;
+  border-radius:10px!important;background:#fff!important;color:#26463a!important;
+  font-size:11px!important;font-weight:750!important;cursor:pointer!important;
+}
+.pmd-owner-hour-role.is-selected {
+  background:linear-gradient(180deg,#0b765e,#075c47)!important;
+  border-color:#064b3c!important;color:#fff!important;
+}
+.pmd-owner-hour-note-error[hidden] {display:none!important}
+.pmd-owner-hour-note-error {margin:0;padding:9px;color:#8d3434;font-size:11px;background:#fff2f1;border-radius:7px}
+.pmd-owner-hour-note-card footer {display:flex!important;justify-content:flex-end!important;gap:9px!important}
+.pmd-owner-hour-note-card footer button {
+  min-height:42px;padding:0 16px;border:1px solid #d2dee5;border-radius:12px;
+  color:#243f38;background:#fff;font-size:12px;font-weight:800;cursor:pointer;
+}
+.pmd-owner-hour-note-card footer .is-primary {
+  border-color:#064b3c;background:linear-gradient(180deg,#0b765e,#075c47);color:#fff;
+}
+.pmd-owner-hour-note-card footer button:disabled {opacity:.55;cursor:wait}
+.pmd-owner-hour-note-card button:focus-visible {outline:2px solid #087b5f;outline-offset:2px}
+@media(max-width:650px) {
+  .pmd-owner-hour-note-card {padding:16px!important}
+  .pmd-owner-hour-note-card footer {flex-wrap:wrap}
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-owner-hour-slot-notes {margin-left:4px!important}
+}
+@media(prefers-reduced-motion:reduce) {
+  .pmd-owner-hour-role,.pmd-owner-hour-note-plus{transition:none!important}
+}

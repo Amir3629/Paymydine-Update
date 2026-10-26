@@ -256,14 +256,14 @@
             </script>
 
             <!-- General Staff Note Modal -->
-            <div class="modal fade" id="addGeneralStaffNoteModal" tabindex="-1" role="dialog" aria-labelledby="addGeneralStaffNoteModalLabel" aria-hidden="true">
+            <div class="modal fade" id="addGeneralStaffNoteModal" data-pmd-general-staff-note-r41="1" tabindex="-1" role="dialog" aria-labelledby="addGeneralStaffNoteModalLabel" aria-modal="true" aria-hidden="true">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="addGeneralStaffNoteModalLabel">
-                                <i class="fa fa-sticky-note"></i> Add General Staff Note
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" aria-hidden="true"></button>
+                            <h5 class="modal-title" id="addGeneralStaffNoteModalLabel">Add General Staff Note</h5>
+                            <button type="button" class="pmd-note-close-r42" aria-label="Close" onclick="$('#addGeneralStaffNoteModal').modal('hide');">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
                         </div>
                         <form id="addGeneralStaffNoteForm" onsubmit="return false;">
                             <div class="modal-body">
@@ -298,7 +298,7 @@
                                     class="btn btn-primary"
                                     data-request="onAddGeneralStaffNote"
                                 >
-                                    <i class="fa fa-save"></i> Save Note
+                                    <span class="pmd-note-save-label-r42">Save Note</span>
                                 </button>
                             </div>
                         </form>
@@ -320,25 +320,7 @@
                     $('#addGeneralStaffNoteModal').on('shown.bs.modal', function() {
                         $('#generalStaffNoteText').focus();
                         loadNoteSuggestions();
-                        var $cancel = $('#addGeneralStaffNoteModal .modal-footer .btn-secondary');
-                        var $save = $('#addGeneralStaffNoteModal .modal-footer .btn-primary');
-                        [$cancel[0], $save[0]].filter(Boolean).forEach(function(btn) {
-                            btn.style.setProperty('min-width', '110px', 'important');
-                            btn.style.setProperty('height', '40px', 'important');
-                            btn.style.setProperty('min-height', '40px', 'important');
-                            btn.style.setProperty('padding', '0.55rem 1.75rem', 'important');
-                            btn.style.setProperty('line-height', '1.3', 'important');
-                        });
-                        if ($cancel.length) {
-                            $cancel[0].style.removeProperty('color');
-                            $cancel[0].style.removeProperty('background');
-                            $cancel[0].style.removeProperty('background-color');
-                            $cancel[0].style.removeProperty('border');
-                            $cancel[0].style.setProperty('background', '#f1f4fb', 'important');
-                            $cancel[0].style.setProperty('background-color', '#f1f4fb', 'important');
-                            $cancel[0].style.setProperty('border', '1px solid #c9d2e3', 'important');
-                            $cancel[0].style.setProperty('color', '#202938', 'important');
-                        }
+                        // PMD_NOTE_R41: modal button dimensions and colors are CSS-owned.
                     });
                     
                     // Clear form when modal is hidden

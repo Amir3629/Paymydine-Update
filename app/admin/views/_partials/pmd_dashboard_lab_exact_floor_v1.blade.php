@@ -532,6 +532,11 @@
             true
         );
 
+    /* PMD_FLOOR_R38_MANAGEMENT_SINGLE_TAB
+       Show the real current Floor tab to Owner/Manager even with one Floor.
+       No artificial floors are created, and single-floor modal semantics stay. */
+    $pmdR38ShowManagementFloorTab = $pmdShowFloorTabs || $pmdFloorCanManageTables;
+
     $pmdFloorTableManagerLocationId = max(0, (int)($locationId ?? 0));
     if ($pmdFloorTableManagerLocationId < 1) {
         try {
@@ -992,6 +997,42 @@ body.pmd-dashboard-lab-page
     transition: none !important;
     animation: none !important;
 }
+/* PMD_FLOOR_R38_FIRST_PAINT_STATIC_TABLES
+   The server's inline center coordinates are canonical. Prevent initial
+   hover/transition changes from moving cards during CSS/font hydration.
+   Explicit structural animations and dragging retain their original path. */
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310[data-pmd-floor-boot-source="server"]:not(.is-floor-transitioning)
+[data-floor-canvas] > [data-floor-table]:not(.is-dragging) {
+    position: absolute !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    transform: translate(-50%, -50%) !important;
+    transform-origin: center !important;
+    transition: none !important;
+    animation: none !important;
+}
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310[data-pmd-floor-boot-source="server"].is-strip-mode
+[data-floor-canvas] > [data-floor-table]:not(.is-merged-card) {
+    width: 108px !important;
+    min-width: 108px !important;
+    max-width: 108px !important;
+    height: 88px !important;
+    min-height: 88px !important;
+    max-height: 88px !important;
+}
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310[data-pmd-floor-boot-source="server"].is-strip-mode
+[data-floor-canvas] > [data-floor-table].is-merged-card {
+    width: 270px !important;
+    min-width: 270px !important;
+    max-width: 270px !important;
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+}
+
 </style>
 
 {{-- PMD_FLOOR_UNIFIED_RESERVATION_PALETTE_R1
@@ -1053,12 +1094,13 @@ body.pmd-dashboard-lab-page
         >
             <div
                 class="pmd-shared-floor-switcher"
+                data-pmd-admin-control-ignore
                 data-pmd-floor-switcher
                 role="tablist"
                 aria-label="Floors"
                 @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
             >
-                @if($pmdShowFloorTabs)
+                @if($pmdR38ShowManagementFloorTab)
                     @foreach($pmdFloorRegistry as $pmdFloorRegistryItem)
                         @php
                             $pmdFloorRegistryItemId = trim((string)($pmdFloorRegistryItem['id'] ?? ''));
@@ -1087,17 +1129,19 @@ body.pmd-dashboard-lab-page
                         <span>{{ $pmdFloorRegistryText['add_floor'] }}</span>
                     </button>
 
-                    {{-- PMD_FLOOR_MANAGE_LEFT_SWITCHER_V3 --}}
-                                        <!-- PMD_EDIT_FLOOR_SECOND_FLOOR_VISIBILITY_V4_SERVER -->
-<button
+                    {{-- PMD_FLOOR_EDIT_VISIBLE_R39: authorized Owner/Manager can rename even the one default Floor.
+                         The canonical registry blocks deletion of default Floor; this UI never grants new permissions.
+                         Always paint final visible state on the server to avoid a flash on refresh. --}}
+                    <button
                         type="button"
                         class="pmd-shared-floor-switcher__add pmd-shared-floor-switcher__manage"
                         data-pmd-floor-manage
+                        data-pmd-floor-manage-always-visible-r39="1"
                         aria-label="{{ $pmdFloorManageText['button'] }}"
                         title="{{ $pmdFloorManageText['button'] }}"
-                        data-pmd-floor-manage-custom-visible="{{ $pmdHasCustomFloor ? '1' : '0' }}"
-                        @if(!$pmdHasCustomFloor) hidden @endif
-                        style="display:{{ $pmdHasCustomFloor ? 'inline-flex' : 'none' }}!important;visibility:{{ $pmdHasCustomFloor ? 'visible' : 'hidden' }}!important;pointer-events:{{ $pmdHasCustomFloor ? 'auto' : 'none' }}!important;"
+                        data-pmd-floor-manage-custom-visible="1"
+                        aria-hidden="false"
+                        style="display:inline-flex!important;visibility:visible!important;pointer-events:auto!important;"
                     >
                         <svg
                             viewBox="0 0 24 24"
@@ -1252,7 +1296,13 @@ body.pmd-dashboard-lab-page
 
     <div class="pmd-floor-v1__stage" data-floor-stage>
         <div class="pmd-floor-v1__loading" data-floor-loading hidden>Loading live floor…</div>
-        <div class="pmd-floor-v1__empty" data-floor-empty {{ count($displayTables) ? 'hidden' : '' }}>No tables match this view.</div>
+        {{-- PMD_DASHBOARD_FLOOR_EMPTY_R37: one centered notice, no duplicate Create Table action --}}
+        <div class="pmd-floor-v1__empty pmd-floor-r36-empty pmd-r37-floor-empty" data-floor-empty data-pmd-floor-empty-r36 {{ count($displayTables) ? 'hidden' : '' }}>
+            <div class="pmd-floor-r36-empty__panel" role="status" aria-live="polite">
+                <span class="pmd-r37-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg></span>
+                <strong data-pmd-floor-empty-title-r36>{{ count($displayTables) ? 'No matching tables' : 'No tables on this floor yet' }}</strong>
+            </div>
+        </div>
 
         <div class="pmd-floor-v1__canvas-wrap" data-floor-scroll style="height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px;min-height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px;max-height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px">
             <div class="pmd-floor-v1__canvas" data-floor-canvas style="width:{{ $pmdFloorServerCanvasWidthCss }};min-width:{{ $pmdFloorServerCanvasWidthCss }};height:{{ $canvasHeight }}px;min-height:{{ $canvasHeight }}px;transform:scale({{ $floorMode === 'row' ? 1 : $floorZoom }})">

@@ -461,8 +461,11 @@
        *   1 Floor  = default only       -> hide Edit Floor
        *   2+ Floor = custom Floor exists -> show Edit Floor
        */
-      var showFloorTabs = floors.length > 1;
-      var showManage = hasCustomFloor();
+      /* PMD_FLOOR_EDIT_VISIBLE_R39: a single default Floor is editable.
+       * Owner/Manager can rename it; the default remains undeletable.
+       * Other roles still get Floor tabs only if 2+ Floors exist. */
+      var showFloorTabs = floors.length > 1 || config.can_manage === true;
+      var showManage = config.can_manage === true;
 
       var showSwitcher =
         showFloorTabs
@@ -2241,13 +2244,17 @@
           oneRowFixedGap: 18,
           floorTabsVisibleForAllRoles: true,
           addFloorOwnerManagerOnly: true,
-          singleFloorTabsHidden: true,
+          singleFloorTabsHidden: config.can_manage !== true,
           singleFloorTableFieldHidden: true,
           roleIndependentRegistryLocation: true,
           extendedLayoutPersistence: true,
           serverCoordinateClipRemoved: true,
           loadedCoordinateExtentSync: true,
-          canManage: Boolean(config.can_manage)
+          canManage: Boolean(config.can_manage),
+          editFloorAlwaysVisibleForManagersR39: Boolean(config.can_manage),
+          editFloorVisibleNowR39: Boolean(switcher && switcher.querySelector('[data-pmd-floor-manage]:not([hidden])')),
+          defaultFloorRenameAvailableR39: true,
+          defaultFloorDeleteRestrictedR39: true
         };
       }
     };

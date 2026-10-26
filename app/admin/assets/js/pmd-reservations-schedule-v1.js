@@ -93,7 +93,8 @@
 
   // Only a server-authorized Owner payload may enable workforce summaries.
   var ownerCalendarEnabled = boot.owner_calendar_enabled === true;
-  var ownerStaffingYear = Number(boot.owner_staffing_year || boot.year || 0);
+  // Unknown staffing source must not silently be represented as 0 workers.
+  var ownerStaffingYear = Number(boot.owner_staffing_year || 0);
   var ownerStaffingLoadingYear = null;
   var ownerStaffingSequence = 0;
   var ownerStaffingError = '';
@@ -530,6 +531,12 @@
   }
 
   function rootMarkup() {
+    // PMD_OWNER_CALENDAR_ACTIONS_R7
+    // Use the same shared Calendar runtime, but physically place the Owner
+    // Year/Month switch in the LEFT toolbar column. The middle navigation
+    // then sits at the mathematical center of the calendar width.
+    var viewSwitchMarkup =
+      '<div class="pmd-yc__view-switch"><button type="button" data-r2-yc-view="year">' + esc(text('year',locale === 'de' ? 'Jahr' : 'Year')) + '</button><button type="button" data-r2-yc-view="month" class="is-active">' + esc(text('month',locale === 'de' ? 'Monat' : 'Month')) + '</button></div>';
     return '' +
       '<div class="pmd-r2-yc-calendar-frame" data-r2-yc-calendar-frame>' +
         '<div class="pmd-yc__toolbar">' +
@@ -538,11 +545,14 @@
             '<span><i class="is-note">✎</i>' + esc(text('note', locale === 'de' ? 'Notiz' : 'Note')) + '</span>' +
             '<span><i class="is-event">★</i>' + esc(text('event', locale === 'de' ? 'Ereignis' : 'Event')) + '</span>' +
           '</div>' +
+          (ownerCalendarEnabled ? viewSwitchMarkup : '') +
           '<div class="pmd-yc__month-nav"><button type="button" data-r2-yc-prev aria-label="' + esc(text('previous','Previous')) + '">←</button><strong data-r2-yc-label></strong><button type="button" data-r2-yc-next aria-label="' + esc(text('next','Next')) + '">→</button></div>' +
           '<div class="pmd-yc__toolbar-right">' +
-            '<div class="pmd-yc__view-switch"><button type="button" data-r2-yc-view="year">' + esc(text('year',locale === 'de' ? 'Jahr' : 'Year')) + '</button><button type="button" data-r2-yc-view="month" class="is-active">' + esc(text('month',locale === 'de' ? 'Monat' : 'Month')) + '</button></div>' +
+            (ownerCalendarEnabled ? '' : viewSwitchMarkup) +
             '<div class="pmd-yc__filters"><button type="button" data-r2-yc-filter="all" class="is-active">' + esc(text('all',locale === 'de' ? 'Alle' : 'All')) + '</button><button type="button" data-r2-yc-filter="reservations">' + esc(text('reservations_title',locale === 'de' ? 'Reservierungen' : 'Reservations')) + '</button><button type="button" data-r2-yc-filter="events">' + esc(text('events',locale === 'de' ? 'Ereignisse' : 'Events')) + '</button></div>' +
-            '<button type="button" class="pmd-r2-yc-note-btn" data-r2-yc-note>＋ ' + esc(text('note',locale === 'de' ? 'Notiz' : 'Note')) + '</button>' +
+            // Owner creates/edits a note for the selected day in HOUR view only.
+            // Keep the original month/year toolbar action for other workspaces.
+            (ownerCalendarEnabled ? '' : '<button type="button" class="pmd-r2-yc-note-btn" data-r2-yc-note>＋ ' + esc(text('note',locale === 'de' ? 'Notiz' : 'Note')) + '</button>') +
           '</div>' +
         '</div>' +
         (ownerCalendarEnabled ? '<p class="pmd-r2-owner-staff-status" data-pmd-owner-staff-status role="status" aria-live="polite" hidden></p>' : '') +
@@ -622,7 +632,15 @@
     var noteMap = notes();
     var eventMap = eventMapForYear(year);
     var cells = [];
-    for (var index = 0; index < 42; index += 1) {
+    // PMD_OWNER_CALENDAR_ACTUAL_WEEKS_R6:
+    // For Owner's large MONTH grid, don't render an unnecessary sixth week.
+    // Only change the number of displayed cells, never reservation data,
+    // date keys, opening-hours rules, or the 42-cell year mini-calendars.
+    var daysInMonth = new Date(year, monthIndex + 1, 0, 12, 0, 0, 0).getDate();
+    var cellCount = (large && ownerCalendarEnabled)
+      ? Math.ceil((offset + daysInMonth) / 7) * 7
+      : 42;
+    for (var index = 0; index < cellCount; index += 1) {
       var date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index, 12, 0, 0, 0);
       var key = dateKey(date);
       var state = dataState(key, reservationMap, noteMap, eventMap);
@@ -732,7 +750,14 @@
         '<div class="pmd-r2-timeslot__time"><strong>' + slotClock + '</strong><span>' + (bookings.length ? bookings.length + ' ' + esc(bookings.length === 1 ? text('booking','booking') : text('bookings','bookings')) : esc(closedSlot ? text('restaurant_closed', locale === 'de' ? 'Restaurant geschlossen' : 'Restaurant closed') : text('available','Available'))) + '</span></div>' +
         '<div class="pmd-r2-timeslot__content">' +
           (bookings.length ? bookings.map(bookingChip).join('') : '<div class="pmd-r2-timeslot__free"><i></i><span>' + esc(closedSlot ? text('restaurant_closed', locale === 'de' ? 'Restaurant geschlossen' : 'Restaurant closed') : text('no_reservations','No reservations')) + '</span></div>') +
-          '<button type="button" class="pmd-r2-timeslot__create-button" data-pmd-reservations-slot-create aria-label="' + esc(createLabel) + '" title="' + esc(createLabel) + '"' + (!bookableSlot ? ' disabled aria-disabled="true"' : '') + '>+</button>' +
+          // Owner Hour does not display any + icons. Free bookable rows
+          // already open the Composer on click; keep a keyboard-accessible,
+          // text-only create action for tab / screen-reader navigation.
+          (ownerCalendarEnabled
+            ? (bookableSlot
+                ? '<button type="button" class="pmd-owner-hour-create-a11y" data-pmd-reservations-slot-create aria-label="' + esc(createLabel) + '">' + esc(text('new_reservation', 'New reservation')) + '</button>'
+                : '')
+            : '<button type="button" class="pmd-r2-timeslot__create-button" data-pmd-reservations-slot-create aria-label="' + esc(createLabel) + '" title="' + esc(createLabel) + '"' + (!bookableSlot ? ' disabled aria-disabled="true"' : '') + '>+</button>') +
         '</div></section>');
     });
     if (slots.unknown) {
@@ -741,17 +766,30 @@
     var splitIndex = Math.ceil(rows.length / 2);
     var totalGuests = list.reduce(function (total, item) { return total + guestCount(item); }, 0);
     var occupiedSlots = Object.keys(slots).filter(function (key) { return key !== 'unknown' && slots[key] && slots[key].length; }).length;
-    var staffDayCount = (boot.owner_staffing || {})[selectedDate];
-    var hasStaffDay = ownerCalendarEnabled && Object.prototype.hasOwnProperty.call(boot.owner_staffing || {}, selectedDate);
-    var ownerStaffSummary = hasStaffDay
-      ? '<span><strong>' + Math.max(0, Number(staffDayCount) || 0) + '</strong> ' + esc(locale === 'de' ? 'Mitarbeitende geplant' : 'staff scheduled') + '</span>'
-      : '';
+
+    // PMD_OWNER_HOUR_STAFF_SUMMARY_R10
+    // The daily staffing authority is the same location-scoped Shifts map
+    // used for green month chips. If the selected year's data has loaded,
+    // an unlisted day accurately means 0 scheduled people; otherwise use
+    // an em dash rather than falsely claiming zero during a failed refresh.
+    var ownerYearReady = ownerCalendarEnabled
+      && Number(ownerStaffingYear) === Number(String(selectedDate).slice(0, 4));
+    var staffDayCount = Math.max(0, Number((boot.owner_staffing || {})[selectedDate]) || 0);
+    var ownerStaffSummary = '<span class="pmd-owner-hour-staff-summary" data-pmd-owner-hour-staff-summary><strong>'
+      + (ownerYearReady ? staffDayCount : '—') + '</strong> '
+      + esc(locale === 'de' ? 'Mitarbeitende geplant' : 'staff scheduled') + '</span>';
+    var daySummary = ownerCalendarEnabled
+      ? '<span><strong>' + list.length + '</strong> ' + esc(text('reservations', 'Reservations')) + '</span>' + ownerStaffSummary
+      : '<span><strong>' + list.length + '</strong> ' + esc(text('reservations', 'Reservations')) + '</span><span><strong>' + totalGuests + '</strong> ' + esc(text('guests', 'Guests')) + '</span><span><strong>' + occupiedSlots + '</strong> ' + esc(text('time_slots','time slots')) + '</span>';
 
     section.innerHTML = '<div class="pmd-r2-timeslot-screen">' +
       '<header class="pmd-r2-day-view__header" data-pmd-hour-header-v38="true">' +
         '<button type="button" class="pmd-r2-timeslot-screen__back" data-r2-yc-clear-selection>' + esc(text('calendar','Calendar')) + '</button>' +
         '<div class="pmd-r2-day-view__date-nav"><button type="button" class="pmd-r2-day-view__month-button" data-r2-yc-prev-day aria-label="' + esc(text('previous','Previous')) + '">‹</button><div class="pmd-r2-day-view__title"><h2>' + esc(formatDate(selectedDate)) + '</h2></div><button type="button" class="pmd-r2-day-view__month-button" data-r2-yc-next-day aria-label="' + esc(text('next','Next')) + '">›</button></div>' +
-        '<div class="pmd-r2-day-view__summary"><span><strong>' + list.length + '</strong> ' + esc(text('reservations','reservations')) + '</span><span><strong>' + totalGuests + '</strong> ' + esc(text('guests','Guests')) + '</span><span><strong>' + occupiedSlots + '</strong> ' + esc(text('time_slots','time slots')) + '</span>' + ownerStaffSummary + '</div>' +
+        '<div class="pmd-r2-day-view__summary">' + daySummary +
+          (ownerCalendarEnabled
+            ? '<button type="button" class="pmd-r2-yc-note-btn pmd-owner-hour-note-btn" data-r2-yc-note>＋ ' + esc(text('note', locale === 'de' ? 'Notiz' : 'Note')) + '</button>'
+            : '') + '</div>' +
       '</header>' +
       '<div class="pmd-r2-day-board__timeline pmd-r2-day-board__timeline--two-columns" data-pmd-hour-grid-v38="true"><div class="pmd-r2-day-board__column pmd-r2-day-board__column--first">' + rows.slice(0, splitIndex).join('') + '</div><div class="pmd-r2-day-board__column pmd-r2-day-board__column--second">' + rows.slice(splitIndex).join('') + '</div></div>' +
       '</div>';
@@ -760,7 +798,131 @@
     page.classList.add('pmd-r2-hour-layout-v38-active');
     frame.hidden = true;
     section.hidden = false;
+    if (ownerCalendarEnabled) {
+      // The day header is replaced on every date change or Shifts refresh.
+      // Apply the offset after mounting its new date-navigation element.
+      bindOwnerNavAlignment(root);
+      scheduleOwnerNavAlignment(root);
+    }
     interactionRenderWrites += 1;
+  }
+
+  /*
+   * PMD_OWNER_CALENDAR_VIEWPORT_CENTER_R8
+   * The sidebar consumes horizontal viewport space, so equal toolbar grid
+   * columns center the date in the CONTENT AREA (not the browser window).
+   * Read the live toolbar's viewport rectangle and shift only the Month/Year
+   * navigation to the real visible viewport midpoint. Never touch the
+   * non-Owner Reservations calendar or the day-view reservation details.
+   */
+  var ownerNavAlignPending = false;
+  var ownerNavRoot = null;
+
+  function alignOwnerNavToViewport(root) {
+    if (!ownerCalendarEnabled || !calendarMode || !root || root.hidden || selectedDate) return;
+    var toolbar = root.querySelector('.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar');
+    var nav = toolbar && toolbar.querySelector('.pmd-yc__month-nav');
+    if (!toolbar || !nav) return;
+    var bounds = toolbar.getBoundingClientRect();
+    var navWidth = nav.getBoundingClientRect().width;
+    if (bounds.width < 1 || navWidth < 1) return;
+
+    // documentElement.clientWidth excludes vertical scrollbars.
+    var viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+    var midpoint = viewportWidth / 2;
+    var min = bounds.left + navWidth / 2 + 8;
+    var max = bounds.right - navWidth / 2 - 8;
+    var balancedCenter = bounds.left + bounds.width / 2;
+    // On very narrow screens, favor an unshifted, locally centered nav
+    // over forcing the viewport center beyond the available toolbar width.
+    midpoint = max >= min
+      ? Math.min(max, Math.max(min, midpoint))
+      : balancedCenter;
+    var offset = Math.round((midpoint - balancedCenter) * 10) / 10;
+    toolbar.style.setProperty('--pmd-owner-viewport-nav-offset-r8', offset + 'px');
+  }
+
+  /*
+   * PMD_OWNER_HOUR_DATE_VIEWPORT_CENTER_R10
+   * The date title in Hour must use the real viewport midpoint, as the
+   * Month heading already does, even when the Owner sidebar is expanded.
+   * Keep the two navigation arrows and date as one centered unit.
+   * Never alter Manager/Reservations day headers.
+   */
+  function alignOwnerHourDateToViewport(root) {
+    if (!ownerCalendarEnabled || !calendarMode || !selectedDate || !root || root.hidden) return;
+    var header = root.querySelector('.pmd-r2-day-view__header');
+    var nav = header && header.querySelector('.pmd-r2-day-view__date-nav');
+    if (!header || !nav) return;
+    var rect = header.getBoundingClientRect();
+    var navRect = nav.getBoundingClientRect();
+    if (rect.width < 1 || navRect.width < 1) return;
+
+    var variable = '--pmd-owner-hour-viewport-offset-r10';
+    var viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+    // The compact mobile day header has stacked controls. Leave its native
+    // responsive alignment instead of introducing a horizontal displacement.
+    if (viewportWidth <= 900) {
+      header.style.removeProperty(variable);
+      return;
+    }
+
+    var oldOffset = parseFloat(header.style.getPropertyValue(variable)) || 0;
+    var unshiftedCenter = navRect.left + navRect.width / 2 - oldOffset;
+    var center = viewportWidth / 2;
+
+    // Clamp to the free space BETWEEN "Calendar" and the right-hand
+    // Reservations / Staff / Note controls. No overlapping at zoomed widths.
+    var back = header.querySelector('[data-r2-yc-clear-selection]');
+    var summary = header.querySelector('.pmd-r2-day-view__summary');
+    var leftBound = rect.left + navRect.width / 2 + 8;
+    var rightBound = rect.right - navRect.width / 2 - 8;
+    // Between 901px and 1150px the responsive CSS moves these actions to
+    // a SECOND row. They cannot overlap the date title above them, so do
+    // not let their horizontal bounds incorrectly push the date off-center.
+    if (viewportWidth > 1150) {
+      if (back) leftBound = Math.max(leftBound, back.getBoundingClientRect().right + navRect.width / 2 + 10);
+      if (summary) rightBound = Math.min(rightBound, summary.getBoundingClientRect().left - navRect.width / 2 - 10);
+    }
+    if (rightBound < leftBound) center = unshiftedCenter;
+    else center = Math.min(rightBound, Math.max(leftBound, center));
+
+    var offset = Math.round((center - unshiftedCenter) * 10) / 10;
+    header.style.setProperty(variable, offset + 'px');
+  }
+
+  function scheduleOwnerNavAlignment(root) {
+    if (!ownerCalendarEnabled || !root || !window.requestAnimationFrame) return;
+    ownerNavRoot = root;
+    if (ownerNavAlignPending) return;
+    ownerNavAlignPending = true;
+    window.requestAnimationFrame(function () {
+      ownerNavAlignPending = false;
+      if (selectedDate) alignOwnerHourDateToViewport(ownerNavRoot);
+      else alignOwnerNavToViewport(ownerNavRoot);
+    });
+  }
+
+  function bindOwnerNavAlignment(root) {
+    if (!ownerCalendarEnabled || root.dataset.pmdOwnerNavR8 === '1') return;
+    root.dataset.pmdOwnerNavR8 = '1';
+    var toolbar = root.querySelector('.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar');
+    if (!toolbar) return;
+    window.addEventListener('resize', function () {
+      scheduleOwnerNavAlignment(root);
+    }, {passive:true});
+
+    // ResizeObserver responds to collapsible sidebar changes and layout shifts,
+    // including those that occur after the first calendar render.
+    if (window.ResizeObserver) {
+      var observer = new window.ResizeObserver(function () {
+        scheduleOwnerNavAlignment(root);
+      });
+      observer.observe(toolbar);
+      // The hour header is regenerated for each day. Observe the stable
+      // shared root so sidebar resizing also repositions the selected date.
+      observer.observe(root);
+    }
   }
 
   function render(root) {
@@ -775,6 +937,10 @@
     root.querySelectorAll('[data-r2-yc-view]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.r2YcView === view); });
     root.querySelectorAll('[data-r2-yc-filter]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.r2YcFilter === filter); });
     renderSelected(root);
+    if (ownerCalendarEnabled) {
+      bindOwnerNavAlignment(root);
+      scheduleOwnerNavAlignment(root);
+    }
     interactionRenderWrites += 1;
   }
 
@@ -852,7 +1018,15 @@
       if (next) { if (view === 'month') { month += 1; if (month > 11) { month = 0; year += 1; } } else year += 1; render(root); refreshOwnerStaffing(year, false); return; }
       if (viewButton) { view = viewButton.dataset.r2YcView; selectedDate = null; render(root); return; }
       if (filterButton) { filter = filterButton.dataset.r2YcFilter; render(root); return; }
-      if (noteButton) { openNoteModal(selectedDate || dateKey(new Date())); return; }
+      if (noteButton) {
+        // PMD_OWNER_TEAM_NOTE_FAIL_CLOSED_R11: the Owner Note action must
+        // NEVER silently fall back to browser-local storage if the secure
+        // role-targeted server publisher fails to load. The R11 Owner UI
+        // intercepts this button in the capture phase and opens the new
+        // recipient/confirmation form. Non-Owner local notes remain unchanged.
+        if (ownerCalendarEnabled) return;
+        openNoteModal(selectedDate || dateKey(new Date())); return;
+      }
       if (clearSelection) { selectedDate = null; render(root); return; }
       if (previousDay) { shiftSelectedDay(-1); return; }
       if (nextDay) { shiftSelectedDay(1); return; }

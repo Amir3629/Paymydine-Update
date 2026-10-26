@@ -9245,6 +9245,49 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
       data-pmd-dashboard-switcher-firstpaint-r34="css">
 <!-- /PMD_DASHBOARD_SWITCHER_FIRSTPAINT_R34_ASSET -->
 
+<!-- PMD_DASHBOARD_FLOOR_EMPTY_R36 -->
+@if(request()->is('admin/ownerdashboard*') || request()->is('admin/managerdashboard*') || request()->is('admin/accountantdashboard*') || request()->is('admin/dashboardlab*') || request()->is('admin/managerlab*') || request()->is('admin/accountantlab*'))
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-floor-empty-r36.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-dashboard-floor-empty-r36.css')) ?: 20261026) }}" data-pmd-dashboard-r36="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-dashboard-empty-r36.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-dashboard-empty-r36.js')) ?: 20261026) }}" data-pmd-dashboard-r36="js"></script>
+@endif
+<!-- /PMD_DASHBOARD_FLOOR_EMPTY_R36 -->
+<!-- PMD_SHARED_EMPTY_STATES_R37_REAL_ADMIN_HEAD -->
+@if(
+    request()->is('admin/ownerdashboard*') || request()->is('admin/dashboardlab*')
+    || request()->is('admin/managerdashboard*') || request()->is('admin/managerlab*')
+    || request()->is('admin/accountantdashboard*') || request()->is('admin/accountantlab*')
+    || request()->is('admin/reservations*') || request()->is('admin/floor*')
+    || request()->is('admin/pmdshifts*') || request()->is('admin/shifts*')
+)
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-shared-empty-states-r37.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-shared-empty-states-r37.css')) ?: 20261026) }}" data-pmd-shared-empty-states-r37="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-shared-empty-states-r37.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-shared-empty-states-r37.js')) ?: 20261026) }}" data-pmd-shared-empty-states-r37="js"></script>
+@endif
+<!-- /PMD_SHARED_EMPTY_STATES_R37_REAL_ADMIN_HEAD -->
+<!-- PMD_OWNER_FLOOR_STABILITY_R38_REAL_HEAD -->
+@if(request()->is('admin/ownerdashboard*') || request()->is('admin/dashboardlab*')
+    || request()->is('admin/managerdashboard*') || request()->is('admin/managerlab*'))
+<link rel="stylesheet"
+ href="{{ asset('app/admin/assets/css/pmd-owner-floor-stability-r38.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-owner-floor-stability-r38.css')) ?: 20261026) }}"
+ data-pmd-floor-stability-r38="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-stability-audit-r38.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-stability-audit-r38.js')) ?: 20261026) }}" data-pmd-floor-stability-r38="js"></script>
+@endif
+<!-- /PMD_OWNER_FLOOR_STABILITY_R38_REAL_HEAD -->
+<!-- PMD_FLOOR_EDIT_ALWAYS_R39_REAL_HEAD -->
+@if(request()->is('admin/ownerdashboard*') || request()->is('admin/dashboardlab*')
+    || request()->is('admin/managerdashboard*') || request()->is('admin/managerlab*'))
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-manage-size-parity-r39.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-floor-manage-size-parity-r39.css')) ?: 20261026) }}" data-pmd-floor-r39="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-manage-audit-r39.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-manage-audit-r39.js')) ?: 20261026) }}" data-pmd-floor-r39="js"></script>
+@endif
+<!-- /PMD_FLOOR_EDIT_ALWAYS_R39_REAL_HEAD -->
+<!-- PMD_NOTIFICATION_FLOOR_RANGE_R41_REAL_HEAD -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-notification-floor-range-r41.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-notification-floor-range-r41.css')) ?: 20261026) }}" data-pmd-ui-r41="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-notification-floor-range-r41.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-notification-floor-range-r41.js')) ?: 20261026) }}" data-pmd-ui-r41="js"></script>
+<!-- /PMD_NOTIFICATION_FLOOR_RANGE_R41_REAL_HEAD -->
+<!-- PMD_FLOOR_NOTE_RANGE_R42_REAL_HEAD -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-note-range-r42.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-floor-note-range-r42.css')) ?: 20261026) }}" data-pmd-ui-r42="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-note-range-r42-audit.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-note-range-r42-audit.js')) ?: 20261026) }}" data-pmd-ui-r42="audit"></script>
+<!-- /PMD_FLOOR_NOTE_RANGE_R42_REAL_HEAD -->
+
 </head>
 @php
     /* PMD_PERF_R13_LAYOUT_STAGE_PROFILER */

@@ -1,0 +1,79 @@
+/* PMD_STAFF_HOUR_NOTES_R11: direct, accountable team communications
+   for the existing /admin/mywork WebView and browser Staff Portal. */
+.pmd-staff-hour-alert[hidden] {display:none!important}
+.pmd-staff-hour-alert {
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  margin:10px 16px 2px;padding:11px 14px;border:1px solid #b8dccc;
+  border-left:4px solid #0b765e;border-radius:12px;background:#edf7f1;
+  color:#184d3e;font-size:12px;font-weight:750;
+}
+.pmd-staff-hour-alert a {
+  flex-shrink:0;padding:8px 11px;background:#075c47;color:#fff!important;
+  border-radius:9px;text-decoration:none;font-size:11px;font-weight:800;
+}
+.pmd-staff-hour-notices {
+  margin:0 0 16px;padding:14px;border:1px solid #dce8e1;
+  border-radius:14px;background:#f9fcfa;
+}
+.pmd-staff-hour-notices__head {
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 0 11px;
+}
+.pmd-staff-hour-notices__head small {
+  display:block;margin-bottom:3px;color:#74877b;font-size:10px;
+  font-weight:750;letter-spacing:.04em;text-transform:uppercase;
+}
+.pmd-staff-hour-notices__head h3 {
+  margin:0;color:#173d34;font-size:16px;font-weight:850;line-height:1.3;
+}
+.pmd-staff-hour-notices__head h3 span {
+  margin-left:7px;color:#07674e;font-size:11px;font-weight:800;
+}
+.pmd-staff-hour-notices__head-mark {
+  flex-shrink:0;color:#4e7668;font-size:10px;font-weight:750;
+}
+.pmd-staff-hour-notices__items {
+  display:flex;flex-direction:column;gap:8px;max-height:520px;
+  overflow:auto;scrollbar-width:thin;scrollbar-color:#bfcec8 transparent;
+}
+.pmd-staff-hour-notices__empty {
+  color:#789186;font-size:12px;padding:12px 0;
+}
+.pmd-staff-hour-notice {
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:12px 13px;background:#fff;border:1px solid #e0e9e5;
+  border-radius:11px;min-width:0;
+}
+.pmd-staff-hour-notice.is-unread {
+  border-color:#b7d9c9;border-left:3px solid #0b765e;
+}
+.pmd-staff-hour-notice__body {flex:1;min-width:0}
+.pmd-staff-hour-notice__body time {
+  display:block;margin:0 0 6px;color:#19644f;font-size:10px;font-weight:800;
+}
+.pmd-staff-hour-notice__body p {
+  margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#253e35;
+  font-size:12px;line-height:1.5;font-weight:600;
+}
+.pmd-staff-hour-notice form {margin:0;flex-shrink:0}
+.pmd-staff-hour-notice form button {
+  display:inline-flex;align-items:center;justify-content:center;min-height:34px;
+  padding:0 12px;border:1px solid #064b3c;border-radius:10px;
+  background:linear-gradient(180deg,#0b765e 0%,#075c47 100%);color:#fff;
+  font-size:11px;font-weight:800;cursor:pointer;
+}
+.pmd-staff-hour-notice form button:disabled{opacity:.55;cursor:wait}
+.pmd-staff-hour-notice__confirmed {
+  flex-shrink:0;color:#648779;background:#edf5ef;border-radius:8px;
+  padding:7px 9px;font-size:10px;font-weight:750;
+}
+.pmd-staff-hour-notice form button:focus-visible,
+.pmd-staff-hour-alert a:focus-visible {
+  outline:2px solid #087b5f;outline-offset:3px;
+}
+@media(max-width:600px){
+  .pmd-staff-hour-notice{flex-direction:column;align-items:stretch}
+  .pmd-staff-hour-notice form button{width:100%}
+  .pmd-staff-hour-alert{margin:9px 10px 2px}
+  .pmd-staff-hour-notices__head-mark{display:none}
+}

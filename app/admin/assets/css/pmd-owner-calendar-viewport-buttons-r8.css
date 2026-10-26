@@ -1,0 +1,146 @@
+/* PMD_OWNER_CALENDAR_VIEWPORT_BUTTONS_R8
+ * Owner-only refinement after R7.
+ *
+ * Alignment: R7 centered the month group inside the content canvas.
+ * R8 shifts it by the difference between viewport center and canvas center,
+ * calculated in the existing owner-only Calendar JS. Sidebar width, zoom,
+ * expanded/collapsed navigation and browser resizing are accounted for.
+ *
+ * Color: match the actual Create Table modal:
+ * Cancel = #fff / #d2dee5 / #243f38.
+ * Save   = #0b765e -> #075c47 gradient / #064b3c border.
+ * Year/Month and event filters are choices, not Save actions, so selected
+ * choices use a restrained emerald-tinted outline rather than green fills.
+ */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar > .pmd-yc__month-nav {
+  transform: translateX(var(--pmd-owner-viewport-nav-offset-r8, 0px)) !important;
+  transition: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__month-nav > strong {
+  color: #173d34 !important;
+  font-weight: 850 !important;
+}
+
+/* White secondary controls mirror .pmd-floor-table-manager__cancel. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__view-switch > button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__filters > button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__month-nav > button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-r2-yc-note-btn,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot-screen__back,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__month-button {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 0 16px !important;
+  border: 1px solid #d2dee5 !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.95) !important;
+  background-image: none !important;
+  background-color: #fff !important;
+  color: #243f38 !important;
+  box-shadow: 0 2px 7px rgba(32,64,54,.035) !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+  line-height: 1 !important;
+  transform: none !important;
+  cursor: pointer !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__month-nav > button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__month-button {
+  width: 40px !important;
+  min-width: 40px !important;
+  padding: 0 !important;
+  font-size: 20px !important;
+}
+
+/* Selected choices remain visible without looking like three Save buttons. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__view-switch > button.is-active,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__filters > button.is-active {
+  background: #edf7f1 !important;
+  background-color: #edf7f1 !important;
+  background-image: none !important;
+  border-color: #93bba8 !important;
+  color: #075c47 !important;
+  box-shadow: inset 0 0 0 1px rgba(7,92,71,.10) !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__view-switch > button.is-active:hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__filters > button.is-active:hover {
+  background: #e4f3e9 !important;
+  background-color: #e4f3e9 !important;
+  border-color: #6ca58c !important;
+  color: #075c47 !important;
+  transform: none !important;
+}
+
+/* Primary action is the same jade gradient as Create Table's Save. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-r2-yc-note-btn,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-modal__actions > button.primary {
+  border-color: #064b3c !important;
+  background-color: #075c47 !important;
+  background-image: linear-gradient(180deg,#0b765e 0%,#075c47 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 20px rgba(7,92,71,.15), inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-r2-yc-note-btn:hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-modal__actions > button.primary:hover {
+  background: linear-gradient(180deg,#09664f 0%,#064b3c 100%) !important;
+  border-color: #04392c !important;
+  color: #fff !important;
+  transform: none !important;
+}
+
+/* All neutral buttons keep the exact Cancel visual on hover. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__view-switch > button:not(.is-active):hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__filters > button:not(.is-active):hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__month-nav > button:hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot-screen__back:hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__month-button:hover {
+  background: #f6faf8 !important;
+  border-color: #aac9ba !important;
+  color: #173d34 !important;
+  box-shadow: 0 2px 7px rgba(32,64,54,.035) !important;
+  transform: none !important;
+}
+
+/* The separate Note dialog mirrors the Cancel/Save footer exactly. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-modal__actions > button:not(.primary):not([data-r2-yc-modal-delete]) {
+  background: #fff !important;
+  border-color: #d2dee5 !important;
+  color: #243f38 !important;
+  box-shadow: 0 2px 7px rgba(32,64,54,.035) !important;
+}
+
+/* Focus remains visibly accessible, independent of button palette. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar button:focus-visible,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__month-button:focus-visible {
+  outline: 2px solid #0b795c !important;
+  outline-offset: 3px !important;
+}

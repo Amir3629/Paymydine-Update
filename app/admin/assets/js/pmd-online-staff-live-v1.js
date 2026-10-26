@@ -62,6 +62,23 @@
     return person;
   }
 
+  // PMD_ONLINE_STAFF_R37: preserve the shared empty icon on live refresh.
+  function setEmptyNotice(node, message) {
+    node.classList.add('pmd-r37-source-empty');
+    node.setAttribute('role', 'status');
+    var label = node.querySelector('.pmd-r37-empty-message');
+    if (!label) {
+      var icon = document.createElement('span');
+      icon.className = 'pmd-r37-empty-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg>';
+      label = document.createElement('span');
+      label.className = 'pmd-r37-empty-message';
+      node.replaceChildren(icon, label);
+    }
+    setText(label, message);
+  }
+
   function render(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return;
     var connected = snapshot.connected === true;
@@ -121,7 +138,7 @@
         empty.className = 'pmd-manager-online-staff__empty';
         content.replaceChildren(empty);
       }
-      setText(empty, message);
+      setEmptyNotice(empty, message);
     }
   }
 

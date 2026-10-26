@@ -228,7 +228,31 @@ class PmdStaffPortalV5Controller extends PmdStaffPortalController
             }
         }
 
+        // PMD_STAFF_HOUR_NOTES_INBOX_R11: current authenticated person and
+        // location only. A missing tenant migration must not break login.
+        $pmdStaffHourNotes = [];
+        $pmdStaffHourNotesReady = false;
+        $pmdStaffHourNotesUnread = 0;
+        try {
+            $hourNotes = app(\App\Services\PmdOwnerStaffHourNotesR11::class);
+            if ($hourNotes->ready()) {
+                $pmdStaffHourNotes = $hourNotes->forStaff($locationId, $staffId);
+                $pmdStaffHourNotesReady = true;
+                $pmdStaffHourNotesUnread = count(array_filter($pmdStaffHourNotes, function ($row) {
+                    return empty($row['confirmed']);
+                }));
+            }
+        } catch (\Throwable $error) {
+            logger()->warning('PMD Staff Hour Notes inbox unavailable', [
+                'location_id' => $locationId,
+                'type' => get_class($error),
+            ]);
+        }
+
         return view('pmd-staff-portal.index_v5', compact(
+            'pmdStaffHourNotes',
+            'pmdStaffHourNotesReady',
+            'pmdStaffHourNotesUnread',
             'person',
             'shifts',
             'nextShift',

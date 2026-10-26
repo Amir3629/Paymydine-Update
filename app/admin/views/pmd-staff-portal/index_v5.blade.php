@@ -88,6 +88,9 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v2.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v3.css?v=1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-portal-v4.css?v=25">
+    {{-- PMD_STAFF_HOUR_NOTES_R11: Web and native Staff WebView use this same app. --}}
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-hour-notes-r11.css?v=20261026-r11">
+    <script defer src="/app/admin/assets/js/pmd-staff-hour-notes-r11.js?v=20261026-r11"></script>
     <script defer src="/app/admin/assets/js/pmd-staff-portal-locale-v2.js?v=26"></script>
     @if($canManage)
         <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-manager-v2.css?v=26">
@@ -167,6 +170,18 @@
     @endif
     @if($errors->any())
         <div class="pmd-staff-flash is-error">{{ $errors->first() }}</div>
+    @endif
+
+    @if(!empty($pmdStaffHourNotesUnread))
+        <div class="pmd-staff-hour-alert" data-pmd-staff-hour-alert>
+            <span data-pmd-hour-alert-text>{{ (int)$pmdStaffHourNotesUnread }} new team {{ $pmdStaffHourNotesUnread === 1 ? 'note' : 'notes' }} for you.</span>
+            <a href="#schedule">Read &amp; confirm</a>
+        </div>
+    @else
+        <div class="pmd-staff-hour-alert" data-pmd-staff-hour-alert hidden>
+            <span data-pmd-hour-alert-text></span>
+            <a href="#schedule">Read &amp; confirm</a>
+        </div>
     @endif
 
     <nav class="pmd-staff-mobile-nav" aria-label="Staff sections">
@@ -345,6 +360,8 @@
                     </div>
                     <b class="pmd-staff-count">{{ $shifts->count() + $actualExtraShifts->count() }}</b>
                 </header>
+
+                @include('pmd-staff-portal._hour_notes_r11')
 
                 <div class="pmd-staff-month-nav">
                     <a href="{{ admin_url('mywork') }}?month={{ $previousMonthKey }}#schedule" aria-label="Previous month"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"></path></svg></a>

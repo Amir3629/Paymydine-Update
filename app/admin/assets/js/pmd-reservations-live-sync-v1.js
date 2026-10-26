@@ -314,9 +314,13 @@
 
     if (!rows.length) {
       var empty = document.createElement('article');
-      empty.className = 'pmd-ops-inline-empty-card';
+      empty.className = 'pmd-ops-inline-empty-card pmd-r37-reservations-empty';
       empty.setAttribute('data-pmd-reservations-empty-card', '1');
-      empty.innerHTML = '<strong>' + esc(labels.empty) + '</strong>';
+      empty.setAttribute('role', 'status');
+      empty.innerHTML = '<span class="pmd-r37-empty-icon" aria-hidden="true">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' +
+        '<rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg></span>' +
+        '<strong>' + esc(labels.empty) + '</strong>';
       grid.appendChild(empty);
       return true;
     }

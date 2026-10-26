@@ -326,7 +326,9 @@
     var message = source && (source.reason || source.source)
       ? source.reason || source.source
       : 'No records';
-    return '<p class="pmd-dashboard-lab-empty">' + esc(message) + '</p>';
+    return '<div class="pmd-dashboard-lab-empty pmd-r36-empty-notice" role="status">' +
+      '<span class="pmd-r36-empty-notice__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg></span>' +
+      '<span class="pmd-r36-empty-notice__message">' + esc(message) + '</span></div>';
   }
 
   function list(rows, render) {
@@ -507,6 +509,10 @@
 
   function chartMarkup(key, rows, payload, mode, visible, hourly) {
     var total = Array.isArray(rows) ? rows.length : 0;
+    // R36: distinguish a genuinely zero-sales period from a populated chart.
+    if (!total || !rows.some(function (row) { return Number(row.sales || 0) > 0; })) {
+      return empty({reason: 'No sales recorded in this period'});
+    }
     var min = Math.min(hourly ? 4 : 5, Math.max(total, 1));
     var max = Math.max(total, min);
     var value = Math.max(min, Math.min(Number(visible || max), max));
@@ -616,10 +622,13 @@
     var source = payload && payload.sales_by_category;
     var body = bodyFor('categorySales');
     if (!body) return;
-    if (!source || source.available === false || source.empty) {
-      body.innerHTML = empty(source);
+    var categories = source && Array.isArray(source.categories) ? source.categories : [];
+    var hasSales = categories.some(function(row) { return Number(row.revenue || 0) > 0; });
+    if (!source || source.available === false || source.empty || !hasSales) {
+      body.innerHTML = (!source || source.available === false || source.empty)
+        ? empty(source) : empty({reason:'No category sales recorded in this period'});
     } else {
-      body.innerHTML = donut(source.categories, 'category', 'revenue', payload, function (row, pct) {
+      body.innerHTML = donut(categories, 'category', 'revenue', payload, function (row, pct) {
         return money(row.revenue, payload) + ' - ' + pct.toFixed(1) + '%';
       });
     }
@@ -630,10 +639,13 @@
     var source = payload && payload.payment_methods;
     var body = bodyFor('paymentMethods');
     if (!body) return;
-    if (!source || source.available === false || source.empty) {
-      body.innerHTML = empty(source);
+    var methods = source && Array.isArray(source.methods) ? source.methods : [];
+    var hasPayments = methods.some(function(row) { return Number(row.total || 0) > 0; });
+    if (!source || source.available === false || source.empty || !hasPayments) {
+      body.innerHTML = (!source || source.available === false || source.empty)
+        ? empty(source) : empty({reason:'No payments recorded in this period'});
     } else {
-      body.innerHTML = donut(source.methods, 'method', 'total', payload, function (row, pct) {
+      body.innerHTML = donut(methods, 'method', 'total', payload, function (row, pct) {
         return money(row.total, payload) + ' - ' + pct.toFixed(1) + '%';
       });
     }
@@ -689,10 +701,15 @@
     var source = payload && payload.channels;
     var body = bodyFor('channelSplit');
     if (!body) return;
-    if (!source || source.available === false || source.empty) {
-      body.innerHTML = empty(source);
+    var channels = source && Array.isArray(source.channels) ? source.channels : [];
+    var hasOrders = channels.some(function(row) {
+      return Number(row.orders || 0) > 0 || Number(row.revenue || 0) > 0;
+    });
+    if (!source || source.available === false || source.empty || !hasOrders) {
+      body.innerHTML = (!source || source.available === false || source.empty)
+        ? empty(source) : empty({reason:'No orders in this period'});
     } else {
-      body.innerHTML = donut(binaryChannelRows(source.channels), 'channel', 'revenue', payload, function (row, pct) {
+      body.innerHTML = donut(binaryChannelRows(channels), 'channel', 'revenue', payload, function (row, pct) {
         return Number(row.orders || 0) + ' - ' + money(row.revenue, payload) + ' - ' + pct.toFixed(1) + '%';
       });
     }
@@ -834,6 +851,15 @@
       });
     }
 
+    var hasActiveAlerts = rows.some(function(row) { return row.value != null && Number(row.value) > 0; });
+    var hasUnavailableAlerts = rows.some(function(row) { return row.value == null || !Number.isFinite(Number(row.value)); });
+    if (!hasActiveAlerts) {
+      body.innerHTML = empty({reason: hasUnavailableAlerts
+        ? 'No active alerts reported; some sources are unavailable'
+        : 'No active alerts right now'});
+      setBusy('alerts', false);
+      return;
+    }
     body.innerHTML = list(
       rows,
       function (row) {
@@ -901,8 +927,15 @@
     var source = payload && payload.tips;
     var body = bodyFor('tips');
     if (!body) return;
-    if (!source || source.available === false) {
-      body.innerHTML = empty(source);
+    var hasTips = source && (
+      Number(source.today || 0) !== 0 ||
+      Number(source.month || 0) !== 0 ||
+      Number(source.average_tip || 0) !== 0 ||
+      Number(source.tipped_orders || 0) > 0
+    );
+    if (!source || source.available === false || !hasTips) {
+      body.innerHTML = (!source || source.available === false)
+        ? empty(source) : empty({reason:'No tips recorded in this period'});
     } else {
       body.innerHTML = '<dl class="pmd-dashboard-lab-stats">' +
         '<div><dt>Today</dt><dd>' + esc(money(source.today, payload)) + '</dd></div>' +
@@ -925,6 +958,11 @@
       var headingCount = document.querySelector('[data-pmd-lab-event-heading-count]');
       if (headingCount) headingCount.textContent = String(count);
       var rows = (source.events || []).slice(0, 4);
+      if (count === 0 && rows.length === 0) {
+        body.innerHTML = empty({reason:'No upcoming events'});
+        setBusy('calendarEvents', false);
+        return;
+      }
       body.innerHTML =
         '<ul class="pmd-dashboard-lab-event-list">' +
           rows.map(function (row) {
@@ -1059,10 +1097,21 @@
     input.value = String(safe);
     control.style.setProperty('--pmd-range-progress', progress.toFixed(4) + '%');
 
+    // PMD_RANGE_REAL_VALUE_R41: update the visible count and accessibility
+    // whenever a pointer, keyboard or native range input changes the window.
+    var unit = control.getAttribute('data-pmd-lab-range-unit') ||
+      (key === 'salesByHour' ? 'hours' : 'days');
+    var label = control.querySelector('[data-pmd-lab-range-value]');
+    if (label) {
+      var nextText = String(safe) + ' / ' + String(max);
+      if (label.textContent !== nextText) label.textContent = nextText;
+    }
     if (track) {
       track.setAttribute('aria-valuemin', String(min));
       track.setAttribute('aria-valuemax', String(max));
       track.setAttribute('aria-valuenow', String(safe));
+      track.setAttribute('aria-valuetext',
+        'Last ' + String(safe) + ' of ' + String(max) + ' ' + unit);
     }
   }
 

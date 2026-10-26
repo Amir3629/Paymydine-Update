@@ -1,0 +1,175 @@
+/* PMD_OWNER_CALENDAR_SEGMENTED_SWITCHES_R9
+ * Owner Calendar only: Year/Month and All/Reservations/Events are paired
+ * segmented switchers, not independent CTA buttons. The SELECTED segment
+ * reuses exactly the same jade gradient / border palette as + Note (and
+ * Create Table > Save table). The other states use the Cancel palette.
+ *
+ * The original data-r2-yc-view / data-r2-yc-filter handlers, active state,
+ * viewport-centered month navigation, and responsive toolbar remain intact.
+ */
+
+/* A unified rail containing both/all switch choices. Stronger than the
+ * R7 gap:8px + height:auto styles on the Owner toolbar. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar > .pmd-yc__view-switch,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar .pmd-yc__toolbar-right > .pmd-yc__filters {
+  display: inline-flex !important;
+  flex-flow: row nowrap !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  align-content: center !important;
+  gap: 2px !important;
+  width: max-content !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  margin: 0 !important;
+  padding: 3px !important;
+  box-sizing: border-box !important;
+  border: 1px solid #d2dee5 !important;
+  border-radius: 15px !important;
+  background: #f2f6f4 !important;
+  background-image: none !important;
+  box-shadow: 0 2px 7px rgba(32,64,54,.04), inset 0 1px 1px rgba(8,45,33,.025) !important;
+  overflow: visible !important;
+}
+
+/* Neutral segment = the real Create Table Cancel button (inside one rail).
+ * Data attribute selectors avoid styling + Note and Month arrows. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__view-switch > button[data-r2-yc-view],
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__filters > button[data-r2-yc-filter] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  flex: 0 0 auto !important;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 !important;
+  padding: 0 15px !important;
+  width: auto !important;
+  min-width: 46px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  box-sizing: border-box !important;
+  border: 1px solid transparent !important;
+  border-radius: 11px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #243f38 !important;
+  box-shadow: none !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  transform: none !important;
+  cursor: pointer !important;
+  transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease !important;
+}
+
+/* Inactive segment hover: neutral, NO green fill or outline. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__view-switch > button[data-r2-yc-view]:not(.is-active):hover,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__filters > button[data-r2-yc-filter]:not(.is-active):hover {
+  background: #fff !important;
+  background-image: none !important;
+  border-color: #e1e9e5 !important;
+  color: #173d34 !important;
+  box-shadow: none !important;
+}
+
+/* SELECTED = exact + Note/Save table jade primary action. Deliberately
+ * supersedes R8's pale active background for these TWO switchers only. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__view-switch > button[data-r2-yc-view].is-active,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__filters > button[data-r2-yc-filter].is-active {
+  border: 1px solid #064b3c !important;
+  background: linear-gradient(180deg,#0b765e 0%,#075c47 100%) !important;
+  background-color: #075c47 !important;
+  background-image: linear-gradient(180deg,#0b765e 0%,#075c47 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 11px rgba(7,92,71,.18), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  transform: none !important;
+}
+
+/* Hover keeps the selected segment green; never revert to a pale chip. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__view-switch > button[data-r2-yc-view].is-active:hover,
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__filters > button[data-r2-yc-filter].is-active:hover {
+  border-color: #04392c !important;
+  background: linear-gradient(180deg,#09664f 0%,#064b3c 100%) !important;
+  background-color: #064b3c !important;
+  background-image: linear-gradient(180deg,#09664f 0%,#064b3c 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 5px 11px rgba(7,92,71,.2), inset 0 1px 0 rgba(255,255,255,.14) !important;
+}
+
+/* Keyboard focus and reduced motion: native buttons remain operable. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+.pmd-r2-yc-calendar-frame .pmd-yc__toolbar :is(.pmd-yc__view-switch,.pmd-yc__filters) > button:focus-visible {
+  outline: 2px solid #0b795c !important;
+  outline-offset: 3px !important;
+  z-index: 2 !important;
+}
+
+/* R7 toolbar wrapping remains authoritative; the pair/group itself never
+ * splits across lines, and the 2-column layout can wrap the toolbar groups. */
+@media (max-width: 800px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+  .pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__view-switch > button[data-r2-yc-view],
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+  .pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__filters > button[data-r2-yc-filter] {
+    padding: 0 11px !important;
+  }
+}
+/* Very narrow screens: the 3-way segmented filter occupies its own row
+ * and individual choices shrink rather than overflowing into + Note. */
+@media (max-width: 600px) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+  .pmd-r2-yc-calendar-frame > .pmd-yc__toolbar .pmd-yc__toolbar-right > .pmd-yc__filters {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+  .pmd-r2-yc-calendar-frame .pmd-yc__toolbar .pmd-yc__filters > button[data-r2-yc-filter] {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding: 0 7px !important;
+    font-size: 11px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab.is-calendar-mode #pmd-r2-calendar-surface-v160
+  .pmd-r2-yc-calendar-frame .pmd-yc__toolbar :is(.pmd-yc__view-switch,.pmd-yc__filters) > button {
+    transition: none !important;
+  }
+}

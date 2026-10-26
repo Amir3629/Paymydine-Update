@@ -53,8 +53,8 @@
             <div class="pmd-dashboard-lab-analytics__body pmd-manager-online-staff__body">
                 <div data-pmd-online-staff-content>
                     @if(!$pmdStaffConnected)
-                        <div class="pmd-manager-online-staff__empty">
-                            {{ (string)($pmdStaff['empty'] ?? 'Staff presence is unavailable for this location.') }}
+                        <div class="pmd-manager-online-staff__empty pmd-r37-source-empty" role="status"><span class="pmd-r37-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg></span><span class="pmd-r37-empty-message">
+                            {{ (string)($pmdStaff['empty'] ?? 'Staff presence is unavailable for this location.') }}</span>
                         </div>
                     @elseif($pmdStaffRows)
                         <div class="pmd-manager-online-staff__people">
@@ -75,8 +75,8 @@
                             @endforeach
                         </div>
                     @else
-                        <div class="pmd-manager-online-staff__empty">
-                            {{ (string)($pmdStaff['empty'] ?? 'No staff are currently signed in.') }}
+                        <div class="pmd-manager-online-staff__empty pmd-r37-source-empty" role="status"><span class="pmd-r37-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg></span><span class="pmd-r37-empty-message">
+                            {{ (string)($pmdStaff['empty'] ?? 'No staff are currently signed in.') }}</span>
                         </div>
                     @endif
                 </div>
