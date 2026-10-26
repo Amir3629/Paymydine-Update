@@ -842,3 +842,7 @@
         @endif
     @endforeach
 </ul>
+
+{{-- PMD_R14: one late scoped visual authority for header actions and existing Staff Note Bootstrap modal. --}}
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-general-note-notification-r14.css') }}?v=20261026-r14">
+<script defer src="{{ asset('app/admin/assets/js/pmd-general-note-notification-r14.js') }}?v=20261026-r14"></script>
