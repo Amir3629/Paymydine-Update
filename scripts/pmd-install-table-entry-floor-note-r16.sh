@@ -20,6 +20,8 @@ FILES=(
   frontend/features/customer-menu/CustomerMenuPage.tsx
   frontend/lib/api-client.ts
   scripts/test-pmd-table-entry-floor-note-r16.cjs
+  scripts/pmd-r16-floor-live-adapter.py
+  scripts/pmd-activate-guest-table-r16.sh
 )
 echo '== FETCH R16 =='
 git -c gc.auto=0 -c maintenance.auto=false fetch --no-tags origin "refs/heads/${BRANCH}"
@@ -161,6 +163,8 @@ php -l "$STAGE/app/Http/Controllers/Api/TableController.php"
 php -l "$STAGE/app/admin/widgets/menu/top_menu.blade.php"
 php -l "$STAGE/app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php"
 node --check "$STAGE/scripts/test-pmd-table-entry-floor-note-r16.cjs"
+bash -n "$STAGE/scripts/pmd-activate-guest-table-r16.sh"
+python3 -c 'import ast,sys;ast.parse(open(sys.argv[1]).read())' "$STAGE/scripts/pmd-r16-floor-live-adapter.py"
 node "$STAGE/scripts/test-pmd-table-entry-floor-note-r16.cjs"
 if [[ "$MODE" == "--check" ]]; then
   echo 'PREFLIGHT PASS R16: staged files passed checks; live VPS was not modified.'
