@@ -256,14 +256,14 @@
             </script>
 
             <!-- General Staff Note Modal -->
-            <div class="modal fade" id="addGeneralStaffNoteModal" tabindex="-1" role="dialog" aria-labelledby="addGeneralStaffNoteModalLabel" aria-hidden="true">
+            <div class="modal fade" id="addGeneralStaffNoteModal" data-pmd-general-staff-note-r41="1" tabindex="-1" role="dialog" aria-labelledby="addGeneralStaffNoteModalLabel" aria-modal="true" aria-hidden="true">
                 <div class="modal-dialog" role="document">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="addGeneralStaffNoteModalLabel">
-                                <i class="fa fa-sticky-note"></i> Add General Staff Note
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" aria-hidden="true"></button>
+                            <h5 class="modal-title" id="addGeneralStaffNoteModalLabel">Add General Staff Note</h5>
+                            <button type="button" class="btn-close pmd-note-close-r41" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                            </button>
                         </div>
                         <form id="addGeneralStaffNoteForm" onsubmit="return false;">
                             <div class="modal-body">
@@ -291,14 +291,14 @@
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="$('#addGeneralStaffNoteModal').modal('hide');">Cancel</button>
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal" onclick="$('#addGeneralStaffNoteModal').modal('hide');">Cancel</button>
                                 <button 
                                     type="button" 
                                     id="generalStaffNoteSubmitBtn"
                                     class="btn btn-primary"
                                     data-request="onAddGeneralStaffNote"
                                 >
-                                    <i class="fa fa-save"></i> Save Note
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h12l3 3v13H4V4z"></path><path d="M8 4v7h8V4M8 20v-6h8v6"></path></svg><span>Save Note</span>
                                 </button>
                             </div>
                         </form>
@@ -320,25 +320,7 @@
                     $('#addGeneralStaffNoteModal').on('shown.bs.modal', function() {
                         $('#generalStaffNoteText').focus();
                         loadNoteSuggestions();
-                        var $cancel = $('#addGeneralStaffNoteModal .modal-footer .btn-secondary');
-                        var $save = $('#addGeneralStaffNoteModal .modal-footer .btn-primary');
-                        [$cancel[0], $save[0]].filter(Boolean).forEach(function(btn) {
-                            btn.style.setProperty('min-width', '110px', 'important');
-                            btn.style.setProperty('height', '40px', 'important');
-                            btn.style.setProperty('min-height', '40px', 'important');
-                            btn.style.setProperty('padding', '0.55rem 1.75rem', 'important');
-                            btn.style.setProperty('line-height', '1.3', 'important');
-                        });
-                        if ($cancel.length) {
-                            $cancel[0].style.removeProperty('color');
-                            $cancel[0].style.removeProperty('background');
-                            $cancel[0].style.removeProperty('background-color');
-                            $cancel[0].style.removeProperty('border');
-                            $cancel[0].style.setProperty('background', '#f1f4fb', 'important');
-                            $cancel[0].style.setProperty('background-color', '#f1f4fb', 'important');
-                            $cancel[0].style.setProperty('border', '1px solid #c9d2e3', 'important');
-                            $cancel[0].style.setProperty('color', '#202938', 'important');
-                        }
+                        // PMD_NOTE_R41: modal button dimensions and colors are CSS-owned.
                     });
                     
                     // Clear form when modal is hidden
