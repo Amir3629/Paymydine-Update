@@ -175,7 +175,7 @@ def selftest(base, ref):
     print("R44 SURGICAL DEPLOYMENT SELFTEST: 4 groups passed")
 
 def main(argv):
-    if len(argv) != 4 or argv[1] not in ("--apply", "--selftest"):
+    if len(argv) != 5 or argv[1] not in ("--apply", "--selftest"):
         raise SystemExit("Usage: rebase-r44.py --apply|--selftest ROOT|_ BASE REF")
     mode, root, base, ref = argv[1:]
     if mode == "--selftest":
