@@ -25,12 +25,12 @@ def read(root, relative):
     path = pathlib.Path(root, relative)
     if not path.is_file():
         raise R44PatchError("Required staged file missing: " + str(path))
-    return path.read_text(encoding="utf-8")
+    return path.read_bytes().decode("utf-8")
 
 def write(root, relative, content):
     path = pathlib.Path(root, relative)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+    path.write_bytes(content.encode("utf-8"))
 
 def segment(text, begin, end, name):
     if text.count(begin) != 1 or text.count(end) != 1:
