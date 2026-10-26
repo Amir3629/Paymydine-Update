@@ -9274,6 +9274,10 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-notification-floor-range-r41.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-notification-floor-range-r41.css')) ?: 20261026) }}" data-pmd-ui-r41="css">
 <script defer src="{{ asset('app/admin/assets/js/pmd-notification-floor-range-r41.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-notification-floor-range-r41.js')) ?: 20261026) }}" data-pmd-ui-r41="js"></script>
 <!-- /PMD_NOTIFICATION_FLOOR_RANGE_R41_REAL_HEAD -->
+<!-- PMD_FLOOR_NOTE_RANGE_R42_REAL_HEAD -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-note-range-r42.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-floor-note-range-r42.css')) ?: 20261026) }}" data-pmd-ui-r42="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-note-range-r42-audit.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-note-range-r42-audit.js')) ?: 20261026) }}" data-pmd-ui-r42="audit"></script>
+<!-- /PMD_FLOOR_NOTE_RANGE_R42_REAL_HEAD -->
 
 </head>
 @php

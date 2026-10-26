@@ -202,11 +202,15 @@ html body.pmd-dashboard-lab-page #pmd-r2-shared-floor-canvas-v310 > .pmd-floor-v
   border-radius:17px!important;overflow:hidden!important;
   background:#f8fbfd!important;
 }
+/* PMD_R42_BLUE_OVERLAY_ROOT_CAUSE:
+   pmd-floor-v1-native-smart-v20.css gives .pmd-floor-v1::after a blue
+   rgba(38,137,232,.72) alignment-guide background. R41 accidentally
+   forced that pseudo-element to cover the whole map. The existing real
+   root border and clipped inner stage are the ONLY frame authorities. */
 html body.pmd-dashboard-lab-page #pmd-r2-shared-floor-canvas-v310::after {
-  content:""!important;position:absolute!important;inset:0!important;
-  z-index:7!important;border:1px solid #c7dced!important;
-  border-radius:18px!important;pointer-events:none!important;
-  box-sizing:border-box!important;display:block!important;
+  content:none!important;
+  display:none!important;
+  background:transparent!important;
 }
 html body.pmd-dashboard-lab-page #pmd-r2-shared-floor-canvas-v310 [data-floor-guide] {
   z-index:9!important;

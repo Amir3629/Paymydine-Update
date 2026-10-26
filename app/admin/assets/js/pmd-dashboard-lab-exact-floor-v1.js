@@ -2231,38 +2231,161 @@
       return true;
     }
 
-    /* PMD_USER_FLOOR_FLIP_R41
-     * Only explicit One row / Full Floor changes use a deferred FLIP pass.
-     * The old table rectangles are captured BEFORE .is-strip-mode changes.
-     * render(), calibrateOneRow() and fit() must finish BEFORE the first
-     * animation target is sampled, otherwise the cards jump after 1 frame.
-     * Refresh, AJAX status updates and SSR adoption remain non-animated.
+    /* PMD_FLOOR_VISUAL_FLIGHT_R42
+     * Why R41 still jumped: multiple canonical Floor sheets enforce
+     * transform:translate(-50%,-50%) !important, sometimes with
+     * animation:none!important. A Web Animation on those *real* table
+     * transforms cannot reliably override that cascade (Safari included).
+     *
+     * For a deliberate row/full click only, briefly render visual copies
+     * in VIEWPORT coordinates. Hide the original table buttons, but retain
+     * their real DOM, API state, hit testing/drag implementation and final
+     * canonical positions. After render -> calibration -> fit, animate the
+     * copies' pixel left/top/size to the newly measured screen positions,
+     * then remove the copies and reveal the real buttons at the SAME spot.
+     * No data refresh, first paint or staff/operational change uses ghosts.
      */
     var floorViewSnapshotR41 = null;
     var floorViewCleanupTimerR41 = 0;
+    var floorFlightR42 = null;
+    function clearFloorFlightR42() {
+      if (floorFlightR42 && floorFlightR42.host &&
+          floorFlightR42.host.parentNode) {
+        floorFlightR42.host.parentNode.removeChild(floorFlightR42.host);
+      }
+      floorFlightR42 = null;
+      root.classList.remove('pmd-r42-floor-flight-active');
+    }
+    function startFloorFlightR42(snapshot) {
+      if (!snapshot || !snapshot.cards || !snapshot.cards.length ||
+          !document.body || !document.createElement ||
+          (window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+        return null;
+      }
+      var originals = Array.from(canvas.querySelectorAll('[data-floor-table]'));
+      var host = document.createElement('div');
+      host.className = 'pmd-floor-v1 pmd-r42-floor-flight';
+      host.setAttribute('aria-hidden', 'true');
+      var entries = [];
+
+      snapshot.cards.forEach(function (card, index) {
+        var original = originals[index];
+        var rect = card.rect;
+        if (!original || !card.clone || !rect ||
+            !(rect.width > 0 && rect.height > 0)) return;
+        var copy = card.clone;
+        copy.classList.add('pmd-r42-floor-ghost');
+        copy.removeAttribute('data-floor-table');
+        copy.removeAttribute('data-floor-members');
+        // Styling is copied from the original below. Do not inherit the
+        // legacy disabled-status transform:none/translate !important rules.
+        copy.removeAttribute('data-status');
+        copy.removeAttribute('id');
+        copy.setAttribute('aria-hidden', 'true');
+        copy.setAttribute('tabindex', '-1');
+        copy.querySelectorAll('[id], [tabindex], [aria-controls]').forEach(function (child) {
+          child.removeAttribute('id');
+          child.removeAttribute('tabindex');
+          child.removeAttribute('aria-controls');
+        });
+        // Copy actual status appearance before switching modes: a green
+        // available table remains green, not the unscoped CSS default.
+        var computed = window.getComputedStyle(original);
+        [
+          'background', 'background-color', 'color', 'border-color',
+          'border-width', 'border-style', 'border-radius', 'box-shadow',
+          'font-family', 'font-size', 'font-weight', 'padding', 'opacity'
+        ].forEach(function (property) {
+          var value = computed.getPropertyValue(property);
+          if (value) copy.style.setProperty(property, value, 'important');
+        });
+        copy.style.setProperty('position', 'fixed', 'important');
+        copy.style.setProperty('transform', 'none', 'important');
+        copy.style.setProperty('transform-origin', 'center', 'important');
+        copy.style.setProperty('margin', '0', 'important');
+        copy.style.setProperty('min-width', '0', 'important');
+        copy.style.setProperty('max-width', 'none', 'important');
+        copy.style.setProperty('min-height', '0', 'important');
+        copy.style.setProperty('max-height', 'none', 'important');
+        // These four properties are intentionally NOT !important: WAAPI
+        // animates pixel-space left/top/size without transform conflicts.
+        ['left','top','width','height'].forEach(function (property) {
+          copy.style.removeProperty(property);
+        });
+        copy.style.setProperty('left', rect.left + 'px');
+        copy.style.setProperty('top', rect.top + 'px');
+        copy.style.setProperty('width', rect.width + 'px');
+        copy.style.setProperty('height', rect.height + 'px');
+        host.appendChild(copy);
+        entries.push({id:card.id, node:copy, rect:rect});
+      });
+
+      if (!entries.length) return null;
+      document.body.appendChild(host);
+      root.classList.add('pmd-r42-floor-flight-active');
+      return {host:host,entries:entries};
+    }
     function captureFloorViewR41() {
       if (!state.initialized || !canvas) return;
-      floorViewSnapshotR41 = transitionSnapshot();
-      if (!floorViewSnapshotR41) return;
       if (floorViewCleanupTimerR41) {
         window.clearTimeout(floorViewCleanupTimerR41);
         floorViewCleanupTimerR41 = 0;
       }
+      clearFloorFlightR42();
+      floorViewSnapshotR41 = transitionSnapshot();
+      if (!floorViewSnapshotR41) return;
+      floorFlightR42 = startFloorFlightR42(floorViewSnapshotR41);
       root.setAttribute('data-pmd-floor-user-view-transition', 'true');
       var stageR41 = root.querySelector('[data-floor-stage]');
-      // Activate transition rules against the old painted geometry before
-      // the mode class changes. This one read occurs ONLY on a user toggle.
       if (stageR41) stageR41.getBoundingClientRect();
     }
     function finishFloorViewR41() {
       var snapshotR41 = floorViewSnapshotR41;
       floorViewSnapshotR41 = null;
       if (!snapshotR41) return;
-      animateStructuralRender(snapshotR41);
+      var flight = floorFlightR42;
+      var duration = 420;
+      if (flight) {
+        var targets = new Map();
+        canvas.querySelectorAll('[data-floor-table]').forEach(function (node) {
+          targets.set(clean(node.getAttribute('data-floor-table')), node);
+        });
+        flight.entries.forEach(function (entry) {
+          var target = targets.get(entry.id);
+          if (!target || !entry.node || typeof entry.node.animate !== 'function') return;
+          var destination = target.getBoundingClientRect();
+          if (!(destination.width > 0 && destination.height > 0)) return;
+          var source = entry.rect;
+          try {
+            entry.node.animate(
+              [
+                {left:source.left+'px', top:source.top+'px',
+                 width:source.width+'px', height:source.height+'px'},
+                {left:destination.left+'px', top:destination.top+'px',
+                 width:destination.width+'px', height:destination.height+'px'}
+              ],
+              {duration:duration,easing:'cubic-bezier(.22,.75,.2,1)',fill:'forwards'}
+            );
+          } catch (error) {
+            // Safari cannot leave originals concealed if animation fails.
+            entry.node.style.left = destination.left + 'px';
+            entry.node.style.top = destination.top + 'px';
+            entry.node.style.width = destination.width + 'px';
+            entry.node.style.height = destination.height + 'px';
+          }
+        });
+        // The operative table buttons were already positioned in the same
+        // turn; showing them only after the copies arrive prevents any snap.
+        state.transitionReason = null;
+      } else {
+        animateStructuralRender(snapshotR41);
+      }
       floorViewCleanupTimerR41 = window.setTimeout(function () {
+        clearFloorFlightR42();
         root.removeAttribute('data-pmd-floor-user-view-transition');
         floorViewCleanupTimerR41 = 0;
-      }, 420);
+      }, duration + 35);
     }
 
     function render() {

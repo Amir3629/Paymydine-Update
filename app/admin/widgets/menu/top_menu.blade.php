@@ -261,8 +261,8 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title" id="addGeneralStaffNoteModalLabel">Add General Staff Note</h5>
-                            <button type="button" class="btn-close pmd-note-close-r41" data-dismiss="modal" data-bs-dismiss="modal" aria-label="Close">
-                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                            <button type="button" class="pmd-note-close-r42" aria-label="Close" onclick="$('#addGeneralStaffNoteModal').modal('hide');">
+                                <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
                         <form id="addGeneralStaffNoteForm" onsubmit="return false;">
@@ -298,7 +298,7 @@
                                     class="btn btn-primary"
                                     data-request="onAddGeneralStaffNote"
                                 >
-                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h12l3 3v13H4V4z"></path><path d="M8 4v7h8V4M8 20v-6h8v6"></path></svg><span>Save Note</span>
+                                    <span class="pmd-note-save-label-r42">Save Note</span>
                                 </button>
                             </div>
                         </form>
