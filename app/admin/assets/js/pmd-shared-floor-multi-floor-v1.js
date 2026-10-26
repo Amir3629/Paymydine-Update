@@ -396,35 +396,32 @@
     function setManageVisibility(node, visible) {
       if (!node) return;
 
-      node.hidden = !visible;
+      // R35: avoid style/attribute writes on identical server-first paint.
+      // Only a real visibility change should trigger browser recalculation.
+      var hidden = !visible;
+      if (node.hidden !== hidden) node.hidden = hidden;
 
-      node.setAttribute(
-        'aria-hidden',
-        visible ? 'false' : 'true'
-      );
+      var aria = visible ? 'false' : 'true';
+      if (node.getAttribute('aria-hidden') !== aria) {
+        node.setAttribute('aria-hidden', aria);
+      }
 
-      node.style.setProperty(
-        'display',
-        visible ? 'inline-flex' : 'none',
-        'important'
-      );
+      function setStyleIfNeeded(property, value) {
+        if (
+          node.style.getPropertyValue(property) !== value
+          || node.style.getPropertyPriority(property) !== 'important'
+        ) {
+          node.style.setProperty(property, value, 'important');
+        }
+      }
+      setStyleIfNeeded('display', visible ? 'inline-flex' : 'none');
+      setStyleIfNeeded('visibility', visible ? 'visible' : 'hidden');
+      setStyleIfNeeded('pointer-events', visible ? 'auto' : 'none');
 
-      node.style.setProperty(
-        'visibility',
-        visible ? 'visible' : 'hidden',
-        'important'
-      );
-
-      node.style.setProperty(
-        'pointer-events',
-        visible ? 'auto' : 'none',
-        'important'
-      );
-
-      node.setAttribute(
-        'data-pmd-floor-manage-custom-visible',
-        visible ? '1' : '0'
-      );
+      var flag = visible ? '1' : '0';
+      if (node.getAttribute('data-pmd-floor-manage-custom-visible') !== flag) {
+        node.setAttribute('data-pmd-floor-manage-custom-visible', flag);
+      }
     }
     // PMD_EDIT_FLOOR_CUSTOM_EXISTENCE_V5_JS_END
 
@@ -584,9 +581,11 @@
 
       setManageVisibility(liveManage, showManage);
 
-      switcher.hidden = !showSwitcher;
+      if (switcher.hidden !== !showSwitcher) {
+        switcher.hidden = !showSwitcher;
+      }
 
-      if (divider) {
+      if (divider && divider.hidden !== !showSwitcher) {
         divider.hidden = !showSwitcher;
       }
     }
@@ -662,8 +661,12 @@
         });
       }
 
-      root.setAttribute('data-pmd-active-floor-id', activeId);
-      root.setAttribute('data-pmd-active-floor-name', activeName);
+      if (root.getAttribute('data-pmd-active-floor-id') !== activeId) {
+        root.setAttribute('data-pmd-active-floor-id', activeId);
+      }
+      if (root.getAttribute('data-pmd-active-floor-name') !== activeName) {
+        root.setAttribute('data-pmd-active-floor-name', activeName);
+      }
 
       if (opts.persist !== false) writeCookie(activeId);
       renderSwitcher();
