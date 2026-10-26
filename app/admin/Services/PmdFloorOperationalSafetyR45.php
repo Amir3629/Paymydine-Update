@@ -117,12 +117,12 @@ class PmdFloorOperationalSafetyR45
                     try {
                         $cancelledId = (int)setting('canceled_order_status');
                         if ($cancelledId > 0) $query->where('status_id', '<>', $cancelledId);
-                    } catch (\\Throwable $e) {
+                    } catch (\Throwable $e) {
                         // Missing setting: textual cancellation is inspected below.
                     }
                 }
 
-            foreach ($query->select($needed)->cursor() as $order) {
+                foreach ($query->select($needed)->cursor() as $order) {
                 $rowStatus = strtolower(trim((string)(
                     data_get($order, 'status')
                     ?: data_get($order, 'order_status')
