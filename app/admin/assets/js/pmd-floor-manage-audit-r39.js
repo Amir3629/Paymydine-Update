@@ -30,11 +30,22 @@
      editFloorPresent:!!edit,
      editFloorVisible:!!(authorized&&edit&&!edit.hidden&&size(edit).display!=='none'),
      editFloorPanelPresent:panels===1,
-     floorTabs:switcher?Array.prototype.slice.call(switcher.querySelectorAll('[data-pmd-floor-switch]')).map(function(btn){return {name:btn.textContent.trim(),size:size(btn)}}):[],
+     floorTabs:switcher?Array.prototype.slice.call(switcher.querySelectorAll('[data-pmd-floor-switch]')).map(function(btn){
+       var style=window.getComputedStyle(btn);
+       return {
+         name:btn.textContent.trim(),
+         isSelected:btn.classList.contains('is-active')||btn.getAttribute('aria-selected')==='true',
+         size:size(btn),
+         backgroundColor:style.backgroundColor,
+         backgroundImage:style.backgroundImage,
+         textColor:style.color
+       };
+     }):[],
      editFloor:size(edit),
      addTable:size(addTable),
      editTable:size(editTable)
    };
  }
- window.PMDEditFloorR39={version:'39.0.0',audit:audit};
+ window.PMDEditFloorR39={version:'39.1.0',audit:audit};
+ window.PMDFloorR40={version:'40.0.0',audit:audit};
 })();
