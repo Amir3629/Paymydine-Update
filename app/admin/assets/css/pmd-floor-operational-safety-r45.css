@@ -1,0 +1,173 @@
+/* PMD_FLOOR_OPERATIONAL_SAFETY_R45
+ * Scoped operational action-lock notices and PayMyDine destructive modal.
+ * No changes to real table colors, Floor geometry, POS or payment UI.
+ */
+html body .pmd-r45-table-safety,
+html body .pmd-r45-floor-safety {
+  box-sizing:border-box;
+  display:block;
+  margin:0 20px 14px;
+  padding:11px 14px;
+  border:1px solid #eddbb7;
+  border-radius:12px;
+  background:#fffbf2;
+  color:#6d4c24;
+  font-size:12px;
+  font-weight:650;
+  line-height:1.5;
+}
+html body .pmd-r45-table-safety[hidden],
+html body .pmd-r45-floor-safety[hidden] {
+  display:none!important;
+}
+html body .pmd-r45-floor-safety {
+  margin:14px 0 0;
+}
+html body .pmd-floor-table-manager__delete:disabled,
+html body .pmd-floor-table-manager__enabled-toggle-r39:disabled,
+html body .pmd-floor-registry-manager__delete:disabled {
+  opacity:.43!important;
+  cursor:not-allowed!important;
+  pointer-events:none!important;
+  filter:grayscale(.24)!important;
+  box-shadow:none!important;
+}
+html body .pmd-floor-registry-manager__header h2 {
+  margin-bottom:0!important;
+}
+/* Accessible in-product danger confirmation; created by the shared JS
+   only for genuine user actions and removed when resolved. */
+html body > .pmd-r45-confirm-layer {
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147483647!important;
+  display:grid!important;
+  place-items:center!important;
+  box-sizing:border-box!important;
+  padding:18px!important;
+  background:transparent!important;
+  isolation:isolate!important;
+  overflow:auto!important;
+}
+html body > .pmd-r45-confirm-layer > .pmd-r45-confirm-backdrop {
+  position:fixed!important;
+  inset:0!important;
+  background:rgba(14,39,34,.28)!important;
+  backdrop-filter:blur(5px)!important;
+  -webkit-backdrop-filter:blur(5px)!important;
+  pointer-events:auto!important;
+}
+html body > .pmd-r45-confirm-layer > .pmd-r45-confirm-card {
+  position:relative!important;
+  z-index:1!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex-direction:column!important;
+  width:min(450px,calc(100vw - 32px))!important;
+  max-width:450px!important;
+  min-width:0!important;
+  margin:auto!important;
+  overflow:hidden!important;
+  border:1px solid #cbdfeb!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  color:#153c34!important;
+  box-shadow:0 24px 70px rgba(18,47,41,.19)!important;
+  transform:none!important;
+}
+html body .pmd-r45-confirm-heading {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+  padding:22px 24px 10px!important;
+  margin:0!important;
+  border:0!important;
+}
+html body .pmd-r45-confirm-heading h2 {
+  margin:0!important;
+  color:#143c33!important;
+  font-size:20px!important;
+  font-weight:820!important;
+  line-height:1.2!important;
+  letter-spacing:-.02em!important;
+}
+html body .pmd-r45-confirm-close {
+  flex:0 0 38px!important;
+  width:38px!important;
+  height:38px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:0!important;
+  border:1px solid #d0e0ea!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  color:#254e43!important;
+  font-size:25px!important;
+  line-height:1!important;
+}
+html body .pmd-r45-confirm-message {
+  margin:0!important;
+  padding:8px 24px 26px!important;
+  color:#5c706b!important;
+  font-size:14px!important;
+  font-weight:550!important;
+  line-height:1.6!important;
+}
+html body .pmd-r45-confirm-actions {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:10px!important;
+  padding:14px 22px!important;
+  margin:0!important;
+  background:#fafcfb!important;
+  border-top:1px solid #e3ece9!important;
+}
+html body .pmd-r45-confirm-actions button {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:auto!important;
+  min-width:112px!important;
+  height:43px!important;
+  padding:0 17px!important;
+  margin:0!important;
+  border-radius:12px!important;
+  font-family:inherit!important;
+  font-size:13px!important;
+  font-weight:780!important;
+  white-space:nowrap!important;
+}
+html body .pmd-r45-confirm-cancel {
+  border:1px solid #c9dce8!important;
+  background:#fff!important;
+  color:#21483e!important;
+}
+html body .pmd-r45-confirm-submit {
+  border:1px solid #a62b40!important;
+  background:#b63a4d!important;
+  color:#fff!important;
+}
+html body .pmd-r45-confirm-submit:hover {
+  border-color:#942335!important;
+  background:#a82b40!important;
+}
+html body .pmd-r45-confirm-actions button:focus-visible,
+html body .pmd-r45-confirm-close:focus-visible {
+  outline:2px solid #0b765e!important;
+  outline-offset:3px!important;
+}
+@media(max-width:540px) {
+  html body .pmd-r45-confirm-heading {padding:17px 18px 10px!important;}
+  html body .pmd-r45-confirm-message {padding:6px 18px 20px!important;}
+  html body .pmd-r45-confirm-actions {padding:12px 16px!important;}
+  html body .pmd-r45-confirm-actions button{min-width:0!important;flex:1 1 0!important;}
+}
+@media(prefers-reduced-motion:reduce) {
+  html body .pmd-r45-confirm-layer * {
+    animation:none!important;
+    transition:none!important;
+  }
+}
