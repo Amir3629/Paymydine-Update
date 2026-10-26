@@ -93,7 +93,8 @@
 
   // Only a server-authorized Owner payload may enable workforce summaries.
   var ownerCalendarEnabled = boot.owner_calendar_enabled === true;
-  var ownerStaffingYear = Number(boot.owner_staffing_year || boot.year || 0);
+  // Unknown staffing source must not silently be represented as 0 workers.
+  var ownerStaffingYear = Number(boot.owner_staffing_year || 0);
   var ownerStaffingLoadingYear = null;
   var ownerStaffingSequence = 0;
   var ownerStaffingError = '';
@@ -841,6 +842,50 @@
     toolbar.style.setProperty('--pmd-owner-viewport-nav-offset-r8', offset + 'px');
   }
 
+  /*
+   * PMD_OWNER_HOUR_DATE_VIEWPORT_CENTER_R10
+   * The date title in Hour must use the real viewport midpoint, as the
+   * Month heading already does, even when the Owner sidebar is expanded.
+   * Keep the two navigation arrows and date as one centered unit.
+   * Never alter Manager/Reservations day headers.
+   */
+  function alignOwnerHourDateToViewport(root) {
+    if (!ownerCalendarEnabled || !calendarMode || !selectedDate || !root || root.hidden) return;
+    var header = root.querySelector('.pmd-r2-day-view__header');
+    var nav = header && header.querySelector('.pmd-r2-day-view__date-nav');
+    if (!header || !nav) return;
+    var rect = header.getBoundingClientRect();
+    var navRect = nav.getBoundingClientRect();
+    if (rect.width < 1 || navRect.width < 1) return;
+
+    var variable = '--pmd-owner-hour-viewport-offset-r10';
+    var viewportWidth = document.documentElement.clientWidth || window.innerWidth || 0;
+    // The compact mobile day header has stacked controls. Leave its native
+    // responsive alignment instead of introducing a horizontal displacement.
+    if (viewportWidth <= 900) {
+      header.style.removeProperty(variable);
+      return;
+    }
+
+    var oldOffset = parseFloat(header.style.getPropertyValue(variable)) || 0;
+    var unshiftedCenter = navRect.left + navRect.width / 2 - oldOffset;
+    var center = viewportWidth / 2;
+
+    // Clamp to the free space BETWEEN "Calendar" and the right-hand
+    // Reservations / Staff / Note controls. No overlapping at zoomed widths.
+    var back = header.querySelector('[data-r2-yc-clear-selection]');
+    var summary = header.querySelector('.pmd-r2-day-view__summary');
+    var leftBound = rect.left + navRect.width / 2 + 8;
+    var rightBound = rect.right - navRect.width / 2 - 8;
+    if (back) leftBound = Math.max(leftBound, back.getBoundingClientRect().right + navRect.width / 2 + 10);
+    if (summary) rightBound = Math.min(rightBound, summary.getBoundingClientRect().left - navRect.width / 2 - 10);
+    if (rightBound < leftBound) center = unshiftedCenter;
+    else center = Math.min(rightBound, Math.max(leftBound, center));
+
+    var offset = Math.round((center - unshiftedCenter) * 10) / 10;
+    header.style.setProperty(variable, offset + 'px');
+  }
+
   function scheduleOwnerNavAlignment(root) {
     if (!ownerCalendarEnabled || !root || !window.requestAnimationFrame) return;
     ownerNavRoot = root;
@@ -848,7 +893,8 @@
     ownerNavAlignPending = true;
     window.requestAnimationFrame(function () {
       ownerNavAlignPending = false;
-      alignOwnerNavToViewport(ownerNavRoot);
+      if (selectedDate) alignOwnerHourDateToViewport(ownerNavRoot);
+      else alignOwnerNavToViewport(ownerNavRoot);
     });
   }
 
@@ -868,6 +914,9 @@
         scheduleOwnerNavAlignment(root);
       });
       observer.observe(toolbar);
+      // The hour header is regenerated for each day. Observe the stable
+      // shared root so sidebar resizing also repositions the selected date.
+      observer.observe(root);
     }
   }
 
