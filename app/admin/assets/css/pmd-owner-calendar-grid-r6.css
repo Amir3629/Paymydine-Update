@@ -167,7 +167,7 @@ html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
 
 /* Retain every original reservation/note/event/workforce badge. */
 html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
-#pmd-r2-calendar-surface-v160 .pmd-yc-day__operations {
+#pmd-r2-calendar-surface-v160.is-month-mode .pmd-yc-day__operations:not(.is-dot-mode) {
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
