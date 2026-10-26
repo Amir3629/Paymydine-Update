@@ -16,6 +16,7 @@
   var chosenRoles = ['all'], modal = null, noteList = null, modalRoles = null;
   var modalError = null, roleReady = false, scheduled = false, revision = 0;
   var retryAfter = 0, pendingRequest = false, setupRequired = false;
+  var modalReturnFocus = null, savedPageOverflow = null;
   var csrfMeta = document.querySelector('meta[name="csrf-token"]');
   // PMD_OWNER_STAFF_NOTES_CSRF_R11_FIX: the canonical Dashboardlab
   // layout has no CSRF meta tag. Read the token securely from the
@@ -124,7 +125,10 @@
   }
   function ensureModal() {
     if (modal) return;
-    modal = e('div','pmd-owner-hour-note-modal',host);
+    // Portal above Side Menu 2 and other stacking contexts. The nested
+    // dashboard formerly clipped the backdrop and let the sidebar stay sharp.
+    modal = e('div','pmd-owner-hour-note-modal',document.body);
+    modal.id = 'pmd-owner-hour-note-modal-r14';
     modal.setAttribute('data-pmd-owner-hour-note-modal','');
     modal.hidden = true;
     modal.innerHTML = '' +
@@ -141,7 +145,7 @@
             '<div class="pmd-owner-hour-time-list" id="pmd-hour-note-time-options" role="listbox" aria-label="Time for this note" data-pmd-owner-hour-time-list hidden></div>' +
           '</div></div>' +
         '<label class="pmd-owner-hour-note-text"><span>Message</span><textarea rows="4" maxlength="1500" data-pmd-owner-hour-note-message placeholder="Write a clear instruction for the selected team…" required></textarea></label>' +
-        '<div class="pmd-owner-hour-note-audience"><strong>Who should receive this?</strong><p>Choose all staff, work roles, or individual team members.</p>' +
+        '<div class="pmd-owner-hour-note-audience"><strong>Who should receive this?</strong>' +
           '<div class="pmd-owner-hour-note-roles" role="group" aria-label="Work roles" data-pmd-owner-hour-note-roles></div>' +
           '<div class="pmd-owner-hour-member-label" data-pmd-owner-hour-member-label hidden>Team members</div>' +
           '<div class="pmd-owner-hour-note-members" role="group" aria-label="Team members" data-pmd-owner-hour-note-members></div></div>' +
@@ -164,6 +168,13 @@
         opt.tabIndex = -1;
       }
     }
+    modal.addEventListener('wheel', function (event) {
+      // Never scroll the dashboard beneath an open Team Notes dialog.
+      if (!event.target.closest('.pmd-owner-hour-note-card') && event.cancelable) event.preventDefault();
+    }, {passive:false});
+    modal.addEventListener('touchmove', function (event) {
+      if (!event.target.closest('.pmd-owner-hour-note-card') && event.cancelable) event.preventDefault();
+    }, {passive:false});
     modal.addEventListener('click', function (event) {
       if (event.target.closest('[data-pmd-owner-hour-note-close]')) { closeModal(); return; }
       var timeTrigger = event.target.closest('[data-pmd-owner-hour-time-trigger]');
@@ -315,8 +326,43 @@
       var active = chosenRoles.indexOf(button.getAttribute('data-pmd-owner-hour-role')) >= 0;
       button.classList.toggle('is-selected',active);
       button.setAttribute('aria-pressed',active ? 'true' : 'false');
+      // R29/global Admin button skin can beat ordinary scoped styles.
+      // Keep the exact jade primary fill authoritative on the selected chip.
+      if (active) {
+        button.style.setProperty('background', 'linear-gradient(180deg,#0b765e,#075c47)', 'important');
+        button.style.setProperty('background-image', 'linear-gradient(180deg,#0b765e,#075c47)', 'important');
+        button.style.setProperty('border-color', '#064b3c', 'important');
+        button.style.setProperty('color', '#fff', 'important');
+      } else {
+        ['background','background-image','border-color','color'].forEach(function (property) {
+          button.style.removeProperty(property);
+        });
+      }
     });
     updateSendButton();
+  }
+  function lockPageScroll() {
+    if (savedPageOverflow) return;
+    savedPageOverflow = {html:document.documentElement.style.overflow, body:document.body.style.overflow};
+    document.documentElement.style.setProperty('overflow','hidden','important');
+    document.body.style.setProperty('overflow','hidden','important');
+    document.documentElement.classList.add('pmd-owner-note-modal-open');
+  }
+  function unlockPageScroll() {
+    if (!savedPageOverflow) return;
+    document.documentElement.style.overflow = savedPageOverflow.html;
+    document.body.style.overflow = savedPageOverflow.body;
+    savedPageOverflow = null;
+    document.documentElement.classList.remove('pmd-owner-note-modal-open');
+  }
+  function hideModal() {
+    closeTimeList(false);
+    modal.hidden = true;
+    unlockPageScroll();
+    if (modalReturnFocus && modalReturnFocus.isConnected && typeof modalReturnFocus.focus === 'function') {
+      try { modalReturnFocus.focus({preventScroll:true}); } catch (_) { modalReturnFocus.focus(); }
+    }
+    modalReturnFocus = null;
   }
   function openModal(day,time) {
     if (!active()) return;
@@ -331,19 +377,18 @@
     modal.querySelector('#pmd-hour-note-heading').textContent = 'Note · ' + currentDate;
     modalError.hidden = true;
     paintRoles();
+    modalReturnFocus = document.activeElement;
     modal.hidden = false;
     if (setupRequired) notifyError(error || 'Team notes need setup for this restaurant.');
     else if (roleReady && (!roles.length || (roles[0].code === 'all' && Number(roles[0].count) === 0))) {
       notifyError('No active staff accounts yet. Add or activate team members in Shifts before sending.');
     } else if (error) notifyError(error);
-    document.documentElement.classList.add('pmd-owner-note-modal-open');
-    noteList.focus();
+    lockPageScroll();
+    noteList.focus({preventScroll:true});
   }
   function closeModal() {
     if (!modal || actionBusy) return;
-    closeTimeList(false);
-    modal.hidden = true;
-    document.documentElement.classList.remove('pmd-owner-note-modal-open');
+    hideModal();
   }
   function sendNote() {
     if (actionBusy) return;
@@ -356,8 +401,7 @@
     var button = modal.querySelector('[data-pmd-owner-hour-note-send]');
     button.disabled = true;
     request(endpoint,'POST',{date:currentDate,time:chosenTime,message:message,roles:chosenRoles}).then(function () {
-      modal.hidden = true;
-      document.documentElement.classList.remove('pmd-owner-note-modal-open');
+      hideModal();
       refreshYear(currentYear(),true);
     }).catch(function (ex) { notifyError(ex.message); }).finally(function () {
       actionBusy = false; updateSendButton();
@@ -377,6 +421,11 @@
       var time = slot.getAttribute('data-pmd-reservations-slot-time');
       var content = slot.querySelector('.pmd-r2-timeslot__content');
       if (!content) return;
+      var nativeCreate = content.querySelector('[data-pmd-reservations-slot-create]');
+      if (nativeCreate) {
+        nativeCreate.setAttribute('aria-label','Add team note at ' + time);
+        nativeCreate.textContent = 'Add team note';
+      }
       var button = content.querySelector('[data-pmd-owner-hour-note-add]');
       if (!button) {
         button = e('button','pmd-owner-hour-note-plus',content,'+');
@@ -449,18 +498,28 @@
   }
   document.addEventListener('click', function (event) {
     if (!active()) return;
-    var btn = event.target.closest('[data-pmd-owner-hour-note-add]');
-    var heading = event.target.closest('.pmd-owner-hour-note-btn[data-r2-yc-note]');
-    var remove = event.target.closest('[data-pmd-owner-hour-note-remove]');
-    var withinNotes = event.target.closest('[data-pmd-owner-hour-slot-notes]');
-    if (!(btn || heading || remove || withinNotes)) return;
+    var target = event.target && event.target.closest ? event.target : null;
+    if (!target || (modal && !modal.hidden && modal.contains(target))) return;
+    var btn = target.closest('[data-pmd-owner-hour-note-add]');
+    var heading = target.closest('.pmd-owner-hour-note-btn[data-r2-yc-note]');
+    var remove = target.closest('[data-pmd-owner-hour-note-remove]');
+    var withinNotes = target.closest('[data-pmd-owner-hour-slot-notes]');
+    var slot = target.closest('[data-pmd-reservations-slot-date][data-pmd-reservations-slot-time]');
+    // The Owner Hour time column / free row must publish a Team Note, not
+    // invoke the inherited Reservations Composer. Existing booking cards
+    // still retain their edit actions.
+    var booked = target.closest('.pmd-r2-slot-booking,[data-pmd-reservations-edit]');
+    var interactive = target.closest('a,button,input,select,textarea,label');
+    var slotCreate = target.closest('[data-pmd-reservations-slot-create]');
+    var slotNote = !!(slot && !booked && !withinNotes && (!interactive || slotCreate));
+    if (!(btn || heading || remove || withinNotes || slotNote)) return;
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
     if (remove) { deleteNote(remove.getAttribute('data-pmd-owner-hour-note-remove')); return; }
-    if (btn) {
-      var slot = btn.closest('[data-pmd-reservations-slot-date][data-pmd-reservations-slot-time]');
-      if (slot) openModal(slot.getAttribute('data-pmd-reservations-slot-date'),slot.getAttribute('data-pmd-reservations-slot-time'));
+    if (btn || slotNote) {
+      var origin = slot || btn.closest('[data-pmd-reservations-slot-date][data-pmd-reservations-slot-time]');
+      if (origin) openModal(origin.getAttribute('data-pmd-reservations-slot-date'),origin.getAttribute('data-pmd-reservations-slot-time'));
     } else if (heading) {
       openModal(selectedDay(), '12:00');
     }
