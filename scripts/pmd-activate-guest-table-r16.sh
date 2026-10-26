@@ -97,6 +97,20 @@ let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
 });
 '
 READY=1
+cat > "$BACKUP/rollback.sh" <<'ROLLBACK'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+ROOT=/var/www/paymydine
+B="$(cd "$(dirname "$0")" && pwd -P)"
+test -d "$B/.next" || { echo 'Previous Next build backup missing.'; exit 2; }
+test -d "$ROOT/frontend/.next" || { echo 'Active Next build missing.'; exit 2; }
+mv "$ROOT/frontend/.next" "$B/.next-r16-current"
+mv "$B/.next" "$ROOT/frontend/.next"
+pm2 reload paymydine-frontend --update-env
+echo 'Previous guest frontend Next build restored.'
+ROLLBACK
+chmod 700 "$BACKUP/rollback.sh"
 echo 'SUCCESS R16 FRONTEND: new build activated for actual PM2 production process.'
 echo "PREVIOUS .next BACKUP: $BACKUP/.next"
+echo "ROLLBACK: bash $BACKUP/rollback.sh"
 echo 'Guest QA: test disabled table QR + active table QR in fresh private browser tabs.'
