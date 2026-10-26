@@ -136,6 +136,31 @@ def selftest(base, ref):
         assert marker in source(tmp, layout)
         print("PASS R45: unrelated VPS layout customization preserved")
 
+    # R45B: reproduce the practical dirty-layout blocker: extra user lines
+    # within the 12-line context that the former patcher required unchanged.
+    with tempfile.TemporaryDirectory(prefix="pmd-r45-layout-drift-fixture-") as tmp:
+        for name in FILES:
+            write(tmp, name, source(base, name))
+        layout = "app/admin/views/_layouts/default.blade.php"
+        before = source(tmp, layout)
+        css_line = '<!-- /PMD_FLOOR_NOTE_RANGE_R42_REAL_HEAD -->'
+        custom = '<!-- USER_R14_LOCAL_HEADER_KEEP_UNCHANGED -->'
+        assert before.count(css_line) == 1
+        write(tmp, layout, before.replace(css_line, custom + "\n" + css_line, 1))
+        patch(tmp, base, ref)
+        after = source(tmp, layout)
+        assert after.count(custom) == 1
+        assert after.count('PMD_FLOOR_OPERATIONAL_SAFETY_R45_REAL_HEAD') == 2
+        assert after.count('pmd-floor-confirm-r45.js') == 1
+        print("PASS R45B: changed local R14/R42 head survives without hunk conflict")
+        try:
+            forward_port_layout(after, source(base, layout), source(ref, layout), layout)
+        except RuntimeError as error:
+            assert "already installed" in str(error)
+            print("PASS R45B: duplicate/partial head injection fails closed")
+        else:
+            raise RuntimeError("R45B duplicate injection was not rejected")
+
     with tempfile.TemporaryDirectory(prefix="pmd-r45-drift-fixture-") as tmp:
         for name in FILES:
             write(tmp, name, source(base, name))
@@ -154,7 +179,7 @@ def selftest(base, ref):
             print("PASS R45: dirty critical block fails closed before any mutation")
         else:
             raise RuntimeError("CRITICAL REGRESSION: edited disable action overwritten")
-    print("R45 SURGICAL PATCHER: 3 groups passed")
+    print("R45B SURGICAL PATCHER: 5 groups passed")
 
 if __name__ == "__main__":
     if len(sys.argv) != 5 or sys.argv[1] not in ("--apply", "--selftest"):
