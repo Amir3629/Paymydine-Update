@@ -205,7 +205,7 @@ def change_customer_route(text: str) -> tuple[str, bool]:
             raise RuntimeError('STOP: R17C CustomerMenuRoute guard incomplete')
         return text, False
 
-    anchor = '  const setup = bootstrap.setup\\n'
+    anchor = '  const setup = bootstrap.setup\n'
     # Our patch must be applied after the kiosk/customer split but before
     # the tenant setup splash and any ThemeRenderer path.
     if (text.count(anchor) != 1 or
