@@ -37,33 +37,53 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 $originalDefault = DB::getDefaultConnection();
-$central = (string)Config::get('database.connections.mysql.database');
+$originalTenant = Config::get('database.connections.tenant');
+$central = (string)DB::connection('mysql')->getDatabaseName();
 $migration = $root.'/app/system/database/migrations/2026_10_26_170000_create_pmd_owner_staff_hour_notes_r11.php';
 
 try {
     if (!is_file($migration)) throw new \RuntimeException('R11 schema file is missing.');
+    // Exact active tenant lookup, as in pmd-staff-tenant-location-audit-v1.
+    // Never reconfigure the central mysql connection or guess a database.
     $tenant = DB::connection('mysql')->table('tenants')
-        ->whereRaw('LOWER(domain) = ?', [$domain])->first();
-    if (!$tenant) throw new \RuntimeException('No tenant is registered for '.$domain);
-    $database = trim((string)($tenant->database ?? $tenant->database_name ?? ''));
-    if (!preg_match('/^[A-Za-z0-9_]{1,64}$/', $database)) {
+        ->where('domain', $domain)
+        ->where('status', 'active')
+        ->first();
+    if (!$tenant) throw new \RuntimeException('No ACTIVE tenant is registered for '.$domain);
+    $database = trim((string)($tenant->database ?? ''));
+    if (!preg_match('/^[A-Za-z0-9_]{1,64}$/D', $database)) {
         throw new \RuntimeException('Tenant database identifier is invalid.');
     }
     if ($database === $central) {
         throw new \RuntimeException('Refusing to modify the central database.');
     }
 
-    Config::set('database.connections.mysql.database', $database);
-    DB::purge('mysql');
-    DB::setDefaultConnection('mysql');
-    DB::reconnect('mysql');
+    // Match the canonical HTTP tenant middleware host/port/user/password.
+    Config::set('database.connections.tenant.database', $database);
+    Config::set('database.connections.tenant.host', $tenant->db_host ?? env('TENANT_DB_HOST', env('DB_HOST')));
+    Config::set('database.connections.tenant.port', $tenant->db_port ?? env('TENANT_DB_PORT', env('DB_PORT')));
+    Config::set('database.connections.tenant.username', $tenant->db_user ?? env('TENANT_DB_USERNAME', env('DB_USERNAME')));
+    Config::set('database.connections.tenant.password', $tenant->db_pass ?? env('TENANT_DB_PASSWORD', env('DB_PASSWORD')));
+    DB::purge('tenant');
+    DB::reconnect('tenant');
+    DB::setDefaultConnection('tenant');
+
+    if ((string)DB::connection('tenant')->getDatabaseName() !== $database) {
+        throw new \RuntimeException('Connected tenant DB does not match the registry.');
+    }
+    if (!Schema::connection('tenant')->hasTable('locations')) {
+        throw new \RuntimeException('Target tenant has no locations table.');
+    }
 
     $names = ['pmd_owner_staff_hour_notes', 'pmd_owner_staff_hour_note_receipts'];
-    $missing = array_values(array_filter($names, fn ($name) => !Schema::connection('mysql')->hasTable($name)));
+    $missing = array_values(array_filter($names, fn ($name) => !Schema::connection('tenant')->hasTable($name)));
     echo "Restaurant: ".$domain."\n";
+    echo "Tenant database: ".$database."\n";
     echo "Missing R11 tables: ".($missing ? implode(', ', $missing) : 'none')."\n";
-    if ($missing && !isset($args['apply'])) {
-        echo "DRY RUN: no tables created. Run again with --apply for this one tenant.\n";
+
+    // Strictly read-only dry-run: no migrations and no writes.
+    if (!isset($args['apply'])) {
+        echo "DRY RUN: no tables created. Use --apply to install for THIS tenant only.\n";
         exit(0);
     }
 
@@ -77,11 +97,11 @@ try {
         'pmd_owner_staff_hour_notes' => ['id','location_id','note_date','slot_time','message','target_roles','deleted_at'],
         'pmd_owner_staff_hour_note_receipts' => ['id','location_id','note_id','staff_id','role_code','confirmed_at'],
     ] as $table => $columns) {
-        if (!Schema::connection('mysql')->hasTable($table)) {
+        if (!Schema::connection('tenant')->hasTable($table)) {
             throw new \RuntimeException('Required table missing after migration: '.$table);
         }
         foreach ($columns as $column) {
-            if (!Schema::connection('mysql')->hasColumn($table, $column)) {
+            if (!Schema::connection('tenant')->hasColumn($table, $column)) {
                 throw new \RuntimeException('Schema missing: '.$table.'.'.$column);
             }
         }
@@ -91,8 +111,8 @@ try {
     fwrite(STDERR, "ERROR: ".$error->getMessage()."\n");
     exit(1);
 } finally {
-    Config::set('database.connections.mysql.database', $central);
-    DB::purge('mysql');
+    // Restore original CLI app state. The central registry remains untouched.
+    Config::set('database.connections.tenant', $originalTenant);
+    DB::purge('tenant');
     DB::setDefaultConnection($originalDefault);
-    DB::reconnect('mysql');
 }
