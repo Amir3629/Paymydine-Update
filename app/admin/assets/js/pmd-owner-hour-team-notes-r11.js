@@ -198,7 +198,7 @@
       var trigger = event.target.closest('[data-pmd-owner-hour-time-trigger]');
       var option = event.target.closest('[data-pmd-owner-hour-time-option]');
       if (!trigger && !option) return;
-      if (event.key === 'Escape') { event.preventDefault(); closeTimeList(true); return; }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeTimeList(true); return; }
       if (trigger && ['ArrowDown','ArrowUp','Enter',' '].indexOf(event.key) !== -1) {
         event.preventDefault();
         openTimeList(event.key === 'ArrowUp' ? -1 : 1);
