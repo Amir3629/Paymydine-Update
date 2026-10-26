@@ -1,6 +1,6 @@
 /* PMD_DASHBOARD_FLOOR_EMPTY_R36: server-first dimensions, no global controls */
-html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor,
-html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage:not([hidden]) {
+html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor,
+html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage:not([hidden]) {
   box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;
   flex:0 0 auto!important;width:auto!important;min-width:106px!important;max-width:none!important;
   height:52px!important;min-height:52px!important;max-height:52px!important;
@@ -8,15 +8,15 @@ html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button.p
   line-height:1!important;font-weight:800!important;white-space:nowrap!important;
   transform:none!important;transition:none!important;animation:none!important;
 }
-html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor:not(.is-active):not([aria-selected="true"]),
-html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage:not([hidden]) {
+html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor:not(.is-active):not([aria-selected="true"]),
+html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage:not([hidden]) {
   background:#fff!important;background-image:none!important;border:1px solid #c9dce8!important;color:#153c35!important;box-shadow:0 2px 7px rgba(32,64,54,.04)!important;
 }
-html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor:is(.is-active,[aria-selected="true"]) {
+html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor:is(.is-active,[aria-selected="true"]) {
   background:linear-gradient(180deg,#0b765e,#075c47)!important;background-image:linear-gradient(180deg,#0b765e,#075c47)!important;
   border:1px solid #064b3c!important;color:#fff!important;box-shadow:0 9px 20px rgba(7,92,71,.15)!important;
 }
-html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher {
+html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher {
   max-width:min(68%,860px)!important;align-items:center!important;min-height:52px!important;
 }
 html body #pmd-r2-shared-floor-canvas-v310 .pmd-floor-v1__empty.pmd-floor-r36-empty:not([hidden]){
@@ -56,9 +56,9 @@ html body.pmd-dashboard-lab-page #pmd-dashboard-lab #pmd-dashboard-lab-analytics
 html body.pmd-dashboard-lab-page #pmd-dashboard-lab #pmd-dashboard-lab-analytics-v1 .pmd-r36-empty-notice__icon svg{width:22px;height:22px}
 html body.pmd-dashboard-lab-page #pmd-dashboard-lab #pmd-dashboard-lab-analytics-v1 .pmd-r36-empty-notice__message{max-width:300px;color:#73847c;font-size:13px}
 @media(max-width:820px){
- html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher{min-height:46px!important;max-width:66%!important}
- html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor,
- html body #pmd-r2-shared-floor-canvas-v310 .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage:not([hidden]) {
+ html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher{min-height:46px!important;max-width:66%!important}
+ html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__floor,
+ html body #pmd-r2-shared-floor-canvas-v310:is([data-pmd-floor-table-manager-role="owner"],[data-pmd-floor-table-manager-role="manager"]) .pmd-shared-floor-switcher > button.pmd-shared-floor-switcher__manage:not([hidden]) {
  height:46px!important;min-height:46px!important;max-height:46px!important;min-width:90px!important;font-size:14px!important;padding:0 15px!important;border-radius:14px!important;
  }
 }
