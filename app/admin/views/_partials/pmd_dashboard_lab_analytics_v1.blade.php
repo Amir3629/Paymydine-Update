@@ -76,9 +76,11 @@
         $source = is_array($source) ? $source : [];
         $message = $source['reason'] ?? $source['source'] ?? 'No records';
 
-        return '<p class="pmd-dashboard-lab-empty">'.
-            $analyticsEscape($message).
-            '</p>';
+        return '<div class="pmd-dashboard-lab-empty pmd-r36-empty-notice" role="status">'.
+            '<span class="pmd-r36-empty-notice__icon" aria-hidden="true">'.
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg></span>'.
+            '<span class="pmd-r36-empty-notice__message">'.$analyticsEscape($message).'</span>'.
+            '</div>';
     };
 
     $analyticsList = static function (
@@ -481,9 +483,14 @@
     ) use (
         $analyticsSvgLine,
         $analyticsSvgBars,
-        $analyticsEscape
+        $analyticsEscape,
+        $analyticsEmpty
     ): string {
         $total = count($rows);
+        // PMD_R36: Zero-only sales should show a real empty notice, not a blank graph.
+        if ($total === 0 || !array_filter($rows, static fn ($row) => (float)($row['sales'] ?? 0) > 0)) {
+            return $analyticsEmpty(['reason' => 'No sales recorded in this period']);
+        }
         $minimum = min($hourly ? 4 : 5, max($total, 1));
         $maximum = max($total, $minimum);
         $value = max(
