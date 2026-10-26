@@ -130,6 +130,13 @@ grep -Fq "require_once base_path('routes/pmd-owner-staff-notes-r11.php')" "$stag
 grep -Fq 'PMD_OWNER_HOUR_TEAM_NOTES_CLIENT_R11' "$stage/merged/app/admin/assets/js/pmd-owner-hour-team-notes-r11.js" || { echo 'STOP: Owner Hour UI missing' >&2; exit 2; }
 grep -Fq 'PMD_STAFF_HOUR_NOTES_CLIENT_R11' "$stage/merged/app/admin/assets/js/pmd-staff-hour-notes-r11.js" || { echo 'STOP: Staff app UI missing' >&2; exit 2; }
 grep -Fq 'pmd-owner-hour-team-notes-r11.js' "$stage/merged/app/admin/views/dashboardlab/index.blade.php" || { echo 'STOP: Owner assets not wired' >&2; exit 2; }
+grep -Fq 'data-pmd-owner-hour-notes-csrf="{{ csrf_token() }}"' "$stage/merged/app/admin/views/dashboardlab/index.blade.php" || { echo 'STOP: Owner CSRF token source missing' >&2; exit 2; }
+grep -Fq "host.getAttribute('data-pmd-owner-hour-notes-csrf')" "$stage/merged/app/admin/assets/js/pmd-owner-hour-team-notes-r11.js" || { echo 'STOP: Owner POST CSRF header missing' >&2; exit 2; }
+grep -Fq "database.connections.tenant.database" "$stage/merged/scripts/pmd-owner-staff-hour-notes-schema-r11.php" || { echo 'STOP: tenant-specific schema mapping missing' >&2; exit 2; }
+if grep -Fq "Config::set('database.connections.mysql.database'" "$stage/merged/scripts/pmd-owner-staff-hour-notes-schema-r11.php"; then
+  echo 'STOP: unsafe central mysql schema configuration detected' >&2
+  exit 2
+fi
 grep -Fq 'pmd-staff-hour-notes-r11.js' "$stage/merged/app/admin/views/pmd-staff-portal/index_v5.blade.php" || { echo 'STOP: Staff app assets not wired' >&2; exit 2; }
 grep -Fq "pmd-staff-portal._hour_notes_r11" "$stage/merged/app/admin/views/pmd-staff-portal/index_v5.blade.php" || { echo 'STOP: Staff inbox partial not wired' >&2; exit 2; }
 node - "$stage/merged/app/admin/assets/css/pmd-owner-hour-team-notes-r11.css" \
