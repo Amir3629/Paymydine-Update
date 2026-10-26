@@ -897,6 +897,8 @@
         <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-controls-r7.css') }}?v=20261026-r7">
         {{-- PMD_OWNER_CALENDAR_VIEWPORT_BUTTONS_R8: precise screen center and Table Manager palette. --}}
         <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-viewport-buttons-r8.css') }}?v=20261026-r8">
+        {{-- PMD_OWNER_CALENDAR_SEGMENTED_SWITCHES_R9: grouped Year/Month and All/Reservations/Events. --}}
+        <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-segmented-switches-r9.css') }}?v=20261026-r9">
 
         @include(
             'admin::_partials.pmd_reservations_schedule_v1'
