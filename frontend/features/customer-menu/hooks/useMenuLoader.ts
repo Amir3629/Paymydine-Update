@@ -198,10 +198,15 @@ export function useMenuLoader({
               setTableInfoState(normalizedTableInfo)
               setTableInfo(normalizedTableInfo)
 
+              // Optional order hydration must not turn a verified, active
+              // table into an error page if the order service is unavailable.
               const pendingQr = await apiClient.getPendingQrOrderByTable(
                 String(tableResult.data.table_id),
                 { tableNo: tableResult.data?.table_no ?? table_no ?? null, qr: qr || null },
-              )
+              ).catch((error) => {
+                console.warn("[PMD] pending QR order hydration skipped:", error)
+                return null
+              })
 
               if (pendingQr?.success && pendingQr.data?.order_id) {
                 const pendingId = Number(pendingQr.data.order_id)
