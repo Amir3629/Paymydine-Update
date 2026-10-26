@@ -27,6 +27,7 @@ assert(js.includes("next.length ? next : ['all']"), 'Last target cannot silently
 assert(js.includes('data-pmd-owner-hour-note-members'), 'Named team member group rendered.');
 assert(js.includes("aria-pressed"), 'Recipient toggles have accessible state.');
 assert(css.includes('max-height:min(230px,37dvh)'), 'Time popup must be compact.');
+assert(css.includes('.pmd-owner-hour-time-list[hidden] { display:none!important; }'), 'Closed time menu must override the !important grid.');
 assert(css.includes('.pmd-owner-hour-role[aria-pressed="true"]'), 'Selected recipients are visibly green.');
 assert(backend.includes('public function memberOptions'), 'Backend offers tenant-local named members.');
 assert(backend.includes("'staff:'.(int)$row->staff_id"), 'Individual target must match an actual recipient.');
