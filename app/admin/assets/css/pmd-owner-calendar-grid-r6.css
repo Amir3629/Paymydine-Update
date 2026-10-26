@@ -93,7 +93,7 @@ html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
 html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
 #pmd-r2-calendar-surface-v160.is-month-mode .pmd-yc-month.is-month-view .pmd-yc-days > button.pmd-yc-day {
   min-height: 118px !important;
-  height: 100% !important;
+  height: auto !important;
   max-height: none !important;
   padding: 11px 12px !important;
 }
