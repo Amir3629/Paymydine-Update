@@ -81,6 +81,16 @@ for file in "${FILES[@]}"; do
       # Insert only the authorized Add Floor visibility into CURRENT VPS
       # markup, with exact unique-anchor checks and no adjacent changes.
       python3 "$STAGE/tmp/floor-adapter.py" "$file" "$STAGE/$file"
+      if grep -q 'data-pmd-floor-manage-always-visible-r39' "$file"; then
+        grep -q 'data-pmd-floor-manage-always-visible-r39' "$STAGE/$file" || {
+          echo 'STOP: R39 Edit floor would be lost.'; exit 4;
+        }
+      fi
+      # The adapter must be idempotent and must not add duplicate controls.
+      python3 "$STAGE/tmp/floor-adapter.py" "$STAGE/$file" "$STAGE/tmp/floor-verify"
+      cmp -s "$STAGE/$file" "$STAGE/tmp/floor-verify" || {
+        echo 'STOP: adapted Floor is not idempotent.'; exit 4;
+      }
       if cmp -s "$file" "$STAGE/$file"; then
         echo "ALREADY CURRENT: $file"
         continue
