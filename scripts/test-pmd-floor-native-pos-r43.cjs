@@ -23,8 +23,10 @@ check('R42 temporary table ghosts are entirely removed, never duplicate numbers'
   "root.classList.add('pmd-r42-floor-flight-active')"
  ])assert(!floor.includes(obsolete),'Ghost engine still present: '+obsolete);
  assert(!oldCss.includes('.pmd-r42-floor-flight-active'));
- assert(!oldCss.includes('visibility:hidden!important'));
- assert(!oldCss.includes('.pmd-r42-floor-ghost'));
+ assert(!oldCss.includes('[data-floor-canvas] > [data-floor-table]'));
+ assert(oldCss.includes('PMD_R44_DISABLE_STALE_GHOST'));
+ assert(oldCss.includes('html body > .pmd-r42-floor-flight'));
+ assert(oldCss.includes('display:none!important'));
  assert(oldCss.includes('content:none!important'));
 });
 

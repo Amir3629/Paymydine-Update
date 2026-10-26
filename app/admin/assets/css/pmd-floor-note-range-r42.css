@@ -252,6 +252,16 @@ html body.pmd-dashboard-lab-page #pmd-r2-shared-floor-canvas-v310::after {
   background:transparent!important;
 }
 
+/* PMD_R44_DISABLE_STALE_GHOST
+   If an older R42 script is still cached for one refresh, do not
+   display detached copies with broken circle/number styles. Real
+   table elements always remain visible and their saved state is safe. */
+html body > .pmd-r42-floor-flight,
+html body > .pmd-r42-floor-flight .pmd-r42-floor-ghost {
+  display:none!important;
+  visibility:hidden!important;
+}
+
 /* Range: current real value at the TOP, then one tall bare vertical track.
    No frame, background fill, label caption, card or outer pill. */
 html body.pmd-dashboard-lab-page
