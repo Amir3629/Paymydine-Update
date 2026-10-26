@@ -532,6 +532,11 @@
             true
         );
 
+    /* PMD_FLOOR_R38_MANAGEMENT_SINGLE_TAB
+       Show the real current Floor tab to Owner/Manager even with one Floor.
+       No artificial floors are created, and single-floor modal semantics stay. */
+    $pmdR38ShowManagementFloorTab = $pmdShowFloorTabs || $pmdFloorCanManageTables;
+
     $pmdFloorTableManagerLocationId = max(0, (int)($locationId ?? 0));
     if ($pmdFloorTableManagerLocationId < 1) {
         try {
@@ -1038,7 +1043,7 @@ body.pmd-dashboard-lab-page
                 aria-label="Floors"
                 @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
             >
-                @if($pmdShowFloorTabs)
+                @if($pmdR38ShowManagementFloorTab)
                     @foreach($pmdFloorRegistry as $pmdFloorRegistryItem)
                         @php
                             $pmdFloorRegistryItemId = trim((string)($pmdFloorRegistryItem['id'] ?? ''));
