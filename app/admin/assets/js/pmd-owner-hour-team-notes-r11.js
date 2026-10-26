@@ -11,7 +11,7 @@
   if (!host || !endpoint) return;
 
   var rootSelector = '#pmd-r2-calendar-surface-v160';
-  var notes = [], roles = [], loadedYear = 0, loadingYear = 0;
+  var notes = [], roles = [], members = [], loadedYear = 0, loadingYear = 0;
   var error = '', actionBusy = false, currentDate = '', chosenTime = '12:00';
   var chosenRoles = ['all'], modal = null, noteList = null, modalRoles = null;
   var modalError = null, roleReady = false, scheduled = false, revision = 0;
@@ -55,7 +55,7 @@
   function roleNames(codes) {
     if (!Array.isArray(codes)) return '';
     return codes.map(function (code) {
-      var match = roles.find(function (role) { return role.code === code; });
+      var match = roles.concat(members).find(function (role) { return role.code === code; });
       return match ? match.name : code;
     }).join(', ');
   }
@@ -104,6 +104,7 @@
       if (seq !== revision || currentYear() !== year) return;
       notes = Array.isArray(data.notes) ? data.notes : [];
       roles = Array.isArray(data.roles) ? data.roles : [];
+      members = Array.isArray(data.members) ? data.members : [];
       setupRequired = !!data.setup_required;
       roleReady = !setupRequired;
       error = setupRequired ? (data.message || 'Team notes need setup for this restaurant.') : '';
@@ -131,10 +132,19 @@
       '<section class="pmd-owner-hour-note-card" role="dialog" aria-modal="true" aria-labelledby="pmd-hour-note-heading">' +
         '<header><div><small>Team communication</small><h2 id="pmd-hour-note-heading">New staff note</h2></div>' +
         '<button type="button" data-pmd-owner-hour-note-close aria-label="Close note">×</button></header>' +
-        '<label class="pmd-owner-hour-note-time"><span>Time for this note</span><select data-pmd-owner-hour-note-time></select></label>' +
+        '<div class="pmd-owner-hour-note-time"><span id="pmd-hour-note-time-label">Time for this note</span>' +
+          '<div class="pmd-owner-hour-time-picker" data-pmd-owner-hour-time-picker>' +
+            '<button type="button" class="pmd-owner-hour-time-trigger" data-pmd-owner-hour-time-trigger aria-haspopup="listbox" aria-expanded="false" aria-labelledby="pmd-hour-note-time-label pmd-hour-note-time-value">' +
+              '<span id="pmd-hour-note-time-value" data-pmd-owner-hour-time-value>12:00</span>' +
+              '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            '</button>' +
+            '<div class="pmd-owner-hour-time-list" id="pmd-hour-note-time-options" role="listbox" aria-label="Time for this note" data-pmd-owner-hour-time-list hidden></div>' +
+          '</div></div>' +
         '<label class="pmd-owner-hour-note-text"><span>Message</span><textarea rows="4" maxlength="1500" data-pmd-owner-hour-note-message placeholder="Write a clear instruction for the selected team…" required></textarea></label>' +
-        '<div class="pmd-owner-hour-note-audience"><strong>Who should receive this?</strong><p>Select all staff or one or more work roles.</p>' +
-          '<div class="pmd-owner-hour-note-roles" data-pmd-owner-hour-note-roles></div></div>' +
+        '<div class="pmd-owner-hour-note-audience"><strong>Who should receive this?</strong><p>Choose all staff, work roles, or individual team members.</p>' +
+          '<div class="pmd-owner-hour-note-roles" role="group" aria-label="Work roles" data-pmd-owner-hour-note-roles></div>' +
+          '<div class="pmd-owner-hour-member-label" data-pmd-owner-hour-member-label hidden>Team members</div>' +
+          '<div class="pmd-owner-hour-note-members" role="group" aria-label="Team members" data-pmd-owner-hour-note-members></div></div>' +
         '<p class="pmd-owner-hour-note-error" role="alert" data-pmd-owner-hour-note-error hidden></p>' +
         '<footer><button type="button" data-pmd-owner-hour-note-close>Cancel</button>' +
           '<button type="button" class="is-primary" data-pmd-owner-hour-note-send>Send to staff</button></footer>' +
@@ -142,48 +152,171 @@
     noteList = modal.querySelector('[data-pmd-owner-hour-note-message]');
     modalRoles = modal.querySelector('[data-pmd-owner-hour-note-roles]');
     modalError = modal.querySelector('[data-pmd-owner-hour-note-error]');
-    var select = modal.querySelector('[data-pmd-owner-hour-note-time]');
+    var timeList = modal.querySelector('[data-pmd-owner-hour-time-list]');
     for (var h = 0; h < 24; h++) {
       for (var m = 0; m < 60; m += 30) {
         var time = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
-        var opt = e('option','',select,time);
-        opt.value = time;
+        var opt = e('button','pmd-owner-hour-time-option',timeList,time);
+        opt.type = 'button';
+        opt.setAttribute('data-pmd-owner-hour-time-option',time);
+        opt.setAttribute('role','option');
+        opt.setAttribute('aria-selected','false');
+        opt.tabIndex = -1;
       }
     }
     modal.addEventListener('click', function (event) {
       if (event.target.closest('[data-pmd-owner-hour-note-close]')) { closeModal(); return; }
+      var timeTrigger = event.target.closest('[data-pmd-owner-hour-time-trigger]');
+      if (timeTrigger) { event.preventDefault(); toggleTimeList(); return; }
+      var timeOption = event.target.closest('[data-pmd-owner-hour-time-option]');
+      if (timeOption) {
+        event.preventDefault();
+        setChosenTime(timeOption.getAttribute('data-pmd-owner-hour-time-option'));
+        closeTimeList(true);
+        return;
+      }
       var roleButton = event.target.closest('[data-pmd-owner-hour-role]');
       if (roleButton) {
+        event.preventDefault();
+        event.stopPropagation();
         var code = roleButton.getAttribute('data-pmd-owner-hour-role');
         if (code === 'all') chosenRoles = ['all'];
         else {
-          chosenRoles = chosenRoles.filter(function (v) { return v !== 'all'; });
-          if (chosenRoles.indexOf(code) !== -1) chosenRoles = chosenRoles.filter(function (v) { return v !== code; });
-          else chosenRoles.push(code);
+          var next = chosenRoles.filter(function (value) { return value !== 'all'; });
+          if (next.indexOf(code) >= 0) next = next.filter(function (value) { return value !== code; });
+          else next.push(code);
+          // Never leave the form silently with zero recipients.
+          chosenRoles = next.length ? next : ['all'];
         }
+        if (modalError && !setupRequired) modalError.hidden = true;
         paintRoles();
         return;
       }
       if (event.target.closest('[data-pmd-owner-hour-note-send]')) sendNote();
     });
-    modal.addEventListener('change', function (event) {
-      if (event.target.matches('[data-pmd-owner-hour-note-time]')) chosenTime = event.target.value;
+    modal.addEventListener('keydown', function (event) {
+      var trigger = event.target.closest('[data-pmd-owner-hour-time-trigger]');
+      var option = event.target.closest('[data-pmd-owner-hour-time-option]');
+      if (!trigger && !option) return;
+      if (event.key === 'Escape') { event.preventDefault(); closeTimeList(true); return; }
+      if (trigger && ['ArrowDown','ArrowUp','Enter',' '].indexOf(event.key) !== -1) {
+        event.preventDefault();
+        openTimeList(event.key === 'ArrowUp' ? -1 : 1);
+        return;
+      }
+      if (!option) return;
+      var buttons = Array.from(modal.querySelectorAll('[data-pmd-owner-hour-time-option]'));
+      var index = buttons.indexOf(option);
+      var target = index;
+      if (event.key === 'ArrowDown') target += 3;
+      else if (event.key === 'ArrowUp') target -= 3;
+      else if (event.key === 'ArrowRight') target += 1;
+      else if (event.key === 'ArrowLeft') target -= 1;
+      else if (event.key === 'Home') target = 0;
+      else if (event.key === 'End') target = buttons.length - 1;
+      else if (event.key === 'Tab') { closeTimeList(false); return; }
+      else return;
+      event.preventDefault();
+      buttons[Math.max(0,Math.min(buttons.length-1,target))].focus();
     });
+    document.addEventListener('pointerdown', function (event) {
+      if (modal && !modal.hidden
+          && !event.target.closest('[data-pmd-owner-hour-time-picker]')) closeTimeList(false);
+    }, true);
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && modal && !modal.hidden) closeModal();
+      if (event.key === 'Escape' && modal && !modal.hidden) {
+        if (!modal.querySelector('[data-pmd-owner-hour-time-list]').hidden) closeTimeList(true);
+        else closeModal();
+      }
     });
   }
-  function paintRoles() {
-    if (!modalRoles) return;
-    modalRoles.textContent = '';
-    roles.forEach(function (role) {
-      var btn = e('button','pmd-owner-hour-role',modalRoles,role.name + ' · ' + role.count);
-      btn.type = 'button';
-      btn.setAttribute('data-pmd-owner-hour-role',role.code);
-      var active = chosenRoles.indexOf(role.code) !== -1;
-      btn.classList.toggle('is-selected',active);
-      btn.setAttribute('aria-pressed',active ? 'true':'false');
+  function setChosenTime(time) {
+    if (!/^([01][0-9]|2[0-3]):(00|30)$/.test(time || '')) return;
+    chosenTime = time;
+    if (!modal) return;
+    var value = modal.querySelector('[data-pmd-owner-hour-time-value]');
+    if (value) value.textContent = time;
+    modal.querySelectorAll('[data-pmd-owner-hour-time-option]').forEach(function (option) {
+      var selected = option.getAttribute('data-pmd-owner-hour-time-option') === time;
+      option.classList.toggle('is-selected',selected);
+      option.setAttribute('aria-selected',selected ? 'true' : 'false');
     });
+  }
+  function closeTimeList(focusTrigger) {
+    if (!modal) return;
+    var list = modal.querySelector('[data-pmd-owner-hour-time-list]');
+    var trigger = modal.querySelector('[data-pmd-owner-hour-time-trigger]');
+    if (!list || list.hidden) return;
+    list.hidden = true;
+    trigger.setAttribute('aria-expanded','false');
+    if (focusTrigger) trigger.focus();
+  }
+  function openTimeList(direction) {
+    if (!modal) return;
+    var list = modal.querySelector('[data-pmd-owner-hour-time-list]');
+    var trigger = modal.querySelector('[data-pmd-owner-hour-time-trigger]');
+    list.hidden = false;
+    trigger.setAttribute('aria-expanded','true');
+    var options = Array.from(list.querySelectorAll('[data-pmd-owner-hour-time-option]'));
+    var index = options.findIndex(function (o) {
+      return o.getAttribute('data-pmd-owner-hour-time-option') === chosenTime;
+    });
+    index = Math.max(0,index);
+    var row = Math.floor(index / 3);
+    list.scrollTop = Math.max(0,row * 40 - 82);
+    if (options.length) options[Math.max(0,Math.min(options.length-1,index + (direction === -1 ? -1 : 0)))].focus();
+  }
+  function toggleTimeList() {
+    if (!modal) return;
+    var list = modal.querySelector('[data-pmd-owner-hour-time-list]');
+    if (list.hidden) openTimeList(0);
+    else closeTimeList(true);
+  }
+  function updateSendButton() {
+    if (!modal) return;
+    var button = modal.querySelector('[data-pmd-owner-hour-note-send]');
+    if (!button) return;
+    var canSend = roleReady && !setupRequired && !actionBusy
+      && roles.some(function (role) {return role.code === 'all' && Number(role.count) > 0;});
+    button.disabled = !canSend;
+    button.setAttribute('aria-disabled', canSend ? 'false' : 'true');
+  }
+  function paintRoles() {
+    if (!modalRoles || !modal) return;
+    var memberList = modal.querySelector('[data-pmd-owner-hour-note-members]');
+    var memberLabel = modal.querySelector('[data-pmd-owner-hour-member-label]');
+    var available = roles.concat(members).map(function (item) {return item.code;});
+    chosenRoles = chosenRoles.filter(function (code) {return available.indexOf(code) >= 0;});
+    if (!chosenRoles.length) chosenRoles = ['all'];
+    var roleSignature = JSON.stringify(roles);
+    if (modalRoles.dataset.signature !== roleSignature) {
+      modalRoles.textContent = '';
+      roles.forEach(function (role) {
+        var btn = e('button','pmd-owner-hour-role',modalRoles,role.name + ' · ' + role.count);
+        btn.type = 'button';
+        btn.setAttribute('data-pmd-owner-hour-role',role.code);
+      });
+      modalRoles.dataset.signature = roleSignature;
+    }
+    var memberSignature = JSON.stringify(members);
+    if (memberList.dataset.signature !== memberSignature) {
+      memberList.textContent = '';
+      members.forEach(function (member) {
+        var label = member.name + (member.role ? ' · ' + member.role : '');
+        var btn = e('button','pmd-owner-hour-role pmd-owner-hour-member',memberList,label);
+        btn.type = 'button';
+        btn.setAttribute('data-pmd-owner-hour-role',member.code);
+      });
+      memberList.dataset.signature = memberSignature;
+    }
+    memberLabel.hidden = !members.length;
+    memberList.hidden = !members.length;
+    modal.querySelectorAll('[data-pmd-owner-hour-role]').forEach(function (button) {
+      var active = chosenRoles.indexOf(button.getAttribute('data-pmd-owner-hour-role')) >= 0;
+      button.classList.toggle('is-selected',active);
+      button.setAttribute('aria-pressed',active ? 'true' : 'false');
+    });
+    updateSendButton();
   }
   function openModal(day,time) {
     if (!active()) return;
@@ -192,8 +325,8 @@
     chosenTime = /^\d{2}:(00|30)$/.test(time || '') ? time : '12:00';
     chosenRoles = ['all'];
     if (!roleReady && !setupRequired && currentYear()) refreshYear(currentYear(), false);
-    var select = modal.querySelector('[data-pmd-owner-hour-note-time]');
-    select.value = chosenTime;
+    setChosenTime(chosenTime);
+    closeTimeList(false);
     noteList.value = '';
     modal.querySelector('#pmd-hour-note-heading').textContent = 'Note · ' + currentDate;
     modalError.hidden = true;
@@ -208,6 +341,7 @@
   }
   function closeModal() {
     if (!modal || actionBusy) return;
+    closeTimeList(false);
     modal.hidden = true;
     document.documentElement.classList.remove('pmd-owner-note-modal-open');
   }
@@ -226,7 +360,7 @@
       document.documentElement.classList.remove('pmd-owner-note-modal-open');
       refreshYear(currentYear(),true);
     }).catch(function (ex) { notifyError(ex.message); }).finally(function () {
-      actionBusy = false; button.disabled = false;
+      actionBusy = false; updateSendButton();
     });
   }
   function deleteNote(id) {
@@ -351,7 +485,7 @@
   });
   window.PMDOwnerHourTeamNotesR11 = {
     refresh:function () {retryAfter = 0; refreshYear(currentYear(),true)},
-    audit:function () {return {ready:roleReady,year:loadedYear,notes:notes.length,roles:roles.length,error:error,setupRequired:setupRequired,pending:pendingRequest,retryAfter:retryAfter};}
+    audit:function () {return {ready:roleReady,year:loadedYear,notes:notes.length,roles:roles.length,members:members.length,error:error,setupRequired:setupRequired,pending:pendingRequest,retryAfter:retryAfter};}
   };
   schedule();
 })();
