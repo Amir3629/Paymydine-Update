@@ -32,6 +32,7 @@
     class="pmd-dashboard-lab pmd-owner-page"
     data-pmd-dashboard-lab-step="4"
     data-pmd-dashboard-lab-kpi-render="server-first-paint"
+    data-pmd-owner-hour-notes-api="{{ admin_url('_pmd/owner-hour-notes-r11') }}"
 >
     @include('admin::_partials.pmd_kitchen_today_team_v1')
     {{-- PMD_DASHBOARD_LAB_HEADER_NOTIFICATION_V5 --}}
@@ -901,6 +902,9 @@
         <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-segmented-switches-r9.css') }}?v=20261026-r9">
         {{-- PMD_OWNER_CALENDAR_HOUR_HEADER_R10: Owner-only note, staff, and centered Hour date. --}}
         <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-hour-header-r10.css') }}?v=20261026-r10">
+        {{-- PMD_OWNER_HOUR_TEAM_NOTES_R11: role-targeted messages per visible Hour slot. --}}
+        <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-hour-team-notes-r11.css') }}?v=20261026-r11">
+        <script defer src="{{ asset('app/admin/assets/js/pmd-owner-hour-team-notes-r11.js') }}?v=20261026-r11"></script>
 
         @include(
             'admin::_partials.pmd_reservations_schedule_v1'
