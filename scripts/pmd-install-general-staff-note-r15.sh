@@ -8,6 +8,7 @@ cd /var/www/paymydine
 BASE=ae8d1ba34cf24ad65774cf6a188253a1533f40d8
 BRANCH=codex/general-staff-note-r15-calendar-card-stable-20261026
 FILES=(
+  app/admin/assets/js/pmd-overlay-single-visual-plane-v4.js
   app/admin/assets/js/pmd-general-note-notification-r14.js
   app/admin/assets/css/pmd-general-note-notification-r14.css
   app/admin/widgets/menu/top_menu.blade.php
