@@ -44,7 +44,7 @@
                                     'table_name' => $table->table_name ?? null,
                                     'status' => false,
                                 ],
-                            ], 200);
+                            ], 200)->header('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
                         }
 
                         // PMD_TABLE_INFO_RESOLVED_LOCATION_R35
@@ -69,7 +69,7 @@
                                 'max_capacity' => $table->max_capacity,
                                 'status' => $table->table_status
                             ]
-                        ]);
+                        ])->header('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
                     } catch (Exception $e) {
                 \Log::error('PMD_ORDER_DEBUG exception', [
                     'message' => $e->getMessage(),
@@ -185,7 +185,7 @@
                         return redirect(
                             '/table/'.rawurlencode($tableNo).'?'.http_build_query($targetParams),
                             302
-                        );
+                        )->header('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
                     } catch (\Throwable $error) {
                         report($error);
                         return $renderGuestFallback($tableNo, true);
