@@ -6,7 +6,7 @@ namespace Illuminate\Support\Facades {
         public static $columns = [
             'tables' => ['table_id', 'operational_status', 'table_status', 'table_name'],
             'orders' => ['table_id', 'location_id', 'settlement_status',
-                         'payment_status', 'order_total', 'settled_amount', 'status'],
+                         'payment_status', 'order_total', 'settled_amount', 'status', 'order_type'],
         ];
         public static function hasTable($table) { return isset(self::$columns[$table]); }
         public static function hasColumn($table, $column) {
@@ -129,13 +129,27 @@ namespace {
     check('Unknown legacy bill fails closed',
         $safety->inspectTable(7, 1)['allowed'] === false);
 
+    DB::$rows['orders'] = [
+        ['table_id' => null, 'location_id' => 1, 'order_type' => 'Table 7',
+         'settlement_status' => 'unpaid', 'payment_status' => null,
+         'order_total' => 18.0, 'settled_amount' => 0.0],
+    ];
+    DB::$rows['tables'] = [array_merge($available,
+        ['table_no' => 7, 'table_name' => 'Table 7'])];
+    check('Legacy order_type open bill blocks removal',
+        $safety->inspectTable(7, 1)['reason'] === 'open_bill');
+    DB::$rows['orders'][0]['settlement_status'] = 'paid';
+    DB::$rows['orders'][0]['payment_status'] = 'paid';
+    check('Legacy settled order_type check does not block forever',
+        $safety->inspectTable(7, 1)['allowed'] === true);
+
     DB::$rows['orders'] = [];
     unset(Schema::$columns['orders']);
     check('Missing orders schema fails closed',
         $safety->inspectTable(7, 1)['reason'] === 'orders_unavailable');
     Schema::$columns['orders'] = [
         'table_id', 'location_id', 'settlement_status',
-        'payment_status', 'order_total', 'settled_amount', 'status'
+        'payment_status', 'order_total', 'settled_amount', 'status', 'order_type'
     ];
 
     DB::$rows['tables'] = [array_merge($available, ['operational_status' => 'cleaning'])];
