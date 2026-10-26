@@ -416,8 +416,8 @@ export function normalizeTable(payload: unknown, query: { tableId?: string|null;
   const explicitlyOff = (value: unknown): boolean =>
     value !== undefined && value !== null && str(value) !== '' && !yes(value, true)
   const disabled =
-    root.table_disabled === true ||
-    root.disabled === true ||
+    yes(root.table_disabled, false) ||
+    yes(root.disabled, false) ||
     str(root.code).toLowerCase() === 'table_disabled' ||
     explicitlyOff(root.table_status) ||
     explicitlyOff(root.status) ||
