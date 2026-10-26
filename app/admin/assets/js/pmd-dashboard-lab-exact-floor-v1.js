@@ -8286,6 +8286,20 @@ function saveLayout() {
     var busy = false;
     var busyPurpose = '';
     var currentMode = 'create';
+    // PMD_R45_TABLE_SAFETY: server truth; actions stay disabled on unknown
+    // safety state. Never trust status color or an old AJAX snapshot for writes.
+    var currentSafetyAllowedR45 = false;
+    var currentSafetyMessageR45 = '';
+    var safetyNoticeR45 = panel.querySelector('[data-pmd-r45-table-safety]');
+
+    function updateSafetyNoticeR45() {
+      if (!safetyNoticeR45) return;
+      var locked = currentMode === 'edit' && !currentSafetyAllowedR45;
+      safetyNoticeR45.hidden = !locked;
+      safetyNoticeR45.textContent = locked
+        ? (currentSafetyMessageR45 || 'Table status is not verified. Refresh before changing availability.')
+        : '';
+    }
 
     /*
      * PMD_FLOOR_TABLE_MANAGER_STAGED_BLUR_R32
@@ -8642,8 +8656,14 @@ function saveLayout() {
 
       panel.setAttribute('aria-busy', busy ? 'true' : 'false');
       saveButton.disabled = busy;
-      if (deleteButton) deleteButton.disabled = busy;
-      if (enabledToggleButton) enabledToggleButton.disabled = busy;
+      if (deleteButton) deleteButton.disabled = busy ||
+        (currentMode === 'edit' && !currentSafetyAllowedR45);
+      if (enabledToggleButton) {
+        var currentEnabledField = field('table_status');
+        enabledToggleButton.disabled = busy ||
+          (currentMode === 'edit' && !currentSafetyAllowedR45 &&
+            (!currentEnabledField || currentEnabledField.checked));
+      }
 
       Array.prototype.forEach.call(
         form.querySelectorAll('input,select,textarea'),
@@ -8752,6 +8772,10 @@ function saveLayout() {
         ? (panel.getAttribute('data-disable-label') || 'Disable table')
         : (panel.getAttribute('data-enable-label') || 'Enable table');
       enabledToggleButton.classList.toggle('is-enable-r39', !isEnabled);
+      enabledToggleButton.disabled = busy || (currentMode === 'edit' &&
+        isEnabled && !currentSafetyAllowedR45);
+      enabledToggleButton.title = enabledToggleButton.disabled && !busy
+        ? currentSafetyMessageR45 : '';
       enabledToggleButton.setAttribute(
         'aria-pressed',
         isEnabled ? 'false' : 'true'
@@ -8761,6 +8785,11 @@ function saveLayout() {
     function applyTable(table, mode) {
       currentMode = mode === 'edit' ? 'edit' : 'create';
       clearErrors();
+      currentSafetyAllowedR45 = currentMode === 'edit'
+        && table && table.can_remove === true && table.can_disable === true;
+      currentSafetyMessageR45 = table && table.safety_message
+        ? String(table.safety_message) : '';
+      updateSafetyNoticeR45();
 
       if (deleteButton) {
         deleteButton.hidden = !(
@@ -8770,6 +8799,9 @@ function saveLayout() {
           && asInt(table.table_id, 0) > 0
         );
         deleteButton.textContent = panel.getAttribute('data-delete-label') || 'Remove table';
+        deleteButton.disabled = busy || !currentSafetyAllowedR45;
+        deleteButton.title = !currentSafetyAllowedR45 ? currentSafetyMessageR45 : '';
+        deleteButton.setAttribute('aria-disabled', deleteButton.disabled ? 'true' : 'false');
       }
 
       var numberField = field('table_no');
@@ -9080,15 +9112,30 @@ function saveLayout() {
 
     // PMD_FLOOR_TABLE_DELETE_R36B
     function removeTable() {
-      if (busy || !deleteButton || deleteButton.hidden) return;
+      if (busy || !deleteButton || deleteButton.hidden ||
+          deleteButton.disabled || !currentSafetyAllowedR45) return;
 
       var tableId = asInt(field('table_id') && field('table_id').value, 0);
       if (tableId < 1) return;
 
       var confirmText = panel.getAttribute('data-delete-confirm')
-        || 'Remove this table permanently?';
-      if (!window.confirm(confirmText)) return;
+        || 'Remove this table permanently? Its QR code will stop working.';
+      if (!window.PMDFloorConfirmR45) {
+        showError(new Error('Confirmation dialog is not available. Refresh and retry.'));
+        return;
+      }
+      window.PMDFloorConfirmR45.open({
+        title: 'Remove table',
+        message: confirmText,
+        confirmLabel: 'Remove table',
+        trigger: deleteButton
+      }).then(function (confirmed) {
+        if (!confirmed || busy || !currentSafetyAllowedR45) return;
+        performRemoveTableR45(tableId);
+      });
+    }
 
+    function performRemoveTableR45(tableId) {
       clearErrors();
       setBusy(true);
       deleteButton.textContent = panel.getAttribute('data-deleting-label') || 'Removing…';
