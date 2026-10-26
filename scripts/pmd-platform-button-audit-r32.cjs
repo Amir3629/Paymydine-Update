@@ -23,6 +23,7 @@ if(base.protocol!=='https:'||!base.pathname.startsWith('/admin'))
 const MAX_PAGES=Math.min(500,Math.max(1,Number(arg('--max-pages','180'))||180));
 const DEBUG=args.includes('--barcode-debug');
 const MANUAL=args.includes('--manual');
+const SCREENSHOTS=args.includes('--screenshots');
 const PROFILE=path.resolve(arg('--profile',path.join(os.homedir(),'.pmd-button-audit-chromium')));
 const REPORT=path.resolve(arg('--output',path.join(os.homedir(),'pmd-button-audit-reports',
   new Date().toISOString().replace(/[:.]/g,'-'))));
@@ -198,6 +199,16 @@ async function barcodeDiagnostic(page) {
           break;
         }
         const record=await capture(page);
+        if(SCREENSHOTS) {
+          const folder=path.join(REPORT,'screenshots');
+          fs.mkdirSync(folder,{recursive:true,mode:0o700});
+          const number=String(pages.length+1).padStart(3,'0');
+          const slug=encodeURIComponent(safePath(actual)).replace(/%/g,'_').slice(0,95);
+          await page.screenshot({path:path.join(folder,number+'-'+slug+'.png'),
+            fullPage:false,animations:'disabled'}).catch(err=>{
+            console.warn('Screenshot unavailable for',safePath(actual),String(err.message||err).slice(0,80));
+          });
+        }
         const sum={path:safePath(actual),requested:name,status:response?.status()||0,...record.summary};
         pages.push(sum);
         for(const b of record.buttons)rows.push({page:sum.path,...b});
@@ -223,7 +234,8 @@ async function barcodeDiagnostic(page) {
         'Read-only GET navigation only; never clicks Save/Delete/Order/Payment buttons.',
         'Only role-accessible discovered GET pages were inspected; this is not proof of every possible role/tenant/modal.',
         'Open dialogs and custom SPA routes require guided --barcode-debug or an additional manual capture.',
-        'Reports and persistent browser session are PRIVATE on this computer; never commit or publish them.'
+        'Reports and persistent browser session are PRIVATE on this computer; never commit or publish them.',
+        'Add --screenshots for local viewport images of each visited page, with possible business-sensitive content.'
       ]
     };
     save('summary.json',JSON.stringify(overview,null,2));
