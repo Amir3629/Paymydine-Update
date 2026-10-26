@@ -635,6 +635,12 @@ class PmdSharedFloorRegistryV1
             );
         }
 
+        // PMD_R45_FLOOR_LIFECYCLE_GUARD: do not shift active tables to
+        // Main Floor. Inspect canonical physical + bill state on the server
+        // at the actual point of deletion, not only in the UI preflight.
+        app(PmdFloorOperationalSafetyR45::class)
+            ->assertFloorCanRemove($locationId, $floorId);
+
         $floors =
             array_values(
                 array_filter(
