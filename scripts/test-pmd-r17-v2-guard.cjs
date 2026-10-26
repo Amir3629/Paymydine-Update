@@ -98,6 +98,9 @@ async function verifyDelegatedHome() {
     if (name === 'react/jsx-runtime') return {
       jsx: render, jsxs: render, Fragment: 'Fragment',
     };
+    if (name === '@/src/runtime/MenuRuntimeContext') return {
+      MenuRuntimeProvider: 'MenuRuntimeProvider',
+    };
     if (name === '@/src/server/page-context') return {
       getPageContext: async rawSearch => ({
         tableId: rawSearch.table_id || rawSearch.table || null,
