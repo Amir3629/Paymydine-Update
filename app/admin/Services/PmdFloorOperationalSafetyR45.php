@@ -129,9 +129,11 @@ class PmdFloorOperationalSafetyR45
                     ?: data_get($order, 'status_name')
                     ?: ''
                 )));
-                if (in_array($rowStatus, ['cancelled', 'canceled', 'void', 'voided'], true)) {
-                    continue;
-                }
+                // Cancellation of the kitchen order is not proof that a
+                // related charge/bill was financially closed.
+                $isCanceled = in_array(
+                    $rowStatus, ['cancelled', 'canceled', 'void', 'voided'], true
+                );
 
                 $settlement = strtolower(trim((string)(data_get($order, 'settlement_status') ?? '')));
                 $paymentStatus = strtolower(trim((string)(data_get($order, 'payment_status') ?? '')));
@@ -162,6 +164,12 @@ class PmdFloorOperationalSafetyR45
                 $settled = in_array('settled_amount', $columns, true)
                     ? max(0, (float)(data_get($order, 'settled_amount') ?? 0))
                     : null;
+                if ($isCanceled && !$statuses &&
+                    ($amount === null || $amount <= 0.005 ||
+                     ($settled !== null && $settled + 0.005 >= $amount))) {
+                    continue;
+                }
+
                 if ($amount !== null && $amount > 0.005 && $settled !== null &&
                     $settled + 0.005 < $amount && !$statuses) {
                     return $this->deny('open_bill',
