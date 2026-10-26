@@ -109,6 +109,12 @@ namespace {
     ];
     check('Unpaid linked order blocks both actions',
         $safety->inspectTable(7, 1)['reason'] === 'open_bill');
+    // A canceled kitchen order may still retain an unpaid check. Do not
+    // conflate order cancellation with financial settlement.
+    DB::$rows['orders'][0]['status'] = 'canceled';
+    check('Canceled order with unpaid bill remains protected',
+        $safety->inspectTable(7, 1)['reason'] === 'open_bill');
+    DB::$rows['orders'][0]['status'] = 'open';
     DB::$rows['orders'][0]['settlement_status'] = 'partial';
     DB::$rows['orders'][0]['settled_amount'] = 25.0;
     check('Partially paid linked order blocks both actions',
