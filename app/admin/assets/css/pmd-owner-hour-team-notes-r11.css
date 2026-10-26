@@ -249,3 +249,87 @@ button.pmd-owner-hour-role[aria-pressed="true"]::before {content:"✓";margin-ri
 /* Hidden state must outrank the visible grid rule above, even under R29 CSS. */
 html body .pmd-owner-hour-note-modal .pmd-owner-hour-note-card
 .pmd-owner-hour-time-list[hidden] { display:none!important; }
+
+/* PMD_OWNER_HOUR_NOTE_MODAL_AUTHORITY_R14
+ * The owner dialog now lives at document.body, above the Side Menu stacking
+ * context. Blur the whole page through one real backdrop, not a separate
+ * sidebar filter. Use existing PMD jade actions and block background scroll.
+ */
+html.pmd-owner-note-modal-open,
+html.pmd-owner-note-modal-open body {
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+html body #pmd-owner-hour-note-modal-r14.pmd-owner-hour-note-modal {
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147483100!important;
+  padding:clamp(12px,3vw,28px)!important;
+  overscroll-behavior:contain!important;
+  isolation:isolate!important;
+}
+html body #pmd-owner-hour-note-modal-r14.pmd-owner-hour-note-modal[hidden] {
+  display:none!important;
+}
+html body #pmd-owner-hour-note-modal-r14
+.pmd-owner-hour-note-modal__backdrop {
+  position:fixed!important;inset:0!important;
+  z-index:0!important;
+  width:100%!important;height:100%!important;
+  border:0!important;border-radius:0!important;
+  background:rgba(8,29,26,.22)!important;
+  -webkit-backdrop-filter:blur(8px)!important;
+  backdrop-filter:blur(8px)!important;
+  cursor:default!important;
+}
+html body #pmd-owner-hour-note-modal-r14 .pmd-owner-hour-note-card {
+  position:relative!important;z-index:1!important;
+  width:min(630px,100%)!important;
+  max-height:calc(100dvh - 28px)!important;
+  overscroll-behavior:contain!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+  padding:clamp(18px,3vw,27px)!important;
+  border:1px solid #c9dfeb!important;border-radius:20px!important;
+  background:#fff!important;
+  box-shadow:0 25px 65px rgba(17,46,42,.17)!important;
+}
+html body #pmd-owner-hour-note-modal-r14 .pmd-owner-hour-note-audience strong {
+  font-size:14px!important;color:#133d32!important;
+  margin:0 0 11px!important;
+}
+html body #pmd-owner-hour-note-modal-r14
+button.pmd-owner-hour-role[aria-pressed="true"],
+html body #pmd-owner-hour-note-modal-r14
+button.pmd-owner-hour-role.is-selected {
+  background:linear-gradient(180deg,#0b765e,#075c47)!important;
+  background-image:linear-gradient(180deg,#0b765e,#075c47)!important;
+  border-color:#064b3c!important;
+  color:#fff!important;
+  box-shadow:0 5px 15px rgba(7,92,71,.19)!important;
+}
+html body #pmd-owner-hour-note-modal-r14
+button.pmd-owner-hour-role[aria-pressed="false"] {
+  background:#fff!important;
+  background-image:none!important;
+  border-color:#c7dbe5!important;
+  color:#223d39!important;
+  box-shadow:none!important;
+}
+html body #pmd-owner-hour-note-modal-r14
+button[data-pmd-owner-hour-note-send]:not(:disabled) {
+  background:linear-gradient(180deg,#0b765e,#075c47)!important;
+  background-image:linear-gradient(180deg,#0b765e,#075c47)!important;
+  border:1px solid #064b3c!important;color:#fff!important;
+}
+html body #pmd-owner-hour-note-modal-r14
+.pmd-owner-hour-note-card [data-pmd-owner-hour-note-close]:focus-visible,
+html body #pmd-owner-hour-note-modal-r14
+.pmd-owner-hour-note-card button.pmd-owner-hour-role:focus-visible {
+  outline:2px solid #087b5f!important;outline-offset:2px!important;
+}
+@media (max-width:640px){
+  html body #pmd-owner-hour-note-modal-r14 .pmd-owner-hour-note-card {
+    max-height:calc(100dvh - 22px)!important;
+    padding:17px!important;
+  }
+}
