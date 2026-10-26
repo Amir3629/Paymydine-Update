@@ -1231,7 +1231,22 @@ body.pmd-dashboard-lab-page
 
     <div class="pmd-floor-v1__stage" data-floor-stage>
         <div class="pmd-floor-v1__loading" data-floor-loading hidden>Loading live floor…</div>
-        <div class="pmd-floor-v1__empty" data-floor-empty {{ count($displayTables) ? 'hidden' : '' }}>No tables match this view.</div>
+        {{-- PMD_DASHBOARD_EMPTY_FLOOR_R36: server-first, reuse existing authorized Create Table handler --}}
+        <div class="pmd-floor-v1__empty pmd-floor-r36-empty" data-floor-empty data-pmd-floor-empty-r36 {{ count($displayTables) ? 'hidden' : '' }}>
+            <div class="pmd-floor-r36-empty__panel" role="status" aria-live="polite">
+                <span class="pmd-floor-r36-empty__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1.5"></rect><rect x="14" y="4" width="6" height="6" rx="1.5"></rect><rect x="4" y="14" width="6" height="6" rx="1.5"></rect><path d="M17 14v6M14 17h6"></path></svg>
+                </span>
+                <strong data-pmd-floor-empty-title-r36>{{ count($displayTables) ? 'No matching tables' : 'No tables on this floor yet' }}</strong>
+                <p data-pmd-floor-empty-detail-r36>{{ count($displayTables) ? 'Clear your filters or choose another floor.' : 'Create your first table to start organizing this floor.' }}</p>
+                @if($pmdFloorCanManageTables)
+                    <button type="button" class="pmd-floor-r36-empty__add" data-pmd-floor-empty-add-r36 {{ count($displayTables) ? 'hidden' : '' }}>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+                        <span>{{ $pmdFloorTableManagerText['add'] }}</span>
+                    </button>
+                @endif
+            </div>
+        </div>
 
         <div class="pmd-floor-v1__canvas-wrap" data-floor-scroll style="height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px;min-height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px;max-height:{{ $floorMode === 'row' ? $canvasHeight : 560 }}px">
             <div class="pmd-floor-v1__canvas" data-floor-canvas style="width:{{ $pmdFloorServerCanvasWidthCss }};min-width:{{ $pmdFloorServerCanvasWidthCss }};height:{{ $canvasHeight }}px;min-height:{{ $canvasHeight }}px;transform:scale({{ $floorMode === 'row' ? 1 : $floorZoom }})">

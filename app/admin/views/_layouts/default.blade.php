@@ -9236,6 +9236,13 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
         data-pmd-inventory-barcode-floor-r31="js"></script>
 <!-- /PMD_INVENTORY_BARCODE_FLOOR_R31_ASSETS -->
 
+<!-- PMD_DASHBOARD_FLOOR_EMPTY_R36: first-paint styles and safe empty-state actions -->
+@if(request()->is('admin/ownerdashboard*') || request()->is('admin/managerdashboard*') || request()->is('admin/accountantdashboard*') || request()->is('admin/dashboardlab*') || request()->is('admin/managerlab*') || request()->is('admin/accountantlab*'))
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-dashboard-floor-empty-r36.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-dashboard-floor-empty-r36.css')) ?: 20261026) }}" data-pmd-dashboard-r36="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-dashboard-empty-r36.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-dashboard-empty-r36.js')) ?: 20261026) }}" data-pmd-dashboard-r36="js"></script>
+@endif
+<!-- /PMD_DASHBOARD_FLOOR_EMPTY_R36 -->
+
 </head>
 @php
     /* PMD_PERF_R13_LAYOUT_STAGE_PROFILER */
