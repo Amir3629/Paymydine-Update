@@ -48,10 +48,110 @@ test('QR number mismatch fails closed',{success:true,data:{table_id:42,table_no:
 
 const table = fs.readFileSync(path.join(root,'app/table/[tableId]/page.tsx'),'utf8');
 const home = fs.readFileSync(path.join(root,'app/page.tsx'),'utf8');
-assert(table.includes('bootstrap.table.disabled || !bootstrap.table.valid'), 'Direct /table V2 route is unguarded');
-assert(home.includes('PMD_V2_HOME_QR_FAIL_CLOSED_R17') || home.includes('CustomerMenuRoute'), 'Query QR V2 route is unguarded');
-if (home.includes('CustomerMenuRoute')) {
+assert(table.includes('bootstrap.table.disabled || !bootstrap.table.valid'),
+  'Direct /table V2 route is unguarded');
+const delegatedHome = home.includes('CustomerMenuRoute');
+const standaloneHome = home.includes('PMD_V2_HOME_QR_FAIL_CLOSED_R17');
+assert(delegatedHome || standaloneHome, 'Query QR V2 entrypoint is unguarded');
+
+async function verifyDelegatedHome() {
+  if (!delegatedHome) {
+    console.log('PASS R17C: legacy Home QR guard is present.');
+    return;
+  }
+
   const route = fs.readFileSync(path.join(root,'app/CustomerMenuRoute.tsx'),'utf8');
-  assert(route.includes('bootstrap.table.disabled || (hasTableLookup && !bootstrap.table.valid)'), 'Modern Home route missing table gating');
+  const existingGuard =
+    route.includes('if (!isKiosk)') &&
+    route.includes('bootstrap.table.disabled || (hasTableLookup && !bootstrap.table.valid)') &&
+    route.includes('return <CustomerTableFallback');
+  const r17cGuard =
+    route.includes('PMD_V2_CUSTOMER_ROUTE_FAIL_CLOSED_R17C') &&
+    route.includes('if (!isKiosk && requestedTable &&') &&
+    route.includes('bootstrap.table.disabled || !bootstrap.table.valid') &&
+    route.includes('return <PmdGuestTableInactiveR17');
+  assert(existingGuard || r17cGuard,
+    'Real CustomerMenuRoute does not block a disabled/unverified physical table.');
+  const gatingPoint = existingGuard
+    ? route.indexOf('bootstrap.table.disabled || (hasTableLookup && !bootstrap.table.valid)')
+    : route.indexOf('PMD_V2_CUSTOMER_ROUTE_FAIL_CLOSED_R17C');
+  assert(gatingPoint < route.indexOf('return (\\n    <MenuRuntimeProvider'),
+    'The table guard must run before the customer ThemeRenderer.');
+
+  // Execute the REAL staged CustomerMenuRoute TSX server component in a
+  // dependency-isolated VM. It must block disabled and unknown tables while
+  // preserving valid menus and intentionally tableless kiosk routes.
+  const transpiled = ts.transpileModule(route, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.CommonJS,
+      jsx: ts.JsxEmit.ReactJSX,
+    },
+    reportDiagnostics: true,
+  });
+  assert(!transpiled.diagnostics?.some(d => d.category === ts.DiagnosticCategory.Error),
+    'CustomerMenuRoute TypeScript compilation failed');
+
+  const render = (type, props) => ({type, props});
+  let tableState = {valid: true, disabled: false, number: '6', id: '42'};
+  const imported = (name) => {
+    if (name === 'react/jsx-runtime') return {
+      jsx: render, jsxs: render, Fragment: 'Fragment',
+    };
+    if (name === '@/src/server/page-context') return {
+      getPageContext: async rawSearch => ({
+        tableId: rawSearch.table_id || rawSearch.table || null,
+        tableNo: rawSearch.table_no || null,
+        qr: rawSearch.qr || null,
+      }),
+    };
+    if (name === '@/src/server/bootstrap') return {
+      loadCustomerBootstrap: async () => ({
+        table: {...tableState},
+        theme: {id:'jade'},
+        features: {},
+        setup: {frontendConfigured:true, status:{hasCategories:true,hasMenuItems:true}},
+      }),
+    };
+    if (name.startsWith('@/')) {
+      const namePart = name.split('/').at(-1);
+      return {[namePart]: namePart};
+    }
+    throw new Error('Unexpected customer route module: ' + name);
+  };
+  const mod = {exports:{}};
+  vm.runInNewContext(transpiled.outputText, {
+    module:mod, exports:mod.exports, require:imported,
+  }, {timeout:1000});
+  const component = mod.exports.CustomerMenuRoute;
+  assert.equal(typeof component, 'function', 'V2 CustomerMenuRoute not exported');
+
+  async function checkPage(label, rawSearch, state, expected) {
+    tableState = state;
+    const node = await component({rawSearch});
+    assert.equal(node.type,expected,label);
+    console.log('PASS R17C Home: ' + label);
+  }
+  const inactive = existingGuard
+    ? 'CustomerTableFallback' : 'PmdGuestTableInactiveR17';
+  await checkPage('disabled table blocked',
+    {table_no:'6'}, {valid:false,disabled:true,number:'6',id:'42'}, inactive);
+  await checkPage('unknown QR table blocked',
+    {qr:'invalid-qr'}, {valid:false,disabled:false,number:null,id:null}, inactive);
+  await checkPage('valid table menu retained',
+    {table_no:'6'}, {valid:true,disabled:false,number:'6',id:'42'},
+    'MenuRuntimeProvider');
+  await checkPage('tableless menu retained',
+    {}, {valid:false,disabled:false,number:null,id:null}, 'MenuRuntimeProvider');
+  await checkPage('kiosk bypasses table-dependent fallback intentionally',
+    {pmd_kiosk:'1',table_no:'6'}, {valid:false,disabled:true,number:'6',id:'42'},
+    'MenuRuntimeProvider');
+  console.log('PASS R17C: actual CustomerMenuRoute behavior tested for all modes.');
 }
-console.log('PASS R17 V2: both direct and query QR routes are guarded.');
+
+verifyDelegatedHome().then(() => {
+  console.log('PASS R17C V2: both direct and query QR routes protected.');
+}).catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
