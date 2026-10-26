@@ -428,6 +428,13 @@
     }
     // PMD_EDIT_FLOOR_CUSTOM_EXISTENCE_V5_JS_END
 
+    // PMD_SHARED_FLOOR_SERVER_DOM_ADOPTION_R35
+    // The Blade template already renders the exact floor tabs and active
+    // state. Never replace identical DOM on boot: innerHTML causes a brief
+    // disappearance, discards CSS role tags, and requires R29 to reclassify.
+    var switcherDomReusedCountR35 = 0;
+    var bootFloorDomPreservedR35 = false;
+
     function renderSwitcher() {
       // PMD_EDIT_FLOOR_SECOND_FLOOR_VISIBILITY_V4
       if (!switcher) return;
@@ -517,11 +524,57 @@
       /*
        * Left-side order:
        * Floor tabs -> Add Floor -> Edit Floor
+       *
+       * R35: Keep the exact server-rendered buttons and DOM nodes whenever
+       * IDs, names, buttons and their order already agree with the registry.
+       * Update ONLY selection attributes in place on a normal floor change.
+       * Registry creation/deletion/rename still rebuilds the switcher.
        */
-      switcher.innerHTML =
-        floorHtml
-        + addHtml
-        + manageHtml;
+      var childrenR35 = Array.prototype.slice.call(switcher.children);
+      var floorCountR35 = showFloorTabs ? floors.length : 0;
+      var expectedR35 = floorCountR35 + (add ? 1 : 0) + (manage ? 1 : 0);
+      var reuseSwitcherR35 = childrenR35.length === expectedR35;
+
+      if (reuseSwitcherR35) {
+        for (var floorIndexR35 = 0; floorIndexR35 < floorCountR35; floorIndexR35++) {
+          var currentR35 = childrenR35[floorIndexR35];
+          if (
+            !currentR35.hasAttribute('data-pmd-floor-switch')
+            || clean(currentR35.getAttribute('data-pmd-floor-switch')) !== clean(floors[floorIndexR35].id)
+            || clean(currentR35.textContent) !== clean(floors[floorIndexR35].name)
+          ) {
+            reuseSwitcherR35 = false;
+            break;
+          }
+        }
+      }
+      if (reuseSwitcherR35) {
+        var controlIndexR35 = floorCountR35;
+        if (add) {
+          reuseSwitcherR35 = childrenR35[controlIndexR35] === add;
+          controlIndexR35++;
+        }
+        if (reuseSwitcherR35 && manage) {
+          reuseSwitcherR35 = childrenR35[controlIndexR35] === manage;
+        }
+      }
+
+      if (reuseSwitcherR35) {
+        for (var activeIndexR35 = 0; activeIndexR35 < floorCountR35; activeIndexR35++) {
+          var activeNodeR35 = childrenR35[activeIndexR35];
+          var shouldSelectR35 = clean(floors[activeIndexR35].id) === activeId;
+          if (activeNodeR35.classList.contains('is-active') !== shouldSelectR35) {
+            activeNodeR35.classList.toggle('is-active', shouldSelectR35);
+          }
+          var selectedAttrR35 = shouldSelectR35 ? 'true' : 'false';
+          if (activeNodeR35.getAttribute('aria-selected') !== selectedAttrR35) {
+            activeNodeR35.setAttribute('aria-selected', selectedAttrR35);
+          }
+        }
+        switcherDomReusedCountR35++;
+      } else {
+        switcher.innerHTML = floorHtml + addHtml + manageHtml;
+      }
 
       var liveManage = switcher.querySelector(
         '[data-pmd-floor-manage], '
@@ -542,6 +595,28 @@
       var floor = floorById(id);
       if (!floor) return false;
       var opts = options || {};
+
+      /* PMD_SHARED_FLOOR_BOOT_NO_REPAINT_R35
+       * Core V2 already adopted server Floor cards without rendering.
+       * Prior shared-coordinator boot called clearSelection(), which calls
+       * render() and unconditionally replaces canvas.innerHTML, defeating
+       * server-first paint. Preserve it ONLY during the initial no-selection
+       * same-floor boot. Explicit floor clicks and state changes still use
+       * the unchanged Floor renderer.
+       */
+      var reuseServerFloorR35 = Boolean(
+        opts.reuseServerDom === true
+        && root.getAttribute('data-pmd-floor-boot-source') === 'server'
+        && root.getAttribute('data-pmd-floor-hydrated') === 'true'
+        && clean(root.getAttribute('data-pmd-active-floor-id')) === clean(floor.id)
+        && !state.editing
+        && !state.active
+        && !state.selectedDisplayId
+        && !state.mergeMode
+        && (!state.mergeSelection || state.mergeSelection.length === 0)
+        && !root.querySelector('[data-floor-table].is-selected')
+      );
+
       activeId = clean(floor.id);
       activeName = canonicalFloorName(floor.name);
 
@@ -594,7 +669,11 @@
       renderSwitcher();
       updateTableFloorSelect();
 
-      if (typeof instance.clearSelection === 'function') instance.clearSelection();
+      if (!reuseServerFloorR35 && typeof instance.clearSelection === 'function') {
+        instance.clearSelection();
+      } else if (reuseServerFloorR35) {
+        bootFloorDomPreservedR35 = true;
+      }
       if (opts.refit !== false && typeof instance.fit === 'function' && !state.editing) instance.fit();
 
       window.dispatchEvent(new CustomEvent('pmd:floor:changed', {
@@ -2082,7 +2161,8 @@
       activeId,
       {
         persist: true,
-        refit: false
+        refit: false,
+        reuseServerDom: true
       }
     );
 
@@ -2101,6 +2181,8 @@
         });
         return {
           ready: true,
+          bootFloorDomPreservedR35: bootFloorDomPreservedR35,
+          switcherDomReusedCountR35: switcherDomReusedCountR35,
           activeFloorId: activeId,
           activeFloorName: activeName,
           floorCount: floors.length,
