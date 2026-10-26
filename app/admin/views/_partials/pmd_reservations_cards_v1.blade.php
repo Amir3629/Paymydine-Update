@@ -346,7 +346,8 @@
         </a>
 
         @if($pmdOpsCount === 0)
-            <article class="pmd-ops-inline-empty-card" data-pmd-reservations-empty-card="1">
+            <article class="pmd-ops-inline-empty-card pmd-r37-reservations-empty" data-pmd-reservations-empty-card="1" role="status">
+                <span class="pmd-r37-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg></span>
                 <strong>{{ $pmdOpsText['empty_card'] }}</strong>
             </article>
         @endif
