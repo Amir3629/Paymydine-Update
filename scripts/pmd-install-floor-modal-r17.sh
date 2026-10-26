@@ -41,7 +41,7 @@ php -l "$TMP/staged.blade.php"
 grep -q 'data-pmd-r17-close-neutral="1"' "$TMP/staged.blade.php" || { echo 'STOP: missing white X'; exit 4; }
 grep -q 'data-pmd-r17-cancel-neutral="1"' "$TMP/staged.blade.php" || { echo 'STOP: missing white Cancel'; exit 4; }
 grep -q 'data-pmd-floor-add-save' "$TMP/staged.blade.php" || { echo 'STOP: Create floor Save action lost'; exit 4; }
-if grep -q '<p>{{ $pmdFloorRegistryText\['"'"'subtitle'"'"'\] }}</p>' "$TMP/staged.blade.php"; then
+if grep -Fq "pmdFloorRegistryText['subtitle']" "$TMP/staged.blade.php"; then
   echo 'STOP: subtitle still visible'
   exit 4
 fi
