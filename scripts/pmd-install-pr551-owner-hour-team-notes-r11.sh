@@ -28,6 +28,7 @@ files=(
   app/admin/assets/css/pmd-owner-hour-team-notes-r11.css
   app/admin/assets/css/pmd-staff-hour-notes-r11.css
   app/admin/assets/js/pmd-owner-hour-team-notes-r11.js
+  app/admin/assets/js/pmd-reservations-schedule-v1.js
   app/admin/assets/js/pmd-staff-hour-notes-r11.js
   app/admin/routes.php
   app/admin/views/dashboardlab/index.blade.php
@@ -123,11 +124,13 @@ for p in \
   php -l "$stage/merged/$p"
 done
 node --check "$stage/merged/app/admin/assets/js/pmd-owner-hour-team-notes-r11.js"
+node --check "$stage/merged/app/admin/assets/js/pmd-reservations-schedule-v1.js"
 node --check "$stage/merged/app/admin/assets/js/pmd-staff-hour-notes-r11.js"
 grep -Fq 'PMD_OWNER_STAFF_HOUR_NOTES_R11' "$stage/merged/app/Services/PmdOwnerStaffHourNotesR11.php" || { echo 'STOP: backend service missing' >&2; exit 2; }
 grep -Fq 'PMD_OWNER_STAFF_HOUR_NOTES_ROUTES_R11' "$stage/merged/routes/pmd-owner-staff-notes-r11.php" || { echo 'STOP: protected route file missing' >&2; exit 2; }
 grep -Fq "require_once base_path('routes/pmd-owner-staff-notes-r11.php')" "$stage/merged/app/admin/routes.php" || { echo 'STOP: route loader missing' >&2; exit 2; }
 grep -Fq 'PMD_OWNER_HOUR_TEAM_NOTES_CLIENT_R11' "$stage/merged/app/admin/assets/js/pmd-owner-hour-team-notes-r11.js" || { echo 'STOP: Owner Hour UI missing' >&2; exit 2; }
+grep -Fq 'PMD_OWNER_TEAM_NOTE_FAIL_CLOSED_R11' "$stage/merged/app/admin/assets/js/pmd-reservations-schedule-v1.js" || { echo 'STOP: Owner Note secure fallback guard missing' >&2; exit 2; }
 grep -Fq 'PMD_STAFF_HOUR_NOTES_CLIENT_R11' "$stage/merged/app/admin/assets/js/pmd-staff-hour-notes-r11.js" || { echo 'STOP: Staff app UI missing' >&2; exit 2; }
 grep -Fq 'pmd-owner-hour-team-notes-r11.js' "$stage/merged/app/admin/views/dashboardlab/index.blade.php" || { echo 'STOP: Owner assets not wired' >&2; exit 2; }
 grep -Fq 'data-pmd-owner-hour-notes-csrf="{{ csrf_token() }}"' "$stage/merged/app/admin/views/dashboardlab/index.blade.php" || { echo 'STOP: Owner CSRF token source missing' >&2; exit 2; }
@@ -191,7 +194,7 @@ echo 'PR551 rollback complete.'
 ROLLBACK
 chmod 700 "$backup/rollback.sh"
 
-echo '=== INSTALL EXACT 14 FILES ==='
+echo '=== INSTALL EXACT 15 FILES ==='
 applying=1
 for p in "${files[@]}"; do
   if [[ -f "$p" ]]; then
@@ -207,7 +210,7 @@ done
 php artisan view:clear
 completed=1
 applying=0
-echo 'SUCCESS: PR551 Owner Hour Team Notes R11 source installed (14 files, R10 preserved).'
+echo 'SUCCESS: PR551 Owner Hour Team Notes R11 source installed (15 files, R10 preserved).'
 echo "BACKUP: $backup"
 echo "ROLLBACK: bash $backup/rollback.sh"
 echo 'NEXT: Install R11 tenant schema explicitly: php scripts/pmd-owner-staff-hour-notes-schema-r11.php --tenant=tomo --apply
