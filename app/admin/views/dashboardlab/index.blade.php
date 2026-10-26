@@ -895,6 +895,8 @@
         <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-grid-r6.css') }}?v=20261026-r6">
         {{-- PMD_OWNER_CALENDAR_CONTROLS_R7: Owner-only header/Hour action language. --}}
         <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-controls-r7.css') }}?v=20261026-r7">
+        {{-- PMD_OWNER_CALENDAR_VIEWPORT_BUTTONS_R8: precise screen center and Table Manager palette. --}}
+        <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-viewport-buttons-r8.css') }}?v=20261026-r8">
 
         @include(
             'admin::_partials.pmd_reservations_schedule_v1'
@@ -920,7 +922,7 @@
             // to invalidate browser caches and avoids three SHA-256 file reads.
             $pmdDashboardComposerCssVersion = 'r35-20260927';
             $pmdDashboardComposerJsVersion = 'r8-20260918';
-            $pmdDashboardScheduleJsVersion = 'r551-owner-calendar-actions-r7-20261026';
+            $pmdDashboardScheduleJsVersion = 'r551-owner-calendar-viewport-buttons-r8-20261026';
         @endphp
 
         <link
