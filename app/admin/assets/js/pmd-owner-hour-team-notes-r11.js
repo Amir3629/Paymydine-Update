@@ -15,6 +15,7 @@
   var error = '', actionBusy = false, currentDate = '', chosenTime = '12:00';
   var chosenRoles = ['all'], modal = null, noteList = null, modalRoles = null;
   var modalError = null, roleReady = false, scheduled = false, revision = 0;
+  var retryAfter = 0, pendingRequest = false, setupRequired = false;
   var csrfMeta = document.querySelector('meta[name="csrf-token"]');
   // PMD_OWNER_STAFF_NOTES_CSRF_R11_FIX: the canonical Dashboardlab
   // layout has no CSRF meta tag. Read the token securely from the
@@ -93,23 +94,30 @@
     if (!active() || !endpoint || !window.fetch) return;
     var year = Number(targetYear);
     if (year < 2000 || year > 2100) return;
+    if (pendingRequest || Date.now() < retryAfter) return;
     if (!force && (year === loadedYear || year === loadingYear)) return;
     var seq = ++revision;
     loadingYear = year;
+    pendingRequest = true;
     var url = endpoint + (endpoint.indexOf('?') >= 0 ? '&' : '?') + 'year=' + year;
     request(url, 'GET').then(function (data) {
       if (seq !== revision || currentYear() !== year) return;
       notes = Array.isArray(data.notes) ? data.notes : [];
       roles = Array.isArray(data.roles) ? data.roles : [];
-      roleReady = true;
-      error = '';
+      setupRequired = !!data.setup_required;
+      roleReady = !setupRequired;
+      error = setupRequired ? (data.message || 'Team notes need setup for this restaurant.') : '';
+      retryAfter = 0;
       loadedYear = year;
       if (modal && !modal.hidden) paintRoles();
       repaint();
     }).catch(function (problem) {
       if (seq !== revision) return;
       notifyError(problem.message);
+      // A failed GET must not trigger another GET on every DOM mutation.
+      retryAfter = Date.now() + 60000;
     }).finally(function () {
+      pendingRequest = false;
       if (seq === revision) loadingYear = 0;
     });
   }
@@ -183,7 +191,7 @@
     currentDate = day || selectedDay();
     chosenTime = /^\d{2}:(00|30)$/.test(time || '') ? time : '12:00';
     chosenRoles = ['all'];
-    if (!roleReady && currentYear()) refreshYear(currentYear(), true);
+    if (!roleReady && !setupRequired && currentYear()) refreshYear(currentYear(), false);
     var select = modal.querySelector('[data-pmd-owner-hour-note-time]');
     select.value = chosenTime;
     noteList.value = '';
@@ -191,7 +199,10 @@
     modalError.hidden = true;
     paintRoles();
     modal.hidden = false;
-    if (error) notifyError(error);
+    if (setupRequired) notifyError(error || 'Team notes need setup for this restaurant.');
+    else if (roleReady && (!roles.length || (roles[0].code === 'all' && Number(roles[0].count) === 0))) {
+      notifyError('No active staff accounts yet. Add or activate team members in Shifts before sending.');
+    } else if (error) notifyError(error);
     document.documentElement.classList.add('pmd-owner-note-modal-open');
     noteList.focus();
   }
@@ -205,7 +216,8 @@
     var message = String(noteList.value || '').trim();
     if (message.length < 2 || message.length > 1500) { notifyError('Write a message (2–1500 characters).'); return; }
     if (!chosenRoles.length) { notifyError('Choose at least one staff role.'); return; }
-    if (!roleReady) { notifyError(error || 'Loading staff roles. Please try again.'); return; }
+    if (!roleReady) { notifyError(error || 'Team notes are not ready yet.'); return; }
+    if (!roles.length || (roles[0].code === 'all' && Number(roles[0].count) === 0)) { notifyError('Add or activate staff accounts in Shifts before sending.'); return; }
     actionBusy = true;
     var button = modal.querySelector('[data-pmd-owner-hour-note-send]');
     button.disabled = true;
@@ -293,7 +305,7 @@
     scheduled = false;
     if (!active()) return;
     var targetYear = currentYear();
-    if (targetYear && loadedYear !== targetYear) refreshYear(targetYear,false);
+    if (targetYear && loadedYear !== targetYear && !pendingRequest && Date.now() >= retryAfter) refreshYear(targetYear,false);
     repaint();
   }
   function schedule() {
@@ -338,8 +350,8 @@
     if (document.visibilityState === 'visible') { refreshYear(currentYear(),true); schedule(); }
   });
   window.PMDOwnerHourTeamNotesR11 = {
-    refresh:function () {refreshYear(currentYear(),true)},
-    audit:function () {return {ready:roleReady,year:loadedYear,notes:notes.length,roles:roles.length,error:error};}
+    refresh:function () {retryAfter = 0; refreshYear(currentYear(),true)},
+    audit:function () {return {ready:roleReady,year:loadedYear,notes:notes.length,roles:roles.length,error:error,setupRequired:setupRequired,pending:pendingRequest,retryAfter:retryAfter};}
   };
   schedule();
 })();
