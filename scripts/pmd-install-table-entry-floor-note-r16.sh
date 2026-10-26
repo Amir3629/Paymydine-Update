@@ -76,7 +76,36 @@ for file in "${FILES[@]}"; do
   if git cat-file -e "${BASE}:$file" 2>/dev/null; then
     [[ -f "$file" ]] || { echo "STOP R15 source missing: $file"; exit 4; }
     git show "${BASE}:$file" > "$STAGE/tmp/base"
-    if [[ "$file" == "app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php" ]]; then
+    if [[ "$file" == "app/admin/widgets/menu/top_menu.blade.php" ]]; then
+      # R42/R15 have edited the same Bootstrap dialog elsewhere. Remove ONLY
+      # the precise unwanted helper; preserve existing save/API/close handlers.
+      python3 - "$file" "$STAGE/$file" <<'PY'
+import pathlib, sys
+src, dest = (pathlib.Path(p) for p in sys.argv[1:])
+text = src.read_text(encoding='utf-8')
+old = (
+    '                                    <small class="form-text text-muted">\\n'
+    '                                        This note will be visible to all staff members and shown as a push notification.\\n'
+    '                                    </small>'
+)
+if 'id="addGeneralStaffNoteForm"' not in text or 'id="generalStaffNoteSubmitBtn"' not in text:
+    raise SystemExit('STOP: original General Staff Note form or Save handler not found')
+if old in text:
+    if text.count(old) != 1:
+        raise SystemExit('STOP: Note helper occurs multiple times')
+    result = text.replace(old, '', 1)
+elif 'This note will be visible to all staff members' not in text:
+    result = text
+else:
+    raise SystemExit('STOP: Note helper changed; preserve local dialog')
+dest.write_text(result, encoding='utf-8')
+print('PASS R16: removed only the exact Note helper from current VPS dialog')
+PY
+      if cmp -s "$file" "$STAGE/$file"; then
+        echo "ALREADY CURRENT: $file"
+        continue
+      fi
+    elif [[ "$file" == "app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php" ]]; then
       # R45B has its own R39 Edit Floor and R45 destructive-action UI.
       # Insert only the authorized Add Floor visibility into CURRENT VPS
       # markup, with exact unique-anchor checks and no adjacent changes.
