@@ -277,9 +277,7 @@
                                         required 
                                         placeholder="Enter your general note here..."
                                     ></textarea>
-                                    <small class="form-text text-muted">
-                                        This note will be visible to all staff members and shown as a push notification.
-                                    </small>
+
                                 </div>
                                 
                                 <!-- Suggestion Buttons Container -->
