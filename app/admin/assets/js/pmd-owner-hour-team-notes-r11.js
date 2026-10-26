@@ -100,6 +100,7 @@
       roleReady = true;
       error = '';
       loadedYear = year;
+      if (modal && !modal.hidden) paintRoles();
       repaint();
     }).catch(function (problem) {
       if (seq !== revision) return;
@@ -184,9 +185,9 @@
     noteList.value = '';
     modal.querySelector('#pmd-hour-note-heading').textContent = 'Note · ' + currentDate;
     modalError.hidden = true;
-    if (error) notifyError(error);
     paintRoles();
     modal.hidden = false;
+    if (error) notifyError(error);
     document.documentElement.classList.add('pmd-owner-note-modal-open');
     noteList.focus();
   }
@@ -232,7 +233,6 @@
         button.type = 'button';
         button.setAttribute('data-pmd-owner-hour-note-add','');
         button.setAttribute('aria-label','Add team note at ' + time);
-        button.setAttribute('title','');
       }
       var itemNotes = bySlot(date,time);
       var existingList = content.querySelector('[data-pmd-owner-hour-slot-notes]');
