@@ -785,6 +785,68 @@
     interactionRenderWrites += 1;
   }
 
+  /*
+   * PMD_OWNER_CALENDAR_VIEWPORT_CENTER_R8
+   * The sidebar consumes horizontal viewport space, so equal toolbar grid
+   * columns center the date in the CONTENT AREA (not the browser window).
+   * Read the live toolbar's viewport rectangle and shift only the Month/Year
+   * navigation to the real visible viewport midpoint. Never touch the
+   * non-Owner Reservations calendar or the day-view reservation details.
+   */
+  var ownerNavAlignPending = false;
+  var ownerNavRoot = null;
+
+  function alignOwnerNavToViewport(root) {
+    if (!ownerCalendarEnabled || !calendarMode || !root || root.hidden || selectedDate) return;
+    var toolbar = root.querySelector('.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar');
+    var nav = toolbar && toolbar.querySelector('.pmd-yc__month-nav');
+    if (!toolbar || !nav) return;
+    var bounds = toolbar.getBoundingClientRect();
+    var navWidth = nav.getBoundingClientRect().width;
+    if (bounds.width < 1 || navWidth < 1) return;
+
+    // documentElement.clientWidth excludes vertical scrollbars.
+    var viewportWidth = document.documentElement.clientWidth || window.innerWidth;
+    var midpoint = viewportWidth / 2;
+    var min = bounds.left + navWidth / 2 + 8;
+    var max = bounds.right - navWidth / 2 - 8;
+    // Extremely narrow screens must not crop the month controls.
+    if (max >= min) midpoint = Math.min(max, Math.max(min, midpoint));
+    var balancedCenter = bounds.left + bounds.width / 2;
+    var offset = Math.round((midpoint - balancedCenter) * 10) / 10;
+    toolbar.style.setProperty('--pmd-owner-viewport-nav-offset-r8', offset + 'px');
+  }
+
+  function scheduleOwnerNavAlignment(root) {
+    if (!ownerCalendarEnabled || !root || !window.requestAnimationFrame) return;
+    ownerNavRoot = root;
+    if (ownerNavAlignPending) return;
+    ownerNavAlignPending = true;
+    window.requestAnimationFrame(function () {
+      ownerNavAlignPending = false;
+      alignOwnerNavToViewport(ownerNavRoot);
+    });
+  }
+
+  function bindOwnerNavAlignment(root) {
+    if (!ownerCalendarEnabled || root.dataset.pmdOwnerNavR8 === '1') return;
+    root.dataset.pmdOwnerNavR8 = '1';
+    var toolbar = root.querySelector('.pmd-r2-yc-calendar-frame > .pmd-yc__toolbar');
+    if (!toolbar) return;
+    window.addEventListener('resize', function () {
+      scheduleOwnerNavAlignment(root);
+    }, {passive:true});
+
+    // ResizeObserver responds to collapsible sidebar changes and layout shifts,
+    // including those that occur after the first calendar render.
+    if (window.ResizeObserver) {
+      var observer = new window.ResizeObserver(function () {
+        scheduleOwnerNavAlignment(root);
+      });
+      observer.observe(toolbar);
+    }
+  }
+
   function render(root) {
     if (selectedDate) { renderSelected(root); return; }
     var months = root.querySelector('[data-r2-yc-months]');
@@ -797,6 +859,10 @@
     root.querySelectorAll('[data-r2-yc-view]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.r2YcView === view); });
     root.querySelectorAll('[data-r2-yc-filter]').forEach(function (button) { button.classList.toggle('is-active', button.dataset.r2YcFilter === filter); });
     renderSelected(root);
+    if (ownerCalendarEnabled) {
+      bindOwnerNavAlignment(root);
+      scheduleOwnerNavAlignment(root);
+    }
     interactionRenderWrites += 1;
   }
 
