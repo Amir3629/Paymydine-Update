@@ -906,7 +906,13 @@ export class ApiClient {
       if (qrCode) params.append('qr_code', qrCode);
 
       const endpoint = this.envConfig.getApiEndpoint(`/table-info?${params}`);
-      const response = await fetch(endpoint);
+      // R16: never use a browser-cached 'enabled' response after an Owner
+      // disables the physical table in the Admin Floor.
+      const response = await fetch(endpoint, {
+        cache: 'no-store',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
       const data = await response.json();
       return data;
     } catch (error) {

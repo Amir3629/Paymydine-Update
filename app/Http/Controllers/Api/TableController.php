@@ -190,7 +190,7 @@ class TableController extends Controller
                         'table_name' => $table->table_name ?? null,
                         'status' => false,
                     ],
-                ]);
+                ])->header('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
             }
 
             // Get location ID for tenant-aware URL construction
@@ -220,7 +220,7 @@ class TableController extends Controller
                     'table_status' => $table->table_status,
                     'frontend_url' => $frontendUrl
                 ]
-            ]);
+            ])->header('Cache-Control', 'private, no-store, no-cache, must-revalidate, max-age=0');
 
         } catch (\Exception $e) {
             return response()->json([

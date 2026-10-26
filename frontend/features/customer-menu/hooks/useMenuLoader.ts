@@ -141,12 +141,61 @@ export function useMenuLoader({
           console.warn("[PMD] Ignoring malformed table parameter", { rawTableParam })
         }
 
-        if (tableParam) {
+        // R16: even a QR-only menu link must verify the physical table.
+        // Never render previously cached food/order UI until lookup succeeds.
+        if (tableParam || qr) {
           try {
             const useTableNo = !!table_no
-            const tableResult = await apiClient.getTableInfo(tableParam, qr || undefined, useTableNo)
+            const tableResult = await apiClient.getTableInfo(tableParam || "", qr || undefined, useTableNo)
+            const data = tableResult.data || {}
+            const disabledFlag = (v: unknown) =>
+              v === false || v === 0 ||
+              (typeof v === "string" &&
+                ["0", "false", "disabled", "inactive", "off"].includes(v.trim().toLowerCase()))
+            const isDisabled = tableResult.code === "table_disabled" ||
+              tableResult.table_disabled === true ||
+              data.table_disabled === true || data.disabled === true ||
+              disabledFlag(data.table_status) || disabledFlag(data.status) ||
+              disabledFlag(data.enabled)
 
-            if (tableResult.success) {
+            if (isDisabled) {
+              // The backend's canonical table_status wins over any cached
+              // frontend menu. Also guard API responses that report success
+              // while including an explicitly disabled physical table flag.
+              const disabledTableInfo = {
+                ...data,
+                table_id: String(data.table_id ?? table_id ?? tableParam ?? ""),
+                table_no: data.table_no != null
+                  ? Number(data.table_no)
+                  : (table_no != null ? Number(table_no) : undefined),
+                table_name: String(data.table_name ?? ""),
+                table_disabled: true,
+                disabled: true,
+              }
+              setTableInfoState(disabledTableInfo)
+              setTableInfo(disabledTableInfo)
+              setApiMenuItems([])
+              setDynamicCategories([])
+              clearCart()
+              setExistingOrderId(null)
+              setPendingSettlementSummary(null)
+              setLocalOpenOrder(null)
+              setHasLocalOpenOrder(false)
+              setPaymentModalOpen(false)
+              hydratedPendingOrderRef.current = null
+              return
+            }
+
+            // Never accept a QR resolving to a different numbered table.
+            // Otherwise a disabled table link could open another active menu.
+            const requestedNo = table_no ?? legacy_table
+            const returnedNo = data.table_no != null ? String(data.table_no) : null
+            const identityMatches = !requestedNo || returnedNo === null ||
+              (/^\\d+$/.test(requestedNo) && /^\\d+$/.test(returnedNo)
+                ? Number(requestedNo) === Number(returnedNo)
+                : requestedNo === returnedNo)
+
+            if (tableResult.success && data.table_id != null && identityMatches) {
               const normalizedTableInfo = {
                 table_id: String(tableResult.data.table_id ?? tableParam),
                 table_name: String(tableResult.data.table_name ?? ""),
@@ -161,10 +210,15 @@ export function useMenuLoader({
               setTableInfoState(normalizedTableInfo)
               setTableInfo(normalizedTableInfo)
 
+              // Optional order hydration must not turn a verified, active
+              // table into an error page if the order service is unavailable.
               const pendingQr = await apiClient.getPendingQrOrderByTable(
                 String(tableResult.data.table_id),
                 { tableNo: tableResult.data?.table_no ?? table_no ?? null, qr: qr || null },
-              )
+              ).catch((error) => {
+                console.warn("[PMD] pending QR order hydration skipped:", error)
+                return null
+              })
 
               if (pendingQr?.success && pendingQr.data?.order_id) {
                 const pendingId = Number(pendingQr.data.order_id)
@@ -226,27 +280,16 @@ export function useMenuLoader({
                   setPaymentModalOpen(false)
                 }
               }
-            } else if (
-              tableResult.code === "table_disabled" ||
-              tableResult.table_disabled === true
-            ) {
-              // PMD_TABLE_ENABLE_DISABLE_R40
-              // Clear any cached/previous guest menu immediately. A disabled
-              // physical table is not a valid customer ordering context.
-              const disabledTableInfo = {
-                ...(tableResult.data || {}),
-                table_id: String(tableResult.data?.table_id ?? table_id ?? tableParam),
-                table_no:
-                  tableResult.data?.table_no != null
-                    ? Number(tableResult.data.table_no)
-                    : (table_no != null ? Number(table_no) : undefined),
-                table_name: String(tableResult.data?.table_name ?? ""),
-                table_disabled: true,
-                disabled: true,
+            } else {
+              // An unverified, removed or transiently unreachable table
+              // must not continue to a generic menu via cache fallback.
+              const unverifiedTableInfo = {
+                table_id: String(table_id ?? tableParam ?? ""),
+                table_no: table_no != null ? Number(table_no) : undefined,
+                table_lookup_failed: true,
               }
-
-              setTableInfoState(disabledTableInfo)
-              setTableInfo(disabledTableInfo)
+              setTableInfoState(unverifiedTableInfo)
+              setTableInfo(unverifiedTableInfo)
               setApiMenuItems([])
               setDynamicCategories([])
               clearCart()
@@ -260,6 +303,13 @@ export function useMenuLoader({
             }
           } catch (error) {
             console.error("Failed to fetch table info:", error)
+            // Fail closed on this QR route if table verification fails.
+            setTableInfoState({table_lookup_failed:true, table_no:table_no || undefined})
+            setTableInfo({table_lookup_failed:true, table_no:table_no || undefined})
+            setApiMenuItems([])
+            setDynamicCategories([])
+            clearCart()
+            return
           }
         }
 

@@ -1056,6 +1056,10 @@ body.pmd-dashboard-lab-page
                 data-pmd-floor-switcher
                 role="tablist"
                 aria-label="Floors"
+                @if($pmdFloorCanManageTables)
+                    {{-- R16: R31 incorrectly hides the entire switcher on one Floor. --}}
+                    style="display:flex!important;visibility:visible!important;pointer-events:auto!important;"
+                @endif
                 @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
             >
                 @if($pmdShowFloorTabs)
@@ -1082,6 +1086,8 @@ body.pmd-dashboard-lab-page
                         data-pmd-floor-add
                         aria-label="{{ $pmdFloorRegistryText['add_floor'] }}"
                         title="{{ $pmdFloorRegistryText['add_floor'] }}"
+                        {{-- R16: win over legacy R31 hide rule; capability is server-gated. --}}
+                        style="display:inline-flex!important;visibility:visible!important;pointer-events:auto!important;"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
                         <span>{{ $pmdFloorRegistryText['add_floor'] }}</span>
@@ -1124,6 +1130,9 @@ body.pmd-dashboard-lab-page
                 class="pmd-shared-floor-switcher__divider"
                 data-pmd-floor-switcher-divider
                 aria-hidden="true"
+                @if($pmdFloorCanManageTables)
+                    style="display:block!important;visibility:visible!important;"
+                @endif
                 @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
             ></span>
 
