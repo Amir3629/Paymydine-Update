@@ -2155,6 +2155,77 @@
       state.transitionReason = null;
     }
 
+    /* PMD_FLOOR_R38_ROW_RECONCILIATION
+     * The server has already painted canonical One-row table positions.
+     * The runtime's buildDisplayTables() temporarily calculates different
+     * logical row coordinates (before calibrateOneRow repositions them).
+     * Replacing canvas.innerHTML on an otherwise unchanged live refresh
+     * destroys every visible button and causes the reported table blink.
+     *
+     * Keep the existing BUTTON nodes whenever identity/order/merge structure
+     * are unchanged, updating real status/labels/badges in place. Any new,
+     * removed or merged table, edit/drag or deliberate layout transition
+     * keeps the normal renderer and its existing interaction semantics.
+     */
+    function reuseStableRowNodesR38(markup, transition) {
+      if (
+        !state.stripMode || !state.initialized ||
+        root.getAttribute('data-pmd-floor-boot-source') !== 'server' ||
+        state.editing || state.drag || state.mergeMode ||
+        state.active || state.selectedDisplayId ||
+        transition || !canvas
+      ) return false;
+
+      var live = Array.prototype.slice.call(canvas.children);
+      var parsed = document.createElement('div');
+      parsed.innerHTML = markup;
+      var desired = Array.prototype.slice.call(parsed.children);
+      if (!desired.length || live.length !== desired.length) return false;
+
+      for (var i = 0; i < desired.length; i += 1) {
+        if (
+          !live[i].hasAttribute('data-floor-table') ||
+          !desired[i].hasAttribute('data-floor-table') ||
+          live[i].getAttribute('data-floor-table') !== desired[i].getAttribute('data-floor-table') ||
+          live[i].classList.contains('is-merged-card') !== desired[i].classList.contains('is-merged-card') ||
+          live[i].getAttribute('data-floor-members') !== desired[i].getAttribute('data-floor-members') ||
+          live[i].classList.contains('is-dragging') ||
+          live[i].classList.contains('is-selected')
+        ) return false;
+      }
+
+      var controlled = [
+        'class', 'data-status', 'data-pmd-floor-reservation-state',
+        'data-pmd-range-color', 'data-pmd-reservation-busy',
+        'data-floor-merge-id', 'data-floor-members',
+        'aria-label', 'aria-disabled', 'tabindex',
+        'data-pmd-disabled-editable-r129'
+      ];
+      for (var j = 0; j < desired.length; j += 1) {
+        var existing = live[j];
+        var next = desired[j];
+        for (var a = 0; a < controlled.length; a += 1) {
+          var attr = controlled[a];
+          if (next.hasAttribute(attr)) {
+            var value = next.getAttribute(attr);
+            if (existing.getAttribute(attr) !== value) {
+              existing.setAttribute(attr, value);
+            }
+          } else if (existing.hasAttribute(attr)) {
+            existing.removeAttribute(attr);
+          }
+        }
+        // Leave existing left/top/width/height untouched. The row calibrator
+        // below already owns the final server-matching centers (24px padding).
+        if (existing.innerHTML !== next.innerHTML) {
+          existing.innerHTML = next.innerHTML;
+        }
+      }
+      root.__pmdR38PreservedRowRenderCount =
+        (root.__pmdR38PreservedRowRenderCount || 0) + 1;
+      return true;
+    }
+
     function render() {
       if (!canvas) return;
 
@@ -2164,7 +2235,7 @@
       var displayTables =
         buildDisplayTables();
 
-      canvas.innerHTML =
+      var rowMarkupR38 =
         displayTables
           .map(function (table) {
             var mergeSelected =
@@ -2325,6 +2396,10 @@
             );
           })
           .join('');
+
+      if (!reuseStableRowNodesR38(rowMarkupR38, structuralSnapshot)) {
+        canvas.innerHTML = rowMarkupR38;
+      }
 
       var shown =
         displayTables

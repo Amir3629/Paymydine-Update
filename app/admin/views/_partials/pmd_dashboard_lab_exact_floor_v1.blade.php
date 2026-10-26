@@ -532,6 +532,11 @@
             true
         );
 
+    /* PMD_FLOOR_R38_MANAGEMENT_SINGLE_TAB
+       Show the real current Floor tab to Owner/Manager even with one Floor.
+       No artificial floors are created, and single-floor modal semantics stay. */
+    $pmdR38ShowManagementFloorTab = $pmdShowFloorTabs || $pmdFloorCanManageTables;
+
     $pmdFloorTableManagerLocationId = max(0, (int)($locationId ?? 0));
     if ($pmdFloorTableManagerLocationId < 1) {
         try {
@@ -971,6 +976,42 @@ body.pmd-dashboard-lab-page
     transition: none !important;
     animation: none !important;
 }
+/* PMD_FLOOR_R38_FIRST_PAINT_STATIC_TABLES
+   The server's inline center coordinates are canonical. Prevent initial
+   hover/transition changes from moving cards during CSS/font hydration.
+   Explicit structural animations and dragging retain their original path. */
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310[data-pmd-floor-boot-source="server"]:not(.is-floor-transitioning)
+[data-floor-canvas] > [data-floor-table]:not(.is-dragging) {
+    position: absolute !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    transform: translate(-50%, -50%) !important;
+    transform-origin: center !important;
+    transition: none !important;
+    animation: none !important;
+}
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310[data-pmd-floor-boot-source="server"].is-strip-mode
+[data-floor-canvas] > [data-floor-table]:not(.is-merged-card) {
+    width: 108px !important;
+    min-width: 108px !important;
+    max-width: 108px !important;
+    height: 88px !important;
+    min-height: 88px !important;
+    max-height: 88px !important;
+}
+body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310[data-pmd-floor-boot-source="server"].is-strip-mode
+[data-floor-canvas] > [data-floor-table].is-merged-card {
+    width: 270px !important;
+    min-width: 270px !important;
+    max-width: 270px !important;
+    height: 104px !important;
+    min-height: 104px !important;
+    max-height: 104px !important;
+}
+
 </style>
 
 {{-- PMD_FLOOR_UNIFIED_RESERVATION_PALETTE_R1
@@ -1038,7 +1079,7 @@ body.pmd-dashboard-lab-page
                 aria-label="Floors"
                 @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
             >
-                @if($pmdShowFloorTabs)
+                @if($pmdR38ShowManagementFloorTab)
                     @foreach($pmdFloorRegistry as $pmdFloorRegistryItem)
                         @php
                             $pmdFloorRegistryItemId = trim((string)($pmdFloorRegistryItem['id'] ?? ''));

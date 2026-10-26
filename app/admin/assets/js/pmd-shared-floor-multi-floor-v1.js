@@ -461,7 +461,10 @@
        *   1 Floor  = default only       -> hide Edit Floor
        *   2+ Floor = custom Floor exists -> show Edit Floor
        */
-      var showFloorTabs = floors.length > 1;
+      /* PMD_FLOOR_R38: the SSR management switcher also shows the sole
+         permanent Floor tab. This restores the left toolbar while retaining
+         the canonical registry and the intentional custom-floor Edit rule. */
+       var showFloorTabs = floors.length > 1 || config.can_manage === true;
       var showManage = hasCustomFloor();
 
       var showSwitcher =
@@ -2241,7 +2244,7 @@
           oneRowFixedGap: 18,
           floorTabsVisibleForAllRoles: true,
           addFloorOwnerManagerOnly: true,
-          singleFloorTabsHidden: true,
+          singleFloorTabsHidden: config.can_manage !== true,
           singleFloorTableFieldHidden: true,
           roleIndependentRegistryLocation: true,
           extendedLayoutPersistence: true,

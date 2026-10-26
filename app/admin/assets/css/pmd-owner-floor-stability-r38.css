@@ -1,0 +1,83 @@
+/* PMD_OWNER_FLOOR_STABILITY_R38
+   Center genuine empty analytics notices; preserve every populated donut/chart. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab #pmd-dashboard-lab-analytics-v1
+:is([data-pmd-lab-analytics-widget="categorySales"],
+    [data-pmd-lab-analytics-widget="paymentMethods"])
+> .pmd-dashboard-lab-analytics__body:has(> .pmd-r36-empty-notice) {
+  position:relative!important;
+  display:block!important;
+  margin:0!important;
+  padding:0!important;
+  min-height:0!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab #pmd-dashboard-lab-analytics-v1
+:is([data-pmd-lab-analytics-widget="categorySales"],
+    [data-pmd-lab-analytics-widget="paymentMethods"])
+> .pmd-dashboard-lab-analytics__body > .pmd-r36-empty-notice {
+  position:absolute!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:9px!important;
+  inset:0!important;
+  top:0!important;right:0!important;bottom:0!important;left:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:8px 10px!important;
+  transform:none!important;
+  text-align:center!important;
+}
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab #pmd-dashboard-lab-analytics-v1
+:is([data-pmd-lab-analytics-widget="categorySales"],
+    [data-pmd-lab-analytics-widget="paymentMethods"])
+.pmd-r36-empty-notice__icon {
+  margin:0!important;
+  flex:0 0 44px!important;
+  align-self:center!important;
+}
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab #pmd-dashboard-lab-analytics-v1
+:is([data-pmd-lab-analytics-widget="categorySales"],
+    [data-pmd-lab-analytics-widget="paymentMethods"])
+.pmd-r36-empty-notice__message {
+  margin:0!important;
+  max-width:100%!important;
+  line-height:1.5!important;
+  text-align:center!important;
+}
+/* Keep only active Floor tabs/buttons; single-floor state is not a blank toolbar.
+   R31 still intentionally hides Add Floor; we do NOT create fake Floors. */
+html body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310[data-pmd-floor-table-manager="true"]
+.pmd-shared-floor-switcher:has(> button[data-pmd-floor-switch]) {
+  display:flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+html body.pmd-dashboard-lab-page
+#pmd-r2-shared-floor-canvas-v310[data-pmd-floor-table-manager="true"]
+.pmd-shared-floor-switcher > button[data-pmd-floor-switch] {
+  display:inline-flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+@media(max-width:820px){
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab #pmd-dashboard-lab-analytics-v1
+  :is([data-pmd-lab-analytics-widget="categorySales"],
+      [data-pmd-lab-analytics-widget="paymentMethods"])
+  > .pmd-dashboard-lab-analytics__body > .pmd-r36-empty-notice {
+    padding:8px!important;
+  }
+}
