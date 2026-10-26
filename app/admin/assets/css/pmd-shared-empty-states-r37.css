@@ -1,0 +1,79 @@
+/* PMD_SHARED_EMPTY_STATES_R37
+   Scoped empty states only. Business/KPI/table statuses and populated content stay untouched. */
+
+/* One identical, accessible empty-state glyph on Floor, Reservations, Shifts and Staff. */
+.pmd-r37-empty-icon {
+  box-sizing:border-box;display:grid;place-items:center;flex:0 0 44px;
+  width:44px;height:44px;margin:0 auto;border-radius:14px;
+  background:#eff6f2;color:#7a9b8c;
+}
+.pmd-r37-empty-icon svg{width:22px;height:22px;display:block;flex:none}
+
+/* Shared Floor: the existing top-right Add table owns creation, NEVER a second action. */
+html body #pmd-r2-shared-floor-canvas-v310 .pmd-r37-floor-empty:not([hidden]) {
+  display:grid!important;place-items:center!important;padding:20px!important;
+}
+html body #pmd-r2-shared-floor-canvas-v310 .pmd-r37-floor-empty__inner,
+html body #pmd-r2-shared-floor-canvas-v310 .pmd-r37-floor-empty .pmd-floor-r36-empty__panel{
+  width:100%;max-width:460px;display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;gap:12px!important;
+  margin:auto!important;text-align:center!important;
+}
+html body #pmd-r2-shared-floor-canvas-v310 .pmd-r37-floor-empty strong{
+  font-size:15px!important;font-weight:750!important;line-height:1.4!important;color:#667f75!important;
+}
+/* Native /admin/floor and any screen reusing the base Floor partial. */
+.pmd-floor-v1 .pmd-floor-v1__empty.pmd-r37-native-floor-empty:not([hidden]){
+  display:grid!important;place-items:center!important;padding:20px!important;
+  background:rgba(248,251,253,.95)!important;
+}
+.pmd-r37-native-floor-empty__inner{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  margin:auto;width:100%;text-align:center;color:#667f75;
+}
+.pmd-r37-native-floor-empty__inner strong{font-size:15px;font-weight:750;line-height:1.4}
+
+/* R36 charts reserve 68px for the Range rail. Empty notices center in the FULL
+   card's content box, not in the narrower plotted-SVG area. Real graphs unchanged. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab #pmd-dashboard-lab-analytics-v1
+:is([data-pmd-lab-analytics-widget="salesOverTime"],[data-pmd-lab-analytics-widget="salesByHour"])
+.pmd-dashboard-lab-analytics__body > .pmd-r36-empty-notice{
+  position:absolute!important;top:0!important;left:0!important;right:0!important;bottom:0!important;
+  width:100%!important;max-width:none!important;height:100%!important;min-height:0!important;
+  margin:0!important;padding:0!important;
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  transform:none!important;
+}
+
+/* A true empty Staff Online card; preserve unavailable vs zero session labels. */
+.pmd-manager-online-staff__empty.pmd-r37-source-empty {
+  box-sizing:border-box;display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;gap:10px!important;
+  min-height:116px;padding:18px 14px!important;text-align:center!important;
+  border:1px dashed #dce6e1;border-radius:12px;color:#72847c;
+}
+.pmd-r37-source-empty .pmd-r37-empty-message{max-width:360px;font-size:13px;line-height:1.5;font-weight:550}
+
+/* No Reservations: the first card is still the existing Add reservation link. */
+#pmd-dashboard-lab .pmd-ops-inline-empty-card.pmd-r37-reservations-empty,
+.pmd-ops-inline-empty-card.pmd-r37-reservations-empty{
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  gap:12px!important;text-align:center!important;
+}
+.pmd-ops-inline-empty-card.pmd-r37-reservations-empty strong{font-size:14px!important;color:#71847a!important;font-weight:750!important}
+
+/* No team: maintain the existing + Member action and its event handler. */
+.pmd-shifts-final-empty.pmd-r37-shifts-empty{
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  gap:12px!important;text-align:center!important;
+}
+.pmd-shifts-final-empty.pmd-r37-shifts-empty strong{font-size:15px!important;line-height:1.4!important}
+
+/* Card changes are immediate when data arrives; avoid loading shimmer or layout motion. */
+.pmd-r37-floor-empty,.pmd-r37-source-empty,.pmd-r37-native-floor-empty,
+.pmd-r37-shifts-empty,.pmd-r37-reservations-empty{
+  animation:none!important;transition:none!important;
+}
+@media(prefers-reduced-motion:reduce){
+ .pmd-r37-empty-icon,.pmd-r37-floor-empty{animation:none!important;transition:none!important}
+}

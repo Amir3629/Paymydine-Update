@@ -5,24 +5,12 @@
     if(!root)return;
     var empty=root.querySelector('[data-pmd-floor-empty-r36]');
     if(!empty)return;
-    var action=empty.querySelector('[data-pmd-floor-empty-add-r36]');
     var heading=empty.querySelector('[data-pmd-floor-empty-title-r36]');
-    var details=empty.querySelector('[data-pmd-floor-empty-detail-r36]');
     var canvas=root.querySelector('[data-floor-canvas]');
     function update(){
       if(empty.hidden)return;
       var hasTables=!!(canvas&&canvas.querySelector('[data-floor-table],.pmd-floor-v1__table'));
-      if(heading)heading.textContent=hasTables?'No matching tables':'No tables on this floor yet';
-      if(details)details.textContent=hasTables?'Clear your filters or choose another floor.':'Create your first table to start organizing this floor.';
-      if(action)action.hidden=hasTables;
-    }
-    if(action && !action.__pmdR36Bound){
-      action.__pmdR36Bound=true;
-      action.addEventListener('click',function(){
-        if(root.getAttribute('data-pmd-floor-table-manager')!=='true')return;
-        var original=root.querySelector('[data-pmd-floor-table-add]');
-        if(original && !original.disabled)original.click();
-      });
+      if(heading)heading.textContent=hasTables?'No tables match this view':'No tables on this floor yet';
     }
     update();
     if(typeof MutationObserver!=='undefined'){
