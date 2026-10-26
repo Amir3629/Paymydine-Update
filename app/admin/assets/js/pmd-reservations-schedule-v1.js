@@ -530,6 +530,12 @@
   }
 
   function rootMarkup() {
+    // PMD_OWNER_CALENDAR_ACTIONS_R7
+    // Use the same shared Calendar runtime, but physically place the Owner
+    // Year/Month switch in the LEFT toolbar column. The middle navigation
+    // then sits at the mathematical center of the calendar width.
+    var viewSwitchMarkup =
+      '<div class="pmd-yc__view-switch"><button type="button" data-r2-yc-view="year">' + esc(text('year',locale === 'de' ? 'Jahr' : 'Year')) + '</button><button type="button" data-r2-yc-view="month" class="is-active">' + esc(text('month',locale === 'de' ? 'Monat' : 'Month')) + '</button></div>';
     return '' +
       '<div class="pmd-r2-yc-calendar-frame" data-r2-yc-calendar-frame>' +
         '<div class="pmd-yc__toolbar">' +
@@ -538,9 +544,10 @@
             '<span><i class="is-note">✎</i>' + esc(text('note', locale === 'de' ? 'Notiz' : 'Note')) + '</span>' +
             '<span><i class="is-event">★</i>' + esc(text('event', locale === 'de' ? 'Ereignis' : 'Event')) + '</span>' +
           '</div>' +
+          (ownerCalendarEnabled ? viewSwitchMarkup : '') +
           '<div class="pmd-yc__month-nav"><button type="button" data-r2-yc-prev aria-label="' + esc(text('previous','Previous')) + '">←</button><strong data-r2-yc-label></strong><button type="button" data-r2-yc-next aria-label="' + esc(text('next','Next')) + '">→</button></div>' +
           '<div class="pmd-yc__toolbar-right">' +
-            '<div class="pmd-yc__view-switch"><button type="button" data-r2-yc-view="year">' + esc(text('year',locale === 'de' ? 'Jahr' : 'Year')) + '</button><button type="button" data-r2-yc-view="month" class="is-active">' + esc(text('month',locale === 'de' ? 'Monat' : 'Month')) + '</button></div>' +
+            (ownerCalendarEnabled ? '' : viewSwitchMarkup) +
             '<div class="pmd-yc__filters"><button type="button" data-r2-yc-filter="all" class="is-active">' + esc(text('all',locale === 'de' ? 'Alle' : 'All')) + '</button><button type="button" data-r2-yc-filter="reservations">' + esc(text('reservations_title',locale === 'de' ? 'Reservierungen' : 'Reservations')) + '</button><button type="button" data-r2-yc-filter="events">' + esc(text('events',locale === 'de' ? 'Ereignisse' : 'Events')) + '</button></div>' +
             '<button type="button" class="pmd-r2-yc-note-btn" data-r2-yc-note>＋ ' + esc(text('note',locale === 'de' ? 'Notiz' : 'Note')) + '</button>' +
           '</div>' +
@@ -740,7 +747,14 @@
         '<div class="pmd-r2-timeslot__time"><strong>' + slotClock + '</strong><span>' + (bookings.length ? bookings.length + ' ' + esc(bookings.length === 1 ? text('booking','booking') : text('bookings','bookings')) : esc(closedSlot ? text('restaurant_closed', locale === 'de' ? 'Restaurant geschlossen' : 'Restaurant closed') : text('available','Available'))) + '</span></div>' +
         '<div class="pmd-r2-timeslot__content">' +
           (bookings.length ? bookings.map(bookingChip).join('') : '<div class="pmd-r2-timeslot__free"><i></i><span>' + esc(closedSlot ? text('restaurant_closed', locale === 'de' ? 'Restaurant geschlossen' : 'Restaurant closed') : text('no_reservations','No reservations')) + '</span></div>') +
-          '<button type="button" class="pmd-r2-timeslot__create-button" data-pmd-reservations-slot-create aria-label="' + esc(createLabel) + '" title="' + esc(createLabel) + '"' + (!bookableSlot ? ' disabled aria-disabled="true"' : '') + '>+</button>' +
+          // Owner Hour does not display any + icons. Free bookable rows
+          // already open the Composer on click; keep a keyboard-accessible,
+          // text-only create action for tab / screen-reader navigation.
+          (ownerCalendarEnabled
+            ? (bookableSlot
+                ? '<button type="button" class="pmd-owner-hour-create-a11y" data-pmd-reservations-slot-create aria-label="' + esc(createLabel) + '">' + esc(text('new_reservation', 'New reservation')) + '</button>'
+                : '')
+            : '<button type="button" class="pmd-r2-timeslot__create-button" data-pmd-reservations-slot-create aria-label="' + esc(createLabel) + '" title="' + esc(createLabel) + '"' + (!bookableSlot ? ' disabled aria-disabled="true"' : '') + '>+</button>') +
         '</div></section>');
     });
     if (slots.unknown) {
