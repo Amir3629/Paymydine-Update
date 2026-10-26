@@ -147,6 +147,21 @@
         var m = document.getElementById(MODAL_ID);
         var close = m && m.querySelector('[data-pmd-r15-note-close]');
         var cancel = m && m.querySelector('[data-pmd-r15-cancel-label]');
+        function paint(el) {
+          if (!el) return null;
+          var css = window.getComputedStyle(el);
+          var bounds = el.getBoundingClientRect();
+          return {
+            display:css.display,
+            visibility:css.visibility,
+            color:css.color,
+            fontSize:css.fontSize,
+            transform:css.transform,
+            animation:css.animationName,
+            width:Math.round(bounds.width),
+            height:Math.round(bounds.height)
+          };
+        }
         return {
           portaled:!!(m && m.parentElement === document.body),
           hasFade:!!(m && m.classList.contains('fade')),
@@ -156,7 +171,11 @@
           originalFormPreserved:!!(m && m.querySelector('#addGeneralStaffNoteForm')),
           originalSubmitPreserved:!!(m && m.querySelector('#generalStaffNoteSubmitBtn')),
           noteButton:!!document.getElementById('notif-note-btn'),
-          historyButton:!!document.getElementById('notif-history-link')
+          historyButton:!!document.getElementById('notif-history-link'),
+          competingPlaneCount:m ? m.querySelectorAll('.pmd-console-global-modal-plane').length : 0,
+          closePaint:paint(close),
+          cancelPaint:paint(cancel),
+          cardPaint:paint(m && m.querySelector('.modal-content'))
         };
       }
     };
