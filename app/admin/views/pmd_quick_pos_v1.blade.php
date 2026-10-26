@@ -84,6 +84,9 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
     {{-- PMD_QPOS_RESERVATION_RAIL_R2: the POS side rail is separate from shared Map. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-qpos-reservation-rail-r2.css') }}?v=20261018-r2">
+    {{-- PMD_QPOS_PRIMARY_BRAND_GREEN_R43: replace dark green button styling
+         after BOTH Web and Android-parity CSS with the standard PMD jade. --}}
+    <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-qpos-primary-brand-green-r43.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-qpos-primary-brand-green-r43.css')) ?: 20261026) }}" data-pmd-pos-r43="primary-css">
 </head>
 <body class="pmd-qpos-body">
 @php
