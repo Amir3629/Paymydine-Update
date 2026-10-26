@@ -53,7 +53,8 @@ test('Frontend checks every QR and explicit zero status, not just API success',(
   assert(loader.includes('if (tableParam || qr)'));
   assert(loader.includes('disabledFlag(data.table_status)'));
   assert(loader.includes('disabledFlag(data.status)'));
-  assert(loader.indexOf('if (isDisabled)') < loader.indexOf('if (tableResult.success && data.table_id != null)'));
+  assert(loader.indexOf('if (isDisabled)') < loader.indexOf('if (tableResult.success && data.table_id != null && identityMatches)'));
+  assert(loader.includes('const identityMatches ='));
   assert(loader.includes('table_lookup_failed: true'));
   assert(loader.includes('setApiMenuItems([])'));
   assert(loader.includes('hydratedPendingOrderRef.current = null'));
