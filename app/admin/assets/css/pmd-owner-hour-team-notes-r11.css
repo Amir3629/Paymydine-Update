@@ -138,3 +138,9 @@ html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
 @media(prefers-reduced-motion:reduce) {
   .pmd-owner-hour-role,.pmd-owner-hour-note-plus{transition:none!important}
 }
+
+/* R12: Owner Calendar empty rows should not paint green availability dots. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot__free > i {
+  display: none !important;
+}

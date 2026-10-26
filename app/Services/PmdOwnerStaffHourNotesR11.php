@@ -19,14 +19,21 @@ final class PmdOwnerStaffHourNotesR11
     private const NOTES = 'pmd_owner_staff_hour_notes';
     private const RECEIPTS = 'pmd_owner_staff_hour_note_receipts';
 
+    /** All prerequisites are tenant-local. Missing staff rows are NOT missing tables. */
+    public function missingRequirements(): array
+    {
+        $required = [
+            self::NOTES, self::RECEIPTS, 'pmd_operational_people',
+            'staffs', 'staff_roles', 'users',
+        ];
+        return array_values(array_filter($required, static function ($table) {
+            return !Schema::hasTable($table);
+        }));
+    }
+
     public function ready(): bool
     {
-        return Schema::hasTable(self::NOTES)
-            && Schema::hasTable(self::RECEIPTS)
-            && Schema::hasTable('pmd_operational_people')
-            && Schema::hasTable('staffs')
-            && Schema::hasTable('staff_roles')
-            && Schema::hasTable('users');
+        return $this->missingRequirements() === [];
     }
 
     private function requireReady(): void
