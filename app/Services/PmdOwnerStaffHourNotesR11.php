@@ -188,8 +188,13 @@ final class PmdOwnerStaffHourNotesR11
             ])
             ->select(['note.id','note.note_date','note.slot_time','note.message',
                 'receipt.confirmed_at'])
+            // Today's instructions are the first thing a worker sees on login;
+            // upcoming notes follow, and prior days remain readable.
+            ->orderByRaw('case when note.note_date = ? then 0 when note.note_date > ? then 1 else 2 end asc', [
+                $today->toDateString(), $today->toDateString(),
+            ])
             ->orderByRaw('case when receipt.confirmed_at is null then 0 else 1 end asc')
-            ->orderByDesc('note.note_date')->orderBy('note.slot_time')
+            ->orderBy('note.note_date')->orderBy('note.slot_time')
             ->limit(120)->get();
 
         return $items->map(function ($item) {
