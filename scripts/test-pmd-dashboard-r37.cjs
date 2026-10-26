@@ -88,7 +88,7 @@ function liveRenderer(name, endMarker){
    document:{documentElement:{lang:'en'},querySelector:()=>null}
  };
  const params=Object.keys(env);
- const fn=new Function(...params,client.slice(begin,end)+'\\nreturn '+name+';')(...params.map(key=>env[key]));
+ const fn=new Function(...params,client.slice(begin,end)+'\nreturn '+name+';')(...params.map(key=>env[key]));
  return {render:fn,body};
 }
 check('Actual JS renderers switch from icon-notice to real payment/tip/event/alert cards',()=>{
