@@ -151,7 +151,7 @@ def selftest(base, ref):
         after = source(tmp, layout)
         assert after.count(custom) == 1
         assert after.count('PMD_FLOOR_OPERATIONAL_SAFETY_R45_REAL_HEAD') == 2
-        assert after.count('pmd-floor-confirm-r45.js') == 1
+        assert after.count('data-pmd-r45="confirm"') == 1
         print("PASS R45B: changed local R14/R42 head survives without hunk conflict")
         try:
             forward_port_layout(after, source(base, layout), source(ref, layout), layout)
