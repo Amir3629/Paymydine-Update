@@ -810,9 +810,12 @@
     var midpoint = viewportWidth / 2;
     var min = bounds.left + navWidth / 2 + 8;
     var max = bounds.right - navWidth / 2 - 8;
-    // Extremely narrow screens must not crop the month controls.
-    if (max >= min) midpoint = Math.min(max, Math.max(min, midpoint));
     var balancedCenter = bounds.left + bounds.width / 2;
+    // On very narrow screens, favor an unshifted, locally centered nav
+    // over forcing the viewport center beyond the available toolbar width.
+    midpoint = max >= min
+      ? Math.min(max, Math.max(min, midpoint))
+      : balancedCenter;
     var offset = Math.round((midpoint - balancedCenter) * 10) / 10;
     toolbar.style.setProperty('--pmd-owner-viewport-nav-offset-r8', offset + 'px');
   }
