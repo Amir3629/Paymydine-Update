@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PMD_PR551_NO_HOVER_TITLES_INCREMENTAL_INSTALL_R4
+# PMD_PR551_NO_HOVER_TITLES_INCREMENTAL_INSTALL_R4B
 # Deploy global tooltip suppression on Owner/Manager/Admin, standalone staff UI, classic themes and React source over installed R3.
 # Fetch the feature branch from origin immediately before running this installer.
 set -Eeuo pipefail
@@ -119,11 +119,41 @@ for p in "${files[@]}"; do
       cp "$p" "$stage/merged/$p"
     else
       if ! git merge-file -p --diff3 "$p" "$stage/base/$p" "$stage/incoming/$p" > "$stage/merged/$p"; then
-        echo "STOP: source conflict with VPS modification: $p" >&2
-        echo 'No live file has been modified.' >&2
-        exit 2
+        # PMD_R4_LOCAL_BLADE_APPEND_ONLY_FALLBACK
+        # Verify GitHub changed only one script insertion, then apply that
+        # identical insertion to a COPY of the VPS Blade. Preserve all custom HTML.
+        if [[ "$p" == *.blade.php ]] && node - "$p" \
+          "$stage/base/$p" "$stage/incoming/$p" "$ROOT/$p" \
+          "$stage/merged/$p" <<'PMD_R4_INSERT_ONLY'
+const fs = require('fs');
+const [file, basePath, incomingPath, livePath, outputPath] = process.argv.slice(2);
+const tag = '<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>';
+const base = fs.readFileSync(basePath, 'utf8');
+const incoming = fs.readFileSync(incomingPath, 'utf8');
+const live = fs.readFileSync(livePath, 'utf8');
+const anchor = file.startsWith('themes/tastyigniter-') && file.endsWith('/_partials/scripts.blade.php') ? '@scripts' : '</head>';
+const count = (source, fragment) => source.split(fragment).length - 1;
+function fail(reason) { console.error('STOP: ' + file + ': ' + reason); process.exit(1); }
+const originalCount = count(base, anchor);
+if (!originalCount) fail('canonical insertion anchor is missing');
+if (incoming !== base.split(anchor).join(tag + '\n' + anchor)) fail('GitHub change is not insertion-only');
+if (count(live, anchor) !== originalCount) fail('VPS document structure changed; review required');
+const alreadyInstalled = count(live, tag);
+if (alreadyInstalled && alreadyInstalled !== originalCount) fail('R4 tags only partially installed');
+const merged = alreadyInstalled === originalCount ? live : live.split(anchor).join(tag + '\n' + anchor);
+if (count(merged, tag) !== originalCount) fail('insertion count mismatch');
+fs.writeFileSync(outputPath, merged);
+PMD_R4_INSERT_ONLY
+        then
+          echo "Preserved VPS custom Blade; inserted only R4 script: $p"
+        else
+          echo "STOP: source conflict with VPS modification: $p" >&2
+          echo 'No live file has been modified.' >&2
+          exit 2
+        fi
+      else
+        echo "Merged with existing VPS modifications: $p"
       fi
-      echo "Merged with existing VPS modifications: $p"
     fi
   else
     if [[ -e "$p" ]] && ! cmp -s "$p" "$stage/incoming/$p"; then
