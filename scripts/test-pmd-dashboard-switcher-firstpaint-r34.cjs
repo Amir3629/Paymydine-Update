@@ -60,6 +60,11 @@ assert.ok(template.includes('data-pmd-lab-period="month"'));
 assert.ok(template.includes('aria-pressed="{{ $analyticsChartMode ==='));
 assert.ok(template.includes("class=\"is-active\" data-pmd-lab-period=\"month\""));
 assert.ok(floor.includes('data-floor-table="{{ $table[\'id\'] }}"'));
+assert.ok(floor.includes('data-pmd-floor-table-add'), 'Existing Add Table semantics retained');
+assert.ok(css.includes('button.pmd-r2-floor-tool-v316.pmd-floor-table-manager__toolbar-button.is-add[data-pmd-floor-table-add]:not(:disabled)'),
+ 'Add Table must receive jade even before R29 attaches its primary tag');
+assert.ok(css.includes('background-image:linear-gradient(180deg,#0b765e,#075c47)!important;'),
+ 'Add Table must match Create Table Save gradient');
 assert.ok(floorCSS.includes('pmd-floor-v1__table[data-status]'));
 assert.ok(css.includes('.pmd-floor-v1__table[data-floor-table]:not(.is-selected):not(.is-dragging)'));
 assert.ok(css.includes('border-width:3px!important;'));
