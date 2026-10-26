@@ -1,0 +1,335 @@
+/* PMD_OWNER_CALENDAR_CONTROLS_R7
+ * Owner-only: exact-centered month navigation, left-hand Year/Month toggle,
+ * PayMyDine Table Manager button language, no visible Hour '+' controls.
+ * Underlying Reservations Calendar/Composer functionality is not changed.
+ */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 {
+  --pmd-owner-control-ink: #173d34;
+  --pmd-owner-control-border: #cbded7;
+  --pmd-owner-control-jade: #075c47;
+  --pmd-owner-control-jade-hover: #064b3c;
+}
+
+/* A three-column BALANCED grid: the center column is physically centered,
+   regardless of the different widths of the groups on the left/right. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-calendar-frame > .pmd-yc__toolbar {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) max-content minmax(0, 1fr) !important;
+  align-items: center !important;
+  column-gap: 14px !important;
+  row-gap: 10px !important;
+  justify-content: stretch !important;
+  justify-items: stretch !important;
+  position: relative !important;
+  width: 100% !important;
+  min-height: 58px !important;
+  margin: 0 0 14px !important;
+  padding: 7px 12px !important;
+  box-sizing: border-box !important;
+}
+
+/* Direct child moved by OWNER-only JS, never transplanted on Reservations. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar > .pmd-yc__view-switch {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  display: inline-flex !important;
+  justify-self: start !important;
+  align-self: center !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar > .pmd-yc__month-nav {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: center !important;
+  align-self: center !important;
+  margin: 0 !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar > .pmd-yc__toolbar-right {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  display: flex !important;
+  justify-self: end !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right > .pmd-yc__filters {
+  display: inline-flex !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  height: auto !important;
+}
+
+/* Secondary button = Create Table's Cancel.
+   Green primary = Create Table's Save (without inventing new button types). */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__view-switch > button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__month-nav > button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__filters > button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-r2-yc-note-btn,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot-screen__back,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__month-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  position: relative !important;
+  inset: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  min-width: 42px !important;
+  margin: 0 !important;
+  padding: 0 15px !important;
+  border: 1px solid var(--pmd-owner-control-border) !important;
+  border-radius: 12px !important;
+  outline: none !important;
+  background: #fff !important;
+  background-image: none !important;
+  color: var(--pmd-owner-control-ink) !important;
+  box-shadow: 0 2px 7px rgba(32,64,54,.035) !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  transform: none !important;
+  transition: border-color .14s ease, background-color .14s ease, color .14s ease !important;
+  cursor: pointer !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__month-nav > button,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__month-button {
+  padding: 0 !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  font-size: 20px !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar button:not(.is-active):not(.pmd-r2-yc-note-btn):hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot-screen__back:hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-day-view__month-button:hover {
+  background: #f3f8f6 !important;
+  border-color: #91baac !important;
+  color: #084b3c !important;
+  transform: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__view-switch > button.is-active,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__filters > button.is-active,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-r2-yc-note-btn {
+  border-color: #064b3c !important;
+  background: #075c47 !important;
+  background-color: #075c47 !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(7,92,71,.12) !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__view-switch > button.is-active:hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-yc__filters > button.is-active:hover,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-yc__toolbar .pmd-r2-yc-note-btn:hover {
+  border-color: #04392c !important;
+  background: var(--pmd-owner-control-jade-hover) !important;
+  color: #fff !important;
+  transform: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 button:focus-visible {
+  outline: 2px solid #0b795c !important;
+  outline-offset: 2px !important;
+}
+
+/* Owner day view: secondary navigation buttons match the same design.
+   Keep the original three-column central alignment and summary counts. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot-screen__back {
+  min-width: 100px !important;
+  font-size: 12px !important;
+}
+
+/* Owner-only modal: same Cancel/Save visual pattern as Create Table. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-modal__actions > button {
+  height: 42px !important;
+  min-height: 42px !important;
+  border-radius: 12px !important;
+  border: 1px solid var(--pmd-owner-control-border) !important;
+  background: #fff !important;
+  color: var(--pmd-owner-control-ink) !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-modal__actions > button.primary {
+  background: #075c47 !important;
+  border-color: #064b3c !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px rgba(7,92,71,.12) !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-yc-modal__actions > [data-r2-yc-modal-delete] {
+  color: #9e3340 !important;
+  border-color: #e9b6bd !important;
+  background: #fff5f6 !important;
+}
+
+/* Hour: remove the green + buttons INCLUDING their reserved right gutter,
+   while keeping row click to create reservations in bookable slots. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot__create-button {
+  display: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot__content,
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.has-bookings .pmd-r2-timeslot__content {
+  padding-right: 14px !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot.is-empty::after {
+  content: none !important;
+  display: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-r2-timeslot[data-pmd-reservations-bookable="1"] {
+  cursor: pointer !important;
+}
+
+/* Keyboard-only, text-labelled create action. Not a visible + icon.
+   Mouse users can still click any available non-booking part of the row. */
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-create-a11y {
+  position: absolute !important;
+  top: auto !important;
+  right: auto !important;
+  width: 1px !important;
+  min-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  clip: rect(0,0,0,0) !important;
+  clip-path: inset(50%) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+#pmd-r2-calendar-surface-v160 .pmd-owner-hour-create-a11y:focus-visible {
+  position: absolute !important;
+  z-index: 3 !important;
+  top: 50% !important;
+  right: 12px !important;
+  width: auto !important;
+  min-width: 124px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  padding: 0 10px !important;
+  margin: 0 !important;
+  border: 1px solid #075c47 !important;
+  border-radius: 10px !important;
+  background: #075c47 !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(7,92,71,.12) !important;
+  clip: auto !important;
+  clip-path: none !important;
+  overflow: visible !important;
+  transform: translateY(-50%) !important;
+  outline: 2px solid #075c47 !important;
+  outline-offset: 2px !important;
+}
+
+/* At narrower widths keep all actions in view without pushing the month
+   navigation off-center or allowing controls to overlap each other. */
+@media (max-width: 1250px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-yc-calendar-frame > .pmd-yc__toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar > .pmd-yc__month-nav {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar > .pmd-yc__view-switch {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar > .pmd-yc__toolbar-right {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+  }
+}
+@media (max-width: 800px) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-r2-yc-calendar-frame > .pmd-yc__toolbar {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar > .pmd-yc__view-switch {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    justify-self: start !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar > .pmd-yc__toolbar-right {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    justify-self: stretch !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+    height: auto !important;
+  }
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar-right > .pmd-yc__filters {
+    flex-wrap: wrap !important;
+    height: auto !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html body.pmd-dashboard-lab-page #pmd-dashboard-lab.is-calendar-mode
+  #pmd-r2-calendar-surface-v160 .pmd-yc__toolbar button {
+    transition: none !important;
+  }
+}
