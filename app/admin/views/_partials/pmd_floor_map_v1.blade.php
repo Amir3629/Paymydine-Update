@@ -64,7 +64,7 @@
 
     <div class="pmd-floor-v1__stage" data-floor-stage>
         <div class="pmd-floor-v1__loading" data-floor-loading>Loading live floor…</div>
-        <div class="pmd-floor-v1__empty" data-floor-empty hidden>No tables match this view.</div>
+        <div class="pmd-floor-v1__empty pmd-r37-native-floor-empty" data-floor-empty data-pmd-r37-floor-empty hidden><div class="pmd-r37-native-floor-empty__inner" role="status"><span class="pmd-r37-empty-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"></rect><path d="M7 14l3-3 3 2 4-5"></path></svg></span><strong data-pmd-r37-floor-empty-text>No tables on this floor yet</strong></div></div>
         <div class="pmd-floor-v1__canvas-wrap" data-floor-scroll>
             <div class="pmd-floor-v1__canvas" data-floor-canvas></div>
         </div>
