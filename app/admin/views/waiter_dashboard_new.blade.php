@@ -59,6 +59,7 @@ document.documentElement.classList.add('pmd-v283-booting');
 
     {{-- PMD_WAITER_PAYMENT_V3_QUICK_R47 --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-payment-simple-v1.css') }}?v=staff-v3-r47-20260824">
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-waiter-new-page pmd-waiter-standard-v2-page pmd-waiter-standard-v21-page pmd-waiter-standard-v211-page pmd-waiter-standard-v221-page pmd-waiter-standard-v22-page pmd-waiter-standard-v23-page">
 
@@ -308,6 +309,7 @@ document.documentElement.classList.add('pmd-v283-booting');
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-zero-shift-v1.css') }}?v=20260810-v4-20260810_000543">
     {{-- PMD_WAITER_PAYMENT_V3_QUICK_R47 --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-payment-simple-v1.css') }}?v=staff-v3-r47-20260824">
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-waiter-new-page pmd-waiter-standard-v2-page pmd-waiter-standard-v21-page pmd-waiter-standard-v211-page pmd-waiter-standard-v221-page pmd-waiter-standard-v22-page pmd-waiter-standard-v23-page">
 <div

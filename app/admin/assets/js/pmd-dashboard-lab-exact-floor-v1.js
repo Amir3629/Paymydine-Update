@@ -1636,7 +1636,11 @@
         var cursorX =
           EDGE_PADDING;
 
-        var stripHeight = 132;
+        // PMD_FLOOR_STRIP_SHARED_GEOMETRY_R3:
+        // Match the server-first-paint and calibrateOneRow() coordinates.
+        // Both engines use center-based table positions, not top-left ones.
+        var stripHeight = 146;
+        var stripVerticalPadding = 22;
 
         rendered.forEach(
           function (table) {
@@ -1651,7 +1655,8 @@
               size.width / 2;
 
             table.y =
-              stripHeight / 2;
+              stripVerticalPadding +
+              size.height / 2;
 
             cursorX +=
               size.width +

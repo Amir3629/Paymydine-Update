@@ -387,7 +387,7 @@
             <a
                 id="pmd-dashboard-lab-calendar-v4"
                 class="pmd-dashboard-lab__header-action"
-                href="#pmd-r2-shared-floor-canvas-v310"
+                href="{{ admin_url('ownerdashboard') }}"
                 aria-label="Open calendar"
                 title="Open calendar"
             
@@ -889,8 +889,10 @@
             href="{{ asset('app/admin/assets/css/pmd-reservations-schedule-v1.css') }}?v={{ $pmdDashboardScheduleCssVersion }}"
         >
 
+        <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-owner-calendar-workspace-r1.css') }}?v=20261025-r2">
+
         @include(
-            'admin::_partials.pmd_reservations_lab_schedule_v1'
+            'admin::_partials.pmd_reservations_schedule_v1'
         )
 
 @include('admin::_partials.pmd_dashboard_lab_exact_floor_v1', [
@@ -913,7 +915,7 @@
             // to invalidate browser caches and avoids three SHA-256 file reads.
             $pmdDashboardComposerCssVersion = 'r35-20260927';
             $pmdDashboardComposerJsVersion = 'r8-20260918';
-            $pmdDashboardScheduleJsVersion = 'r8-20260918';
+            $pmdDashboardScheduleJsVersion = 'r551-shifts-r2-20261025';
         @endphp
 
         <link

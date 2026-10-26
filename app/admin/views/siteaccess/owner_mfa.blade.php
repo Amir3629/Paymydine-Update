@@ -12,6 +12,7 @@
     <title>{{ $setup ? 'Connect Authenticator' : 'Owner verification' }} · PayMyDine</title>
     <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-workplace-v3">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-workplace-access-v2.css?v=3">
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-workplace-access">
 <header class="pmd-wa-top">

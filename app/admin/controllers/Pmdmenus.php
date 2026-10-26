@@ -124,6 +124,12 @@ class Pmdmenus extends AdminController
             'app/admin/assets/css/pmd-menu-inventory-unified-r20.css',
             // PMD_INVENTORY_FOCUS_FORMS_V1: simple catalogue and focused forms.
             'app/admin/assets/css/pmd-inventory-focus-dialogs-v1.css',
+            // PMD_INVENTORY_UI_POLISH_R26: scoped form/list design.
+            'app/admin/assets/css/pmd-inventory-ui-polish-r26.css',
+            // PMD_INVENTORY_TABLE_CARD_PARITY_R27: native viewport modal.
+            'app/admin/assets/css/pmd-inventory-table-card-parity-r27.css',
+            // PMD_INVENTORY_EXACT_TABLE_CARD_R28: override R26's final specificity.
+            'app/admin/assets/css/pmd-inventory-exact-table-card-r28.css',
         ] as $assetPath) {
             $absolute = base_path($assetPath);
             $this->addCss(
@@ -138,6 +144,12 @@ class Pmdmenus extends AdminController
             'app/admin/assets/js/pmd-menu-inventory-unified-r20.js',
             // PMD_INVENTORY_FOCUS_FORMS_V1: original R19 actions stay authoritative.
             'app/admin/assets/js/pmd-inventory-focus-dialogs-v1.js',
+            // PMD_INVENTORY_UI_POLISH_R26: preserve stock handlers.
+            'app/admin/assets/js/pmd-inventory-ui-polish-r26.js',
+            // PMD_INVENTORY_TABLE_CARD_PARITY_R27: after R25 and R26.
+            'app/admin/assets/js/pmd-inventory-table-card-parity-r27.js',
+            // PMD_INVENTORY_EXACT_TABLE_CARD_R28: keep the real R19 actions.
+            'app/admin/assets/js/pmd-inventory-exact-table-card-r28.js',
             // PMD_INVENTORY_FOUR_TABS_V1: keep advanced settings/reversals accessible.
             'app/admin/assets/js/pmd-inventory-retained-controls-v1.js',
         ] as $assetPath) {

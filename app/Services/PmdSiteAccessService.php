@@ -901,18 +901,19 @@ class PmdSiteAccessService
         if ($role !== PmdDefaultStaffRoleService::OWNER) return false;
 
         $hash = $this->recoveryHash($identity['user_id'], strtoupper(trim($code)));
-        $record = DB::table('pmd_site_access_recovery_codes')
+        // PMD_OWNER_RECOVERY_ATOMIC_CONSUME_R3
+        // Claim exactly one still-unused code in a single atomic UPDATE.
+        // A concurrent request must never reuse a code after it was consumed.
+        $consumed = DB::table('pmd_site_access_recovery_codes')
             ->where('location_id', $identity['location_id'])
             ->where('user_id', $identity['user_id'])
             ->where('code_hash', $hash)
             ->whereNull('used_at')
-            ->first();
-        if (!$record) {
+            ->update(['used_at' => now()]);
+        if ($consumed !== 1) {
             $this->audit('recovery_code_failed', false, $identity, null, null, $request);
             return false;
         }
-
-        DB::table('pmd_site_access_recovery_codes')->where('id', $record->id)->update(['used_at' => now()]);
         $challenge = $this->challengeForSession();
         if ($challenge && $challenge->purpose === self::PURPOSE_WORKSPACE) {
             DB::table('pmd_site_access_challenges')->where('id', $challenge->id)->update([

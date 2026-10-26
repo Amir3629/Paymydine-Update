@@ -447,6 +447,15 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
     data-pmd-platform-card-system-v2="1"
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
+<!-- PMD_ADMIN_CONTROL_LANGUAGE_R29: shared visual roles; business buttons remain untouched. -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-admin-control-language-r29.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-admin-control-language-r29.css')) ?: 20261025) }}"
+      data-pmd-admin-control-language-r29="css">
+<script defer
+        src="{{ asset('app/admin/assets/js/pmd-admin-control-language-r29.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-admin-control-language-r29.js')) ?: 20261025) }}"
+        data-pmd-admin-control-language-r29="js"></script>
+<!-- /PMD_ADMIN_CONTROL_LANGUAGE_R29 -->
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="admin">
     @include('admin::partials.header')

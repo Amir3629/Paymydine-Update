@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PMD Admin UI Kit</title>
   <link rel="stylesheet" href="/app/admin/assets/css/pmd-admin-ui-kit-v1.css?v=2_1783119816">
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-ui-kit-page">
   <div class="pmd-ui-shell">

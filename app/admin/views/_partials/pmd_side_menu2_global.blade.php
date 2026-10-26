@@ -1184,3 +1184,4 @@
     defer
 ></script>
 @endif
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-hover-r5></script>

@@ -1,0 +1,131 @@
+/* PMD_PLATFORM_UI_REPORT_R33
+ * Changes follow REAL R32 Playwright computed-style evidence, not blanket
+ * re-skinning. Keep POS table status colors, KDS ticket actions, Shifts slot
+ * click-targets, small period toggles, KPI icon buttons and native steppers.
+ *
+ * R32 barcode report: the legacy JS focus ring was cleaned successfully,
+ * yet the inner input still computed border:1px, radius:16px, and shadow.
+ * R28 :is(input:not(...)) has higher selector specificity than R31's normal
+ * inner-field rule. R33 intentionally out-specifics R28 ONLY for the scanner.
+ */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r25-sheet
+.pmd-inv-r23-barcode
+label.pmd-inv-r23-barcode__input
+> input[data-r19-barcode-input]:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]) {
+  display:block!important;
+  flex:1 1 auto!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  height:48px!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-width:0!important;
+  border-color:transparent!important;
+  border-style:none!important;
+  border-radius:0!important;
+  -webkit-border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  outline:0!important;
+  outline-offset:0!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  color:#153c35!important;
+  font-family:inherit!important;
+  font-size:14px!important;
+  font-weight:700!important;
+  line-height:1.3!important;
+}
+/* The outer label (R31) is the ONE visible border and focus indicator.
+ * Override all generic R25/R28 :focus-visible input rules as well. */
+html body.pmd-menu-manager-page
+#pmd-inventory-v1.pmd-inv-r25-ready.pmd-inv-r26-ready.pmd-inv-r27-ready.pmd-inv-r28-ready
+.pmd-inv-r27-native
+.pmd-inv-r25-overlay.pmd-inv-r26-refined[data-pmd-inv-r25-dialog="barcode"]
+.pmd-inv-r25-sheet
+.pmd-inv-r23-barcode
+label.pmd-inv-r23-barcode__input
+> input[data-r19-barcode-input]:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]):is(:focus,:focus-visible) {
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  outline:none!important;
+}
+
+/* The R32 real-browser report shows the Owner/Manager "Add table" action
+ * stayed WHITE due to legacy floor-toolbar specificity even with R29 primary
+ * role. Use the SAME Table Save jade; preserve the original size, SVG,
+ * aria-label, click behavior and disabled states. */
+html body.pmd-admin-controls-r29-ready
+#pmd-r2-floor-toolbar-v316
+button.pmd-r2-floor-tool-v316.pmd-floor-table-manager__toolbar-button.is-add[data-pmd-floor-table-add][data-pmd-admin-action-r29="primary"] {
+  border:1px solid #064b3c!important;
+  border-radius:14px!important;
+  background:#075c47!important;
+  background-image:var(--pmd-control-r29-primary,linear-gradient(180deg,#0b765e,#075c47))!important;
+  color:#fff!important;
+  box-shadow:var(--pmd-control-r29-primary-shadow,0 9px 20px rgba(7,92,71,.15))!important;
+  text-shadow:none!important;
+}
+html body.pmd-admin-controls-r29-ready
+#pmd-r2-floor-toolbar-v316
+button.pmd-r2-floor-tool-v316.pmd-floor-table-manager__toolbar-button.is-add[data-pmd-floor-table-add][data-pmd-admin-action-r29="primary"]:is(:hover,:focus-visible):not(:disabled) {
+  border-color:#064b3c!important;
+  background:#075c47!important;
+  background-image:linear-gradient(180deg,#086c56,#064b3c)!important;
+  color:#fff!important;
+  box-shadow:0 9px 20px rgba(7,92,71,.18)!important;
+}
+html body.pmd-admin-controls-r29-ready
+#pmd-r2-floor-toolbar-v316
+button.pmd-r2-floor-tool-v316.pmd-floor-table-manager__toolbar-button.is-add[data-pmd-floor-table-add][data-pmd-admin-action-r29="primary"]:active:not(:disabled) {
+  background:#064b3c!important;
+  background-image:none!important;
+  color:#fff!important;
+}
+
+/* Verified actual primary actions in Restaurant Settings still had mint
+ * backgrounds and 10/11px corners. The R29 semantic tags are present:
+ * normalize ONLY those two actions, never the status chips or steppers. */
+html body.pmd-admin-controls-r29-ready
+button.pmd-profile-service-add[data-pmd-service-add][data-pmd-admin-action-r29="primary"],
+html body.pmd-admin-controls-r29-ready
+button[data-pmd-service-date-add][data-pmd-admin-action-r29="primary"] {
+  box-sizing:border-box!important;
+  min-height:40px!important;
+  border:1px solid #064b3c!important;
+  border-radius:14px!important;
+  background:#075c47!important;
+  background-image:var(--pmd-control-r29-primary,linear-gradient(180deg,#0b765e,#075c47))!important;
+  color:#fff!important;
+  font-family:inherit!important;
+  font-weight:800!important;
+  text-shadow:none!important;
+  box-shadow:var(--pmd-control-r29-primary-shadow,0 9px 20px rgba(7,92,71,.15))!important;
+}
+html body.pmd-admin-controls-r29-ready
+button.pmd-profile-service-add[data-pmd-service-add][data-pmd-admin-action-r29="primary"]:hover:not(:disabled),
+html body.pmd-admin-controls-r29-ready
+button[data-pmd-service-date-add][data-pmd-admin-action-r29="primary"]:hover:not(:disabled) {
+  background:#064b3c!important;
+  background-image:linear-gradient(180deg,#086c56,#064b3c)!important;
+  color:#fff!important;
+}
+@media (prefers-reduced-motion:reduce) {
+  html body.pmd-admin-controls-r29-ready
+  #pmd-r2-floor-toolbar-v316 button[data-pmd-floor-table-add],
+  html body.pmd-admin-controls-r29-ready button[data-pmd-service-add],
+  html body.pmd-admin-controls-r29-ready button[data-pmd-service-date-add] {
+    animation:none!important;
+    transition:none!important;
+  }
+}

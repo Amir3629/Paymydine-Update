@@ -85,6 +85,13 @@
             'pin_setup' => 'PIN auf diesem Gerät aktivieren',
             'continue' => 'Weiter',
             'forgot' => 'Passwort vergessen?',
+            'reset_title' => 'Passwort zurücksetzen',
+            'reset_help' => 'E-Mail-Adresse eingeben. Wir senden einen Link zum Zurücksetzen.',
+            'reset_email' => 'E-Mail-Adresse',
+            'reset_email_placeholder' => 'Deine E-Mail-Adresse',
+            'reset_send' => 'Link zum Zurücksetzen senden',
+            'reset_sent' => 'Wenn ein Konto mit dieser E-Mail-Adresse existiert, erhältst du eine Nachricht mit weiteren Schritten.',
+            'reset_failed' => 'Die Anfrage konnte nicht gesendet werden. Bitte erneut versuchen.',
             'failed_title' => 'Anmeldung fehlgeschlagen',
             'failed_text' => 'Prüfe deine Eingabe und versuche es erneut.',
             'reset' => 'Dein Passwort wurde aktualisiert. Du kannst dich jetzt anmelden.',
@@ -105,13 +112,13 @@
             'camera_unavailable' => 'Der QR-Scanner ist in diesem Browser nicht verfügbar. Nutze den 6-stelligen Code.',
             'waiting' => 'Oder auf Freigabe warten.',
             'expired' => 'Diese Anfrage ist abgelaufen. Bitte erneut anmelden.',
-            'recovery_use' => 'Notfallcode verwenden',
+            'recovery_use' => 'Kein Zugriff auf Authenticator? Notfallcode verwenden',
             'recovery_title' => 'Notfallzugang',
-            'recovery_text' => 'Gespeicherten Einmalcode eingeben.',
+            'recovery_text' => 'Gib einen gespeicherten Einmalcode ein. Dein Handy wird dafür nicht benötigt.',
             'recovery_code' => 'Notfallcode',
             'recovery_back' => 'Authenticator verwenden',
             'recovery_save_title' => 'Notfallcodes speichern',
-            'recovery_save_text' => 'Offline aufbewahren. Jeder Code gilt einmal.',
+            'recovery_save_text' => '',
             'recovery_copy' => 'Codes kopieren',
             'recovery_copied' => 'Kopiert',
             'recovery_saved' => 'Ich habe sie gespeichert',
@@ -135,6 +142,13 @@
             'pin_setup' => 'Enable PIN on this device',
             'continue' => 'Continue',
             'forgot' => 'Forgot password?',
+            'reset_title' => 'Reset your password',
+            'reset_help' => 'Enter your email address to receive a password reset link.',
+            'reset_email' => 'Email address',
+            'reset_email_placeholder' => 'Your email address',
+            'reset_send' => 'Send reset link',
+            'reset_sent' => 'If an account exists for this email, reset instructions will be sent.',
+            'reset_failed' => 'Unable to send your request. Please try again.',
             'failed_title' => 'Login failed',
             'failed_text' => 'Check your entry and try again.',
             'reset' => 'Your password was updated. You can sign in now.',
@@ -155,13 +169,13 @@
             'camera_unavailable' => 'QR scanning is not available in this browser. Use the 6-digit code instead.',
             'waiting' => 'Or wait for approval.',
             'expired' => 'This request expired. Sign in again.',
-            'recovery_use' => 'Use emergency code',
+            'recovery_use' => "Can't access Authenticator? Use an emergency code",
             'recovery_title' => 'Emergency access',
-            'recovery_text' => 'Enter one saved one-time code.',
+            'recovery_text' => 'Enter one of your saved single-use emergency codes. No phone is needed.',
             'recovery_code' => 'Emergency code',
             'recovery_back' => 'Use Authenticator',
             'recovery_save_title' => 'Save emergency codes',
-            'recovery_save_text' => 'Keep them offline. Each code works once.',
+            'recovery_save_text' => '',
             'recovery_copy' => 'Copy codes',
             'recovery_copied' => 'Copied',
             'recovery_saved' => 'I saved them',
@@ -188,9 +202,22 @@
         .form,.security-head,.recovery-list,.recovery-actions,.wait{width:min(var(--content),100%);margin-left:auto;margin-right:auto}
         .form{display:grid;gap:14px}.field{display:grid;gap:7px}.field>span{font-size:13px;font-weight:850}.input{position:relative}.field input{width:100%;height:46px;padding:0 13px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--text);font:inherit;font-size:15px;outline:none}.field input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(200,155,74,.13)}.field input[type=password]{padding-right:44px}.toggle{position:absolute;right:4px;top:4px;width:38px;height:38px;border:0;border-radius:10px;background:transparent;color:#74827f;cursor:pointer}.toggle:hover{background:#f2f7f5}
         .submit,.secondary{height:46px;display:flex;align-items:center;justify-content:center;border-radius:13px;font:inherit;font-size:15px;font-weight:900;cursor:pointer;text-decoration:none}.submit{border:1px solid var(--jade);background:var(--jade);color:#fff}.submit:hover{background:var(--jade-dark)}.secondary{border:1px solid var(--line);background:#f8fbfa;color:var(--jade)}
+        /* Keep the reset request on the exact existing login surface. */
+        [data-login-panel][hidden]{display:none!important}
+        .reset-panel{width:min(var(--content),100%);margin:0 auto}
+        .reset-panel .security-head{margin-bottom:22px}
+        .reset-panel .reset-feedback{margin:0;padding:11px 12px;border:1px solid #bfe4d4;border-radius:12px;background:#f1faf6;color:#146948;font-size:12.5px;line-height:1.45}
+        .reset-panel .reset-feedback.is-error{border-color:#f0c6c1;background:#fff3f2;color:#8b2c25}
+        .reset-panel .reset-back{margin-top:14px}
+        .card.is-reset .brand{margin-bottom:28px}
         .forgot{color:var(--jade);font-size:12.5px;font-weight:800;text-decoration:none}.error{color:var(--danger);font-size:11.5px;font-weight:750}.success,.notice{width:min(var(--content),100%);margin:0 auto 14px;padding:11px 12px;border-radius:12px;font-size:12.5px;line-height:1.45}.success{border:1px solid #bfe4d4;background:#f1faf6;color:#146948}.notice{border:1px solid #f0c6c1;background:#fff3f2;color:#8b2c25}.notice strong{display:block;margin-bottom:2px}
         .security-head{text-align:center;margin-top:0;margin-bottom:22px}.security-head h1{margin:0 0 8px;color:#0c2c28;font-size:23px;letter-spacing:-.035em}.security-head p{margin:0 auto;max-width:320px;color:var(--muted);font-size:13px;line-height:1.5}.qrbox{display:grid;place-items:center;min-height:218px;padding:10px;border:1px solid #d3e6e0;border-radius:16px;background:#f5fbf9}.qrbox svg{display:block;width:205px!important;height:205px!important;max-width:100%}.qr-fallback{padding:24px;text-align:center;color:var(--muted);font-size:12px}.code-input{text-align:center;font-size:25px!important;font-weight:900;letter-spacing:.3em;font-variant-numeric:tabular-nums;padding-left:calc(13px + .3em)!important}.secret{border:1px solid var(--line);border-radius:12px;background:#f8fbfa;padding:10px 12px}.secret summary{cursor:pointer;color:#536461;font-size:12px;font-weight:850}.secret-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;margin-top:9px}.secret-row input{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}.copy{height:46px;padding:0 12px;border:1px solid var(--line);border-radius:13px;background:#fff;color:var(--jade);font:inherit;font-size:11px;font-weight:900;cursor:pointer}
         .security-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.wait{min-height:20px;text-align:center;color:#71807c;font-size:12px;font-weight:750}.text-action{width:100%;margin-top:14px;padding:6px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.text-action:hover{color:var(--jade);text-decoration:underline}.recovery-panel[hidden]{display:none}.recovery-input{text-align:center;text-transform:uppercase;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;font-size:20px!important;font-weight:850;letter-spacing:.12em}.recovery-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.recovery-item{padding:10px 9px;border:1px solid #dce7e4;border-radius:11px;background:#f8fbfa;text-align:center;color:#183a33;font:800 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}.recovery-actions{display:grid;gap:9px}.copy-recovery{height:44px;border:1px solid var(--line);border-radius:12px;background:#f8fbfa;color:var(--jade);font:inherit;font-size:12px;font-weight:900;cursor:pointer}
+        /* PMD_OWNER_EMERGENCY_CODE_ENTRY_R3: visible and keyboard accessible. */
+        .recovery-trigger{min-height:46px;padding:11px 12px;margin-top:16px;border:1px solid #c9dfd5;border-radius:12px;background:#f3faf6;color:var(--jade);font-size:12.5px;font-weight:850;line-height:1.4}
+        .recovery-trigger:hover{background:#e7f4ed;text-decoration:none;border-color:#9bc9b6}
+        .recovery-trigger:focus-visible,.recovery-panel .text-action:focus-visible{outline:2px solid var(--jade);outline-offset:3px}
+        .recovery-panel .field input{font-variant-numeric:tabular-nums}
         .scanner{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:18px;background:rgba(0,22,19,.82);backdrop-filter:blur(7px)}.scanner[hidden]{display:none}.scanner-card{width:min(430px,100%);padding:15px;border-radius:18px;background:#fff}.scanner video{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:13px;background:#071d1a}.scanner-foot{display:grid;gap:9px;margin-top:11px}.scanner-message{color:var(--muted);font-size:12px;text-align:center}
         .card.is-pin{padding-bottom:24px}.card.is-pin .brand{height:112px;margin:-4px 42px 10px}.card.is-pin .brand img{height:108px}.pin-panel,.password-panel{width:min(var(--content),100%);margin:0 auto}.pin-head{text-align:center;margin:0 0 14px}.pin-head h1{margin:0 0 5px;color:#0c2c28;font-size:21px;letter-spacing:-.03em}.pin-head p{margin:0;color:var(--muted);font-size:12.5px}.pin-form{display:grid;gap:12px}.pin-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;opacity:0}.pin-dots{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:min(284px,100%);margin:0 auto 2px}.pin-dot{height:44px;display:grid;place-items:center;border:1px solid #dbe5e2;border-radius:12px;background:#f8fbfa;color:var(--jade);font-size:24px;font-weight:900}.pin-dot.is-filled{border-color:#cbb27c;background:#fffaf0}.pin-dot.is-filled::after{content:'•';line-height:1}.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;width:min(284px,100%);margin:0 auto}.pin-key{height:54px;border:1px solid #dce7e4;border-radius:14px;background:#fff;color:#16332e;font:inherit;font-size:21px;font-weight:850;cursor:pointer;box-shadow:0 2px 0 rgba(6,63,54,.04)}.pin-key:hover{background:#f3f8f6}.pin-key:active{transform:translateY(1px)}.pin-key.is-action{font-size:14px;color:#60706d;background:#f7faf9}.pin-form .submit:disabled{opacity:.45;cursor:not-allowed}.mode-switch{width:100%;margin:12px 0 0;padding:7px;border:0;background:transparent;color:#536b65;font:inherit;font-size:12px;font-weight:850;cursor:pointer}.mode-switch:hover{color:var(--jade);text-decoration:underline}
         /* PMD_LOGIN_PIN_MODE_SWITCH_V13 */
@@ -215,6 +242,7 @@
         .pin-error{margin:0;padding:9px 11px;border:1px solid #ebc6c3;background:#fff5f4;color:#8b2d27;border-radius:11px;font-size:12px;line-height:1.4;font-weight:700}
         @media(max-width:540px){body{padding:10px}.card{width:calc(100vw - 18px);max-height:calc(100dvh - 18px);padding:21px 18px 27px;border-radius:20px}.card.is-security{min-height:min(570px,calc(100dvh - 18px));padding-bottom:28px}.brand{height:140px;margin:-3px 38px 20px}.brand img{height:134px}.card.is-security .brand{height:150px;margin:-2px 38px 30px}.card.is-security .brand img{height:143px}.qrbox{min-height:195px}.qrbox svg{width:185px!important;height:185px!important}.security-actions{grid-template-columns:1fr}.recovery-list{grid-template-columns:1fr 1fr}.field>span{font-size:12.5px}.security-head p{font-size:12.5px}.card.is-pin .brand{height:96px;margin:0 38px 8px}.card.is-pin .brand img{height:92px}.pin-key{height:50px}.pin-dot{height:40px}}
     </style>
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-no-hover-titles-r4></script>
 </head>
 <body>
 <main class="card{{ $securityActive ? ' is-security' : ($pinDefault ? ' is-pin' : '') }}" @if($securityMode === 'workplace' && !empty($security['expires_at'])) data-pmd-workplace-login data-expires-at="{{ $security['expires_at'] }}" @endif>
@@ -309,7 +337,7 @@
                     {!! form_error('password', '<small class="error">', '</small>') !!}
                 </label>
                 <button type="submit" class="submit" data-attach-loading>{{ $copy['continue'] }}</button>
-                <a class="forgot" href="{{ admin_url('login/reset') }}">{{ $copy['forgot'] }}</a>
+                <a class="forgot" data-pmd-reset-open aria-controls="pmd-login-reset-panel" href="{{ admin_url('login/reset') }}">{{ $copy['forgot'] }}</a>
             {!! form_close() !!}
             @if(!$hasMobileHandoff)
                 <button type="button" class="mode-switch mode-switch--pin" data-login-mode="pin" aria-controls="pmd-login-pin-panel">
@@ -318,6 +346,25 @@
                     <span class="mode-switch__arrow" aria-hidden="true">›</span>
                 </button>
             @endif
+        </div>
+
+        {{-- PMD_INLINE_PASSWORD_RESET_V1: the request stays inside the login card.
+             The emailed token still uses the canonical reset page. --}}
+        <div id="pmd-login-reset-panel" class="reset-panel" data-login-panel="reset" hidden>
+            <section class="security-head">
+                <h1>{{ $copy['reset_title'] }}</h1>
+                <p>{{ $copy['reset_help'] }}</p>
+            </section>
+            {!! form_open(['id' => 'pmd-inline-reset-form', 'class' => 'form', 'role' => 'form', 'method' => 'POST', 'data-request' => 'onRequestResetPassword']) !!}
+                <input type="hidden" name="pmd_inline_reset" value="1">
+                <label class="field" for="pmd-reset-email">
+                    <span>{{ $copy['reset_email'] }}</span>
+                    <input id="pmd-reset-email" name="email" type="email" autocomplete="email" maxlength="96" placeholder="{{ $copy['reset_email_placeholder'] }}" required>
+                </label>
+                <p class="reset-feedback" data-pmd-reset-feedback role="status" aria-live="polite" hidden></p>
+                <button type="submit" class="submit" data-attach-loading>{{ $copy['reset_send'] }}</button>
+            {!! form_close() !!}
+            <button type="button" class="text-action reset-back" data-pmd-reset-back>{{ $copy['back'] }}</button>
         </div>
 
     @elseif($securityMode === 'setup')
@@ -348,7 +395,7 @@
         </div>
 
     @elseif($securityMode === 'verify')
-        <div data-owner-totp-panel>
+        <div data-owner-totp-panel @if(session("pmd_owner_recovery_retry")) hidden @endif>
             <section class="security-head"><h1>{{ $copy['verify_title'] }}</h1><p>{{ $copy['verify_text'] }}</p></section>
             <form id="pmd-security-form" class="form" method="post" action="{{ admin_url('siteaccess/owner-security/verify') }}">
                 @csrf
@@ -358,16 +405,16 @@
                 </label>
                 <button type="submit" class="submit">{{ $copy['verify'] }}</button>
             </form>
-            <button type="button" class="text-action" data-owner-recovery-open>{{ $copy['recovery_use'] }}</button>
+            <button type="button" class="text-action recovery-trigger" data-owner-recovery-open aria-controls="pmd-owner-recovery-panel" aria-expanded="{{ session('pmd_owner_recovery_retry') ? 'true' : 'false' }}">{{ $copy['recovery_use'] }}</button>
         </div>
 
-        <div class="recovery-panel" data-owner-recovery-panel hidden>
+        <div id="pmd-owner-recovery-panel" class="recovery-panel" data-owner-recovery-panel @unless(session('pmd_owner_recovery_retry')) hidden @endunless>
             <section class="security-head"><h1>{{ $copy['recovery_title'] }}</h1><p>{{ $copy['recovery_text'] }}</p></section>
             <form class="form" method="post" action="{{ admin_url('siteaccess/owner-security/recover') }}">
                 @csrf
                 <label class="field">
                     <span>{{ $copy['recovery_code'] }}</span>
-                    <input class="recovery-input" data-owner-recovery-input name="recovery_code" type="text" autocomplete="one-time-code" maxlength="9" placeholder="XXXX-XXXX" required>
+                    <input class="recovery-input" data-owner-recovery-input name="recovery_code" type="text" inputmode="text" autocapitalize="characters" spellcheck="false" autocomplete="off" pattern="[0-9A-Fa-f]{4}-?[0-9A-Fa-f]{4}" maxlength="9" placeholder="XXXX-XXXX" required @if(session('pmd_owner_recovery_retry')) autofocus @endif>
                 </label>
                 <button type="submit" class="submit">{{ $copy['continue'] }}</button>
             </form>
@@ -375,7 +422,7 @@
         </div>
 
     @elseif($securityMode === 'recovery_codes')
-        <section class="security-head"><h1>{{ $copy['recovery_save_title'] }}</h1><p>{{ $copy['recovery_save_text'] }}</p></section>
+        <section class="security-head"><h1>{{ $copy['recovery_save_title'] }}</h1></section>
         <div class="recovery-list" data-owner-recovery-codes>
             @foreach((array)($security['recovery_codes'] ?? []) as $recoveryCode)
                 <div class="recovery-item" data-recovery-code>{{ $recoveryCode }}</div>
@@ -521,7 +568,10 @@
         document.querySelectorAll('[data-login-panel]').forEach(function (panel) {
             panel.hidden = panel.getAttribute('data-login-panel') !== mode;
         });
-        if (loginCard) loginCard.classList.toggle('is-pin', mode === 'pin');
+        if (loginCard) {
+            loginCard.classList.toggle('is-pin', mode === 'pin');
+            loginCard.classList.remove('is-reset');
+        }
         rememberLoginMode(mode);
         if (updateAddress) {
             try {
@@ -535,6 +585,49 @@
             if (target) window.setTimeout(function () { target.focus({preventScroll:true}); }, 0);
         }
     }
+    // In-card password reset: no route change, no duplicate reset backend.
+    var resetPanel = document.getElementById('pmd-login-reset-panel');
+    var resetOpen = document.querySelector('[data-pmd-reset-open]');
+    var resetBack = document.querySelector('[data-pmd-reset-back]');
+    var resetForm = document.getElementById('pmd-inline-reset-form');
+    var resetFeedback = document.querySelector('[data-pmd-reset-feedback]');
+    function showResetPanel() {
+        if (!resetPanel) return;
+        document.querySelectorAll('[data-login-panel]').forEach(function (panel) {
+            panel.hidden = panel !== resetPanel;
+        });
+        if (loginCard) {
+            loginCard.classList.remove('is-pin');
+            loginCard.classList.add('is-reset');
+        }
+        if (resetFeedback) resetFeedback.hidden = true;
+        var email = document.getElementById('pmd-reset-email');
+        if (email) email.focus({preventScroll:true});
+    }
+    if (resetOpen) resetOpen.addEventListener('click', function (event) {
+        if (!resetPanel || !window.jQuery || !window.jQuery.fn || !window.jQuery.fn.request) return;
+        event.preventDefault();
+        showResetPanel();
+    });
+    if (resetBack) resetBack.addEventListener('click', function () {
+        showLoginMode('password', true, false);
+    });
+    if (resetForm && window.jQuery) {
+        var $reset = window.jQuery(resetForm);
+        function resetMessage(message, failed) {
+            if (!resetFeedback) return;
+            resetFeedback.textContent = message;
+            resetFeedback.classList.toggle('is-error', !!failed);
+            resetFeedback.hidden = false;
+        }
+        $reset.on('ajaxSuccess', function () {
+            resetMessage(@json($copy['reset_sent']), false);
+        });
+        $reset.on('ajaxFail ajaxInvalidField', function () {
+            resetMessage(@json($copy['reset_failed']), true);
+        });
+    }
+
     var pinForm = document.getElementById('pmd-pin-form');
     if (pinForm) pinForm.addEventListener('submit', function (event) {
         if (!pinAuthorized || !pinInput || String(pinInput.value || '').length !== 6) {
@@ -581,10 +674,12 @@
     if (recoveryOpen && ownerTotpPanel && ownerRecoveryPanel) recoveryOpen.addEventListener('click', function () {
         ownerTotpPanel.hidden = true;
         ownerRecoveryPanel.hidden = false;
+        recoveryOpen.setAttribute('aria-expanded','true');
         if (recoveryInput) recoveryInput.focus();
     });
     if (recoveryBack && ownerTotpPanel && ownerRecoveryPanel) recoveryBack.addEventListener('click', function () {
         ownerRecoveryPanel.hidden = true;
+        if (recoveryOpen) recoveryOpen.setAttribute('aria-expanded','false');
         ownerTotpPanel.hidden = false;
         var input = ownerTotpPanel.querySelector('[data-security-code]');
         if (input) input.focus();

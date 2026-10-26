@@ -178,6 +178,7 @@
             .pmd-login-logo{height:190px}.pmd-login-logo img{width:175px}.pmd-login-heading{margin-top:2px;margin-bottom:28px}
         }
     </style>
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-no-hover-titles-r4></script>
 </head>
 <body>
 <div class="pmd-login-stage">

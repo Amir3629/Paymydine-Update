@@ -9215,6 +9215,36 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V3_REAL_ADMIN_LAYOUT_HEAD -->
 
+<!-- PMD_ADMIN_CONTROL_LANGUAGE_R30_REAL_LAYOUT: actual AdminController _layouts/default.blade.php.
+     R29's layouts/default.blade.php is not the live Admin shell. -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-admin-control-language-r29.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-admin-control-language-r29.css')) ?: 20261025) }}"
+      data-pmd-admin-control-language-r29="css"
+      data-pmd-admin-control-layout-r30="real">
+<script defer
+        src="{{ asset('app/admin/assets/js/pmd-admin-control-language-r29.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-admin-control-language-r29.js')) ?: 20261025) }}"
+        data-pmd-admin-control-language-r29="js"
+        data-pmd-admin-control-layout-r30="real"></script>
+<!-- /PMD_ADMIN_CONTROL_LANGUAGE_R30_REAL_LAYOUT -->
+<!-- PMD_INVENTORY_BARCODE_FLOOR_R31_ASSETS: after R19-R30, actual Admin layout -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-inventory-barcode-floor-r31.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-inventory-barcode-floor-r31.css')) ?: 20261025) }}"
+      data-pmd-inventory-barcode-floor-r31="css">
+<script defer
+        src="{{ asset('app/admin/assets/js/pmd-inventory-scrollbar-r31.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-inventory-scrollbar-r31.js')) ?: 20261025) }}"
+        data-pmd-inventory-barcode-floor-r31="js"></script>
+<!-- /PMD_INVENTORY_BARCODE_FLOOR_R31_ASSETS -->
+<!-- PMD_PLATFORM_UI_REPORT_R33_ASSET: exact R32 browser audit corrections -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-platform-ui-report-r33.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-platform-ui-report-r33.css')) ?: 20261026) }}"
+      data-pmd-platform-ui-report-r33="css">
+<!-- /PMD_PLATFORM_UI_REPORT_R33_ASSET -->
+<!-- PMD_DASHBOARD_SWITCHER_FIRSTPAINT_R34_ASSET: blocking CSS before any Dashboard paint -->
+<link rel="stylesheet"
+      href="{{ asset('app/admin/assets/css/pmd-dashboard-switcher-firstpaint-r34.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-dashboard-switcher-firstpaint-r34.css')) ?: 20261026) }}"
+      data-pmd-dashboard-switcher-firstpaint-r34="css">
+<!-- /PMD_DASHBOARD_SWITCHER_FIRSTPAINT_R34_ASSET -->
+
 </head>
 @php
     /* PMD_PERF_R13_LAYOUT_STAGE_PROFILER */

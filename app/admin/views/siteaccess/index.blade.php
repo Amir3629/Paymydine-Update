@@ -13,6 +13,7 @@
     <title>Site Access · PayMyDine</title>
     <link rel="shortcut icon" href="/app/admin/assets/images/pmd-brand-mark.svg?v=pmd-site-access-v1">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-site-access-v1.css?v=1">
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r5" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-site-access-standalone">
 <div class="pmd-sa-shell">
