@@ -65,8 +65,8 @@ BLOCK = """  // PMD_V2_QR_DISABLED_TABLE_FAIL_CLOSED_R17
   const explicitlyOff = (value: unknown): boolean =>
     value !== undefined && value !== null && str(value) !== '' && !yes(value, true)
   const disabled =
-    root.table_disabled === true ||
-    root.disabled === true ||
+    yes(root.table_disabled, false) ||
+    yes(root.disabled, false) ||
     str(root.code).toLowerCase() === 'table_disabled' ||
     explicitlyOff(root.table_status) ||
     explicitlyOff(root.status) ||
