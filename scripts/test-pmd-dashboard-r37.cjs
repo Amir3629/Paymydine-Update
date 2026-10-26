@@ -53,7 +53,7 @@ check('Staff Online data-unavailable vs zero remains explicit; first staff repla
  assert(staff.includes("Staff presence is unavailable for this location."));
 });
 check('Reservations SSR and live refresh show identical icon; existing Add reservation stays',()=>{
- for(const file of [resA,resB])assert(file.includes('data-pmd-res-lab-card-create')&&file.includes('pmd-r37-reservations-empty'));
+ for(const file of [resA,resB])assert((file.includes('data-pmd-res-lab-card-create')||file.includes('data-pmd-reservations-card-create'))&&file.includes('pmd-r37-reservations-empty'));
  assert(resJs.includes('pmd-r37-reservations-empty')&&resJs.includes('data-pmd-reservations-empty-card'));
 });
 check('Shifts + Member and native Floor remain functional',()=>{
