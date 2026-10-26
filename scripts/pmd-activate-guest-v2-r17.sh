@@ -25,7 +25,7 @@ REV="$(git rev-parse FETCH_HEAD)"
   exit 3
 }
 TMP="$(mktemp -d -p "$HOME" pmd-r17-v2-stage-XXXXXXXX)"
-BACKUP="$HOME/pmd-r17-v2-backup-$(date +%Y%m%d_%H%M%S)-$"
+BACKUP="$HOME/pmd-r17-v2-backup-$(date +%Y%m%d_%H%M%S)-$BASHPID"
 LIVE=""
 MUTATING=0
 MOVED_BUILD=0
