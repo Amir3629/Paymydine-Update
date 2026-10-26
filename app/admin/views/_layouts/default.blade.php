@@ -9242,6 +9242,18 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <script defer src="{{ asset('app/admin/assets/js/pmd-dashboard-empty-r36.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-dashboard-empty-r36.js')) ?: 20261026) }}" data-pmd-dashboard-r36="js"></script>
 @endif
 <!-- /PMD_DASHBOARD_FLOOR_EMPTY_R36 -->
+<!-- PMD_SHARED_EMPTY_STATES_R37_REAL_ADMIN_HEAD -->
+@if(
+    request()->is('admin/ownerdashboard*') || request()->is('admin/dashboardlab*')
+    || request()->is('admin/managerdashboard*') || request()->is('admin/managerlab*')
+    || request()->is('admin/accountantdashboard*') || request()->is('admin/accountantlab*')
+    || request()->is('admin/reservations*') || request()->is('admin/floor*')
+    || request()->is('admin/pmdshifts*') || request()->is('admin/shifts*')
+)
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-shared-empty-states-r37.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-shared-empty-states-r37.css')) ?: 20261026) }}" data-pmd-shared-empty-states-r37="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-shared-empty-states-r37.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-shared-empty-states-r37.js')) ?: 20261026) }}" data-pmd-shared-empty-states-r37="js"></script>
+@endif
+<!-- /PMD_SHARED_EMPTY_STATES_R37_REAL_ADMIN_HEAD -->
 
 </head>
 @php
