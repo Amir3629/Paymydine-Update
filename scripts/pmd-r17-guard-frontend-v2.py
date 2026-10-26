@@ -12,6 +12,7 @@ NORMALIZER = 'src/server/normalize.ts'
 MODEL = 'src/domain/model.ts'
 TABLE = 'app/table/[tableId]/page.tsx'
 HOME = 'app/page.tsx'
+CUSTOMER_ROUTE = 'app/CustomerMenuRoute.tsx'
 FALLBACK = 'src/runtime/components/PmdGuestTableInactiveR17.tsx'
 
 TABLE_COMPONENT = """import type { CSSProperties } from 'react'
@@ -99,6 +100,20 @@ HOME_GUARD = """  // PMD_V2_HOME_QR_FAIL_CLOSED_R17
 """
 
 
+CUSTOMER_ROUTE_GUARD = """  // PMD_V2_CUSTOMER_ROUTE_FAIL_CLOSED_R17C
+  // QR/table customers need a verified physical table before any menu.
+  // Kiosk and regular non-table menus must retain their existing behavior.
+  const requestedTable = Boolean(context.tableId || context.tableNo || context.qr)
+  if (!isKiosk && requestedTable &&
+      (bootstrap.table.disabled || !bootstrap.table.valid)) {
+    const tableLabel = bootstrap.table.number || bootstrap.table.id ||
+      context.tableNo || context.tableId
+    return <PmdGuestTableInactiveR17 tableLabel={tableLabel} />
+  }
+
+"""
+
+
 def change_normalizer(text: str) -> str:
     begin = 'export function normalizeTable(payload: unknown, query:'
     end_token = '\n}\n\nfunction orderLines('
@@ -170,6 +185,41 @@ def change_home(text: str) -> tuple[str, bool]:
     return text.replace(anchor, anchor + HOME_GUARD, 1), True
 
 
+def change_customer_route(text: str) -> tuple[str, bool]:
+    """Inspect the actual app/CustomerMenuRoute, not merely its import.
+
+    The batch-20260912 release used CustomerMenuRoute without the newer
+    CustomerTableFallback check. R17 incorrectly assumed its presence.
+    """
+    canonical = 'bootstrap.table.disabled || (hasTableLookup && !bootstrap.table.valid)'
+    if canonical in text:
+        if "if (!isKiosk)" not in text or 'return <CustomerTableFallback' not in text:
+            raise RuntimeError('STOP: incomplete existing V2 CustomerTableFallback')
+        return text, False
+
+    marker = 'PMD_V2_CUSTOMER_ROUTE_FAIL_CLOSED_R17C'
+    if marker in text:
+        if (text.count(marker) != 1 or
+            'if (!isKiosk && requestedTable &&' not in text or
+            'return <PmdGuestTableInactiveR17' not in text):
+            raise RuntimeError('STOP: R17C CustomerMenuRoute guard incomplete')
+        return text, False
+
+    anchor = '  const setup = bootstrap.setup\\n'
+    # Our patch must be applied after the kiosk/customer split but before
+    # the tenant setup splash and any ThemeRenderer path.
+    if (text.count(anchor) != 1 or
+        "const isKiosk = kioskEnabled(rawSearch, forceKiosk)" not in text or
+        "<ThemeRenderer themeId={bootstrap.theme.id} />" not in text or
+        'bootstrap.table.disabled' in text):
+        raise RuntimeError('STOP: unexpected V2 CustomerMenuRoute; no auto rewrite')
+    if 'PmdGuestTableInactiveR17' in text:
+        raise RuntimeError('STOP: existing R17 fallback partially wired')
+    return (IMPORT + text).replace(
+        anchor, CUSTOMER_ROUTE_GUARD + anchor, 1
+    ), True
+
+
 def proposed(root: Path) -> dict[str, str]:
     targets = [NORMALIZER, MODEL, TABLE, HOME]
     original = {}
@@ -179,22 +229,56 @@ def proposed(root: Path) -> dict[str, str]:
             raise RuntimeError('STOP: V2 source absent or symlinked: ' + rel)
         original[rel] = file.read_text(encoding='utf-8')
 
+    # Resolve the real Home handler. An import alone is not a security check.
+    uses_customer_route = "import { CustomerMenuRoute }" in original[HOME]
+    if uses_customer_route:
+        file = root / CUSTOMER_ROUTE
+        if not file.is_file() or file.is_symlink():
+            raise RuntimeError('STOP: CustomerMenuRoute implementation missing')
+        original[CUSTOMER_ROUTE] = file.read_text(encoding='utf-8')
+
     changed = dict(original)
     changed[NORMALIZER] = change_normalizer(original[NORMALIZER])
     changed[MODEL] = change_model(original[MODEL])
     changed[TABLE], old_table = change_table_route(original[TABLE])
     changed[HOME], old_home = change_home(original[HOME])
-    if old_table or old_home:
+    old_customer_route = False
+    if uses_customer_route:
+        changed[CUSTOMER_ROUTE], old_customer_route = change_customer_route(
+            original[CUSTOMER_ROUTE]
+        )
+
+    if old_table or old_home or old_customer_route:
         component = root / FALLBACK
-        if component.exists() and component.read_text(encoding='utf-8') != TABLE_COMPONENT:
+        if component.exists() and (component.is_symlink() or
+                                   component.read_text(encoding='utf-8') != TABLE_COMPONENT):
             raise RuntimeError('STOP: custom R17 fallback component is different')
         changed[FALLBACK] = TABLE_COMPONENT
-    if not (
+
+    direct_guarded = (
         'if (bootstrap.table.disabled || !bootstrap.table.valid)' in changed[TABLE]
-        and ('CustomerMenuRoute' in changed[HOME] or
-             'PMD_V2_HOME_QR_FAIL_CLOSED_R17' in changed[HOME])
-    ):
-        raise RuntimeError('STOP: not all direct and query QR routes are guarded')
+    )
+    home_guarded = (
+        'PMD_V2_HOME_QR_FAIL_CLOSED_R17' in changed[HOME]
+        or (
+            uses_customer_route
+            and (
+                'PMD_V2_CUSTOMER_ROUTE_FAIL_CLOSED_R17C' in changed[CUSTOMER_ROUTE]
+                or (
+                    'if (!isKiosk)' in changed[CUSTOMER_ROUTE]
+                    and 'bootstrap.table.disabled || (hasTableLookup && !bootstrap.table.valid)' in changed[CUSTOMER_ROUTE]
+                    and 'return <CustomerTableFallback' in changed[CUSTOMER_ROUTE]
+                )
+            )
+        )
+    )
+    if not direct_guarded or not home_guarded:
+        raise RuntimeError('STOP: actual direct or Home QR route remains unguarded')
+    if 'PmdGuestTableInactiveR17' in changed.get(CUSTOMER_ROUTE, ''):
+        component = root / FALLBACK
+        if (FALLBACK not in changed
+            and (not component.is_file() or component.is_symlink())):
+            raise RuntimeError('STOP: R17 QR fallback imported but missing')
     return {rel: new for rel, new in changed.items()
             if not (root / rel).exists() or (root / rel).read_text(encoding='utf-8') != new}
 
