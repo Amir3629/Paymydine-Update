@@ -148,7 +148,10 @@ export function useMenuLoader({
             const useTableNo = !!table_no
             const tableResult = await apiClient.getTableInfo(tableParam || "", qr || undefined, useTableNo)
             const data = tableResult.data || {}
-            const disabledFlag = (v: unknown) => v === false || v === 0 || v === "0"
+            const disabledFlag = (v: unknown) =>
+              v === false || v === 0 ||
+              (typeof v === "string" &&
+                ["0", "false", "disabled", "inactive", "off"].includes(v.trim().toLowerCase()))
             const isDisabled = tableResult.code === "table_disabled" ||
               tableResult.table_disabled === true ||
               data.table_disabled === true || data.disabled === true ||
@@ -183,7 +186,14 @@ export function useMenuLoader({
               return
             }
 
-            if (tableResult.success && data.table_id != null) {
+            // Never accept a QR resolving to a different numbered table.
+            // Otherwise a disabled table link could open another active menu.
+            const requestedNo = table_no ?? legacy_table
+            const returnedNo = data.table_no != null ? String(data.table_no) : null
+            const identityMatches = !requestedNo || returnedNo === null ||
+              String(Number(requestedNo)) === String(Number(returnedNo))
+
+            if (tableResult.success && data.table_id != null && identityMatches) {
               const normalizedTableInfo = {
                 table_id: String(tableResult.data.table_id ?? tableParam),
                 table_name: String(tableResult.data.table_name ?? ""),
