@@ -4,8 +4,9 @@
 # PHP/JS syntax + mocked real safety service + source regressions pass.
 # Never checkout/reset/pull, never replace unrelated POS/VPS customizations.
 set -euo pipefail
-[[ "${1:-}" == "--apply" ]] || {
-  echo "Usage: pmd-floor-safety-r45-deploy.sh --apply"
+mode="${1:-}"
+[[ "$mode" == "--apply" || "$mode" == "--check" ]] || {
+  echo "Usage: pmd-floor-safety-r45-deploy.sh --check|--apply"
   exit 2
 }
 cd /var/www/paymydine || exit 1
@@ -104,7 +105,11 @@ grep -q 'PMD_FLOOR_OPERATIONAL_SAFETY_R45_REAL_HEAD' "$stage/root/app/admin/view
 grep -q 'PMD_R45_DESTRUCTIVE_GUARD' "$stage/root/app/admin/classes/PmdCleanWorkspaceControllerV1.php"
 grep -q 'PMD_R45_FLOOR_LIFECYCLE_GUARD' "$stage/root/app/admin/Services/PmdSharedFloorRegistryV1.php"
 
-echo "PREFLIGHT PASS R45: PHP + JS tests and safe code port on current VPS are valid."
+echo "PREFLIGHT PASS R45B: PHP + JS + dirty-layout self-tests on current VPS succeeded."
+if [[ "$mode" == "--check" ]]; then
+  echo "DRY RUN R45B: No live application files were changed."
+  exit 0
+fi
 
 mkdir -p "$backup"
 for file in "${changed[@]}"; do
@@ -122,7 +127,7 @@ done
 php artisan view:clear
 installed=0
 
-echo "SUCCESS R45: active/cleaning/reserved/open-bill tables protected from disable/remove."
+echo "SUCCESS R45B: active/cleaning/reserved/open-bill tables protected from disable/remove."
 echo "SUCCESS R45: Floor removal checks all assigned tables and uses a PMD confirmation card."
 echo "SUCCESS R45: Edit Floor subtitle removed; no native browser confirmation."
 echo "Backup: $backup"
