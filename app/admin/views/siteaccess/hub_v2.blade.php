@@ -18,6 +18,7 @@
         .pmd-wa-request-qr svg{display:block;width:100%!important;height:100%!important}
         .pmd-wa-brief{margin:7px 0 0;color:#6d7c79;font-size:13px}
     </style>
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-workplace-access">
 <header class="pmd-wa-top">
