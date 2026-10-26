@@ -828,11 +828,19 @@
             ? $analyticsMonth['sales_by_category']
             : [];
 
+        $pmdR37CategoryRows = is_array($categorySource['categories'] ?? null) ? $categorySource['categories'] : [];
+        $pmdR37HasCategorySales = collect($pmdR37CategoryRows)->contains(
+            static fn ($row) => is_array($row) && (float)($row['revenue'] ?? 0) > 0
+        );
         if (
             ($categorySource['available'] ?? true) === false
             || ($categorySource['empty'] ?? false)
+            || !$pmdR37HasCategorySales
         ) {
-            $analyticsBodies['categorySales'] = $analyticsEmpty($categorySource);
+            $analyticsBodies['categorySales'] = $analyticsEmpty(
+                (($categorySource['available'] ?? true) === false || ($categorySource['empty'] ?? false))
+                    ? $categorySource : ['reason' => 'No category sales recorded in this period']
+            );
         } else {
             $analyticsBodies['categorySales'] = $analyticsDonut(
                 is_array($categorySource['categories'] ?? null)
@@ -852,11 +860,19 @@
             ? $analyticsMonth['payment_methods']
             : [];
 
+        $pmdR37PaymentRows = is_array($paymentSource['methods'] ?? null) ? $paymentSource['methods'] : [];
+        $pmdR37HasPayments = collect($pmdR37PaymentRows)->contains(
+            static fn ($row) => is_array($row) && (float)($row['total'] ?? 0) > 0
+        );
         if (
             ($paymentSource['available'] ?? true) === false
             || ($paymentSource['empty'] ?? false)
+            || !$pmdR37HasPayments
         ) {
-            $analyticsBodies['paymentMethods'] = $analyticsEmpty($paymentSource);
+            $analyticsBodies['paymentMethods'] = $analyticsEmpty(
+                (($paymentSource['available'] ?? true) === false || ($paymentSource['empty'] ?? false))
+                    ? $paymentSource : ['reason' => 'No payments recorded in this period']
+            );
         } else {
             $analyticsBodies['paymentMethods'] = $analyticsDonut(
                 is_array($paymentSource['methods'] ?? null)
@@ -876,11 +892,19 @@
             ? $analyticsMonth['channels']
             : [];
 
+        $pmdR37ChannelRows = is_array($channelSource['channels'] ?? null) ? $channelSource['channels'] : [];
+        $pmdR37HasOrders = collect($pmdR37ChannelRows)->contains(
+            static fn ($row) => is_array($row) && ((int)($row['orders'] ?? 0) > 0 || (float)($row['revenue'] ?? 0) > 0)
+        );
         if (
             ($channelSource['available'] ?? true) === false
             || ($channelSource['empty'] ?? false)
+            || !$pmdR37HasOrders
         ) {
-            $analyticsBodies['channelSplit'] = $analyticsEmpty($channelSource);
+            $analyticsBodies['channelSplit'] = $analyticsEmpty(
+                (($channelSource['available'] ?? true) === false || ($channelSource['empty'] ?? false))
+                    ? $channelSource : ['reason' => 'No orders in this period']
+            );
         } else {
             $analyticsBodies['channelSplit'] = $analyticsDonut(
                 $analyticsBinaryChannels(
@@ -1022,7 +1046,27 @@
                 ];
             }
 
-            $analyticsBodies['alerts'] = $analyticsList(
+            // PMD_R37: render the empty notice only when no measured alerts
+            // or manager watch counts exist. Missing sources are not reported as zero.
+            $pmdR37AlertActive = collect($rows)->contains(
+                static fn ($row) => is_numeric($row['value'] ?? null) && (float)$row['value'] > 0
+            );
+            $pmdR37AlertUnavailable = collect($rows)->contains(
+                static fn ($row) => !is_numeric($row['value'] ?? null)
+            );
+            $pmdR37ManagerHasWatch = ($pmdRoleMode ?? '') === 'manager'
+                && (
+                    (int)($analyticsLast30['live_operations']['live_order_count'] ?? 0) > 0
+                    || (int)($analyticsLast30['calendar_events']['count'] ?? 0) > 0
+                );
+            $pmdR37AlertsEmpty = !$pmdR37AlertActive && !$pmdR37ManagerHasWatch;
+            $analyticsBodies['alerts'] = $pmdR37AlertsEmpty
+                ? $analyticsEmpty([
+                    'reason' => $pmdR37AlertUnavailable
+                        ? 'No active alerts reported; some sources are unavailable'
+                        : 'No active alerts right now',
+                ])
+                : $analyticsList(
                 $rows,
                 static function (array $row) use ($analyticsEscape): string {
                     return '<span>'.$analyticsEscape($row['label'] ?? '').
@@ -1100,8 +1144,15 @@
             ? $analyticsLast30['tips']
             : [];
 
-        if (($tipSource['available'] ?? true) === false) {
-            $analyticsBodies['tips'] = $analyticsEmpty($tipSource);
+        $pmdR37HasTips = (float)($tipSource['today'] ?? 0) != 0
+            || (float)($tipSource['month'] ?? 0) != 0
+            || (float)($tipSource['average_tip'] ?? 0) != 0
+            || (int)($tipSource['tipped_orders'] ?? 0) > 0;
+        if (($tipSource['available'] ?? true) === false || !$pmdR37HasTips) {
+            $analyticsBodies['tips'] = $analyticsEmpty(
+                ($tipSource['available'] ?? true) === false
+                    ? $tipSource : ['reason' => 'No tips recorded in this period']
+            );
         } else {
             $analyticsBodies['tips'] =
                 '<dl class="pmd-dashboard-lab-stats">'.
@@ -1142,8 +1193,9 @@
                 4
             );
 
-            $eventHtml =
-                '<ul class="pmd-dashboard-lab-event-list">';
+            $eventHtml = (!$eventRows && $eventCount === 0)
+                ? $analyticsEmpty(['reason' => 'No upcoming events'])
+                : '<ul class="pmd-dashboard-lab-event-list">';
 
             foreach ($eventRows as $row) {
                 $tableDisplay = trim((string)($row['table_display'] ?? ''));
@@ -1164,7 +1216,9 @@
                     '</li>';
             }
 
-            $eventHtml .= '</ul>';
+            if ($eventRows || $eventCount > 0) {
+                $eventHtml .= '</ul>';
+            }
             $analyticsBodies['calendarEvents'] = $eventHtml;
         }
     }
@@ -1439,7 +1493,7 @@
             >
                 {!! $analyticsBody('alerts') !!}
 
-                @if(($pmdRoleMode ?? '') === 'manager')
+                @if(($pmdRoleMode ?? '') === 'manager' && !($analyticsServerReady && ($pmdR37AlertsEmpty ?? false)))
                     {{-- PMD_MANAGER_ALERTS_EXTRA_ROWS_R64 --}}
                     @php
                         $pmdR64ManagerIsDe =
