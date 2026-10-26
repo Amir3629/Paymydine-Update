@@ -32,7 +32,7 @@ html body #notification-panel :is(#notif-note-btn,#notif-history-link):focus-vis
 /* Match the existing 800px Create Table modal's 16px pale-mint shell. */
 html body #addGeneralStaffNoteModal.modal.show,
 html body #addGeneralStaffNoteModal.modal.in {
-  align-items:center!important;justify-content:center!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
   padding:14px!important;z-index:2147483600!important;
   overflow-y:auto!important;overscroll-behavior:contain!important;
 }
