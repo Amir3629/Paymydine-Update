@@ -1,0 +1,190 @@
+/* PMD_DASHBOARD_SWITCHER_FIRSTPAINT_R34
+ * Dashboard chart controls are 30px segmented selectors, NOT global 40px
+ * "choice" actions. The R29 DOMContentLoaded classifier adds action attrs
+ * after first paint and was overriding the shared compact chart geometry.
+ * This real-head CSS is unconditional: the same visual treatment applies
+ * before and after R29 initialisation, on Owner/Manager/Accountant surfaces.
+ * Preserve button states, ARIA, link targets, handlers and the Floor engine.
+ */
+
+/* The card owns ONE segmented frame: not a second frame per tiny button. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:2px!important;
+  width:auto!important;
+  height:34px!important;
+  min-height:34px!important;
+  max-height:34px!important;
+  margin:0 0 0 auto!important;
+  padding:2px!important;
+  overflow:hidden!important;
+  border:1px solid #d5e4e0!important;
+  border-radius:11px!important;
+  background:#f8fbfa!important;
+  background-image:none!important;
+  box-shadow:0 2px 7px rgba(16,42,67,.055)!important;
+  white-space:nowrap!important;
+}
+
+/* Match just the chart/period mode switches, not Floor, headers or KPIs.
+ * Target R29-tagged and untagged buttons with the SAME selector so styles
+ * never jump during the deferred classifier startup. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar
+> button:is([data-pmd-lab-chart-mode],[data-pmd-lab-period]) {
+  box-sizing:border-box!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+  position:relative!important;
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:30px!important;
+  min-width:30px!important;
+  max-width:30px!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:visible!important;
+  border:0!important;
+  border-width:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  color:#365d56!important;
+  font:800 12px/1 Roboto,Arial,sans-serif!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+  text-shadow:none!important;
+  transform:none!important;
+  transition:none!important;
+  animation:none!important;
+  cursor:pointer!important;
+}
+
+/* Server creates .is-active/aria-pressed before paint; JS updates them
+ * when user changes chart mode. Same jade as Create Table Save action. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar
+> button:is([data-pmd-lab-chart-mode],[data-pmd-lab-period]):is(.is-active,[aria-pressed="true"]) {
+  border:0!important;
+  border-radius:8px!important;
+  background:#0b765e!important;
+  background-image:linear-gradient(180deg,#0b765e 0%,#075c47 100%)!important;
+  color:#fff!important;
+  box-shadow:0 1px 3px rgba(7,92,71,.20)!important;
+}
+
+/* Not selected means NOT green. Combined R29 classes cannot reset state. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar
+> button:is([data-pmd-lab-chart-mode],[data-pmd-lab-period]):not(.is-active):not([aria-pressed="true"]):hover {
+  background:#e7f3ee!important;
+  background-image:none!important;
+  color:#075c47!important;
+}
+
+/* External detailed-report link shares this single frame; never a second
+ * full-size Table-like button with a 40px R29 secondary shell. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar
+> a[href] {
+  box-sizing:border-box!important;
+  display:inline-flex!important;
+  flex:0 0 30px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:30px!important;
+  min-width:30px!important;
+  max-width:30px!important;
+  height:28px!important;
+  min-height:28px!important;
+  max-height:28px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-left:1px solid #dfebe6!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  color:#08745d!important;
+  text-decoration:none!important;
+  transform:none!important;
+  transition:none!important;
+}
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar
+> a[href]:hover {
+  background:#e7f3ee!important;
+  color:#075c47!important;
+}
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-dashboard-lab-analytics-v1
+.pmd-dashboard-lab-analytics__toolbar
+> :is(button,a):focus-visible {
+  outline:2px solid #21876b!important;
+  outline-offset:-2px!important;
+  z-index:1!important;
+}
+
+/* Shared Owner/Manager Floor cards are server rendered, while subsequent
+ * coordinator hydration used to show different drop-shadow/border frames.
+ * Declare their FINISHED visual surface from the first paint; retain real
+ * status-specific fill/border colors and do not recolor operational state.
+ * Exclude selected and dragging tables, where Floor owns feedback. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table[data-floor-table]:not(.is-selected):not(.is-dragging) {
+  box-sizing:border-box!important;
+  border-style:solid!important;
+  border-width:3px!important;
+  box-shadow:0 0 0 6px color-mix(in srgb,var(--state-color,#8698a8) 12%,transparent),
+             0 8px 20px rgba(16,36,58,.12)!important;
+  animation:none!important;
+  transition:none!important;
+}
+/* The existing Floor :hover transform can remain functional. Its visual
+ * shadow must not flip back to a different legacy theme on hover. */
+html body.pmd-dashboard-lab-page
+#pmd-dashboard-lab
+#pmd-r2-shared-floor-canvas-v310
+.pmd-floor-v1__table[data-floor-table]:not(.is-selected):not(.is-dragging):hover {
+  box-shadow:0 0 0 6px color-mix(in srgb,var(--state-color,#8698a8) 14%,transparent),
+             0 10px 22px rgba(16,36,58,.15)!important;
+}
+/* No need to apply to POS/KDS touch tables, floor edit modals or Floor
+ * management forms. Only the visible Owner/Manager shared Floor canvas. */
+
+@media(prefers-reduced-motion:reduce) {
+  html body.pmd-dashboard-lab-page
+  #pmd-dashboard-lab
+  #pmd-dashboard-lab-analytics-v1
+  .pmd-dashboard-lab-analytics__toolbar > :is(button,a) {
+    animation:none!important;
+    transition:none!important;
+  }
+}
