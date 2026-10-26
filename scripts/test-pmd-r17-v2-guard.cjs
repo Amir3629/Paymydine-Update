@@ -41,6 +41,8 @@ test('legacy API success:true/table_status:0',{success:true,data:{table_id:42,ta
 test('legacy success:true/status:false',{success:true,data:{table_id:42,table_no:6,status:false}},false,true);
 test('legacy success:true/status string zero',{success:true,data:{table_id:42,table_no:6,status:'0'}},false,true);
 test('legacy success:true/enabled:false',{success:true,data:{table_id:42,table_no:6,enabled:false}},false,true);
+test('legacy numeric table_disabled:1',{success:true,data:{table_id:42,table_no:6,table_disabled:1}},false,true);
+test('legacy string disabled:true',{success:true,data:{table_id:42,table_no:6,disabled:'true'}},false,true);
 test('missing/unknown table',{success:false,error:'Table not found'},false,false);
 test('QR number mismatch fails closed',{success:true,data:{table_id:42,table_no:7,status:1}},false,false);
 
