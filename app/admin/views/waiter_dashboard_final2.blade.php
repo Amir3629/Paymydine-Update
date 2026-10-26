@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v2-pos.css') }}?v=2">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v2-responsive.css') }}?v=2">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-final-v21-payment-colors.css') }}?v=21">
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-waiter-final2-page">
 <div

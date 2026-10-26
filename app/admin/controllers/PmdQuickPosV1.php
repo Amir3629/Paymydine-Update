@@ -4016,21 +4016,29 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
                 ?? ''
             ));
 
-            $tableEnabled =
-                ($raw['table_status'] ?? true) !== false
-                && ($raw['enabled'] ?? true) !== false
-                && $rawStatus !== 'disabled'
-                && $rawStatus !== 'inactive';
+            // Match Floor JS yes() semantics: 0 / "0" is disabled,
+            // not only PHP's literal boolean false.
+            $tableEnabled = array_key_exists('table_status', $raw)
+                ? $this->quickPosFloorBool($raw['table_status'])
+                : (array_key_exists('enabled', $raw)
+                    ? $this->quickPosFloorBool($raw['enabled'])
+                    : true);
+            if (in_array($rawStatus, ['disabled', 'inactive'], true)) {
+                $tableEnabled = false;
+            }
 
+            // PMD_FLOOR_FIRSTPAINT_CLIENT_STATUS_PARITY_R3
+            // Keep server first paint in sync with actual shared Floor JS.
             $status = !$tableEnabled
                 ? 'disabled'
-                : (($waiterCall || $note !== '' || $linkedOrderHasNote)
-                    ? 'attention'
-                    : ($cleaning
-                        ? 'cleaning'
+                : ($cleaning
+                    ? 'cleaning'
+                    : ($occupied
+                        ? 'occupied'
                         : ($reserved
                             ? 'reserved'
-                            : ($occupied ? 'occupied' : 'available'))));
+                            : (($waiterCall || $note !== '' || $linkedOrderHasNote)
+                                ? 'attention' : 'available'))));
 
             /*
              * Match Floor V1 normalize() exactly for first paint.
@@ -4149,8 +4157,8 @@ class PmdQuickPosV1 extends PmdWaiterPosV1
             $priority = [
                 'disabled' => 6,
                 'available' => 1,
-                'occupied' => 2,
-                'reserved' => 3,
+                'occupied' => 3,
+                'reserved' => 2,
                 'cleaning' => 4,
                 'attention' => 5,
                 'waiter-call' => 5,

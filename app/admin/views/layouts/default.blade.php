@@ -447,6 +447,7 @@ html.pmd-new-pages-antiflash-v40:not(.pmd-new-pages-antiflash-rendered-v40):not(
     data-pmd-platform-card-system-v2="1"
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="admin">
     @include('admin::partials.header')

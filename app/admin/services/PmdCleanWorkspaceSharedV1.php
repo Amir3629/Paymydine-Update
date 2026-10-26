@@ -1018,34 +1018,73 @@ class PmdCleanWorkspaceSharedV1
                 ?? ''
             )));
 
+            // PMD_SHARED_FLOOR_CLIENT_STATUS_PARITY_R3
+            // Server first-paint must match pmd-dashboard-lab-exact-floor-v1.js.
+            // Physical table state wins over historical linked orders, while
+            // notes/calls remain visible as badges on occupied/cleaning tables.
+            $operationalStatus = strtolower(trim((string)(
+                $raw['operational_status']
+                    ?? $raw['table_operational_status']
+                    ?? ''
+            )));
+            if ($operationalStatus === 'free') $operationalStatus = 'available';
+            $hasOperationalAuthority = in_array(
+                $operationalStatus,
+                ['available', 'occupied', 'cleaning', 'reserved'],
+                true
+            );
+
+            $tableEnabled = array_key_exists('table_status', $raw)
+                ? $this->floorBool($raw['table_status'])
+                : (array_key_exists('enabled', $raw)
+                    ? $this->floorBool($raw['enabled'])
+                    : true);
+            if (in_array($rawStatus, ['disabled', 'inactive'], true)) {
+                $tableEnabled = false;
+            }
+
             $waiterCall = $rawStatus === 'waiter-call'
                 || $this->floorBool($raw['waiter_call'] ?? false)
                 || $this->floorBool($raw['needs_waiter'] ?? false)
                 || $this->floorBool($raw['call_waiter'] ?? false);
 
-            $cleaning = $rawStatus === 'cleaning'
-                || $this->floorBool($raw['cleaning_required'] ?? false)
-                || $this->floorBool($raw['needs_cleaning'] ?? false);
+            $cleaning = $hasOperationalAuthority
+                ? $operationalStatus === 'cleaning'
+                : ($rawStatus === 'cleaning'
+                    || $this->floorBool($raw['cleaning_required'] ?? false)
+                    || $this->floorBool($raw['needs_cleaning'] ?? false));
 
-            $reserved = $rawStatus === 'reserved'
-                || $this->floorBool($raw['reserved'] ?? false)
-                || $this->floorBool($raw['is_reserved'] ?? false);
+            $reserved = $hasOperationalAuthority
+                ? $operationalStatus === 'reserved'
+                : ($rawStatus === 'reserved'
+                    || $this->floorBool($raw['reserved'] ?? false)
+                    || $this->floorBool($raw['is_reserved'] ?? false));
 
-            $occupied = $rawStatus === 'occupied'
-                || count($linkedOrders) > 0
-                || (int)($raw['open_orders'] ?? 0) > 0;
+            $occupied = $hasOperationalAuthority
+                ? $operationalStatus === 'occupied'
+                : ($rawStatus === 'occupied'
+                    || count($linkedOrders) > 0
+                    || (int)($raw['open_orders'] ?? 0) > 0);
 
             $note = trim((string)(
-                $custom['note'] ?? $raw['note'] ?? $raw['comment'] ?? ''
+                $custom['note']
+                    ?? $raw['note']
+                    ?? $raw['notes']
+                    ?? $raw['floor_notes']
+                    ?? $raw['comment']
+                    ?? ''
             ));
 
-            $status = ($waiterCall || $note !== '' || $linkedOrderHasNote)
-                ? 'attention'
+            $status = !$tableEnabled
+                ? 'disabled'
                 : ($cleaning
                     ? 'cleaning'
-                    : ($reserved
-                        ? 'reserved'
-                        : ($occupied ? 'occupied' : 'available')));
+                    : ($occupied
+                        ? 'occupied'
+                        : ($reserved
+                            ? 'reserved'
+                            : (($waiterCall || $note !== '' || $linkedOrderHasNote)
+                                ? 'attention' : 'available'))));
 
             $floor = is_array($raw['floor'] ?? null) ? $raw['floor'] : [];
 
@@ -1142,11 +1181,12 @@ class PmdCleanWorkspaceSharedV1
 
             $priority = [
                 'available' => 1,
-                'occupied' => 2,
-                'reserved' => 3,
+                'occupied' => 3,
+                'reserved' => 2,
                 'cleaning' => 4,
                 'attention' => 5,
                 'waiter-call' => 5,
+                'disabled' => 6,
             ];
 
             $status = 'available';

@@ -37,6 +37,8 @@
   }
 
   var routeAliases = {
+    '/admin/ownerdashboard': '/admin/dashboardlab',
+    '/admin/managerdashboard': '/admin/managerlab',
     '/admin/reservationslab': '/admin/reservations',
     '/admin/reservations2': '/admin/reservations',
     '/admin/reservations3': '/admin/reservations',
@@ -55,9 +57,12 @@
       || value === '/admin/cashierlab';
   }
 
-  var route = normalizeRoute(logicalRoute);
+  // Prefer the actual browser route whenever it is a known workspace.
+  // A stale logicalPath from a shared Reservations layout must never make
+  // an Owner dashboard behave as a Reservations-only calendar.
+  var route = normalizeRoute(browserRoute);
   if (!allowedRoute(route)) {
-    route = normalizeRoute(browserRoute);
+    route = normalizeRoute(logicalRoute);
   }
 
   /*
@@ -85,6 +90,13 @@
 
   var boot = {};
   try { boot = JSON.parse(bootNode.textContent || '{}') || {}; } catch (error) { boot = {}; }
+
+  // Only a server-authorized Owner payload may enable workforce summaries.
+  var ownerCalendarEnabled = boot.owner_calendar_enabled === true;
+  var ownerStaffingYear = Number(boot.owner_staffing_year || boot.year || 0);
+  var ownerStaffingLoadingYear = null;
+  var ownerStaffingSequence = 0;
+  var ownerStaffingError = '';
 
   var strings = boot.strings || {};
   // PMD_RESERVATIONS_SCHEDULE_PLATFORM_I18N_V8
@@ -533,6 +545,7 @@
             '<button type="button" class="pmd-r2-yc-note-btn" data-r2-yc-note>＋ ' + esc(text('note',locale === 'de' ? 'Notiz' : 'Note')) + '</button>' +
           '</div>' +
         '</div>' +
+        (ownerCalendarEnabled ? '<p class="pmd-r2-owner-staff-status" data-pmd-owner-staff-status role="status" aria-live="polite" hidden></p>' : '') +
         '<main class="pmd-yc__months" data-r2-yc-months></main>' +
       '</div>' +
       '<section class="pmd-r2-yc-selected" data-r2-yc-selected hidden></section>' +
@@ -562,7 +575,18 @@
   }
 
   function dataState(key, reservationMap, noteMap, eventMap) {
-    return {reservations:reservationMap[key] || [], note:noteMap[key] || '', events:eventMap[key] || []};
+    var staffing = boot.owner_staffing || {};
+    var hasScheduledDay = ownerCalendarEnabled
+      && Object.prototype.hasOwnProperty.call(staffing, key);
+    return {
+      reservations: reservationMap[key] || [],
+      note: noteMap[key] || '',
+      events: eventMap[key] || [],
+      staff: hasScheduledDay ? Math.max(0, Number(staffing[key]) || 0) : null,
+      requests: ownerCalendarEnabled
+        ? Math.max(0, Number((boot.owner_pending_requests || {})[key] || 0))
+        : 0
+    };
   }
   function monthRows(state) {
     var rows = [];
@@ -573,6 +597,10 @@
     if ((filter === 'all' || filter === 'events') && state.events.length) {
       state.events.forEach(function (event) { rows.push('<span class="pmd-r2-yc-entry is-event">' + esc(event.title) + '</span>'); });
     }
+    if (filter === 'all' && ownerCalendarEnabled) {
+      if (state.staff !== null) rows.push('<span class="pmd-r2-yc-entry is-staff-count">' + state.staff + ' ' + esc(locale === 'de' ? 'Mitarbeitende geplant' : 'staff scheduled') + '</span>');
+      if (state.requests) rows.push('<span class="pmd-r2-yc-entry is-staff-request">' + state.requests + ' ' + esc(locale === 'de' ? 'offene Anfragen' : 'pending requests') + '</span>');
+    }
     return rows.join('');
   }
   function yearDots(state) {
@@ -580,6 +608,10 @@
     if ((filter === 'all' || filter === 'reservations') && state.reservations.length) dots.push('<i class="pmd-r2-yc-dot is-reservation"></i>');
     if (filter === 'all' && state.note) dots.push('<i class="pmd-r2-yc-dot is-note"></i>');
     if ((filter === 'all' || filter === 'events') && state.events.length) dots.push('<i class="pmd-r2-yc-dot is-event"></i>');
+    if (filter === 'all' && ownerCalendarEnabled) {
+      if (state.staff !== null) dots.push('<i class="pmd-r2-yc-dot is-staff-count"></i>');
+      if (state.requests) dots.push('<i class="pmd-r2-yc-dot is-staff-request"></i>');
+    }
     return dots.join('');
   }
   function monthMarkup(monthIndex, large) {
@@ -709,12 +741,17 @@
     var splitIndex = Math.ceil(rows.length / 2);
     var totalGuests = list.reduce(function (total, item) { return total + guestCount(item); }, 0);
     var occupiedSlots = Object.keys(slots).filter(function (key) { return key !== 'unknown' && slots[key] && slots[key].length; }).length;
+    var staffDayCount = (boot.owner_staffing || {})[selectedDate];
+    var hasStaffDay = ownerCalendarEnabled && Object.prototype.hasOwnProperty.call(boot.owner_staffing || {}, selectedDate);
+    var ownerStaffSummary = hasStaffDay
+      ? '<span><strong>' + Math.max(0, Number(staffDayCount) || 0) + '</strong> ' + esc(locale === 'de' ? 'Mitarbeitende geplant' : 'staff scheduled') + '</span>'
+      : '';
 
     section.innerHTML = '<div class="pmd-r2-timeslot-screen">' +
       '<header class="pmd-r2-day-view__header" data-pmd-hour-header-v38="true">' +
         '<button type="button" class="pmd-r2-timeslot-screen__back" data-r2-yc-clear-selection>' + esc(text('calendar','Calendar')) + '</button>' +
         '<div class="pmd-r2-day-view__date-nav"><button type="button" class="pmd-r2-day-view__month-button" data-r2-yc-prev-day aria-label="' + esc(text('previous','Previous')) + '">‹</button><div class="pmd-r2-day-view__title"><h2>' + esc(formatDate(selectedDate)) + '</h2></div><button type="button" class="pmd-r2-day-view__month-button" data-r2-yc-next-day aria-label="' + esc(text('next','Next')) + '">›</button></div>' +
-        '<div class="pmd-r2-day-view__summary"><span><strong>' + list.length + '</strong> ' + esc(text('reservations','reservations')) + '</span><span><strong>' + totalGuests + '</strong> ' + esc(text('guests','Guests')) + '</span><span><strong>' + occupiedSlots + '</strong> ' + esc(text('time_slots','time slots')) + '</span></div>' +
+        '<div class="pmd-r2-day-view__summary"><span><strong>' + list.length + '</strong> ' + esc(text('reservations','reservations')) + '</span><span><strong>' + totalGuests + '</strong> ' + esc(text('guests','Guests')) + '</span><span><strong>' + occupiedSlots + '</strong> ' + esc(text('time_slots','time slots')) + '</span>' + ownerStaffSummary + '</div>' +
       '</header>' +
       '<div class="pmd-r2-day-board__timeline pmd-r2-day-board__timeline--two-columns" data-pmd-hour-grid-v38="true"><div class="pmd-r2-day-board__column pmd-r2-day-board__column--first">' + rows.slice(0, splitIndex).join('') + '</div><div class="pmd-r2-day-board__column pmd-r2-day-board__column--second">' + rows.slice(splitIndex).join('') + '</div></div>' +
       '</div>';
@@ -752,6 +789,7 @@
         year = target.getFullYear();
         month = target.getMonth();
         render(ensureRoot());
+        refreshOwnerStaffing(year, false);
         return;
       }
     }
@@ -810,8 +848,8 @@
       var modalSave = event.target.closest('[data-r2-yc-modal-save]');
       var modalDelete = event.target.closest('[data-r2-yc-modal-delete]');
 
-      if (previous) { if (view === 'month') { month -= 1; if (month < 0) { month = 11; year -= 1; } } else year -= 1; render(root); return; }
-      if (next) { if (view === 'month') { month += 1; if (month > 11) { month = 0; year += 1; } } else year += 1; render(root); return; }
+      if (previous) { if (view === 'month') { month -= 1; if (month < 0) { month = 11; year -= 1; } } else year -= 1; render(root); refreshOwnerStaffing(year, false); return; }
+      if (next) { if (view === 'month') { month += 1; if (month > 11) { month = 0; year += 1; } } else year += 1; render(root); refreshOwnerStaffing(year, false); return; }
       if (viewButton) { view = viewButton.dataset.r2YcView; selectedDate = null; render(root); return; }
       if (filterButton) { filter = filterButton.dataset.r2YcFilter; render(root); return; }
       if (noteButton) { openNoteModal(selectedDate || dateKey(new Date())); return; }
@@ -823,7 +861,7 @@
         selectedDate = String(day.dataset.r2YcDate || '');
         if (!pmdDateHasOpeningWindow(selectedDate)) return;
         var selected = parseDateKey(selectedDate); year = selected.getFullYear(); month = selected.getMonth();
-        render(root); return;
+        render(root); refreshOwnerStaffing(year, false); return;
       }
       if (editButton || bookingCard) {
         event.preventDefault();
@@ -859,6 +897,72 @@
     });
   }
 
+  /*
+   * PMD_OWNER_CALENDAR_STAFFING_LIVE_R2
+   * Re-read the authenticated Shifts authority every time Owner opens Calendar,
+   * and when switching to a different year. No Reservation data is rewritten.
+   */
+  function ownerStaffStatus(message, failed) {
+    ownerStaffingError = failed ? String(message || '') : '';
+    var root = document.getElementById(ROOT_ID);
+    var node = root && root.querySelector('[data-pmd-owner-staff-status]');
+    if (!node) return;
+    node.textContent = message || '';
+    node.hidden = !message;
+    node.classList.toggle('is-error', !!failed);
+  }
+
+  function refreshOwnerStaffing(targetYear, force) {
+    if (!ownerCalendarEnabled || !calendarMode || !window.fetch) return;
+    targetYear = Number(targetYear);
+    if (!Number.isInteger(targetYear) || targetYear < 2000 || targetYear > 2100) return;
+    if (!force && (ownerStaffingYear === targetYear || ownerStaffingLoadingYear === targetYear)) return;
+
+    var sequence = ++ownerStaffingSequence;
+    ownerStaffingLoadingYear = targetYear;
+    var source = new URL(window.location.href);
+    source.hash = '';
+    source.searchParams.set('pmd_calendar_staffing', '1');
+    source.searchParams.set('year', String(targetYear));
+    source.searchParams.delete('pmd_analytics');
+    interactionNetworkRequests += 1;
+
+    fetch(source.toString(), {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
+    }).then(function (response) {
+      if (!response.ok) throw new Error('Shifts HTTP ' + response.status);
+      return response.json();
+    }).then(function (payload) {
+      if (!payload || payload.ok !== true || Number(payload.year) !== targetYear
+        || Number(payload.location_id) !== Number(boot.location_id)
+        || typeof payload.owner_staffing !== 'object' || !payload.owner_staffing) {
+        throw new Error('Shifts response does not match this restaurant');
+      }
+      if (sequence !== ownerStaffingSequence) return;
+      ownerStaffingLoadingYear = null;
+      if (year !== targetYear) return;
+      ownerStaffingYear = targetYear;
+      boot.owner_staffing = payload.owner_staffing;
+      boot.owner_pending_requests = payload.owner_pending_requests || {};
+      var count = Object.keys(boot.owner_staffing).length;
+      ownerStaffStatus(count ? '' : (locale === 'de'
+        ? 'Für dieses Restaurant sind in diesem Kalenderjahr keine Schichten geplant.'
+        : 'No shifts are scheduled for this restaurant in this calendar year.'), false);
+      var root = document.getElementById(ROOT_ID);
+      if (root && calendarMode) render(root);
+    }).catch(function (error) {
+      if (sequence !== ownerStaffingSequence) return;
+      ownerStaffingLoadingYear = null;
+      ownerStaffStatus(locale === 'de'
+        ? 'Schichtdaten konnten nicht geladen werden.'
+        : 'Could not load staffing from Shifts.', true);
+      console.warn('[PMD Owner Calendar] Staffing refresh failed:', error);
+    });
+  }
+
   function setMode(on) {
     calendarMode = Boolean(on);
     var root = ensureRoot();
@@ -872,6 +976,7 @@
       root.hidden = false;
       root.classList.add('is-visible');
       render(root);
+      refreshOwnerStaffing(year, true);
     } else {
       selectedDate = null;
       page.classList.remove('pmd-r2-hour-layout-v38-active');
@@ -1233,6 +1338,10 @@
         exactMonthClass: Boolean(root && root.querySelector('.pmd-yc-month')),
         exactHourClass: Boolean(root && root.querySelector('.pmd-r2-timeslot-screen')),
         reservationCount: reservations.length,
+        ownerCalendarEnabled: ownerCalendarEnabled,
+        ownerStaffingYear: ownerStaffingYear,
+        ownerStaffingDays: Object.keys(boot.owner_staffing || {}).length,
+        ownerStaffingError: ownerStaffingError,
         interactionRenderWrites: interactionRenderWrites,
         interactionNetworkRequests: interactionNetworkRequests,
         bootNetworkRequests: 0,

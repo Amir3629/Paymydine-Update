@@ -86,6 +86,7 @@
         .pmd-login-staff-note b{color:#60706e;font-weight:800}
         @media(max-width:560px){body{padding:14px 10px}.pmd-login-card{padding:22px 19px 27px;border-radius:21px}.pmd-login-language{right:12px;top:12px}.pmd-login-brand{height:170px;margin:-13px 34px -4px}.pmd-login-brand img{width:260px;height:160px}.pmd-login-mode{margin-bottom:19px}.pmd-login-field input{height:47px}}
     </style>
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body>
 <main class="pmd-login-card">

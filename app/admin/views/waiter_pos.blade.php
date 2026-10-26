@@ -21,6 +21,7 @@
     data-pmd-platform-card-system-v2="1"
 >
 <!-- /PMD_PLATFORM_CARD_SYSTEM_V2 -->
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-waiter-pos-page">
 {!! $shell !!}

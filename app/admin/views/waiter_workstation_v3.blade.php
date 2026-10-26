@@ -10,6 +10,7 @@
     {{-- Only the proven functional POS foundation plus one V3 visual authority. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-pos-v1.css') }}?v=3">
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-waiter-workstation-v3.css') }}?v=300">
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-w3-page">
 <div

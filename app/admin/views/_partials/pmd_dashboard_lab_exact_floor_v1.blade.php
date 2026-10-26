@@ -928,6 +928,27 @@
     if ($pmdSharedFloorMultiFloorJson === false) $pmdSharedFloorMultiFloorJson = '{}';
 @endphp
 
+{{-- PMD_FLOOR_STRIP_CENTER_TRANSFORM_R3
+     Shared across Owner, Manager, Reservations and Quick POS. The server
+     writes the CENTER of each table as left/top (x/y), not the upper-left.
+     Prevent page-specific button styling from removing center translation,
+     which pushes entire One-row rows down and right. --}}
+<style id="pmd-floor-strip-center-transform-r3">
+html body #pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-canvas] > button.pmd-floor-v1__table[data-floor-table],
+html body #pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-canvas] > button.pmd-floor-v1__table[data-floor-table]:hover,
+html body #pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-canvas] > button.pmd-floor-v1__table[data-floor-table]:focus,
+html body #pmd-r2-shared-floor-canvas-v310.is-strip-mode
+[data-floor-canvas] > button.pmd-floor-v1__table[data-floor-table]:active {
+    position: absolute !important;
+    transform: translate(-50%, -50%) !important;
+    transform-origin: center center !important;
+    margin: 0 !important;
+}
+</style>
+
 {{-- PMD_FLOOR_ONE_ROW_CRITICAL_GEOMETRY_V149
      pmd-floor-v1.css gives data-size="large" stages a 640px minimum height.
      The exact Floor stylesheet later overrides One-row to 156/146px, but a

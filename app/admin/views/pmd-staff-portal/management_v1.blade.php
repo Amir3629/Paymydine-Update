@@ -124,6 +124,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-manager-v2.css?v=26">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-staff-owner-bottom-nav-v027.css?v=27">
     <script defer src="/app/admin/assets/js/pmd-staff-manager-v2.js?v=26"></script>
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body class="pmd-staff-portal-page pmd-owner-fallback">
 <div class="pmd-staff-app" data-pmd-owner-app data-pmd-mobile-active="team" data-pmd-default-screen="team" data-pmd-staff-locale="{{ $pmdStaffLocale }}">

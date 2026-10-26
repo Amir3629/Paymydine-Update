@@ -33,6 +33,49 @@ export default function ClientLayout({
   const [mounted, setMounted] = useState(false)
   const { loadSettings, getCSSVariables, settings } = useThemeStore()
 
+  // PMD_CUSTOMER_NO_HOVER_TITLES_R4
+  // Classic PHP themes use the shared runtime; the React customer shell needs
+  // its own DOM observer because Next.js can render buttons after hydration.
+  // Preserve aria-labels and never disable dropdowns, popovers or action labels.
+  useEffect(() => {
+    const selector = '[title], [data-bs-original-title], [data-original-title], [data-bs-title]'
+    const clean = (element: Element) => {
+      if (element.tagName === 'IFRAME') return
+      const hint = element.getAttribute('title') ||
+        element.getAttribute('data-bs-original-title') ||
+        element.getAttribute('data-original-title') ||
+        element.getAttribute('data-bs-title') || ''
+      if (hint && element.matches('button, a[href], [role="button"], [role="link"]') &&
+          !element.hasAttribute('aria-label') && !element.hasAttribute('aria-labelledby') &&
+          !(element.textContent || '').trim()) {
+        element.setAttribute('aria-label', hint)
+      }
+      for (const attr of ['title', 'data-bs-original-title', 'data-original-title', 'data-bs-title']) {
+        if (element.hasAttribute(attr)) element.removeAttribute(attr)
+      }
+    }
+    const scan = (node: Node) => {
+      if (!(node instanceof Element)) return
+      clean(node)
+      node.querySelectorAll(selector).forEach(clean)
+    }
+
+    scan(document.documentElement)
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === 'attributes') clean(record.target as Element)
+        else record.addedNodes.forEach(scan)
+      }
+    })
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['title', 'data-bs-original-title', 'data-original-title', 'data-bs-title'],
+    })
+    return () => observer.disconnect()
+  }, [])
+
   useEffect(() => {
     setMounted(true)
     // Load theme settings from admin panel

@@ -106,6 +106,7 @@
         @media(max-height:650px) and (min-width:541px){body{padding:7px}.card{max-height:calc(100dvh - 14px);padding:12px 25px 14px}.brand{height:64px;margin-bottom:1px}.brand img{height:62px;width:145px}.head{margin-bottom:7px}.head h1{font-size:18px}.head p{font-size:10.5px}.qrbox{min-height:140px}.qrbox svg{width:136px!important;height:136px!important}.form{gap:6px}.portal-note,.account-note{margin-top:5px}}
         @media(max-width:540px){html{min-height:100%;background:#011714}body{display:block;min-height:100dvh;padding:8px;overflow:auto;background-attachment:scroll}.card{width:100%;max-height:none;min-height:calc(100dvh - 16px);margin:0 auto;padding:16px 17px 22px;border-radius:19px}.brand{height:79px;margin:0 42px 5px}.brand img{height:76px}.qrbox{min-height:165px}.qrbox svg{width:160px!important;height:160px!important}.codes{grid-template-columns:1fr}}
     </style>
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body>
 <main class="card">

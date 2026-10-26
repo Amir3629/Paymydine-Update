@@ -1,0 +1,44 @@
+/* PMD_ADMIN_SCROLLBAR_POLISH_R1
+ * Purely visual. Never suppress overflow or native keyboard/touch scrolling.
+ * Applies to admin-managed surfaces, including dropdown lists and modals.
+ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(61, 108, 98, .36) transparent;
+}
+html body.page,
+html body.page *,
+html body.layout,
+html body.layout * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(61, 108, 98, .36) transparent;
+}
+html::-webkit-scrollbar,
+html body.page::-webkit-scrollbar,
+html body.page *::-webkit-scrollbar,
+html body.layout::-webkit-scrollbar,
+html body.layout *::-webkit-scrollbar {
+  width: 5px !important;
+  height: 5px !important;
+}
+html::-webkit-scrollbar-track,
+html body.page::-webkit-scrollbar-track,
+html body.page *::-webkit-scrollbar-track,
+html body.layout::-webkit-scrollbar-track,
+html body.layout *::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+html::-webkit-scrollbar-thumb,
+html body.page::-webkit-scrollbar-thumb,
+html body.page *::-webkit-scrollbar-thumb,
+html body.layout::-webkit-scrollbar-thumb,
+html body.layout *::-webkit-scrollbar-thumb {
+  border-radius: 999px !important;
+  background-color: rgba(61, 108, 98, .30) !important;
+  border: 0 !important;
+}
+html::-webkit-scrollbar-thumb:hover,
+html body.page *::-webkit-scrollbar-thumb:hover,
+html body.layout *::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(8, 73, 59, .58) !important;
+}

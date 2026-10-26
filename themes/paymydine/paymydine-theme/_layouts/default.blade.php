@@ -37,6 +37,7 @@ description: 'PayMyDine Default Layout'
             enableDarkMode: {{ $this->theme->enable_dark_mode ? 'true' : 'false' }}
         };
     </script>
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body>
     <!-- React Root -->
