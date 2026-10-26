@@ -61,6 +61,13 @@ mkdir -p "$STAGE" "$BACKUP/originals"
 : > "$BACKUP/files"
 CHANGED=()
 
+# Fetch the narrow adapter from the exact same commit as R16 source.
+# The live VPS Floor markup differs from R15 because R45B already updated
+# Edit floor and operational safety; never overwrite that with old Floor HTML.
+mkdir -p "$STAGE/tmp"
+git show "${HEAD_SHA}:scripts/pmd-r16-floor-live-adapter.py" > "$STAGE/tmp/floor-adapter.py"
+python3 -c 'import ast,sys;ast.parse(open(sys.argv[1]).read())' "$STAGE/tmp/floor-adapter.py"
+
 echo '== PREFLIGHT: 3-way merge vs installed R15, retain local R45B modifications =='
 for file in "${FILES[@]}"; do
   mkdir -p "$STAGE/$(dirname "$file")" "$STAGE/tmp"
@@ -69,12 +76,20 @@ for file in "${FILES[@]}"; do
   if git cat-file -e "${BASE}:$file" 2>/dev/null; then
     [[ -f "$file" ]] || { echo "STOP R15 source missing: $file"; exit 4; }
     git show "${BASE}:$file" > "$STAGE/tmp/base"
-    if cmp -s "$file" "$STAGE/tmp/target"; then
+    if [[ "$file" == "app/admin/views/_partials/pmd_dashboard_lab_exact_floor_v1.blade.php" ]]; then
+      # R45B has its own R39 Edit Floor and R45 destructive-action UI.
+      # Insert only the authorized Add Floor visibility into CURRENT VPS
+      # markup, with exact unique-anchor checks and no adjacent changes.
+      python3 "$STAGE/tmp/floor-adapter.py" "$file" "$STAGE/$file"
+      if cmp -s "$file" "$STAGE/$file"; then
+        echo "ALREADY CURRENT: $file"
+        continue
+      fi
+    elif cmp -s "$file" "$STAGE/tmp/target"; then
       cp -p "$file" "$STAGE/$file"
       echo "ALREADY CURRENT: $file"
       continue
-    fi
-    if cmp -s "$file" "$STAGE/tmp/base"; then
+    elif cmp -s "$file" "$STAGE/tmp/base"; then
       cp -p "$STAGE/tmp/target" "$STAGE/$file"
     elif ! git merge-file -p "$file" "$STAGE/tmp/base" "$STAGE/tmp/target" > "$STAGE/$file"; then
       echo "STOP: conflicting VPS customization (no files changed): $file"
