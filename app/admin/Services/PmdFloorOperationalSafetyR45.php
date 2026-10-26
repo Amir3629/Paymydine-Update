@@ -64,27 +64,39 @@ class PmdFloorOperationalSafetyR45
             }
 
             $columns = Schema::getColumnListing('orders');
-            if (!in_array('table_id', $columns, true)) {
+            $linkColumns = array_values(array_intersect(
+                ['table_id', 'dining_table_id', 'location_table_id'], $columns
+            ));
+            if (!$linkColumns && !in_array('order_type', $columns, true)) {
                 return $this->deny('orders_unavailable',
                     'Order-to-table links cannot be verified. Try again later.', $status);
             }
 
-            $query = DB::table('orders')->where('table_id', $tableId);
-            if (in_array('location_id', $columns, true)) {
-                $query->where('location_id', $locationId);
-            }
-            if (in_array('deleted_at', $columns, true)) {
-                $query->whereNull('deleted_at');
+            $queries = [];
+            foreach ($linkColumns as $linkColumn) {
+                $queries[] = DB::table('orders')->where($linkColumn, $tableId);
             }
 
-            // The canonical canceled status setting is used by Waiter POS.
-            // A canceled order with no live bill is not an active check.
-            if (in_array('status_id', $columns, true)) {
-                try {
-                    $cancelledId = (int)setting('canceled_order_status');
-                    if ($cancelledId > 0) $query->where('status_id', '<>', $cancelledId);
-                } catch (\Throwable $e) {
-                    // If the setting is missing, inspect textual status below.
+            // Some legacy dine-in checks use order_type "Table 7" or "7"
+            // with an empty table_id. Check these references too. Do NOT
+            // let a settled historical order block a table permanently.
+            if (in_array('order_type', $columns, true)) {
+                $number = trim((string)(data_get($row, 'table_no') ?? ''));
+                $name = trim((string)(data_get($row, 'table_name') ?? ''));
+                $posLabel = trim((string)(data_get($row, 'pos_table_label') ?? ''));
+                $labels = array_values(array_unique(array_filter([
+                    $number, $name, $posLabel,
+                    $number !== '' ? 'Table '.$number : '',
+                ], static function ($v) { return $v !== ''; })));
+                foreach ($labels as $label) {
+                    if (in_array('table_id', $columns, true)) {
+                        $queries[] = DB::table('orders')
+                            ->where('order_type', $label)->whereNull('table_id');
+                        $queries[] = DB::table('orders')
+                            ->where('order_type', $label)->where('table_id', 0);
+                    } else {
+                        $queries[] = DB::table('orders')->where('order_type', $label);
+                    }
                 }
             }
 
@@ -93,7 +105,22 @@ class PmdFloorOperationalSafetyR45
                 'settled_amount', 'order_total', 'total', 'total_amount',
                 'grand_total', 'status', 'order_status', 'status_name'
             ], $columns));
-            if (!in_array('table_id', $needed, true)) $needed[] = 'table_id';
+
+            foreach ($queries as $query) {
+                if (in_array('location_id', $columns, true)) {
+                    $query->where('location_id', $locationId);
+                }
+                if (in_array('deleted_at', $columns, true)) {
+                    $query->whereNull('deleted_at');
+                }
+                if (in_array('status_id', $columns, true)) {
+                    try {
+                        $cancelledId = (int)setting('canceled_order_status');
+                        if ($cancelledId > 0) $query->where('status_id', '<>', $cancelledId);
+                    } catch (\\Throwable $e) {
+                        // Missing setting: textual cancellation is inspected below.
+                    }
+                }
 
             foreach ($query->select($needed)->cursor() as $order) {
                 $rowStatus = strtolower(trim((string)(
@@ -159,6 +186,7 @@ class PmdFloorOperationalSafetyR45
                 return $this->deny('unverified_bill',
                     'A linked bill cannot be confirmed closed. Review its payment status first.',
                     $status);
+                }
             }
 
             return [
