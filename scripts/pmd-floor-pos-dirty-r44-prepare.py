@@ -168,7 +168,7 @@ def selftest(base, ref):
             patch(root, base, ref)
         except R44PatchError as exc:
             assert "R42 section has user changes" in str(exc)
-            assert not pathlib.Path(root, NEW_CSS).exists() is False or True
+            assert pathlib.Path(root, NEW_CSS).is_file()
             print("PASS R44: changes inside R42 Floor animation fail closed")
         else:
             raise R44PatchError("Regression: changed Floor engine was overwritten")
