@@ -424,7 +424,7 @@ export function normalizeTable(payload: unknown, query: { tableId?: string|null;
     explicitlyOff(root.enabled)
   const requestedNumber = str(query.tableNo)
   const matchesNumber = !requestedNumber || !resolvedNumber ||
-    (/^\\d+$/.test(requestedNumber) && /^\\d+$/.test(resolvedNumber)
+    (/^\d+$/.test(requestedNumber) && /^\d+$/.test(resolvedNumber)
       ? Number(requestedNumber) === Number(resolvedNumber)
       : requestedNumber === resolvedNumber)
   const valid = !disabled && root.success !== false && matchesNumber &&
