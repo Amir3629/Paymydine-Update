@@ -113,6 +113,7 @@
 
 {{-- Page-specific paint authority must come after every global stylesheet. --}}
 @stack('page-head')
+<script defer src="/app/admin/assets/js/pmd-no-hover-titles-global-r4.js?v=20261026-r4" data-pmd-no-hover-titles-r4></script>
 </head>
 <body>
 @include('admin::superadmin_r2.side_menu')
