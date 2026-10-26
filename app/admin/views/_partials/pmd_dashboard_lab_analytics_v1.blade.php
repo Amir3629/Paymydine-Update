@@ -1024,6 +1024,15 @@
             ($alertSource['available'] ?? true) === false
             || !is_array($alertSource['types'] ?? null)
         ) {
+            // Missing alert sources must remain explicitly unavailable; omit
+            // the Manager's zero-only watch rows when no live activity exists.
+            $pmdR37AlertsEmpty = !(
+                ($pmdRoleMode ?? '') === 'manager'
+                && (
+                    (int)($analyticsLast30['live_operations']['live_order_count'] ?? 0) > 0
+                    || (int)($analyticsLast30['calendar_events']['count'] ?? 0) > 0
+                )
+            );
             $analyticsBodies['alerts'] = $analyticsEmpty($alertSource);
         } else {
             $rows = [];
