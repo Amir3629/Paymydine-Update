@@ -189,6 +189,15 @@ function demoSubmitted(previous: TableOrderState): TableOrderState {
   }
 }
 
+// PMD_V2_PERF_R47_ORDER_SNAPSHOT
+// Keep the existing React state reference when the full order payload is
+// unchanged. Never omit payment/status/item fields from this comparison.
+function sameOrderSnapshotR47<T>(previous: T, next: T): boolean {
+  if (previous === next) return true
+  try { return JSON.stringify(previous) === JSON.stringify(next) }
+  catch { return false }
+}
+
 export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: CustomerBootstrap; children: ReactNode }) {
   const isPreview = bootstrap.tenant.id === 'preview'
   const isKiosk = bootstrap.runtime?.mode === 'kiosk'
@@ -218,6 +227,9 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   const toastTimer = useRef<number | null>(null)
   const cartHydrated = useRef(false)
   const postPaymentReviewHandled = useRef(false)
+  // PMD_V2_PERF_R47_LATEST_REQUEST_WINS: a slow old poll must not overwrite
+  // the result of a more recent explicit post-payment refresh.
+  const orderRequestSeqR47 = useRef(0)
 
   const labels = useMemo(() => getLabels(locale), [locale])
   const direction = isRtlLocale(locale) ? 'rtl' : 'ltr'
@@ -460,12 +472,14 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
 
   const refreshOrder = useCallback(async () => {
     if (isPreview || (!bootstrap.table.id && !bootstrap.table.number && !bootstrap.table.qr)) return
+    const sequence = ++orderRequestSeqR47.current
     try {
       const session = guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
       if (!guestSessionId) setGuestSessionId(session)
       const next = await fetchTableOrdersState(bootstrap.table, session)
-      setCurrentDraft(next.draft)
-      setTableOrders(next.orders)
+      if (sequence !== orderRequestSeqR47.current) return
+      setCurrentDraft((current) => sameOrderSnapshotR47(current, next.draft) ? current : next.draft)
+      setTableOrders((current) => sameOrderSnapshotR47(current, next.orders) ? current : next.orders)
       setSelectedOrderId((current) => {
         if (current && next.orders.some((order) => order.orderId === current)) return current
         return next.orders.find((order) => order.totals.remainingAmount > 0)?.orderId || next.orders[0]?.orderId || null
@@ -478,9 +492,15 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   useEffect(() => {
     if (isPreview || (!bootstrap.table.id && !bootstrap.table.number && !bootstrap.table.qr)) return
     let cancelled = false
+    let polling = false
+    // PMD_V2_PERF_R47_POLL_SINGLE_FLIGHT
+    // Backpressure the scheduled 3s reads. Explicit post-payment refreshOrder()
+    // still invokes the canonical request, even while a poll is pending.
     const run = async () => {
-      if (cancelled || document.visibilityState === 'hidden') return
-      await refreshOrder()
+      if (cancelled || polling || document.visibilityState === 'hidden') return
+      polling = true
+      try { await refreshOrder() }
+      finally { polling = false }
     }
     void run()
     const timer = window.setInterval(run, 3000)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { CustomerBootstrap, MenuItem, TableOrderState } from '@/src/domain/model'
 import { localizeMenuItem } from '@/src/lib/i18n'
 import { getGuestSessionId } from '@/src/lib/client-api'
@@ -70,6 +70,32 @@ function consumeQrFromAddressBar(): void {
 // - clicking the cart action creates a payment-held order, never a kitchen order.
 // - existing payment UI settles that order; backend state releases it after paid.
 // - Staff/Cashier/Waiter orders remain shared and split-capable.
+// PMD_V2_PERF_R47_PRIVATE_ORDER_SNAPSHOT
+// Polling remains authoritative; identical full payloads should not invalidate
+// every menu and checkout subscriber in the React context tree.
+function sameFlowSnapshotR47<T>(previous: T, next: T): boolean {
+  if (previous === next) return true
+  try { return JSON.stringify(previous) === JSON.stringify(next) }
+  catch { return false }
+}
+
+// PMD_V2_PERF_R47_SHARED_GUEST_RUNTIME
+// Previously this exported hook created a complete R60T useState/useEffect
+// tree EACH TIME any Theme, toolbar or modal called useMenuRuntime().
+// The real menu must have ONE guest visit lease, ONE private order poller,
+ // and ONE coherent order selection shared by all consumers.
+type SmartRuntimeValue = ReturnType<typeof useBaseMenuRuntime>
+const SmartRuntimeValueContext = createContext<SmartRuntimeValue | null>(null)
+
+function SmartRuntimeValueProvider({ children }: { children: ReactNode }) {
+  const value = useSmartMenuRuntimeValue()
+  return (
+    <SmartRuntimeValueContext.Provider value={value}>
+      {children}
+    </SmartRuntimeValueContext.Provider>
+  )
+}
+
 export function MenuRuntimeProvider({
   bootstrap,
   children,
@@ -79,18 +105,27 @@ export function MenuRuntimeProvider({
 }) {
   return (
     <BaseMenuRuntimeProvider bootstrap={bootstrap}>
-      {children}
+      <SmartRuntimeValueProvider>{children}</SmartRuntimeValueProvider>
     </BaseMenuRuntimeProvider>
   )
 }
 
-export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
+export function useMenuRuntime(): SmartRuntimeValue {
+  const value = useContext(SmartRuntimeValueContext)
+  if (!value) throw new Error('useMenuRuntime must be used inside MenuRuntimeProvider')
+  return value
+}
+
+function useSmartMenuRuntimeValue(): SmartRuntimeValue {
   const base = useBaseMenuRuntime()
   const isR60tActive = !base.isPreview && Boolean(base.bootstrap.features.tableOrdering && (base.bootstrap.table.id || base.bootstrap.table.number || base.bootstrap.table.qr))
   const [flowGuestSessionId, setFlowGuestSessionId] = useState('')
   const [flowOrders, setFlowOrders] = useState<FlowOrder[]>([])
   const [flowSelectedOrderId, setFlowSelectedOrderId] = useState<number | null>(null)
   const [flowLoading, setFlowLoading] = useState(false)
+  // PMD_V2_PERF_R47_LATEST_PRIVATE_REQUEST: an older response may not replace
+  // the most recent payment/visit state or expire a newer valid session.
+  const flowRequestSeqR47 = useRef(0)
   // PMD_R62_DIRECT_SELF_PAYMENT
   // Mount checkout only after the prepared self-order is committed as selected.
   const [flowCheckoutOrderId, setFlowCheckoutOrderId] = useState<number | null>(null)
@@ -165,10 +200,12 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
 
   const refreshFlow = useCallback(async () => {
     if (!isR60tActive || !flowGuestSessionId) return
+    const sequence = ++flowRequestSeqR47.current
     try {
       const next = await fetchGuestOrdersState(base.bootstrap.table, flowGuestSessionId)
+      if (sequence !== flowRequestSeqR47.current) return
       const orders = next.orders as FlowOrder[]
-      setFlowOrders(orders)
+      setFlowOrders((current) => sameFlowSnapshotR47(current, orders) ? current : orders)
       setFlowSelectedOrderId((current) => {
         if (current && orders.some((order) => order.orderId === current)) return current
         const awaitingOwnPayment = orders.find((order) => order.orderOrigin === 'guest_self' && order.totals.remainingAmount > 0)
@@ -176,6 +213,7 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
         return awaitingOwnPayment?.orderId || sharedOpen?.orderId || orders[0]?.orderId || null
       })
     } catch (error) {
+      if (sequence !== flowRequestSeqR47.current) return
       if (error instanceof GuestTableSessionError && error.code === 'TABLE_SESSION_EXPIRED') {
         try { window.localStorage.setItem(flowExpiredKey, '1') } catch {}
         setFlowGuestSessionId('')
@@ -190,13 +228,35 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
     }
   }, [base.bootstrap.table, base.clearCart, base.closeOverlay, flowExpiredKey, flowGuestSessionId, isR60tActive])
 
-  // Reuse the base runtime's single shared 3-second order polling cycle. The base
-  // state receives a fresh tableOrders array on every successful poll, so this
-  // effect refreshes the private R60T projection without introducing another timer.
+  // PMD_V2_PERF_R47_PRIVATE_POLL_INDEPENDENT
+  // R60T private orders must continue updating even when the base polling
+  // payload is unchanged (and now retains stable React identity). Poll the
+  // private authority directly, without chaining a second request to every
+  // public order state commit. Prevent overlapping scheduled refreshes;
+  // payment-success/manual refreshFlow() is intentionally never suppressed.
   useEffect(() => {
     if (!isR60tActive || !flowGuestSessionId) return
-    void refreshFlow()
-  }, [base.tableOrders, flowGuestSessionId, isR60tActive, refreshFlow])
+    let cancelled = false
+    let polling = false
+    const run = async () => {
+      if (cancelled || polling || document.visibilityState === 'hidden') return
+      polling = true
+      try { await refreshFlow() }
+      finally { polling = false }
+    }
+    void run()
+    const timer = window.setInterval(run, 3000)
+    const onFocus = () => { void run() }
+    const onVisible = () => { if (document.visibilityState === 'visible') void run() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [flowGuestSessionId, isR60tActive, refreshFlow])
 
   useEffect(() => {
     if (!isR60tActive || !flowCheckoutOrderId) return

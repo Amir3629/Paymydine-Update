@@ -845,30 +845,64 @@ function paymentMethodKey(method: { code: string; providerCode: string | null })
 // PMD_STRIPE_INLINE_PAYMENT_R35B
 // /api/v1/payments remains the primary list. PayPal's public runtime config is
 // a compatibility authority because some older payment-list payloads omit it.
+
+// PMD_V2_PERF_R47_PAYPAL_SINGLE_FLIGHT
+// PaymentPanel remounts on tab/order changes. Reuse only the public capability
+// lookup for a short time on the SAME tenant origin. This never caches a payment
+// session, transaction, capture result or user-specific authorization.
+const paypalFallbackCacheR47 = new Map<string, { at: number; promise: Promise<PaymentMethod | null> }>()
+function paypalFallbackOnceR47(): Promise<PaymentMethod | null> {
+  const host = window.location.host.toLowerCase()
+  const now = Date.now()
+  const cached = paypalFallbackCacheR47.get(host)
+  if (cached && now - cached.at < 30000) return cached.promise
+  const promise = fetch('/api/v1/payments/config-public', {
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error('PayPal public config unavailable')
+      return response.json()
+    })
+    .then((data) => {
+      const enabled = data?.success !== false
+        && Boolean(data?.paypalEnabled)
+        && Boolean(data?.paypalMethodEnabled)
+        && Boolean(String(data?.paypalClientId || '').trim())
+      return enabled
+        ? { code: 'paypal', name: 'PayPal', providerCode: 'paypal', enabled: true, priority: 90 } as PaymentMethod
+        : null
+    })
+    .catch(() => null)
+  paypalFallbackCacheR47.set(host, { at: now, promise })
+  if (paypalFallbackCacheR47.size > 8) {
+    const first = paypalFallbackCacheR47.keys().next().value
+    if (first) paypalFallbackCacheR47.delete(first)
+  }
+  return promise
+}
+
 function useRuntimePaymentChoices(payments: PaymentMethod[]): PaymentMethod[] {
   const [paypalFallback, setPaypalFallback] = useState<PaymentMethod | null>(null)
+  const hasExplicitPaypal = payments.some((entry) => String(entry.code || '').toLowerCase() === 'paypal')
 
   useEffect(() => {
+    // Explicitly disabled PayPal is still an explicit decision: never revive
+    // it via the compatibility fallback, and avoid a redundant network call.
+    if (hasExplicitPaypal) return
     let cancelled = false
-    fetch('/api/v1/payments/config-public', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      .then((response) => response.json().catch(() => ({})))
-      .then((data) => {
-        if (cancelled) return
-        const enabled = data?.success !== false
-          && Boolean(data?.paypalEnabled)
-          && Boolean(data?.paypalMethodEnabled)
-          && Boolean(String(data?.paypalClientId || '').trim())
-        setPaypalFallback(enabled ? { code: 'paypal', name: 'PayPal', providerCode: 'paypal', enabled: true, priority: 90 } : null)
-      })
-      .catch(() => { if (!cancelled) setPaypalFallback(null) })
+    void paypalFallbackOnceR47().then((method) => {
+      if (!cancelled) setPaypalFallback(method)
+    })
     return () => { cancelled = true }
-  }, [])
+  }, [hasExplicitPaypal])
 
   return useMemo(() => {
     const rows = payments.filter((entry) => entry.enabled !== false)
-    if (!paypalFallback || rows.some((entry) => String(entry.code).toLowerCase() === 'paypal')) return rows
+    if (!paypalFallback || hasExplicitPaypal) return rows
     return [...rows, paypalFallback].sort((a, b) => Number(a.priority || 0) - Number(b.priority || 0))
-  }, [payments, paypalFallback])
+  }, [payments, paypalFallback, hasExplicitPaypal])
 }
 
 // PMD_SPLIT_PAYMENT_SAFETY_R35
@@ -971,17 +1005,17 @@ function PaymentPanel({ order, mode, guestSessionId }: { order: TableOrderState;
   const requiresSelectedItems = splitMode === 'items' || splitMode === 'mine'
   const canStartPayment = Boolean(selectedMethod && payableEstimate > 0 && (!requiresSelectedItems || (selectedItemsPayload && selectedItemsPayload.length > 0)))
   const payerLabel = splitMode === 'full' ? null : `PMD R35 ${splitMode}`
+  // PMD_V2_PERF_R47_SELECTED_CARD_ONLY
+  // Never create a Worldline card session just because that method is offered.
+  // Prewarm only when the guest has actually selected Worldline Card.
   const canPrewarmWorldlineCard = settlementMode === 'pay-existing'
     && mode === 'payment'
+    && selectedCode === 'card'
+    && selectedProvider === 'worldline'
     && payableEstimate > 0
     && couponDiscount <= 0.0001
     && !couponCode.trim()
     && !selectedItemsPayload?.length
-    && paymentChoices.some((entry) => {
-      const code = String(entry.code || '').trim().toLowerCase()
-      const provider = String(entry.providerCode || '').trim().toLowerCase().replace(/[\s-]+/g, '_')
-      return code === 'card' && provider === 'worldline'
-    })
 
   const applyCoupon = async () => {
     if (mode === 'split') { setMessage('Coupons can be applied when paying the full remaining bill.'); return }

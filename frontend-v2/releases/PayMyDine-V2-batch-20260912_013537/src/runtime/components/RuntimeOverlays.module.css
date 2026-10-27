@@ -14,6 +14,17 @@
   backdrop-filter: blur(10px);
   cursor: pointer;
 }
+/* PMD_V2_PERF_R47_MOBILE_BACKDROP
+ * Full-viewport 10px blur is expensive on lower-powered phones.
+ * Preserve the dimmed modal backdrop while reducing mobile GPU work.
+ */
+@media (max-width: 759px) {
+  .backdrop {
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+}
+
 .sheet,
 .modal {
   position: relative;
