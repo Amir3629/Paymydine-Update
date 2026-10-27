@@ -52,6 +52,25 @@ check('unchanged R60T private snapshot preserves React identity', () => {
   assert.equal(compare([example], [copy()]), true);
   assert.equal(compare([example], [{ ...copy(), status: 'kitchen_released' }]), false);
 });
+check('ONE shared smart guest runtime for all menu, toolbar and checkout consumers', () => {
+  assert(smart.includes('PMD_V2_PERF_R47_SHARED_GUEST_RUNTIME'));
+  assert(smart.includes('const SmartRuntimeValueContext = createContext<SmartRuntimeValue | null>(null)'));
+  assert(smart.includes('function SmartRuntimeValueProvider({ children }'));
+  assert(smart.includes('const value = useSmartMenuRuntimeValue()'));
+  assert(smart.includes('<SmartRuntimeValueContext.Provider value={value}>'));
+  assert(smart.includes('<SmartRuntimeValueProvider>{children}</SmartRuntimeValueProvider>'));
+  const start = smart.indexOf('export function useMenuRuntime(): SmartRuntimeValue {');
+  const end = smart.indexOf('function useSmartMenuRuntimeValue(): SmartRuntimeValue {',start);
+  assert(start > 0 && end > start);
+  const consumer = smart.slice(start,end);
+  assert(consumer.includes('useContext(SmartRuntimeValueContext)'));
+  assert(!consumer.includes('useState('));
+  assert(!consumer.includes('useEffect('));
+  assert(!consumer.includes('useBaseMenuRuntime()'));
+  assert.equal(smart.split('function useSmartMenuRuntimeValue(): SmartRuntimeValue {').length-1,1);
+  assert.equal(smart.split('const flowRequestSeqR47 = useRef(0)').length-1,1);
+  assert(read('tsconfig.json').includes('SmartMenuRuntimeContext.tsx'));
+});
 check('scheduled base 3-second poll cannot overlap itself', () => {
   assert(base.includes('PMD_V2_PERF_R47_POLL_SINGLE_FLIGHT'));
   assert(base.includes("if (cancelled || polling || document.visibilityState === 'hidden') return"));
@@ -60,6 +79,14 @@ check('scheduled base 3-second poll cannot overlap itself', () => {
   assert(base.includes('window.setInterval(run, 3000)'));
   assert(base.includes('const refreshOrder = useCallback(async () => {'));
   assert(!base.includes('setTableOrders(next.orders)'));
+});
+check('latest explicit order refresh wins over older pending poll response', () => {
+  assert(base.includes('PMD_V2_PERF_R47_LATEST_REQUEST_WINS'));
+  assert(base.includes('const sequence = ++orderRequestSeqR47.current'));
+  assert(base.includes('if (sequence !== orderRequestSeqR47.current) return'));
+  assert(smart.includes('PMD_V2_PERF_R47_LATEST_PRIVATE_REQUEST'));
+  assert(smart.includes('const sequence = ++flowRequestSeqR47.current'));
+  assert(smart.includes('if (sequence !== flowRequestSeqR47.current) return'));
 });
 check('private R60T polling does not rely on public array identity', () => {
   assert(smart.includes('PMD_V2_PERF_R47_PRIVATE_POLL_INDEPENDENT'));
