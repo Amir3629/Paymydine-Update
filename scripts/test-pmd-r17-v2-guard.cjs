@@ -46,6 +46,11 @@ test('legacy string disabled:true',{success:true,data:{table_id:42,table_no:6,di
 test('missing/unknown table',{success:false,error:'Table not found'},false,false);
 test('QR number mismatch fails closed',{success:true,data:{table_id:42,table_no:7,status:1}},false,false);
 
+const healthSource = fs.readFileSync(path.join(root,'app/api/health/route.ts'),'utf8');
+assert(healthSource.includes("qrGuardRelease: 'r17f-disabled-table-active'"),
+  'R17F health identity must be compiled into the new V2 release');
+console.log('PASS R17F: new V2 health identity present in staged build sources.');
+
 const table = fs.readFileSync(path.join(root,'app/table/[tableId]/page.tsx'),'utf8');
 const home = fs.readFileSync(path.join(root,'app/page.tsx'),'utf8');
 assert(table.includes('bootstrap.table.disabled || !bootstrap.table.valid'),
