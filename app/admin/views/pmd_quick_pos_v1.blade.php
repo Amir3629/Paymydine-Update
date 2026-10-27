@@ -82,6 +82,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20261005-r19">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-compact-grid-reservation-r137.css?v=20261027-r137">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-native-reservation-r138.css?v=20261027-r138">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
     {{-- PMD_QPOS_RESERVATION_RAIL_R2: the POS side rail is separate from shared Map. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-qpos-reservation-rail-r2.css') }}?v=20261018-r2">
@@ -1218,7 +1219,7 @@ window.PMDQuickPOSConfig = {
         ).then(function () {
             return loadScript(
                 'pmd-qpos-reservations-r135',
-                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261027-r137',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261027-r138',
                 function () { return !!window.PMDQuickReservationsR136; }
             );
         });
