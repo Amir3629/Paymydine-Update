@@ -35,6 +35,14 @@ select {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* PMD_V2_PERF_R47_TOUCH_ACTION
+ * Remove legacy mobile double-tap delays without altering click handlers.
+ * Keep pan/zoom elsewhere, including the menu's scrollable regions.
+ */
+button {
+  touch-action: manipulation;
+}
+
 img,
 svg {
   display: block;
