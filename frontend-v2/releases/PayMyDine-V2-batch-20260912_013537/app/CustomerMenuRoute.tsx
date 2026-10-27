@@ -1,3 +1,4 @@
+import { PmdGuestTableInactiveR17 } from '@/src/runtime/components/PmdGuestTableInactiveR17'
 import { MenuRuntimeProvider } from '@/src/runtime/MenuRuntimeContext'
 import { GuestAiConcierge } from '@/src/runtime/components/GuestAiConcierge'
 import { ServiceOverlaySimplifier } from '@/src/runtime/components/ServiceOverlaySimplifier'
@@ -69,6 +70,17 @@ export async function CustomerMenuRoute({
           mode: 'customer' as const,
         },
       }
+
+  // PMD_V2_CUSTOMER_ROUTE_FAIL_CLOSED_R17C
+  // A physical table or QR must be verified before rendering any menu.
+  // Tableless and kiosk paths intentionally remain available.
+  const requestedTable = Boolean(context.tableId || context.tableNo || context.qr)
+  if (!isKiosk && requestedTable &&
+      (bootstrap.table.disabled || !bootstrap.table.valid)) {
+    const tableLabel = bootstrap.table.number || bootstrap.table.id ||
+      context.tableNo || context.tableId
+    return <PmdGuestTableInactiveR17 tableLabel={tableLabel} />
+  }
 
   const setup = bootstrap.setup
   const setupStatus = setup?.status

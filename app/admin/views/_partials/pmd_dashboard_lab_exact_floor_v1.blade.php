@@ -1549,9 +1549,8 @@ body.pmd-dashboard-lab-page
                 <header class="pmd-floor-registry-manager__header">
                     <div>
                         <h2 id="pmd-floor-registry-manager-title-v1">{{ $pmdFloorRegistryText['title'] }}</h2>
-                        <p>{{ $pmdFloorRegistryText['subtitle'] }}</p>
                     </div>
-                    <button type="button" class="pmd-floor-registry-manager__close" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}">
+                    <button type="button" class="pmd-floor-registry-manager__close" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}" style="background:#fff!important;background-color:#fff!important;background-image:none!important;border:1px solid #cbdde8!important;color:#244c45!important;-webkit-text-fill-color:#244c45!important;box-shadow:none!important;text-shadow:none!important;">
                         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
                     </button>
                 </header>
@@ -1563,7 +1562,7 @@ body.pmd-dashboard-lab-page
                     <div class="pmd-floor-registry-manager__error" data-pmd-floor-add-error hidden></div>
                 </div>
                 <footer class="pmd-floor-registry-manager__footer">
-                    <button type="button" class="pmd-floor-registry-manager__cancel" data-pmd-floor-add-close>{{ $pmdFloorRegistryText['cancel'] }}</button>
+                    <button type="button" class="pmd-floor-registry-manager__cancel" data-pmd-floor-add-close style="background:#fff!important;background-color:#fff!important;background-image:none!important;border:1px solid #cbdde8!important;color:#244c45!important;-webkit-text-fill-color:#244c45!important;box-shadow:none!important;text-shadow:none!important;">{{ $pmdFloorRegistryText['cancel'] }}</button>
                     <button type="button" class="pmd-floor-registry-manager__save" data-pmd-floor-add-save>{{ $pmdFloorRegistryText['create'] }}</button>
                 </footer>
             </section>
