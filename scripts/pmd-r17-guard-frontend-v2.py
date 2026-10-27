@@ -13,6 +13,8 @@ MODEL = 'src/domain/model.ts'
 TABLE = 'app/table/[tableId]/page.tsx'
 HOME = 'app/page.tsx'
 CUSTOMER_ROUTE = 'app/CustomerMenuRoute.tsx'
+HEALTH = 'app/api/health/route.ts'
+GUARD_RELEASE = "r17f-disabled-table-active"
 FALLBACK = 'src/runtime/components/PmdGuestTableInactiveR17.tsx'
 
 TABLE_COMPONENT = """import type { CSSProperties } from 'react'
@@ -220,8 +222,26 @@ def change_customer_route(text: str) -> tuple[str, bool]:
     ), True
 
 
+def change_health(text: str) -> str:
+    """Expose a build-specific, additive health marker for rollout verification.
+
+    The health probe MUST reject an old Next process that returns the same
+    service name during PM2 reload. This marker is compiled into the new
+    build and cannot be supplied by the old release.
+    """
+    anchor = "      service: 'paymydine-frontend-v2',"
+    marker = "      qrGuardRelease: '" + GUARD_RELEASE + "',"
+    if marker in text:
+        if text.count(marker) != 1 or text.count(anchor) != 1:
+            raise RuntimeError('STOP: V2 QR health release marker ambiguous')
+        return text
+    if text.count(anchor) != 1 or text.count('return Response.json(') != 1:
+        raise RuntimeError('STOP: V2 health response differs; preserve current API')
+    return text.replace(anchor, anchor + '\\n' + marker, 1)
+
+
 def proposed(root: Path) -> dict[str, str]:
-    targets = [NORMALIZER, MODEL, TABLE, HOME]
+    targets = [NORMALIZER, MODEL, TABLE, HOME, HEALTH]
     original = {}
     for rel in targets:
         file = root / rel
@@ -238,6 +258,7 @@ def proposed(root: Path) -> dict[str, str]:
         original[CUSTOMER_ROUTE] = file.read_text(encoding='utf-8')
 
     changed = dict(original)
+    changed[HEALTH] = change_health(original[HEALTH])
     changed[NORMALIZER] = change_normalizer(original[NORMALIZER])
     changed[MODEL] = change_model(original[MODEL])
     changed[TABLE], old_table = change_table_route(original[TABLE])
