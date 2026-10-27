@@ -81,6 +81,7 @@
          shell/table rail as the visual authority. --}}
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-reservation-composer-v1.css?v=20260928-r129">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20261005-r19">
+<link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-compact-grid-reservation-r137.css?v=20261027-r137">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
     {{-- PMD_QPOS_RESERVATION_RAIL_R2: the POS side rail is separate from shared Map. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-qpos-reservation-rail-r2.css') }}?v=20261018-r2">
@@ -459,9 +460,9 @@
             </label>
 
             <div class="pmd-qres-filter-row">
-                <button type="button" class="is-active" data-qres-filter="all">All</button>
-                <button type="button" data-qres-filter="upcoming">Upcoming</button>
-                <button type="button" data-qres-filter="past">Past</button>
+                <button type="button" class="is-active" data-qres-filter="all" aria-pressed="true">All</button>
+                <button type="button" data-qres-filter="upcoming" aria-pressed="false">Upcoming</button>
+                <button type="button" data-qres-filter="past" aria-pressed="false">Past</button>
             </div>
 
             <div class="pmd-qres-table-filter" data-qres-table-filter>
@@ -1217,7 +1218,7 @@ window.PMDQuickPOSConfig = {
         ).then(function () {
             return loadScript(
                 'pmd-qpos-reservations-r135',
-                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261019-calendar-r1',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261027-r137',
                 function () { return !!window.PMDQuickReservationsR136; }
             );
         });

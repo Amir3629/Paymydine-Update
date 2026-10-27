@@ -59,6 +59,7 @@
     selectedTableName: '',
     tableScope: 'all',
     search: '',
+    filter: 'all',
     requestId: 0,
     requestController: null,
     loading: false,
@@ -341,6 +342,8 @@
   function filteredRows() {
     var needle = state.search.toLowerCase();
     return state.rows.filter(function (row) {
+      if (state.filter === 'upcoming' && rowIsPast(row)) return false;
+      if (state.filter === 'past' && !rowIsPast(row)) return false;
       if (!needle) return true;
 
       var haystack = [
@@ -1710,9 +1713,12 @@
       }
     }
 
-    quickForm.querySelectorAll('input[name="assignment_mode"]').forEach(function (radio) {
-      radio.checked = radio.value === mode;
-    });
+    // R137: the canonical Composer replaces this retired inline quick form.
+    if (quickForm) {
+      quickForm.querySelectorAll('input[name="assignment_mode"]').forEach(function (radio) {
+        radio.checked = radio.value === mode;
+      });
+    }
   }
 
   function scheduleQuickRecommendation(delay) {
@@ -1839,7 +1845,54 @@
   }
 
   function openQuickEditor(reservationId, selectedTime) {
-    if (!quickEditor || !quickForm) return;
+    // R137: Quick POS embeds the canonical Composer, not the retired inline editor.
+    // Preserve the server-owned reservation/availability/save contract.
+    var composer = window.PMDReservationComposerV1;
+    if (composer && typeof composer.open === 'function') {
+      var composerId = Number(reservationId || 0);
+      var composerRow = composerId ? rowById(composerId) : null;
+      var composerFloor = currentFloorMeta();
+      var tableIds = !composerId && state.tableScope === 'selected' && state.selectedTableId
+        ? [state.selectedTableId]
+        : [];
+      var nextContext = {
+        version: 1,
+        mode: composerId ? 'edit' : 'create',
+        source: 'quick-pos-reservations-r136',
+        reservationId: composerId || null,
+        selectedDate: composerRow && composerRow.reserve_date
+          ? String(composerRow.reserve_date)
+          : state.date,
+        selectedTime: composerId ? null : (selectedTime || null),
+        duration: null,
+        tableIds: tableIds,
+        tableNames: tableIds.length && state.selectedTableName
+          ? [state.selectedTableName]
+          : [],
+        floorId: composerId ? '' : (composerFloor.id || ''),
+        floorName: composerId ? '' : (composerFloor.name || ''),
+        floorLocked: tableIds.length > 0,
+        locationId: quickLocationId() || null,
+        returnView: 'hour',
+        fallbackUrl: '/admin/reservations/create'
+      };
+
+      return Promise.resolve()
+        .then(function () {
+          return composer.open(nextContext, document.activeElement || null);
+        })
+        .catch(function (error) {
+          console.error('[PMD Quick POS R137] Reservation Composer open failed', error);
+          toast('Reservation could not be opened. Please retry.', true);
+        });
+    }
+
+    // Keep older inline hosts functional, but never silently do nothing.
+    if (!quickEditor || !quickForm) {
+      console.error('[PMD Quick POS R137] Reservation Composer missing');
+      toast('Reservations are temporarily unavailable. Please reload.', true);
+      return;
+    }
 
     var id = Number(reservationId || 0);
     var row = id ? rowById(id) : null;
@@ -2142,6 +2195,23 @@
 
   document.addEventListener('click', function (event) {
     if (state.workspace !== 'reservations') return;
+
+    var timeFilter = event.target && event.target.closest
+      ? event.target.closest('[data-qres-filter]')
+      : null;
+    if (timeFilter && root.contains(timeFilter)) {
+      event.preventDefault();
+      var requestedFilter = String(timeFilter.getAttribute('data-qres-filter') || 'all');
+      if (['all', 'upcoming', 'past'].indexOf(requestedFilter) === -1) return;
+      state.filter = requestedFilter;
+      root.querySelectorAll('[data-qres-filter]').forEach(function (button) {
+        var active = button.getAttribute('data-qres-filter') === requestedFilter;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      queueRender();
+      return;
+    }
 
     var guaranteeCharge = event.target && event.target.closest
       ? event.target.closest('[data-qres-guarantee-charge]')

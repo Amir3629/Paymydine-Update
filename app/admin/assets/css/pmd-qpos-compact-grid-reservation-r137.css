@@ -1,0 +1,63 @@
+/* PMD_QPOS_DENSE_MENU_AND_RESERVATION_SWITCH_R137
+ * Narrowly scoped desktop web POS adjustments.
+ * Keep the existing full-image square card, table rail and checkout untouched.
+ * Grid auto tracks must use intrinsic content size: 100 items cannot shrink
+ * square cards into 40px rows inside the fixed-height catalog.
+ */
+@media (min-width: 821px) {
+  #pmd-quick-pos[data-workspace="pos"] .pmd-qpos-catalog .pmd-qpos-product-grid {
+    grid-auto-rows: max-content !important; /* Override inherited fixed-height grid track behavior. */
+    align-content: start;
+    column-gap: 6px !important; /* Slightly tighter; cards become a few px wider. */
+    row-gap: 7px !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+  }
+
+  #pmd-quick-pos[data-workspace="pos"] .pmd-qpos-catalog .pmd-qpos-product {
+    min-height: 164px !important; /* No squashed food cards on long menus. */
+    aspect-ratio: 1 / 1 !important;
+  }
+}
+
+/* Match PayMyDine's established three-way segmented switches. */
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-filter-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 4px;
+  margin: 0 10px 9px;
+  padding: 4px;
+  border: 1px solid #d9e2de;
+  border-radius: 12px;
+  background: #f3f6f5;
+}
+
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-filter-row [data-qres-filter] {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #506059;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+  transition: background .12s ease, color .12s ease;
+}
+
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-filter-row [data-qres-filter]:hover {
+  background: #e3eee9;
+}
+
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-filter-row [data-qres-filter].is-active {
+  background: #00654f;
+  border-color: #00654f;
+  color: #fff;
+}
+
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-filter-row [data-qres-filter]:focus-visible {
+  outline: 2px solid #065f46;
+  outline-offset: 2px;
+}
