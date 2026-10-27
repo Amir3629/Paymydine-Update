@@ -155,7 +155,7 @@ new Function(composer);
 
 assert(quick.includes('function installQuickPOSComposerShellR138('), 'Canonical POS header bridge missing');
 assert(quick.includes('Back to reservation schedule'), 'Back to schedule control missing');
-assert(quick.includes('is-inline-composer-r139'), 'Draft-preserving inline guard missing');
+assert(quick.includes('pmd-qpos-inline-composer-r139'), 'Draft-preserving inline guard missing');
 assert(quick.includes('render();\n    }\n    root.setAttribute'), 'No-flash workspace render missing');
 assert(composer.includes('function pmdPOSInlineHostR139()'), 'Inline host resolver missing');
 assert(composer.includes('wasInlineR139'), 'Close-to-schedule restoration missing');
