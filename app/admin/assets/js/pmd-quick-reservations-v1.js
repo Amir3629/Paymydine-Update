@@ -1844,6 +1844,97 @@
     syncQuickTableUI();
   }
 
+  /*
+   * PMD_QPOS_NATIVE_RESERVATION_DRAWER_R138
+   * POS-only presentation shell. We mount a heading/close control alongside
+   * the SAME canonical Composer form; server validation, table availability,
+   * save handlers and all actual input elements remain unchanged.
+   */
+  function installQuickPOSComposerShellR138(nextContext) {
+    var composerRoot = document.getElementById('pmd-reservation-composer-v1');
+    var composerForm = composerRoot && composerRoot.querySelector('#pmd-reservation-composer-form-v1');
+    var content = composerForm && composerForm.querySelector('[data-pmd-composer-content]');
+    if (!composerRoot || !composerForm || !content) return null;
+
+    composerRoot.classList.add('pmd-qpos-quick-composer-r138');
+    var header = composerForm.querySelector('[data-pmd-qpos-quick-header-r138]');
+
+    function syncHeaderFromFields() {
+      var copy = header && header.querySelector('[data-pmd-qpos-quick-context-r138]');
+      if (!copy) return;
+      var date = composerForm.querySelector('[name="reserve_date"]');
+      var time = composerForm.querySelector('[name="reserve_time"]');
+      var dateValue = date && date.value ? date.value : '';
+      var timeValue = time && time.value ? time.value : '';
+      var parts = [];
+      if (dateValue) parts.push(formatDate(dateValue));
+      if (timeValue) parts.push(timeValue);
+      if (parts.length) copy.textContent = parts.join(' · ');
+    }
+
+    if (!header) {
+      header = document.createElement('header');
+      header.className = 'pmd-qpos-quick-header-r138';
+      header.setAttribute('data-pmd-qpos-quick-header-r138', '');
+      header.innerHTML =
+        '<div class="pmd-qpos-quick-header-copy-r138">' +
+          '<span class="pmd-qpos-quick-kicker-r138">QUICK POS / RESERVATIONS</span>' +
+          '<h2 data-pmd-qpos-quick-title-r138>New reservation</h2>' +
+          '<p data-pmd-qpos-quick-context-r138>Reservation desk</p>' +
+        '</div>' +
+        '<button type="button" class="pmd-qpos-quick-close-r138" ' +
+          'data-pmd-qpos-quick-close-r138 aria-label="Close quick reservation">' +
+          '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
+            '<path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" ' +
+            'stroke-width="2" stroke-linecap="round"/>' +
+          '</svg>' +
+        '</button>';
+      composerForm.insertBefore(header, content);
+
+      header.querySelector('[data-pmd-qpos-quick-close-r138]').addEventListener('click', function () {
+        var cancel = composerForm.querySelector('[data-pmd-composer-cancel]');
+        if (cancel) {
+          cancel.click(); // Reuse the canonical close/soft-draft path.
+        } else if (
+          window.PMDReservationComposerV1 &&
+          typeof window.PMDReservationComposerV1.close === 'function'
+        ) {
+          window.PMDReservationComposerV1.close(false);
+        }
+      });
+
+      composerForm.addEventListener('change', function (event) {
+        var target = event && event.target;
+        var name = String(target && target.name || '');
+        if (name === 'reserve_date' || name === 'reserve_time') {
+          syncHeaderFromFields();
+        }
+      });
+    }
+
+    var title = header.querySelector('[data-pmd-qpos-quick-title-r138]');
+    if (title) {
+      title.textContent = nextContext.mode === 'edit'
+        ? 'Edit reservation'
+        : 'New reservation';
+    }
+
+    var details = [];
+    if (nextContext.selectedDate) {
+      details.push(formatDate(nextContext.selectedDate));
+    }
+    if (nextContext.selectedTime) {
+      details.push(String(nextContext.selectedTime));
+    }
+    if (Array.isArray(nextContext.tableNames) && nextContext.tableNames.length) {
+      details.push('Table ' + nextContext.tableNames.join(' + '));
+    }
+    var context = header.querySelector('[data-pmd-qpos-quick-context-r138]');
+    if (context) context.textContent = details.join(' · ') || 'Reservation desk';
+
+    return syncHeaderFromFields;
+  }
+
   function openQuickEditor(reservationId, selectedTime) {
     // R137: Quick POS embeds the canonical Composer, not the retired inline editor.
     // Preserve the server-owned reservation/availability/save contract.
@@ -1877,9 +1968,15 @@
         fallbackUrl: '/admin/reservations/create'
       };
 
+      var refreshQuickHeader = installQuickPOSComposerShellR138(nextContext);
+
       return Promise.resolve()
         .then(function () {
           return composer.open(nextContext, document.activeElement || null);
+        })
+        .then(function (response) {
+          if (refreshQuickHeader) refreshQuickHeader();
+          return response;
         })
         .catch(function (error) {
           console.error('[PMD Quick POS R137] Reservation Composer open failed', error);
