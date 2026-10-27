@@ -67,8 +67,11 @@ mkdir -p "$TMP"
 git show "${REV}:scripts/pmd-r17-guard-frontend-v2.py" > "$TMP/v2-guard.py"
 git show "${REV}:scripts/test-pmd-r17-v2-guard.cjs" > "$TMP/test-v2.cjs"
 git show "${REV}:scripts/test-pmd-r17e-next-isolated-deps.sh" > "$TMP/test-next-deps.sh"
+git show "${REV}:scripts/pmd-v2-health-identity-r17f.cjs" > "$TMP/health-identity.cjs"
 python3 -m py_compile "$TMP/v2-guard.py"
 node --check "$TMP/test-v2.cjs"
+node --check "$TMP/health-identity.cjs"
+node "$TMP/health-identity.cjs" --self-test
 bash -n "$TMP/test-next-deps.sh"
 bash "$TMP/test-next-deps.sh"
 
@@ -178,7 +181,7 @@ echo "PASS R17D DISK: resolved dependencies ${DEPS_KB} KiB; build and rollback h
 PREFLIGHT="$TMP/preflight"
 mkdir -p "$PREFLIGHT"
 for rel in package.json src/server/normalize.ts src/domain/model.ts \
-  'app/table/[tableId]/page.tsx' app/page.tsx; do
+  'app/table/[tableId]/page.tsx' app/page.tsx 'app/api/health/route.ts'; do
   mkdir -p "$PREFLIGHT/$(dirname "$rel")"
   cp -p "$LIVE/$rel" "$PREFLIGHT/$rel"
 done
@@ -372,19 +375,50 @@ mv "$READY_BUILD" "$LIVE/.next"
 READY_BUILD=""
 NEW_BUILD=1
 pm2 reload "$SERVICE" --update-env
-pm2 jlist | node -e '
+
+# PMD_R17F_HEALTH_READINESS_GATE
+# PM2 'online' is not HTTP readiness. A Next 16 SSR process can take several
+# seconds to bind port 3002 after reload. Require two consecutive responses
+# from the NEW compiled QR guard build, not merely the old service's health.
+# Never roll back because of one immediate ECONNREFUSED.
+ATTEMPTS=45
+STREAK=0
+READY=0
+echo '== WAIT FOR REAL R17F V2 HTTP READINESS (up to 90 seconds) =='
+for ((attempt=1;attempt<=ATTEMPTS;attempt++)); do
+  RAW_HEALTH="$(curl -fsS --connect-timeout 2 --max-time 4 \
+    http://127.0.0.1:3002/api/health 2>/dev/null)" || RAW_HEALTH=""
+  if [[ -n "$RAW_HEALTH" ]] && printf '%s' "$RAW_HEALTH" | node "$TMP/health-identity.cjs" >/dev/null 2>&1; then
+    STREAK=$((STREAK+1))
+    if [[ "$STREAK" -ge 2 ]]; then
+      if pm2 jlist | node -e '
 let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
-  const p=JSON.parse(s).filter(p=>p.name===process.argv[1]);
+  let rows=[];try{rows=JSON.parse(s)}catch(e){process.exit(2)}
+  const p=rows.filter(x=>x.name===process.argv[1]);
   if(p.length!==1 || p[0].pm2_env?.status!=="online")process.exit(1);
-  console.log("PASS: exact V2 PM2 service is online:",p[0].name);
-});' "$SERVICE"
-AFTER="$(curl -fsS --connect-timeout 3 --max-time 10 http://127.0.0.1:3002/api/health)"
-printf '%s' "$AFTER" | node -e '
-let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
-  let j={};try{j=JSON.parse(s)}catch(e){process.exit(1)}
-  if(j.service!=="paymydine-frontend-v2")process.exit(2);
-  console.log("PASS: reloaded V2 health remains correct");
-})'
+  console.log("PASS R17F: exact V2 PM2 process remains online:",p[0].name);
+});' "$SERVICE"; then
+        READY=1
+        break
+      fi
+      STREAK=0
+    fi
+  else
+    STREAK=0
+  fi
+  if (( attempt % 5 == 0 )); then
+    echo "R17F V2 readiness: attempt $attempt/$ATTEMPTS; waiting for exact new build..."
+  fi
+  if [[ "$attempt" -lt "$ATTEMPTS" ]]; then sleep 2; fi
+done
+
+if [[ "$READY" != 1 ]]; then
+  echo 'STOP R17F: Next.js did not report two consecutive verified NEW-build health responses.'
+  echo 'The installer will restore the original V2 sources and previous compiled .next.'
+  pm2 describe "$SERVICE" || true
+  exit 6
+fi
+echo 'PASS R17F: reloaded V2 HTTP health matches the new guarded QR build.'
 COMPLETED=1
 echo 'SUCCESS R17 V2: disabled/unverified table QR blocked in actual running Frontend V2.'
 echo "SOURCE BACKUP: $BACKUP"
