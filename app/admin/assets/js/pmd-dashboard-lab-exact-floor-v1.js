@@ -2236,161 +2236,110 @@
       return true;
     }
 
-    /* PMD_FLOOR_VISUAL_FLIGHT_R42
-     * Why R41 still jumped: multiple canonical Floor sheets enforce
-     * transform:translate(-50%,-50%) !important, sometimes with
-     * animation:none!important. A Web Animation on those *real* table
-     * transforms cannot reliably override that cascade (Safari included).
+    /* PMD_NATIVE_FLOOR_TRANSLATE_R43
+     * R42 viewport ghosts LOST native table styling and duplicated labels.
+     * The real tables retain permanent transform:translate(-50%,-50%)
+     * !important. Web Animations of the independent CSS 'translate'
+     * longhand compose with this transform without overriding it.
      *
-     * For a deliberate row/full click only, briefly render visual copies
-     * in VIEWPORT coordinates. Hide the original table buttons, but retain
-     * their real DOM, API state, hit testing/drag implementation and final
-     * canonical positions. After render -> calibration -> fit, animate the
-     * copies' pixel left/top/size to the newly measured screen positions,
-     * then remove the copies and reveal the real buttons at the SAME spot.
-     * No data refresh, first paint or staff/operational change uses ghosts.
+     * We animate the REAL final DOM table, not a clone. No duplicate IDs,
+     * no temporary rounded badges, no change to table status or saved x/y.
+     * On unsupported browsers we prefer a correct final table over a
+     * synthetic visual that might corrupt a payment/reservation surface.
      */
     var floorViewSnapshotR41 = null;
     var floorViewCleanupTimerR41 = 0;
-    var floorFlightR42 = null;
-    function clearFloorFlightR42() {
-      if (floorFlightR42 && floorFlightR42.host &&
-          floorFlightR42.host.parentNode) {
-        floorFlightR42.host.parentNode.removeChild(floorFlightR42.host);
-      }
-      floorFlightR42 = null;
-      root.classList.remove('pmd-r42-floor-flight-active');
-    }
-    function startFloorFlightR42(snapshot) {
-      if (!snapshot || !snapshot.cards || !snapshot.cards.length ||
-          !document.body || !document.createElement ||
-          (window.matchMedia &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches)) {
-        return null;
-      }
-      var originals = Array.from(canvas.querySelectorAll('[data-floor-table]'));
-      var host = document.createElement('div');
-      host.className = 'pmd-floor-v1 pmd-r42-floor-flight';
-      host.setAttribute('aria-hidden', 'true');
-      var entries = [];
+    var floorMotionAnimationsR43 = [];
 
-      snapshot.cards.forEach(function (card, index) {
-        var original = originals[index];
-        var rect = card.rect;
-        if (!original || !card.clone || !rect ||
-            !(rect.width > 0 && rect.height > 0)) return;
-        var copy = card.clone;
-        copy.classList.add('pmd-r42-floor-ghost');
-        copy.removeAttribute('data-floor-table');
-        copy.removeAttribute('data-floor-members');
-        // Styling is copied from the original below. Do not inherit the
-        // legacy disabled-status transform:none/translate !important rules.
-        copy.removeAttribute('data-status');
-        copy.removeAttribute('id');
-        copy.setAttribute('aria-hidden', 'true');
-        copy.setAttribute('tabindex', '-1');
-        copy.querySelectorAll('[id], [tabindex], [aria-controls]').forEach(function (child) {
-          child.removeAttribute('id');
-          child.removeAttribute('tabindex');
-          child.removeAttribute('aria-controls');
-        });
-        // Copy actual status appearance before switching modes: a green
-        // available table remains green, not the unscoped CSS default.
-        var computed = window.getComputedStyle(original);
-        [
-          'background', 'background-color', 'color', 'border-color',
-          'border-width', 'border-style', 'border-radius', 'box-shadow',
-          'font-family', 'font-size', 'font-weight', 'padding', 'opacity'
-        ].forEach(function (property) {
-          var value = computed.getPropertyValue(property);
-          if (value) copy.style.setProperty(property, value, 'important');
-        });
-        copy.style.setProperty('position', 'fixed', 'important');
-        copy.style.setProperty('transform', 'none', 'important');
-        copy.style.setProperty('transform-origin', 'center', 'important');
-        copy.style.setProperty('margin', '0', 'important');
-        copy.style.setProperty('min-width', '0', 'important');
-        copy.style.setProperty('max-width', 'none', 'important');
-        copy.style.setProperty('min-height', '0', 'important');
-        copy.style.setProperty('max-height', 'none', 'important');
-        // These four properties are intentionally NOT !important: WAAPI
-        // animates pixel-space left/top/size without transform conflicts.
-        ['left','top','width','height'].forEach(function (property) {
-          copy.style.removeProperty(property);
-        });
-        copy.style.setProperty('left', rect.left + 'px');
-        copy.style.setProperty('top', rect.top + 'px');
-        copy.style.setProperty('width', rect.width + 'px');
-        copy.style.setProperty('height', rect.height + 'px');
-        host.appendChild(copy);
-        entries.push({id:card.id, node:copy, rect:rect});
+    function cancelFloorMotionR43() {
+      floorMotionAnimationsR43.forEach(function (animation) {
+        try {
+          if (animation && typeof animation.cancel === 'function') {
+            animation.cancel();
+          }
+        } catch (error) {
+          // A stale animation must never block the actual Floor.
+        }
       });
-
-      if (!entries.length) return null;
-      document.body.appendChild(host);
-      root.classList.add('pmd-r42-floor-flight-active');
-      return {host:host,entries:entries};
+      floorMotionAnimationsR43 = [];
     }
+
     function captureFloorViewR41() {
       if (!state.initialized || !canvas) return;
+      // Capture CURRENT painted rectangles before cancelling any previous
+      // native motion. Fast repeated clicks continue from the visible spot.
+      floorViewSnapshotR41 = transitionSnapshot();
+      cancelFloorMotionR43();
       if (floorViewCleanupTimerR41) {
         window.clearTimeout(floorViewCleanupTimerR41);
         floorViewCleanupTimerR41 = 0;
       }
-      clearFloorFlightR42();
-      floorViewSnapshotR41 = transitionSnapshot();
       if (!floorViewSnapshotR41) return;
-      floorFlightR42 = startFloorFlightR42(floorViewSnapshotR41);
       root.setAttribute('data-pmd-floor-user-view-transition', 'true');
-      var stageR41 = root.querySelector('[data-floor-stage]');
-      if (stageR41) stageR41.getBoundingClientRect();
     }
+
     function finishFloorViewR41() {
-      var snapshotR41 = floorViewSnapshotR41;
+      var snapshot = floorViewSnapshotR41;
       floorViewSnapshotR41 = null;
-      if (!snapshotR41) return;
-      var flight = floorFlightR42;
-      var duration = 420;
-      if (flight) {
-        var targets = new Map();
+      if (!snapshot) {
+        state.transitionReason = null;
+        return;
+      }
+      var duration = 380;
+      var supported = !!(
+        window.CSS &&
+        typeof window.CSS.supports === 'function' &&
+        window.CSS.supports('translate', '1px 1px')
+      );
+      var reduceMotion = !!(
+        window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      );
+      if (supported && !reduceMotion && canvas) {
         canvas.querySelectorAll('[data-floor-table]').forEach(function (node) {
-          targets.set(clean(node.getAttribute('data-floor-table')), node);
-        });
-        flight.entries.forEach(function (entry) {
-          var target = targets.get(entry.id);
-          if (!target || !entry.node || typeof entry.node.animate !== 'function') return;
-          var destination = target.getBoundingClientRect();
-          if (!(destination.width > 0 && destination.height > 0)) return;
-          var source = entry.rect;
+          if (!node || typeof node.animate !== 'function') return;
+          var target = node.getBoundingClientRect();
+          if (!(target.width > 0 && target.height > 0)) return;
+          var source = sourceForNewCard(node, snapshot);
+          if (!source) return;
+
+          var targetCenterX = target.left + target.width / 2;
+          var targetCenterY = target.top + target.height / 2;
+          // BoundingClientRect is in viewport pixels; CSS 'translate' is in
+          // the local coordinate space before a parent canvas zoom transform.
+          var scaleX = target.width / Math.max(node.offsetWidth || target.width, 1);
+          var scaleY = target.height / Math.max(node.offsetHeight || target.height, 1);
+          if (!(scaleX > 0 && scaleY > 0)) return;
+          var dx = (source.centerX - targetCenterX) / scaleX;
+          var dy = (source.centerY - targetCenterY) / scaleY;
+          if (!isFinite(dx) || !isFinite(dy) ||
+              (Math.abs(dx) < .75 && Math.abs(dy) < .75)) return;
           try {
-            entry.node.animate(
+            var animation = node.animate(
               [
-                {left:source.left+'px', top:source.top+'px',
-                 width:source.width+'px', height:source.height+'px'},
-                {left:destination.left+'px', top:destination.top+'px',
-                 width:destination.width+'px', height:destination.height+'px'}
+                {translate: dx.toFixed(3) + 'px ' + dy.toFixed(3) + 'px'},
+                {translate: '0px 0px'}
               ],
-              {duration:duration,easing:'cubic-bezier(.22,.75,.2,1)',fill:'forwards'}
+              {
+                duration:duration,
+                easing:'cubic-bezier(.22,.75,.2,1)',
+                fill:'none'
+              }
             );
+            floorMotionAnimationsR43.push(animation);
+            // 'fill:none' restores the canonical DOM geometry automatically.
           } catch (error) {
-            // Safari cannot leave originals concealed if animation fails.
-            entry.node.style.left = destination.left + 'px';
-            entry.node.style.top = destination.top + 'px';
-            entry.node.style.width = destination.width + 'px';
-            entry.node.style.height = destination.height + 'px';
+            // Safari fallback: correct real table at its final location.
           }
         });
-        // The operative table buttons were already positioned in the same
-        // turn; showing them only after the copies arrive prevents any snap.
-        state.transitionReason = null;
-      } else {
-        animateStructuralRender(snapshotR41);
       }
+
+      state.transitionReason = null;
       floorViewCleanupTimerR41 = window.setTimeout(function () {
-        clearFloorFlightR42();
         root.removeAttribute('data-pmd-floor-user-view-transition');
         floorViewCleanupTimerR41 = 0;
-      }, duration + 35);
+        floorMotionAnimationsR43 = [];
+      }, duration + 40);
     }
 
     function render() {
@@ -8342,6 +8291,20 @@ function saveLayout() {
     var busy = false;
     var busyPurpose = '';
     var currentMode = 'create';
+    // PMD_R45_TABLE_SAFETY: server truth; actions stay disabled on unknown
+    // safety state. Never trust status color or an old AJAX snapshot for writes.
+    var currentSafetyAllowedR45 = false;
+    var currentSafetyMessageR45 = '';
+    var safetyNoticeR45 = panel.querySelector('[data-pmd-r45-table-safety]');
+
+    function updateSafetyNoticeR45() {
+      if (!safetyNoticeR45) return;
+      var locked = currentMode === 'edit' && !currentSafetyAllowedR45;
+      safetyNoticeR45.hidden = !locked;
+      safetyNoticeR45.textContent = locked
+        ? (currentSafetyMessageR45 || 'Table status is not verified. Refresh before changing availability.')
+        : '';
+    }
 
     /*
      * PMD_FLOOR_TABLE_MANAGER_STAGED_BLUR_R32
@@ -8698,8 +8661,14 @@ function saveLayout() {
 
       panel.setAttribute('aria-busy', busy ? 'true' : 'false');
       saveButton.disabled = busy;
-      if (deleteButton) deleteButton.disabled = busy;
-      if (enabledToggleButton) enabledToggleButton.disabled = busy;
+      if (deleteButton) deleteButton.disabled = busy ||
+        (currentMode === 'edit' && !currentSafetyAllowedR45);
+      if (enabledToggleButton) {
+        var currentEnabledField = field('table_status');
+        enabledToggleButton.disabled = busy ||
+          (currentMode === 'edit' && !currentSafetyAllowedR45 &&
+            (!currentEnabledField || currentEnabledField.checked));
+      }
 
       Array.prototype.forEach.call(
         form.querySelectorAll('input,select,textarea'),
@@ -8808,6 +8777,10 @@ function saveLayout() {
         ? (panel.getAttribute('data-disable-label') || 'Disable table')
         : (panel.getAttribute('data-enable-label') || 'Enable table');
       enabledToggleButton.classList.toggle('is-enable-r39', !isEnabled);
+      enabledToggleButton.disabled = busy || (currentMode === 'edit' &&
+        isEnabled && !currentSafetyAllowedR45);
+      enabledToggleButton.title = enabledToggleButton.disabled && !busy
+        ? currentSafetyMessageR45 : '';
       enabledToggleButton.setAttribute(
         'aria-pressed',
         isEnabled ? 'false' : 'true'
@@ -8817,6 +8790,11 @@ function saveLayout() {
     function applyTable(table, mode) {
       currentMode = mode === 'edit' ? 'edit' : 'create';
       clearErrors();
+      currentSafetyAllowedR45 = currentMode === 'edit'
+        && table && table.can_remove === true && table.can_disable === true;
+      currentSafetyMessageR45 = table && table.safety_message
+        ? String(table.safety_message) : '';
+      updateSafetyNoticeR45();
 
       if (deleteButton) {
         deleteButton.hidden = !(
@@ -8826,6 +8804,9 @@ function saveLayout() {
           && asInt(table.table_id, 0) > 0
         );
         deleteButton.textContent = panel.getAttribute('data-delete-label') || 'Remove table';
+        deleteButton.disabled = busy || !currentSafetyAllowedR45;
+        deleteButton.title = !currentSafetyAllowedR45 ? currentSafetyMessageR45 : '';
+        deleteButton.setAttribute('aria-disabled', deleteButton.disabled ? 'true' : 'false');
       }
 
       var numberField = field('table_no');
@@ -9136,15 +9117,30 @@ function saveLayout() {
 
     // PMD_FLOOR_TABLE_DELETE_R36B
     function removeTable() {
-      if (busy || !deleteButton || deleteButton.hidden) return;
+      if (busy || !deleteButton || deleteButton.hidden ||
+          deleteButton.disabled || !currentSafetyAllowedR45) return;
 
       var tableId = asInt(field('table_id') && field('table_id').value, 0);
       if (tableId < 1) return;
 
       var confirmText = panel.getAttribute('data-delete-confirm')
-        || 'Remove this table permanently?';
-      if (!window.confirm(confirmText)) return;
+        || 'Remove this table permanently? Its QR code will stop working.';
+      if (!window.PMDFloorConfirmR45) {
+        showError(new Error('Confirmation dialog is not available. Refresh and retry.'));
+        return;
+      }
+      window.PMDFloorConfirmR45.open({
+        title: 'Remove table',
+        message: confirmText,
+        confirmLabel: 'Remove table',
+        trigger: deleteButton
+      }).then(function (confirmed) {
+        if (!confirmed || busy || !currentSafetyAllowedR45) return;
+        performRemoveTableR45(tableId);
+      });
+    }
 
+    function performRemoveTableR45(tableId) {
       clearErrors();
       setBusy(true);
       deleteButton.textContent = panel.getAttribute('data-deleting-label') || 'Removing…';

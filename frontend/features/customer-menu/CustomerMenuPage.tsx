@@ -396,7 +396,22 @@ function MenuContent() {
 
   const restaurantDisplayName = merchantSettings?.businessName || cmsSettings?.appName || 'PayMyDine'
 
-  if (shouldHoldThemeRender || (isLoading && apiMenuItems.length === 0 && menuItems.length === 0)) {
+  // R16: table-bound links must finish a fresh physical-table lookup before
+  // any cached theme/menu items can paint. This does not affect the root
+  // takeaway/delivery menu, which has no table context.
+  const requiresTableVerification = Boolean(
+    searchParams.get("table_id") || searchParams.get("table_no") ||
+    searchParams.get("table") || searchParams.get("qr") ||
+    (typeof window !== "undefined" && /^\\/table\\/[^/]+/.test(window.location.pathname))
+  )
+  const explicitTableBlock = Boolean(
+    tableInfo?.table_disabled || tableInfo?.disabled || tableInfo?.table_lookup_failed
+  )
+
+  if (
+    (shouldHoldThemeRender && !explicitTableBlock) ||
+    (isLoading && (requiresTableVerification || (apiMenuItems.length === 0 && menuItems.length === 0)))
+  ) {
     return (
       <div
         className="pmd-customer-page page--menu relative min-h-screen w-full"
@@ -453,6 +468,22 @@ function MenuContent() {
               Table {String(disabledTableLabel)}
             </div>
           ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  // R16: invalid or temporarily unreachable QR/table lookups are not
+  // permitted to fall back to a generic customer menu.
+  if (!isLoading && tableInfo?.table_lookup_failed) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f8fbf9] px-6 text-center text-[#16312a]">
+        <div className="w-full max-w-md rounded-[28px] border border-[#d7e6df] bg-white/95 px-7 py-8 shadow-[0_24px_64px_rgba(24,57,47,.10)]">
+          <img src="/brand/paymydine-logo.svg" alt="PayMyDine" className="mx-auto mb-5 h-[74px] w-[74px] object-contain" />
+          <h1 className="text-2xl font-extrabold tracking-[-0.025em] text-[#143c31]">We could not verify this table</h1>
+          <p className="mx-auto mt-3 max-w-[34ch] text-sm leading-6 text-[#65756f]">
+            Please scan the table QR again or ask a staff member for help.
+          </p>
         </div>
       </div>
     )

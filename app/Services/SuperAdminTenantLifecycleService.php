@@ -29,6 +29,8 @@ class SuperAdminTenantLifecycleService
         'categories', 'mealtimes', 'allergens', 'allergenables', 'stocks', 'stock_history',
         'igniter_coupons', 'coupons_history', 'gift_card_transactions', 'customers',
         'addresses', 'reviews', 'notifications',
+        // Never inherit another restaurant's staff notes or delivery receipts.
+        'pmd_owner_staff_hour_notes', 'pmd_owner_staff_hour_note_receipts', 
     ];
 
     public function create(array $data): array
@@ -285,6 +287,8 @@ class SuperAdminTenantLifecycleService
             DB::reconnect('mysql');
             $this->ensureWorkplaceSecuritySchema();
             $this->ensureMobileSyncSchema();
+            // Run only while mysql has been explicitly switched to this new tenant.
+            app(PmdOwnerStaffNotesTenantSchemaR13::class)->ensureCurrentTenant($database);
             $this->sanitizeTenantBusinessData($group);
             // R21: a cloned template is not "ready" merely because identity,
             // Menu and TLS work. Require core KDS, payments and order storage

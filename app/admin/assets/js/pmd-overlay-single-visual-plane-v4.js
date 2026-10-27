@@ -260,6 +260,18 @@
   function isModalRoot(el) {
     if (!el || el.nodeType !== 1 || !isVisible(el)) return false;
     if (el.classList && el.classList.contains(PLANE_CLASS)) return false;
+    // PMD_GENERAL_STAFF_NOTE_R15_SINGLE_OPEN_AUTHORITY
+    // This existing Bootstrap Staff Note has its own body-level backdrop
+    // and static Owner Calendar-style card. The console equalizer otherwise
+    // adds another Web Animations API translateY/scale opening motion, even
+    // if CSS animations and Bootstrap's fade are disabled. Exclude ONLY the
+    // explicitly R15-marked Staff Note, like the existing Table Manager
+    // exclusion. All other dialogs retain the normal equalizer behavior.
+    if (el.id === 'addGeneralStaffNoteModal' &&
+        el.getAttribute('data-pmd-general-note-r15') === '1') {
+      return false;
+    }
+
 
     /*
      * PMD_TABLE_MANAGER_SKIP_GLOBAL_PLANE_R32

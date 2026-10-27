@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Services\PmdTenantMenuBaselineR25;
 use App\Services\PmdTenantProductBaselineR1;
+use App\Services\PmdOwnerStaffNotesTenantSchemaR13;
 use Closure;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -264,6 +265,16 @@ class PmdTenantRuntimeGuardR1
                 ]);
             }
         } catch (\Throwable $error) {
+            try {
+                $notes = app(PmdOwnerStaffNotesTenantSchemaR13::class)->ensureTenantRecord($tenant);
+                Log::info('PMD new tenant Staff Notes schema finalized', [
+                    'database' => $database, 'created' => $notes['created'] ?? [],
+                ]);
+            } catch (\Throwable $error) {
+                Log::error('PMD new tenant Staff Notes schema finalize failed', [
+                    'database' => $database, 'message' => $error->getMessage(),
+                ]);
+            }
             // Tenant creation response must not be replaced by a baseline
             // diagnostic. Both baselines are safely re-runnable.
             Log::error('PMD new tenant baseline lookup failed', [

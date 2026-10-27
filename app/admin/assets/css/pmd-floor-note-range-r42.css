@@ -240,58 +240,26 @@ html body #addGeneralStaffNoteModal .modal-footer #generalStaffNoteSubmitBtn:is(
   border-color:#064b3c!important;
 }
 
-/* Floor ghost canvas exists only during a direct One row / Full Floor click.
-   It never participates in the persisted floor coordinate or API model. */
-html body > .pmd-r42-floor-flight.pmd-floor-v1 {
-  position:fixed!important;
-  inset:0!important;
-  z-index:10000!important;
-  display:block!important;
-  width:100vw!important;
-  height:100vh!important;
-  min-width:0!important;
-  min-height:0!important;
-  margin:0!important;
-  padding:0!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  background-image:none!important;
-  box-shadow:none!important;
-  overflow:visible!important;
-  transform:none!important;
-  pointer-events:none!important;
-}
-html body > .pmd-r42-floor-flight.pmd-floor-v1::before,
-html body > .pmd-r42-floor-flight.pmd-floor-v1::after {
-  content:none!important;
-  display:none!important;
-}
-html body > .pmd-r42-floor-flight.pmd-floor-v1 .pmd-r42-floor-ghost {
-  position:fixed!important;
-  display:flex!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:center!important;
-  box-sizing:border-box!important;
-  margin:0!important;
-  transform:none!important;
-  transition:none!important;
-  animation:none!important;
-  pointer-events:none!important;
-  visibility:visible!important;
-}
-html body.pmd-dashboard-lab-page
-#pmd-r2-shared-floor-canvas-v310.pmd-r42-floor-flight-active
-[data-floor-canvas] > [data-floor-table] {
-  visibility:hidden!important;
-}
-/* Preserve the native Floor and corner border. Never resurrect the
-   native .pmd-floor-v1::after alignment-guide blue overlay. */
+/* PMD_FLOOR_NATIVE_TRANSLATE_R43
+   R42's temporary copied table overlay was removed. All Floor controls,
+   status colors, IDs and original real table DOM remain visible throughout
+   the switch. The actual table's CSS translate is animated in JavaScript.
+   Keep the R41 blue pseudo-guide explicitly disabled.
+*/
 html body.pmd-dashboard-lab-page #pmd-r2-shared-floor-canvas-v310::after {
   content:none!important;
   display:none!important;
   background:transparent!important;
+}
+
+/* PMD_R44_DISABLE_STALE_GHOST
+   If an older R42 script is still cached for one refresh, do not
+   display detached copies with broken circle/number styles. Real
+   table elements always remain visible and their saved state is safe. */
+html body > .pmd-r42-floor-flight,
+html body > .pmd-r42-floor-flight .pmd-r42-floor-ghost {
+  display:none!important;
+  visibility:hidden!important;
 }
 
 /* Range: current real value at the TOP, then one tall bare vertical track.

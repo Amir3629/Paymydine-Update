@@ -211,4 +211,5 @@
   'Admin\\Models\\Staff_attendance_model' => 'app/admin/models/Staff_attendance_model.php',
   'Admin\\Controllers\\pmdmenuaiimport' => 'app/admin/controllers/Pmdmenuaiimport.php',
   'Admin\\Controllers\\KitchenDisplay' => 'app/admin/controllers/KitchenDisplay.php',
+  'Admin\\Controllers\\tables' => 'app/admin/controllers/Tables.php',
 );

@@ -1098,6 +1098,10 @@ body.pmd-dashboard-lab-page
                 data-pmd-floor-switcher
                 role="tablist"
                 aria-label="Floors"
+                {{-- R16_FLOOR_TOOLBAR_VISIBLE_SWITCHER: only Owner/Manager permitted by server. --}}
+                @if($pmdFloorCanManageTables)
+                    style="display:flex!important;visibility:visible!important;pointer-events:auto!important;"
+                @endif
                 @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
             >
                 @if($pmdR38ShowManagementFloorTab)
@@ -1124,6 +1128,8 @@ body.pmd-dashboard-lab-page
                         data-pmd-floor-add
                         aria-label="{{ $pmdFloorRegistryText['add_floor'] }}"
                         title="{{ $pmdFloorRegistryText['add_floor'] }}"
+                        {{-- R16_FLOOR_TOOLBAR_VISIBLE_ADD: override legacy R31 display:none. --}}
+                        style="display:inline-flex!important;visibility:visible!important;pointer-events:auto!important;"
                     >
                         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
                         <span>{{ $pmdFloorRegistryText['add_floor'] }}</span>
@@ -1168,6 +1174,10 @@ body.pmd-dashboard-lab-page
                 class="pmd-shared-floor-switcher__divider"
                 data-pmd-floor-switcher-divider
                 aria-hidden="true"
+                {{-- R16_FLOOR_TOOLBAR_VISIBLE_DIVIDER --}}
+                @if($pmdFloorCanManageTables)
+                    style="display:block!important;visibility:visible!important;"
+                @endif
                 @if(!$pmdShowFloorTabs && !$pmdFloorCanManageTables) hidden @endif
             ></span>
 
@@ -1496,9 +1506,6 @@ body.pmd-dashboard-lab-page
                             {{ $pmdFloorManageText['title'] }}
                         </h2>
 
-                        <p>
-                            {{ $pmdFloorManageText['subtitle'] }}
-                        </p>
                     </div>
 
                     <button
@@ -1546,6 +1553,8 @@ body.pmd-dashboard-lab-page
                     >
                         {{ $pmdFloorManageText['locked'] }}
                     </div>
+                    <div class="pmd-r45-floor-safety" role="status"
+                         data-pmd-floor-remove-safety-r45 hidden></div>
 
                     <div
                         class="pmd-floor-registry-manager__error"
@@ -1590,9 +1599,8 @@ body.pmd-dashboard-lab-page
                 <header class="pmd-floor-registry-manager__header">
                     <div>
                         <h2 id="pmd-floor-registry-manager-title-v1">{{ $pmdFloorRegistryText['title'] }}</h2>
-                        <p>{{ $pmdFloorRegistryText['subtitle'] }}</p>
                     </div>
-                    <button type="button" class="pmd-floor-registry-manager__close" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}">
+                    <button type="button" class="pmd-floor-registry-manager__close" data-pmd-floor-add-close aria-label="{{ $pmdFloorRegistryText['cancel'] }}" data-pmd-r17-close-neutral="1" style="background:#fff!important;background-color:#fff!important;background-image:none!important;border:1px solid #cbdde8!important;color:#244c45!important;-webkit-text-fill-color:#244c45!important;box-shadow:none!important;text-shadow:none!important;">
                         <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"></path></svg>
                     </button>
                 </header>
@@ -1604,7 +1612,7 @@ body.pmd-dashboard-lab-page
                     <div class="pmd-floor-registry-manager__error" data-pmd-floor-add-error hidden></div>
                 </div>
                 <footer class="pmd-floor-registry-manager__footer">
-                    <button type="button" class="pmd-floor-registry-manager__cancel" data-pmd-floor-add-close>{{ $pmdFloorRegistryText['cancel'] }}</button>
+                    <button type="button" class="pmd-floor-registry-manager__cancel" data-pmd-floor-add-close data-pmd-r17-cancel-neutral="1" style="background:#fff!important;background-color:#fff!important;background-image:none!important;border:1px solid #cbdde8!important;color:#244c45!important;-webkit-text-fill-color:#244c45!important;box-shadow:none!important;text-shadow:none!important;">{{ $pmdFloorRegistryText['cancel'] }}</button>
                     <button type="button" class="pmd-floor-registry-manager__save" data-pmd-floor-add-save>{{ $pmdFloorRegistryText['create'] }}</button>
                 </footer>
             </section>
@@ -1878,6 +1886,8 @@ body.pmd-dashboard-lab-page
                             <textarea rows="2" maxlength="1000" data-pmd-floor-table-field="floor_notes" placeholder="{{ $pmdFloorTableManagerText['notes_placeholder'] }}"></textarea>
                         </label>
                     </div>
+                    <div class="pmd-r45-table-safety" data-pmd-r45-table-safety
+                         role="status" hidden></div>
 
                     <div class="pmd-floor-table-manager__error" data-pmd-floor-table-manager-error hidden></div>
                 </form>

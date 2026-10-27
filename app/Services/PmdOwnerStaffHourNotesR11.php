@@ -19,14 +19,21 @@ final class PmdOwnerStaffHourNotesR11
     private const NOTES = 'pmd_owner_staff_hour_notes';
     private const RECEIPTS = 'pmd_owner_staff_hour_note_receipts';
 
+    /** All prerequisites are tenant-local. Missing staff rows are NOT missing tables. */
+    public function missingRequirements(): array
+    {
+        $required = [
+            self::NOTES, self::RECEIPTS, 'pmd_operational_people',
+            'staffs', 'staff_roles', 'users',
+        ];
+        return array_values(array_filter($required, static function ($table) {
+            return !Schema::hasTable($table);
+        }));
+    }
+
     public function ready(): bool
     {
-        return Schema::hasTable(self::NOTES)
-            && Schema::hasTable(self::RECEIPTS)
-            && Schema::hasTable('pmd_operational_people')
-            && Schema::hasTable('staffs')
-            && Schema::hasTable('staff_roles')
-            && Schema::hasTable('users');
+        return $this->missingRequirements() === [];
     }
 
     private function requireReady(): void
@@ -50,6 +57,8 @@ final class PmdOwnerStaffHourNotesR11
             ->where('account.is_activated', 1)
             ->select([
                 'staff.staff_id',
+                'staff.staff_name',
+                'person.display_name as person_name',
                 'role.code as role_code',
                 'role.name as role_name',
             ])
@@ -82,6 +91,25 @@ final class PmdOwnerStaffHourNotesR11
         );
     }
 
+    /**
+     * Only the authenticated restaurant Owner receives these names. A member
+     * option is tied to the same active Portal account as an acknowledgement.
+     */
+    public function memberOptions(int $locationId): array
+    {
+        return $this->staffRoster($locationId)
+            ->map(static function ($person): array {
+                $name = trim((string)($person->person_name ?: $person->staff_name ?: ''));
+                return [
+                    'code' => 'staff:'.(int)$person->staff_id,
+                    'name' => $name !== '' ? $name : 'Staff #'.(int)$person->staff_id,
+                    'role' => (string)($person->role_name ?: ''),
+                ];
+            })
+            ->sortBy(static fn ($member) => mb_strtolower($member['name']))
+            ->values()->all();
+    }
+
     public function publish(int $locationId, ?int $authorStaffId, array $input): array
     {
         $this->requireReady();
@@ -100,13 +128,20 @@ final class PmdOwnerStaffHourNotesR11
 
         $roster = $this->staffRoster($locationId);
         $possible = $roster->map(fn ($row) => strtolower(trim((string)$row->role_code)))->unique()->all();
+        $eligibleMembers = $roster->map(fn ($row) => (int)$row->staff_id)->all();
         foreach ($targets as $target) {
-            if ($target !== 'all' && !in_array($target, $possible, true)) {
-                throw ValidationException::withMessages(['roles' => 'Choose a role assigned to an active account in this restaurant.']);
+            if ($target === 'all') continue;
+            if (preg_match('/^staff:([1-9][0-9]*)$/', $target, $matches)) {
+                if (in_array((int)$matches[1], $eligibleMembers, true)) continue;
+            } elseif (in_array($target, $possible, true)) {
+                continue;
             }
+            throw ValidationException::withMessages(['roles' => 'Choose an active team member or role in this restaurant.']);
         }
         $recipients = $roster->filter(function ($row) use ($targets) {
-            return $targets === ['all'] || in_array(strtolower(trim((string)$row->role_code)), $targets, true);
+            return $targets === ['all']
+                || in_array(strtolower(trim((string)$row->role_code)), $targets, true)
+                || in_array('staff:'.(int)$row->staff_id, $targets, true);
         })->values();
         if (!$recipients->count()) {
             throw ValidationException::withMessages(['roles' => 'No active Staff Portal accounts match these roles.']);

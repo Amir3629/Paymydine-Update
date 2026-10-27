@@ -59,4 +59,37 @@
       };
     }
   };
+
+  /* PMD_NATIVE_FLOOR_TRANSLATE_R43: read-only post-click visual audit.
+   * Reports the REAL final table nodes and their browser animations.
+   */
+  window.PMDFloorR43 = {
+    version:'43.0.0',
+    audit:function () {
+      var root=document.getElementById('pmd-r2-shared-floor-canvas-v310');
+      var cards=root?
+        Array.prototype.slice.call(root.querySelectorAll('[data-floor-canvas] [data-floor-table]')):[];
+      return {
+        cssTranslateSupported:!!(window.CSS&&window.CSS.supports&&
+          window.CSS.supports('translate','1px 1px')),
+        mode:root&&root.classList.contains('is-strip-mode')?'row':'full',
+        realTableCount:cards.length,
+        detachedGhostCount:document.querySelectorAll('.pmd-r42-floor-ghost').length,
+        liveTableAnimations:cards.reduce(function(n,card) {
+          return n+(typeof card.getAnimations==='function'?card.getAnimations().length:0);
+        },0),
+        tables:cards.map(function(card) {
+          var c=window.getComputedStyle(card);
+          return {
+            id:card.getAttribute('data-floor-table'),
+            status:card.getAttribute('data-status'),
+            size:rectangle(card),
+            background:c.backgroundColor,
+            translate:c.translate,
+            transform:c.transform
+          };
+        })
+      };
+    }
+  };
 })();

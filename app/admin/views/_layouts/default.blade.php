@@ -9287,6 +9287,10 @@ html.pmd-waiter-dashboard-active .pmd-v18-unmerge {
 <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-note-range-r42.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-floor-note-range-r42.css')) ?: 20261026) }}" data-pmd-ui-r42="css">
 <script defer src="{{ asset('app/admin/assets/js/pmd-floor-note-range-r42-audit.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-note-range-r42-audit.js')) ?: 20261026) }}" data-pmd-ui-r42="audit"></script>
 <!-- /PMD_FLOOR_NOTE_RANGE_R42_REAL_HEAD -->
+<!-- PMD_FLOOR_OPERATIONAL_SAFETY_R45_REAL_HEAD -->
+<link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-floor-operational-safety-r45.css') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/css/pmd-floor-operational-safety-r45.css')) ?: 20261026) }}" data-pmd-r45="css">
+<script defer src="{{ asset('app/admin/assets/js/pmd-floor-confirm-r45.js') }}?v={{ (int)(@filemtime(base_path('app/admin/assets/js/pmd-floor-confirm-r45.js')) ?: 20261026) }}" data-pmd-r45="confirm"></script>
+<!-- /PMD_FLOOR_OPERATIONAL_SAFETY_R45_REAL_HEAD -->
 
 </head>
 @php

@@ -644,7 +644,16 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                 .rawurlencode($pmdQrTargetUrl);
         }
 
+        // PMD_FLOOR_STATUS_GUARD_R45: truthful live status for the edit card.
+        $pmdSafetyR45 = app(\Admin\Services\PmdFloorOperationalSafetyR45::class)
+            ->inspectTable((int)($table->table_id ?? 0), $locationId, $table);
+
         return [
+            'safety_reason' => (string)$pmdSafetyR45['reason'],
+            'safety_message' => (string)$pmdSafetyR45['message'],
+            'can_disable' => (bool)$pmdSafetyR45['allowed'],
+            'can_remove' => (bool)$pmdSafetyR45['allowed'],
+            'operational_status' => (string)$pmdSafetyR45['operational_status'],
             'table_id' => (int)($table->table_id ?? 0),
             'table_no' => $posLabel !== '' ? $posLabel : $rawTableNo,
             'table_name' => trim((string)($table->table_name ?? '')),
@@ -1002,6 +1011,29 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ], 422);
         }
 
+        // PMD_FLOOR_STATUS_GUARD_R45: a different Floor assignment must
+        // not quietly move a live/cleaning/reserved table out of its map.
+        if (!$isCreate) {
+            $safetyR45 = app(\Admin\Services\PmdFloorOperationalSafetyR45::class)
+                ->inspectTable($tableId, $locationId, $table);
+            $currentFloorId = (string)$registryService->defaultFloorId();
+            foreach ((array)($registrySnapshot['table_assignments'] ?? []) as $assignedId => $assignedFloor) {
+                if ((int)$assignedId === $tableId) {
+                    $currentFloorId = (string)$assignedFloor;
+                    break;
+                }
+            }
+            $changingFloor = (string)($floorMatch['id'] ?? '') !== $currentFloorId;
+            $disabling = (bool)($table->table_status ?? true)
+                && !(bool)($payload['table_status'] ?? true);
+            if (($changingFloor || $disabling) && !$safetyR45['allowed']) {
+                return response()->json([
+                    'ok' => false, 'message' => $safetyR45['message'],
+                    'safety' => $safetyR45,
+                ], 409);
+            }
+        }
+
         // PMD_FLOOR_TABLE_CARD_V1_3_SINGLE_CAPACITY
         $preferredCapacity = max(1, (int)($payload['preferred_capacity'] ?? 1));
         $minCapacity = 1;
@@ -1191,6 +1223,19 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ], 403);
         }
 
+        // PMD_R45_SERVER_AVAILABILITY_GUARD
+        // The explicit Enable action remains available; disabling an active
+        // table is forbidden even if the browser button is manipulated.
+        if (!$enabled) {
+            $safety = app(\Admin\Services\PmdFloorOperationalSafetyR45::class)
+                ->inspectTable($tableId, $locationId, $table);
+            if (!$safety['allowed']) {
+                return response()->json([
+                    'ok' => false, 'message' => $safety['message'],
+                    'safety' => $safety,
+                ], 409);
+            }
+        }
         $table->table_status = $enabled;
         $table->save();
 
@@ -1261,41 +1306,25 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
             ], 403);
         }
 
-        // If the current tenant has the settlement contract, never orphan an
-        // active/unsettled bill by deleting its table from the Floor card.
-        try {
-            if (
-                \Illuminate\Support\Facades\Schema::hasTable('orders')
-                && \Illuminate\Support\Facades\Schema::hasColumn('orders', 'table_id')
-                && \Illuminate\Support\Facades\Schema::hasColumn('orders', 'settlement_status')
-            ) {
-                $hasUnsettledOrder = \Illuminate\Support\Facades\DB::table('orders')
-                    ->where('table_id', $tableId)
-                    ->where(function ($query) {
-                        $query->whereNull('settlement_status')
-                            ->orWhereNotIn('settlement_status', ['paid', 'settled']);
-                    })
-                    ->exists();
-
-                if ($hasUnsettledOrder) {
-                    return response()->json([
-                        'ok' => false,
-                        'message' => 'This table still has an open or unsettled bill. Settle/close it before removing the table.',
-                    ], 409);
-                }
-            }
-        } catch (\Throwable $e) {
-            logger()->warning('PMD Floor table delete settlement guard unavailable', [
-                'location_id' => $locationId,
-                'table_id' => $tableId,
-                'message' => $e->getMessage(),
-            ]);
+        // PMD_R45_DESTRUCTIVE_GUARD: physical status + ALL identifiable
+        // live/unverified bills. Never catch/ignore a verification error.
+        $safety = app(\Admin\Services\PmdFloorOperationalSafetyR45::class)
+            ->inspectTable($tableId, $locationId, $table);
+        if (!$safety['allowed']) {
+            return response()->json([
+                'ok' => false, 'message' => $safety['message'],
+                'safety' => $safety,
+            ], 409);
         }
 
         $displayNo = trim((string)($table->getRawOriginal('table_no') ?? $table->table_no ?? $tableId));
 
         try {
             \Illuminate\Support\Facades\DB::transaction(function () use ($table, $locationId, $tableId) {
+                // Recheck while performing the destructive transaction; no
+                // stale edit-card payload can authorize this operation.
+                app(\Admin\Services\PmdFloorOperationalSafetyR45::class)
+                    ->assertTableCanChange($tableId, $locationId);
                 if ($locationId > 0) {
                     // PMD_TABLE_DELETE_RENAMED_DEFAULT_FLOOR_R41
                     // "Main Floor" is only the initial display name. The default
@@ -1311,6 +1340,8 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
 
                 $table->delete();
             });
+        } catch (\DomainException $e) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 409);
         } catch (\Throwable $e) {
             logger()->error('PMD Floor table delete failed', [
                 'location_id' => $locationId,
@@ -1528,6 +1559,26 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
         ]);
     }
 
+    /**
+     * PMD_R45_FLOOR_DELETE_PREFLIGHT
+     * An authorized, location-scoped live read for the Manage Floor modal.
+     * Destructive POST still repeats this check server-side.
+     */
+    public function onPmdFloorRegistryRemoveSafety()
+    {
+        $this->pmdAssertCanManageFloorTables();
+        $locationId = $this->pmdFloorTableManagerLocationId();
+        $requested = max(0, (int)request()->input('location_id', 0));
+        if ($requested > 0 && $requested !== $locationId) {
+            return response()->json(['ok' => false, 'message' => 'Active location changed.'], 409);
+        }
+        $floorId = trim((string)request()->input('floor_id', ''));
+        if ($floorId === '') return response()->json(['ok' => false, 'message' => 'Floor ID required.'], 422);
+        $safety = app(\Admin\Services\PmdFloorOperationalSafetyR45::class)
+            ->inspectFloor($locationId, $floorId);
+        return response()->json(['ok' => true, 'safety' => $safety]);
+    }
+
     public function onPmdFloorRegistryDelete()
     {
         $this->pmdAssertCanManageFloorTables();
@@ -1581,6 +1632,11 @@ abstract class PmdCleanWorkspaceControllerV1 extends AdminController
                     $locationId,
                     $floorId
                 );
+        } catch (\DomainException $error) {
+            return response()->json([
+                'ok' => false,
+                'message' => $error->getMessage(),
+            ], 409);
         } catch (\InvalidArgumentException $error) {
             return response()->json([
                 'ok' => false,

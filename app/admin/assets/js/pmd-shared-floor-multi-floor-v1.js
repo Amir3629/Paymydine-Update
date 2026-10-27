@@ -142,6 +142,14 @@
 
     var manageBusy = false;
     var manageLocked = false;
+    // PMD_R45_FLOOR_REMOVE_SAFETY: authoritative read at Manage open and
+    // again before confirmation; final delete endpoint rechecks on server.
+    var manageSafetyR45 = null;
+    var manageSafetyCheckingR45 = false;
+    var manageSafetyRequestR45 = 0;
+    var manageSafetyNoticeR45 = managePanel
+      ? managePanel.querySelector('[data-pmd-floor-remove-safety-r45]')
+      : null;
 
     function floorById(id) {
       id = clean(id);
@@ -1300,8 +1308,74 @@
       if (manageDelete) {
         manageDelete.disabled =
           manageBusy
-          || manageLocked;
+          || manageLocked
+          || manageSafetyCheckingR45
+          || !manageSafetyR45
+          || manageSafetyR45.allowed !== true;
+        manageDelete.setAttribute('aria-disabled',
+          manageDelete.disabled ? 'true' : 'false');
+        manageDelete.title = !manageLocked && manageSafetyR45 &&
+          manageSafetyR45.allowed !== true
+          ? (manageSafetyR45.message || '') : '';
       }
+    }
+
+    function showManageSafetyR45() {
+      if (!manageSafetyNoticeR45) return;
+      var blocked = !manageLocked && !manageSafetyCheckingR45
+        && manageSafetyR45 && manageSafetyR45.allowed !== true;
+      manageSafetyNoticeR45.hidden = !blocked;
+      manageSafetyNoticeR45.textContent = blocked
+        ? (manageSafetyR45.message ||
+          'Active tables or outstanding bills prevent Floor removal.')
+        : '';
+    }
+
+    function refreshManageSafetyR45() {
+      var requestFloorId = activeId;
+      var serial = ++manageSafetyRequestR45;
+      manageSafetyCheckingR45 = true;
+      manageSafetyR45 = null;
+      showManageSafetyR45();
+      setManageBusy(manageBusy);
+
+      if (manageLocked) {
+        manageSafetyCheckingR45 = false;
+        manageSafetyR45 = {
+          allowed: false, message: 'The default Floor cannot be removed.'
+        };
+        setManageBusy(manageBusy);
+        return Promise.resolve(manageSafetyR45);
+      }
+
+      return postJson(
+        config.registry_url, 'onPmdFloorRegistryRemoveSafety', {
+          location_id: Number(config.location_id || 0),
+          floor_id: requestFloorId
+        }
+      ).then(function (response) {
+        if (serial !== manageSafetyRequestR45 ||
+            managePanel.hidden || activeId !== requestFloorId) return null;
+        manageSafetyCheckingR45 = false;
+        manageSafetyR45 = response && response.safety
+          ? response.safety : {
+            allowed: false, message: 'Floor status could not be verified.'
+          };
+        setManageBusy(manageBusy);
+        showManageSafetyR45();
+        return manageSafetyR45;
+      }).catch(function (error) {
+        if (serial !== manageSafetyRequestR45) return null;
+        manageSafetyCheckingR45 = false;
+        manageSafetyR45 = {
+          allowed: false,
+          message: clean(error && error.message) ||
+            'Floor status is temporarily unavailable.'
+        };
+        setManageBusy(manageBusy);
+        showManageSafetyR45();
+        return manageSafetyR45;
+      });
     }
 
     function openManagePanel() {
@@ -1350,7 +1424,8 @@
           'pmd-floor-manage-open'
         );
 
-      setManageBusy(false);
+      // Do not enable Remove floor while waiting for the live guard.
+      refreshManageSafetyR45();
 
       if (manageInput) {
         manageInput.focus();
@@ -1374,6 +1449,10 @@
         );
 
       clearManageError();
+      ++manageSafetyRequestR45;
+      manageSafetyCheckingR45 = false;
+      manageSafetyR45 = null;
+      showManageSafetyR45();
     }
 
     function renameActiveFloor() {
@@ -1470,31 +1549,39 @@
     }
 
     function deleteActiveFloor() {
-      if (
-        !managePanel
-        || manageBusy
-        || manageLocked
-        || !config.registry_url
-      ) {
-        return;
-      }
+      if (!managePanel || manageBusy || manageLocked ||
+          manageSafetyCheckingR45 || !config.registry_url) return;
+      clearManageError();
+      // Recheck current table state immediately before showing confirmation.
+      refreshManageSafetyR45().then(function (safety) {
+        if (!safety || safety.allowed !== true || managePanel.hidden) return;
+        if (!window.PMDFloorConfirmR45) {
+          showManageError('Confirmation dialog is unavailable. Refresh and retry.');
+          return;
+        }
+        var moveCount = Number(safety.table_count || 0);
+        window.PMDFloorConfirmR45.open({
+          title: 'Remove floor',
+          message: 'Remove this floor? ' +
+            (moveCount === 0
+              ? 'There are no tables assigned to it.'
+              : moveCount + ' available table' +
+                (moveCount === 1 ? ' will' : 's will') +
+                ' move to the default floor.') +
+            ' No table records will be deleted.',
+          confirmLabel: 'Remove floor',
+          trigger: manageDelete
+        }).then(function (confirmed) {
+          if (!confirmed || managePanel.hidden || manageBusy ||
+              !manageSafetyR45 || manageSafetyR45.allowed !== true) return;
+          performDeleteActiveFloorR45();
+        });
+      });
+    }
 
-      var confirmation =
-        clean(
-          managePanel.getAttribute(
-            'data-delete-confirm'
-          )
-        )
-        || 'Remove this Floor?';
-
-      if (
-        !window.confirm(
-          confirmation
-        )
-      ) {
-        return;
-      }
-
+    function performDeleteActiveFloorR45() {
+      if (manageBusy || manageLocked || !manageSafetyR45 ||
+          manageSafetyR45.allowed !== true) return;
       clearManageError();
       setManageBusy(true);
 

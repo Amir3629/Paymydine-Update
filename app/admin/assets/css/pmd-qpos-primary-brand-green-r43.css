@@ -1,0 +1,89 @@
+/* PMD_QPOS_PRIMARY_BRAND_GREEN_R43
+ * /admin/pos only. Historical Quick POS CSS hard-coded green actions
+ * as #032f25 / #064e3b, markedly darker than the Admin Add table action.
+ * Match the canonical platform primary jade without changing action roles.
+ * IMPORTANT is deliberate: pmd-quick-pos-v1.css includes old high-
+ * specificity !important theme passes. CSS is loaded AFTER all POS styles.
+ *
+ * Do NOT restyle actual table-status cards, terminal/card-payment BLUE,
+ * warnings, error/destructive actions, paid/disabled states or food images.
+ */
+
+body.pmd-qpos-body #pmd-quick-pos :is(
+  .pmd-qpos-floor-tabs button.is-active,
+  .pmd-qpos-categories button.is-active,
+  .pmd-qpos-mode-dock a.is-active,
+  .pmd-qpos-new-check,
+  .pmd-qpos-cart-actions .primary,
+  .pmd-qpos-open-checks button.is-active,
+  .pmd-qpos-open-checks .pmd-qpos-check-pay-v114,
+  .pmd-qpos-payment-final-actions .pmd-qpos-modal-primary,
+  .pmd-qpos-payment-methods button[data-payment-method="cash"].is-active,
+  .pmd-qpos-split-modes [data-qpos-split-mode="full"].is-active,
+  .pmd-qpos-tip-row button.is-active[data-tip="0"],
+  .pmd-qpos-transfer-scope button.is-active,
+  .pmd-qpos-history-button,
+  .pmd-qpos-history-rail-button-v85,
+  .pmd-qpos-history-all-v82.is-active,
+  .pmd-qpos-history-topbar-v82 .pmd-qpos-history-presets button.is-active,
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button.is-week-v84,
+  .pmd-qpos-history-toolbar button.is-active,
+  .pmd-qpos-history-scope button.is-active,
+  .pmd-qpos-history-invoice,
+  .pmd-qpos-history-date-days-v123 > button.is-selected,
+  .pmd-qpos-confirm-accept:not(.is-danger),
+  .pmd-qpos-split-stepper button,
+  .pmd-qpos-text-keyboard > header button,
+  .pmd-qpos-text-keyboard.is-lowercase [data-qpos-text-key="shift"]
+):not(:disabled):not([aria-disabled="true"]) {
+  background-color:#0b765e!important;
+  background-image:linear-gradient(180deg,#0b765e 0%,#075c47 100%)!important;
+  border-color:#075c47!important;
+  color:#fff!important;
+  text-shadow:none!important;
+}
+
+body.pmd-qpos-body #pmd-quick-pos :is(
+  .pmd-qpos-floor-tabs button.is-active,
+  .pmd-qpos-categories button.is-active,
+  .pmd-qpos-mode-dock a.is-active,
+  .pmd-qpos-new-check,
+  .pmd-qpos-cart-actions .primary,
+  .pmd-qpos-open-checks button.is-active,
+  .pmd-qpos-open-checks .pmd-qpos-check-pay-v114,
+  .pmd-qpos-payment-final-actions .pmd-qpos-modal-primary,
+  .pmd-qpos-payment-methods button[data-payment-method="cash"].is-active,
+  .pmd-qpos-split-modes [data-qpos-split-mode="full"].is-active,
+  .pmd-qpos-tip-row button.is-active[data-tip="0"],
+  .pmd-qpos-transfer-scope button.is-active,
+  .pmd-qpos-history-button,
+  .pmd-qpos-history-rail-button-v85,
+  .pmd-qpos-history-all-v82.is-active,
+  .pmd-qpos-history-topbar-v82 .pmd-qpos-history-presets button.is-active,
+  .pmd-qpos-history-range-v84 .pmd-qpos-history-presets button.is-week-v84,
+  .pmd-qpos-history-toolbar button.is-active,
+  .pmd-qpos-history-scope button.is-active,
+  .pmd-qpos-history-invoice,
+  .pmd-qpos-history-date-days-v123 > button.is-selected,
+  .pmd-qpos-confirm-accept:not(.is-danger),
+  .pmd-qpos-split-stepper button,
+  .pmd-qpos-text-keyboard > header button,
+  .pmd-qpos-text-keyboard.is-lowercase [data-qpos-text-key="shift"]
+):not(:disabled):not([aria-disabled="true"]):is(:hover,:focus-visible) {
+  background-color:#086c56!important;
+  background-image:linear-gradient(180deg,#086c56 0%,#064b3c 100%)!important;
+  border-color:#064b3c!important;
+  color:#fff!important;
+}
+
+/* Keep keyboard focus visible even on dark green controls. */
+body.pmd-qpos-body #pmd-quick-pos :is(
+  .pmd-qpos-new-check,
+  .pmd-qpos-cart-actions .primary,
+  .pmd-qpos-history-rail-button-v85,
+  .pmd-qpos-open-checks .pmd-qpos-check-pay-v114,
+  .pmd-qpos-confirm-accept:not(.is-danger)
+):focus-visible {
+  outline:2px solid #69bd9f!important;
+  outline-offset:2px!important;
+}

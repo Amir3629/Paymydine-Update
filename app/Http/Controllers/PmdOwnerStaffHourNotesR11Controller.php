@@ -52,7 +52,11 @@ final class PmdOwnerStaffHourNotesR11Controller extends Controller
     public function ownerIndex(Request $request, PmdOwnerStaffHourNotesR11 $notes)
     {
         $location = $this->ownerLocation();
-        if (!$notes->ready()) return $this->schemaMissing();
+        if (!$notes->ready()) return $this->json([
+            'ok' => true, 'setup_required' => true,
+            'message' => 'Team notes are not set up for this restaurant yet. Ask an administrator to finish setup.',
+            'notes' => [], 'roles' => [], 'members' => [],
+        ]);
         $year = (int)$request->query('year', (int)now('Europe/Berlin')->year);
         if ($year < 2000 || $year > 2100) abort(422, 'Invalid year.');
         return $this->json([
@@ -60,6 +64,8 @@ final class PmdOwnerStaffHourNotesR11Controller extends Controller
             'year' => $year,
             'notes' => $notes->forOwnerYear($location, $year),
             'roles' => $notes->roleOptions($location),
+            'members' => $notes->memberOptions($location),
+            'setup_required' => false,
         ]);
     }
 
@@ -67,6 +73,12 @@ final class PmdOwnerStaffHourNotesR11Controller extends Controller
     {
         $location = $this->ownerLocation();
         if (!$notes->ready()) return $this->schemaMissing();
+        if (!$notes->roleOptions($location)[0]['count']) {
+            return $this->json([
+                'ok' => false, 'error' => 'no_staff_recipients',
+                'message' => 'No active staff accounts are available yet. Add or activate a team member in Shifts before sending a note.',
+            ], 422);
+        }
         $staffId = (int)optional(optional(AdminAuth::getUser())->staff)->staff_id;
         $created = $notes->publish($location, $staffId > 0 ? $staffId : null, $request->all());
         return $this->json(['ok' => true, 'published' => $created], 201);
@@ -108,8 +120,8 @@ final class PmdOwnerStaffHourNotesR11Controller extends Controller
         return $this->json([
             'ok' => false,
             'error' => 'staff_notes_schema_not_ready',
-            'message' => 'Install this restaurant\'s Staff Notes schema before sending or confirming.',
-        ], 503);
+            'message' => 'Team notes are not set up for this restaurant yet. Ask an administrator to finish setup.',
+        ], 409);
     }
 
     private function json(array $body, int $status = 200)
