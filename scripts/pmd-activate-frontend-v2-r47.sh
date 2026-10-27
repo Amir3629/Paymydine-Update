@@ -182,6 +182,8 @@ PERF_PATHS=(
   src/runtime/MenuRuntimeContext.tsx
   src/runtime/SmartMenuRuntimeContext.tsx
   src/runtime/components/RuntimeOverlays.tsx
+  app/globals.css
+  src/runtime/components/RuntimeOverlays.module.css
   app/api/health/route.ts
 )
 stage_r47_perf(){
@@ -223,7 +225,8 @@ mkdir -p "$PREFLIGHT"
 for rel in package.json src/server/normalize.ts src/domain/model.ts \
   'app/table/[tableId]/page.tsx' app/page.tsx 'app/api/health/route.ts' \
   src/runtime/MenuRuntimeContext.tsx src/runtime/SmartMenuRuntimeContext.tsx \
-  src/runtime/components/RuntimeOverlays.tsx; do
+  src/runtime/components/RuntimeOverlays.tsx app/globals.css \
+  src/runtime/components/RuntimeOverlays.module.css; do
   mkdir -p "$PREFLIGHT/$(dirname "$rel")"
   cp -p "$LIVE/$rel" "$PREFLIGHT/$rel"
 done
