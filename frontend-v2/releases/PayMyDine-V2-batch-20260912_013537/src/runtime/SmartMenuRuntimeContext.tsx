@@ -70,6 +70,15 @@ function consumeQrFromAddressBar(): void {
 // - clicking the cart action creates a payment-held order, never a kitchen order.
 // - existing payment UI settles that order; backend state releases it after paid.
 // - Staff/Cashier/Waiter orders remain shared and split-capable.
+// PMD_V2_PERF_R47_PRIVATE_ORDER_SNAPSHOT
+// Polling remains authoritative; identical full payloads should not invalidate
+// every menu and checkout subscriber in the React context tree.
+function sameFlowSnapshotR47<T>(previous: T, next: T): boolean {
+  if (previous === next) return true
+  try { return JSON.stringify(previous) === JSON.stringify(next) }
+  catch { return false }
+}
+
 export function MenuRuntimeProvider({
   bootstrap,
   children,
@@ -168,7 +177,7 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
     try {
       const next = await fetchGuestOrdersState(base.bootstrap.table, flowGuestSessionId)
       const orders = next.orders as FlowOrder[]
-      setFlowOrders(orders)
+      setFlowOrders((current) => sameFlowSnapshotR47(current, orders) ? current : orders)
       setFlowSelectedOrderId((current) => {
         if (current && orders.some((order) => order.orderId === current)) return current
         const awaitingOwnPayment = orders.find((order) => order.orderOrigin === 'guest_self' && order.totals.remainingAmount > 0)
@@ -190,13 +199,35 @@ export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
     }
   }, [base.bootstrap.table, base.clearCart, base.closeOverlay, flowExpiredKey, flowGuestSessionId, isR60tActive])
 
-  // Reuse the base runtime's single shared 3-second order polling cycle. The base
-  // state receives a fresh tableOrders array on every successful poll, so this
-  // effect refreshes the private R60T projection without introducing another timer.
+  // PMD_V2_PERF_R47_PRIVATE_POLL_INDEPENDENT
+  // R60T private orders must continue updating even when the base polling
+  // payload is unchanged (and now retains stable React identity). Poll the
+  // private authority directly, without chaining a second request to every
+  // public order state commit. Prevent overlapping scheduled refreshes;
+  // payment-success/manual refreshFlow() is intentionally never suppressed.
   useEffect(() => {
     if (!isR60tActive || !flowGuestSessionId) return
-    void refreshFlow()
-  }, [base.tableOrders, flowGuestSessionId, isR60tActive, refreshFlow])
+    let cancelled = false
+    let polling = false
+    const run = async () => {
+      if (cancelled || polling || document.visibilityState === 'hidden') return
+      polling = true
+      try { await refreshFlow() }
+      finally { polling = false }
+    }
+    void run()
+    const timer = window.setInterval(run, 3000)
+    const onFocus = () => { void run() }
+    const onVisible = () => { if (document.visibilityState === 'visible') void run() }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [flowGuestSessionId, isR60tActive, refreshFlow])
 
   useEffect(() => {
     if (!isR60tActive || !flowCheckoutOrderId) return
