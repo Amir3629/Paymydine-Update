@@ -248,13 +248,13 @@ import os
 import sys
 root = os.path.realpath(sys.argv[1])
 checked = 0
-for raw in sys.stdin.buffer.read().split(b"\\0"):
+for raw in sys.stdin.buffer.read().split(b"\0"):
     if not raw:
         continue
     link = os.fsdecode(raw)
     target = os.path.realpath(link)
     if os.path.commonpath((root, target)) != root or not os.path.exists(target):
-        sys.stderr.write("STOP R17E: broken/outside staged symlink: " + link + " -> " + target + "\\n")
+        sys.stderr.write("STOP R17E: broken/outside staged symlink: " + link + " -> " + target + "\n")
         sys.exit(5)
     checked += 1
 print("PASS R17E: " + str(checked) + " internal staged symlinks verified.")
