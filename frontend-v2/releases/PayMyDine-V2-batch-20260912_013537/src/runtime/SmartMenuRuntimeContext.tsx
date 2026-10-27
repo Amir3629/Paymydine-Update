@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { CustomerBootstrap, MenuItem, TableOrderState } from '@/src/domain/model'
 import { localizeMenuItem } from '@/src/lib/i18n'
 import { getGuestSessionId } from '@/src/lib/client-api'
@@ -79,6 +79,23 @@ function sameFlowSnapshotR47<T>(previous: T, next: T): boolean {
   catch { return false }
 }
 
+// PMD_V2_PERF_R47_SHARED_GUEST_RUNTIME
+// Previously this exported hook created a complete R60T useState/useEffect
+// tree EACH TIME any Theme, toolbar or modal called useMenuRuntime().
+// The real menu must have ONE guest visit lease, ONE private order poller,
+ // and ONE coherent order selection shared by all consumers.
+type SmartRuntimeValue = ReturnType<typeof useBaseMenuRuntime>
+const SmartRuntimeValueContext = createContext<SmartRuntimeValue | null>(null)
+
+function SmartRuntimeValueProvider({ children }: { children: ReactNode }) {
+  const value = useSmartMenuRuntimeValue()
+  return (
+    <SmartRuntimeValueContext.Provider value={value}>
+      {children}
+    </SmartRuntimeValueContext.Provider>
+  )
+}
+
 export function MenuRuntimeProvider({
   bootstrap,
   children,
@@ -88,12 +105,18 @@ export function MenuRuntimeProvider({
 }) {
   return (
     <BaseMenuRuntimeProvider bootstrap={bootstrap}>
-      {children}
+      <SmartRuntimeValueProvider>{children}</SmartRuntimeValueProvider>
     </BaseMenuRuntimeProvider>
   )
 }
 
-export function useMenuRuntime(): ReturnType<typeof useBaseMenuRuntime> {
+export function useMenuRuntime(): SmartRuntimeValue {
+  const value = useContext(SmartRuntimeValueContext)
+  if (!value) throw new Error('useMenuRuntime must be used inside MenuRuntimeProvider')
+  return value
+}
+
+function useSmartMenuRuntimeValue(): SmartRuntimeValue {
   const base = useBaseMenuRuntime()
   const isR60tActive = !base.isPreview && Boolean(base.bootstrap.features.tableOrdering && (base.bootstrap.table.id || base.bootstrap.table.number || base.bootstrap.table.qr))
   const [flowGuestSessionId, setFlowGuestSessionId] = useState('')
