@@ -125,6 +125,43 @@ let s="";process.stdin.on("data",x=>s+=x).on("end",()=>{
 })' || { echo 'STOP: port 3002 is not the canonical V2 frontend'; exit 4; }
 
 python3 "$TMP/v2-guard.py" --check "$LIVE"
+
+# PMD_R17D_TURBOPACK_ROOT_SAFE_DEPENDENCY_COPY
+# Next 16 V2 sets turbopack.root to the isolated project. A node_modules
+# symlink to the live release escapes that root and PANICS before compilation.
+# The production build therefore requires a PHYSICAL, independent dependency
+# copy, never a link or hardlink into live production dependencies.
+[[ -f "$LIVE/node_modules/next/package.json" &&
+   -f "$LIVE/node_modules/typescript/package.json" ]] || {
+  echo 'STOP: live V2 Next/TypeScript dependencies are incomplete.'
+  exit 4
+}
+DEPS_KB="$(du -skL "$LIVE/node_modules" | awk 'END {print $1}')"
+CURRENT_NEXT_KB="$(du -sk "$LIVE/.next" | awk 'END {print $1}')"
+HOME_FREE_KB="$(df -Pk "$HOME" | awk 'END {print $4}')"
+LIVE_FREE_KB="$(df -Pk "$LIVE" | awk 'END {print $4}')"
+for size in "$DEPS_KB" "$CURRENT_NEXT_KB" "$HOME_FREE_KB" "$LIVE_FREE_KB"; do
+  [[ "$size" =~ ^[0-9]+$ ]] || { echo 'STOP: unable to measure build disk space.'; exit 4; }
+done
+# Reserve space for a full node_modules copy, Turbopack output/cache, a
+# separate compiled .next sibling and some headroom. No cleanup of live files.
+HOME_REQUIRED_KB=$(( DEPS_KB + 3145728 ))
+LIVE_REQUIRED_KB=$(( CURRENT_NEXT_KB + 1048576 ))
+if [[ "$(stat -c '%d' "$HOME")" == "$(stat -c '%d' "$LIVE")" ]]; then
+  TOTAL_REQUIRED_KB=$(( HOME_REQUIRED_KB + LIVE_REQUIRED_KB ))
+  [[ "$HOME_FREE_KB" -ge "$TOTAL_REQUIRED_KB" ]] || {
+    echo "STOP: insufficient disk on shared filesystem: have ${HOME_FREE_KB} KiB, need ${TOTAL_REQUIRED_KB} KiB."
+    exit 4
+  }
+else
+  [[ "$HOME_FREE_KB" -ge "$HOME_REQUIRED_KB" &&
+     "$LIVE_FREE_KB" -ge "$LIVE_REQUIRED_KB" ]] || {
+    echo "STOP: insufficient build storage: HOME ${HOME_FREE_KB}/${HOME_REQUIRED_KB} KiB, V2 ${LIVE_FREE_KB}/${LIVE_REQUIRED_KB} KiB."
+    exit 4
+  }
+fi
+echo "PASS R17D DISK: resolved dependencies ${DEPS_KB} KiB; build and rollback headroom verified."
+
 # The repo root need not be writable. However switching the live .next
 # directory requires WRITE permission inside the actual V2 PM2 CWD.
 [[ -w "$LIVE" && ! -L "$LIVE/.next" ]] || {
@@ -184,7 +221,39 @@ rsync -a \
   --exclude '/node_modules' --exclude '/.next*' \
   --exclude '/.git' --exclude '/storage' --exclude '/.pmd-*' \
   "$LIVE/" "$WORK/"
-ln -s "$LIVE/node_modules" "$WORK/node_modules"
+
+# CRITICAL: never ln -s live/node_modules here. Turbopack's project root
+# is "$WORK", and external symlinks are rejected on Next.js 16.3.1.
+# -L dereferences pnpm/npm links as well, keeping EVERY dependency inside
+# the staged filesystem rather than referring to the running application.
+echo '== COPY ISOLATED DEPENDENCIES (NO EXTERNAL NODE_MODULES SYMLINK) =='
+mkdir -p "$WORK/node_modules"
+rsync -aL "$LIVE/node_modules/" "$WORK/node_modules/"
+[[ ! -L "$WORK/node_modules" &&
+   -f "$WORK/node_modules/next/package.json" &&
+   -f "$WORK/node_modules/typescript/package.json" ]] || {
+  echo 'STOP: physical V2 Next dependencies missing after staged copy.'
+  exit 5
+}
+# Ensure rsync did not leave an external link nested in node_modules.
+if [[ -n "$(find "$WORK/node_modules" -type l -print -quit)" ]]; then
+  echo 'STOP: staged dependencies still contain filesystem symlinks.'
+  exit 5
+fi
+node - "$WORK" <<'NODE'
+const path = require('node:path');
+const fs = require('node:fs');
+const root = path.resolve(process.argv[2]);
+for (const name of ['next/package.json', 'typescript/package.json']) {
+  const file = require.resolve(name, { paths: [root] });
+  const resolved = fs.realpathSync(file);
+  if (!resolved.startsWith(path.join(root, 'node_modules') + path.sep)) {
+    throw new Error('R17D unexpected external staged dependency: ' + resolved);
+  }
+}
+console.log('PASS R17D: Next and TypeScript resolve entirely inside the isolated build root.');
+NODE
+
 MANIFEST="$TMP/manifest"
 python3 "$TMP/v2-guard.py" --stage "$WORK" "$MANIFEST"
 node "$TMP/test-v2.cjs" "$WORK"
