@@ -84,6 +84,7 @@
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-compact-grid-reservation-r137.css?v=20261027-r137">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-native-reservation-r138.css?v=20261027-r138">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-inline-reservation-r139.css?v=20261027-r139">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-reservations-polish-r140.css?v=20261027-r140">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
     {{-- PMD_QPOS_RESERVATION_RAIL_R2: the POS side rail is separate from shared Map. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-qpos-reservation-rail-r2.css') }}?v=20261018-r2">
@@ -493,8 +494,20 @@
                 </div>
             </header>
 
-            <div class="pmd-qres-timeline" data-qres-timeline>
-                <div class="pmd-qres-loading">Loading schedule…</div>
+            {{-- R140 STABLE FIRST PAINT:
+                 Do not show "Restaurant closed" or "Loading schedule" while
+                 opening hours are still being fetched. Give the workspace a
+                 non-interactive 24-hour scaffold; server data later replaces it
+                 with the real confirmed hours and bookings. --}}
+            <div class="pmd-qres-timeline" data-qres-timeline aria-busy="true">
+                <div class="pmd-qres-hour-grid pmd-qres-initial-hours-r140" aria-hidden="true">
+                    @for($pmdQposHourR140 = 0; $pmdQposHourR140 < 24; $pmdQposHourR140++)
+                        <div class="pmd-qres-hour-row">
+                            <span class="pmd-qres-hour-label">{{ sprintf('%02d:00', $pmdQposHourR140) }}</span>
+                            <div class="pmd-qres-hour-lane"></div>
+                        </div>
+                    @endfor
+                </div>
             </div>
             {{-- PMD_QPOS_INLINE_COMPOSER_R139:
                  The same canonical reservation form is moved here for POS only.
@@ -1224,7 +1237,7 @@ window.PMDQuickPOSConfig = {
         ).then(function () {
             return loadScript(
                 'pmd-qpos-reservations-r135',
-                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261027-r139',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261027-r140',
                 function () { return !!window.PMDQuickReservationsR136; }
             );
         });

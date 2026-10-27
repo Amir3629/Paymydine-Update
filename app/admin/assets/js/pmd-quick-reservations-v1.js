@@ -49,6 +49,9 @@
     today: root.getAttribute('data-qpos-reservations-today') || '',
     serverNowBerlin: '',
     openingHours: [],
+    // R140: empty boot data does not mean the restaurant is closed.
+    // Only a successful date-scoped server response may confirm schedule state.
+    scheduleConfirmedDate: '',
     rows: [],
     otherDateRows: [],
     otherSearchTerm: '',
@@ -754,6 +757,9 @@
 
   function renderTimeline() {
     if (!timeline) return;
+    // Keep the stable, non-interactive SSR hour scaffold during first load.
+    // Never infer "Restaurant closed" from the initial empty openingHours.
+    if (state.scheduleConfirmedDate !== state.date) return;
 
     var rows = filteredRows();
     var bounds = scheduleBounds(rows);
@@ -812,7 +818,9 @@
     renderTableFilter();
     renderList();
     syncQuickEditorDateState();
-    if (!state.editor.open) renderTimeline();
+    if (!state.editor.open && state.scheduleConfirmedDate === state.date) {
+      renderTimeline();
+    }
   }
 
   function installScheduleBridge() {
@@ -844,6 +852,7 @@
 
     var requestId = ++state.requestId;
     state.loading = true;
+    if (timeline) timeline.setAttribute('aria-busy', 'true');
     setRefreshing(true);
 
     if (state.requestController && typeof state.requestController.abort === 'function') {
@@ -900,7 +909,9 @@
       state.rows = Array.isArray(json.reservations)
         ? json.reservations
         : [];
+      state.scheduleConfirmedDate = state.date;
       state.loading = false;
+      if (timeline) timeline.setAttribute('aria-busy', 'false');
       state.requestController = null;
 
       window.PMD_RESERVATIONS_BOOT = Object.assign(
@@ -925,6 +936,7 @@
 
       state.loading = false;
       state.requestController = null;
+      if (timeline) timeline.setAttribute('aria-busy', 'false');
       setRefreshing(false);
 
       if (!state.rows.length) {
@@ -971,15 +983,9 @@
     }
 
     state.workspace = next;
-    // Build a complete schedule before exposing the Reservations workspace.
-    // The initial lazy runtime must never show a blank/loading-frame flash.
-    if (
-      next === 'reservations' &&
-      timeline &&
-      (timeline.querySelector('.pmd-qres-loading') || !timeline.firstElementChild)
-    ) {
-      render();
-    }
+    // R140: SSR already paints a neutral 24-hour grid. Calling render() here
+    // before /reservations-data arrives falsely turns empty openingHours into
+    // "Restaurant closed", then flashes back to real hours. Leave it alone.
     root.setAttribute('data-workspace', next);
 
     if (left) left.hidden = next !== 'reservations';
