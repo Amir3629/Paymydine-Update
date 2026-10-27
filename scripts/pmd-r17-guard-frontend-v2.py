@@ -237,7 +237,7 @@ def change_health(text: str) -> str:
         return text
     if text.count(anchor) != 1 or text.count('return Response.json(') != 1:
         raise RuntimeError('STOP: V2 health response differs; preserve current API')
-    return text.replace(anchor, anchor + '\\n' + marker, 1)
+    return text.replace(anchor, anchor + '\n' + marker, 1)
 
 
 def proposed(root: Path) -> dict[str, str]:
