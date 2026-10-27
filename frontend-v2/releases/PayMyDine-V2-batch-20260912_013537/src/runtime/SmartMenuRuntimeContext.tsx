@@ -123,6 +123,9 @@ function useSmartMenuRuntimeValue(): SmartRuntimeValue {
   const [flowOrders, setFlowOrders] = useState<FlowOrder[]>([])
   const [flowSelectedOrderId, setFlowSelectedOrderId] = useState<number | null>(null)
   const [flowLoading, setFlowLoading] = useState(false)
+  // PMD_V2_PERF_R47_LATEST_PRIVATE_REQUEST: an older response may not replace
+  // the most recent payment/visit state or expire a newer valid session.
+  const flowRequestSeqR47 = useRef(0)
   // PMD_R62_DIRECT_SELF_PAYMENT
   // Mount checkout only after the prepared self-order is committed as selected.
   const [flowCheckoutOrderId, setFlowCheckoutOrderId] = useState<number | null>(null)
@@ -197,8 +200,10 @@ function useSmartMenuRuntimeValue(): SmartRuntimeValue {
 
   const refreshFlow = useCallback(async () => {
     if (!isR60tActive || !flowGuestSessionId) return
+    const sequence = ++flowRequestSeqR47.current
     try {
       const next = await fetchGuestOrdersState(base.bootstrap.table, flowGuestSessionId)
+      if (sequence !== flowRequestSeqR47.current) return
       const orders = next.orders as FlowOrder[]
       setFlowOrders((current) => sameFlowSnapshotR47(current, orders) ? current : orders)
       setFlowSelectedOrderId((current) => {
@@ -208,6 +213,7 @@ function useSmartMenuRuntimeValue(): SmartRuntimeValue {
         return awaitingOwnPayment?.orderId || sharedOpen?.orderId || orders[0]?.orderId || null
       })
     } catch (error) {
+      if (sequence !== flowRequestSeqR47.current) return
       if (error instanceof GuestTableSessionError && error.code === 'TABLE_SESSION_EXPIRED') {
         try { window.localStorage.setItem(flowExpiredKey, '1') } catch {}
         setFlowGuestSessionId('')
