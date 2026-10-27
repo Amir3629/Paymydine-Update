@@ -227,6 +227,9 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
   const toastTimer = useRef<number | null>(null)
   const cartHydrated = useRef(false)
   const postPaymentReviewHandled = useRef(false)
+  // PMD_V2_PERF_R47_LATEST_REQUEST_WINS: a slow old poll must not overwrite
+  // the result of a more recent explicit post-payment refresh.
+  const orderRequestSeqR47 = useRef(0)
 
   const labels = useMemo(() => getLabels(locale), [locale])
   const direction = isRtlLocale(locale) ? 'rtl' : 'ltr'
@@ -469,10 +472,12 @@ export function MenuRuntimeProvider({ bootstrap, children }: { bootstrap: Custom
 
   const refreshOrder = useCallback(async () => {
     if (isPreview || (!bootstrap.table.id && !bootstrap.table.number && !bootstrap.table.qr)) return
+    const sequence = ++orderRequestSeqR47.current
     try {
       const session = guestSessionId || getGuestSessionId(bootstrap.tenant.id, bootstrap.table)
       if (!guestSessionId) setGuestSessionId(session)
       const next = await fetchTableOrdersState(bootstrap.table, session)
+      if (sequence !== orderRequestSeqR47.current) return
       setCurrentDraft((current) => sameOrderSnapshotR47(current, next.draft) ? current : next.draft)
       setTableOrders((current) => sameOrderSnapshotR47(current, next.orders) ? current : next.orders)
       setSelectedOrderId((current) => {
