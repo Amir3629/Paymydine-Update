@@ -222,7 +222,7 @@ stage_r47_perf(){
 # during --check. This catches V2 code drift before any full build or install.
 PREFLIGHT="$TMP/preflight"
 mkdir -p "$PREFLIGHT"
-for rel in package.json src/server/normalize.ts src/domain/model.ts \
+for rel in package.json tsconfig.json src/server/normalize.ts src/domain/model.ts \
   'app/table/[tableId]/page.tsx' app/page.tsx 'app/api/health/route.ts' \
   src/runtime/MenuRuntimeContext.tsx src/runtime/SmartMenuRuntimeContext.tsx \
   src/runtime/components/RuntimeOverlays.tsx app/globals.css \
