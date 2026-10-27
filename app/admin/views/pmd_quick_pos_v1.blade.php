@@ -83,6 +83,7 @@
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-quick-reservations-v1.css?v=20261005-r19">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-compact-grid-reservation-r137.css?v=20261027-r137">
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-native-reservation-r138.css?v=20261027-r138">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-inline-reservation-r139.css?v=20261027-r139">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
     {{-- PMD_QPOS_RESERVATION_RAIL_R2: the POS side rail is separate from shared Map. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-qpos-reservation-rail-r2.css') }}?v=20261018-r2">
@@ -495,6 +496,10 @@
             <div class="pmd-qres-timeline" data-qres-timeline>
                 <div class="pmd-qres-loading">Loading schedule…</div>
             </div>
+            {{-- PMD_QPOS_INLINE_COMPOSER_R139:
+                 The same canonical reservation form is moved here for POS only.
+                 No duplicate form, no hidden cloned inputs and no new save API. --}}
+            <div class="pmd-qres-inline-host-r139" data-qres-inline-composer-host-r139></div>
         </section>
 
         <aside class="pmd-qpos-cart">
@@ -1214,12 +1219,12 @@ window.PMDQuickPOSConfig = {
     function loadReservations() {
         return loadScript(
             'pmd-qpos-composer-r135',
-            '/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20261019-calendar-r1',
+            '/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20261027-r139',
             function () { return !!window.PMDReservationComposerV1; }
         ).then(function () {
             return loadScript(
                 'pmd-qpos-reservations-r135',
-                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261027-r138',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261027-r139',
                 function () { return !!window.PMDQuickReservationsR136; }
             );
         });
@@ -1288,6 +1293,21 @@ window.PMDQuickPOSConfig = {
             });
         }
     }, true);
+
+    // R139: warm lazy reservation code on hover/focus, keeping the initial
+    // POS first paint minimal. An actual click is still supported immediately.
+    var reservationsSwitcher = document.querySelector(
+        '#pmd-quick-pos [data-qpos-workspace-switch="reservations"]'
+    );
+    if (reservationsSwitcher) {
+        var warmReservations = function () {
+            loadReservations().catch(function (error) {
+                console.warn('[PMD POS R139] Reservation prewarm failed', error);
+            });
+        };
+        reservationsSwitcher.addEventListener('pointerenter', warmReservations, { once: true });
+        reservationsSwitcher.addEventListener('focus', warmReservations, { once: true });
+    }
 
     var root = document.getElementById('pmd-quick-pos');
     if (root && root.getAttribute('data-workspace') === 'reservations') {
