@@ -96,6 +96,17 @@ check('Worldline card prewarm happens ONLY for selected method', () => {
   assert(!section.includes('paymentChoices.some'));
   assert(overlay.includes('WorldlineCardSessionPrewarmer'));
 });
+check('touch controls and mobile modal blur retain visual accessibility', () => {
+  const globals = read('app/globals.css');
+  const modal = read('src/runtime/components/RuntimeOverlays.module.css');
+  assert(globals.includes('PMD_V2_PERF_R47_TOUCH_ACTION'));
+  assert(globals.includes('touch-action: manipulation;'));
+  assert(modal.includes('PMD_V2_PERF_R47_MOBILE_BACKDROP'));
+  assert(modal.includes('@media (max-width: 759px)'));
+  assert(modal.includes('backdrop-filter: blur(3px)'));
+  assert(modal.includes('backdrop-filter: blur(10px)'));
+  assert(modal.includes('cursor: pointer;'));
+});
 check('actual payment settlement authority, grouping and provider buttons remain', () => {
   for (const x of [
     'prepareSplitPaymentIntent(', 'startHostedProviderPayment(', 'payExistingOrder(',
