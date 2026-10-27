@@ -165,13 +165,13 @@ const slice = (a, b) => {
   assert(i >= 0 && j > i, `Missing JS anchors: ${a} / ${b}`);
   return js.slice(i, j);
 };
-const opener = new Function('window','document','state','rowById','currentFloorMeta','quickLocationId','toast','console','quickEditor','quickForm',
+const opener = new Function('window','document','state','rowById','currentFloorMeta','quickLocationId','toast','console','quickEditor','quickForm','installQuickPOSComposerShellR138',
   'return (function(){' + slice('  function openQuickEditor(', '  function quickLocationId(') + '\nreturn openQuickEditor;})()');
 const contexts = [];
 const state = {date:'2026-10-27',tableScope:'selected',selectedTableId:8,selectedTableName:'8',editor:{}};
 const fn = opener({PMDReservationComposerV1:{open:c=>{contexts.push(c);return Promise.resolve();}}},
   {activeElement:{id:'test-hour'}},state,id=>id===37?{reserve_date:'2026-10-29'}:null,
-  ()=>({id:'12',name:'Main Floor'}),()=>6,()=>{},console,null,null);
+  ()=>({id:'12',name:'Main Floor'}),()=>6,()=>{},console,null,null,()=>null);
 const filterState = {search:'',filter:'past',rows:[{id:1,past:true},{id:2,past:false}]};
 const filterFn = new Function('state','rowIsPast','rowName','rowTables','rowNote',
   'return (function(){' + slice('  function filteredRows(', '  function renderReservationRailAction(') + '\nreturn filteredRows;})()')(
