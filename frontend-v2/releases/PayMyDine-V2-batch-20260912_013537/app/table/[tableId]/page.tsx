@@ -1,3 +1,4 @@
+import { PmdGuestTableInactiveR17 } from '@/src/runtime/components/PmdGuestTableInactiveR17'
 import { MenuRuntimeProvider } from '@/src/runtime/MenuRuntimeContext'
 import { GuestAiConcierge } from '@/src/runtime/components/GuestAiConcierge'
 import { ServiceOverlaySimplifier } from '@/src/runtime/components/ServiceOverlaySimplifier'
@@ -18,6 +19,13 @@ export default async function TableMenuPage({ params, searchParams }: PageProps)
   const [{ tableId }, rawSearch] = await Promise.all([params, searchParams])
   const context = await getPageContext(rawSearch, tableId)
   const bootstrap = await loadCustomerBootstrap(context)
+
+  // PMD_V2_TABLE_ROUTE_FAIL_CLOSED_R17
+  if (bootstrap.table.disabled || !bootstrap.table.valid) {
+    const tableLabel = bootstrap.table.number || bootstrap.table.id ||
+      context.tableNo || context.tableId || tableId
+    return <PmdGuestTableInactiveR17 tableLabel={tableLabel} />
+  }
 
   return (
     <MenuRuntimeProvider bootstrap={bootstrap}>
