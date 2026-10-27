@@ -172,7 +172,7 @@ def change_table_route(text: str) -> tuple[str, bool]:
 
 
 def change_home(text: str) -> tuple[str, bool]:
-    # Modern layout uses CustomerMenuRoute, which already checks valid/disabled.
+    # Delegated Home is validated independently by change_customer_route().
     if "import { CustomerMenuRoute }" in text:
         return text, False
     if 'PMD_V2_HOME_QR_FAIL_CLOSED_R17' in text:
