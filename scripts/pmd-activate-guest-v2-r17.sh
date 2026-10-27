@@ -66,8 +66,11 @@ trap cleanup EXIT
 mkdir -p "$TMP"
 git show "${REV}:scripts/pmd-r17-guard-frontend-v2.py" > "$TMP/v2-guard.py"
 git show "${REV}:scripts/test-pmd-r17-v2-guard.cjs" > "$TMP/test-v2.cjs"
+git show "${REV}:scripts/test-pmd-r17e-next-isolated-deps.sh" > "$TMP/test-next-deps.sh"
 python3 -m py_compile "$TMP/v2-guard.py"
 node --check "$TMP/test-v2.cjs"
+bash -n "$TMP/test-next-deps.sh"
+bash "$TMP/test-next-deps.sh"
 
 echo '== PM2 actual guest V2 process identity (never infer from truncated display) =='
 IDENTITY="$(pm2 jlist | node -e '
@@ -222,37 +225,64 @@ rsync -a \
   --exclude '/.git' --exclude '/storage' --exclude '/.pmd-*' \
   "$LIVE/" "$WORK/"
 
-# CRITICAL: never ln -s live/node_modules here. Turbopack's project root
-# is "$WORK", and external symlinks are rejected on Next.js 16.3.1.
-# -L dereferences pnpm/npm links as well, keeping EVERY dependency inside
-# the staged filesystem rather than referring to the running application.
-echo '== COPY ISOLATED DEPENDENCIES (NO EXTERNAL NODE_MODULES SYMLINK) =='
+# PMD_R17E_SAFE_INTERNAL_SYMLINK_COPY
+# Next.js 16 Turbopack requires node_modules to remain INSIDE its project root.
+# The previous -aL fixed the Turbopack root panic but dereferenced the vital
+# .bin/next -> ../next/dist/bin/next link into a regular file. The CLI then
+# incorrectly resolved ../server/require-hook relative to node_modules/.bin.
+# Keep internal relative symlinks intact, and materialize only links that
+# escape the transferred node_modules tree.
+echo '== COPY ISOLATED DEPENDENCIES (PRESERVE INTERNAL NEXT .bin LINKS) =='
 mkdir -p "$WORK/node_modules"
-rsync -aL "$LIVE/node_modules/" "$WORK/node_modules/"
+rsync -a --copy-unsafe-links "$LIVE/node_modules/" "$WORK/node_modules/"
 [[ ! -L "$WORK/node_modules" &&
    -f "$WORK/node_modules/next/package.json" &&
    -f "$WORK/node_modules/typescript/package.json" ]] || {
-  echo 'STOP: physical V2 Next dependencies missing after staged copy.'
+  echo 'STOP: isolated V2 Next dependencies missing after staged copy.'
   exit 5
 }
-# Ensure rsync did not leave an external link nested in node_modules.
-if [[ -n "$(find "$WORK/node_modules" -type l -print -quit)" ]]; then
-  echo 'STOP: staged dependencies still contain filesystem symlinks.'
-  exit 5
-fi
+# Symlinks ARE valid when they resolve to existing files WITHIN the staged
+# project; reject broken/external links before Turbopack is invoked.
+find "$WORK" -type l -print0 | python3 -c '
+import os
+import sys
+root = os.path.realpath(sys.argv[1])
+checked = 0
+for raw in sys.stdin.buffer.read().split(b"\\0"):
+    if not raw:
+        continue
+    link = os.fsdecode(raw)
+    target = os.path.realpath(link)
+    if os.path.commonpath((root, target)) != root or not os.path.exists(target):
+        sys.stderr.write("STOP R17E: broken/outside staged symlink: " + link + " -> " + target + "\\n")
+        sys.exit(5)
+    checked += 1
+print("PASS R17E: " + str(checked) + " internal staged symlinks verified.")
+' "$WORK"
 node - "$WORK" <<'NODE'
-const path = require('node:path');
-const fs = require('node:fs');
-const root = path.resolve(process.argv[2]);
+const fs = require('node:fs')
+const path = require('node:path')
+const root = path.resolve(process.argv[2])
 for (const name of ['next/package.json', 'typescript/package.json']) {
-  const file = require.resolve(name, { paths: [root] });
-  const resolved = fs.realpathSync(file);
+  const file = require.resolve(name, { paths: [root] })
+  const resolved = fs.realpathSync(file)
   if (!resolved.startsWith(path.join(root, 'node_modules') + path.sep)) {
-    throw new Error('R17D unexpected external staged dependency: ' + resolved);
+    throw new Error('R17E dependency escaped isolated project: ' + resolved)
   }
 }
-console.log('PASS R17D: Next and TypeScript resolve entirely inside the isolated build root.');
+const bin = path.join(root, 'node_modules/.bin/next')
+if (!fs.existsSync(bin)) {
+  throw new Error('R17E Next CLI missing in node_modules/.bin')
+}
+if (!fs.realpathSync(bin).startsWith(path.join(root, 'node_modules') + path.sep)) {
+  throw new Error('R17E Next CLI resolved outside staged node_modules')
+}
+console.log('PASS R17E: Next, TypeScript and Next CLI resolve inside isolated build.')
 NODE
+# Exercise Next's REAL CLI before npm run build. This catches exactly the
+# '../server/require-hook' error that escaped the earlier source-only check.
+(cd "$WORK" && ./node_modules/.bin/next --version)
+echo 'PASS R17E: staged Next CLI works before Turbopack build.'
 
 MANIFEST="$TMP/manifest"
 python3 "$TMP/v2-guard.py" --stage "$WORK" "$MANIFEST"
