@@ -954,7 +954,32 @@
 
   function setWorkspace(next, updateUrl) {
     next = next === 'reservations' ? 'reservations' : 'pos';
+
+    // R139: closing the middle editor is a canonical Composer action, not the
+    // retired inline quick-form reset. Preserve soft drafts on workspace exit.
+    if (next !== 'reservations' && state.workspace === 'reservations') {
+      var liveComposer = document.getElementById('pmd-reservation-composer-v1');
+      if (
+        liveComposer &&
+        liveComposer.classList.contains('pmd-qpos-inline-composer-r139') &&
+        liveComposer.classList.contains('show') &&
+        window.PMDReservationComposerV1 &&
+        typeof window.PMDReservationComposerV1.close === 'function'
+      ) {
+        window.PMDReservationComposerV1.close(false);
+      }
+    }
+
     state.workspace = next;
+    // Build a complete schedule before exposing the Reservations workspace.
+    // The initial lazy runtime must never show a blank/loading-frame flash.
+    if (
+      next === 'reservations' &&
+      timeline &&
+      (timeline.querySelector('.pmd-qres-loading') || !timeline.firstElementChild)
+    ) {
+      render();
+    }
     root.setAttribute('data-workspace', next);
 
     if (left) left.hidden = next !== 'reservations';
@@ -1883,11 +1908,12 @@
           '<p data-pmd-qpos-quick-context-r138>Reservation desk</p>' +
         '</div>' +
         '<button type="button" class="pmd-qpos-quick-close-r138" ' +
-          'data-pmd-qpos-quick-close-r138 aria-label="Close quick reservation">' +
+          'data-pmd-qpos-quick-close-r138 aria-label="Back to reservation schedule">' +
           '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' +
-            '<path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" ' +
-            'stroke-width="2" stroke-linecap="round"/>' +
+            '<path d="M19 12H5m6-6-6 6 6 6" fill="none" stroke="currentColor" ' +
+            'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
           '</svg>' +
+          '<span class="pmd-qpos-quick-back-label-r139">Schedule</span>' +
         '</button>';
       composerForm.insertBefore(header, content);
 
@@ -2186,6 +2212,19 @@
     var name = String(
       (button.querySelector('strong') || {}).textContent || id
     ).trim();
+
+    // R139: the canonical editor is already in the middle panel. Never reopen
+    // it on a table click: doing so would discard in-progress guest inputs.
+    // Its native Choose table(s) control remains the assignment authority.
+    var activeComposer = document.getElementById('pmd-reservation-composer-v1');
+    if (
+      activeComposer &&
+      activeComposer.classList.contains('pmd-qpos-inline-composer-r139') &&
+      activeComposer.classList.contains('show')
+    ) {
+      toast('Change the table using Choose table(s) in the reservation form.');
+      return;
+    }
 
     // R135: a table click always scopes the left reservation list to that
     // table for the active date. If no editor is open, the middle workspace

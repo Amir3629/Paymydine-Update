@@ -743,9 +743,9 @@
      */
     pmdShowDirectR20();
 
-    document.body.classList.add(
-      'pmd-reservation-composer-open-v1'
-    );
+    if (!root.classList.contains('pmd-qpos-inline-composer-r139')) {
+      document.body.classList.add('pmd-reservation-composer-open-v1');
+    }
 
     window.requestAnimationFrame(
       tagBackdrop
@@ -978,12 +978,44 @@
       );
   }
 
+  /*
+   * PMD_QPOS_INLINE_COMPOSER_R139
+   * Quick POS puts the SAME canonical Composer form in the middle column.
+   * Other Reservations routes retain their original full modal behavior.
+   */
+  function pmdPOSInlineHostR139() {
+    if (!document.body.classList.contains('pmd-qpos-body')) return null;
+    var workspace = document.getElementById('pmd-quick-pos');
+    if (!workspace || workspace.getAttribute('data-workspace') !== 'reservations') return null;
+    return workspace.querySelector('[data-qres-inline-composer-host-r139]');
+  }
+
   function pmdShowDirectR20() {
     if (root.classList.contains('show')) {
       return root;
     }
 
     pmdRemoveDirectBackdropR20();
+
+    var inlineHostR139 = pmdPOSInlineHostR139();
+    if (inlineHostR139) {
+      // Keep the right table rail, left reservations rail and body scroll alive.
+      var inlineCenterR139 = inlineHostR139.closest('[data-qpos-reservations-center]');
+      if (root.parentNode !== inlineHostR139) inlineHostR139.appendChild(root);
+      if (inlineCenterR139) inlineCenterR139.classList.add('is-inline-composer-r139');
+      document.documentElement.classList.remove(
+        'pmd-reservation-composer-bgblur-r22',
+        'pmd-reservation-composer-open-r14',
+        'pmd-reservation-composer-direct-r20'
+      );
+      root.classList.add('pmd-qpos-inline-composer-r139');
+      root.style.display = 'flex';
+      root.removeAttribute('aria-hidden');
+      root.removeAttribute('aria-modal');
+      root.setAttribute('role', 'region');
+      root.classList.add('show');
+      return root;
+    }
 
     /*
      * Keep the modal outside the blurred workspace subtree. Moving an existing
@@ -1041,10 +1073,16 @@
 
     pmdRemoveDirectBackdropR20();
 
+    var wasInlineR139 = root.classList.contains('pmd-qpos-inline-composer-r139');
     root.classList.remove(
       'show',
       'pmd-reservation-composer-v1--closing'
     );
+    if (wasInlineR139) {
+      root.classList.remove('pmd-qpos-inline-composer-r139');
+      var inlineCenterR139 = root.closest('[data-qpos-reservations-center]');
+      if (inlineCenterR139) inlineCenterR139.classList.remove('is-inline-composer-r139');
+    }
 
     root.style.display = 'none';
     root.setAttribute(
@@ -2926,9 +2964,9 @@ function applyAvailability(result) {
       );
 
       pmdShowDirectR20();
-      document.body.classList.add(
-        'pmd-reservation-composer-open-v1'
-      );
+      if (!root.classList.contains('pmd-qpos-inline-composer-r139')) {
+        document.body.classList.add('pmd-reservation-composer-open-v1');
+      }
       window.requestAnimationFrame(
         tagBackdrop
       );
@@ -2940,9 +2978,9 @@ function applyAvailability(result) {
       prepareImmediateShell(context);
 
       pmdShowDirectR20();
-      document.body.classList.add(
-        'pmd-reservation-composer-open-v1'
-      );
+      if (!root.classList.contains('pmd-qpos-inline-composer-r139')) {
+        document.body.classList.add('pmd-reservation-composer-open-v1');
+      }
       window.requestAnimationFrame(
         tagBackdrop
       );
