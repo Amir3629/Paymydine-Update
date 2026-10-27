@@ -7,7 +7,7 @@ umask 077
 MODE="${1:---check}"
 ROOT="${PMD_QPOS_ROOT:-/var/www/paymydine}"
 BASE="ed1667071896ca4acd530cbc2c3d64b3c8dc7c2a"
-SOURCE="810ca771d68d747a1283780788cac539734ba8cc"
+SOURCE="28fc85a2027516d160c31f8c5bd0a050fa8d7dca"
 JS="app/admin/assets/js/pmd-quick-reservations-v1.js"
 CSS="app/admin/assets/css/pmd-qpos-native-reservation-r138.css"
 BLADE="app/admin/views/pmd_quick_pos_v1.blade.php"
@@ -82,9 +82,9 @@ fi
 
 # Guard against accidentally installing edits outside the exact R138 allowlist.
 mapfile -t changed < <(git diff --name-only "$BASE" "$SOURCE")
-[[ "${#changed[@]}" -eq 3 ]] || fail "Expected exactly 3 R138 source changes, saw ${#changed[@]}."
+[[ "${#changed[@]}" -eq 4 ]] || fail "Expected 3 R138 live assets plus the installer itself, saw ${#changed[@]} changed paths."
 for p in "${changed[@]}"; do
-  case "$p" in "$JS"|"$CSS"|"$BLADE") ;; *) fail "Unexpected changed source path: $p" ;; esac
+  case "$p" in "$JS"|"$CSS"|"$BLADE"|scripts/pmd-install-qpos-r138.sh) ;; *) fail "Unexpected changed source path: $p" ;; esac
 done
 
 git diff --check "$BASE" "$SOURCE" || fail 'Source whitespace verification failed.'
