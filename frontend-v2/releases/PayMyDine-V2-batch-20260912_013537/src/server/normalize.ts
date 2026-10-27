@@ -410,13 +410,31 @@ export function normalizeTable(payload: unknown, query: { tableId?: string|null;
   const resolvedId = str(first(root, ['table_id','id'])) || null
   const resolvedNumber = str(first(root, ['table_no','table_number','number'])) || null
   const resolvedQr = str(first(root, ['qr_code','qr'])) || null
-  const valid = root.success !== false && Boolean(resolvedId || resolvedNumber || resolvedQr)
+  // PMD_V2_QR_DISABLED_TABLE_FAIL_CLOSED_R17
+  // Active physical tables may be occupied; do not equate busy with disabled.
+  const explicitlyOff = (value: unknown): boolean =>
+    value !== undefined && value !== null && str(value) !== '' && !yes(value, true)
+  const disabled =
+    yes(root.table_disabled, false) ||
+    yes(root.disabled, false) ||
+    str(root.code).toLowerCase() === 'table_disabled' ||
+    explicitlyOff(root.table_status) ||
+    explicitlyOff(root.status) ||
+    explicitlyOff(root.enabled)
+  const requestedNumber = str(query.tableNo)
+  const matchesNumber = !requestedNumber || !resolvedNumber ||
+    (/^\d+$/.test(requestedNumber) && /^\d+$/.test(resolvedNumber)
+      ? Number(requestedNumber) === Number(resolvedNumber)
+      : requestedNumber === resolvedNumber)
+  const valid = !disabled && root.success !== false && matchesNumber &&
+    Boolean(resolvedId || resolvedNumber || resolvedQr)
   return {
     valid,
-    id: resolvedId || (valid ? query.tableId || null : null),
-    number: resolvedNumber || (valid ? query.tableNo || null : null),
+    disabled,
+    id: resolvedId || (disabled || valid ? query.tableId || null : null),
+    number: resolvedNumber || (disabled || valid ? query.tableNo || null : null),
     name: str(first(root, ['table_name','name'])) || null,
-    qr: resolvedQr || (valid ? query.qr || null : null),
+    qr: resolvedQr || (disabled || valid ? query.qr || null : null),
     locationId: first(root, ['location_id']) == null ? null : num(root.location_id),
   }
 }
