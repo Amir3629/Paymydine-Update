@@ -3051,6 +3051,43 @@ function applyAvailability(result) {
       'data-pmd-composer-prehydrated-r16'
     );
 
+    /*
+     * PMD_QPOS_HYDRATE_BEFORE_SWAP_R141
+     * Quick POS already has a visible middle schedule. Keep that untouched
+     * while the canonical server Composer payload is fetched; only mount the
+     * hydrated form when date/time, table catalogue and availability are ready.
+     * The normal /admin/reservations modal keeps its existing instant path.
+     */
+    if (pmdPOSInlineHostR139()) {
+      var pendingInlineContextR141 = nextContext;
+      var pendingInlineRequestR141 =
+        pmdClonePrimerDataR10(pendingInlineContextR141);
+
+      return request(
+        'onLoadReservationComposer',
+        pmdLoadRequestDataR10(pendingInlineRequestR141)
+      ).then(function (response) {
+        // A newer click or a workspace switch invalidates this response.
+        if (
+          context !== pendingInlineContextR141
+          || !pmdPOSInlineHostR139()
+        ) {
+          return { pmdQuickPOSCancelledR141: true };
+        }
+
+        pmdRememberPrimerR10(pendingInlineRequestR141, response);
+        return showHydrated(response);
+      }).catch(function (error) {
+        if (
+          context !== pendingInlineContextR141
+          || !pmdPOSInlineHostR139()
+        ) {
+          return { pmdQuickPOSCancelledR141: true };
+        }
+        return handleOpenError(error);
+      });
+    }
+
     return showImmediateAndLoad()
       .catch(handleOpenError);
   }
