@@ -2823,6 +2823,11 @@
     canonicalComposerRootR141.addEventListener('hidden.bs.modal', function () {
       renderTableFilter();
     });
+    // Manual multi-table controls can change native options without a
+    // DOM "change" event; the canonical availability event is their state
+    // boundary. Synchronize the right-hand assignment outline from it.
+    canonicalComposerRootR141.addEventListener('pmd:composer:availability', renderTableFilter);
+    canonicalComposerRootR141.addEventListener('pmd:manual-table-availability-v2', renderTableFilter);
     var canonicalFormR141 = canonicalComposerRootR141.querySelector('#pmd-reservation-composer-form-v1');
     if (canonicalFormR141) {
       canonicalFormR141.addEventListener('change', function (event) {
