@@ -7,7 +7,7 @@ umask 077
 MODE="${1:---check}"
 ROOT="${PMD_QPOS_ROOT:-/var/www/paymydine}"
 BASE="f925098f617faf1135d3594e06bde022ebefce31"
-SOURCE="9b7e3d968edd6f6b15a1723374168e83a7882811"
+SOURCE="820e2dc4bf0b418d4866567f0a70c8aac8178a0d"
 JS="app/admin/assets/js/pmd-quick-reservations-v1.js"
 COMPOSER="app/admin/assets/js/pmd-reservation-composer-v1.js"
 MAIN="app/admin/assets/js/pmd-quick-pos-v1.js"
@@ -89,9 +89,9 @@ fi
 
 # Guard against accidentally installing edits outside the exact R141 allowlist.
 mapfile -t changed < <(git diff --name-only "$BASE" "$SOURCE")
-[[ "${#changed[@]}" -eq 5 ]] || fail "Expected exactly 5 R141 live asset paths, found ${#changed[@]}."
+[[ "${#changed[@]}" -eq 6 ]] || fail "Expected 5 live assets plus R141 installer in source, found ${#changed[@]} paths."
 for p in "${changed[@]}"; do
-  case "$p" in "$JS"|"$COMPOSER"|"$MAIN"|"$CSS"|"$BLADE") ;; *) fail "Unexpected changed source path: $p" ;; esac
+  case "$p" in "$JS"|"$COMPOSER"|"$MAIN"|"$CSS"|"$BLADE"|scripts/pmd-install-qpos-r141.sh) ;; *) fail "Unexpected changed source path: $p" ;; esac
 done
 
 git diff --check "$BASE" "$SOURCE" || fail 'Source whitespace verification failed.'
