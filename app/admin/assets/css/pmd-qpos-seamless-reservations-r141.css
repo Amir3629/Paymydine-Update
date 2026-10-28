@@ -1,0 +1,58 @@
+/* PMD_QPOS_SEAMLESS_RESERVATIONS_R141
+ * The POS middle editor and the existing cashier keyboard share one surface.
+ * Keep the product catalog, payment actions, and /admin/reservations untouched.
+ */
+
+/* Reserved first-paint layout: table, date header, 24 stable hour tracks. */
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-awaiting-r141 {
+  min-height: 160px;
+  background: #fff;
+}
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-hour-row.is-outside-hours-r141 {
+  background: #fafbfb;
+}
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-hour-row.is-outside-hours-r141
+.pmd-qres-hour-label {
+  cursor: default;
+  color: #66756f;
+}
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-hour-row.is-outside-hours-r141
+.pmd-qres-hour-lane {
+  cursor: default;
+  background: transparent;
+}
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qres-hour-row.is-outside-hours-r141
+.pmd-qres-hour-lane:not([data-qres-slot]) {
+  pointer-events: none;
+}
+
+/* Right table rail has two distinct states:
+   white inner outline = table used by the currently open Composer,
+   original filter style = left reservation list is scoped to that table.
+   Never replace table status colors (red/green/orange) with booking state. */
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qpos-table.is-reservation-assigned-r141 {
+  outline: 3px solid #084e3d !important;
+  outline-offset: -5px !important;
+}
+#pmd-quick-pos[data-workspace="reservations"] .pmd-qpos-table.is-reservation-assigned-r141:focus-visible {
+  outline: 3px solid #042f27 !important;
+  outline-offset: 2px !important;
+}
+
+/* POS-native shared on-screen keyboard: no duplicated keyboard HTML or key
+   handlers. Reserve scroll space when a reservation text field has focus. */
+@media (min-width: 900px) {
+  #pmd-quick-pos[data-workspace="reservations"].is-qres-keyboard-open-r141
+  #pmd-reservation-composer-v1.pmd-qpos-inline-composer-r139
+  .pmd-reservation-composer-v1__content {
+    padding-bottom: 340px !important;
+    scroll-padding-bottom: 300px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #pmd-quick-pos[data-workspace="reservations"] .pmd-qres-hour-row,
+  #pmd-quick-pos[data-workspace="reservations"] .pmd-qres-hour-grid {
+    transition: none !important;
+    animation: none !important;
+  }
+}
