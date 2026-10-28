@@ -10819,6 +10819,7 @@
       keyboard.hidden = true;
       keyboard.setAttribute('aria-hidden', 'true');
     }
+    root.classList.remove('is-qres-keyboard-open-r141');
     state.textKeyboardTarget = null;
   }
 
@@ -11997,6 +11998,62 @@
     });
 
     configureTextKeyboardTargets();
+
+    /* PMD_QPOS_RESERVATION_SHARED_KEYBOARD_R141
+     * Reuse the exact cashier keyboard and key-insertion logic already bound
+     * above. The canonical reservation form is moved into the center lazily,
+     * so the original static Order Note/Search bindings never reached it.
+     * Delegate dynamically; never create a second keyboard or a parallel
+     * model of the Composer's guest/contact/comment fields.
+     */
+    function reservationTextFieldR141(target) {
+      if (!target || !target.matches || !useTextKeyboard()) return null;
+      if (!target.matches(
+        'input[name="first_name"], input[name="telephone"], ' +
+        'input[name="email"], textarea[name="comment"]'
+      )) return null;
+      if (!target.closest(
+        '#pmd-quick-pos[data-workspace="reservations"] ' +
+        '#pmd-reservation-composer-v1.pmd-qpos-inline-composer-r139.show'
+      )) return null;
+      var namesR141 = {
+        first_name: 'Guest name',
+        telephone: 'Phone number',
+        email: 'E-mail',
+        comment: 'Reservation comment'
+      };
+      return {
+        field: target,
+        label: namesR141[target.name] || 'Reservation'
+      };
+    }
+
+    function showReservationKeyboardR141(target) {
+      var match = reservationTextFieldR141(target);
+      if (!match) return false;
+
+      match.field.setAttribute('data-qpos-text-keyboard-field', '1');
+      match.field.setAttribute('inputmode', 'none');
+      maybeOpenTextKeyboard(match.field, match.label);
+      root.classList.add('is-qres-keyboard-open-r141');
+      return true;
+    }
+
+    document.addEventListener('focusin', function (event) {
+      showReservationKeyboardR141(event.target);
+    }, true);
+    document.addEventListener('click', function (event) {
+      showReservationKeyboardR141(event.target);
+    });
+
+    var composerKeyboardRootR141 =
+      document.getElementById('pmd-reservation-composer-v1');
+    if (composerKeyboardRootR141) {
+      composerKeyboardRootR141.addEventListener('hidden.bs.modal', function () {
+        closeTextKeyboard();
+      });
+    }
+
     window.addEventListener('resize', configureTextKeyboardTargets);
     window.addEventListener('resize', syncHistoryMobileLayoutV87, {passive: true});
 
