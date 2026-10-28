@@ -2305,6 +2305,21 @@
           : Number(o.value || 0) === id;
       });
       chooseR141.checked = true;
+
+      // The right rail may now be on another floor. Preserve the explicit
+      // selected table while clearing a stale floor lock from the previous
+      // create context; the canonical backend still checks capacity/conflicts.
+      var selectedFloorR141 = String(
+        button.getAttribute('data-qpos-table-floor') ||
+        currentFloorMeta().id || ''
+      );
+      var floorFieldR141 = formR141.querySelector('[name="pmd_floor_id"]');
+      var floorLockedR141 = formR141.querySelector('[name="pmd_floor_locked"]');
+      if (floorFieldR141 && selectedFloorR141) {
+        floorFieldR141.value = selectedFloorR141;
+      }
+      if (floorLockedR141) floorLockedR141.value = '0';
+
       // A single native change notifies canonical availability, picker and
       // floor/guest policy; no new save endpoint or local table state exists.
       chooseR141.dispatchEvent(new Event('change', { bubbles: true }));
