@@ -40,6 +40,7 @@
   var quickAvailabilityTimer = 0;
   var quickAvailabilityRequestId = 0;
   var otherSearchTimer = 0;
+  var quickComposerOpeningR141 = null;
 
   var state = {
     workspace: root.getAttribute('data-workspace') === 'reservations'
@@ -384,14 +385,18 @@
     if (state.workspace !== 'reservations') {
       pickup.classList.remove('is-qres-new-r131', 'is-qres-new-r133');
       pickup.removeAttribute('aria-label');
-      pickup.innerHTML = '<strong>Pickup</strong>';
+      if (pickup.textContent.trim() !== 'Pickup') {
+        pickup.innerHTML = '<strong>Pickup</strong>';
+      }
       return;
     }
 
     pickup.classList.remove('is-qres-new-r131');
     pickup.classList.add('is-qres-new-r133');
     pickup.setAttribute('aria-label', 'New reservation');
-    pickup.innerHTML = '<strong>New</strong>';
+    if (pickup.textContent.trim() !== 'New') {
+      pickup.innerHTML = '<strong>New</strong>';
+    }
   }
 
   function setRefreshing(active) {
@@ -411,7 +416,25 @@
     });
   }
 
+  function composerSelectedIdsR141() {
+    var composerRoot = document.getElementById('pmd-reservation-composer-v1');
+    if (!composerRoot
+      || !composerRoot.classList.contains('pmd-qpos-inline-composer-r139')
+      || !composerRoot.classList.contains('show')) return [];
+
+    var form = composerRoot.querySelector('#pmd-reservation-composer-form-v1');
+    var mode = form && form.querySelector('[name="assignment_mode"]:checked');
+    var select = form && form.querySelector('[name="tables[]"]');
+    if (!mode || mode.value !== 'choose' || !select) return [];
+    return Array.prototype.filter.call(select.options, function (o) {
+      return o.selected;
+    }).map(function (o) {
+      return Number(o.value || 0);
+    }).filter(Boolean);
+  }
+
   function renderTableFilter() {
+    var assignedIdsR141 = composerSelectedIdsR141();
     var selectedMode =
       state.tableScope === 'selected' &&
       state.selectedTableId > 0;
@@ -439,6 +462,11 @@
       button.classList.toggle(
         'is-reservation-filter-r129',
         selectedMode && id === state.selectedTableId
+      );
+      // Assignment outline is distinct from the scoped-list filter.
+      button.classList.toggle(
+        'is-reservation-assigned-r141',
+        assignedIdsR141.indexOf(id) >= 0
       );
     });
   }
@@ -477,10 +505,10 @@
     if (!list) return;
 
     if (state.loading && !state.rows.length && !state.search) {
-      list.innerHTML =
-        '<div class="pmd-qres-list-loading">' +
-          '<span></span><span></span><span></span>' +
-        '</div>';
+      // Stable first-paint state; don't flash textual Loading/Empty statuses.
+      if (!list.querySelector('.pmd-qres-awaiting-r141')) {
+        list.innerHTML = '<div class="pmd-qres-awaiting-r141" aria-hidden="true"></div>';
+      }
       return;
     }
 
@@ -774,11 +802,17 @@
     }
 
     var now = berlinNowParts();
-    var html = '<div class="pmd-qres-hour-grid' +
-      (state.loading ? ' is-loading' : '') + '">';
+    var opening = openingForDate(state.date);
+    var html = '<div class="pmd-qres-hour-grid">';
 
-    for (var minute = bounds.start; minute < bounds.end; minute += 60) {
+    // Match Blade's initial 00:00–23:00 geometry. Closed hours remain visible
+    // but not bookable; overnight extensions append below the viewport.
+    var visibleEndR141 = Math.max(24 * 60, bounds.end);
+    for (var minute = 0; minute < visibleEndR141; minute += 60) {
       var hourRows = rowsForHour(rows, minute);
+      var bookableR141 = !opening.closed && opening.intervals.some(function (range) {
+        return minute >= range[0] && minute < range[1];
+      });
       var isCurrent =
         state.date === now.date &&
         now.minutes >= minute &&
@@ -791,15 +825,16 @@
 
       html +=
         '<div class="pmd-qres-hour-row' +
-          (isCurrent ? ' is-current' : '') + '">' +
-          '<button type="button" class="pmd-qres-hour-label" data-qres-slot="' +
-            esc(slotTime) + '">' +
-            esc(slotTime) +
-          '</button>' +
-          '<div class="pmd-qres-hour-lane" data-qres-slot="' +
-            esc(slotTime) + '" role="button" tabindex="0" aria-label="Book at ' +
-            esc(slotTime) + '">' +
-            cards +
+          (isCurrent ? ' is-current' : '') +
+          (!bookableR141 ? ' is-outside-hours-r141' : '') + '">' +
+          (bookableR141
+            ? '<button type="button" class="pmd-qres-hour-label" data-qres-slot="' + esc(slotTime) + '">' + esc(slotTime) + '</button>'
+            : '<span class="pmd-qres-hour-label">' + esc(slotTime) + '</span>') +
+          '<div class="pmd-qres-hour-lane"' +
+            (bookableR141
+              ? ' data-qres-slot="' + esc(slotTime) + '" role="button" tabindex="0" aria-label="Book at ' + esc(slotTime) + '"'
+              : ' aria-label="Outside bookable hours"') + '>' +
+            (bookableR141 || hourRows.length ? cards : '') +
           '</div>' +
         '</div>';
     }
@@ -1971,6 +2006,7 @@
     // R137: Quick POS embeds the canonical Composer, not the retired inline editor.
     // Preserve the server-owned reservation/availability/save contract.
     var composer = window.PMDReservationComposerV1;
+    if (quickComposerOpeningR141) return quickComposerOpeningR141;
     if (composer && typeof composer.open === 'function') {
       var composerId = Number(reservationId || 0);
       var composerRow = composerId ? rowById(composerId) : null;
@@ -2002,18 +2038,26 @@
 
       var refreshQuickHeader = installQuickPOSComposerShellR138(nextContext);
 
-      return Promise.resolve()
+      var pendingR141 = Promise.resolve()
         .then(function () {
           return composer.open(nextContext, document.activeElement || null);
         })
         .then(function (response) {
+          if (response && response.pmdQuickPOSCancelledR141) return response;
           if (refreshQuickHeader) refreshQuickHeader();
+          renderTableFilter();
           return response;
         })
         .catch(function (error) {
-          console.error('[PMD Quick POS R137] Reservation Composer open failed', error);
+          console.error('[PMD Quick POS R141] Reservation Composer open failed', error);
           toast('Reservation could not be opened. Please retry.', true);
         });
+      quickComposerOpeningR141 = pendingR141;
+      return pendingR141.finally(function () {
+        if (quickComposerOpeningR141 === pendingR141) {
+          quickComposerOpeningR141 = null;
+        }
+      });
     }
 
     // Keep older inline hosts functional, but never silently do nothing.
@@ -2211,7 +2255,7 @@
       });
   }
 
-  function selectReservationTable(button) {
+  function selectReservationTable(button, additiveR141) {
     var id = Number(button.getAttribute('data-qpos-table') || 0);
     if (!id || button.disabled) return;
 
@@ -2219,16 +2263,73 @@
       (button.querySelector('strong') || {}).textContent || id
     ).trim();
 
-    // R139: the canonical editor is already in the middle panel. Never reopen
-    // it on a table click: doing so would discard in-progress guest inputs.
-    // Its native Choose table(s) control remains the assignment authority.
+    if (quickComposerOpeningR141) {
+      toast('Preparing the reservation. Try the table again.');
+      return;
+    }
+
+    // R141: the right-hand tables are also a live assignment control when
+    // the canonical middle Composer is open. Mutate only its actual native
+    // radio + select, then let its server availability validation run.
     var activeComposer = document.getElementById('pmd-reservation-composer-v1');
     if (
       activeComposer &&
       activeComposer.classList.contains('pmd-qpos-inline-composer-r139') &&
       activeComposer.classList.contains('show')
     ) {
-      toast('Change the table using Choose table(s) in the reservation form.');
+      var formR141 = activeComposer.querySelector('#pmd-reservation-composer-form-v1');
+      var selectR141 = formR141 && formR141.querySelector('[name="tables[]"]');
+      var chooseR141 = formR141 &&
+        formR141.querySelector('[name="assignment_mode"][value="choose"]');
+
+      if (isPastSelectedDate()) {
+        toast('Past reservations are read-only.');
+        return;
+      }
+      if (!selectR141 || !chooseR141 ||
+          activeComposer.dataset.pmdTableCatalogReady !== '1') {
+        toast('Table options are still loading. Try again.');
+        return;
+      }
+      var optionR141 = Array.prototype.find.call(selectR141.options, function (o) {
+        return Number(o.value || 0) === id;
+      });
+      if (!optionR141 || optionR141.disabled) {
+        toast('This table is not selectable for the reservation.', true);
+        return;
+      }
+
+      Array.prototype.forEach.call(selectR141.options, function (o) {
+        o.selected = additiveR141
+          ? (o.selected || Number(o.value || 0) === id)
+          : Number(o.value || 0) === id;
+      });
+      chooseR141.checked = true;
+
+      // The right rail may now be on another floor. Preserve the explicit
+      // selected table while clearing a stale floor lock from the previous
+      // create context; the canonical backend still checks capacity/conflicts.
+      var selectedFloorR141 = String(
+        button.getAttribute('data-qpos-table-floor') ||
+        currentFloorMeta().id || ''
+      );
+      var floorFieldR141 = formR141.querySelector('[name="pmd_floor_id"]');
+      var floorLockedR141 = formR141.querySelector('[name="pmd_floor_locked"]');
+      if (floorFieldR141 && selectedFloorR141) {
+        floorFieldR141.value = selectedFloorR141;
+      }
+      if (floorLockedR141) floorLockedR141.value = '0';
+
+      // A single native change notifies canonical availability, picker and
+      // floor/guest policy; no new save endpoint or local table state exists.
+      chooseR141.dispatchEvent(new Event('change', { bubbles: true }));
+
+      state.selectedTableId = id;
+      state.selectedTableName = name;
+      state.tableScope = 'selected';
+      renderTableFilter();
+      loadReservations(true);
+      toast('Table ' + name + ' selected. Availability is being checked.');
       return;
     }
 
@@ -2291,7 +2392,7 @@
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      selectReservationTable(tableButton);
+      selectReservationTable(tableButton, Boolean(event.shiftKey));
       return;
     }
 
@@ -2717,7 +2818,45 @@
     syncQuickTableUI();
   });
 
-  window.addEventListener('pmd:reservation-saved', function () {
+  var canonicalComposerRootR141 = document.getElementById('pmd-reservation-composer-v1');
+  if (canonicalComposerRootR141) {
+    canonicalComposerRootR141.addEventListener('hidden.bs.modal', function () {
+      renderTableFilter();
+    });
+    // Manual multi-table controls can change native options without a
+    // DOM "change" event; the canonical availability event is their state
+    // boundary. Synchronize the right-hand assignment outline from it.
+    canonicalComposerRootR141.addEventListener('pmd:composer:availability', renderTableFilter);
+    canonicalComposerRootR141.addEventListener('pmd:manual-table-availability-v2', renderTableFilter);
+    var canonicalFormR141 = canonicalComposerRootR141.querySelector('#pmd-reservation-composer-form-v1');
+    if (canonicalFormR141) {
+      canonicalFormR141.addEventListener('change', function (event) {
+        if (event.target && (
+          event.target.name === 'tables[]' ||
+          event.target.name === 'assignment_mode'
+        )) renderTableFilter();
+      });
+    }
+  }
+
+  window.addEventListener('pmd:reservation-saved', function (event) {
+    var saved = event && event.detail ? event.detail : {};
+    if (
+      state.workspace === 'reservations' &&
+      String(saved.source || '').indexOf('quick-pos') >= 0 &&
+      Array.isArray(saved.tableIds) &&
+      saved.tableIds.length === 1 &&
+      Number(saved.tableIds[0]) > 0
+    ) {
+      var newId = Number(saved.tableIds[0]);
+      var tableNode = root.querySelector('[data-qpos-table="' + newId + '"]');
+      state.selectedTableId = newId;
+      state.selectedTableName = tableNode
+        ? String((tableNode.querySelector('strong') || {}).textContent || newId).trim()
+        : String(newId);
+      state.tableScope = 'selected';
+      renderTableFilter();
+    }
     window.setTimeout(function () { loadReservations(true); }, 60);
   });
 

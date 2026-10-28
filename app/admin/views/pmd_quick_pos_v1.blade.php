@@ -85,6 +85,7 @@
 <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-native-reservation-r138.css?v=20261027-r138">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-inline-reservation-r139.css?v=20261027-r139">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-reservations-polish-r140.css?v=20261027-r140">
+    <link rel="stylesheet" href="/app/admin/assets/css/pmd-qpos-seamless-reservations-r141.css?v=20261028-r141">
     <link rel="stylesheet" href="/app/admin/assets/css/pmd-table-display-waiter-payment-v1.css?v=20261001-r2">
     {{-- PMD_QPOS_RESERVATION_RAIL_R2: the POS side rail is separate from shared Map. --}}
     <link rel="stylesheet" href="{{ asset('app/admin/assets/css/pmd-qpos-reservation-rail-r2.css') }}?v=20261018-r2">
@@ -201,8 +202,8 @@
 
             <section class="pmd-qpos-tables">
                 <div class="pmd-qpos-table-grid" data-qpos-tables>
-                    <button type="button" class="pmd-qpos-table pmd-qpos-pickup" data-qpos-pickup>
-                        <strong>Pickup</strong>
+                    <button type="button" class="pmd-qpos-table pmd-qpos-pickup{{ $pmdInitialWorkspace === 'reservations' ? ' is-qres-new-r133' : '' }}" data-qpos-pickup @if($pmdInitialWorkspace === 'reservations') aria-label="New reservation" @endif>
+                        <strong>{{ $pmdInitialWorkspace === 'reservations' ? 'New' : 'Pickup' }}</strong>
                     </button>
                     @foreach($pmdInitialTables as $table)
                         @php
@@ -473,8 +474,9 @@
                 <button type="button" data-qres-clear-table aria-label="Clear table filter">×</button>
             </div>
 
-            <div class="pmd-qres-list" data-qres-list>
-                <div class="pmd-qres-loading">Loading reservations…</div>
+            <div class="pmd-qres-list" data-qres-list aria-live="polite">
+                {{-- Keep the left rail quiet until the real rows have arrived. --}}
+                <div class="pmd-qres-awaiting-r141" aria-hidden="true"></div>
             </div>
         </aside>
 
@@ -486,11 +488,11 @@
             <header class="pmd-qres-center-head">
                 <div class="pmd-qres-center-title">
                     <h2>Daily reservations</h2>
-                    <small data-qres-date-label>{{ $pmdQuickReservationsToday }}</small>
+                    <small data-qres-date-label>{{ \Carbon\Carbon::parse($pmdQuickReservationsToday)->locale('en')->format('D, M d, Y') }}</small>
                 </div>
                 <div class="pmd-qres-center-actions">
                     <button type="button" class="pmd-qres-today" data-qres-today>Today</button>
-                    <time class="pmd-qres-clock" data-qres-clock>{{ now()->format('H:i') }}</time>
+                    <time class="pmd-qres-clock" data-qres-clock>{{ now('Europe/Berlin')->format('H:i') }}</time>
                 </div>
             </header>
 
@@ -1179,7 +1181,7 @@ window.PMDQuickPOSConfig = {
      cannot substitute an older bundled runtime. --}}
 <script src="/app/admin/assets/js/pmd-qpos-web-parity-v112.js?v=20261022-qpos-v125"></script>
 @else
-<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261022-qpos-v125"></script>
+<script src="/app/admin/assets/js/pmd-quick-pos-v1.js?v=20261028-r141"></script>
 @endif
 {{-- Same canonical window helper as the shared Floor; POST-only /admin/pos/reservation-busy. --}}
 <script src="{{ asset('app/admin/assets/js/pmd-qpos-reservation-rail-r2.js') }}?v=20261018-r2"></script>
@@ -1232,12 +1234,12 @@ window.PMDQuickPOSConfig = {
     function loadReservations() {
         return loadScript(
             'pmd-qpos-composer-r135',
-            '/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20261027-r139',
+            '/app/admin/assets/js/pmd-reservation-composer-v1.js?v=20261028-r141',
             function () { return !!window.PMDReservationComposerV1; }
         ).then(function () {
             return loadScript(
                 'pmd-qpos-reservations-r135',
-                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261027-r140',
+                '/app/admin/assets/js/pmd-quick-reservations-v1.js?v=20261028-r141',
                 function () { return !!window.PMDQuickReservationsR136; }
             );
         });
